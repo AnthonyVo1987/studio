@@ -6,15 +6,9 @@ import { cn } from "@/lib/utils"
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
->(({ className, children, ...props }, ref) => ( // Destructure children explicitly
+>(({ className, children, ...props }, ref) => (
   <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props} // Spread the remaining props
-    >
-      {children} {/* Render children explicitly */}
-    </table>
+    <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props}>{children}</table>
   </div>
 ))
 Table.displayName = "Table"
