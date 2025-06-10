@@ -1,19 +1,25 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button"; // Added import
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ClipboardCopy } from "lucide-react"; // Added import
 
 interface JsonDisplayAreaProps {
   title: string;
   placeholderJson: string;
+  onCopy: () => void; // Added prop for copy handler
 }
 
-function JsonDisplayArea({ title, placeholderJson }: JsonDisplayAreaProps) {
+function JsonDisplayArea({ title, placeholderJson, onCopy }: JsonDisplayAreaProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Button variant="outline" size="icon" onClick={onCopy} className="h-7 w-7">
+          <ClipboardCopy className="h-4 w-4" />
+          <span className="sr-only">Copy JSON</span>
+        </Button>
       </CardHeader>
       <CardContent>
         <Textarea
@@ -31,6 +37,12 @@ export function DebugTabContent() {
   const placeholderJsonTemplate = (label: string) => `{
   "status": "placeholder data for ${label}"
 }`;
+
+  const handleCopy = (title: string, content: string) => {
+    console.log(`Copy button clicked for ${title}. Content:`, content);
+    // Actual copy to clipboard logic will be implemented later.
+    // navigator.clipboard.writeText(content); // Example for later
+  };
 
   const debugAreas = [
     { title: "Polygon API Request Log JSON", placeholder: placeholderJsonTemplate("Polygon API Request Log") },
@@ -59,7 +71,12 @@ export function DebugTabContent() {
         <ScrollArea className="h-[calc(100vh-20rem)] pr-4"> {/* Adjust height as needed */}
           <div className="space-y-4">
             {debugAreas.map((area) => (
-              <JsonDisplayArea key={area.title} title={area.title} placeholderJson={area.placeholder} />
+              <JsonDisplayArea
+                key={area.title}
+                title={area.title}
+                placeholderJson={area.placeholder}
+                onCopy={() => handleCopy(area.title, area.placeholder)}
+              />
             ))}
           </div>
         </ScrollArea>
