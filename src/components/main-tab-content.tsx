@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { KeyMetricsDisplay } from "@/components/key-metrics-display"; // Added import
+import { KeyMetricsDisplay } from "@/components/key-metrics-display";
+import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display"; // Added import
 
 export function MainTabContent() {
   const handleAnalyzeStock = () => {
@@ -63,17 +64,18 @@ export function MainTabContent() {
 
         <div className="space-y-6">
           <KeyMetricsDisplay />
+          <AiCalculatedTaDisplay /> {/* Added component */}
 
           <div>
-            <h3 className="text-lg font-semibold mb-2">Further Analysis Results</h3>
+            <h3 className="text-lg font-semibold mb-2 mt-6">AI Key Takeaways & Options Chain</h3>
             <p className="text-muted-foreground">
-              AI-calculated technical analysis, key takeaways, and options chain data will be displayed below.
+              AI-generated key takeaways and options chain data will be displayed below.
             </p>
             <div className="mt-4 p-8 bg-muted/30 rounded-md flex items-center justify-center min-h-[200px]">
               <img
-                src="https://placehold.co/600x300.png?text=More+Analysis+Output"
-                alt="Further analysis output area placeholder"
-                data-ai-hint="financial data"
+                src="https://placehold.co/600x300.png?text=Key+Takeaways+%26+Options+Data"
+                alt="Key takeaways and options data placeholder"
+                data-ai-hint="financial chart"
                 className="max-w-full h-auto rounded-md shadow-sm"
               />
             </div>
