@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { KeyMetricsDisplay } from "@/components/key-metrics-display";
-import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details-display"; // New
-import { MarketStatusDisplay } from "@/components/market-status-display"; // New
-import { StandardTaDisplay } from "@/components/standard-ta-display"; // New
+import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details-display";
+import { MarketStatusDisplay } from "@/components/market-status-display";
+import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
+import { OptionsChainTable } from "@/components/options-chain-table"; // Added import
 
 export function MainTabContent() {
   const handleAnalyzeStock = () => {
@@ -73,21 +74,7 @@ export function MainTabContent() {
           <StandardTaDisplay />
           <AiCalculatedTaDisplay />
           <AiKeyTakeawaysDisplay />
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2 mt-6">Options Chain</h3>
-            <p className="text-muted-foreground">
-              Options chain data will be displayed below. (Placeholder)
-            </p>
-            <div className="mt-4 p-8 bg-muted/30 rounded-md flex items-center justify-center min-h-[200px]">
-              <img
-                src="https://placehold.co/600x300.png?text=Options+Chain+Data"
-                alt="Options chain data placeholder"
-                data-ai-hint="financial table"
-                className="max-w-full h-auto rounded-md shadow-sm"
-              />
-            </div>
-          </div>
+          <OptionsChainTable /> {/* Replaced placeholder image with the component */}
         </div>
       </CardContent>
     </Card>
