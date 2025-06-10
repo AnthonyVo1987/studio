@@ -599,6 +599,7 @@ With these changes, the foundational UI for both "Main" and "Debug" tabs is esta
 *   None
 
 ---
+
 **Tag:** `Phase-4_Task-4.5` ([v0.4.5])
 
 **Subject:** `feat: Complete Phases 3 & 4 - Options Chain UI & Backend Data Fetching`
@@ -687,8 +688,8 @@ This combined effort establishes a functional data pipeline from Polygon.io to t
 This commit addresses persistent React hydration errors related to whitespace within `<table>` elements, specifically within `src/components/ui/table.tsx`. Despite several attempts to fix the JSX structure in previous commits, the error "whitespace text nodes cannot be a child of `<table>`" continued.
 
 **Changes Made:**
-1.  **Refined Table Component JSX (Attempt #3 for table.tsx):**
-    *   Systematically updated `src/components/ui/table.tsx` to ensure all table structural components (`Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`) explicitly destructure and wrap their `children` prop, avoiding self-closing tags when children are expected. This aimed to create a more robust and standard HTML structure to prevent hydration mismatches.
+1.  **Refined Table Component JSX (Attempt #2 & #3 for table.tsx):**
+    *   Further adjustments were made to `src/components/ui/table.tsx` to ensure all table structural components (`Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`) explicitly destructure and wrap their `children` prop, avoiding self-closing tags when children are expected. This aimed to create a more robust and standard HTML structure to prevent hydration mismatches.
 2.  **Options Chain Table Formatting (`src/components/options-chain-table.tsx`):**
     *   Corrected the column order for the "Puts" side of the options chain to accurately mirror the "Calls" side.
     *   Added an explicit super-header row to distinguish "CALLS", "STRIKE", and "PUTS" sections.
@@ -696,7 +697,7 @@ This commit addresses persistent React hydration errors related to whitespace wi
     *   Updated placeholder data keys to snake_case for consistency.
 
 **Full Environment Re-Initialization:**
-*   Due to the persistence of the `<table>` hydration error, a full local environment re-initialization was performed as per `reinit.md`. This included:
+*   Due to the persistence of the `<table>` hydration error and the emergence of a separate `handleActionReturnValue` error (which might have been related to cached states or build artifacts), a full local environment re-initialization was performed as per `reinit.md`. This included:
     *   Stopping all development servers.
     *   Deleting `node_modules`, `package-lock.json`, and `.next` directory.
     *   Performing a clean `npm install`.
@@ -716,6 +717,86 @@ This commit aims to stabilize the UI rendering and ensure a cleaner build state.
 
 **Code Files Added:**
 *   None
+
+**Code Files Removed:**
+*   None
+
+**Config/Environment Files Added:**
+*   None
+
+**Config/Environment Files Modified:**
+*   None
+
+**Config/Environment Files Removed:**
+*   None
+
+---
+**Tag:** `Phase-5_Task-5.3` ([v0.5.3])
+
+**Subject:** `feat: Implement AI Logic (TA, Key Takeaways, Chat) & Populate Debug Tab`
+
+**Details:**
+
+This commit marks the completion of Phase 5, focusing on implementing the core Genkit AI flows and their respective server actions. The primary outcome is the population of the "Debug" tab with raw JSON request and response data from these AI operations. The "Main" tab still uses placeholders for AI-generated content displays.
+
+**Phase 5 Accomplishments (Tasks 5.1 to 5.3):**
+
+*   **Task 5.1: AI TA Calculation Flow & Action**
+    *   Created `src/ai/schemas/ai-calculated-ta-schemas.ts` defining Zod schemas for input (`previousDayHigh`, `previousDayLow`, `previousDayClose`) and output (pivot points: PP, S1-S3, R1-R3).
+    *   Implemented the `calculateAiTaIndicators` Genkit flow in `src/ai/flows/calculate-ai-ta-flow.ts`. This flow performs direct calculations for classic daily pivot points based on the previous day's HLC data, formatting results to two decimal places. **This flow does not use an LLM.**
+    *   Created `src/actions/calculate-ai-ta-action.ts`, a server action that calls the `calculateAiTaIndicators` flow. It takes `stockSnapshotJson` as input.
+    *   Updated `src/components/main-tab-content.tsx`:
+        *   Added `useActionState` for `calculateAiTaAction`.
+        *   Chained this action to trigger automatically after `fetchStockDataAction` (stock data fetch) succeeds.
+        *   Upon successful AI TA calculation, the `StockAnalysisContext` is updated with `aiCalculatedTaRequestJson` and `aiCalculatedTaJson`, populating the corresponding `Textarea` components in the "Debug" tab. Error states are also handled and reflected in the context.
+
+*   **Task 5.2: AI Key Takeaways Flow & Action**
+    *   Created `src/ai/schemas/stock-analysis-schemas.ts` defining Zod schemas for `StockAnalysisInput` (ticker, various JSON data strings) and `StockAnalysisOutput` (5 key takeaways: Price Action, Trend, Volatility, Momentum, Patterns, each with a statement and sentiment).
+    *   Implemented the `analyzeStockData` Genkit flow in `src/ai/flows/analyze-stock-data.ts`. This flow uses the `DEFAULT_ANALYSIS_MODEL_ID` (correctly configured to `googleai/gemini-2.5-flash-preview-05-20` via `src/ai/models.ts`) to generate the 5 key takeaways. The prompt instructs the model on formatting (two decimal places, dollar prefix) and sentiment terms.
+    *   Created `src/actions/perform-ai-analysis-action.ts`, a server action to call the `analyzeStockData` flow.
+    *   Updated `src/components/main-tab-content.tsx`:
+        *   Added `useActionState` for `performAiAnalysisAction`.
+        *   Chained this action to trigger automatically after `calculateAiTaAction` succeeds.
+        *   Upon successful analysis, `StockAnalysisContext` is updated with `aiKeyTakeawaysRequestJson` and `aiKeyTakeawaysJson` for the "Debug" tab. Error states are handled.
+
+*   **Task 5.3: AI Chatbot Flow & Action (Debug Tab Population)**
+    *   Created `src/ai/schemas/chat-schemas.ts` defining Zod schemas for `ChatInput` (ticker, contextual JSON data, chat history, user input) and `ChatOutput` (Markdown response). Also included example chat prompts.
+    *   Implemented the `chatWithBot` Genkit flow in `src/ai/flows/chat-flow.ts`. This flow uses `DEFAULT_CHAT_MODEL_ID` (also `googleai/gemini-2.5-flash-preview-05-20`) and is designed for contextual chat based on provided stock data. It includes safety settings and prompt engineering for persona and formatting.
+    *   Created `src/actions/chat-server-action.ts`, a server action to call the `chatWithBot` flow.
+    *   Updated `src/components/main-tab-content.tsx`:
+        *   Added `useActionState` for `chatServerAction`. (Note: This action is not yet triggered by any UI element on the Main tab; that will be part of Phase 6. Its inclusion here is for plumbing the Debug Tab updates).
+        *   Added an effect to update `StockAnalysisContext` with `chatbotRequestJson` and `chatbotResponseJson` when `chatServerAction` eventually completes, populating the "Debug" tab.
+    *   Updated `src/contexts/stock-analysis-context.tsx` to include state and setters for `aiKeyTakeawaysRequestJson`, `aiKeyTakeawaysJson`, `chatbotRequestJson`, and `chatbotResponseJson`.
+    *   Updated `src/ai/dev.ts` to ensure all new flow files are imported for Genkit discovery.
+    *   Corrected an issue where `src/ai/schemas/ai-calculated-ta-schemas.ts` incorrectly had a `'use server'` directive, which was removed as schema files should not be server-only.
+
+**Outcome:**
+With these changes, the application now has a functional sequence:
+1.  User clicks "Analyze Stock".
+2.  Polygon data is fetched.
+3.  AI TA (Pivot Points) are calculated.
+4.  AI Key Takeaways are generated by an LLM.
+5.  The "Debug" tab is populated with the raw JSON requests and responses for each of these backend operations (Polygon fetch, AI TA calc, AI Key Takeaways generation). The Chatbot JSONs in the Debug tab will populate once the chat functionality is triggered in a later phase.
+
+The "Main" tab display components still use placeholder data; connecting them to live data is the objective of Phase 6.
+
+**File Manifest:**
+
+**Code Files Added:**
+*   `src/ai/schemas/stock-analysis-schemas.ts`
+*   `src/ai/flows/analyze-stock-data.ts`
+*   `src/actions/perform-ai-analysis-action.ts`
+*   `src/ai/schemas/chat-schemas.ts`
+*   `src/ai/flows/chat-flow.ts`
+*   `src/actions/chat-server-action.ts`
+
+**Code Files Modified:**
+*   `src/ai/schemas/ai-calculated-ta-schemas.ts` (Removed `'use server'` directive)
+*   `src/ai/flows/calculate-ai-ta-flow.ts` (Implementation)
+*   `src/actions/calculate-ai-ta-action.ts` (Implementation)
+*   `src/components/main-tab-content.tsx` (Integrated new actions, states, effects for AI TA and Key Takeaways, and plumbing for Chatbot debug data)
+*   `src/contexts/stock-analysis-context.tsx` (Added state and setters for AI Key Takeaways and Chatbot JSONs)
+*   `src/ai/dev.ts` (Imported new flow files)
 
 **Code Files Removed:**
 *   None
