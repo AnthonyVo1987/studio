@@ -531,7 +531,7 @@ This commit represents the completion of all tasks in Phase 0, providing a stabl
 
 ---
 
-**Tag:** `Phase-2_Task-2.5` ([v0.2.5])
+**Tag:** `Phase-2_Task-2.5` ([v0.2.5]) (Commit: be40bcb6)
 
 **Subject:** `feat: Complete Phases 1 & 2 - Debug & Main Tab UI Shells with Placeholders`
 
@@ -594,5 +594,81 @@ With these changes, the foundational UI for both "Main" and "Debug" tabs is esta
 *   None
 
 ---
-    
+**Tag:** `Phase-4_Task-4.5` ([v0.4.5])
 
+**Subject:** `feat: Complete Phases 3 & 4 - Options Chain UI & Backend Data Fetching`
+
+**Details:**
+
+This commit marks the completion of Phase 3 (UI shell for the Options Chain Table) and Phase 4 (Backend data fetching using Polygon.io and populating the "Debug" Tab). The application can now fetch live stock data, display raw JSONs in the Debug tab, and has the UI structure for the Options Chain.
+
+**Phase 3 Accomplishments (UI Shell - Options Chain Table - Task 3.1):**
+*   Created `src/components/options-chain-table.tsx`.
+    *   Implemented the table structure using ShadCN `Table` components with Calls on the left, Strikes (descending) in the center, and Puts on the right.
+    *   Populated with 3-5 rows of static, hardcoded placeholder data for correct visual formatting.
+    *   Included a placeholder header for "Options Chain for [TICKER] - Expires: [EXPIRATION_DATE]".
+*   Integrated `OptionsChainTable.tsx` into `src/components/main-tab-content.tsx`, replacing the previous placeholder image.
+
+**Phase 4 Accomplishments (Backend Data Fetching & "Debug" Tab Population - Tasks 4.1 to 4.5):**
+*   **Task 4.1: `StockAnalysisProvider` Context**
+    *   Created `src/contexts/stock-analysis-context.tsx` to manage state for all JSON strings (market status, stock snapshot, options chain, API logs, AI flow data, etc.).
+    *   Initialized state with placeholder JSON strings.
+    *   Wrapped `src/app/page.tsx`'s content with `StockAnalysisProvider`.
+    *   Updated `src/components/debug-tab-content.tsx` to consume this context, making its `Textarea` components display context state and "Copy JSON" buttons functional (copying context data).
+*   **Task 4.2: Data Source Types & Utilities**
+    *   Created `src/services/data-sources/types.ts` defining core data structures (`StockDataPackage`, `MarketStatusData`, `StockSnapshotData` with current/previous day, `StreamlinedOptionContract`, `OptionsTableRow`, etc.).
+    *   Created `src/lib/date-utils.ts` with `calculateNextFridayExpiration` and `formatTimestampToPacificTime`.
+    *   Created `src/lib/number-utils.ts` with `formatToTwoDecimals` and other formatting helpers.
+*   **Task 4.3: Polygon Adapter Implementation**
+    *   Created `src/services/data-sources/adapters/polygon-adapter.ts`.
+    *   Implemented `PolygonAdapter` using `@polygon.io/client-js` to:
+        *   Fetch Market Status.
+        *   Fetch Ticker Snapshot (current day and previous day aggregates, current price).
+        *   Fetch Standard TAs (RSI, EMA, SMA, MACD), mapping VWAP from snapshot.
+        *   Fetch Options Chain data (nearest Friday expiration, filtered +/- 10 strikes around current price, sorted descending by strike, streamlined contract details).
+    *   The adapter returns an `AdapterOutput` containing a comprehensive `StockDataPackage`.
+*   **Task 4.4: `fetchStockDataAction` Server Action**
+    *   Created `src/actions/analyze-stock-server-action.ts`.
+    *   Defined `fetchStockDataAction` which calls the `PolygonAdapter`.
+    *   On success, it updates the `StockAnalysisProvider` state with separate JSON strings for market status, stock snapshot, standard TAs, options chain, and (currently empty) Polygon API request/response logs.
+*   **Task 4.5: Wire "Analyze Stock" Button**
+    *   Modified `src/components/main-tab-content.tsx`:
+        *   Converted to a Client Component.
+        *   Used `useActionState` to call `fetchStockDataAction`.
+        *   Used `useEffect` to update `StockAnalysisContext` with fetched data upon action success.
+        *   Integrated `useToast` for user feedback during data fetching.
+    *   **Fix:** Resolved a "use server" export error by moving `initialStockDataFetchState` from the server action file to `main-tab-content.tsx`.
+*   The "Debug" Tab `Textarea` components now populate with live JSON data from Polygon.io when "Analyze Stock" is clicked.
+
+This combined effort establishes a functional data pipeline from Polygon.io to the Debug tab, with the Main tab UI shell substantially complete.
+
+**File Manifest:**
+
+**Code Files Added:**
+*   `src/components/options-chain-table.tsx`
+*   `src/contexts/stock-analysis-context.tsx`
+*   `src/services/data-sources/types.ts`
+*   `src/lib/date-utils.ts`
+*   `src/lib/number-utils.ts`
+*   `src/services/data-sources/adapters/polygon-adapter.ts`
+*   `src/actions/analyze-stock-server-action.ts`
+
+**Code Files Modified:**
+*   `src/components/main-tab-content.tsx` (Integrated options table; added state, server action call, context updates, toasts, and "use server" fix)
+*   `src/app/page.tsx` (Wrapped content with `StockAnalysisProvider`)
+*   `src/components/debug-tab-content.tsx` (Updated to consume `StockAnalysisContext` and make copy buttons fully functional)
+
+**Code Files Removed:**
+*   None
+
+**Config/Environment Files Added:**
+*   None
+
+**Config/Environment Files Modified:**
+*   None
+
+**Config/Environment Files Removed:**
+*   None
+
+---
+    
