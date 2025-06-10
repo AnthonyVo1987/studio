@@ -10,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { KeyMetricsDisplay } from "@/components/key-metrics-display";
 import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
-import { Textarea } from "@/components/ui/textarea"; // Added import
 
 export function MainTabContent() {
   const handleAnalyzeStock = () => {
@@ -22,15 +21,6 @@ export function MainTabContent() {
     console.log("AI Full Stock Analysis button clicked");
     // Logic to be implemented later
   };
-
-  const placeholderJsonTemplate = (label: string) => `{
-  "description": "Placeholder for ${label} JSON data on Main Tab",
-  "data": {
-    "field1": "value1",
-    "field2": "value2"
-  },
-  "status": "loading..."
-}`;
 
   return (
     <Card>
@@ -77,54 +67,6 @@ export function MainTabContent() {
           <KeyMetricsDisplay />
           <AiCalculatedTaDisplay />
           <AiKeyTakeawaysDisplay />
-
-          {/* Added JSON display areas as requested */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Market Status (Full JSON)</CardTitle>
-              <CardDescription>Raw market status data.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                readOnly
-                value={placeholderJsonTemplate("Market Status")}
-                className="h-32 font-code text-xs bg-muted/30"
-                placeholder={`{ "status": "loading..." }`}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Stock Snapshot (Full JSON)</CardTitle>
-              <CardDescription>Raw stock snapshot data including current and previous day.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                readOnly
-                value={placeholderJsonTemplate("Stock Snapshot")}
-                className="h-32 font-code text-xs bg-muted/30"
-                placeholder={`{ "status": "loading..." }`}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Standard Technical Indicators (Full JSON)</CardTitle>
-              <CardDescription>Raw standard technical indicators data.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                readOnly
-                value={placeholderJsonTemplate("Standard Technical Indicators")}
-                className="h-32 font-code text-xs bg-muted/30"
-                placeholder={`{ "status": "loading..." }`}
-              />
-            </CardContent>
-          </Card>
-          {/* End of added JSON display areas */}
-
 
           <div>
             <h3 className="text-lg font-semibold mb-2 mt-6">Options Chain</h3>
