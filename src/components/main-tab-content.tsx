@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator"; // Added for visual separation
+import { Separator } from "@/components/ui/separator";
+import { KeyMetricsDisplay } from "@/components/key-metrics-display"; // Added import
 
 export function MainTabContent() {
   const handleAnalyzeStock = () => {
@@ -28,48 +29,54 @@ export function MainTabContent() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-          <div className="space-y-2">
-            <Label htmlFor="ticker">Stock Ticker</Label>
-            <Input id="ticker" defaultValue="NVDA" placeholder="e.g., AAPL, MSFT" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+            <div className="space-y-2">
+              <Label htmlFor="ticker">Stock Ticker</Label>
+              <Input id="ticker" defaultValue="NVDA" placeholder="e.g., AAPL, MSFT" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataSource">Data Source</Label>
+              <Select defaultValue="polygon">
+                <SelectTrigger id="dataSource">
+                  <SelectValue placeholder="Select data source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="polygon">Polygon.io</SelectItem>
+                  {/* Future data sources can be added here */}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="dataSource">Data Source</Label>
-            <Select defaultValue="polygon">
-              <SelectTrigger id="dataSource">
-                <SelectValue placeholder="Select data source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="polygon">Polygon.io</SelectItem>
-                {/* Future data sources can be added here */}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button onClick={handleAnalyzeStock} className="w-full sm:w-auto">
-            Analyze Stock
-          </Button>
-          <Button onClick={handleAiFullAnalysis} variant="outline" className="w-full sm:w-auto">
-            AI Full Stock Analysis
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button onClick={handleAnalyzeStock} className="w-full sm:w-auto">
+              Analyze Stock
+            </Button>
+            <Button onClick={handleAiFullAnalysis} variant="outline" className="w-full sm:w-auto">
+              AI Full Stock Analysis
+            </Button>
+          </div>
         </div>
 
         <Separator />
 
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Analysis Results</h3>
-          <p className="text-muted-foreground">
-            Key metrics, AI-calculated technical analysis, key takeaways, and options chain data will be displayed here.
-          </p>
-          <div className="mt-4 p-8 bg-muted/30 rounded-md flex items-center justify-center min-h-[200px]">
-            <img
-              src="https://placehold.co/600x300.png?text=Analysis+Output+Area"
-              alt="Analysis output area placeholder"
-              data-ai-hint="financial charts"
-              className="max-w-full h-auto rounded-md shadow-sm"
-            />
+        <div className="space-y-6">
+          <KeyMetricsDisplay />
+
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Further Analysis Results</h3>
+            <p className="text-muted-foreground">
+              AI-calculated technical analysis, key takeaways, and options chain data will be displayed below.
+            </p>
+            <div className="mt-4 p-8 bg-muted/30 rounded-md flex items-center justify-center min-h-[200px]">
+              <img
+                src="https://placehold.co/600x300.png?text=More+Analysis+Output"
+                alt="Further analysis output area placeholder"
+                data-ai-hint="financial data"
+                className="max-w-full h-auto rounded-md shadow-sm"
+              />
+            </div>
           </div>
         </div>
       </CardContent>
