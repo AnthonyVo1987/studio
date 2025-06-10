@@ -429,10 +429,6 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 | 1.1     | 2025-06-09   | Firebase Studio (AI Prototyper) | Integrated Gemini Model ID specification (Section 4.3.6) to prevent "Model not found" errors. Clarified model ID usage in Phase 0 & 5. |
 
 ---
-
-This PRD (v2.1.0) provides a highly structured, UI-first approach. The AI Agent should proceed task by task, phase by phase, seeking user approval at each step. This method aims to build a stable UI foundation before tackling potentially complex backend integrations, directly addressing lessons learned from previous development cycles. Good luck with the re-implementation of StockSage v2.1.0!
-
----
 ## Project Implementation Commit Log
 
 This section tracks the commit history of the StockSage v2.1.0 re-implementation, aligning with the phases and tasks outlined in this PRD.
@@ -534,4 +530,69 @@ This commit represents the completion of all tasks in Phase 0, providing a stabl
 *   None
 
 ---
+
+**Tag:** `Phase-2_Task-2.5` ([v0.2.5])
+
+**Subject:** `feat: Complete Phases 1 & 2 - Debug & Main Tab UI Shells with Placeholders`
+
+**Details:**
+
+This commit signifies the completion of the UI shell implementation for both the "Debug" tab (Phase 1) and the initial components of the "Main" tab (Phase 2). All UI elements are populated with static placeholder data as per the UI-First strategy. This also includes corrections to make `DebugTabContent` a client component and add the required formatted displays for Market Status, Stock Snapshot, and Standard Technical Indicators on the Main tab.
+
+**Phase 1 Accomplishments (Debug Tab UI Shell - Tasks 1.1 to 1.3):**
+*   Created `src/components/debug-tab-content.tsx` and integrated it into the "Debug" tab.
+    *   Ensured `DebugTabContent` is a client component by adding `'use client';` to resolve event handler pass-through errors.
+*   Populated `DebugTabContent.tsx` with labeled `Card` components, each containing a read-only `Textarea` for all specified JSON data types (e.g., Market Status, Stock Snapshot, Polygon API Logs, AI Flow JSONs).
+    *   Each `Textarea` initialized with distinct static placeholder JSON strings.
+*   Added "Copy JSON" `Button` controls (with `ClipboardCopy` icon) to each JSON display area in the Debug tab. These buttons currently log their respective content to the console.
+
+**Phase 2 Accomplishments (Main Tab UI Shell - Part 1: Static Data & Key Takeaways Displays - Tasks 2.1 to 2.5 & Corrections):**
+*   Created `src/components/main-tab-content.tsx` and integrated it into the "Main" tab.
+*   Implemented the "Stock Analysis Input Area" in `MainTabContent.tsx`, including:
+    *   Ticker `Input` (default "NVDA").
+    *   Data Source `Select` (default "Polygon.io").
+    *   "Analyze Stock" `Button` (logs to console).
+    *   "AI Full Stock Analysis" `Button` (logs to console).
+*   Created and integrated the following display components with static placeholder data, styled for user-friendly viewing:
+    *   `src/components/key-metrics-display.tsx`: Shows Ticker, Current Price, Day's Change %.
+    *   `src/components/market-status-display.tsx`: Shows formatted market status details (e.g., Market, Status, Times).
+    *   `src/components/stock-snapshot-details-display.tsx`: Shows formatted stock details (e.g., Prev Close, Open, High, Low, Volume).
+    *   `src/components/standard-ta-display.tsx`: Shows formatted standard technical indicators (e.g., RSI, EMA, SMA, MACD, VWAP).
+    *   `src/components/ai-calculated-ta-display.tsx`: Displays formatted AI-calculated Pivot Points (PP, S1-S3, R1-R3).
+    *   `src/components/ai-key-takeaways-display.tsx`: Presents 5 key takeaways with category, sentiment (styled using `Badge`), and descriptive text.
+*   The "Options Chain" section in the Main tab remains a placeholder image, to be addressed in Phase 3.
+
+With these changes, the foundational UI for both "Main" and "Debug" tabs is established, ready for backend data integration in later phases.
+
+**File Manifest:**
+
+**Code Files Added:**
+*   `src/components/market-status-display.tsx`
+*   `src/components/standard-ta-display.tsx`
+*   `src/components/stock-snapshot-details-display.tsx`
+*   `src/components/debug-tab-content.tsx`
+*   `src/components/main-tab-content.tsx`
+*   `src/components/key-metrics-display.tsx`
+*   `src/components/ai-calculated-ta-display.tsx`
+*   `src/components/ai-key-takeaways-display.tsx`
+
+**Code Files Modified:**
+*   `src/app/page.tsx` (Integrated `MainTabContent` and `DebugTabContent`)
+*   `src/components/debug-tab-content.tsx` (Marked as client component, added full set of text areas and copy buttons)
+*   `src/components/main-tab-content.tsx` (Integrated all display components from Phase 2, including the newly added formatted displays for Market Status, Stock Snapshot, and Standard TAs)
+
+**Code Files Removed:**
+*   None
+
+**Config/Environment Files Added:**
+*   None
+
+**Config/Environment Files Modified:**
+*   None
+
+**Config/Environment Files Removed:**
+*   None
+
+---
     
+
