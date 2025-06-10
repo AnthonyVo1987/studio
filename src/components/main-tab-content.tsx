@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { KeyMetricsDisplay } from "@/components/key-metrics-display";
+import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details-display"; // New
+import { MarketStatusDisplay } from "@/components/market-status-display"; // New
+import { StandardTaDisplay } from "@/components/standard-ta-display"; // New
 import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 
@@ -65,6 +68,9 @@ export function MainTabContent() {
 
         <div className="space-y-6">
           <KeyMetricsDisplay />
+          <StockSnapshotDetailsDisplay />
+          <MarketStatusDisplay />
+          <StandardTaDisplay />
           <AiCalculatedTaDisplay />
           <AiKeyTakeawaysDisplay />
 
