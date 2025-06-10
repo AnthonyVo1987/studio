@@ -1,14 +1,16 @@
 
+"use client"; // Add this directive
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button"; // Added import
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardCopy } from "lucide-react"; // Added import
+import { ClipboardCopy } from "lucide-react";
 
 interface JsonDisplayAreaProps {
   title: string;
   placeholderJson: string;
-  onCopy: () => void; // Added prop for copy handler
+  onCopy: () => void;
 }
 
 function JsonDisplayArea({ title, placeholderJson, onCopy }: JsonDisplayAreaProps) {
