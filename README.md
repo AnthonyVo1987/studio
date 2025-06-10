@@ -603,6 +603,8 @@ With these changes, the foundational UI for both "Main" and "Debug" tabs is esta
 
 **Subject:** `feat: Complete Phases 3 & 4 - Options Chain UI & Backend Data Fetching`
 
+**Commit Hash** 346e49c4
+
 **Details:**
 
 This commit marks the completion of Phase 3 (UI shell for the Options Chain Table) and Phase 4 (Backend data fetching using Polygon.io and populating the "Debug" Tab). The application can now fetch live stock data, display raw JSONs in the Debug tab, and has the UI structure for the Options Chain.

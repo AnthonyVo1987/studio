@@ -1,86 +1,64 @@
+
 'use server';
 /**
- * @fileOverview An AI agent that calculates technical analysis indicators for a given stock.
+ * @fileOverview An AI agent that calculates classic technical analysis indicators.
+ * This flow specifically calculates daily pivot points (PP, S1-S3, R1-R3)
+ * based on the previous day's high, low, and close (HLC) prices.
  *
- * - calculateAiTaIndicators - A function that calculates AI TA indicators.
- * - CalculateAiTaIndicatorsInput - The input type for the calculateAiTaIndicators function.
- * - CalculateAiTaIndicatorsOutput - The return type for the calculateAiTaIndicators function.
+ * - calculateAiTaIndicators - A function that triggers the pivot point calculation flow.
+ * - CalculateAiTaInput - The input type (from schemas).
+ * - CalculateAiTaOutput - The return type (from schemas).
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const CalculateAiTaIndicatorsInputSchema = z.object({
-  previousDayHigh: z.number().describe('The high price of the previous day.'),
-  previousDayLow: z.number().describe('The low price of the previous day.'),
-  previousDayClose: z.number().describe('The closing price of the previous day.'),
-});
-
-export type CalculateAiTaIndicatorsInput = z.infer<
-  typeof CalculateAiTaIndicatorsInputSchema
->;
-
-const CalculateAiTaIndicatorsOutputSchema = z.object({
-  pivotPoint: z.number().describe('The pivot point.'),
-  support1: z.number().describe('The first level of support.'),
-  support2: z.number().describe('The second level of support.'),
-  support3: z.number().describe('The third level of support.'),
-  resistance1: z.number().describe('The first level of resistance.'),
-  resistance2: z.number().describe('The second level of resistance.'),
-  resistance3: z.number().describe('The third level of resistance.'),
-});
-
-export type CalculateAiTaIndicatorsOutput = z.infer<
-  typeof CalculateAiTaIndicatorsOutputSchema
->;
+import {
+  CalculateAiTaInputSchema,
+  type CalculateAiTaInput,
+  CalculateAiTaOutputSchema,
+  type CalculateAiTaOutput,
+} from '@/ai/schemas/ai-calculated-ta-schemas';
+import { formatToTwoDecimals } from '@/lib/number-utils'; // For consistent formatting
 
 export async function calculateAiTaIndicators(
-  input: CalculateAiTaIndicatorsInput
-): Promise<CalculateAiTaIndicatorsOutput> {
+  input: CalculateAiTaInput
+): Promise<CalculateAiTaOutput> {
   return calculateAiTaIndicatorsFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'calculateAiTaIndicatorsPrompt',
-  input: {schema: CalculateAiTaIndicatorsInputSchema},
-  output: {schema: CalculateAiTaIndicatorsOutputSchema},
-  prompt: `You are an expert financial analyst.
-
-  Calculate the classic pivot points, supports, and resistances based on the following data:
-
-  Previous Day High: {{{previousDayHigh}}}
-  Previous Day Low: {{{previousDayLow}}}
-  Previous Day Close: {{{previousDayClose}}}
-
-  Return the results in JSON format.
-  `,
-});
-
+// This flow performs direct calculations for pivot points.
 const calculateAiTaIndicatorsFlow = ai.defineFlow(
   {
     name: 'calculateAiTaIndicatorsFlow',
-    inputSchema: CalculateAiTaIndicatorsInputSchema,
-    outputSchema: CalculateAiTaIndicatorsOutputSchema,
+    inputSchema: CalculateAiTaInputSchema,
+    outputSchema: CalculateAiTaOutputSchema,
   },
-  async input => {
-    const pivotPoint = (input.previousDayHigh + input.previousDayLow + input.previousDayClose) / 3;
+  async (input: CalculateAiTaInput): Promise<CalculateAiTaOutput> => {
+    const H = input.previousDayHigh;
+    const L = input.previousDayLow;
+    const C = input.previousDayClose;
 
-    const support1 = 2 * pivotPoint - input.previousDayHigh;
-    const support2 = pivotPoint - (input.previousDayHigh - input.previousDayLow);
-    const support3 = input.previousDayLow - 2 * (input.previousDayHigh - pivotPoint);
+    const PP = (H + L + C) / 3;
 
-    const resistance1 = 2 * pivotPoint - input.previousDayLow;
-    const resistance2 = pivotPoint + (input.previousDayHigh - input.previousDayLow);
-    const resistance3 = input.previousDayHigh + 2 * (pivotPoint - input.previousDayLow);
+    const S1 = (2 * PP) - H;
+    const R1 = (2 * PP) - L;
+
+    const S2 = PP - (H - L);
+    const R2 = PP + (H - L);
+
+    const S3 = L - 2 * (H - PP);
+    const R3 = H + 2 * (PP - L);
+
+    // Helper to parse to number and format, ensures correct numeric type for schema
+    const parseAndFormat = (value: number) => parseFloat(formatToTwoDecimals(value, "0.00"));
 
     return {
-      pivotPoint: pivotPoint,
-      support1: support1,
-      support2: support2,
-      support3: support3,
-      resistance1: resistance1,
-      resistance2: resistance2,
-      resistance3: resistance3,
+      pivotPoint: parseAndFormat(PP),
+      support1: parseAndFormat(S1),
+      support2: parseAndFormat(S2),
+      support3: parseAndFormat(S3),
+      resistance1: parseAndFormat(R1),
+      resistance2: parseAndFormat(R2),
+      resistance3: parseAndFormat(R3),
     };
   }
 );
