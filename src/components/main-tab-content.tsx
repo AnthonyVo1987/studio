@@ -2,7 +2,7 @@
 "use client";
 
 import type { FormEvent } from 'react';
-import React, { useState, useActionState, useEffect } from "react";
+import React, { useState, useActionState, useEffect, startTransition } from "react"; // Added startTransition
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,10 +57,10 @@ export function MainTabContent() {
     setPolygonApiResponseLogJson,
     setAiCalculatedTaRequestJson,
     setAiCalculatedTaJson,
-    setAiKeyTakeawaysRequestJson, // New setter
-    setAiKeyTakeawaysJson,       // New setter
-    setChatbotRequestJson,       // New setter
-    setChatbotResponseJson,      // New setter
+    setAiKeyTakeawaysRequestJson, 
+    setAiKeyTakeawaysJson,       
+    setChatbotRequestJson,       
+    setChatbotResponseJson,      
   } = useStockAnalysis();
 
   const [analyzeStockState, analyzeStockFormAction, isAnalyzeStockPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(
@@ -78,7 +78,6 @@ export function MainTabContent() {
     initialPerformAiAnalysisState
   );
   
-  // Placeholder for chat action state - actual invocation will be from chatbot UI or "Full Analysis" button in Phase 6
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
     chatServerAction,
     initialChatActionState
@@ -90,19 +89,16 @@ export function MainTabContent() {
     toast({ title: "Fetching Stock Data...", description: `Requesting data for ${ticker.toUpperCase()}.` });
     setAiCalculatedTaRequestJson('{ "status": "pending..." }');
     setAiCalculatedTaJson('{ "status": "pending..." }');
-    setAiKeyTakeawaysRequestJson('{ "status": "pending..." }'); // Reset key takeaways
-    setAiKeyTakeawaysJson('{ "status": "pending..." }');     // Reset key takeaways
+    setAiKeyTakeawaysRequestJson('{ "status": "pending..." }'); 
+    setAiKeyTakeawaysJson('{ "status": "pending..." }');     
     analyzeStockFormAction({ ticker });
   };
 
   const handleAiFullAnalysis = () => {
     console.log("AI Full Stock Analysis button clicked - Phase 5: Not fully implemented, only logs.");
     toast({ title: "Coming Soon", description: "Full AI analysis with chatbot interaction will be implemented in Phase 6." });
-    // This will eventually trigger data fetch, AI TA, Key Takeaways, then Chatbot.
-    // For now, it doesn't trigger the full sequence.
   };
 
-  // Effect for handling stock data fetching result -> triggers AI TA calculation
   useEffect(() => {
     if (analyzeStockState.status === 'success' && analyzeStockState.data) {
       toast({ title: "Data Fetched", description: analyzeStockState.message || `Data for ${ticker.toUpperCase()} loaded.` });
@@ -115,11 +111,12 @@ export function MainTabContent() {
 
       if (analyzeStockState.data.stockSnapshotJson && analyzeStockState.data.stockSnapshotJson !== '{}') {
         toast({ title: "Calculating AI TA...", description: "Requesting AI-calculated technical indicators." });
-        calculateAiTaFormAction({ stockSnapshotJson: analyzeStockState.data.stockSnapshotJson });
+        startTransition(() => { // Wrap in startTransition
+          calculateAiTaFormAction({ stockSnapshotJson: analyzeStockState.data.stockSnapshotJson });
+        });
       } else {
          setAiCalculatedTaRequestJson('{ "status": "skipped", "reason": "No stock snapshot data" }');
          setAiCalculatedTaJson('{ "status": "skipped", "reason": "No stock snapshot data" }');
-         // Also skip AI Key Takeaways if AI TA is skipped due to missing snapshot
          setAiKeyTakeawaysRequestJson('{ "status": "skipped", "reason": "AI TA skipped" }');
          setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "AI TA skipped" }');
       }
@@ -135,25 +132,25 @@ export function MainTabContent() {
       setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
       calculateAiTaFormAction, toast, 
       setAiCalculatedTaJson, setAiCalculatedTaRequestJson,
-      setAiKeyTakeawaysJson, setAiKeyTakeawaysRequestJson // Added for reset on error/skip
+      setAiKeyTakeawaysJson, setAiKeyTakeawaysRequestJson
     ]);
 
-  // Effect for handling AI TA calculation result -> triggers AI Key Takeaways
   useEffect(() => {
     if (calculateAiTaState.status === 'success' && calculateAiTaState.data) {
       toast({ title: "AI TA Calculated", description: calculateAiTaState.message || "AI TA indicators processed." });
       setAiCalculatedTaRequestJson(calculateAiTaState.data.aiCalculatedTaRequestJson);
       setAiCalculatedTaJson(calculateAiTaState.data.aiCalculatedTaJson);
 
-      // Now trigger AI Key Takeaways
       if (stockSnapshotJson !== '{}' && standardTasJson !== '{}' && marketStatusJson !== '{}' && calculateAiTaState.data.aiCalculatedTaJson !== '{}') {
         toast({ title: "Generating AI Key Takeaways...", description: "Requesting AI-driven analysis." });
-        performAiAnalysisFormAction({ 
-          ticker, 
-          stockSnapshotJson, 
-          standardTasJson, 
-          aiCalculatedTaJson: calculateAiTaState.data.aiCalculatedTaJson, // Use fresh AI TA JSON
-          marketStatusJson
+        startTransition(() => { // Wrap in startTransition
+          performAiAnalysisFormAction({ 
+            ticker, 
+            stockSnapshotJson, 
+            standardTasJson, 
+            aiCalculatedTaJson: calculateAiTaState.data.aiCalculatedTaJson, 
+            marketStatusJson
+          });
         });
       } else {
         setAiKeyTakeawaysRequestJson('{ "status": "skipped", "reason": "Prerequisite data for Key Takeaways missing or AI TA failed." }');
@@ -168,7 +165,6 @@ export function MainTabContent() {
          setAiCalculatedTaRequestJson(`{ "status": "error", "details": "${calculateAiTaState.error || 'Pre-calculation error'}" }`);
       }
       setAiCalculatedTaJson(`{ "status": "error", "details": "${calculateAiTaState.error || 'Calculation failed'}" }`);
-      // Skip AI Key Takeaways if AI TA calculation fails
       setAiKeyTakeawaysRequestJson('{ "status": "skipped", "reason": "AI TA calculation failed" }');
       setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "AI TA calculation failed" }');
     }
@@ -177,7 +173,6 @@ export function MainTabContent() {
       setAiCalculatedTaRequestJson, setAiCalculatedTaJson, 
       setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast]);
 
-  // Effect for handling AI Key Takeaways result
   useEffect(() => {
     if (performAiAnalysisState.status === 'success' && performAiAnalysisState.data) {
       toast({ title: "AI Key Takeaways Generated", description: performAiAnalysisState.message || "AI analysis complete." });
@@ -194,19 +189,17 @@ export function MainTabContent() {
     }
   }, [performAiAnalysisState, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast]);
 
-  // Effect for handling Chat Action result (for Debug Tab population)
   useEffect(() => {
     if (chatActionState.status === 'success' && chatActionState.data) {
       toast({ title: "Chatbot Responded", description: chatActionState.message || "Chat interaction processed." });
       setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
       setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
-      // Further logic to update chat history display on Main Tab will be in Phase 6
     } else if (chatActionState.status === 'error') {
       toast({ variant: "destructive", title: "Chatbot Error", description: chatActionState.error || "Chatbot failed to respond." });
-      if (chatActionState.data?.chatbotRequestJson) { // If request was formed
+      if (chatActionState.data?.chatbotRequestJson) { 
         setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
         setChatbotResponseJson(`{ "status": "error", "details": "${chatActionState.error || 'Chat flow failed'}" }`);
-      } else { // If error was before forming request
+      } else { 
         setChatbotRequestJson(`{ "status": "error", "reason": "Pre-chat error: ${chatActionState.error}"}`);
         setChatbotResponseJson(`{ "status": "error", "reason": "Pre-chat error: ${chatActionState.error}"}`);
       }
