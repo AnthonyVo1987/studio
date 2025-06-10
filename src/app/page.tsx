@@ -1,7 +1,10 @@
+
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DebugTabContent } from "@/components/debug-tab-content"; // Added import
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 
 export default function Home() {
   return (
@@ -28,18 +31,7 @@ export default function Home() {
             </Card>
           </TabsContent>
           <TabsContent value="debug">
-            <Card>
-              <CardHeader>
-                <CardTitle>Debug Information</CardTitle>
-                <CardDescription>
-                  Raw JSON data from APIs and AI flows for debugging and verification.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>Debug tab content (Textareas with JSON) will be implemented in Phase 1.</p>
-                <img src="https://placehold.co/1200x400.png?text=Debug+Tab+Placeholder" alt="Debug tab placeholder" data-ai-hint="code screen" className="w-full h-auto rounded-md shadow-md" />
-              </CardContent>
-            </Card>
+            <DebugTabContent />
           </TabsContent>
         </Tabs>
       </main>
