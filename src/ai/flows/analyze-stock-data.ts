@@ -1,50 +1,26 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that generates key insights about a stock, emphasizing sentiment.
+ * This flow analyzes stock data and technical indicators to provide 5 key takeaways.
  *
  * - analyzeStockData - A function that handles the stock analysis process.
- * - StockAnalysisInput - The input type for the analyzeStockData function.
- * - StockAnalysisOutput - The return type for the analyzeStockData function.
+ * - StockAnalysisInput (from schemas) - The input type for the analyzeStockData function.
+ * - StockAnalysisOutput (from schemas) - The return type for the analyzeStockData function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z}from 'genkit';
-import { DEFAULT_ANALYSIS_MODEL_ID } from '@/ai/models';
+import {
+  StockAnalysisInputSchema,
+  type StockAnalysisInput,
+  StockAnalysisOutputSchema,
+  type StockAnalysisOutput,
+} from '@/ai/schemas/stock-analysis-schemas';
+import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 
-const StockAnalysisInputSchema = z.object({
-  ticker: z.string().describe('The ticker symbol of the stock to analyze.'),
-  marketStatus: z.string().describe('Current market status information in JSON format.'),
-  stockSnapshot: z.string().describe('Snapshot of the stock data including current and previous day information in JSON format.'),
-  technicalAnalysis: z.string().describe('Technical analysis indicators for the stock in JSON format.'),
-  aiCalculatedTa: z.string().describe('AI calculated technical analysis, including pivot points in JSON format.'),
-});
-export type StockAnalysisInput = z.infer<typeof StockAnalysisInputSchema>;
-
-const StockAnalysisOutputSchema = z.object({
-  priceAction: z.object({
-    takeaway: z.string().describe('A key takeaway about the price action of the stock.'),
-    sentiment: z.string().describe('The sentiment associated with the price action (e.g., bullish, bearish, neutral).'),
-  }),
-  trend: z.object({
-    takeaway: z.string().describe('A key takeaway about the trend of the stock.'),
-    sentiment: z.string().describe('The sentiment associated with the trend (e.g., bullish, bearish, neutral).'),
-  }),
-  volatility: z.object({
-    takeaway: z.string().describe('A key takeaway about the volatility of the stock.'),
-    sentiment: z.string().describe('The sentiment associated with the volatility (e.g., high, low, increasing, decreasing).'),
-  }),
-  momentum: z.object({
-    takeaway: z.string().describe('A key takeaway about the momentum of the stock.'),
-    sentiment: z.string().describe('The sentiment associated with the momentum (e.g., positive, negative, strong, weak).'),
-  }),
-  patterns: z.object({
-    takeaway: z.string().describe('A key takeaway about the chart patterns of the stock.'),
-    sentiment: z.string().describe('The sentiment associated with the chart patterns (e.g., bullish, bearish, neutral).'),
-  }),
-});
-export type StockAnalysisOutput = z.infer<typeof StockAnalysisOutputSchema>;
-
-export async function analyzeStockData(input: StockAnalysisInput): Promise<StockAnalysisOutput> {
+export async function analyzeStockData(
+  input: StockAnalysisInput
+): Promise<StockAnalysisOutput> {
   return analyzeStockDataFlow(input);
 }
 
@@ -53,25 +29,41 @@ const prompt = ai.definePrompt({
   input: {schema: StockAnalysisInputSchema},
   output: {schema: StockAnalysisOutputSchema},
   model: DEFAULT_ANALYSIS_MODEL_ID,
-  prompt: `You are an expert financial analyst providing key takeaways about a given stock.
+  prompt: `You are an expert financial analyst tasked with providing key takeaways about a stock.
+You will be given the stock ticker, a snapshot of its current and previous day data, standard technical indicators, AI-calculated technical analysis (like pivot points), and current market status.
 
-  Analyze the provided market status, stock snapshot, technical analysis, and AI-calculated technical analysis to generate 5 key takeaways:
-  - Price Action
-  - Trend
-  - Volatility
-  - Momentum
-  - Patterns
+Analyze all the provided data comprehensively. Your goal is to generate 5 distinct key takeaways, each with a concise statement and an associated sentiment. The categories for these takeaways are:
+1.  **Price Action:** Observations about the stock's recent price movements, support/resistance interactions, etc.
+2.  **Trend:** The prevailing direction (or lack thereof) of the stock's price over a relevant period.
+3.  **Volatility:** The degree of variation of the stock's trading price series over time.
+4.  **Momentum:** The speed or rate of price changes for the stock.
+5.  **Patterns:** Any significant chart patterns observed or noteworthy absence of clear patterns.
 
-  For each takeaway, provide a concise statement and an associated sentiment (bullish, bearish, or neutral).
-  Ensure numerical values are formatted to two decimal places, and monetary values are prefixed with "$".
+For each takeaway:
+- Provide a clear, insightful \`takeaway\` statement.
+- Assign a \`sentiment\`. Use terms like: bullish, bearish, neutral, positive, negative, high, low, increasing, decreasing, strong, weak, moderate, stable. Choose the most appropriate term for the category.
 
-  Market Status: {{{marketStatus}}}
-  Stock Snapshot: {{{stockSnapshot}}}
-  Technical Analysis: {{{technicalAnalysis}}}
-  AI Calculated Technical Analysis: {{{aiCalculatedTa}}}
+Formatting instructions:
+- Ensure any numerical values mentioned in your takeaways are formatted to a maximum of two decimal places.
+- Monetary values (like price targets or levels) should be prefixed with a "$" sign.
 
-  Format the output as a JSON object conforming to the StockAnalysisOutputSchema.
+Contextual Data:
+Ticker: {{{ticker}}}
+Stock Snapshot (current & prev day data): {{{stockSnapshotJson}}}
+Standard Technical Indicators (RSI, SMA, EMA, MACD, VWAP): {{{standardTasJson}}}
+AI-Calculated Technical Analysis (Pivot Points): {{{aiCalculatedTaJson}}}
+Market Status: {{{marketStatusJson}}}
+
+Provide your analysis as a JSON object strictly conforming to the StockAnalysisOutputSchema.
 `,
+  config: {
+    safetySettings: [ // Using less restrictive settings for analysis, adjust if needed
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+    ],
+  },
 });
 
 const analyzeStockDataFlow = ai.defineFlow(
@@ -82,6 +74,9 @@ const analyzeStockDataFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI analysis flow did not return an output.');
+    }
+    return output;
   }
 );

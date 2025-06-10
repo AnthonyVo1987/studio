@@ -16,31 +16,39 @@ import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
+
 import { fetchStockDataAction, type AnalyzeStockServerActionState } from "@/actions/analyze-stock-server-action";
 import { calculateAiTaAction, type CalculateAiTaActionState } from "@/actions/calculate-ai-ta-action";
+import { performAiAnalysisAction, type PerformAiAnalysisActionState } from "@/actions/perform-ai-analysis-action";
+import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action"; // Chatbot action
+
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
 const initialStockDataFetchState: AnalyzeStockServerActionState = {
-  status: 'idle',
-  data: undefined,
-  error: null,
-  message: null,
+  status: 'idle', data: undefined, error: null, message: null,
+};
+const initialCalculateAiTaState: CalculateAiTaActionState = {
+  status: 'idle', data: undefined, error: null, message: null,
+};
+const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
+  status: 'idle', data: undefined, error: null, message: null,
+};
+const initialChatActionState: ChatActionState = { // For Chatbot
+  status: 'idle', data: undefined, error: null, message: null,
 };
 
-const initialCalculateAiTaState: CalculateAiTaActionState = {
-  status: 'idle',
-  data: undefined,
-  error: null,
-  message: null,
-};
 
 export function MainTabContent() {
   const [ticker, setTicker] = useState("NVDA");
   const { toast } = useToast();
   const { 
-    stockSnapshotJson, // Get stockSnapshotJson to pass to AI TA action
+    marketStatusJson, // To pass to AI analysis
+    stockSnapshotJson, 
+    standardTasJson,   // To pass to AI analysis
+    aiCalculatedTaJson,// To pass to AI analysis and chat
+    // Context Setters
     setMarketStatusJson, 
     setStockSnapshotJson, 
     setStandardTasJson, 
@@ -49,6 +57,10 @@ export function MainTabContent() {
     setPolygonApiResponseLogJson,
     setAiCalculatedTaRequestJson,
     setAiCalculatedTaJson,
+    setAiKeyTakeawaysRequestJson, // New setter
+    setAiKeyTakeawaysJson,       // New setter
+    setChatbotRequestJson,       // New setter
+    setChatbotResponseJson,      // New setter
   } = useStockAnalysis();
 
   const [analyzeStockState, analyzeStockFormAction, isAnalyzeStockPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(
@@ -61,28 +73,39 @@ export function MainTabContent() {
     initialCalculateAiTaState
   );
 
+  const [performAiAnalysisState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, Parameters<typeof performAiAnalysisAction>[1]>(
+    performAiAnalysisAction,
+    initialPerformAiAnalysisState
+  );
+  
+  // Placeholder for chat action state - actual invocation will be from chatbot UI or "Full Analysis" button in Phase 6
+  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
+    chatServerAction,
+    initialChatActionState
+  );
+
+
   const handleAnalyzeStockSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     toast({ title: "Fetching Stock Data...", description: `Requesting data for ${ticker.toUpperCase()}.` });
-    // Reset AI TA state when new stock data is fetched
     setAiCalculatedTaRequestJson('{ "status": "pending..." }');
     setAiCalculatedTaJson('{ "status": "pending..." }');
+    setAiKeyTakeawaysRequestJson('{ "status": "pending..." }'); // Reset key takeaways
+    setAiKeyTakeawaysJson('{ "status": "pending..." }');     // Reset key takeaways
     analyzeStockFormAction({ ticker });
   };
 
   const handleAiFullAnalysis = () => {
-    console.log("AI Full Stock Analysis button clicked");
-    toast({ title: "Not Implemented", description: "AI Full Stock Analysis will be available soon." });
+    console.log("AI Full Stock Analysis button clicked - Phase 5: Not fully implemented, only logs.");
+    toast({ title: "Coming Soon", description: "Full AI analysis with chatbot interaction will be implemented in Phase 6." });
+    // This will eventually trigger data fetch, AI TA, Key Takeaways, then Chatbot.
+    // For now, it doesn't trigger the full sequence.
   };
 
-  // Effect for handling stock data fetching result and triggering AI TA calculation
+  // Effect for handling stock data fetching result -> triggers AI TA calculation
   useEffect(() => {
     if (analyzeStockState.status === 'success' && analyzeStockState.data) {
-      toast({
-        title: "Data Fetched Successfully",
-        description: analyzeStockState.message || `Data for ${ticker.toUpperCase()} loaded.`,
-      });
-      // Update context with fetched stock data
+      toast({ title: "Data Fetched", description: analyzeStockState.message || `Data for ${ticker.toUpperCase()} loaded.` });
       setMarketStatusJson(analyzeStockState.data.marketStatusJson);
       setStockSnapshotJson(analyzeStockState.data.stockSnapshotJson);
       setStandardTasJson(analyzeStockState.data.standardTasJson);
@@ -90,58 +113,108 @@ export function MainTabContent() {
       setPolygonApiRequestLogJson(analyzeStockState.data.polygonApiRequestLogJson);
       setPolygonApiResponseLogJson(analyzeStockState.data.polygonApiResponseLogJson);
 
-      // Trigger AI TA calculation
       if (analyzeStockState.data.stockSnapshotJson && analyzeStockState.data.stockSnapshotJson !== '{}') {
         toast({ title: "Calculating AI TA...", description: "Requesting AI-calculated technical indicators." });
         calculateAiTaFormAction({ stockSnapshotJson: analyzeStockState.data.stockSnapshotJson });
       } else {
          setAiCalculatedTaRequestJson('{ "status": "skipped", "reason": "No stock snapshot data" }');
          setAiCalculatedTaJson('{ "status": "skipped", "reason": "No stock snapshot data" }');
+         // Also skip AI Key Takeaways if AI TA is skipped due to missing snapshot
+         setAiKeyTakeawaysRequestJson('{ "status": "skipped", "reason": "AI TA skipped" }');
+         setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "AI TA skipped" }');
       }
     } else if (analyzeStockState.status === 'error') {
-      toast({
-        variant: "destructive",
-        title: "Error Fetching Data",
-        description: analyzeStockState.error || "An unknown error occurred.",
-      });
+      toast({ variant: "destructive", title: "Error Fetching Data", description: analyzeStockState.error || "An unknown error occurred." });
        setAiCalculatedTaRequestJson('{ "status": "skipped", "reason": "Stock data fetch failed" }');
        setAiCalculatedTaJson('{ "status": "skipped", "reason": "Stock data fetch failed" }');
+       setAiKeyTakeawaysRequestJson('{ "status": "skipped", "reason": "Stock data fetch failed" }');
+       setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "Stock data fetch failed" }');
     }
   }, [analyzeStockState, ticker, 
       setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson, 
       setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
-      calculateAiTaFormAction, toast, // Added calculateAiTaFormAction, toast
-      setAiCalculatedTaJson, setAiCalculatedTaRequestJson // To reset states
+      calculateAiTaFormAction, toast, 
+      setAiCalculatedTaJson, setAiCalculatedTaRequestJson,
+      setAiKeyTakeawaysJson, setAiKeyTakeawaysRequestJson // Added for reset on error/skip
     ]);
 
-  // Effect for handling AI TA calculation result
+  // Effect for handling AI TA calculation result -> triggers AI Key Takeaways
   useEffect(() => {
     if (calculateAiTaState.status === 'success' && calculateAiTaState.data) {
-      toast({
-        title: "AI TA Calculated",
-        description: calculateAiTaState.message || "AI TA indicators processed.",
-      });
+      toast({ title: "AI TA Calculated", description: calculateAiTaState.message || "AI TA indicators processed." });
       setAiCalculatedTaRequestJson(calculateAiTaState.data.aiCalculatedTaRequestJson);
       setAiCalculatedTaJson(calculateAiTaState.data.aiCalculatedTaJson);
+
+      // Now trigger AI Key Takeaways
+      if (stockSnapshotJson !== '{}' && standardTasJson !== '{}' && marketStatusJson !== '{}' && calculateAiTaState.data.aiCalculatedTaJson !== '{}') {
+        toast({ title: "Generating AI Key Takeaways...", description: "Requesting AI-driven analysis." });
+        performAiAnalysisFormAction({ 
+          ticker, 
+          stockSnapshotJson, 
+          standardTasJson, 
+          aiCalculatedTaJson: calculateAiTaState.data.aiCalculatedTaJson, // Use fresh AI TA JSON
+          marketStatusJson
+        });
+      } else {
+        setAiKeyTakeawaysRequestJson('{ "status": "skipped", "reason": "Prerequisite data for Key Takeaways missing or AI TA failed." }');
+        setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "Prerequisite data for Key Takeaways missing or AI TA failed." }');
+      }
+
     } else if (calculateAiTaState.status === 'error') {
-      toast({
-        variant: "destructive",
-        title: "AI TA Calculation Failed",
-        description: calculateAiTaState.error || "Could not calculate AI TA.",
-      });
-      // Persist the request JSON if it was made, but show error for output
+      toast({ variant: "destructive", title: "AI TA Calculation Failed", description: calculateAiTaState.error || "Could not calculate AI TA." });
       if(calculateAiTaState.data?.aiCalculatedTaRequestJson) {
         setAiCalculatedTaRequestJson(calculateAiTaState.data.aiCalculatedTaRequestJson);
       } else {
-        // If request JSON itself was problematic (e.g. parsing snapshot failed)
          setAiCalculatedTaRequestJson(`{ "status": "error", "details": "${calculateAiTaState.error || 'Pre-calculation error'}" }`);
       }
       setAiCalculatedTaJson(`{ "status": "error", "details": "${calculateAiTaState.error || 'Calculation failed'}" }`);
+      // Skip AI Key Takeaways if AI TA calculation fails
+      setAiKeyTakeawaysRequestJson('{ "status": "skipped", "reason": "AI TA calculation failed" }');
+      setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "AI TA calculation failed" }');
     }
-  }, [calculateAiTaState, setAiCalculatedTaRequestJson, setAiCalculatedTaJson, toast]);
+  }, [calculateAiTaState, ticker, stockSnapshotJson, standardTasJson, marketStatusJson,
+      performAiAnalysisFormAction, 
+      setAiCalculatedTaRequestJson, setAiCalculatedTaJson, 
+      setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast]);
+
+  // Effect for handling AI Key Takeaways result
+  useEffect(() => {
+    if (performAiAnalysisState.status === 'success' && performAiAnalysisState.data) {
+      toast({ title: "AI Key Takeaways Generated", description: performAiAnalysisState.message || "AI analysis complete." });
+      setAiKeyTakeawaysRequestJson(performAiAnalysisState.data.aiKeyTakeawaysRequestJson);
+      setAiKeyTakeawaysJson(performAiAnalysisState.data.aiKeyTakeawaysJson);
+    } else if (performAiAnalysisState.status === 'error') {
+      toast({ variant: "destructive", title: "AI Key Takeaways Failed", description: performAiAnalysisState.error || "Could not generate AI takeaways." });
+      if (performAiAnalysisState.data?.aiKeyTakeawaysRequestJson) {
+        setAiKeyTakeawaysRequestJson(performAiAnalysisState.data.aiKeyTakeawaysRequestJson);
+      } else {
+         setAiKeyTakeawaysRequestJson(`{ "status": "error", "details": "${performAiAnalysisState.error || 'Pre-analysis error'}" }`);
+      }
+      setAiKeyTakeawaysJson(`{ "status": "error", "details": "${performAiAnalysisState.error || 'Analysis failed'}" }`);
+    }
+  }, [performAiAnalysisState, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast]);
+
+  // Effect for handling Chat Action result (for Debug Tab population)
+  useEffect(() => {
+    if (chatActionState.status === 'success' && chatActionState.data) {
+      toast({ title: "Chatbot Responded", description: chatActionState.message || "Chat interaction processed." });
+      setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
+      setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
+      // Further logic to update chat history display on Main Tab will be in Phase 6
+    } else if (chatActionState.status === 'error') {
+      toast({ variant: "destructive", title: "Chatbot Error", description: chatActionState.error || "Chatbot failed to respond." });
+      if (chatActionState.data?.chatbotRequestJson) { // If request was formed
+        setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
+        setChatbotResponseJson(`{ "status": "error", "details": "${chatActionState.error || 'Chat flow failed'}" }`);
+      } else { // If error was before forming request
+        setChatbotRequestJson(`{ "status": "error", "reason": "Pre-chat error: ${chatActionState.error}"}`);
+        setChatbotResponseJson(`{ "status": "error", "reason": "Pre-chat error: ${chatActionState.error}"}`);
+      }
+    }
+  }, [chatActionState, setChatbotRequestJson, setChatbotResponseJson, toast]);
 
 
-  const isAnyActionPending = isAnalyzeStockPending || isCalculateAiTaPending;
+  const isAnyActionPending = isAnalyzeStockPending || isCalculateAiTaPending || isPerformAiAnalysisPending || isChatPending;
 
   return (
     <Card>
@@ -179,7 +252,10 @@ export function MainTabContent() {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Button type="submit" className="w-full sm:w-auto" disabled={isAnyActionPending}>
-              {(isAnalyzeStockPending || (analyzeStockState.status === 'success' && isCalculateAiTaPending) ) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              { (isAnalyzeStockPending || 
+                (analyzeStockState.status === 'success' && isCalculateAiTaPending) ||
+                (calculateAiTaState.status === 'success' && isPerformAiAnalysisPending)
+              ) && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
               Analyze Stock
             </Button>
             <Button onClick={handleAiFullAnalysis} type="button" variant="outline" className="w-full sm:w-auto" disabled={isAnyActionPending}>
@@ -198,6 +274,7 @@ export function MainTabContent() {
           <AiCalculatedTaDisplay />
           <AiKeyTakeawaysDisplay />
           <OptionsChainTable />
+          {/* Chatbot UI will be added here in Phase 6 */}
         </div>
       </CardContent>
     </Card>
