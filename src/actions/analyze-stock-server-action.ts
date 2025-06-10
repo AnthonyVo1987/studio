@@ -24,7 +24,8 @@ export interface AnalyzeStockServerActionState {
 }
 
 // Initial state for the action, to be used with useActionState
-export const initialStockDataFetchState: AnalyzeStockServerActionState = {
+// This is NOT exported anymore. It will be defined in the client component.
+const initialStockDataFetchState: AnalyzeStockServerActionState = {
   status: 'idle',
   data: undefined,
   error: null,
