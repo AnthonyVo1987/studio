@@ -594,6 +594,49 @@ This commit completes Task 6.5, implementing the core logic for the "AI Full Sto
 This implementation successfully orchestrates the multi-step "AI Full Stock Analysis" process, preparing the ground for the visual chat interface in Task 6.6.
 
 ---
+**Tag:** `DebugConsole_Task-1` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `6a7575ea`
+
+**Subject:** `feat(debug): Re-implement client debug console with stability fixes (Task 1)`
+
+**Details:**
+This commit re-introduces the client-side debug console feature, focusing on stability and adhering to the scope of Debug Console Task 1. The previous implementation of a similar feature (formerly Task 6.1.7) led to application instability and was reverted.
+
+**Key Changes & Stability Measures:**
+
+1.  **Selective Log Interception (`src/contexts/stock-analysis-context.tsx`):**
+    *   Introduced state (`clientLogs`, `isClientDebugConsoleEnabled`, `isClientDebugConsoleOpen`) to manage console logs and its UI.
+    *   Implemented `useEffect` to intercept `console.*` methods (`log`, `warn`, "error", `info`, `debug`) when `isClientDebugConsoleEnabled` is true.
+    *   Intercepted logs are added to `clientLogs` (capped at 200 entries) and still passed to the original browser console.
+    *   A check is in place to prevent the interceptor from logging its own messages.
+
+2.  **`DebugConsole` Component (`src/components/debug-console.tsx`):**
+    *   New component to display `clientLogs` in a fixed-bottom panel.
+    *   Features:
+        *   Copy Logs (JSON)
+        *   Export Logs (JSON)
+        *   Clear Logs
+        *   Close Console (hides UI, doesn't disable interception)
+    *   Uses `ScrollArea` for log display.
+
+3.  **UI Control & Layout (`src/app/page.tsx`):**
+    *   Added a `Switch` to enable/disable the debug console (`isClientDebugConsoleEnabled`) and toggle its visibility (`isClientDebugConsoleOpen`). Disabling also clears logs.
+    *   The main content area's `padding-bottom` is dynamically adjusted by `CONSOLE_HEIGHT_PX` when the console is open to prevent UI overlap.
+
+4.  **Critical Stability Fix - Removal of High-Frequency UI Render Logs:**
+    *   To prevent a recurrence of previous application freezing issues (PRD Section 4.7.4), numerous `console.debug` statements specifically related to component rendering, prop changes, or frequent state updates have been **commented out or removed** from the following UI components:
+        *   `MainTabContent.tsx`
+        *   `KeyMetricsDisplay.tsx`
+        *   `StockSnapshotDetailsDisplay.tsx`
+        *   `StandardTaDisplay.tsx`
+        *   `AiCalculatedTaDisplay.tsx`
+        *   `AiKeyTakeawaysDisplay.tsx`
+        *   `OptionsChainTable.tsx`
+        *   `MarketStatusDisplay.tsx`
+        *   `DebugTabContent.tsx`
+    *   This significantly reduces the log volume that the console needs to process, which was the primary suspect for past instability.
+
+This implementation provides a foundational, more stable client-side debug console. Further enhancements and more granular logging can be added in subsequent tasks.
+
+---
 
 ... (Future commit logs will follow)
-
