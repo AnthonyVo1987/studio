@@ -32,12 +32,13 @@ class PolygonAdapter {
   private client: IRestClient;
 
   constructor(apiKey?: string) {
-    if (!apiKey && !process.env.POLYGON_API_KEY) {
-      throw new Error(
-        'Polygon API key is required. Set POLYGON_API_KEY environment variable or pass it to the constructor.'
-      );
+    const keyToUse = apiKey || process.env.POLYGON_API_KEY;
+    if (!keyToUse) {
+      console.error('Polygon API key is missing or empty. PolygonAdapter may not function correctly.');
+      // Consider throwing an error here if the adapter is unusable without a key.
+      // For now, restClient will handle an undefined key, likely leading to auth errors on API calls.
     }
-    this.client = restClient(apiKey || process.env.POLYGON_API_KEY);
+    this.client = restClient(keyToUse);
   }
 
   private mapToStockPriceData(
@@ -58,7 +59,7 @@ class PolygonAdapter {
 
   async getFullStockData(ticker: string): Promise<AdapterOutput> {
     const stockDataPackage: StockDataPackage = {
-      ticker, // Add ticker to the package for context
+      ticker, 
     };
     let currentStockPrice: number | undefined;
 
@@ -74,17 +75,18 @@ class PolygonAdapter {
           exchanges: marketStatusResponse.exchanges || {},
           currencies: marketStatusResponse.currencies || {},
         } as MarketStatusData;
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = `Failed to fetch market status. Polygon client error: ${error.message || String(error)}`;
         console.error(`Error fetching market status from Polygon:`, error);
-        stockDataPackage.marketStatus = { error: 'Failed to fetch market status' } as any;
+        stockDataPackage.marketStatus = { error: errorMessage } as any;
       }
       
       // 2. Fetch Ticker Snapshot (current day, prev day, current price)
       try {
         const snapshotResponse = await this.client.stocks.snapshotTicker({ ticker });
         if (snapshotResponse.ticker) {
-          const { day, prevDay, todaysChange, todaysChangePerc, updated } = snapshotResponse.ticker;
-          currentStockPrice = snapshotResponse.ticker.lastTrade?.p ?? snapshotResponse.ticker.day?.c ?? snapshotResponse.ticker.prevDay?.c;
+          const { day, prevDay, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
+          currentStockPrice = lastTrade?.p ?? day?.c ?? prevDay?.c;
 
           stockDataPackage.stockSnapshot = {
             ticker: snapshotResponse.ticker.ticker,
@@ -93,21 +95,26 @@ class PolygonAdapter {
             todaysChange: todaysChange,
             todaysChangePerc: todaysChangePerc,
             updated: updated,
-            currentPrice: currentStockPrice, // For convenience
+            currentPrice: currentStockPrice, 
           } as StockSnapshotData;
         } else {
-            throw new Error('Snapshot response did not contain ticker data.');
+            throw new Error('Snapshot response did not contain ticker data or was malformed.');
         }
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = `Failed to fetch snapshot for ${ticker}. Polygon client error: ${error.message || String(error)}`;
         console.error(`Error fetching stock snapshot for ${ticker} from Polygon:`, error);
-        stockDataPackage.stockSnapshot = { error: `Failed to fetch snapshot for ${ticker}` } as any;
+        stockDataPackage.stockSnapshot = { error: errorMessage } as any;
       }
 
       // 3. Fetch Standard Technical Indicators (RSI, EMA, SMA, MACD) & map VWAP from snapshot
       const technicalIndicators: TechnicalIndicatorsData = {};
       try {
-        if (stockDataPackage.stockSnapshot?.day?.vw) {
+        if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.day?.vw !== undefined) {
           technicalIndicators.VWAP = { value: stockDataPackage.stockSnapshot.day.vw };
+        } else if (stockDataPackage.stockSnapshot?.error) {
+            technicalIndicators.VWAP = { error: "VWAP not available due to snapshot fetch error." } as any;
+        } else {
+            technicalIndicators.VWAP = { error: "VWAP not available, snapshot data missing or incomplete." } as any;
         }
 
         const rsiRes = await this.client.stocks.rsi(ticker, { timespan: 'day', window: 14, series_type: 'close', limit: 1 });
@@ -129,19 +136,20 @@ class PolygonAdapter {
           };
         }
         stockDataPackage.technicalIndicators = technicalIndicators;
-      } catch (error) {
+      } catch (error: any) {
+          const errorMessage = `Failed to fetch TAs for ${ticker}. Polygon client error: ${error.message || String(error)}`;
           console.error(`Error fetching technical indicators for ${ticker} from Polygon:`, error);
-          stockDataPackage.technicalIndicators = { error: `Failed to fetch TAs for ${ticker}` } as any;
+          stockDataPackage.technicalIndicators = { ...(stockDataPackage.technicalIndicators || {}), error: errorMessage } as any;
       }
       
       // 4. Fetch Options Chain
       try {
-        if (currentStockPrice) {
+        if (currentStockPrice !== undefined) { // Ensure currentStockPrice was successfully obtained
           const expirationDate = calculateNextFridayExpiration();
           const optionsChainResponse = await this.client.reference.optionsContracts({
             underlying_ticker: ticker,
             expiration_date: expirationDate,
-            limit: 1000, // Fetch a large number to filter client-side
+            limit: 1000, 
           });
 
           const allContracts: StreamlinedOptionContract[] = (optionsChainResponse.results || []).map(contract => ({
@@ -149,8 +157,6 @@ class PolygonAdapter {
             option_type: contract.contract_type as 'call' | 'put',
             gamma: contract.greeks?.gamma,
             iv: contract.details?.implied_volatility,
-            // Polygon might not directly provide %change for option contracts in this endpoint's basic response
-            // It might be in a snapshot for the option ticker or require calculation. Placeholder for now.
             percent_change: contract.day?.change_percent, 
             bid: contract.last_quote?.bid,
             ask: contract.last_quote?.ask,
@@ -164,13 +170,12 @@ class PolygonAdapter {
             bid_size: contract.last_quote?.bid_size,
             ask_size: contract.last_quote?.ask_size,
             change: contract.day?.change,
-            contract_name: contract.ticker, // For debugging or specific identification
+            contract_name: contract.ticker, 
             primary_exchange: contract.primary_exchange,
             underlying_ticker: contract.underlying_ticker,
             break_even_price: contract.details?.break_even_price,
           }));
 
-          // Filter strikes around current price (+/- 10 actual strikes, not % based)
           const uniqueStrikes = Array.from(new Set(allContracts.map(c => c.strike_price))).sort((a, b) => a - b);
           const closestStrikeIndex = uniqueStrikes.reduce((prev, curr, index) => 
             (Math.abs(curr - currentStockPrice!) < Math.abs(uniqueStrikes[prev] - currentStockPrice!) ? index : prev), 0);
@@ -180,7 +185,7 @@ class PolygonAdapter {
           const selectedStrikes = uniqueStrikes.slice(startIndex, endIndex + 1);
 
           const optionsTableRows: OptionsTableRow[] = [];
-          selectedStrikes.sort((a, b) => b - a); // Sort descending for final output
+          selectedStrikes.sort((a, b) => b - a); 
 
           for (const strike of selectedStrikes) {
             const callContract = allContracts.find(c => c.strike_price === strike && c.option_type === 'call');
@@ -199,48 +204,48 @@ class PolygonAdapter {
             underlying_price: currentStockPrice,
           };
         } else {
-            stockDataPackage.optionsChain = { error: 'Current stock price not available for options chain fetching.' } as any;
+            stockDataPackage.optionsChain = { error: 'Current stock price not available for options chain fetching (snapshot likely failed).' } as any;
         }
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = `Failed to fetch options chain for ${ticker}. Polygon client error: ${error.message || String(error)}`;
         console.error(`Error fetching options chain for ${ticker} from Polygon:`, error);
-        stockDataPackage.optionsChain = { error: `Failed to fetch options chain for ${ticker}` } as any;
+        stockDataPackage.optionsChain = { error: errorMessage } as any;
       }
 
       return {
         stockData: stockDataPackage,
       };
 
-    } catch (error) {
+    } catch (error: any) {
+      const overallErrorMessage = `Overall failure in fetching data for ${ticker}. Some data might be missing or incomplete. Original error: ${error.message || String(error)}`;
       console.error(`An unexpected error occurred in getFullStockData for ${ticker}:`, error);
-      // Return whatever data was partially fetched along with an error indicator
       return {
         stockData: {
           ...stockDataPackage,
-          error: `Overall failure in fetching data for ${ticker}. Some data might be missing or incomplete.`,
+          error: overallErrorMessage,
         } as StockDataPackage,
       };
     }
   }
 }
 
-// Export an instance or the class itself, depending on desired usage pattern
-// For server actions, exporting functions might be cleaner.
-// For now, let's export a function that uses an instance.
+
 const polygonAdapterInstance = new PolygonAdapter();
 
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
-  if (!process.env.POLYGON_API_KEY) {
-     console.error('POLYGON_API_KEY is not set. Returning error structure.');
+  if (!process.env.POLYGON_API_KEY || process.env.POLYGON_API_KEY.trim() === "") { // Also check for empty string
+     console.error('POLYGON_API_KEY is not set or is empty. Returning error structure.');
      return {
        stockData: {
          ticker,
-         error: 'POLYGON_API_KEY environment variable is not set. Cannot fetch data.',
+         error: 'POLYGON_API_KEY environment variable is not set or is empty. Cannot fetch data.',
        }
      };
   }
-  // Re-instantiate if API key could change or pass it if necessary
-  // Or rely on the global instance if API key is static from env
-  return polygonAdapterInstance.getFullStockData(ticker);
+  // This creates a new instance for each call. Consider if the global `polygonRest` should be used
+  // or if the instance should be managed differently if it holds state or has significant setup cost.
+  // For now, creating a new instance per call is fine as `restClient` is lightweight.
+  const adapter = new PolygonAdapter(); 
+  return adapter.getFullStockData(ticker);
 }
-
     
