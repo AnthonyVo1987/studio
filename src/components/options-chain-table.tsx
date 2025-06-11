@@ -12,7 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { OptionsChainData, OptionsTableRow, StreamlinedOptionContract } from "@/services/data-sources/types";
-import { formatToTwoDecimals, formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
+import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
 import { formatDisplayDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,30 +22,28 @@ interface OptionHeaderConfig {
   formatter: (value: any) => string;
 }
 
-// const defaultFormatter = (value: any) => formatToTwoDecimals(value, "-");
-
 const callHeadersConfig: OptionHeaderConfig[] = [
-  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v ? v * 100 : undefined, "-") },
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-") },
+  { key: "gamma", label: "Gamma", formatter: (v) => formatCurrency(v, "", "-") }, // Gamma can be 2-4 decimals
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, // IV is value like 0.35 (35%)
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, // change_percent is value like -50 for -50%
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
   { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
-  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
+  { key: "delta", label: "Delta", formatter: (v) => formatCurrency(v, "", "-") }, // Delta can be 2-4 decimals
 ];
 
 const putHeadersConfig: OptionHeaderConfig[] = [
-  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
+  { key: "delta", label: "Delta", formatter: (v) => formatCurrency(v, "", "-") },
   { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
   { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-") },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v ? v * 100 : undefined, "-") },
-  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
+  { key: "gamma", label: "Gamma", formatter: (v) => formatCurrency(v, "", "-") },
 ];
 
 const renderSkeletonRow = (rowIndex: number) => (
@@ -68,13 +66,12 @@ const renderSkeletonRow = (rowIndex: number) => (
 
 
 export function OptionsChainTable() {
-  const { optionsChainJson } = useStockAnalysis(); // Removed aiCalculatedTaJson from direct dependency for loading state
+  const { optionsChainJson } = useStockAnalysis(); 
 
-  let isLoading = true;
+  let isLoading = false;
   let isError = false;
   let parsedData: OptionsChainData | null = null;
 
-  // Simplified loading logic: primarily based on optionsChainJson content
   if (
     optionsChainJson.includes('"status": "initializing"') ||
     optionsChainJson.includes('"status": "pending"')
@@ -84,16 +81,13 @@ export function OptionsChainTable() {
     isError = true;
     isLoading = false;
   } else {
-    // Attempt to parse if not explicitly loading, errored, or skipped
     try {
       const data = JSON.parse(optionsChainJson) as OptionsChainData;
-      // Check for a well-formed object with contracts array
       if (data && typeof data === 'object' && !data.error && Array.isArray(data.contracts)) {
         isLoading = false;
         parsedData = data;
       } else {
-        // JSON might be malformed or not the expected OptionsChainData structure
-        isError = true;
+        isError = true; // Data is not in the expected format or contains an error field
         isLoading = false;
       }
     } catch (e) {
@@ -143,8 +137,8 @@ export function OptionsChainTable() {
           </TableHeader>
           <TableBody>
             {isLoading 
-              ? Array.from({ length: 10 }).map((_, index) => renderSkeletonRow(index))  // Show more skeleton rows
-              : isError
+              ? Array.from({ length: 15 }).map((_, index) => renderSkeletonRow(index))  
+              : isError || !parsedData
                 ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">Options data not available or failed to load.</TableCell></TableRow>
                 : contracts.length === 0 
                     ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">No option contracts found for this expiration and strike range.</TableCell></TableRow>
@@ -156,7 +150,7 @@ export function OptionsChainTable() {
                   </TableCell>
                 ))}
                 <TableCell className="p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r">
-                  {formatCurrency(row.strike, "$", "-")}
+                  {formatCurrency(row.strike, "$", "-", true)}
                 </TableCell>
                 {putHeadersConfig.map((header) => (
                   <TableCell key={`put-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">

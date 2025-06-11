@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockSnapshotData, StockPriceData } from "@/services/data-sources/types";
-import { formatCurrency, formatToTwoDecimals, formatCompactNumber } from "@/lib/number-utils";
+import { formatCurrency, formatToTwoDecimals, formatCompactNumber, formatPercentage } from "@/lib/number-utils"; // Added formatPercentage
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface StockDetailItem {
@@ -31,17 +31,16 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
 };
 
 export function StockSnapshotDetailsDisplay() {
-  const { stockSnapshotJson, aiCalculatedTaJson } = useStockAnalysis(); // aiCalculatedTaJson as proxy for loading chain
+  const { stockSnapshotJson } = useStockAnalysis(); 
 
-  let isLoading = true;
+  let isLoading = false;
   let isError = false;
   let details: StockDetailItem[] = [];
+  let parsedSnapshotData: StockSnapshotData | null = null;
 
   if (
     stockSnapshotJson.includes('"status": "initializing"') ||
-    stockSnapshotJson.includes('"status": "pending"') ||
-    aiCalculatedTaJson.includes('"status": "pending"') || // Check dependent data
-    aiCalculatedTaJson.includes('"status": "initializing"')
+    stockSnapshotJson.includes('"status": "pending"')
   ) {
     isLoading = true;
   } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
@@ -50,8 +49,9 @@ export function StockSnapshotDetailsDisplay() {
   } else {
     try {
       const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-      if (data && typeof data === 'object' && !data.error) {
+      if (data && typeof data === 'object' && !data.error && data.ticker) { // Check for ticker as a sign of valid data
         isLoading = false;
+        parsedSnapshotData = data;
         const formatPriceData = (pd?: StockPriceData, prefix: string = "") => [
           { label: `${prefix} Open`, value: formatCurrency(pd?.o) },
           { label: `${prefix} High`, value: formatCurrency(pd?.h) },
@@ -62,15 +62,16 @@ export function StockSnapshotDetailsDisplay() {
         ];
 
         details = [
-          { label: "Ticker", value: data.ticker || "N/A" },
-          ...formatPriceData(data.prevDay, "Prev."),
-          ...formatPriceData(data.day, "Day's"),
-          { label: "Today's Change", value: formatCurrency(data.todaysChange) },
-          { label: "Today's Change %", value: formatPercentage(data.todaysChangePerc) },
-          { label: "Current Price (from Snapshot)", value: formatCurrency(data.currentPrice) },
+          { label: "Ticker", value: parsedSnapshotData.ticker || "N/A" },
+          ...formatPriceData(parsedSnapshotData.prevDay, "Prev."),
+          ...formatPriceData(parsedSnapshotData.day, "Day's"),
+          { label: "Today's Change", value: formatCurrency(parsedSnapshotData.todaysChange) },
+          { label: "Today's Change %", value: formatPercentage(parsedSnapshotData.todaysChangePerc, "N/A", true) }, // Value is already a percentage
+          { label: "Current Price (from Snapshot)", value: formatCurrency(parsedSnapshotData.currentPrice) },
         ];
       } else {
-        isError = true;
+        // If not loading, and data is not in expected format or has an error property
+        isError = true; 
         isLoading = false;
       }
     } catch (e) {
@@ -80,7 +81,7 @@ export function StockSnapshotDetailsDisplay() {
     }
   }
   
-  const placeholderRows = 8; // Number of rows to show as skeletons
+  const placeholderRows = 8; 
 
   return (
     <Card>
@@ -93,8 +94,8 @@ export function StockSnapshotDetailsDisplay() {
           <TableBody>
             {isLoading 
               ? Array.from({ length: placeholderRows }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
-              : isError 
-                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Snapshot data not available.</TableCell></TableRow>
+              : isError || !parsedSnapshotData
+                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Snapshot data not available.</TableCell></TableRow>
                 : details.map((item, index) => renderDetailRow(item, index, false))}
           </TableBody>
         </Table>

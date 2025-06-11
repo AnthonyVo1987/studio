@@ -17,9 +17,34 @@ import type {
   StockDataPackage,
 } from '@/services/data-sources/types';
 import { calculateNextFridayExpiration } from '@/lib/date-utils';
-import { formatToTwoDecimals } from '@/lib/number-utils';
+import { formatToTwoDecimals, roundNumber } from '@/lib/number-utils'; // Added roundNumber
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to round all numeric values in an object (shallowly for TA, deeper for options)
+// This is for ensuring the JSON in Debug tab also respects decimal limits
+const roundObjectNumbers = (obj: any, precision: number = 2): any => {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return obj;
+  }
+  const newObj: any = Array.isArray(obj) ? [] : {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (typeof value === 'number') {
+        newObj[key] = roundNumber(value, key === 'iv' || key === 'delta' || key === 'gamma' || key === 'theta' || key === 'vega' ? 4 : precision);
+      } else if (typeof value === 'object') {
+        // Recursively round nested objects (like 'day', 'prevDay', 'greeks' in options)
+         newObj[key] = roundObjectNumbers(value, precision);
+      }
+       else {
+        newObj[key] = value;
+      }
+    }
+  }
+  return newObj;
+};
+
 
 class PolygonAdapter {
   private client: IRestClient;
@@ -45,7 +70,6 @@ class PolygonAdapter {
       return; 
     }
     
-    const keyDisplay = `${keyToUse.substring(0, Math.min(5, keyToUse.length))}...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}`;
     console.log(`[StockSage Debug] PolygonAdapter constructor attempting to use API key (Ends In): ...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}, Length: ${keyToUse.length}`);
     this.client = restClient(keyToUse);
     
@@ -65,16 +89,16 @@ class PolygonAdapter {
     polygonAgg: any,
     timestamp?: number
   ): StockPriceData {
-    return {
-      o: polygonAgg?.o ?? 0,
-      h: polygonAgg?.h ?? 0,
-      l: polygonAgg?.l ?? 0,
-      c: polygonAgg?.c ?? 0,
-      v: polygonAgg?.v ?? 0,
+    return roundObjectNumbers({ // Round numbers here
+      o: polygonAgg?.o,
+      h: polygonAgg?.h,
+      l: polygonAgg?.l,
+      c: polygonAgg?.c,
+      v: polygonAgg?.v,
       vw: polygonAgg?.vw,
       t: timestamp || polygonAgg?.t,
       n: polygonAgg?.n,
-    };
+    }) as StockPriceData;
   }
 
   async getFullStockData(ticker: string): Promise<AdapterOutput> {
@@ -114,14 +138,14 @@ class PolygonAdapter {
 
         if (snapshotResponse.ticker) {
           const { day, prevDay, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
-          currentStockPrice = lastTrade?.p ?? day?.c ?? prevDay?.c;
+          currentStockPrice = roundNumber(lastTrade?.p ?? day?.c ?? prevDay?.c);
 
           stockDataPackage.stockSnapshot = {
             ticker: snapshotResponse.ticker.ticker,
             day: this.mapToStockPriceData(day, day?.t || updated),
             prevDay: this.mapToStockPriceData(prevDay, prevDay?.t),
-            todaysChange: todaysChange,
-            todaysChangePerc: todaysChangePerc,
+            todaysChange: roundNumber(todaysChange),
+            todaysChangePerc: roundNumber(todaysChangePerc, 4), // Percentage, allow more precision initially
             updated: updated,
             currentPrice: currentStockPrice, 
           } as StockSnapshotData;
@@ -147,32 +171,36 @@ class PolygonAdapter {
         stockDataPackage.stockSnapshot = { error: errorMessage, rawErrorDetails: rawErrorDetails } as any;
       }
 
-      // 3. Fetch Standard Technical Indicators (RSI, EMA, SMA, MACD) & map VWAP from snapshot
-      const technicalIndicators: TechnicalIndicatorsData = {};
+      // 3. Fetch Standard Technical Indicators & map VWAP
+      const technicalIndicators: Partial<TechnicalIndicatorsData> = {};
       try {
         if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.day?.vw !== undefined) {
-          technicalIndicators.VWAP = { value: stockDataPackage.stockSnapshot.day.vw };
-        } else if (stockDataPackage.stockSnapshot?.error) {
-            technicalIndicators.VWAP = { error: "VWAP not available due to snapshot fetch error." } as any;
-        } else {
-            technicalIndicators.VWAP = { error: "VWAP not available, snapshot data missing or incomplete." } as any;
+          technicalIndicators.VWAP = { value: roundNumber(stockDataPackage.stockSnapshot.day.vw) };
         }
+        // Fetch other TAs and round their values
         await delay(apiCallDelay);
         const rsiRes = await this.client.stocks.rsi(ticker.toUpperCase(), { timespan: 'day', window: 14, series_type: 'close', limit: 1 });
-        if (rsiRes.results?.values?.[0]?.value) technicalIndicators.RSI = { value: rsiRes.results.values[0].value };
+        if (rsiRes.results?.values?.[0]?.value) technicalIndicators.RSI = { value: roundNumber(rsiRes.results.values[0].value) };
+        
         await delay(apiCallDelay);
         const emaRes = await this.client.stocks.ema(ticker.toUpperCase(), { timespan: 'day', window: 20, series_type: 'close', limit: 1 });
-        if (emaRes.results?.values?.[0]?.value) technicalIndicators.EMA = { value: emaRes.results.values[0].value };
+        if (emaRes.results?.values?.[0]?.value) technicalIndicators.EMA = { value: roundNumber(emaRes.results.values[0].value) };
+        
         await delay(apiCallDelay);
         const smaRes = await this.client.stocks.sma(ticker.toUpperCase(), { timespan: 'day', window: 50, series_type: 'close', limit: 1 });
-        if (smaRes.results?.values?.[0]?.value) technicalIndicators.SMA = { value: smaRes.results.values[0].value };
+        if (smaRes.results?.values?.[0]?.value) technicalIndicators.SMA = { value: roundNumber(smaRes.results.values[0].value) };
+        
         await delay(apiCallDelay);
         const macdRes = await this.client.stocks.macd(ticker.toUpperCase(), { timespan: 'day', series_type: 'close', limit: 1 });
         if (macdRes.results?.values?.[0]) {
           const macdValue = macdRes.results.values[0];
-          technicalIndicators.MACD = { value: macdValue.value, signal: macdValue.signal, histogram: macdValue.histogram };
+          technicalIndicators.MACD = { 
+            value: roundNumber(macdValue.value, 4), 
+            signal: roundNumber(macdValue.signal, 4), 
+            histogram: roundNumber(macdValue.histogram, 4) 
+          };
         }
-        stockDataPackage.technicalIndicators = technicalIndicators;
+        stockDataPackage.technicalIndicators = technicalIndicators as TechnicalIndicatorsData;
       } catch (error: any) {
           const errorMessage = `Failed to fetch TAs for ${ticker}. Polygon client error: ${error.message || String(error)}`;
           console.error(`Error fetching technical indicators for ${ticker} from Polygon:`, error);
@@ -181,32 +209,27 @@ class PolygonAdapter {
       
       // 4. Fetch Options Chain using snapshotOptionChain
       try {
-        if (currentStockPrice !== undefined) { 
+        if (currentStockPrice !== undefined && currentStockPrice !== null) { 
           await delay(apiCallDelay);
           const expirationDate = calculateNextFridayExpiration();
-          // Define a strike price window (e.g., +/- 20% of current price, or a fixed number of strikes)
-          const strikePriceWindowPercentage = 0.20; // 20%
+          const strikePriceWindowPercentage = 0.20; 
           const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
           const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
 
           const commonOptionsParams = {
-            // underlying_ticker: ticker.toUpperCase(), // Not needed for snapshotOptionChain as ticker is the first arg
             expiration_date: expirationDate,
             "strike_price.gte": formatToTwoDecimals(lowerStrikeBound, "0"),
             "strike_price.lte": formatToTwoDecimals(upperStrikeBound, "0"),
-            limit: 250, // Fetch a generous limit to ensure we get enough strikes. Max is 250 for snapshot.
-            // order: "asc", // Default is asc by strike price
-            // sort: "strike_price" // Default
+            limit: 250, 
+            // order: "desc", // Fetching sorted and then re-sorting later. Default asc is fine.
+            // sort: "strike_price" 
           };
 
-          // Fetch Calls
           const callsSnapshot = await this.client.options.snapshotOptionChain(ticker.toUpperCase(), {
             ...commonOptionsParams,
             contract_type: 'call',
           });
           await delay(apiCallDelay);
-
-          // Fetch Puts
           const putsSnapshot = await this.client.options.snapshotOptionChain(ticker.toUpperCase(), {
             ...commonOptionsParams,
             contract_type: 'put',
@@ -217,36 +240,33 @@ class PolygonAdapter {
           const putDataByStrike = new Map<number, any>();
 
           (callsSnapshot.results || []).forEach(contract => {
-            const strike = contract.details.strike_price;
+            const strike = roundNumber(contract.details.strike_price);
+            if(strike === undefined || strike === null) return;
             allStrikes.add(strike);
             callDataByStrike.set(strike, contract);
           });
 
           (putsSnapshot.results || []).forEach(contract => {
-            const strike = contract.details.strike_price;
+            const strike = roundNumber(contract.details.strike_price);
+            if(strike === undefined || strike === null) return;
             allStrikes.add(strike);
             putDataByStrike.set(strike, contract);
           });
           
-          const sortedStrikes = Array.from(allStrikes).sort((a, b) => b - a); // Sort descending
+          let sortedStrikes = Array.from(allStrikes).sort((a, b) => a - b); // Sort ascending first
 
-          const optionsTableRows: OptionsTableRow[] = [];
-          let addedStrikesCount = 0;
-          const maxStrikesToDisplay = 20; // +/- 10 effectively
-
-          // Find index of strike closest to currentStockPrice
           let closestStrikeIndex = 0;
-          if (sortedStrikes.length > 0) {
-             closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrike, currentIdx) => {
-                return (Math.abs(currentStrike - currentStockPrice) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice)) ? currentIdx : prevIdx;
+          if (sortedStrikes.length > 0 && currentStockPrice !== undefined) {
+             closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrikeItem, currentIdx) => {
+                return (Math.abs(currentStrikeItem - currentStockPrice) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice)) ? currentIdx : prevIdx;
             }, 0);
           }
           
           const startIndex = Math.max(0, closestStrikeIndex - 10);
-          const endIndex = Math.min(sortedStrikes.length -1, closestStrikeIndex + 10);
+          const endIndex = Math.min(sortedStrikes.length, closestStrikeIndex + 11); // Fetch 11 to get 10 on each side after filtering
+          const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a); // Now sort descending
 
-          const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex + 1);
-
+          const optionsTableRows: OptionsTableRow[] = [];
 
           for (const strike of finalStrikesToProcess) {
             const callContractData = callDataByStrike.get(strike);
@@ -254,29 +274,27 @@ class PolygonAdapter {
 
             const mapContractData = (data: any, type: 'call' | 'put'): StreamlinedOptionContract | undefined => {
               if (!data) return undefined;
+              // Rounding applied here for the values that go into the final JSON
               return {
-                strike_price: data.details.strike_price,
+                strike_price: roundNumber(data.details.strike_price)!, // strike_price is essential
                 option_type: type,
-                contract_name: data.details.ticker,
                 primary_exchange: data.details.primary_exchange,
-                underlying_ticker: data.underlying_asset.ticker,
-                iv: data.implied_volatility,
-                last_price: data.day?.close, // Snapshot uses day.close for last price
-                change: data.day?.change,
-                percent_change: data.day?.change_percent,
-                volume: data.day?.volume,
-                open_interest: data.open_interest,
-                break_even_price: data.details?.break_even_price,
-                delta: data.greeks?.delta,
-                gamma: data.greeks?.gamma,
-                theta: data.greeks?.theta,
-                vega: data.greeks?.vega,
-                rho: data.greeks?.rho,
-                // Bid/Ask and their sizes are not typically in snapshotOptionChain results
-                bid: undefined, 
-                ask: undefined,
-                bid_size: undefined,
-                ask_size: undefined,
+                iv: roundNumber(data.implied_volatility, 4),
+                last_price: roundNumber(data.day?.close), 
+                change: roundNumber(data.day?.change),
+                percent_change: roundNumber(data.day?.change_percent, 2), // Keep some precision for % change
+                volume: data.day?.volume, // Volume is whole number
+                open_interest: data.open_interest, // OI is whole number
+                break_even_price: roundNumber(data.details?.break_even_price),
+                delta: roundNumber(data.greeks?.delta, 4),
+                gamma: roundNumber(data.greeks?.gamma, 4),
+                theta: roundNumber(data.greeks?.theta, 4),
+                vega: roundNumber(data.greeks?.vega, 4),
+                rho: roundNumber(data.greeks?.rho, 4),
+                bid: roundNumber(data.last_quote?.bid), // last_quote often not in snapshot
+                ask: roundNumber(data.last_quote?.ask), // last_quote often not in snapshot
+                bid_size: data.last_quote?.bs,
+                ask_size: data.last_quote?.as,
               };
             };
             
@@ -290,8 +308,8 @@ class PolygonAdapter {
           stockDataPackage.optionsChain = {
             ticker: ticker,
             expiration_date: expirationDate,
-            contracts: optionsTableRows, // Already sorted descending and filtered
-            underlying_price: currentStockPrice,
+            contracts: optionsTableRows, 
+            underlying_price: roundNumber(currentStockPrice),
           };
         } else {
             stockDataPackage.optionsChain = { error: 'Current stock price not available for options chain fetching (snapshot likely failed).' } as any;
