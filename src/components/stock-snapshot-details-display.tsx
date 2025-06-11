@@ -8,7 +8,6 @@ import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { DebugLogCategory } from "@/lib/debug-log-types";
 
 interface StockDetailItem {
   label: string;
@@ -41,7 +40,7 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
 
 export function StockSnapshotDetailsDisplay() {
   const { stockSnapshotJson, logDebug } = useStockAnalysis();
-  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[StockSnapshotDetailsDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -50,23 +49,23 @@ export function StockSnapshotDetailsDisplay() {
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[StockSnapshotDetailsDisplay] stockSnapshotJson is in pending/initializing state.");
+      logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[StockSnapshotDetailsDisplay] stockSnapshotJson indicates an error or skipped state.");
+      logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[StockSnapshotDetailsDisplay] Successfully parsed stockSnapshotJson. Ticker:", data?.ticker);
+        logDebug('StockSnapshotDetailsDisplay', "Successfully parsed stockSnapshotJson. Ticker:", data?.ticker);
         if (data && typeof data === 'object' && data.ticker) {
           isLoading = false;
           isError = false;
           parsedSnapshotData = data;
 
           const change = parsedSnapshotData.todaysChange ?? 0;
-          const changePerc = parsedSnapshotData.todaysChangePerc ?? null; 
+          const changePerc = parsedSnapshotData.todaysChangePerc ?? null;
           const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
 
           const criticalDetails: StockDetailItem[] = [
@@ -99,23 +98,23 @@ export function StockSnapshotDetailsDisplay() {
             ...prevDayDetails,
           ];
         } else {
-          logDebug(DebugLogCategory.UI_DATA_PARSING, "[StockSnapshotDetailsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
+          logDebug('StockSnapshotDetailsDisplay', "Parsed stockSnapshotJson is missing ticker or not an object.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
         console.error("[StockSnapshotDetailsDisplay] Failed to parse stockSnapshotJson:", e);
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[StockSnapshotDetailsDisplay] Error during stockSnapshotJson parsing.", e);
+        logDebug('StockSnapshotDetailsDisplay', "Error during stockSnapshotJson parsing.", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[StockSnapshotDetailsDisplay] stockSnapshotJson is empty or null.");
+    logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson is empty or null.");
     isLoading = false;
   }
 
-  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[StockSnapshotDetailsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}, parsedSnapshotData exists=${!!parsedSnapshotData}`);
+  logDebug('StockSnapshotDetailsDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}, parsedSnapshotData exists=${!!parsedSnapshotData}`);
   const placeholderRowCount = 10;
 
   return (

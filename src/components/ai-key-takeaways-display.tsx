@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockAnalysisOutput } from "@/ai/schemas/stock-analysis-schemas";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DebugLogCategory } from "@/lib/debug-log-types";
 
 type TakeawayCategory = keyof StockAnalysisOutput;
 
@@ -62,7 +61,7 @@ const categoryLabels: Record<TakeawayCategory, string> = {
 
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, logDebug } = useStockAnalysis();
-  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson (start):", aiKeyTakeawaysJson.substring(0,100));
+  logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson (start):", aiKeyTakeawaysJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -70,16 +69,16 @@ export function AiKeyTakeawaysDisplay() {
 
   if (aiKeyTakeawaysJson && aiKeyTakeawaysJson !== '{}') {
     if (aiKeyTakeawaysJson.includes('"status": "initializing"') || aiKeyTakeawaysJson.includes('"status": "pending"') || aiKeyTakeawaysJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is in pending/initializing state.");
+      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is in pending/initializing state.");
       isLoading = true;
     } else if (aiKeyTakeawaysJson.includes('"status": "error"') || aiKeyTakeawaysJson.includes('"status": "skipped"')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson indicates an error or skipped state.");
+      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(aiKeyTakeawaysJson) as StockAnalysisOutput;
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiKeyTakeawaysDisplay] Successfully parsed aiKeyTakeawaysJson. PriceAction takeaway:", data?.priceAction?.takeaway);
+        logDebug('AiKeyTakeawaysDisplay', "Successfully parsed aiKeyTakeawaysJson. PriceAction takeaway:", data?.priceAction?.takeaway);
         if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.priceAction) {
           isLoading = false;
           isError = false;
@@ -91,23 +90,23 @@ export function AiKeyTakeawaysDisplay() {
               textSentimentClass: getTextSentimentColorClass(data[key]?.sentiment || "neutral")
           }));
         } else {
-          logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiKeyTakeawaysDisplay] Parsed aiKeyTakeawaysJson is missing priceAction or contains error/status field.");
+          logDebug('AiKeyTakeawaysDisplay', "Parsed aiKeyTakeawaysJson is missing priceAction or contains error/status field.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
         console.error("[AiKeyTakeawaysDisplay] Failed to parse aiKeyTakeawaysJson:", e);
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiKeyTakeawaysDisplay] Error during aiKeyTakeawaysJson parsing.", e);
+        logDebug('AiKeyTakeawaysDisplay', "Error during aiKeyTakeawaysJson parsing.", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is empty or null.");
+    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is empty or null.");
     isLoading = false;
   }
 
-  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[AiKeyTakeawaysDisplay] Render state: isLoading=${isLoading}, isError=${isError}, displayTakeaways.length=${displayTakeaways.length}`);
+  logDebug('AiKeyTakeawaysDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, displayTakeaways.length=${displayTakeaways.length}`);
 
   return (
     <Card>

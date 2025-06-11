@@ -1,34 +1,51 @@
 
 /**
- * @fileOverview Defines types and enums for debug logging categories.
+ * @fileOverview Defines types and identifiers for debug logging sources.
  */
 
-export enum DebugLogCategory {
-  UI_COMPONENT_STATE = 'UI_COMPONENT_STATE',
-  UI_DATA_RECEPTION = 'UI_DATA_RECEPTION',
-  UI_DATA_PARSING = 'UI_DATA_PARSING',
-  CONTEXT_INTERNALS = 'CONTEXT_INTERNALS',
-  ACTION_LIFECYCLE = 'ACTION_LIFECYCLE',
-  NATIVE_CONSOLE = 'NATIVE_CONSOLE', // New category for generic console logs
-  // Add new categories here as needed
-}
+export const logSourceIds = [
+  'KeyMetricsDisplay',
+  'StockSnapshotDetailsDisplay',
+  'StandardTaDisplay',
+  'MarketStatusDisplay',
+  'AiCalculatedTaDisplay',
+  'AiKeyTakeawaysDisplay',
+  'OptionsChainTable',
+  'DebugTabContent',
+  'MainTabContent',
+  'StockAnalysisContext',
+  'NATIVE_CONSOLE',
+  // Add new source identifiers here
+] as const;
 
-export type DebugLogConfig = Record<DebugLogCategory, boolean>;
+export type LogSourceId = typeof logSourceIds[number];
 
-export const defaultDebugLogConfig: DebugLogConfig = {
-  [DebugLogCategory.UI_COMPONENT_STATE]: false, // Default to false to start clean
-  [DebugLogCategory.UI_DATA_RECEPTION]: false,
-  [DebugLogCategory.UI_DATA_PARSING]: false,
-  [DebugLogCategory.CONTEXT_INTERNALS]: false,
-  [DebugLogCategory.ACTION_LIFECYCLE]: false,
-  [DebugLogCategory.NATIVE_CONSOLE]: false, 
+export type LogSourceConfig = Record<LogSourceId, boolean>;
+
+export const defaultLogSourceConfig: LogSourceConfig = {
+  KeyMetricsDisplay: false,
+  StockSnapshotDetailsDisplay: false,
+  StandardTaDisplay: false,
+  MarketStatusDisplay: false,
+  AiCalculatedTaDisplay: false,
+  AiKeyTakeawaysDisplay: false,
+  OptionsChainTable: false,
+  DebugTabContent: false,
+  MainTabContent: false,
+  StockAnalysisContext: false,
+  NATIVE_CONSOLE: false,
 };
 
-export const debugLogCategoryLabels: Record<DebugLogCategory, string> = {
-  [DebugLogCategory.UI_COMPONENT_STATE]: 'UI Component State',
-  [DebugLogCategory.UI_DATA_RECEPTION]: 'UI Data Reception',
-  [DebugLogCategory.UI_DATA_PARSING]: 'UI Data Parsing',
-  [DebugLogCategory.CONTEXT_INTERNALS]: 'Context Internals',
-  [DebugLogCategory.ACTION_LIFECYCLE]: 'Action Lifecycle Events',
-  [DebugLogCategory.NATIVE_CONSOLE]: 'Native Console Logs (General)',
+export const logSourceLabels: Record<LogSourceId, string> = {
+  KeyMetricsDisplay: 'Key Metrics Display',
+  StockSnapshotDetailsDisplay: 'Stock Snapshot Details Display',
+  StandardTaDisplay: 'Standard TA Display',
+  MarketStatusDisplay: 'Market Status Display',
+  AiCalculatedTaDisplay: 'AI Calculated TA Display',
+  AiKeyTakeawaysDisplay: 'AI Key Takeaways Display',
+  OptionsChainTable: 'Options Chain Table',
+  DebugTabContent: 'Debug Tab Content',
+  MainTabContent: 'Main Tab Content (Actions/Logic)',
+  StockAnalysisContext: 'Stock Analysis Context (Internals)',
+  NATIVE_CONSOLE: 'Native Console Logs (General)',
 };

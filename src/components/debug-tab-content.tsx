@@ -1,26 +1,26 @@
 
-'use client'; 
+'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardCopy } from "lucide-react";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context"; 
+import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { DebugSettingsCard } from "./debug-settings-card";
 import { Separator } from "./ui/separator";
-import { DebugLogCategory } from "@/lib/debug-log-types";
+import { copyToClipboard } from "@/lib/export-utils";
 
 
 interface JsonDisplayAreaProps {
   title: string;
-  jsonContent: string; 
+  jsonContent: string;
   onCopy: () => void;
   description?: string;
 }
 
-function JsonDisplayArea({ title, jsonContent, onCopy, description }: JsonDisplayAreaProps) { 
+function JsonDisplayArea({ title, jsonContent, onCopy, description }: JsonDisplayAreaProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -36,7 +36,7 @@ function JsonDisplayArea({ title, jsonContent, onCopy, description }: JsonDispla
       <CardContent>
         <Textarea
           readOnly
-          value={jsonContent} 
+          value={jsonContent}
           className="h-32 font-code text-xs bg-muted/30"
           placeholder={`{ "status": "loading..." }`}
         />
@@ -46,7 +46,7 @@ function JsonDisplayArea({ title, jsonContent, onCopy, description }: JsonDispla
 }
 
 export function DebugTabContent() {
-  const { 
+  const {
     polygonApiRequestLogJson,
     polygonApiResponseLogJson,
     marketStatusJson,
@@ -59,15 +59,15 @@ export function DebugTabContent() {
     aiKeyTakeawaysJson,
     chatbotRequestJson,
     chatbotResponseJson,
-    logDebug, 
+    logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
-  
-  logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[DebugTabContent] Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
+
+  logDebug('DebugTabContent', "Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
 
 
   const handleCopy = (title: string, content: string) => {
-    logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[DebugTabContent] Copying JSON for: ${title}`);
+    logDebug('DebugTabContent', `Copying JSON for: ${title}`);
     copyToClipboard(content)
       .then((success) => {
         if (success) {
@@ -77,8 +77,8 @@ export function DebugTabContent() {
         }
       })
       .catch(err => {
-        console.error(`[DebugTabContent] Failed to copy ${title}: `, err); 
-        toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON.` });
+        console.error(`[DebugTabContent] Failed to copy ${title}: `, err);
+        toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON: ${ (err as Error).message || 'Unknown error'}` });
       });
   };
 
@@ -106,15 +106,15 @@ export function DebugTabContent() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[calc(100vh-20rem)] pr-4"> 
+        <ScrollArea className="h-[calc(100vh-20rem)] pr-4">
           <div className="space-y-4">
-            <DebugSettingsCard /> 
-            <Separator className="my-6" /> 
+            <DebugSettingsCard />
+            <Separator className="my-6" />
             {debugAreasConfig.map((area) => (
               <JsonDisplayArea
                 key={area.title}
                 title={area.title}
-                jsonContent={area.data} 
+                jsonContent={area.data}
                 onCopy={() => handleCopy(area.title, area.data)}
                 description={area.description}
               />
@@ -125,4 +125,3 @@ export function DebugTabContent() {
     </Card>
   );
 }
-

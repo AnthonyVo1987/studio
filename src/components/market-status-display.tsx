@@ -7,7 +7,6 @@ import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { MarketStatusData } from "@/services/data-sources/types";
 import { formatTimestampToPacificTime } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DebugLogCategory } from "@/lib/debug-log-types";
 
 interface MarketDetailItem {
   label: string;
@@ -33,7 +32,7 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 
 export function MarketStatusDisplay() {
   const { marketStatusJson, logDebug } = useStockAnalysis();
-  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[MarketStatusDisplay] marketStatusJson (start):", marketStatusJson.substring(0,100));
+  logDebug('MarketStatusDisplay', "marketStatusJson (start):", marketStatusJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -41,16 +40,16 @@ export function MarketStatusDisplay() {
 
   if (marketStatusJson && marketStatusJson !== '{}') {
     if (marketStatusJson.includes('"status": "initializing"') || marketStatusJson.includes('"status": "pending"') || marketStatusJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[MarketStatusDisplay] marketStatusJson is in pending/initializing state.");
+      logDebug('MarketStatusDisplay', "marketStatusJson is in pending/initializing state.");
       isLoading = true;
     } else if (marketStatusJson.includes('"error":') || marketStatusJson.includes('"status": "skipped"')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[MarketStatusDisplay] marketStatusJson indicates an error or skipped state.");
+      logDebug('MarketStatusDisplay', "marketStatusJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(marketStatusJson) as MarketStatusData;
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[MarketStatusDisplay] Successfully parsed marketStatusJson. Market status:", data?.market);
+        logDebug('MarketStatusDisplay', "Successfully parsed marketStatusJson. Market status:", data?.market);
         if (data && typeof data === 'object' && !data.error) {
           isLoading = false;
           isError = false;
@@ -69,30 +68,30 @@ export function MarketStatusDisplay() {
             Object.entries(data.currencies)
               .filter(([key]) => {
                 const lowerKey = key.toLowerCase();
-                return lowerKey !== 'crypto' && lowerKey !== 'fx'; 
+                return lowerKey !== 'crypto' && lowerKey !== 'fx';
               })
               .forEach(([key, value]) => {
                 details.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
               });
           }
         } else {
-           logDebug(DebugLogCategory.UI_DATA_PARSING, "[MarketStatusDisplay] Parsed marketStatusJson is not a valid object or contains error field.");
+           logDebug('MarketStatusDisplay', "Parsed marketStatusJson is not a valid object or contains error field.");
            isLoading = false;
            isError = true;
         }
       } catch (e) {
         console.error("[MarketStatusDisplay] Failed to parse marketStatusJson:", e);
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[MarketStatusDisplay] Error during marketStatusJson parsing.", e);
+        logDebug('MarketStatusDisplay', "Error during marketStatusJson parsing.", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[MarketStatusDisplay] marketStatusJson is empty or null.");
+    logDebug('MarketStatusDisplay', "marketStatusJson is empty or null.");
     isLoading = false;
   }
 
-  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[MarketStatusDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
+  logDebug('MarketStatusDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 3);
 
   return (

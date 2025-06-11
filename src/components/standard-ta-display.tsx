@@ -8,7 +8,6 @@ import type { TechnicalIndicatorsData, TechnicalIndicatorValue } from "@/service
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { DebugLogCategory } from "@/lib/debug-log-types";
 
 interface TaIndicatorDisplayInfo {
   key: keyof TechnicalIndicatorsData;
@@ -30,8 +29,8 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
     formatter: (val) => formatToTwoDecimals(val?.value),
     getSentiment: (val) => {
       if (val?.value === undefined || val.value === null) return 'neutral';
-      if (val.value < 30) return 'bullish'; // Oversold
-      if (val.value > 70) return 'bearish'; // Overbought
+      if (val.value < 30) return 'bullish';
+      if (val.value > 70) return 'bearish';
       return 'neutral';
     }
   },
@@ -52,7 +51,7 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
       val?.value !== undefined && val?.signal !== undefined && val?.histogram !== undefined
       ? `${formatToTwoDecimals(val.value)} / ${formatToTwoDecimals(val.signal)} / ${formatToTwoDecimals(val.histogram)}`
       : "N/A",
-    getSentiment: (val) => { // Sentiment based on histogram
+    getSentiment: (val) => {
       if (val?.histogram === undefined || val.histogram === null) return 'neutral';
       if (val.histogram > 0) return 'bullish';
       if (val.histogram < 0) return 'bearish';
@@ -68,7 +67,7 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
 
 export function StandardTaDisplay() {
   const { standardTasJson, logDebug } = useStockAnalysis();
-  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[StandardTaDisplay] standardTasJson (start):", standardTasJson.substring(0,100));
+  logDebug('StandardTaDisplay', "standardTasJson (start):", standardTasJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -76,38 +75,38 @@ export function StandardTaDisplay() {
 
   if (standardTasJson && standardTasJson !== '{}') {
     if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"') || standardTasJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[StandardTaDisplay] standardTasJson is in pending/initializing state.");
+      logDebug('StandardTaDisplay', "standardTasJson is in pending/initializing state.");
       isLoading = true;
     } else if (standardTasJson.includes('"error":') || standardTasJson.includes('"status": "skipped"')) {
-      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[StandardTaDisplay] standardTasJson indicates an error or skipped state.");
+      logDebug('StandardTaDisplay', "standardTasJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[StandardTaDisplay] Successfully parsed standardTasJson. RSI value:", data?.RSI?.value);
+        logDebug('StandardTaDisplay', "Successfully parsed standardTasJson. RSI value:", data?.RSI?.value);
         if (data && typeof data === 'object' && !data.error && (data.RSI || data.EMA || data.SMA || data.MACD || data.VWAP)) {
           isLoading = false;
           isError = false;
           parsedTaData = data;
         } else {
-          logDebug(DebugLogCategory.UI_DATA_PARSING, "[StandardTaDisplay] Parsed standardTasJson is missing expected TA data or is not an object.");
+          logDebug('StandardTaDisplay', "Parsed standardTasJson is missing expected TA data or is not an object.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
         console.error("[StandardTaDisplay] Failed to parse standardTasJson:", e);
-        logDebug(DebugLogCategory.UI_DATA_PARSING, "[StandardTaDisplay] Error during standardTasJson parsing.", e);
+        logDebug('StandardTaDisplay', "Error during standardTasJson parsing.", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[StandardTaDisplay] standardTasJson is empty or null.");
+    logDebug('StandardTaDisplay', "standardTasJson is empty or null.");
     isLoading = false;
   }
 
-  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[StandardTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData && Object.keys(parsedTaData).length > 0}`);
+  logDebug('StandardTaDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData && Object.keys(parsedTaData).length > 0}`);
 
   return (
     <Card>

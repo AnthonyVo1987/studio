@@ -12,12 +12,12 @@ import { downloadJson, copyToClipboard } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
 import { ClipboardCopy, Download, Trash2, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { debugLogCategoryLabels, DebugLogCategory } from '@/lib/debug-log-types';
+import { logSourceLabels, type LogSourceId } from '@/lib/debug-log-types';
 
 
-export const CONSOLE_HEIGHT_PX = 250; // For layout adjustment
+export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
-const MAX_DISPLAYED_LOGS = 200; // Max logs to show in the UI console
+const MAX_DISPLAYED_LOGS = 200;
 
 function formatLogMessage(messages: any[]): string {
   return messages
@@ -43,24 +43,20 @@ export function DebugConsole() {
   } = useStockAnalysis();
   const { toast } = useToast();
   const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
-  const [lastProcessedIndex, setLastProcessedIndex] = useState<number>(-1);
 
   const fetchAndUpdateLogs = useCallback(() => {
     if (!isClientDebugConsoleOpen || !isClientDebugConsoleEnabled) return;
 
-    // Simple way to get new logs: check if global length changed
-    // More robust: compare IDs or use a generation counter if needed later
     const newLogs = globalLogEntries.slice(Math.max(0, globalLogEntries.length - MAX_DISPLAYED_LOGS));
     if (newLogs.length !== displayedLogs.length || (newLogs.length > 0 && newLogs[newLogs.length -1].id !== displayedLogs[displayedLogs.length-1]?.id)) {
        setDisplayedLogs(newLogs);
     }
-
   }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, displayedLogs.length]);
 
 
   useEffect(() => {
     if (isClientDebugConsoleOpen && isClientDebugConsoleEnabled) {
-      fetchAndUpdateLogs(); // Initial fetch
+      fetchAndUpdateLogs();
       const intervalId = setInterval(fetchAndUpdateLogs, POLLING_INTERVAL_MS);
       return () => clearInterval(intervalId);
     }
@@ -73,7 +69,6 @@ export function DebugConsole() {
   const handleClearLogs = () => {
     clearGlobalLogBuffer();
     setDisplayedLogs([]);
-    setLastProcessedIndex(-1);
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
   };
 
@@ -94,10 +89,10 @@ export function DebugConsole() {
       browserConsole.error('[DebugConsole] Export error:', error);
     }
   };
-  
-  const getCategoryLabel = (category?: DebugLogCategory): string => {
-    if (!category) return '';
-    return `[${debugLogCategoryLabels[category] || category}] `;
+
+  const getSourceLabel = (source?: LogSourceId): string => {
+    if (!source) return '';
+    return `[${logSourceLabels[source] || source}] `;
   };
 
   return (
@@ -131,11 +126,11 @@ export function DebugConsole() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 h-[calc(100%-53px)]"> {/* Header height approx 53px */}
+      <CardContent className="p-0 h-[calc(100%-53px)]">
         <ScrollArea className="h-full p-2">
           {displayedLogs.length === 0 ? (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              No client logs yet. Enable logging categories or use console.log().
+              No client logs yet. Enable logging sources or use console.log().
             </div>
           ) : (
             <div className="space-y-1 font-code text-xs">
@@ -155,7 +150,7 @@ export function DebugConsole() {
                   >
                     [{log.type}]
                   </span>
-                  <span className="text-muted-foreground/80 mr-1">{getCategoryLabel(log.category)}</span>
+                  <span className="text-muted-foreground/80 mr-1">{getSourceLabel(log.source)}</span>
                   <span className="whitespace-pre-wrap break-all">{formatLogMessage(log.messages)}</span>
                 </div>
               ))}

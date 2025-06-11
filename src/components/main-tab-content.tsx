@@ -23,10 +23,9 @@ import { calculateAiTaAction, type CalculateAiTaActionState } from "@/actions/ca
 import { performAiAnalysisAction, type PerformAiAnalysisActionState } from "@/actions/perform-ai-analysis-action";
 import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action";
 
-import { useStockAnalysis, type FullAnalysisStatus } from "@/contexts/stock-analysis-context"; // Removed type ChatMessage as it's not used here
+import { useStockAnalysis, type FullAnalysisStatus } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap } from "lucide-react";
-import { DebugLogCategory } from "@/lib/debug-log-types";
 
 const initialStockDataFetchState: AnalyzeStockServerActionState = {
   status: 'idle', data: undefined, error: null, message: null,
@@ -64,13 +63,13 @@ export function MainTabContent() {
     setAiKeyTakeawaysJson,
     setChatbotRequestJson,
     setChatbotResponseJson,
-    
-    fullAnalysisStatus, 
+
+    fullAnalysisStatus,
     setFullAnalysisStatus,
     isFullAnalysisTriggered,
     setIsFullAnalysisTriggered,
     clearChatHistory,
-    logDebug, // Get logDebug from context
+    logDebug,
   } = useStockAnalysis();
 
   const [analyzeStockState, analyzeStockFormAction, isAnalyzeStockPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(
@@ -100,7 +99,7 @@ export function MainTabContent() {
       return;
     }
     toast({ title: "Fetching Stock Data...", description: `Requesting data for ${ticker.toUpperCase()}.` });
-    logDebug(DebugLogCategory.ACTION_LIFECYCLE, `[MainTabContent] handleAnalyzeStockButtonSubmit for ${ticker}`);
+    logDebug('MainTabContent', `handleAnalyzeStockButtonSubmit for ${ticker}`);
 
     setMarketStatusJson('{ "status": "pending..." }');
     setStockSnapshotJson('{ "status": "pending..." }');
@@ -124,9 +123,9 @@ export function MainTabContent() {
       return;
     }
     toast({ title: "Starting Full AI Analysis...", description: `Initiating sequence for ${ticker.toUpperCase()}.` });
-    logDebug(DebugLogCategory.ACTION_LIFECYCLE, `[MainTabContent] handleAiFullAnalysisSubmit for ${ticker}`);
-    
-    clearChatHistory(); 
+    logDebug('MainTabContent', `handleAiFullAnalysisSubmit for ${ticker}`);
+
+    clearChatHistory();
     setFullAnalysisStatus('pending');
     setIsFullAnalysisTriggered(true);
 
@@ -144,44 +143,77 @@ export function MainTabContent() {
     setPolygonApiResponseLogJson('{ "status": "full_analysis_pending..." }');
 
     startTransition(() => {
-      analyzeStockFormAction({ ticker }); 
+      analyzeStockFormAction({ ticker });
     });
   };
 
 
   useEffect(() => {
-    logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] analyzeStockState changed:", analyzeStockState);
+    logDebug('MainTabContent', "analyzeStockState changed:", analyzeStockState);
     if (analyzeStockState.status === 'success' && analyzeStockState.data) {
-      // ... (rest of the logic for success)
+      toast({ title: "Data Fetched", description: analyzeStockState.message });
+      setMarketStatusJson(analyzeStockState.data.marketStatusJson);
+      setStockSnapshotJson(analyzeStockState.data.stockSnapshotJson);
+      setStandardTasJson(analyzeStockState.data.standardTasJson);
+      setOptionsChainJson(analyzeStockState.data.optionsChainJson);
+      setPolygonApiRequestLogJson(analyzeStockState.data.polygonApiRequestLogJson);
+      setPolygonApiResponseLogJson(analyzeStockState.data.polygonApiResponseLogJson);
+
+      if (isFullAnalysisTriggered) {
+        setFullAnalysisStatus('calculatingAiTa');
+      }
+
       if (analyzeStockState.data.stockSnapshotJson && analyzeStockState.data.stockSnapshotJson !== '{}' && !analyzeStockState.data.stockSnapshotJson.includes('"error":')) {
-        logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] analyzeStockState success, triggering calculateAiTaFormAction for", ticker);
+        logDebug('MainTabContent', "analyzeStockState success, triggering calculateAiTaFormAction for", ticker);
         startTransition(() => {
           calculateAiTaFormAction({ stockSnapshotJson: analyzeStockState.data.stockSnapshotJson, ticker });
         });
       } else {
-         logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] analyzeStockState success, BUT stockSnapshotJson is empty/error. Skipping AI TA.", ticker);
+         logDebug('MainTabContent', "analyzeStockState success, BUT stockSnapshotJson is empty/error. Skipping AI TA.", ticker);
+         if (isFullAnalysisTriggered) {
+            setAiCalculatedTaJson('{ "status": "skipped", "reason": "Stock snapshot data missing or error." }');
+            setFullAnalysisStatus('generatingTakeaways'); // Try to proceed
+            // Directly trigger next step or error out full analysis
+         } else {
+            setAiCalculatedTaJson('{ "status": "skipped", "reason": "Stock snapshot data missing or error." }');
+         }
       }
     } else if (analyzeStockState.status === 'error') {
-       logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] analyzeStockState error:", analyzeStockState.error);
+       logDebug('MainTabContent', "analyzeStockState error:", analyzeStockState.error);
+       toast({ variant: "destructive", title: "Data Fetch Error", description: analyzeStockState.message });
+       if (isFullAnalysisTriggered) {
+            setIsFullAnalysisTriggered(false);
+            setFullAnalysisStatus('error');
+       }
+       setMarketStatusJson(`{ "status": "error", "message": "${analyzeStockState.message}" }`);
+       setStockSnapshotJson(`{ "status": "error", "message": "${analyzeStockState.message}" }`);
+       setStandardTasJson(`{ "status": "error", "message": "${analyzeStockState.message}" }`);
+       setOptionsChainJson(`{ "status": "error", "message": "${analyzeStockState.message}" }`);
     }
   }, [analyzeStockState, ticker, isFullAnalysisTriggered, setFullAnalysisStatus, setIsFullAnalysisTriggered,
       setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson,
-      setPolygonApiRequestLogJson, setPolygonApiResponseLogJson, 
+      setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
       calculateAiTaFormAction, toast,
-      setAiCalculatedTaJson, setAiCalculatedTaRequestJson,
-      setAiKeyTakeawaysJson, setAiKeyTakeawaysJson, logDebug 
+      setAiCalculatedTaJson, setAiCalculatedTaRequestJson, logDebug
     ]);
 
   useEffect(() => {
-    logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] calculateAiTaState changed:", calculateAiTaState);
+    logDebug('MainTabContent', "calculateAiTaState changed:", calculateAiTaState);
     if (calculateAiTaState.status === 'success' && calculateAiTaState.data) {
-      // ...
+      toast({ title: "AI TA Calculated", description: calculateAiTaState.message });
+      setAiCalculatedTaRequestJson(calculateAiTaState.data.aiCalculatedTaRequestJson);
+      setAiCalculatedTaJson(calculateAiTaState.data.aiCalculatedTaJson);
+
+      if (isFullAnalysisTriggered) {
+        setFullAnalysisStatus('generatingTakeaways');
+      }
+
       if (stockSnapshotJson !== '{}' && !stockSnapshotJson.includes('"error":') &&
           standardTasJson !== '{}' && !standardTasJson.includes('"error":') &&
           marketStatusJson !== '{}' && !marketStatusJson.includes('"error":') &&
           calculateAiTaState.data.aiCalculatedTaJson !== '{}' && !calculateAiTaState.data.aiCalculatedTaJson.includes('"error":')
           ) {
-        logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] calculateAiTaState success, triggering performAiAnalysisFormAction for", ticker);
+        logDebug('MainTabContent', "calculateAiTaState success, triggering performAiAnalysisFormAction for", ticker);
         startTransition(() => {
           performAiAnalysisFormAction({
             ticker,
@@ -192,51 +224,87 @@ export function MainTabContent() {
           });
         });
       } else {
-        logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] calculateAiTaState success, BUT prerequisite data missing/error. Skipping Key Takeaways.", ticker);
+        logDebug('MainTabContent', "calculateAiTaState success, BUT prerequisite data missing/error. Skipping Key Takeaways.", ticker);
+        if (isFullAnalysisTriggered) {
+            setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "Prerequisite data for key takeaways missing or error." }');
+            setFullAnalysisStatus('chatting'); // Try to proceed
+        } else {
+            setAiKeyTakeawaysJson('{ "status": "skipped", "reason": "Prerequisite data for key takeaways missing or error." }');
+        }
       }
     } else if (calculateAiTaState.status === 'error') {
-      logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] calculateAiTaState error:", calculateAiTaState.error);
+      logDebug('MainTabContent', "calculateAiTaState error:", calculateAiTaState.error);
+      toast({ variant: "destructive", title: "AI TA Error", description: calculateAiTaState.message });
+      if (isFullAnalysisTriggered) {
+        setFullAnalysisStatus('error');
+        setIsFullAnalysisTriggered(false);
+      }
+      setAiCalculatedTaJson(`{ "status": "error", "message": "${calculateAiTaState.message}" }`);
     }
   }, [calculateAiTaState, ticker, stockSnapshotJson, standardTasJson, marketStatusJson, isFullAnalysisTriggered,
       performAiAnalysisFormAction, setFullAnalysisStatus, setIsFullAnalysisTriggered,
       setAiCalculatedTaRequestJson, setAiCalculatedTaJson,
-      setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast, logDebug]);
+      setAiKeyTakeawaysJson, toast, logDebug]);
 
   useEffect(() => {
-    logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] performAiAnalysisState changed:", performAiAnalysisState);
+    logDebug('MainTabContent', "performAiAnalysisState changed:", performAiAnalysisState);
     if (performAiAnalysisState.status === 'success' && performAiAnalysisState.data) {
-      // ...
+      toast({ title: "AI Key Takeaways Generated", description: performAiAnalysisState.message });
+      setAiKeyTakeawaysRequestJson(performAiAnalysisState.data.aiKeyTakeawaysRequestJson);
+      setAiKeyTakeawaysJson(performAiAnalysisState.data.aiKeyTakeawaysJson);
+
       if (isFullAnalysisTriggered) {
-        logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] performAiAnalysisState success (full analysis), triggering chatFormAction for", ticker);
+        logDebug('MainTabContent', "performAiAnalysisState success (full analysis), triggering chatFormAction for", ticker);
+        setFullAnalysisStatus('chatting');
         const autoPrompt = "Provide a full detailed analysis of this stock based on all the context provided.";
-        clearChatHistory(); 
+        clearChatHistory();
         startTransition(() => {
           chatFormAction({
             ticker,
             stockSnapshotJson,
-            aiKeyTakeawaysJson: performAiAnalysisState.data.aiKeyTakeawaysJson, 
+            aiKeyTakeawaysJson: performAiAnalysisState.data.aiKeyTakeawaysJson,
             aiCalculatedTaJson,
             userInput: autoPrompt,
-            chatHistory: [] 
+            chatHistory: []
           });
         });
       }
     } else if (performAiAnalysisState.status === 'error') {
-      logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] performAiAnalysisState error:", performAiAnalysisState.error);
+      logDebug('MainTabContent', "performAiAnalysisState error:", performAiAnalysisState.error);
+      toast({ variant: "destructive", title: "AI Analysis Error", description: performAiAnalysisState.message });
+      if (isFullAnalysisTriggered) {
+        setFullAnalysisStatus('error');
+        setIsFullAnalysisTriggered(false);
+      }
+      setAiKeyTakeawaysJson(`{ "status": "error", "message": "${performAiAnalysisState.message}" }`);
     }
-  }, [performAiAnalysisState, ticker, stockSnapshotJson, aiCalculatedTaJson, aiKeyTakeawaysJson, isFullAnalysisTriggered, // Corrected: aiKeyTakeawaysJson was missing from deps
-      chatFormAction, setFullAnalysisStatus, setIsFullAnalysisTriggered, clearChatHistory, 
-      setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast, logDebug]);
-  
+  }, [performAiAnalysisState, ticker, stockSnapshotJson, aiCalculatedTaJson, // Removed aiKeyTakeawaysJson from deps as it's set here
+      chatFormAction, setFullAnalysisStatus, setIsFullAnalysisTriggered, clearChatHistory,
+      setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast, logDebug, isFullAnalysisTriggered]);
+
   useEffect(() => {
-    logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] chatActionState changed:", chatActionState);
+    logDebug('MainTabContent', "chatActionState changed:", chatActionState);
     if (chatActionState.status === 'success' && chatActionState.data) {
-      // ...
+      toast({ title: "Chatbot Responded", description: chatActionState.message });
+      setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
+      setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
+      // Add to chat history context in Task 6.6
+      if (isFullAnalysisTriggered) {
+        setFullAnalysisStatus('success');
+        setIsFullAnalysisTriggered(false);
+        toast({ title: "Full AI Analysis Complete!", description: "All steps finished. See chat for summary.", duration: 5000 });
+      }
     } else if (chatActionState.status === 'error') {
-      logDebug(DebugLogCategory.ACTION_LIFECYCLE, "[MainTabContent] chatActionState error:", chatActionState.error);
+      logDebug('MainTabContent', "chatActionState error:", chatActionState.error);
+      toast({ variant: "destructive", title: "Chatbot Error", description: chatActionState.message });
+      if (isFullAnalysisTriggered) {
+        setFullAnalysisStatus('error');
+        setIsFullAnalysisTriggered(false);
+      }
+      setChatbotResponseJson(`{ "status": "error", "message": "${chatActionState.message}" }`);
     }
-  }, [chatActionState, isFullAnalysisTriggered, fullAnalysisStatus, 
-      setChatbotRequestJson, setChatbotResponseJson, 
+  }, [chatActionState, isFullAnalysisTriggered,
+      setChatbotRequestJson, setChatbotResponseJson,
       setFullAnalysisStatus, setIsFullAnalysisTriggered, toast, logDebug]);
 
 
@@ -286,7 +354,7 @@ export function MainTabContent() {
     !optionsChainJson.includes('"status":') && !optionsChainJson.includes('"error":') && optionsChainJson !== '{}' &&
     !marketStatusJson.includes('"status":') && !marketStatusJson.includes('"error":') && marketStatusJson !== '{}';
 
-  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[MainTabContent] Rendering. isAnyActionPending=${isAnyActionPending}, fullAnalysisStatus=${fullAnalysisStatus}`);
+  logDebug('MainTabContent', `Rendering. isAnyActionPending=${isAnyActionPending}, fullAnalysisStatus=${fullAnalysisStatus}`);
 
   return (
     <Card>

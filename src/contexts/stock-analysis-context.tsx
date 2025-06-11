@@ -3,15 +3,14 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { DebugLogCategory, type DebugLogConfig, defaultDebugLogConfig } from '@/lib/debug-log-types';
+import { type LogSourceId, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer } from '@/lib/global-log-buffer';
 
-// Marker for logs originating from our logDebug utility
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
 export type FullAnalysisStatus =
   | 'idle'
-  | 'pending' 
+  | 'pending'
   | 'fetchingData'
   | 'calculatingAiTa'
   | 'generatingTakeaways'
@@ -24,7 +23,6 @@ export interface ChatMessage {
   content: string;
 }
 
-// Keep a reference to the original console methods
 const browserConsole = {
   log: typeof console !== 'undefined' ? console.log.bind(console) : () => {},
   warn: typeof console !== 'undefined' ? console.warn.bind(console) : () => {},
@@ -51,10 +49,9 @@ interface StockAnalysisState {
   isFullAnalysisTriggered: boolean;
   chatHistory: ChatMessage[];
 
-  // Debug Console Control State (not the logs themselves)
   isClientDebugConsoleEnabled: boolean;
   isClientDebugConsoleOpen: boolean;
-  debugLogConfig: DebugLogConfig;
+  logSourceConfig: LogSourceConfig;
 }
 
 interface StockAnalysisContextType extends StockAnalysisState {
@@ -77,11 +74,10 @@ interface StockAnalysisContextType extends StockAnalysisState {
   clearChatHistory: () => void;
   addChatMessage: (message: ChatMessage) => void;
 
-  // Debug Console Actions
   setClientDebugConsoleEnabled: (enabled: boolean) => void;
   setClientDebugConsoleOpen: (open: boolean) => void;
-  setDebugLogCategoryEnabled: (category: DebugLogCategory, enabled: boolean) => void;
-  logDebug: (category: DebugLogCategory, ...messages: any[]) => void;
+  setLogSourceEnabled: (source: LogSourceId, enabled: boolean) => void;
+  logDebug: (source: LogSourceId, ...messages: any[]) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
@@ -104,7 +100,7 @@ const defaultState: StockAnalysisState = {
   chatHistory: [],
   isClientDebugConsoleEnabled: false,
   isClientDebugConsoleOpen: false,
-  debugLogConfig: defaultDebugLogConfig,
+  logSourceConfig: defaultLogSourceConfig,
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -127,16 +123,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
   const [isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
   const [isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
-  const [debugLogConfig, _setDebugLogConfig] = useState<DebugLogConfig>(defaultState.debugLogConfig);
+  const [logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
 
-  const logDebug = useCallback((category: DebugLogCategory, ...messages: any[]) => {
-    // This function now simply calls the wrapped console.debug with a marker.
-    // The actual filtering and logging to global buffer is handled by the interceptor.
-    console.debug(LOGDEBUG_MARKER, category, ...messages);
-  }, []); // No dependencies needed here as it just calls the global console
+  const logDebug = useCallback((source: LogSourceId, ...messages: any[]) => {
+    console.debug(LOGDEBUG_MARKER, source, ...messages);
+  }, []);
 
   const setAndLogJson = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
-    logDebug(DebugLogCategory.CONTEXT_INTERNALS, `Setting ${name} to:`, value.substring(0, 100));
+    logDebug('StockAnalysisContext', `Setting ${name} to:`, value.substring(0, 100));
     setter(value);
   };
 
@@ -160,13 +154,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const setClientDebugConsoleEnabled = (enabled: boolean) => {
     _setClientDebugConsoleEnabled(enabled);
-    if (!enabled) _setClientDebugConsoleOpen(false);
+    if (!enabled) {
+      _setClientDebugConsoleOpen(false);
+      // No need to clear global buffer here, let the console UI button do that if desired.
+    }
   };
   const setClientDebugConsoleOpen = (open: boolean) => {
     if (isClientDebugConsoleEnabled || !open) _setClientDebugConsoleOpen(open);
   };
-  const setDebugLogCategoryEnabled = useCallback((category: DebugLogCategory, enabled: boolean) => {
-    _setDebugLogConfig(prevConfig => ({ ...prevConfig, [category]: enabled }));
+  const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
+    _setLogSourceConfig(prevConfig => ({ ...prevConfig, [source]: enabled }));
   }, []);
 
   useEffect(() => {
@@ -190,31 +187,30 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       type: 'log' | 'warn' | 'error' | 'info' | 'debug',
       ...args: any[]
     ) => {
-      // Always pass through to native console synchronously
+      // Synchronous native log
       currentOriginals[type](...args);
 
-      // Asynchronously process for our UI console
+      // Asynchronous buffer add
       queueMicrotask(() => {
-        if (!isClientDebugConsoleEnabled) return; // Re-check in case it was disabled during microtask
+        if (!isClientDebugConsoleEnabled) return;
 
-        let category: DebugLogCategory | undefined = undefined;
+        let source: LogSourceId = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
+        let logTypeForBuffer = type;
 
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
-          // This log came from our logDebug utility
-          category = args[1] as DebugLogCategory;
+          source = args[1] as LogSourceId;
           messagesForBuffer = args.slice(2);
-          if (!debugLogConfig[category]) {
-            return; // Category is disabled
+          logTypeForBuffer = 'debug'; // Logs from logDebug are always type 'debug'
+          if (!logSourceConfig[source]) {
+            return; // Source is disabled
           }
         } else {
-          // This is a generic console call
-          category = DebugLogCategory.NATIVE_CONSOLE;
-          if (!debugLogConfig[DebugLogCategory.NATIVE_CONSOLE]) {
-            return; // Native console logging category is disabled
+          if (!logSourceConfig['NATIVE_CONSOLE']) {
+            return; // Native console logging source is disabled
           }
         }
-        addEntryToGlobalLogBuffer({ type, messages: messagesForBuffer, category });
+        addEntryToGlobalLogBuffer({ type: logTypeForBuffer, messages: messagesForBuffer, source });
       });
     };
 
@@ -223,7 +219,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     console.error = (...args) => interceptAndProcessLog('error', ...args);
     console.info = (...args) => interceptAndProcessLog('info', ...args);
     console.debug = (...args) => interceptAndProcessLog('debug', ...args);
-    
+
     browserConsole.debug('[DebugConsoleInterceptor] Console interception enabled.');
 
     return () => {
@@ -233,7 +229,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         browserConsole.debug('[DebugConsoleInterceptor] Console interception disabled on cleanup, originals restored.');
       }
     };
-  }, [isClientDebugConsoleEnabled, debugLogConfig]); // debugLogConfig is a dependency for filtering
+  }, [isClientDebugConsoleEnabled, logSourceConfig]);
 
   const contextValue: StockAnalysisContextType = {
     polygonApiRequestLogJson, setPolygonApiRequestLogJson,
@@ -253,9 +249,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     chatHistory, setChatHistory,
     clearChatHistory, addChatMessage,
     isClientDebugConsoleEnabled, isClientDebugConsoleOpen,
-    debugLogConfig, 
+    logSourceConfig,
     setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
-    setDebugLogCategoryEnabled, logDebug,
+    setLogSourceEnabled, logDebug,
   };
 
   return (
