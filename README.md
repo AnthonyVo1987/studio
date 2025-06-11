@@ -638,5 +638,36 @@ This commit re-introduces the client-side debug console feature, focusing on sta
 This implementation provides a foundational, more stable client-side debug console. Further enhancements and more granular logging can be added in subsequent tasks.
 
 ---
+**Tag:** `DebugConsole_Task-3.1` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `3744b73a`
+
+**Subject:** `feat(debug): Implement configurable debug logging categories (Task 3.1)`
+
+**Details:**
+This commit implements a system for selectively enabling or disabling categories of client-side debug logs, completing "Debug Console Task 3.1". This allows for finer-grained control over log verbosity and aids in troubleshooting.
+
+**Key Changes Implemented:**
+
+1.  **Debug Log Categories (`src/lib/debug-log-types.ts`):**
+    *   Defined `DebugLogCategory` enum with initial categories: `UI_COMPONENT_STATE`, `UI_DATA_RECEPTION`, `UI_DATA_PARSING`, `CONTEXT_INTERNALS`, `ACTION_LIFECYCLE`.
+    *   Defined `DebugLogConfig` type and `defaultDebugLogConfig`.
+
+2.  **Context Enhancements (`src/contexts/stock-analysis-context.tsx`):**
+    *   Added `debugLogConfig` state and `setDebugLogCategoryEnabled` setter to manage category toggles.
+    *   Introduced a `logDebug(category, ...messages)` utility function. This function checks the master debug enable switch and the specific category's enable status before logging to `console.debug` (which is then intercepted).
+    *   Updated internal context logging (e.g., in `setAndLogJson`) to use the new `logDebug` utility with the `CONTEXT_INTERNALS` category.
+
+3.  **UI Component Log Updates:**
+    *   All previous direct `console.debug` calls in UI components (`KeyMetricsDisplay`, `StockSnapshotDetailsDisplay`, etc.) and `MainTabContent.tsx` were replaced with the new `logDebug(category, ...messages)` function, assigning appropriate `DebugLogCategory` values.
+
+4.  **Debug Settings UI (`src/components/debug-settings-card.tsx`):**
+    *   Created a new card component that displays `Switch` controls for each `DebugLogCategory`.
+    *   This card is integrated into `DebugTabContent.tsx`, allowing users to toggle log categories on/off.
+
+This feature enhances the client-side debugging experience by providing more control over the verbosity and source of debug messages displayed in the custom console.
+
+---
 
 ... (Future commit logs will follow)
+
+
+    
