@@ -166,14 +166,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   // Debug Console Logic
   const addClientLog = useCallback((log: Omit<LogEntry, 'id' | 'timestamp'>) => {
-    _setClientLogs(prevLogs => [
-      ...prevLogs,
-      {
-        ...log,
-        id: Date.now().toString() + Math.random().toString(36).substring(2), // Simple unique ID
-        timestamp: new Date().toISOString(),
-      },
-    ].slice(-200)); // Keep last 200 logs
+    queueMicrotask(() => {
+      _setClientLogs(prevLogs => [
+        ...prevLogs,
+        {
+          ...log,
+          id: Date.now().toString() + Math.random().toString(36).substring(2), // Simple unique ID
+          timestamp: new Date().toISOString(),
+        },
+      ].slice(-200)); // Keep last 200 logs
+    });
   }, []);
 
   const clearClientLogs = useCallback(() => {
@@ -212,7 +214,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      // Add to internal logs state
       addClientLog({ type, messages: args });
       // Call original console method
       originalConsole[type](...args);
