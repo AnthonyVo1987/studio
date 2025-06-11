@@ -4,19 +4,26 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
-export type FullAnalysisStatus = 
-  | 'idle' 
+export type FullAnalysisStatus =
+  | 'idle'
   | 'pending' // Initial state when button is clicked
-  | 'fetchingData' 
-  | 'calculatingAiTa' 
-  | 'generatingTakeaways' 
-  | 'chatting' 
-  | 'success' 
+  | 'fetchingData'
+  | 'calculatingAiTa'
+  | 'generatingTakeaways'
+  | 'chatting'
+  | 'success'
   | 'error';
 
 export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
+}
+
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  type: 'log' | 'warn' | 'error' | 'info' | 'debug';
+  messages: any[];
 }
 
 interface StockAnalysisState {
@@ -32,10 +39,15 @@ interface StockAnalysisState {
   aiKeyTakeawaysJson: string;
   chatbotRequestJson: string;
   chatbotResponseJson: string;
-  
+
   fullAnalysisStatus: FullAnalysisStatus;
   isFullAnalysisTriggered: boolean;
   chatHistory: ChatMessage[];
+
+  // Debug Console State
+  clientLogs: LogEntry[];
+  isClientDebugConsoleEnabled: boolean;
+  isClientDebugConsoleOpen: boolean;
 }
 
 interface StockAnalysisContextType extends StockAnalysisState {
@@ -57,6 +69,12 @@ interface StockAnalysisContextType extends StockAnalysisState {
   setChatHistory: (history: ChatMessage[]) => void;
   clearChatHistory: () => void;
   addChatMessage: (message: ChatMessage) => void;
+
+  // Debug Console Actions
+  addClientLog: (log: Omit<LogEntry, 'id' | 'timestamp'>) => void;
+  clearClientLogs: () => void;
+  setClientDebugConsoleEnabled: (enabled: boolean) => void;
+  setClientDebugConsoleOpen: (open: boolean) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
@@ -78,6 +96,10 @@ const defaultState: StockAnalysisState = {
   fullAnalysisStatus: 'idle',
   isFullAnalysisTriggered: false,
   chatHistory: [],
+
+  clientLogs: [],
+  isClientDebugConsoleEnabled: false,
+  isClientDebugConsoleOpen: false,
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -95,10 +117,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
   const [chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
   const [chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
-  
+
   const [fullAnalysisStatus, _setFullAnalysisStatus] = useState<FullAnalysisStatus>(defaultState.fullAnalysisStatus);
   const [isFullAnalysisTriggered, _setIsFullAnalysisTriggered] = useState<boolean>(defaultState.isFullAnalysisTriggered);
   const [chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
+
+  const [clientLogs, _setClientLogs] = useState<LogEntry[]>(defaultState.clientLogs);
+  const [isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
+  const [isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
 
 
   const setAndLogJson = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
@@ -120,28 +146,95 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setChatbotResponseJson = (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson', json);
 
   const setFullAnalysisStatus = (status: FullAnalysisStatus) => {
-    // console.debug(`[StockAnalysisContext] Setting fullAnalysisStatus to: ${status}`);
     _setFullAnalysisStatus(status);
   };
   const setIsFullAnalysisTriggered = (triggered: boolean) => {
-    // console.debug(`[StockAnalysisContext] Setting isFullAnalysisTriggered to: ${triggered}`);
     _setIsFullAnalysisTriggered(triggered);
   };
-  
+
   const setChatHistory = (history: ChatMessage[]) => {
-    // console.debug(`[StockAnalysisContext] Setting chatHistory. Length: ${history.length}`);
     _setChatHistory(history);
   };
 
   const clearChatHistory = useCallback(() => {
-    // console.debug(`[StockAnalysisContext] Clearing chatHistory.`);
     _setChatHistory([]);
   }, []);
 
   const addChatMessage = useCallback((message: ChatMessage) => {
-    // console.debug(`[StockAnalysisContext] Adding chat message: Role: ${message.role}, Content: ${message.content.substring(0,50)}...`);
     _setChatHistory(prev => [...prev, message]);
   }, []);
+
+  // Debug Console Logic
+  const addClientLog = useCallback((log: Omit<LogEntry, 'id' | 'timestamp'>) => {
+    _setClientLogs(prevLogs => [
+      ...prevLogs,
+      {
+        ...log,
+        id: Date.now().toString() + Math.random().toString(36).substring(2), // Simple unique ID
+        timestamp: new Date().toISOString(),
+      },
+    ].slice(-200)); // Keep last 200 logs
+  }, []);
+
+  const clearClientLogs = useCallback(() => {
+    _setClientLogs([]);
+  }, []);
+
+  const setClientDebugConsoleEnabled = (enabled: boolean) => {
+    _setClientDebugConsoleEnabled(enabled);
+    if (!enabled) { // Also close if disabling entirely
+        _setClientDebugConsoleOpen(false);
+    }
+  };
+  const setClientDebugConsoleOpen = (open: boolean) => {
+    if (isClientDebugConsoleEnabled || !open) { // Can only open if enabled, can always close
+        _setClientDebugConsoleOpen(open);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isClientDebugConsoleEnabled) {
+      return;
+    }
+
+    const originalConsole = {
+      log: console.log,
+      warn: console.warn,
+      error: console.error,
+      info: console.info,
+      debug: console.debug,
+    };
+
+    const interceptAndLog = (type: LogEntry['type'], ...args: any[]) => {
+      // Prevent logging calls originating from the logger itself to avoid infinite loops
+      if (args.some(arg => typeof arg === 'string' && arg.startsWith('[DebugConsoleInterceptor]'))) {
+        originalConsole[type](...args);
+        return;
+      }
+      
+      // Add to internal logs state
+      addClientLog({ type, messages: args });
+      // Call original console method
+      originalConsole[type](...args);
+    };
+
+    console.log = (...args) => interceptAndLog('log', ...args);
+    console.warn = (...args) => interceptAndLog('warn', ...args);
+    console.error = (...args) => interceptAndLog('error', ...args);
+    console.info = (...args) => interceptAndLog('info', ...args);
+    console.debug = (...args) => interceptAndLog('debug', ...args);
+    
+    originalConsole.debug('[DebugConsoleInterceptor] Console interception enabled.');
+
+    return () => {
+      console.log = originalConsole.log;
+      console.warn = originalConsole.warn;
+      console.error = originalConsole.error;
+      console.info = originalConsole.info;
+      console.debug = originalConsole.debug;
+      originalConsole.debug('[DebugConsoleInterceptor] Console interception disabled, originals restored.');
+    };
+  }, [isClientDebugConsoleEnabled, addClientLog]);
 
 
   const contextValue: StockAnalysisContextType = {
@@ -163,6 +256,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     chatHistory, setChatHistory,
     clearChatHistory,
     addChatMessage,
+
+    clientLogs,
+    isClientDebugConsoleEnabled,
+    isClientDebugConsoleOpen,
+    addClientLog,
+    clearClientLogs,
+    setClientDebugConsoleEnabled,
+    setClientDebugConsoleOpen,
   };
 
   return (

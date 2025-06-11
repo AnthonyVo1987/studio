@@ -284,17 +284,13 @@ export function MainTabContent() {
         toast({ title: "Generating Full AI Analysis Summary...", description: "Chatbot is processing the request." });
         
         const autoPrompt = "Provide a full detailed analysis of this stock based on all the context provided.";
-        // Add user's auto-prompt to chat history (Task 6.6 will display this)
-        // For now, it's implicitly part of chatbotRequestJson for the debug tab
-        // addChatMessage({ role: 'user', content: autoPrompt }); 
-        // Chat history for the call itself is empty as it's the start of this auto-convo
         
-        clearChatHistory(); // Ensure clean history for this auto-analysis
+        clearChatHistory(); 
         startTransition(() => {
           chatFormAction({
             ticker,
             stockSnapshotJson,
-            aiKeyTakeawaysJson: performAiAnalysisState.data.aiKeyTakeawaysJson, // Use the latest
+            aiKeyTakeawaysJson: performAiAnalysisState.data.aiKeyTakeawaysJson, 
             aiCalculatedTaJson,
             userInput: autoPrompt,
             chatHistory: [] 
@@ -318,13 +314,12 @@ export function MainTabContent() {
       setAiKeyTakeawaysJson(`{ "status": "error", "details": "${errorMsg}" }`);
     }
   }, [performAiAnalysisState, ticker, stockSnapshotJson, aiCalculatedTaJson, aiKeyTakeawaysJson, isFullAnalysisTriggered,
-      chatFormAction, setFullAnalysisStatus, setIsFullAnalysisTriggered, clearChatHistory, // addChatMessage,
+      chatFormAction, setFullAnalysisStatus, setIsFullAnalysisTriggered, clearChatHistory, 
       setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, toast]);
   
   // Effect for Chat Action (specifically for Full Analysis completion)
   useEffect(() => {
     if (chatActionState.status === 'success' && chatActionState.data) {
-      // This will also update chatbotRequestJson and chatbotResponseJson for the debug tab
       setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
       setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
 
@@ -332,17 +327,7 @@ export function MainTabContent() {
         setFullAnalysisStatus('success');
         setIsFullAnalysisTriggered(false);
         toast({ title: "Full AI Analysis Complete!", description: "Chatbot summary generated." });
-        // The actual chat message (response) will be parsed from chatbotResponseJson and
-        // added to chatHistory by the Chatbot.tsx component in Task 6.6.
-        // For now, we can add the bot's response if we parse it here, or wait for 6.6
-        // try {
-        //   const chatOutput = JSON.parse(chatActionState.data.chatbotResponseJson);
-        //   if (chatOutput.response) {
-        //     addChatMessage({ role: 'model', content: chatOutput.response });
-        //   }
-        // } catch (e) { console.error("Failed to parse chat response for history", e); }
-
-      } else if (!isFullAnalysisTriggered) { // Normal chat interaction (will be handled by Chatbot.tsx)
+      } else if (!isFullAnalysisTriggered) { 
         toast({ title: "Chatbot Responded", description: chatActionState.message || "Chat interaction processed." });
       }
     } else if (chatActionState.status === 'error') {
@@ -359,12 +344,12 @@ export function MainTabContent() {
         setFullAnalysisStatus('error');
         setIsFullAnalysisTriggered(false);
         toast({ variant: "destructive", title: "Full Analysis Error", description: `Chatbot failed: ${errorMsg}` });
-      } else if (!isFullAnalysisTriggered) { // Normal chat interaction error
+      } else if (!isFullAnalysisTriggered) { 
         toast({ variant: "destructive", title: "Chatbot Error", description: errorMsg });
       }
     }
   }, [chatActionState, isFullAnalysisTriggered, fullAnalysisStatus, 
-      setChatbotRequestJson, setChatbotResponseJson, // addChatMessage,
+      setChatbotRequestJson, setChatbotResponseJson, 
       setFullAnalysisStatus, setIsFullAnalysisTriggered, toast]);
 
 

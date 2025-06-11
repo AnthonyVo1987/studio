@@ -40,7 +40,7 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
 
 export function StockSnapshotDetailsDisplay() {
   const { stockSnapshotJson } = useStockAnalysis();
-  // console.debug("[StockSnapshotDetailsDisplay] Props received. stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  // console.debug("[StockSnapshotDetailsDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -48,7 +48,7 @@ export function StockSnapshotDetailsDisplay() {
   let parsedSnapshotData: StockSnapshotData | null = null;
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
-    if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"')) {
+    if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
       // console.debug("[StockSnapshotDetailsDisplay] stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
@@ -59,19 +59,17 @@ export function StockSnapshotDetailsDisplay() {
       try {
         const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
         // console.debug("[StockSnapshotDetailsDisplay] Successfully parsed stockSnapshotJson:", data);
-        // Ticker is removed from here, but check for its existence for data validity before removing.
         if (data && typeof data === 'object' && data.ticker) {
           isLoading = false;
           isError = false;
           parsedSnapshotData = data;
 
           const change = parsedSnapshotData.todaysChange ?? 0;
-          const changePerc = parsedSnapshotData.todaysChangePerc ?? null; // Keep as null if undefined
+          const changePerc = parsedSnapshotData.todaysChangePerc ?? null; 
           const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
 
           const criticalDetails: StockDetailItem[] = [
             { label: "Current Price", value: formatCurrency(parsedSnapshotData.currentPrice)},
-            // Apply 2 decimal places for Today's Change %
             { label: "Today's Change %", value: formatPercentage(changePerc, "N/A", true, 2), sentiment: changeSentiment },
             { label: "Today's Change", value: formatCurrency(change, "$", "N/A"), sentiment: changeSentiment },
             { label: "Day's VWAP", value: formatCurrency(parsedSnapshotData.day?.vw) },
@@ -103,10 +101,9 @@ export function StockSnapshotDetailsDisplay() {
           // console.warn("[StockSnapshotDetailsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
           isLoading = false;
           isError = true;
-           // if (data && (data as any).error) console.error("[StockSnapshotDetailsDisplay] Snapshot data contains error field:", (data as any).error);
         }
       } catch (e) {
-        // console.error("[StockSnapshotDetailsDisplay] Failed to parse stockSnapshotJson:", e, "JSON:", stockSnapshotJson.substring(0,200));
+        // console.error("[StockSnapshotDetailsDisplay] Failed to parse stockSnapshotJson:", e);
         isLoading = false;
         isError = true;
       }
@@ -139,4 +136,3 @@ export function StockSnapshotDetailsDisplay() {
     </Card>
   );
 }
-

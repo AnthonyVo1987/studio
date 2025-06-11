@@ -67,14 +67,14 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
 
 export function StandardTaDisplay() {
   const { standardTasJson } = useStockAnalysis();
-  // console.debug("[StandardTaDisplay] Props received. standardTasJson (start):", standardTasJson.substring(0,100));
+  // console.debug("[StandardTaDisplay] standardTasJson (start):", standardTasJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
   let parsedTaData: Partial<TechnicalIndicatorsData> | null = null;
 
   if (standardTasJson && standardTasJson !== '{}') {
-    if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"')) {
+    if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"') || standardTasJson.includes('"status": "full_analysis_pending..."')) {
       // console.debug("[StandardTaDisplay] standardTasJson is in pending/initializing state.");
       isLoading = true;
     } else if (standardTasJson.includes('"error":') || standardTasJson.includes('"status": "skipped"')) {
@@ -93,10 +93,9 @@ export function StandardTaDisplay() {
           // console.warn("[StandardTaDisplay] Parsed standardTasJson is missing expected TA data or is not an object.");
           isLoading = false;
           isError = true;
-          // if (data && (data as any).error) console.error("[StandardTaDisplay] Standard TA data contains error field:", (data as any).error);
         }
       } catch (e) {
-        // console.error("[StandardTaDisplay] Failed to parse standardTasJson:", e, "JSON:", standardTasJson.substring(0,200));
+        // console.error("[StandardTaDisplay] Failed to parse standardTasJson:", e);
         isLoading = false;
         isError = true;
       }

@@ -26,8 +26,8 @@ interface OptionHeaderConfig {
 // decimalPlaces (4th arg) for formatPercentage: undefined or 0 means whole number
 const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, // Defaults to 0 decimal places (whole %)
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, // Defaults to 0 decimal places (whole %)
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, 
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, 
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
@@ -43,8 +43,8 @@ const putHeadersConfig: OptionHeaderConfig[] = [
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, // Defaults to 0 decimal places (whole %)
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, // Defaults to 0 decimal places (whole %)
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, 
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, 
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
@@ -70,7 +70,7 @@ const renderSkeletonRow = (rowIndex: number) => (
 
 export function OptionsChainTable() {
   const { optionsChainJson, stockSnapshotJson } = useStockAnalysis();
-  // console.debug("[OptionsChainTable] Props received. optionsChainJson (start):", optionsChainJson.substring(0,100));
+  // console.debug("[OptionsChainTable] optionsChainJson (start):", optionsChainJson.substring(0,100));
   // console.debug("[OptionsChainTable] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
@@ -80,7 +80,7 @@ export function OptionsChainTable() {
   let currentPriceForATM: number | null = null;
 
   if (optionsChainJson && optionsChainJson !== '{}') {
-    if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"')) {
+    if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"') || optionsChainJson.includes('"status": "full_analysis_pending..."')) {
       // console.debug("[OptionsChainTable] optionsChainJson is in pending/initializing state.");
       isLoading = true;
     } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
@@ -99,10 +99,9 @@ export function OptionsChainTable() {
           // console.warn("[OptionsChainTable] Parsed optionsChainJson is missing contracts array or contains error/status field.");
           isLoading = false;
           isError = true;
-          // if (data && (data as any).error) console.error("[OptionsChainTable] Options chain data contains error field:", (data as any).error);
         }
       } catch (e) {
-        // console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e, "JSON:", optionsChainJson.substring(0,200));
+        // console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e);
         isLoading = false;
         isError = true;
       }
@@ -122,7 +121,7 @@ export function OptionsChainTable() {
          // console.warn("[OptionsChainTable] stockSnapshotJson contains status/error, cannot get current price for ATM.");
       }
     } catch (e) {
-      // console.error("[OptionsChainTable] Failed to parse stockSnapshotJson for ATM price:", e, "JSON:", stockSnapshotJson.substring(0,200));
+      // console.error("[OptionsChainTable] Failed to parse stockSnapshotJson for ATM price:", e);
     }
   } else {
      // console.debug("[OptionsChainTable] stockSnapshotJson is empty or null, cannot determine ATM strike.");
@@ -139,7 +138,6 @@ export function OptionsChainTable() {
     }).strike;
     // console.debug(`[OptionsChainTable] ATM Strike determined: ${atmStrikeValue} based on current price: ${currentPriceForATM}`);
   } else if (contracts.length > 0 && !currentPriceForATM && parsedData?.underlying_price) {
-    // Fallback to underlying_price from optionsChainJson if snapshot current price is missing
     currentPriceForATM = parsedData.underlying_price;
     if(currentPriceForATM){
         atmStrikeValue = contracts.reduce((prev, curr) => {
@@ -228,4 +226,3 @@ export function OptionsChainTable() {
     </Card>
   );
 }
-

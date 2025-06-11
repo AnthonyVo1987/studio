@@ -58,11 +58,11 @@ export function DebugTabContent() {
     chatbotResponseJson,
   } = useStockAnalysis();
   const { toast } = useToast();
-  // console.debug("[DebugTabContent] Rendering. polygonApiRequestLogJson (start):", polygonApiRequestLogJson.substring(0,100));
+  // console.debug("[DebugTabContent] Rendering DebugTabContent...");
 
 
   const handleCopy = (title: string, content: string) => {
-    console.debug(`[DebugTabContent] Copying JSON for: ${title}`);
+    // console.debug(`[DebugTabContent] Copying JSON for: ${title}`);
     navigator.clipboard.writeText(content)
       .then(() => {
         toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
