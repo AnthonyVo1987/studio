@@ -19,7 +19,7 @@ interface TaIndicatorDisplayInfo {
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
   if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
   if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
-  return ''; // Default theme color
+  return ''; 
 };
 
 const taDefinitions: TaIndicatorDisplayInfo[] = [
@@ -53,8 +53,8 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
       : "N/A",
     getSentiment: (val) => {
       if (val?.histogram === undefined || val.histogram === null) return 'neutral';
-      if (val.histogram > 0) return 'bullish'; // MACD line above signal line
-      if (val.histogram < 0) return 'bearish'; // MACD line below signal line
+      if (val.histogram > 0) return 'bullish'; 
+      if (val.histogram < 0) return 'bearish'; 
       return 'neutral';
     }
   },
@@ -83,11 +83,12 @@ export function StandardTaDisplay() {
   } else {
     try {
       const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
-      if (data && typeof data === 'object' && !data.error) {
+      // Check for actual data presence beyond just not being an error/status string
+      if (data && typeof data === 'object' && !data.error && (data.RSI || data.EMA || data.SMA || data.MACD || data.VWAP)) {
         isLoading = false;
         parsedTaData = data;
       } else {
-        isError = true;
+        isError = !standardTasJson.includes('{ "status":'); // If not a status JSON, but no data, it's an error/empty state
         isLoading = false;
         if (data && data.error) console.error("Standard TA data contains error:", data.error);
       }
@@ -124,7 +125,7 @@ export function StandardTaDisplay() {
               }
               
               const value = parsedTaData ? parsedTaData[def.key] : undefined;
-              const displayValue = isError ? "N/A" : def.formatter(value);
+              const displayValue = isError && !parsedTaData ? "N/A" : def.formatter(value);
               const sentiment = def.getSentiment ? def.getSentiment(value) : 'neutral';
               const colorClass = getSentimentColorClass(sentiment);
 
@@ -135,14 +136,14 @@ export function StandardTaDisplay() {
                 </TableRow>
               );
             })}
-             {isError && !isLoading && (
+             {isError && !isLoading && !parsedTaData && (
                 <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                         Technical indicators data not available.
                     </TableCell>
                 </TableRow>
             )}
-            {!isLoading && !isError && Object.keys(parsedTaData || {}).length === 0 && (
+            {!isLoading && !isError && parsedTaData && Object.keys(parsedTaData).length === 0 && (
                  <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                         No standard technical indicators to display.

@@ -64,7 +64,10 @@ export function MarketStatusDisplay() {
         // Filter out crypto and fx from currencies
         if (data.currencies) {
           Object.entries(data.currencies)
-            .filter(([key]) => key.toLowerCase() !== 'crypto' && key.toLowerCase() !== 'fx')
+            .filter(([key]) => {
+              const lowerKey = key.toLowerCase();
+              return lowerKey !== 'crypto' && lowerKey !== 'fx';
+            })
             .forEach(([key, value]) => {
               details.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
             });
@@ -84,7 +87,6 @@ export function MarketStatusDisplay() {
   }
 
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 3);
-
 
   return (
     <Card>

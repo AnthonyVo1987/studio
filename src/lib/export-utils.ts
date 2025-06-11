@@ -22,7 +22,7 @@ export function downloadJson(jsonData: any, filename: string): void {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading JSON:", error);
-    // Potentially show a toast or alert to the user
+    // Consider using a toast notification for user feedback
     alert("Failed to download JSON data. See console for details.");
   }
 }

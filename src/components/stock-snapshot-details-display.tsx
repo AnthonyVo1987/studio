@@ -61,12 +61,15 @@ export function StockSnapshotDetailsDisplay() {
         isLoading = false;
         parsedSnapshotData = data;
         
-        const changeSentiment = parsedSnapshotData.todaysChange && parsedSnapshotData.todaysChange > 0 ? 'bullish' : (parsedSnapshotData.todaysChange && parsedSnapshotData.todaysChange < 0 ? 'bearish' : 'neutral');
+        const change = parsedSnapshotData.todaysChange ?? 0;
+        const changePerc = parsedSnapshotData.todaysChangePerc ?? 0;
+        const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
 
+        // Ordered as requested
         const criticalDetails: StockDetailItem[] = [
           { label: "Current Price", value: formatCurrency(parsedSnapshotData.currentPrice)},
-          { label: "Today's Change %", value: formatPercentage(parsedSnapshotData.todaysChangePerc, "N/A", true), sentiment: changeSentiment },
-          { label: "Today's Change", value: formatCurrency(parsedSnapshotData.todaysChange), sentiment: changeSentiment },
+          { label: "Today's Change %", value: formatPercentage(changePerc, "N/A", true), sentiment: changeSentiment },
+          { label: "Today's Change", value: formatCurrency(change), sentiment: changeSentiment },
           { label: "Day's VWAP", value: formatCurrency(parsedSnapshotData.day?.vw) },
           { label: "Day's Volume", value: formatCompactNumber(parsedSnapshotData.day?.v) },
           { label: "Day's Close", value: formatCurrency(parsedSnapshotData.day?.c) },
@@ -89,7 +92,6 @@ export function StockSnapshotDetailsDisplay() {
 
         details = [
           ...criticalDetails,
-          // Ticker is removed from here as per request
           ...dayDetails,
           ...prevDayDetails,
         ];
@@ -107,13 +109,13 @@ export function StockSnapshotDetailsDisplay() {
     }
   }
   
-  const placeholderRowCount = 11; // Adjusted as Ticker removed
+  const placeholderRowCount = 10; // Adjusted as Ticker removed and order changed
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock Snapshot Details</CardTitle>
-        <CardDescription>Detailed price and volume information.</CardDescription>
+        <CardDescription>Detailed price and volume information for the selected ticker.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

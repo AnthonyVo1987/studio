@@ -5,14 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockSnapshotData } from "@/services/data-sources/types";
-import { formatCurrency, formatToTwoDecimals } from "@/lib/number-utils";
+import { formatCurrency, formatToTwoDecimals, formatPercentage } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface KeyMetricProps {
   label: string;
   value: string;
-  change?: number | null;
+  changeAbsolute?: number | null; // For Day's Change absolute value if needed for icon
+  changePercent?: number | null; // For Day's Change percentage value for text and icon
   icon?: React.ReactNode;
   isLoading?: boolean;
   sentiment?: 'bullish' | 'bearish' | 'neutral';
@@ -21,26 +22,29 @@ interface KeyMetricProps {
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
   if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
   if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
-  return ''; // Default theme color for text
+  return ''; 
 };
 
-const getChangeIconColorClass = (change?: number | null): string => {
-  if (change === null || change === undefined) return "text-muted-foreground";
-  if (change > 0) return "text-green-500 dark:text-green-400";
-  if (change < 0) return "text-red-500 dark:text-red-400";
+const getChangeIconColorClass = (changeValue?: number | null): string => {
+  if (changeValue === null || changeValue === undefined) return "text-muted-foreground";
+  if (changeValue > 0) return "text-green-500 dark:text-green-400";
+  if (changeValue < 0) return "text-red-500 dark:text-red-400";
   return "text-muted-foreground";
-}
+};
 
-function KeyMetricCard({ label, value, change, icon, isLoading, sentiment }: KeyMetricProps) {
+function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLoading, sentiment }: KeyMetricProps) {
   let ChangeIcon = Minus;
-  let changeIconColor = getChangeIconColorClass(change);
-  let formattedChange = "N/A";
-
-  if (change !== null && change !== undefined) {
-    if (change > 0) ChangeIcon = TrendingUp;
-    else if (change < 0) ChangeIcon = TrendingDown;
-    formattedChange = `${change > 0 ? "+" : ""}${formatToTwoDecimals(change, "0.00")}%`;
+  // Use changePercent for icon determination primarily if available, otherwise changeAbsolute
+  const changeForIcon = changePercent !== null && changePercent !== undefined ? changePercent : changeAbsolute;
+  let changeIconColor = getChangeIconColorClass(changeForIcon);
+  
+  let formattedChangePercent = "N/A";
+  if (changePercent !== null && changePercent !== undefined) {
+    if (changePercent > 0) ChangeIcon = TrendingUp;
+    else if (changePercent < 0) ChangeIcon = TrendingDown;
+    formattedChangePercent = formatPercentage(changePercent, "0.00%", true); // Use formatPercentage for display
   }
+
 
   if (isLoading) {
     return (
@@ -68,7 +72,7 @@ function KeyMetricCard({ label, value, change, icon, isLoading, sentiment }: Key
         {label === "Day's Change" && (
           <p className={cn("text-xs flex items-center", getSentimentColorClass(sentiment))}>
             <ChangeIcon className={cn("mr-1 h-4 w-4", changeIconColor)} />
-            {formattedChange}
+            {formattedChangePercent}
           </p>
         )}
       </CardContent>
@@ -81,11 +85,11 @@ export function KeyMetricsDisplay() {
 
   let tickerDisplay = "N/A";
   let currentPriceDisplay = "N/A";
-  let todaysChangePercDisplay: number | null = null;
+  let todaysChangePerc: number | null = null;
   let isLoading = true;
   let currentPriceSentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
 
-  if (stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
+  if (stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":') && stockSnapshotJson !== '{}') {
     try {
       const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
       if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
@@ -93,14 +97,14 @@ export function KeyMetricsDisplay() {
         tickerDisplay = snapshot.ticker || "N/A";
         const price = snapshot.currentPrice ?? snapshot.day?.c;
         currentPriceDisplay = formatCurrency(price, "$", "N/A");
-        todaysChangePercDisplay = snapshot.todaysChangePerc ?? null;
+        todaysChangePerc = snapshot.todaysChangePerc ?? null;
 
-        if (todaysChangePercDisplay !== null) {
-          if (todaysChangePercDisplay > 0) currentPriceSentiment = 'bullish';
-          else if (todaysChangePercDisplay < 0) currentPriceSentiment = 'bearish';
+        if (todaysChangePerc !== null) {
+          if (todaysChangePerc > 0) currentPriceSentiment = 'bullish';
+          else if (todaysChangePerc < 0) currentPriceSentiment = 'bearish';
         }
       } else {
-        isLoading = false; // Parsed, but no valid data structure
+        isLoading = false; 
         if (snapshot && snapshot.error) console.error("Snapshot data error:", snapshot.error);
       }
     } catch (e) {
@@ -108,7 +112,7 @@ export function KeyMetricsDisplay() {
       isLoading = false;
     }
   } else if (!stockSnapshotJson.includes('"status": "initializing"') && !stockSnapshotJson.includes('"status": "pending"')) {
-      isLoading = false; // Not initializing or pending, so assume loaded (even if empty or error)
+      isLoading = false; 
   }
 
 
@@ -126,14 +130,14 @@ export function KeyMetricsDisplay() {
         value={currentPriceDisplay}
         icon={<DollarSign className="h-4 w-4" />}
         isLoading={isLoading}
-        sentiment="neutral" // Current price itself is neutral, change reflects sentiment
+        sentiment="neutral" 
       />
       <KeyMetricCard
         label="Day's Change"
-        value={todaysChangePercDisplay !== null ? `${todaysChangePercDisplay > 0 ? "+" : ""}${formatToTwoDecimals(todaysChangePercDisplay, "0.00")}%` : "N/A"}
-        change={todaysChangePercDisplay} // Pass raw percentage for icon logic
+        value={todaysChangePerc !== null ? formatPercentage(todaysChangePerc, "N/A", true) : "N/A"}
+        changePercent={todaysChangePerc} 
         isLoading={isLoading}
-        sentiment={currentPriceSentiment} // Apply sentiment to the value itself
+        sentiment={currentPriceSentiment} 
       />
     </div>
   );

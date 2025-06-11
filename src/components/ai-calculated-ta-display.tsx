@@ -46,18 +46,18 @@ export function AiCalculatedTaDisplay() {
     isLoading = true;
   } else if (
     aiCalculatedTaJson.includes('"status": "error"') ||
-    aiCalculatedTaJson.includes('"status": "skipped"')
+    aiCalculatedTaJson.includes('"status": "skipped"') ||
+    aiCalculatedTaJson === '{}'
   ) {
     isError = true;
   } else {
     try {
       const data = JSON.parse(aiCalculatedTaJson);
-      if (data && typeof data === 'object' && !data.error && !data.status) {
+      if (data && typeof data === 'object' && !data.error && !data.status && data.pivotPoint !== undefined) {
         parsedTaData = data as CalculateAiTaOutput;
       } else {
         isError = true; 
-        if (data.status === 'pending' || data.status === 'initializing') isLoading = true;
-         if (data && data.error) console.error("AI TA data contains error:", data.error);
+        if (data && data.error) console.error("AI TA data contains error:", data.error);
       }
     } catch (e) {
       console.error("Failed to parse aiCalculatedTaJson in AiCalculatedTaDisplay:", e);
@@ -65,14 +65,16 @@ export function AiCalculatedTaDisplay() {
     }
   }
   
-  if (!isLoading && !isError) {
+  if (!isLoading && !isError && parsedTaData) { // Only try to parse snapshot if TA data is valid
       try {
-        const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
-            currentPrice = snapshot.currentPrice;
+        if (stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
+            const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
+            if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
+                currentPrice = snapshot.currentPrice;
+            }
         }
       } catch (e) {
-        console.error("Failed to parse stockSnapshotJson for current price in AiCalculatedTaDisplay:", e);
+        console.warn("Could not parse stockSnapshotJson for current price in AiCalculatedTaDisplay, sentiment coloring for PP might be affected:", e);
       }
   }
   
@@ -111,15 +113,15 @@ export function AiCalculatedTaDisplay() {
               const value = parsedTaData ? parsedTaData[pointDef.key] : null;
               const displayValue = isError || value === null || value === undefined
                 ? "N/A"
-                : formatToTwoDecimals(value as number, "0.00");
+                : formatToTwoDecimals(value as number, "N/A");
               
               let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
               if (pointDef.key === 'pivotPoint' && currentPrice !== null && value !== null && value !== undefined) {
                   if (currentPrice > (value as number)) sentiment = 'bullish';
                   else if (currentPrice < (value as number)) sentiment = 'bearish';
               }
-              // Support levels: bullish if price is above, bearish if price broke below (harder to determine without more context)
-              // Resistance levels: bearish if price is below, bullish if price broke above
+              // Future: Support/Resistance coloring based on price position
+              // e.g. if pointDef.label.includes("Support") && currentPrice > value ...
 
               const colorClass = pointDef.key === 'pivotPoint' ? getSentimentColorClass(sentiment) : '';
 
@@ -141,7 +143,7 @@ export function AiCalculatedTaDisplay() {
              {!isLoading && !isError && !parsedTaData && (
                  <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                        No AI TA data to display.
+                        No AI TA data to display. Ensure stock data was fetched.
                     </TableCell>
                 </TableRow>
             )}
