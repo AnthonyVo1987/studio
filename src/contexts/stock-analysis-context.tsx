@@ -4,10 +4,14 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { DebugLogCategory, type DebugLogConfig, defaultDebugLogConfig } from '@/lib/debug-log-types';
+import { addEntryToGlobalLogBuffer } from '@/lib/global-log-buffer';
+
+// Marker for logs originating from our logDebug utility
+const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
 export type FullAnalysisStatus =
   | 'idle'
-  | 'pending' // Initial state when button is clicked
+  | 'pending' 
   | 'fetchingData'
   | 'calculatingAiTa'
   | 'generatingTakeaways'
@@ -20,13 +24,14 @@ export interface ChatMessage {
   content: string;
 }
 
-export interface LogEntry {
-  id: string;
-  timestamp: string;
-  type: 'log' | 'warn' | 'error' | 'info' | 'debug';
-  messages: any[];
-  category?: DebugLogCategory; // Optional category for debug logs
-}
+// Keep a reference to the original console methods
+const browserConsole = {
+  log: typeof console !== 'undefined' ? console.log.bind(console) : () => {},
+  warn: typeof console !== 'undefined' ? console.warn.bind(console) : () => {},
+  error: typeof console !== 'undefined' ? console.error.bind(console) : () => {},
+  info: typeof console !== 'undefined' ? console.info.bind(console) : () => {},
+  debug: typeof console !== 'undefined' ? console.debug.bind(console) : () => {},
+};
 
 interface StockAnalysisState {
   polygonApiRequestLogJson: string;
@@ -46,8 +51,7 @@ interface StockAnalysisState {
   isFullAnalysisTriggered: boolean;
   chatHistory: ChatMessage[];
 
-  // Debug Console State
-  clientLogs: LogEntry[];
+  // Debug Console Control State (not the logs themselves)
   isClientDebugConsoleEnabled: boolean;
   isClientDebugConsoleOpen: boolean;
   debugLogConfig: DebugLogConfig;
@@ -74,8 +78,6 @@ interface StockAnalysisContextType extends StockAnalysisState {
   addChatMessage: (message: ChatMessage) => void;
 
   // Debug Console Actions
-  addClientLog: (log: Omit<LogEntry, 'id' | 'timestamp'>) => void;
-  clearClientLogs: () => void;
   setClientDebugConsoleEnabled: (enabled: boolean) => void;
   setClientDebugConsoleOpen: (open: boolean) => void;
   setDebugLogCategoryEnabled: (category: DebugLogCategory, enabled: boolean) => void;
@@ -83,16 +85,6 @@ interface StockAnalysisContextType extends StockAnalysisState {
 }
 
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
-
-// Keep a reference to the original console methods
-const browserConsole = {
-  log: typeof console !== 'undefined' ? console.log : () => {},
-  warn: typeof console !== 'undefined' ? console.warn : () => {},
-  error: typeof console !== 'undefined' ? console.error : () => {},
-  info: typeof console !== 'undefined' ? console.info : () => {},
-  debug: typeof console !== 'undefined' ? console.debug : () => {},
-};
-
 
 const defaultState: StockAnalysisState = {
   polygonApiRequestLogJson: initialJsonPlaceholder,
@@ -107,12 +99,9 @@ const defaultState: StockAnalysisState = {
   aiKeyTakeawaysJson: initialJsonPlaceholder,
   chatbotRequestJson: initialJsonPlaceholder,
   chatbotResponseJson: initialJsonPlaceholder,
-
   fullAnalysisStatus: 'idle',
   isFullAnalysisTriggered: false,
   chatHistory: [],
-
-  clientLogs: [],
   isClientDebugConsoleEnabled: false,
   isClientDebugConsoleOpen: false,
   debugLogConfig: defaultDebugLogConfig,
@@ -133,33 +122,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
   const [chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
   const [chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
-
   const [fullAnalysisStatus, _setFullAnalysisStatus] = useState<FullAnalysisStatus>(defaultState.fullAnalysisStatus);
   const [isFullAnalysisTriggered, _setIsFullAnalysisTriggered] = useState<boolean>(defaultState.isFullAnalysisTriggered);
   const [chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
-
-  const [clientLogs, _setClientLogs] = useState<LogEntry[]>(defaultState.clientLogs);
   const [isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
   const [isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
   const [debugLogConfig, _setDebugLogConfig] = useState<DebugLogConfig>(defaultState.debugLogConfig);
 
-  const addClientLog = useCallback((log: Omit<LogEntry, 'id' | 'timestamp'>) => {
-    // This update is already deferred by queueMicrotask in the interceptor for application logs
-    _setClientLogs(prevLogs => [
-      ...prevLogs,
-      {
-        ...log,
-        id: Date.now().toString() + Math.random().toString(36).substring(2),
-        timestamp: new Date().toISOString(),
-      },
-    ].slice(-200));
-  }, []);
-
   const logDebug = useCallback((category: DebugLogCategory, ...messages: any[]) => {
-    if (isClientDebugConsoleEnabled && debugLogConfig[category]) {
-      console.debug(`[${category}]`, ...messages);
-    }
-  }, [isClientDebugConsoleEnabled, debugLogConfig]);
+    // This function now simply calls the wrapped console.debug with a marker.
+    // The actual filtering and logging to global buffer is handled by the interceptor.
+    console.debug(LOGDEBUG_MARKER, category, ...messages);
+  }, []); // No dependencies needed here as it just calls the global console
 
   const setAndLogJson = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
     logDebug(DebugLogCategory.CONTEXT_INTERNALS, `Setting ${name} to:`, value.substring(0, 100));
@@ -178,14 +152,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setAiKeyTakeawaysJson = (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json);
   const setChatbotRequestJson = (json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson', json);
   const setChatbotResponseJson = (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson', json);
-
   const setFullAnalysisStatus = (status: FullAnalysisStatus) => _setFullAnalysisStatus(status);
   const setIsFullAnalysisTriggered = (triggered: boolean) => _setIsFullAnalysisTriggered(triggered);
   const setChatHistory = (history: ChatMessage[]) => _setChatHistory(history);
   const clearChatHistory = useCallback(() => _setChatHistory([]), []);
   const addChatMessage = useCallback((message: ChatMessage) => _setChatHistory(prev => [...prev, message]), []);
 
-  const clearClientLogs = useCallback(() => _setClientLogs([]), []);
   const setClientDebugConsoleEnabled = (enabled: boolean) => {
     _setClientDebugConsoleEnabled(enabled);
     if (!enabled) _setClientDebugConsoleOpen(false);
@@ -198,7 +170,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !isClientDebugConsoleEnabled) {
+    if (typeof window === 'undefined') return;
+
+    if (!isClientDebugConsoleEnabled) {
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
         delete (console as any).__stockSageOriginals;
@@ -212,37 +186,45 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
     const currentOriginals = (console as any).__stockSageOriginals;
 
-    const interceptAndLog = (type: LogEntry['type'], ...args: any[]) => {
-      const isSelfLog = args.some(arg => typeof arg === 'string' && arg.startsWith('[DebugConsoleInterceptor]'));
+    const interceptAndProcessLog = (
+      type: 'log' | 'warn' | 'error' | 'info' | 'debug',
+      ...args: any[]
+    ) => {
+      // Always pass through to native console synchronously
+      currentOriginals[type](...args);
 
-      if (isSelfLog) {
-        currentOriginals[type](...args); // Interceptor's own logs go directly to native console
-        return;
-      }
-      
-      // For application logs, queue both adding to our UI log and calling the original console
+      // Asynchronously process for our UI console
       queueMicrotask(() => {
-        let categoryForLog: DebugLogCategory | undefined = undefined;
-        let messagesForLog = args;
-        if (type === 'debug' && args.length > 0 && typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
-            const potentialCategoryKey = args[0].substring(1, args[0].length - 1);
-            if (Object.values(DebugLogCategory).includes(potentialCategoryKey as DebugLogCategory)) {
-              categoryForLog = potentialCategoryKey as DebugLogCategory;
-              messagesForLog = args.slice(1);
-            }
+        if (!isClientDebugConsoleEnabled) return; // Re-check in case it was disabled during microtask
+
+        let category: DebugLogCategory | undefined = undefined;
+        let messagesForBuffer = args;
+
+        if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
+          // This log came from our logDebug utility
+          category = args[1] as DebugLogCategory;
+          messagesForBuffer = args.slice(2);
+          if (!debugLogConfig[category]) {
+            return; // Category is disabled
+          }
+        } else {
+          // This is a generic console call
+          category = DebugLogCategory.NATIVE_CONSOLE;
+          if (!debugLogConfig[DebugLogCategory.NATIVE_CONSOLE]) {
+            return; // Native console logging category is disabled
+          }
         }
-        addClientLog({ type, messages: messagesForLog, category: categoryForLog });
-        currentOriginals[type](...args);
+        addEntryToGlobalLogBuffer({ type, messages: messagesForBuffer, category });
       });
     };
 
-    console.log = (...args) => interceptAndLog('log', ...args);
-    console.warn = (...args) => interceptAndLog('warn', ...args);
-    console.error = (...args) => interceptAndLog('error', ...args);
-    console.info = (...args) => interceptAndLog('info', ...args);
-    console.debug = (...args) => interceptAndLog('debug', ...args);
+    console.log = (...args) => interceptAndProcessLog('log', ...args);
+    console.warn = (...args) => interceptAndProcessLog('warn', ...args);
+    console.error = (...args) => interceptAndProcessLog('error', ...args);
+    console.info = (...args) => interceptAndProcessLog('info', ...args);
+    console.debug = (...args) => interceptAndProcessLog('debug', ...args);
     
-    currentOriginals.debug('[DebugConsoleInterceptor] Console interception enabled.');
+    browserConsole.debug('[DebugConsoleInterceptor] Console interception enabled.');
 
     return () => {
       if ((console as any).__stockSageOriginals) {
@@ -251,7 +233,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         browserConsole.debug('[DebugConsoleInterceptor] Console interception disabled on cleanup, originals restored.');
       }
     };
-  }, [isClientDebugConsoleEnabled, addClientLog, debugLogConfig]); // debugLogConfig added as it's used in logDebug, which is called by setAndLogJson
+  }, [isClientDebugConsoleEnabled, debugLogConfig]); // debugLogConfig is a dependency for filtering
 
   const contextValue: StockAnalysisContextType = {
     polygonApiRequestLogJson, setPolygonApiRequestLogJson,
@@ -270,8 +252,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isFullAnalysisTriggered, setIsFullAnalysisTriggered,
     chatHistory, setChatHistory,
     clearChatHistory, addChatMessage,
-    clientLogs, isClientDebugConsoleEnabled, isClientDebugConsoleOpen,
-    debugLogConfig, addClientLog, clearClientLogs,
+    isClientDebugConsoleEnabled, isClientDebugConsoleOpen,
+    debugLogConfig, 
     setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
     setDebugLogCategoryEnabled, logDebug,
   };

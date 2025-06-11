@@ -8,8 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardCopy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context"; 
 import { useToast } from "@/hooks/use-toast";
-import { DebugSettingsCard } from "./debug-settings-card"; // Import the new card
-import { Separator } from "./ui/separator"; // Import Separator
+import { DebugSettingsCard } from "./debug-settings-card";
+import { Separator } from "./ui/separator";
 import { DebugLogCategory } from "@/lib/debug-log-types";
 
 
@@ -59,22 +59,25 @@ export function DebugTabContent() {
     aiKeyTakeawaysJson,
     chatbotRequestJson,
     chatbotResponseJson,
-    logDebug, // Get logDebug from context
+    logDebug, 
   } = useStockAnalysis();
   const { toast } = useToast();
   
-  // Use logDebug instead of console.debug
-  logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[DebugTabContent] Rendering DebugTabContent. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
+  logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[DebugTabContent] Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
 
 
   const handleCopy = (title: string, content: string) => {
     logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[DebugTabContent] Copying JSON for: ${title}`);
-    navigator.clipboard.writeText(content)
-      .then(() => {
-        toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
+    copyToClipboard(content)
+      .then((success) => {
+        if (success) {
+          toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
+        } else {
+          toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON.` });
+        }
       })
       .catch(err => {
-        console.error(`[DebugTabContent] Failed to copy ${title}: `, err); // Keep console.error for actual errors
+        console.error(`[DebugTabContent] Failed to copy ${title}: `, err); 
         toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON.` });
       });
   };
@@ -99,7 +102,7 @@ export function DebugTabContent() {
       <CardHeader>
         <CardTitle>Debug Information</CardTitle>
         <CardDescription>
-          Raw JSON data from APIs and AI flows. Granular Polygon API call logs are in the Client Debug Console.
+          Raw JSON data from APIs and AI flows. Client-side logs are in the Client Debug Console panel.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -122,3 +125,4 @@ export function DebugTabContent() {
     </Card>
   );
 }
+

@@ -1,17 +1,23 @@
 
 'use client';
 
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useStockAnalysis, type LogEntry } from '@/contexts/stock-analysis-context';
+import { useStockAnalysis } from '@/contexts/stock-analysis-context';
+import { globalLogEntries, clearGlobalLogBuffer, type GlobalLogEntry } from '@/lib/global-log-buffer';
 import { downloadJson, copyToClipboard } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
 import { ClipboardCopy, Download, Trash2, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { debugLogCategoryLabels, DebugLogCategory } from '@/lib/debug-log-types';
+
 
 export const CONSOLE_HEIGHT_PX = 250; // For layout adjustment
+const POLLING_INTERVAL_MS = 750;
+const MAX_DISPLAYED_LOGS = 200; // Max logs to show in the UI console
 
 function formatLogMessage(messages: any[]): string {
   return messages
@@ -31,21 +37,49 @@ function formatLogMessage(messages: any[]): string {
 
 export function DebugConsole() {
   const {
-    clientLogs,
-    clearClientLogs,
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
   } = useStockAnalysis();
   const { toast } = useToast();
+  const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
+  const [lastProcessedIndex, setLastProcessedIndex] = useState<number>(-1);
+
+  const fetchAndUpdateLogs = useCallback(() => {
+    if (!isClientDebugConsoleOpen || !isClientDebugConsoleEnabled) return;
+
+    // Simple way to get new logs: check if global length changed
+    // More robust: compare IDs or use a generation counter if needed later
+    const newLogs = globalLogEntries.slice(Math.max(0, globalLogEntries.length - MAX_DISPLAYED_LOGS));
+    if (newLogs.length !== displayedLogs.length || (newLogs.length > 0 && newLogs[newLogs.length -1].id !== displayedLogs[displayedLogs.length-1]?.id)) {
+       setDisplayedLogs(newLogs);
+    }
+
+  }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, displayedLogs.length]);
+
+
+  useEffect(() => {
+    if (isClientDebugConsoleOpen && isClientDebugConsoleEnabled) {
+      fetchAndUpdateLogs(); // Initial fetch
+      const intervalId = setInterval(fetchAndUpdateLogs, POLLING_INTERVAL_MS);
+      return () => clearInterval(intervalId);
+    }
+  }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, fetchAndUpdateLogs]);
 
   if (!isClientDebugConsoleEnabled || !isClientDebugConsoleOpen) {
     return null;
   }
 
+  const handleClearLogs = () => {
+    clearGlobalLogBuffer();
+    setDisplayedLogs([]);
+    setLastProcessedIndex(-1);
+    toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
+  };
+
   const handleCopyLogs = () => {
-    if (copyToClipboard(JSON.stringify(clientLogs, null, 2))) {
-      toast({ title: 'Logs Copied', description: 'Client logs copied to clipboard as JSON.' });
+    if (copyToClipboard(JSON.stringify(displayedLogs, null, 2))) {
+      toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as JSON.' });
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs.' });
     }
@@ -53,12 +87,17 @@ export function DebugConsole() {
 
   const handleExportLogs = () => {
     try {
-      downloadJson(clientLogs, 'stocksage_client_logs.json');
-      toast({ title: 'Logs Exported', description: 'Client logs downloaded as JSON.' });
+      downloadJson(displayedLogs, 'stocksage_client_logs.json');
+      toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as JSON.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs.' });
-      console.error('[DebugConsole] Export error:', error);
+      browserConsole.error('[DebugConsole] Export error:', error);
     }
+  };
+  
+  const getCategoryLabel = (category?: DebugLogCategory): string => {
+    if (!category) return '';
+    return `[${debugLogCategoryLabels[category] || category}] `;
   };
 
   return (
@@ -73,7 +112,7 @@ export function DebugConsole() {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">Client Debug Console</CardTitle>
-            <CardDescription className="text-xs">({clientLogs.length} entries)</CardDescription>
+            <CardDescription className="text-xs">({displayedLogs.length} entries)</CardDescription>
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={handleCopyLogs} title="Copy Logs (JSON)" className="h-7 w-7">
@@ -82,7 +121,7 @@ export function DebugConsole() {
             <Button variant="ghost" size="icon" onClick={handleExportLogs} title="Export Logs (JSON)" className="h-7 w-7">
               <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={clearClientLogs} title="Clear Logs" className="h-7 w-7">
+            <Button variant="ghost" size="icon" onClick={handleClearLogs} title="Clear Logs" className="h-7 w-7">
               <Trash2 className="h-4 w-4" />
             </Button>
             <Separator orientation="vertical" className="h-6 mx-1" />
@@ -94,19 +133,19 @@ export function DebugConsole() {
       </CardHeader>
       <CardContent className="p-0 h-[calc(100%-53px)]"> {/* Header height approx 53px */}
         <ScrollArea className="h-full p-2">
-          {clientLogs.length === 0 ? (
+          {displayedLogs.length === 0 ? (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              No client logs yet.
+              No client logs yet. Enable logging categories or use console.log().
             </div>
           ) : (
             <div className="space-y-1 font-code text-xs">
-              {clientLogs.map((log) => (
+              {displayedLogs.map((log) => (
                 <div key={log.id} className="flex items-start">
-                  <span className="text-muted-foreground/70 mr-2 whitespace-nowrap">
+                  <span className="text-muted-foreground/70 mr-1 whitespace-nowrap">
                     [{new Date(log.timestamp).toLocaleTimeString()}]
                   </span>
                   <span
-                    className={cn('mr-2 font-semibold uppercase', {
+                    className={cn('mr-1 font-semibold uppercase', {
                       'text-yellow-500 dark:text-yellow-400': log.type === 'warn',
                       'text-red-500 dark:text-red-400': log.type === 'error',
                       'text-blue-500 dark:text-blue-400': log.type === 'info',
@@ -116,6 +155,7 @@ export function DebugConsole() {
                   >
                     [{log.type}]
                   </span>
+                  <span className="text-muted-foreground/80 mr-1">{getCategoryLabel(log.category)}</span>
                   <span className="whitespace-pre-wrap break-all">{formatLogMessage(log.messages)}</span>
                 </div>
               ))}
