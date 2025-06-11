@@ -4,15 +4,22 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import type { StockSnapshotData, StockPriceData } from "@/services/data-sources/types";
-import { formatCurrency, formatToTwoDecimals, formatCompactNumber, formatPercentage } from "@/lib/number-utils";
+import type { StockSnapshotData } from "@/services/data-sources/types";
+import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface StockDetailItem {
   label: string;
   value: string | null;
-  isCritical?: boolean; // Optional flag for styling
+  sentiment?: 'bullish' | 'bearish' | 'neutral';
 }
+
+const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
+  if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
+  if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
+  return ''; // Default theme color
+};
 
 const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolean) => {
   if (isLoading) {
@@ -26,7 +33,7 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
   return (
     <TableRow key={item.label}>
       <TableCell className="font-medium w-1/3">{item.label}</TableCell>
-      <TableCell>{item.value ?? "N/A"}</TableCell>
+      <TableCell className={cn(getSentimentColorClass(item.sentiment))}>{item.value ?? "N/A"}</TableCell>
     </TableRow>
   );
 };
@@ -54,20 +61,21 @@ export function StockSnapshotDetailsDisplay() {
         isLoading = false;
         parsedSnapshotData = data;
         
+        const changeSentiment = parsedSnapshotData.todaysChange && parsedSnapshotData.todaysChange > 0 ? 'bullish' : (parsedSnapshotData.todaysChange && parsedSnapshotData.todaysChange < 0 ? 'bearish' : 'neutral');
+
         const criticalDetails: StockDetailItem[] = [
-          { label: "Current Price", value: formatCurrency(parsedSnapshotData.currentPrice), isCritical: true },
-          { label: "Today's Change %", value: formatPercentage(parsedSnapshotData.todaysChangePerc, "N/A", true), isCritical: true },
-          { label: "Today's Change", value: formatCurrency(parsedSnapshotData.todaysChange), isCritical: true },
-          { label: "Day's VWAP", value: formatCurrency(parsedSnapshotData.day?.vw), isCritical: true },
-          { label: "Day's Volume", value: formatCompactNumber(parsedSnapshotData.day?.v), isCritical: true },
-          { label: "Day's Close", value: formatCurrency(parsedSnapshotData.day?.c), isCritical: true },
+          { label: "Current Price", value: formatCurrency(parsedSnapshotData.currentPrice)},
+          { label: "Today's Change %", value: formatPercentage(parsedSnapshotData.todaysChangePerc, "N/A", true), sentiment: changeSentiment },
+          { label: "Today's Change", value: formatCurrency(parsedSnapshotData.todaysChange), sentiment: changeSentiment },
+          { label: "Day's VWAP", value: formatCurrency(parsedSnapshotData.day?.vw) },
+          { label: "Day's Volume", value: formatCompactNumber(parsedSnapshotData.day?.v) },
+          { label: "Day's Close", value: formatCurrency(parsedSnapshotData.day?.c) },
         ];
         
         const dayDetails: StockDetailItem[] = [
           { label: "Day's Open", value: formatCurrency(parsedSnapshotData.day?.o) },
           { label: "Day's High", value: formatCurrency(parsedSnapshotData.day?.h) },
           { label: "Day's Low", value: formatCurrency(parsedSnapshotData.day?.l) },
-          // VWAP, Volume, Close are already in criticalDetails
         ];
 
         const prevDayDetails: StockDetailItem[] = [
@@ -81,14 +89,16 @@ export function StockSnapshotDetailsDisplay() {
 
         details = [
           ...criticalDetails,
-          { label: "Ticker", value: parsedSnapshotData.ticker || "N/A" },
-          ...dayDetails.filter(d => !criticalDetails.find(cd => cd.label.startsWith(d.label.split(" ")[0]))), // Avoid duplication
+          // Ticker is removed from here as per request
+          ...dayDetails,
           ...prevDayDetails,
-          // Removed "Current Price (from Snapshot)" as it's now at the top
         ];
       } else {
         isError = true; 
         isLoading = false;
+        if (data && data.error) {
+          console.error("Snapshot data contains error:", data.error);
+        }
       }
     } catch (e) {
       console.error("Failed to parse stockSnapshotJson in StockSnapshotDetailsDisplay:", e);
@@ -97,13 +107,13 @@ export function StockSnapshotDetailsDisplay() {
     }
   }
   
-  const placeholderRowCount = 12; // Adjusted for more items
+  const placeholderRowCount = 11; // Adjusted as Ticker removed
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock Snapshot Details</CardTitle>
-        <CardDescription>Detailed information from the latest stock snapshot.</CardDescription>
+        <CardDescription>Detailed price and volume information.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

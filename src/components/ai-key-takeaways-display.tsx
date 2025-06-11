@@ -13,8 +13,9 @@ type TakeawayCategory = keyof StockAnalysisOutput;
 interface TakeawayDisplayItem {
   categoryLabel: string;
   categoryKey: TakeawayCategory;
-  sentiment: string;
+  sentiment: string; // Keep original full sentiment string for badge
   text: string;
+  textSentiment: 'bullish' | 'bearish' | 'neutral'; // Simplified for text color
 }
 
 const sentimentColorMap: Record<string, string> = {
@@ -29,19 +30,31 @@ const sentimentColorMap: Record<string, string> = {
   decreasing: "bg-red-100 text-red-800 dark:bg-red-700/30 dark:text-red-300 border-red-300 dark:border-red-600",
 
   neutral: "bg-gray-100 text-gray-800 dark:bg-gray-700/30 dark:text-gray-300 border-gray-300 dark:border-gray-600",
-  moderate: "bg-blue-100 text-blue-800 dark:bg-blue-700/30 dark:text-blue-300 border-blue-300 dark:border-blue-600", // Moderate as a distinct color
-  stable: "bg-indigo-100 text-indigo-800 dark:bg-indigo-700/30 dark:text-indigo-300 border-indigo-300 dark:border-indigo-600", // Stable as a distinct color
+  moderate: "bg-blue-100 text-blue-800 dark:bg-blue-700/30 dark:text-blue-300 border-blue-300 dark:border-blue-600", 
+  stable: "bg-indigo-100 text-indigo-800 dark:bg-indigo-700/30 dark:text-indigo-300 border-indigo-300 dark:border-indigo-600", 
   
-  high: "bg-yellow-100 text-yellow-800 dark:bg-yellow-700/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-600", // e.g. high volatility
-  low: "bg-purple-100 text-purple-800 dark:bg-purple-700/30 dark:text-purple-300 border-purple-300 dark:border-purple-600",  // e.g. low volatility
+  high: "bg-yellow-100 text-yellow-800 dark:bg-yellow-700/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-600", 
+  low: "bg-purple-100 text-purple-800 dark:bg-purple-700/30 dark:text-purple-300 border-purple-300 dark:border-purple-600",  
   
   default: "bg-gray-100 text-gray-800 dark:bg-gray-700/30 dark:text-gray-300 border-gray-300 dark:border-gray-600",
 };
 
+const getTextSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
+  if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
+  if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
+  return 'text-muted-foreground'; // Default theme color for text
+};
 
-const getSentimentClasses = (sentiment?: string): string => {
+const getBadgeSentimentClasses = (sentiment?: string): string => {
   if (!sentiment) return sentimentColorMap.default;
   return sentimentColorMap[sentiment.toLowerCase()] || sentimentColorMap.default;
+};
+
+const mapToTextSentiment = (detailedSentiment: string): 'bullish' | 'bearish' | 'neutral' => {
+    const s = detailedSentiment.toLowerCase();
+    if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) return 'bullish';
+    if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) return 'bearish';
+    return 'neutral';
 };
 
 const categoryLabels: Record<TakeawayCategory, string> = {
@@ -73,15 +86,17 @@ export function AiKeyTakeawaysDisplay() {
   } else {
     try {
       const data = JSON.parse(aiKeyTakeawaysJson) as StockAnalysisOutput;
-      if (data && typeof data === 'object' && !data.error && !data.status) {
+      if (data && typeof data === 'object' && !data.error && !data.status && data.priceAction) { // Check for a specific field like priceAction
          displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
             categoryKey: key,
             categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
             sentiment: data[key]?.sentiment || "neutral",
             text: data[key]?.takeaway || "No takeaway generated.",
+            textSentiment: mapToTextSentiment(data[key]?.sentiment || "neutral")
          }));
       } else {
          isError = true;
+         if(data && data.error) console.error("AI Key Takeaways data contains error:", data.error);
       }
     } catch (e) {
       console.error("Failed to parse aiKeyTakeawaysJson in AiKeyTakeawaysDisplay:", e);
@@ -109,24 +124,23 @@ export function AiKeyTakeawaysDisplay() {
             </div>
           ))
         ) : isError ? (
-           <div className="p-3 text-center text-muted-foreground">AI Key Takeaways not available.</div>
+           <div className="p-3 text-center text-muted-foreground h-24">AI Key Takeaways not available.</div>
         ) : displayTakeaways.length > 0 ? (
           displayTakeaways.map((takeaway) => (
             <div key={takeaway.categoryKey} className="p-3 border rounded-md bg-card/60 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
                 <h4 className="font-semibold text-md">{takeaway.categoryLabel}</h4>
-                <Badge variant="outline" className={cn("capitalize px-2.5 py-0.5 text-xs", getSentimentClasses(takeaway.sentiment))}>
+                <Badge variant="outline" className={cn("capitalize px-2.5 py-0.5 text-xs", getBadgeSentimentClasses(takeaway.sentiment))}>
                   {takeaway.sentiment}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{takeaway.text}</p>
+              <p className={cn("text-sm", getTextSentimentColorClass(takeaway.textSentiment))}>{takeaway.text}</p>
             </div>
           ))
         ) : (
-            <div className="p-3 text-center text-muted-foreground">No AI Key Takeaways to display.</div>
+            <div className="p-3 text-center text-muted-foreground h-24">No AI Key Takeaways to display.</div>
         )}
       </CardContent>
     </Card>
   );
 }
-

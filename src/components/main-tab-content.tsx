@@ -2,7 +2,7 @@
 "use client";
 
 import type { FormEvent } from 'react';
-import React, { useState, useActionState, useEffect, startTransition } from "react"; // Added startTransition
+import React, { useState, useActionState, useEffect, startTransition } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,15 +16,16 @@ import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
+import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 
 import { fetchStockDataAction, type AnalyzeStockServerActionState } from "@/actions/analyze-stock-server-action";
 import { calculateAiTaAction, type CalculateAiTaActionState } from "@/actions/calculate-ai-ta-action";
 import { performAiAnalysisAction, type PerformAiAnalysisActionState } from "@/actions/perform-ai-analysis-action";
-import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action"; // Chatbot action
+import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action"; 
 
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download, Copy } from "lucide-react";
 
 const initialStockDataFetchState: AnalyzeStockServerActionState = {
   status: 'idle', data: undefined, error: null, message: null,
@@ -35,7 +36,7 @@ const initialCalculateAiTaState: CalculateAiTaActionState = {
 const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
-const initialChatActionState: ChatActionState = { // For Chatbot
+const initialChatActionState: ChatActionState = { 
   status: 'idle', data: undefined, error: null, message: null,
 };
 
@@ -44,10 +45,12 @@ export function MainTabContent() {
   const [ticker, setTicker] = useState("NVDA");
   const { toast } = useToast();
   const { 
-    marketStatusJson, // To pass to AI analysis
+    marketStatusJson,
     stockSnapshotJson, 
-    standardTasJson,   // To pass to AI analysis
-    aiCalculatedTaJson,// To pass to AI analysis and chat
+    standardTasJson,   
+    optionsChainJson,
+    aiCalculatedTaJson,
+    aiKeyTakeawaysJson,
     // Context Setters
     setMarketStatusJson, 
     setStockSnapshotJson, 
@@ -111,7 +114,7 @@ export function MainTabContent() {
 
       if (analyzeStockState.data.stockSnapshotJson && analyzeStockState.data.stockSnapshotJson !== '{}') {
         toast({ title: "Calculating AI TA...", description: "Requesting AI-calculated technical indicators." });
-        startTransition(() => { // Wrap in startTransition
+        startTransition(() => { 
           calculateAiTaFormAction({ stockSnapshotJson: analyzeStockState.data.stockSnapshotJson });
         });
       } else {
@@ -143,7 +146,7 @@ export function MainTabContent() {
 
       if (stockSnapshotJson !== '{}' && standardTasJson !== '{}' && marketStatusJson !== '{}' && calculateAiTaState.data.aiCalculatedTaJson !== '{}') {
         toast({ title: "Generating AI Key Takeaways...", description: "Requesting AI-driven analysis." });
-        startTransition(() => { // Wrap in startTransition
+        startTransition(() => { 
           performAiAnalysisFormAction({ 
             ticker, 
             stockSnapshotJson, 
@@ -206,8 +209,48 @@ export function MainTabContent() {
     }
   }, [chatActionState, setChatbotRequestJson, setChatbotResponseJson, toast]);
 
+  const handleExportAllData = () => {
+    try {
+      const combinedData = {
+        stockSnapshot: JSON.parse(stockSnapshotJson),
+        standardTechnicalIndicators: JSON.parse(standardTasJson),
+        aiCalculatedTechnicalAnalysis: JSON.parse(aiCalculatedTaJson),
+        optionsChain: JSON.parse(optionsChainJson),
+        marketStatus: JSON.parse(marketStatusJson),
+      };
+      downloadJson(combinedData, `${ticker}_stocksage_analysis.json`);
+      toast({ title: "Data Exported", description: `Combined analysis for ${ticker} downloaded.` });
+    } catch (error) {
+      console.error("Error preparing data for export:", error);
+      toast({ variant: "destructive", title: "Export Failed", description: "Could not prepare data for export." });
+    }
+  };
+
+  const handleCopyAllData = () => {
+    try {
+      const combinedData = {
+        stockSnapshot: JSON.parse(stockSnapshotJson),
+        standardTechnicalIndicators: JSON.parse(standardTasJson),
+        aiCalculatedTechnicalAnalysis: JSON.parse(aiCalculatedTaJson),
+        optionsChain: JSON.parse(optionsChainJson),
+        marketStatus: JSON.parse(marketStatusJson),
+      };
+      copyToClipboard(JSON.stringify(combinedData, null, 2));
+      toast({ title: "Data Copied", description: `Combined analysis for ${ticker} copied to clipboard.` });
+    } catch (error) {
+      console.error("Error preparing data for copy:", error);
+      toast({ variant: "destructive", title: "Copy Failed", description: "Could not prepare data for copying." });
+    }
+  };
 
   const isAnyActionPending = isAnalyzeStockPending || isCalculateAiTaPending || isPerformAiAnalysisPending || isChatPending;
+  const isDataReadyForExport = 
+    !stockSnapshotJson.includes("status") && !stockSnapshotJson.includes("error") &&
+    !standardTasJson.includes("status") && !standardTasJson.includes("error") &&
+    !aiCalculatedTaJson.includes("status") && !aiCalculatedTaJson.includes("error") &&
+    !optionsChainJson.includes("status") && !optionsChainJson.includes("error") &&
+    !marketStatusJson.includes("status") && !marketStatusJson.includes("error");
+
 
   return (
     <Card>
@@ -259,17 +302,32 @@ export function MainTabContent() {
 
         <Separator />
 
+        <div className="space-y-2">
+            <h3 className="text-lg font-medium">Data Export</h3>
+            <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={handleExportAllData} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isDataReadyForExport || isAnyActionPending}>
+                    <Download className="mr-2 h-4 w-4" /> Export All to JSON
+                </Button>
+                <Button onClick={handleCopyAllData} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isDataReadyForExport || isAnyActionPending}>
+                    <Copy className="mr-2 h-4 w-4" /> Copy All to JSON
+                </Button>
+            </div>
+        </div>
+
+        <Separator />
+
         <div className="space-y-6">
           <KeyMetricsDisplay />
           <StockSnapshotDetailsDisplay />
-          <MarketStatusDisplay />
           <StandardTaDisplay />
           <AiCalculatedTaDisplay />
-          <AiKeyTakeawaysDisplay />
           <OptionsChainTable />
+          <AiKeyTakeawaysDisplay />
+          <MarketStatusDisplay />
           {/* Chatbot UI will be added here in Phase 6 */}
         </div>
       </CardContent>
     </Card>
   );
 }
+

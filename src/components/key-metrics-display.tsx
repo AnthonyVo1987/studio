@@ -2,39 +2,45 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react"; // Added DollarSign and Hash
+import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency, formatToTwoDecimals } from "@/lib/number-utils";
-import { Skeleton } from "@/components/ui/skeleton"; // For loading state
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface KeyMetricProps {
   label: string;
   value: string;
-  change?: number | null; // Allow null for change
+  change?: number | null;
   icon?: React.ReactNode;
   isLoading?: boolean;
+  sentiment?: 'bullish' | 'bearish' | 'neutral';
 }
 
-function KeyMetricCard({ label, value, change, icon, isLoading }: KeyMetricProps) {
+const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
+  if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
+  if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
+  return ''; // Default theme color for text
+};
+
+const getChangeIconColorClass = (change?: number | null): string => {
+  if (change === null || change === undefined) return "text-muted-foreground";
+  if (change > 0) return "text-green-500 dark:text-green-400";
+  if (change < 0) return "text-red-500 dark:text-red-400";
+  return "text-muted-foreground";
+}
+
+function KeyMetricCard({ label, value, change, icon, isLoading, sentiment }: KeyMetricProps) {
   let ChangeIcon = Minus;
-  let changeColor = "text-muted-foreground";
+  let changeIconColor = getChangeIconColorClass(change);
   let formattedChange = "N/A";
 
   if (change !== null && change !== undefined) {
-    if (change > 0) {
-      ChangeIcon = TrendingUp;
-      changeColor = "text-green-500 dark:text-green-400";
-      formattedChange = `+${formatToTwoDecimals(change, "0.00")}%`;
-    } else if (change < 0) {
-      ChangeIcon = TrendingDown;
-      changeColor = "text-red-500 dark:text-red-400";
-      formattedChange = `${formatToTwoDecimals(change, "0.00")}%`;
-    } else { // change is 0
-      formattedChange = `${formatToTwoDecimals(change, "0.00")}%`;
-    }
+    if (change > 0) ChangeIcon = TrendingUp;
+    else if (change < 0) ChangeIcon = TrendingDown;
+    formattedChange = `${change > 0 ? "+" : ""}${formatToTwoDecimals(change, "0.00")}%`;
   }
-
 
   if (isLoading) {
     return (
@@ -51,7 +57,6 @@ function KeyMetricCard({ label, value, change, icon, isLoading }: KeyMetricProps
     );
   }
 
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -59,10 +64,10 @@ function KeyMetricCard({ label, value, change, icon, isLoading }: KeyMetricProps
         {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {label === "Day's Change" && ( // Only show change details for "Day's Change" card
-          <p className={`text-xs ${changeColor} flex items-center`}>
-            <ChangeIcon className="mr-1 h-4 w-4" />
+        <div className={cn("text-2xl font-bold", getSentimentColorClass(sentiment))}>{value}</div>
+        {label === "Day's Change" && (
+          <p className={cn("text-xs flex items-center", getSentimentColorClass(sentiment))}>
+            <ChangeIcon className={cn("mr-1 h-4 w-4", changeIconColor)} />
             {formattedChange}
           </p>
         )}
@@ -72,46 +77,38 @@ function KeyMetricCard({ label, value, change, icon, isLoading }: KeyMetricProps
 }
 
 export function KeyMetricsDisplay() {
-  const { stockSnapshotJson, aiCalculatedTaJson } = useStockAnalysis(); // aiCalculatedTaJson indicates data loading is complete or errored
+  const { stockSnapshotJson } = useStockAnalysis(); 
 
   let tickerDisplay = "N/A";
   let currentPriceDisplay = "N/A";
-  let todaysChangePercDisplay: number | null = null; // Use number or null
-  let isLoading = true; // Assume loading initially
+  let todaysChangePercDisplay: number | null = null;
+  let isLoading = true;
+  let currentPriceSentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
 
-  if (stockSnapshotJson && stockSnapshotJson !== '{ "status": "initializing..." }' && stockSnapshotJson !== '{ "status": "pending..." }') {
+  if (stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
     try {
       const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-      
-      // Check if data has been fetched by looking at a specific field or if an error occurred
-      // A simple way is to see if aiCalculatedTaJson also indicates completion or an error state,
-      // implying the sequence has run.
-      const isDataActuallyLoaded = aiCalculatedTaJson !== '{ "status": "initializing..." }' && aiCalculatedTaJson !== '{ "status": "pending..." }';
-
-      if (snapshot && typeof snapshot === 'object' && !snapshot.error && isDataActuallyLoaded) {
+      if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
         isLoading = false;
         tickerDisplay = snapshot.ticker || "N/A";
-        // Use the convenient currentPrice if available, else fallback to day's close
         const price = snapshot.currentPrice ?? snapshot.day?.c;
         currentPriceDisplay = formatCurrency(price, "$", "N/A");
         todaysChangePercDisplay = snapshot.todaysChangePerc ?? null;
-      } else if (snapshot.error || !isDataActuallyLoaded) {
-        // Data fetch might have failed or is still in progress in the sequence
-        isLoading = !isDataActuallyLoaded; // Still loading if AI TA isn't settled
-        tickerDisplay = "N/A";
-        currentPriceDisplay = "N/A";
-        todaysChangePercDisplay = null;
-         if (snapshot.error) isLoading = false; // If error, stop loading
+
+        if (todaysChangePercDisplay !== null) {
+          if (todaysChangePercDisplay > 0) currentPriceSentiment = 'bullish';
+          else if (todaysChangePercDisplay < 0) currentPriceSentiment = 'bearish';
+        }
+      } else {
+        isLoading = false; // Parsed, but no valid data structure
+        if (snapshot && snapshot.error) console.error("Snapshot data error:", snapshot.error);
       }
     } catch (e) {
       console.error("Failed to parse stockSnapshotJson in KeyMetricsDisplay:", e);
-      isLoading = false; // Stop loading on parse error
-      // Values remain "N/A"
-    }
-  } else if (aiCalculatedTaJson !== '{ "status": "initializing..." }' && aiCalculatedTaJson !== '{ "status": "pending..." }'){
-      // This means stockSnapshotJson was empty/initial but AI TA is done (or skipped/errored)
-      // which implies data fetching process has completed (possibly with error for snapshot)
       isLoading = false;
+    }
+  } else if (!stockSnapshotJson.includes('"status": "initializing"') && !stockSnapshotJson.includes('"status": "pending"')) {
+      isLoading = false; // Not initializing or pending, so assume loaded (even if empty or error)
   }
 
 
@@ -122,19 +119,21 @@ export function KeyMetricsDisplay() {
         value={tickerDisplay}
         icon={<Hash className="h-4 w-4" />}
         isLoading={isLoading}
+        sentiment="neutral"
       />
       <KeyMetricCard
         label="Current Price"
         value={currentPriceDisplay}
         icon={<DollarSign className="h-4 w-4" />}
         isLoading={isLoading}
+        sentiment="neutral" // Current price itself is neutral, change reflects sentiment
       />
       <KeyMetricCard
         label="Day's Change"
-        // Pass the raw percentage; KeyMetricCard will format it including the % sign
         value={todaysChangePercDisplay !== null ? `${todaysChangePercDisplay > 0 ? "+" : ""}${formatToTwoDecimals(todaysChangePercDisplay, "0.00")}%` : "N/A"}
-        change={todaysChangePercDisplay}
+        change={todaysChangePercDisplay} // Pass raw percentage for icon logic
         isLoading={isLoading}
+        sentiment={currentPriceSentiment} // Apply sentiment to the value itself
       />
     </div>
   );

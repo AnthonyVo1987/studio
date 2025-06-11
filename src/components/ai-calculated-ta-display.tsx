@@ -5,13 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { CalculateAiTaOutput } from "@/ai/schemas/ai-calculated-ta-schemas";
+import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface TaPointDisplayInfo {
   key: keyof CalculateAiTaOutput;
   label: string;
 }
+
+const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
+  if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
+  if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
+  return '';
+};
 
 const taPointDefinitions: TaPointDisplayInfo[] = [
   { key: "pivotPoint", label: "Pivot Point (PP)" },
@@ -24,11 +32,12 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
 ];
 
 export function AiCalculatedTaDisplay() {
-  const { aiCalculatedTaJson } = useStockAnalysis();
+  const { aiCalculatedTaJson, stockSnapshotJson } = useStockAnalysis();
 
   let isLoading = false;
   let isError = false;
   let parsedTaData: CalculateAiTaOutput | null = null;
+  let currentPrice: number | null = null;
 
   if (
     aiCalculatedTaJson.includes('"status": "initializing"') ||
@@ -46,16 +55,27 @@ export function AiCalculatedTaDisplay() {
       if (data && typeof data === 'object' && !data.error && !data.status) {
         parsedTaData = data as CalculateAiTaOutput;
       } else {
-        // If JSON has a status/error field even after initial checks, treat as error/no data
         isError = true; 
         if (data.status === 'pending' || data.status === 'initializing') isLoading = true;
+         if (data && data.error) console.error("AI TA data contains error:", data.error);
       }
     } catch (e) {
       console.error("Failed to parse aiCalculatedTaJson in AiCalculatedTaDisplay:", e);
       isError = true;
     }
   }
-  // If loading due to a status field in JSON, override isError for parsedData checks
+  
+  if (!isLoading && !isError) {
+      try {
+        const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
+        if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
+            currentPrice = snapshot.currentPrice;
+        }
+      } catch (e) {
+        console.error("Failed to parse stockSnapshotJson for current price in AiCalculatedTaDisplay:", e);
+      }
+  }
+  
   if (isLoading) isError = false;
 
 
@@ -63,7 +83,7 @@ export function AiCalculatedTaDisplay() {
     <Card>
       <CardHeader>
         <CardTitle>AI-Calculated Technical Analysis</CardTitle>
-        <CardDescription>Daily Pivot Points based on previous day HLC.</CardDescription>
+        <CardDescription>Daily Pivot Points based on previous day HLC. Color indicates current price relative to Pivot Point.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -92,14 +112,39 @@ export function AiCalculatedTaDisplay() {
               const displayValue = isError || value === null || value === undefined
                 ? "N/A"
                 : formatToTwoDecimals(value as number, "0.00");
+              
+              let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+              if (pointDef.key === 'pivotPoint' && currentPrice !== null && value !== null && value !== undefined) {
+                  if (currentPrice > (value as number)) sentiment = 'bullish';
+                  else if (currentPrice < (value as number)) sentiment = 'bearish';
+              }
+              // Support levels: bullish if price is above, bearish if price broke below (harder to determine without more context)
+              // Resistance levels: bearish if price is below, bullish if price broke above
+
+              const colorClass = pointDef.key === 'pivotPoint' ? getSentimentColorClass(sentiment) : '';
+
 
               return (
                 <TableRow key={pointDef.key}>
                   <TableCell className="font-medium">{pointDef.label}</TableCell>
-                  <TableCell className="text-right">{displayValue}</TableCell>
+                  <TableCell className={cn("text-right", colorClass)}>{displayValue}</TableCell>
                 </TableRow>
               );
             })}
+            {isError && !isLoading && (
+                <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                        AI TA data not available.
+                    </TableCell>
+                </TableRow>
+            )}
+             {!isLoading && !isError && !parsedTaData && (
+                 <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                        No AI TA data to display.
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>

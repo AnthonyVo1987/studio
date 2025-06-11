@@ -72,6 +72,9 @@ export function MarketStatusDisplay() {
       } else {
         isError = true;
         isLoading = false;
+         if (data && data.error) {
+          console.error("Market status data contains error:", data.error);
+        }
       }
     } catch (e) {
       console.error("Failed to parse marketStatusJson in MarketStatusDisplay:", e);
@@ -80,7 +83,8 @@ export function MarketStatusDisplay() {
     }
   }
 
-  const placeholderRows = 3; // Adjusted based on typical output after filtering
+  const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 3);
+
 
   return (
     <Card>
@@ -94,10 +98,10 @@ export function MarketStatusDisplay() {
              {isLoading
               ? Array.from({ length: placeholderRows }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
               : isError
-                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Market status data not available.</TableCell></TableRow>
-                : details.length > 0 
+                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Market status data not available.</TableCell></TableRow>
+                : details.length > 0 && details.some(d => d.value && d.value !== "N/A")
                     ? details.map((item, index) => renderDetailRow(item, index, false))
-                    : <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">No applicable market status to display.</TableCell></TableRow>}
+                    : <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">No applicable market status to display.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </CardContent>
