@@ -26,8 +26,6 @@ if (!process.env.POLYGON_API_KEY) {
   );
 }
 
-const polygonRest: IRestClient = restClient(process.env.POLYGON_API_KEY);
-
 class PolygonAdapter {
   private client: IRestClient;
 
@@ -35,8 +33,6 @@ class PolygonAdapter {
     const keyToUse = apiKey || process.env.POLYGON_API_KEY;
     if (!keyToUse) {
       console.error('Polygon API key is missing or empty. PolygonAdapter may not function correctly.');
-      // Consider throwing an error here if the adapter is unusable without a key.
-      // For now, restClient will handle an undefined key, likely leading to auth errors on API calls.
     }
     this.client = restClient(keyToUse);
   }
@@ -59,7 +55,7 @@ class PolygonAdapter {
 
   async getFullStockData(ticker: string): Promise<AdapterOutput> {
     const stockDataPackage: StockDataPackage = {
-      ticker, 
+      ticker,
     };
     let currentStockPrice: number | undefined;
 
@@ -78,7 +74,7 @@ class PolygonAdapter {
       } catch (error: any) {
         const errorMessage = `Failed to fetch market status. Polygon client error: ${error.message || String(error)}`;
         console.error(`Error fetching market status from Polygon:`, error);
-        stockDataPackage.marketStatus = { error: errorMessage } as any;
+        stockDataPackage.marketStatus = { error: errorMessage, rawError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))) } as any;
       }
       
       // 2. Fetch Ticker Snapshot (current day, prev day, current price)
@@ -101,9 +97,30 @@ class PolygonAdapter {
             throw new Error('Snapshot response did not contain ticker data or was malformed.');
         }
       } catch (error: any) {
-        const errorMessage = `Failed to fetch snapshot for ${ticker}. Polygon client error: ${error.message || String(error)}`;
-        console.error(`Error fetching stock snapshot for ${ticker} from Polygon:`, error);
-        stockDataPackage.stockSnapshot = { error: errorMessage } as any;
+        let detailedErrorMessage = `Polygon client error: ${error.message || String(error)}`;
+        let rawErrorDetails: any = { message: error.message };
+
+        if (error.stack) rawErrorDetails.stack = error.stack.substring(0, 500);
+        // For Polygon, error responses might be structured differently than typical HTTP libraries
+        // Check for common fields in Polygon error objects if known, or serialize safely
+        if (error.request_id) rawErrorDetails.requestId = error.request_id;
+        if (error.status) rawErrorDetails.status = error.status; // Polygon sometimes includes a status in error obj
+        
+        // Attempt to capture more context if it's an HTTP-like error from the client library
+        if (typeof error === 'object' && error !== null) {
+            for (const prop in error) {
+                if (Object.prototype.hasOwnProperty.call(error, prop) && typeof error[prop] !== 'function' && typeof error[prop] !== 'object') {
+                    rawErrorDetails[prop] = error[prop];
+                }
+            }
+        }
+
+        const errorMessage = `Failed to fetch snapshot for ${ticker}. ${detailedErrorMessage}`;
+        console.error(`Error fetching stock snapshot for ${ticker} from Polygon:`, error); // Full error to server logs
+        stockDataPackage.stockSnapshot = { 
+            error: errorMessage, 
+            rawErrorDetails: rawErrorDetails 
+        } as any;
       }
 
       // 3. Fetch Standard Technical Indicators (RSI, EMA, SMA, MACD) & map VWAP from snapshot
@@ -139,12 +156,12 @@ class PolygonAdapter {
       } catch (error: any) {
           const errorMessage = `Failed to fetch TAs for ${ticker}. Polygon client error: ${error.message || String(error)}`;
           console.error(`Error fetching technical indicators for ${ticker} from Polygon:`, error);
-          stockDataPackage.technicalIndicators = { ...(stockDataPackage.technicalIndicators || {}), error: errorMessage } as any;
+          stockDataPackage.technicalIndicators = { ...(stockDataPackage.technicalIndicators || {}), error: errorMessage, rawError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))) } as any;
       }
       
       // 4. Fetch Options Chain
       try {
-        if (currentStockPrice !== undefined) { // Ensure currentStockPrice was successfully obtained
+        if (currentStockPrice !== undefined) { 
           const expirationDate = calculateNextFridayExpiration();
           const optionsChainResponse = await this.client.reference.optionsContracts({
             underlying_ticker: ticker,
@@ -209,31 +226,30 @@ class PolygonAdapter {
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${ticker}. Polygon client error: ${error.message || String(error)}`;
         console.error(`Error fetching options chain for ${ticker} from Polygon:`, error);
-        stockDataPackage.optionsChain = { error: errorMessage } as any;
+        stockDataPackage.optionsChain = { error: errorMessage, rawError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))) } as any;
       }
 
       return {
         stockData: stockDataPackage,
+        // rawRequestParams and rawResponse are not populated by this adapter structure
       };
 
     } catch (error: any) {
       const overallErrorMessage = `Overall failure in fetching data for ${ticker}. Some data might be missing or incomplete. Original error: ${error.message || String(error)}`;
-      console.error(`An unexpected error occurred in getFullStockData for ${ticker}:`, error);
+      console.error(`An unexpected error occurred in getFullStockData for ${ticker}:`, error); // Full error to server logs
       return {
         stockData: {
           ...stockDataPackage,
           error: overallErrorMessage,
+          rawOverallError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         } as StockDataPackage,
       };
     }
   }
 }
 
-
-const polygonAdapterInstance = new PolygonAdapter();
-
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
-  if (!process.env.POLYGON_API_KEY || process.env.POLYGON_API_KEY.trim() === "") { // Also check for empty string
+  if (!process.env.POLYGON_API_KEY || process.env.POLYGON_API_KEY.trim() === "") { 
      console.error('POLYGON_API_KEY is not set or is empty. Returning error structure.');
      return {
        stockData: {
@@ -242,10 +258,9 @@ export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
        }
      };
   }
-  // This creates a new instance for each call. Consider if the global `polygonRest` should be used
-  // or if the instance should be managed differently if it holds state or has significant setup cost.
-  // For now, creating a new instance per call is fine as `restClient` is lightweight.
   const adapter = new PolygonAdapter(); 
   return adapter.getFullStockData(ticker);
 }
+    
+
     
