@@ -1,7 +1,7 @@
 
 # **Product Requirements Document & AI Operating Manual: StockSage v2.1.0 (Re-Implementation)**
 
-*   **Document Version:** 1.2 (Reflects UI refinements up to Phase 6.1.6)
+*   **Document Version:** 1.3 (Reflects revert to v0.6.1.6 and post-mortem of DebugConsole attempt)
 *   **Date:** 2025-06-10
 *   **Author:** Firebase Studio (AI Prototyper)
 *   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality
@@ -220,14 +220,28 @@ The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to
 *   `useActionState` for server actions.
 
 ### **4.7. Known Pain Points & Lessons Learned (CRITICAL - Guiding UI-First)**
-*   **`async_hooks` Module Resolution & Turbopack:**
+*   **`4.7.1. async_hooks` Module Resolution & Turbopack:**
     *   **Context:** This was a major blocker. The UI-First strategy is designed to mitigate this by deferring backend/Genkit integrations.
     *   **Rule 1:** **DO NOT use or add `genkitPluginNextjs()`** initially.
     *   **Rule 2:** Be extremely cautious with new dependencies, especially APM/tracing.
     *   **Rule 3:** Keep `next.config.ts` simple. **AVOID Webpack `resolve.fallback` for Node.js built-ins.**
     *   **Rule 4:** If `async_hooks` (or similar build errors) appear when integrating backend logic (Phase 4+), flag immediately. **Do not spend extensive time trying to fix with Webpack fallbacks.** The solution might be to isolate the problematic Genkit flow or re-evaluate dependencies.
-*   **Genkit v1.x Syntax:** Adhere strictly.
-*   **Data Flow:** Raw data populates "Debug" Tab JSONs first. "Main" Tab components then read from these state variables (JSON strings) and format them for display. This two-step process is key.
+*   **`4.7.2. Genkit v1.x Syntax`:** Adhere strictly.
+*   **`4.7.3. Data Flow:`** Raw data populates "Debug" Tab JSONs first. "Main" Tab components then read from these state variables (JSON strings) and format them for display. This two-step process is key.
+*   **`4.7.4. Client-Side Debug Console (`DebugConsole.tsx`) Implementation Issues (Post-Mortem for former Task 6.1.7 / Intermediate Debug Phase):`**
+    *   **Context:** An attempt was made to implement a feature-rich client-side debug console (`DebugConsole.tsx`) to intercept `console.*` calls, display them with filtering and export capabilities, and dynamically adjust main content layout. This was intended to enhance client-side troubleshooting.
+    *   **Issues Encountered & Outcome:**
+        *   **Application Instability:** The primary and critical issue was that the implemented debug console caused the application to freeze, become unresponsive, or exhibit erratic behavior, ultimately blocking usability. Multiple attempts to tweak and fix the implementation were unsuccessful.
+        *   **Complexity of Console Interception & State Management:** Reliably intercepting all standard `console.*` methods (`log`, `warn`, `error`, `debug`, `info`) and managing their state (including timestamps, types, messages, filters, search terms) within the React context (`StockAnalysisContext`) without severe performance degradation or unexpected side effects proved highly challenging. The frequency of console calls, especially with added debug traces, likely overwhelmed the state update mechanisms.
+        *   **Layout Shifts & DOM Manipulation Conflicts:** The console's behavior of appearing/disappearing from the bottom of the screen and dynamically adjusting the main content area's padding might have interfered with React's reconciliation process or Next.js's rendering lifecycle, leading to instability.
+        *   **Potential Hydration/SSR Conflicts:** Introducing a global, pervasive UI component that intercepts browser functionalities early in the client-side lifecycle could have conflicted with Next.js hydration processes.
+    *   **Resolution (Current):** The entire `DebugConsole` feature and its associated "Intermediate Debug Phase" (formerly Task 6.1.7) were **fully reverted** to restore application stability to the v0.6.1.6 baseline.
+    *   **Future Approach Considerations (if re-attempted):**
+        *   **Simplify:** Start with a much simpler version (e.g., a passive log viewer that reads from a simple global array, without interception or complex filtering UI).
+        *   **Performance First:** Prioritize performance and minimal intrusiveness. Avoid frequent, widespread state updates triggered by console calls.
+        *   **Decoupling:** Consider if a less integrated solution (e.g., a separate pop-out window or a browser extension-based approach for development) might be more suitable than an in-page console for this specific tech stack.
+        *   **Alternative Libraries:** Investigate mature, third-party logging libraries designed for React/Next.js that might handle interception and display more robustly, though this adds dependencies.
+        *   **Selective Interception:** If interception is pursued, be highly selective about which `console.*` methods are captured and potentially buffer logs before batch updating state.
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
@@ -397,7 +411,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 6: Connecting "Main" Tab UI to Live Data (from "Debug" Tab JSONs)**
 *(Goal: Modify the "Main" Tab components to parse the JSON strings from the StockAnalysisProvider's state (which are displayed in the "Debug" Tab) and render formatted data. This is where the two tabs are functionally linked.)*
-*   **Task 6.1 (Enhanced): Update `KeyMetricsDisplay.tsx`, `StockSnapshotDetailsDisplay.tsx`, `MarketStatusDisplay.tsx`, `StandardTaDisplay.tsx`**
+*   **Task 6.1 (Enhanced - Formerly 6.1.6): Update `KeyMetricsDisplay.tsx`, `StockSnapshotDetailsDisplay.tsx`, `MarketStatusDisplay.tsx`, `StandardTaDisplay.tsx`**
     *   Action: Modified components to parse their respective JSON data (`stockSnapshotJson`, `marketStatusJson`, `standardTasJson`) from context and display live, formatted data. Implemented requested UI refinements (card order, ticker removal from snapshot, market status filtering, sentiment color-coding). Added combined data export/copy functionality.
     *   Deliverable: Key Metrics, Stock Snapshot Details, Market Status, and Standard TA displays show live data with UI/UX enhancements and new export/copy features.
 *   **Task 6.2: Update `AiCalculatedTaDisplay.tsx`**
@@ -427,9 +441,9 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
         *   Ensure specific section export/copy controls on the Main Tab (e.g., Key Takeaways as Text/CSV, Options Table as CSV) are functional, re-formatting data from context JSONs.
         *   Ensure "Debug" Tab "Copy JSON" buttons are fully functional for each Textarea.
     *   Deliverable: Comprehensive data export/copy functionality across all specified sections.
-*   **Task 7.2: Implement `DebugConsole.tsx` Component** (Placeholder until implemented)
+*   **Task 7.2: Implement `DebugConsole.tsx` Component**
     *   Action: Create and integrate `src/components/debug-console.tsx`. Specifications include: intercepting console logs, UI for display, filtering by type/category, search, export (JSON, TXT, CSV), copy (JSON, TXT, CSV), clear logs, toggle button, and ensuring main content padding adjusts.
-    *   Deliverable: Fully functional client-side debug console. (Mark as To Be Implemented)
+    *   Deliverable: Fully functional client-side debug console. (Mark as To Be Implemented - Previous attempt in former Task 6.1.7 / Intermediate Debug Phase resulted in application instability and was reverted. Re-approach with caution, considering lessons learned in Section 4.7.4).
 
 
 ---
@@ -448,6 +462,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy. |
 | 1.1     | 2025-06-09   | Firebase Studio (AI Prototyper) | Integrated Gemini Model ID specification (Section 4.3.6) to prevent "Model not found" errors. Clarified model ID usage in Phase 0 & 5. |
 | 1.2     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Main Tab features (Sec 2.2) & Phase 6 tasks to reflect UI refinements (card order, ticker removal, market status filtering, options table styling), new combined data export controls, and sentiment color-coding from Task 6.1.6. |
+| 1.3     | 2025-06-10   | Firebase Studio (AI Prototyper) | Added commit log for v0.6.1.6 (revert). Added detailed post-mortem (Section 4.7.4) for failed DebugConsole attempt. Updated Phase 7 (Task 7.2) to reflect "To Be Implemented" status for DebugConsole. |
 
 ---
 ## Project Implementation Commit Log
@@ -476,21 +491,23 @@ This commit represents the completion of all tasks in Phase 0, providing a stabl
 
 ---
 
-**Tag:** `Phase-6_Task-6.1.6` ([v0.6.1.6])
+**Tag:** `Phase-6_Task-6.1.6_Baseline` ([v0.6.1.6]) - Commit Hash: `1fdab788`
 
-**Subject:** `feat: Implement Main Tab UI refinements, data export, and sentiment coloring`
+**Subject:** `fix: Revert DebugConsole implementation and restore v0.6.1.6 baseline`
 
 **Details:**
-This commit delivers several UI/UX enhancements and a new data export feature for the Main Tab as part of Task 6.1.6, further refining the "Connecting 'Main' Tab UI to Live Data" phase.
-Key Changes Implemented:
-1.  UI Display Adjustments:
-    *   Snapshot Details (`StockSnapshotDetailsDisplay.tsx`): Removed "Ticker", reordered items.
-    *   Main Tab Card Order (`MainTabContent.tsx`): Reordered cards, Market Status is last.
-    *   Market Status Filter (`MarketStatusDisplay.tsx`): Filtered out Crypto and FX markets.
-2.  New Feature: Combined Data Export/Copy (`MainTabContent.tsx`, `lib/export-utils.ts`): Added "Export All Data to JSON" and "Copy All Data to JSON" buttons.
-3.  Sentiment-Based Font Color Coding (Main Tab Displays): Applied bullish/bearish font colors to Key Metrics, Snapshot Details, Standard TAs, AI TA, and AI Key Takeaways.
-These changes significantly improve organization, usability, and visual feedback.
+This commit fully reverts the changes introduced for the client-side `DebugConsole` feature (formerly Task 6.1.7 and associated "Intermediate Debug Phase"). The implementation of the debug console led to critical application instability, including freezing and unresponsiveness.
+
+**Actions Taken:**
+*   All code related to `DebugConsole.tsx`, its integration into `StockAnalysisContext` (log interception, state management for logs and console visibility), and dynamic padding adjustments in `src/app/page.tsx` has been removed.
+*   Enhancements to client-side `console.debug` tracing and Polygon adapter log propagation to the client console (part of Debug Task 2) have also been reverted as they were tied to the `DebugConsole` infrastructure.
+*   The codebase has been restored to the state of commit `77dff3c07da1293f6e73cd7509e42edce4919bb4`, which corresponds to the completion of Task 6.1.6 (Main Tab UI refinements, data export, sentiment coloring).
+*   `README.md` has been updated to reflect this revert, add a post-mortem for the `DebugConsole` issues, and mark Task 7.2 (`Implement DebugConsole.tsx Component`) as "To Be Implemented" with a cautionary note.
+
+This revert establishes commit `1fdab788` as the new stable baseline for version `v0.6.1.6`. The application is now stable, and development can proceed from this known good state. The attempt to implement the client-side debug console will be revisited at a later stage, taking into account the lessons learned from this iteration.
 
 ---
 
 ... (Future commit logs will follow)
+
+```
