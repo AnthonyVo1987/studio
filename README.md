@@ -1,7 +1,7 @@
 
 # **Product Requirements Document & AI Operating Manual: StockSage v2.1.0 (Re-Implementation)**
 
-*   **Document Version:** 1.4 (Reflects completion of Tasks 6.2 & 6.3)
+*   **Document Version:** 1.5 (Reflects completion of Task 6.4)
 *   **Date:** 2025-06-10
 *   **Author:** Firebase Studio (AI Prototyper)
 *   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality
@@ -57,10 +57,10 @@ The AI Agent must re-implement the following features, organized by the new tabb
     *   "Analyze Stock" and "AI Full Stock Analysis" buttons.
 *   **Display Card Order & Content:** The Main Tab will display information in the following top-to-bottom card order:
     1.  **Key Metrics Display:**
-        *   Formatted display of Ticker, Current Price, Day's Change %. Day's Change % is color-coded for sentiment (green for positive, red for negative).
+        *   Formatted display of Ticker, Current Price, Day's Change %. Day's Change % is color-coded for sentiment (green for positive, red for negative) and formatted to a maximum of two decimal places.
         *   *Data Source: Consumes relevant fields from the "Stock Snapshot JSON" in the "Debug" Tab.*
     2.  **Stock Snapshot Details Display:**
-        *   Detailed price and volume information for the current day and previous day. Order: Current Price, Today's Change %, Today's Change, Day's VWAP, Day's Volume, Day's Close, followed by other daily and previous day stats. "Today's Change %" and "Today's Change" are color-coded for sentiment.
+        *   Detailed price and volume information for the current day and previous day. Order: Current Price, Today's Change %, Today's Change, Day's VWAP, Day's Volume, Day's Close, followed by other daily and previous day stats. "Today's Change %" and "Today's Change" are color-coded for sentiment. "Today's Change %" is formatted to a maximum of two decimal places.
         *   The Ticker symbol is NOT displayed here.
         *   *Data Source: Consumes "Stock Snapshot JSON" from the "Debug" Tab.*
     3.  **Standard Technical Indicators Display:**
@@ -421,8 +421,8 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
     *   Action: Modify to parse `aiKeyTakeawaysJson` from context and display live takeaways with sentiment styling (badges and text color). Verified component was largely complete; activated a final debug log for render state confirmation.
     *   Deliverable: Key Takeaways display shows live data with enhanced sentiment coloring. Component confirmed functional.
 *   **Task 6.4: Update `OptionsChainTable.tsx`**
-    *   Action: Modify to parse `optionsChainJson` from context. Render the live options data in the table, correctly formatted with dynamic Ticker/Expiration headers, alternating row shading, and ATM strike highlighting.
-    *   Deliverable: Options Chain Table displays live data with UI enhancements.
+    *   Action: Modify to parse `optionsChainJson` from context. Render the live options data in the table, correctly formatted with dynamic Ticker/Expiration headers, alternating row shading, and ATM strike highlighting. Refined percentage formatting in display components (`KeyMetricsDisplay`, `StockSnapshotDetailsDisplay`) to show up to two decimal places for specific percentage fields.
+    *   Deliverable: Options Chain Table displays live data with UI enhancements. Day's Change % and Today's Change % also show max two decimal places.
 *   **Task 6.5: Implement "AI Full Stock Analysis" Button Logic**
     *   Action: In `StockAnalysisProvider`, implement the logic for this button to sequentially trigger data fetch, AI TA calc, Key Takeaways, and then auto-submit the "Full Detailed Analysis" prompt to the chatbot, using the live JSON data from context for the chat prompt.
     *   Deliverable: "AI Full Stock Analysis" button fully functional.
@@ -464,6 +464,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 | 1.2     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Main Tab features (Sec 2.2) & Phase 6 tasks to reflect UI refinements (card order, ticker removal, market status filtering, options table styling), new combined data export controls, and sentiment color-coding from Task 6.1.6. |
 | 1.3     | 2025-06-10   | Firebase Studio (AI Prototyper) | Added commit log for v0.6.1.6 (revert). Added detailed post-mortem (Section 4.7.4) for failed DebugConsole attempt. Updated Phase 7 (Task 7.2) to reflect "To Be Implemented" status for DebugConsole. |
 | 1.4     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Tasks 6.2 & 6.3 as complete. Added commit log for v0.6.3.0. |
+| 1.5     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.4 as complete (Options Chain Table live data, percentage formatting). Added commit log for v0.6.4.0. |
 
 ---
 ## Project Implementation Commit Log
@@ -526,6 +527,36 @@ Both components were already substantially equipped to:
 The activation of the final debug logs serves as a confirmation step, ensuring that their render states (isLoading, isError, presence of parsed data) are clearly reported in the client-side debug console (if re-enabled in future development), aligning with our enhanced debugging strategy.
 
 With these tasks complete, the AI Calculated TA and AI Key Takeaways sections on the Main Tab are now fully integrated with the live data pipeline.
+
+---
+**Tag:** `Phase-6_Task-6.4` ([v0.6.4.0]) - Commit Hash: `bd221290`
+
+**Subject:** `feat: Integrate live data into Options Chain Table and refine percentage formatting (Task 6.4)`
+
+**Details:**
+This commit completes Task 6.4 of Phase 6, focusing on making the Options Chain Table fully dynamic and enhancing percentage display consistency.
+
+**Key Changes Implemented:**
+
+1.  **Options Chain Table (`src/components/options-chain-table.tsx`):**
+    *   Now consumes `optionsChainJson` and `stockSnapshotJson` from `StockAnalysisContext`.
+    *   Parses `optionsChainJson` to display live contract data, including the ticker and expiration date in the card description (using `formatDisplayDate`).
+    *   Parses `stockSnapshotJson` to retrieve the current stock price, which is used to accurately determine and highlight the At-the-Money (ATM) strike. ATM rows now have a distinct background and font weight for better visibility.
+    *   The sticky strike price cell also appropriately reflects ATM styling.
+    *   Maintains alternating row shading for non-ATM rows.
+    *   All data columns (Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta, Strike Price) are correctly formatted using the project's number utility functions. Specifically, IV and % Chg in the options table are formatted as whole percentages, adhering to PRD requirements.
+    *   Handles loading (with skeleton UI), error, and empty data states gracefully.
+
+2.  **Number Utility Enhancement (`src/lib/number-utils.ts`):**
+    *   The `formatPercentage` function has been updated to accept an optional `decimalPlaces` argument.
+    *   If `decimalPlaces` is provided and is a positive number, the percentage is formatted to that precision.
+    *   If `decimalPlaces` is not provided, is undefined, or is zero/negative, it defaults to formatting as a whole number percentage (e.g., "12%"), maintaining previous behavior for options table IV and % Chg.
+
+3.  **Snapshot Percentage Formatting Update:**
+    *   **`src/components/key-metrics-display.tsx`**: "Day's Change %" is now formatted to a maximum of two decimal places using the updated `formatPercentage` utility.
+    *   **`src/components/stock-snapshot-details-display.tsx`**: "Today's Change %" is also now formatted to a maximum of two decimal places.
+
+These changes ensure the Options Chain Table is fully integrated with the live data flow and provides a more precise display for key percentage metrics on the Main Tab.
 
 ---
 
