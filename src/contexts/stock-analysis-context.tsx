@@ -4,7 +4,20 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
-// LogEntry and CONSOLE_HEIGHT are specific to the debug console, remove them.
+export type FullAnalysisStatus = 
+  | 'idle' 
+  | 'pending' // Initial state when button is clicked
+  | 'fetchingData' 
+  | 'calculatingAiTa' 
+  | 'generatingTakeaways' 
+  | 'chatting' 
+  | 'success' 
+  | 'error';
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
+}
 
 interface StockAnalysisState {
   polygonApiRequestLogJson: string;
@@ -19,6 +32,10 @@ interface StockAnalysisState {
   aiKeyTakeawaysJson: string;
   chatbotRequestJson: string;
   chatbotResponseJson: string;
+  
+  fullAnalysisStatus: FullAnalysisStatus;
+  isFullAnalysisTriggered: boolean;
+  chatHistory: ChatMessage[];
 }
 
 interface StockAnalysisContextType extends StockAnalysisState {
@@ -34,6 +51,12 @@ interface StockAnalysisContextType extends StockAnalysisState {
   setAiKeyTakeawaysJson: (json: string) => void;
   setChatbotRequestJson: (json: string) => void;
   setChatbotResponseJson: (json: string) => void;
+
+  setFullAnalysisStatus: (status: FullAnalysisStatus) => void;
+  setIsFullAnalysisTriggered: (triggered: boolean) => void;
+  setChatHistory: (history: ChatMessage[]) => void;
+  clearChatHistory: () => void;
+  addChatMessage: (message: ChatMessage) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
@@ -51,6 +74,10 @@ const defaultState: StockAnalysisState = {
   aiKeyTakeawaysJson: initialJsonPlaceholder,
   chatbotRequestJson: initialJsonPlaceholder,
   chatbotResponseJson: initialJsonPlaceholder,
+
+  fullAnalysisStatus: 'idle',
+  isFullAnalysisTriggered: false,
+  chatHistory: [],
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -68,27 +95,54 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
   const [chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
   const [chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
+  
+  const [fullAnalysisStatus, _setFullAnalysisStatus] = useState<FullAnalysisStatus>(defaultState.fullAnalysisStatus);
+  const [isFullAnalysisTriggered, _setIsFullAnalysisTriggered] = useState<boolean>(defaultState.isFullAnalysisTriggered);
+  const [chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
 
-  // Remove useEffect for console interception
 
-  const setAndLog = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
-    // Keep simple console.debug for server-side or if user manually uses browser devtools
-    // console.debug(`[StockAnalysisContext] Setting ${name} to:`, value.substring(0,100) + (value.length > 100 ? '...' : ''));
+  const setAndLogJson = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
+    // console.debug(`[StockAnalysisContext] Setting JSON ${name} to:`, value.substring(0,100) + (value.length > 100 ? '...' : ''));
     setter(value);
   };
 
-  const setPolygonApiRequestLogJson = (json: string) => setAndLog(_setPolygonApiRequestLogJson, 'polygonApiRequestLogJson', json);
-  const setPolygonApiResponseLogJson = (json: string) => setAndLog(_setPolygonApiResponseLogJson, 'polygonApiResponseLogJson', json);
-  const setMarketStatusJson = (json: string) => setAndLog(_setMarketStatusJson, 'marketStatusJson', json);
-  const setStockSnapshotJson = (json: string) => setAndLog(_setStockSnapshotJson, 'stockSnapshotJson', json);
-  const setStandardTasJson = (json: string) => setAndLog(_setStandardTasJson, 'standardTasJson', json);
-  const setOptionsChainJson = (json: string) => setAndLog(_setOptionsChainJson, 'optionsChainJson', json);
-  const setAiCalculatedTaRequestJson = (json: string) => setAndLog(_setAiCalculatedTaRequestJson, 'aiCalculatedTaRequestJson', json);
-  const setAiCalculatedTaJson = (json: string) => setAndLog(_setAiCalculatedTaJson, 'aiCalculatedTaJson', json);
-  const setAiKeyTakeawaysRequestJson = (json: string) => setAndLog(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json);
-  const setAiKeyTakeawaysJson = (json: string) => setAndLog(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json);
-  const setChatbotRequestJson = (json: string) => setAndLog(_setChatbotRequestJson, 'chatbotRequestJson', json);
-  const setChatbotResponseJson = (json: string) => setAndLog(_setChatbotResponseJson, 'chatbotResponseJson', json);
+  const setPolygonApiRequestLogJson = (json: string) => setAndLogJson(_setPolygonApiRequestLogJson, 'polygonApiRequestLogJson', json);
+  const setPolygonApiResponseLogJson = (json: string) => setAndLogJson(_setPolygonApiResponseLogJson, 'polygonApiResponseLogJson', json);
+  const setMarketStatusJson = (json: string) => setAndLogJson(_setMarketStatusJson, 'marketStatusJson', json);
+  const setStockSnapshotJson = (json: string) => setAndLogJson(_setStockSnapshotJson, 'stockSnapshotJson', json);
+  const setStandardTasJson = (json: string) => setAndLogJson(_setStandardTasJson, 'standardTasJson', json);
+  const setOptionsChainJson = (json: string) => setAndLogJson(_setOptionsChainJson, 'optionsChainJson', json);
+  const setAiCalculatedTaRequestJson = (json: string) => setAndLogJson(_setAiCalculatedTaRequestJson, 'aiCalculatedTaRequestJson', json);
+  const setAiCalculatedTaJson = (json: string) => setAndLogJson(_setAiCalculatedTaJson, 'aiCalculatedTaJson', json);
+  const setAiKeyTakeawaysRequestJson = (json: string) => setAndLogJson(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json);
+  const setAiKeyTakeawaysJson = (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json);
+  const setChatbotRequestJson = (json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson', json);
+  const setChatbotResponseJson = (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson', json);
+
+  const setFullAnalysisStatus = (status: FullAnalysisStatus) => {
+    // console.debug(`[StockAnalysisContext] Setting fullAnalysisStatus to: ${status}`);
+    _setFullAnalysisStatus(status);
+  };
+  const setIsFullAnalysisTriggered = (triggered: boolean) => {
+    // console.debug(`[StockAnalysisContext] Setting isFullAnalysisTriggered to: ${triggered}`);
+    _setIsFullAnalysisTriggered(triggered);
+  };
+  
+  const setChatHistory = (history: ChatMessage[]) => {
+    // console.debug(`[StockAnalysisContext] Setting chatHistory. Length: ${history.length}`);
+    _setChatHistory(history);
+  };
+
+  const clearChatHistory = useCallback(() => {
+    // console.debug(`[StockAnalysisContext] Clearing chatHistory.`);
+    _setChatHistory([]);
+  }, []);
+
+  const addChatMessage = useCallback((message: ChatMessage) => {
+    // console.debug(`[StockAnalysisContext] Adding chat message: Role: ${message.role}, Content: ${message.content.substring(0,50)}...`);
+    _setChatHistory(prev => [...prev, message]);
+  }, []);
+
 
   const contextValue: StockAnalysisContextType = {
     polygonApiRequestLogJson, setPolygonApiRequestLogJson,
@@ -103,6 +157,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiKeyTakeawaysJson, setAiKeyTakeawaysJson,
     chatbotRequestJson, setChatbotRequestJson,
     chatbotResponseJson, setChatbotResponseJson,
+
+    fullAnalysisStatus, setFullAnalysisStatus,
+    isFullAnalysisTriggered, setIsFullAnalysisTriggered,
+    chatHistory, setChatHistory,
+    clearChatHistory,
+    addChatMessage,
   };
 
   return (
