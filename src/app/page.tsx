@@ -18,15 +18,16 @@ function PageContent() {
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
-    clearClientLogs
+    // clearClientLogs, // Removed as it's not provided and redundant
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
     setClientDebugConsoleEnabled(checked);
     setClientDebugConsoleOpen(checked);
-    if (!checked) {
-      clearClientLogs(); // Optionally clear logs when disabling/closing
-    }
+    // The clearGlobalLogBuffer() is called within setClientDebugConsoleEnabled(false)
+    // if (!checked) {
+    //   clearClientLogs(); // This line was causing the error and is redundant
+    // }
   };
 
   return (
