@@ -22,10 +22,32 @@ export function downloadJson(jsonData: any, filename: string): void {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading JSON:", error);
-    // Consider using a toast notification for user feedback
     alert("Failed to download JSON data. See console for details.");
   }
 }
+
+/**
+ * Triggers a browser download for the given text data.
+ * @param {string} textData The text data to download.
+ * @param {string} filename The desired filename (e.g., "logs.txt").
+ */
+export function downloadTxt(textData: string, filename: string): void {
+  try {
+    const blob = new Blob([textData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading TXT:", error);
+    alert("Failed to download TXT data. See console for details.");
+  }
+}
+
 
 /**
  * Copies the given text to the clipboard.
@@ -34,11 +56,10 @@ export function downloadJson(jsonData: any, filename: string): void {
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (!navigator.clipboard) {
-    // Fallback for older browsers or insecure contexts
     try {
       const textArea = document.createElement("textarea");
       textArea.value = text;
-      textArea.style.position = "fixed"; // Prevent scrolling to bottom
+      textArea.style.position = "fixed"; 
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
