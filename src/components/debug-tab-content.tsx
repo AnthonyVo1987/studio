@@ -8,6 +8,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardCopy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context"; 
 import { useToast } from "@/hooks/use-toast";
+import { DebugSettingsCard } from "./debug-settings-card"; // Import the new card
+import { Separator } from "./ui/separator"; // Import Separator
+import { DebugLogCategory } from "@/lib/debug-log-types";
 
 
 interface JsonDisplayAreaProps {
@@ -56,19 +59,22 @@ export function DebugTabContent() {
     aiKeyTakeawaysJson,
     chatbotRequestJson,
     chatbotResponseJson,
+    logDebug, // Get logDebug from context
   } = useStockAnalysis();
   const { toast } = useToast();
-  console.debug("[DebugTabContent] Rendering DebugTabContent. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
+  
+  // Use logDebug instead of console.debug
+  logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[DebugTabContent] Rendering DebugTabContent. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
 
 
   const handleCopy = (title: string, content: string) => {
-    console.debug(`[DebugTabContent] Copying JSON for: ${title}`);
+    logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[DebugTabContent] Copying JSON for: ${title}`);
     navigator.clipboard.writeText(content)
       .then(() => {
         toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
       })
       .catch(err => {
-        console.error(`[DebugTabContent] Failed to copy ${title}: `, err);
+        console.error(`[DebugTabContent] Failed to copy ${title}: `, err); // Keep console.error for actual errors
         toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON.` });
       });
   };
@@ -93,12 +99,14 @@ export function DebugTabContent() {
       <CardHeader>
         <CardTitle>Debug Information</CardTitle>
         <CardDescription>
-          Raw JSON data from APIs and AI flows for debugging and verification. Granular Polygon API call logs are in the Client Debug Console.
+          Raw JSON data from APIs and AI flows. Granular Polygon API call logs are in the Client Debug Console.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[calc(100vh-20rem)] pr-4"> 
           <div className="space-y-4">
+            <DebugSettingsCard /> 
+            <Separator className="my-6" /> 
             {debugAreasConfig.map((area) => (
               <JsonDisplayArea
                 key={area.title}

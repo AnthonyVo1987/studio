@@ -3,6 +3,7 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { DebugLogCategory, type DebugLogConfig, defaultDebugLogConfig } from '@/lib/debug-log-types';
 
 export type FullAnalysisStatus =
   | 'idle'
@@ -24,6 +25,7 @@ export interface LogEntry {
   timestamp: string;
   type: 'log' | 'warn' | 'error' | 'info' | 'debug';
   messages: any[];
+  category?: DebugLogCategory; // Optional category for debug logs
 }
 
 interface StockAnalysisState {
@@ -48,6 +50,7 @@ interface StockAnalysisState {
   clientLogs: LogEntry[];
   isClientDebugConsoleEnabled: boolean;
   isClientDebugConsoleOpen: boolean;
+  debugLogConfig: DebugLogConfig;
 }
 
 interface StockAnalysisContextType extends StockAnalysisState {
@@ -75,9 +78,21 @@ interface StockAnalysisContextType extends StockAnalysisState {
   clearClientLogs: () => void;
   setClientDebugConsoleEnabled: (enabled: boolean) => void;
   setClientDebugConsoleOpen: (open: boolean) => void;
+  setDebugLogCategoryEnabled: (category: DebugLogCategory, enabled: boolean) => void;
+  logDebug: (category: DebugLogCategory, ...messages: any[]) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
+
+// Keep a reference to the original console methods
+const originalConsole = {
+  log: typeof console !== 'undefined' ? console.log : () => {},
+  warn: typeof console !== 'undefined' ? console.warn : () => {},
+  error: typeof console !== 'undefined' ? console.error : () => {},
+  info: typeof console !== 'undefined' ? console.info : () => {},
+  debug: typeof console !== 'undefined' ? console.debug : () => {},
+};
+
 
 const defaultState: StockAnalysisState = {
   polygonApiRequestLogJson: initialJsonPlaceholder,
@@ -100,6 +115,7 @@ const defaultState: StockAnalysisState = {
   clientLogs: [],
   isClientDebugConsoleEnabled: false,
   isClientDebugConsoleOpen: false,
+  debugLogConfig: defaultDebugLogConfig,
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -125,10 +141,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [clientLogs, _setClientLogs] = useState<LogEntry[]>(defaultState.clientLogs);
   const [isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
   const [isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
+  const [debugLogConfig, _setDebugLogConfig] = useState<DebugLogConfig>(defaultState.debugLogConfig);
 
 
   const setAndLogJson = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
-    // console.debug(`[StockAnalysisContext] Setting JSON ${name} to:`, value.substring(0,100) + (value.length > 100 ? '...' : ''));
     setter(value);
   };
 
@@ -171,10 +187,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         ...prevLogs,
         {
           ...log,
-          id: Date.now().toString() + Math.random().toString(36).substring(2), // Simple unique ID
+          id: Date.now().toString() + Math.random().toString(36).substring(2),
           timestamp: new Date().toISOString(),
         },
-      ].slice(-200)); // Keep last 200 logs
+      ].slice(-200)); 
     });
   }, []);
 
@@ -184,58 +200,93 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const setClientDebugConsoleEnabled = (enabled: boolean) => {
     _setClientDebugConsoleEnabled(enabled);
-    if (!enabled) { // Also close if disabling entirely
+    if (!enabled) { 
         _setClientDebugConsoleOpen(false);
     }
   };
   const setClientDebugConsoleOpen = (open: boolean) => {
-    if (isClientDebugConsoleEnabled || !open) { // Can only open if enabled, can always close
+    if (isClientDebugConsoleEnabled || !open) { 
         _setClientDebugConsoleOpen(open);
     }
   };
+  
+  const setDebugLogCategoryEnabled = useCallback((category: DebugLogCategory, enabled: boolean) => {
+    _setDebugLogConfig(prevConfig => ({
+      ...prevConfig,
+      [category]: enabled,
+    }));
+  }, []);
+
+  const logDebug = useCallback((category: DebugLogCategory, ...messages: any[]) => {
+    if (isClientDebugConsoleEnabled && debugLogConfig[category]) {
+      // This will be picked up by the interceptor
+      console.debug(`[${category}]`, ...messages);
+    }
+  }, [isClientDebugConsoleEnabled, debugLogConfig]);
+
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isClientDebugConsoleEnabled) {
+      // If disabling, ensure originals are restored if they were ever changed
+      if ((console as any).__stockSageOriginals) {
+        Object.assign(console, (console as any).__stockSageOriginals);
+        delete (console as any).__stockSageOriginals;
+        originalConsole.debug('[DebugConsoleInterceptor] Console interception disabled, originals restored.');
+      }
       return;
     }
 
-    const originalConsole = {
-      log: console.log,
-      warn: console.warn,
-      error: console.error,
-      info: console.info,
-      debug: console.debug,
-    };
+    // Store originals if not already stored
+    if (!(console as any).__stockSageOriginals) {
+      (console as any).__stockSageOriginals = {
+        log: console.log,
+        warn: console.warn,
+        error: console.error,
+        info: console.info,
+        debug: console.debug,
+      };
+    }
+    
+    const currentOriginals = (console as any).__stockSageOriginals;
 
-    const interceptAndLog = (type: LogEntry['type'], ...args: any[]) => {
-      // Prevent logging calls originating from the logger itself to avoid infinite loops
+    const interceptAndLog = (type: LogEntry['type'], categoryOverride: DebugLogCategory | null, ...args: any[]) => {
       if (args.some(arg => typeof arg === 'string' && arg.startsWith('[DebugConsoleInterceptor]'))) {
-        originalConsole[type](...args);
+        currentOriginals[type](...args);
         return;
       }
       
-      addClientLog({ type, messages: args });
-      // Call original console method
-      originalConsole[type](...args);
+      let categoryForLog: DebugLogCategory | undefined = undefined;
+      let messagesForLog = args;
+
+      // Special handling for our new logDebug, which passes category as the first arg to console.debug
+      if (type === 'debug' && args.length > 0 && typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
+          const potentialCategory = args[0].substring(1, args[0].length - 1) as DebugLogCategory;
+          if (Object.values(DebugLogCategory).includes(potentialCategory)) {
+            categoryForLog = potentialCategory;
+            messagesForLog = args.slice(1); // Remove the category prefix from messages
+          }
+      }
+      
+      addClientLog({ type, messages: messagesForLog, category: categoryForLog });
+      currentOriginals[type](...args); // Call original console method
     };
 
-    console.log = (...args) => interceptAndLog('log', ...args);
-    console.warn = (...args) => interceptAndLog('warn', ...args);
-    console.error = (...args) => interceptAndLog('error', ...args);
-    console.info = (...args) => interceptAndLog('info', ...args);
-    console.debug = (...args) => interceptAndLog('debug', ...args);
+    console.log = (...args) => interceptAndLog('log', null, ...args);
+    console.warn = (...args) => interceptAndLog('warn', null, ...args);
+    console.error = (...args) => interceptAndLog('error', null, ...args);
+    console.info = (...args) => interceptAndLog('info', null, ...args);
+    console.debug = (...args) => interceptAndLog('debug', null, ...args); // The logDebug utility will ensure category is handled
     
-    originalConsole.debug('[DebugConsoleInterceptor] Console interception enabled.');
+    currentOriginals.debug('[DebugConsoleInterceptor] Console interception enabled.');
 
     return () => {
-      console.log = originalConsole.log;
-      console.warn = originalConsole.warn;
-      console.error = originalConsole.error;
-      console.info = originalConsole.info;
-      console.debug = originalConsole.debug;
-      originalConsole.debug('[DebugConsoleInterceptor] Console interception disabled, originals restored.');
+      if ((console as any).__stockSageOriginals) {
+        Object.assign(console, (console as any).__stockSageOriginals);
+        delete (console as any).__stockSageOriginals;
+        currentOriginals.debug('[DebugConsoleInterceptor] Console interception disabled on cleanup, originals restored.');
+      }
     };
-  }, [isClientDebugConsoleEnabled, addClientLog]);
+  }, [isClientDebugConsoleEnabled, addClientLog, debugLogConfig]); // Added debugLogConfig here
 
 
   const contextValue: StockAnalysisContextType = {
@@ -261,10 +312,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     clientLogs,
     isClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
+    debugLogConfig,
     addClientLog,
     clearClientLogs,
     setClientDebugConsoleEnabled,
     setClientDebugConsoleOpen,
+    setDebugLogCategoryEnabled,
+    logDebug,
   };
 
   return (

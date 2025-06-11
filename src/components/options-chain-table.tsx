@@ -16,6 +16,7 @@ import { formatCurrency, formatPercentage, formatCompactNumber, formatToTwoDecim
 import { formatDisplayDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { DebugLogCategory } from "@/lib/debug-log-types";
 
 interface OptionHeaderConfig {
   key: keyof StreamlinedOptionContract;
@@ -23,7 +24,6 @@ interface OptionHeaderConfig {
   formatter: (value: any) => string;
 }
 
-// decimalPlaces (4th arg) for formatPercentage: undefined or 0 means whole number
 const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
   { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, 
@@ -69,9 +69,9 @@ const renderSkeletonRow = (rowIndex: number) => (
 
 
 export function OptionsChainTable() {
-  const { optionsChainJson, stockSnapshotJson } = useStockAnalysis();
-  console.debug("[OptionsChainTable] optionsChainJson (start):", optionsChainJson.substring(0,100));
-  console.debug("[OptionsChainTable] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const { optionsChainJson, stockSnapshotJson, logDebug } = useStockAnalysis();
+  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[OptionsChainTable] optionsChainJson (start):", optionsChainJson.substring(0,100));
+  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[OptionsChainTable] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -81,33 +81,34 @@ export function OptionsChainTable() {
 
   if (optionsChainJson && optionsChainJson !== '{}') {
     if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"') || optionsChainJson.includes('"status": "full_analysis_pending..."')) {
-      console.debug("[OptionsChainTable] optionsChainJson is in pending/initializing state.");
+      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[OptionsChainTable] optionsChainJson is in pending/initializing state.");
       isLoading = true;
     } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
-      console.warn("[OptionsChainTable] optionsChainJson indicates an error or skipped state.");
+      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[OptionsChainTable] optionsChainJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(optionsChainJson) as OptionsChainData;
-        console.debug("[OptionsChainTable] Successfully parsed optionsChainJson. Contracts count:", data?.contracts?.length);
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[OptionsChainTable] Successfully parsed optionsChainJson. Contracts count:", data?.contracts?.length);
         if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
           isLoading = false;
           isError = false;
           parsedData = data;
         } else {
-          console.warn("[OptionsChainTable] Parsed optionsChainJson is missing contracts array or contains error/status field.");
+          logDebug(DebugLogCategory.UI_DATA_PARSING, "[OptionsChainTable] Parsed optionsChainJson is missing contracts array or contains error/status field.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
         console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e);
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[OptionsChainTable] Error during optionsChainJson parsing.", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    console.debug("[OptionsChainTable] optionsChainJson is empty or null.");
+    logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[OptionsChainTable] optionsChainJson is empty or null.");
     isLoading = false;
   }
 
@@ -116,15 +117,16 @@ export function OptionsChainTable() {
       if (!stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
         parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
         currentPriceForATM = parsedSnapshotData?.currentPrice ?? parsedSnapshotData?.day?.c ?? null;
-        console.debug("[OptionsChainTable] Successfully parsed stockSnapshotJson for ATM price:", currentPriceForATM);
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[OptionsChainTable] Successfully parsed stockSnapshotJson for ATM price:", currentPriceForATM);
       } else {
-         console.warn("[OptionsChainTable] stockSnapshotJson contains status/error, cannot get current price for ATM.");
+         logDebug(DebugLogCategory.UI_DATA_PARSING, "[OptionsChainTable] stockSnapshotJson contains status/error, cannot get current price for ATM.");
       }
     } catch (e) {
       console.error("[OptionsChainTable] Failed to parse stockSnapshotJson for ATM price:", e);
+      logDebug(DebugLogCategory.UI_DATA_PARSING, "[OptionsChainTable] Error during stockSnapshotJson parsing for ATM.", e);
     }
   } else {
-     console.debug("[OptionsChainTable] stockSnapshotJson is empty or null, cannot determine ATM strike.");
+     logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[OptionsChainTable] stockSnapshotJson is empty or null, cannot determine ATM strike.");
   }
 
   const displayTicker = parsedData?.ticker || (isLoading ? "" : "N/A");
@@ -145,7 +147,7 @@ export function OptionsChainTable() {
     }
   }
 
-  console.debug(`[OptionsChainTable] Render state: isLoading=${isLoading}, isError=${isError}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}`);
+  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[OptionsChainTable] Render state: isLoading=${isLoading}, isError=${isError}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}`);
 
   return (
     <Card>

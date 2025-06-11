@@ -9,6 +9,7 @@ import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { DebugLogCategory } from "@/lib/debug-log-types";
 
 interface TaPointDisplayInfo {
   key: keyof CalculateAiTaOutput;
@@ -32,9 +33,9 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
 ];
 
 export function AiCalculatedTaDisplay() {
-  const { aiCalculatedTaJson, stockSnapshotJson } = useStockAnalysis();
-  console.debug("[AiCalculatedTaDisplay] aiCalculatedTaJson (start):", aiCalculatedTaJson.substring(0,100));
-  console.debug("[AiCalculatedTaDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const { aiCalculatedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis();
+  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[AiCalculatedTaDisplay] aiCalculatedTaJson (start):", aiCalculatedTaJson.substring(0,100));
+  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[AiCalculatedTaDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -43,33 +44,34 @@ export function AiCalculatedTaDisplay() {
 
   if (aiCalculatedTaJson && aiCalculatedTaJson !== '{}') {
     if (aiCalculatedTaJson.includes('"status": "initializing"') || aiCalculatedTaJson.includes('"status": "pending"') || aiCalculatedTaJson.includes('"status": "full_analysis_pending..."')) {
-      console.debug("[AiCalculatedTaDisplay] aiCalculatedTaJson is in pending/initializing state.");
+      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[AiCalculatedTaDisplay] aiCalculatedTaJson is in pending/initializing state.");
       isLoading = true;
     } else if (aiCalculatedTaJson.includes('"status": "error"') || aiCalculatedTaJson.includes('"status": "skipped"')) {
-      console.warn("[AiCalculatedTaDisplay] aiCalculatedTaJson indicates an error or skipped state.");
+      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[AiCalculatedTaDisplay] aiCalculatedTaJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(aiCalculatedTaJson) as CalculateAiTaOutput;
-        console.debug("[AiCalculatedTaDisplay] Successfully parsed aiCalculatedTaJson. PivotPoint:", data?.pivotPoint);
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiCalculatedTaDisplay] Successfully parsed aiCalculatedTaJson. PivotPoint:", data?.pivotPoint);
         if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.pivotPoint !== undefined) {
           isLoading = false;
           isError = false;
           parsedTaData = data;
         } else {
-          console.warn("[AiCalculatedTaDisplay] Parsed aiCalculatedTaJson is missing pivotPoint or contains error/status field.");
+          logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiCalculatedTaDisplay] Parsed aiCalculatedTaJson is missing pivotPoint or contains error/status field.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
         console.error("[AiCalculatedTaDisplay] Failed to parse aiCalculatedTaJson:", e);
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiCalculatedTaDisplay] Error during aiCalculatedTaJson parsing.", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-     console.debug("[AiCalculatedTaDisplay] aiCalculatedTaJson is empty or null.");
+     logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[AiCalculatedTaDisplay] aiCalculatedTaJson is empty or null.");
      isLoading = false;
   }
 
@@ -79,15 +81,15 @@ export function AiCalculatedTaDisplay() {
             const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
             if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
                 currentPrice = snapshot.currentPrice;
-                console.debug("[AiCalculatedTaDisplay] Current price from stockSnapshotJson for sentiment:", currentPrice);
+                logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiCalculatedTaDisplay] Current price from stockSnapshotJson for sentiment:", currentPrice);
             }
         }
       } catch (e) {
-        console.warn("[AiCalculatedTaDisplay] Failed to parse stockSnapshotJson for current price:", e);
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[AiCalculatedTaDisplay] Failed to parse stockSnapshotJson for current price:", e);
       }
   }
 
-  console.debug(`[AiCalculatedTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
+  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[AiCalculatedTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
 
   return (
     <Card>

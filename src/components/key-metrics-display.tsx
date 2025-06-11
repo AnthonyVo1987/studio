@@ -8,6 +8,7 @@ import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency, formatPercentage } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { DebugLogCategory } from "@/lib/debug-log-types";
 
 interface KeyMetricProps {
   label: string;
@@ -41,7 +42,6 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
   if (changePercent !== null && changePercent !== undefined) {
     if (changePercent > 0) ChangeIcon = TrendingUp;
     else if (changePercent < 0) ChangeIcon = TrendingDown;
-    // Apply 2 decimal places for Day's Change percentage
     formattedChangePercent = formatPercentage(changePercent, "N/A", true, 2);
   }
 
@@ -80,8 +80,8 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 }
 
 export function KeyMetricsDisplay() {
-  const { stockSnapshotJson } = useStockAnalysis();
-  console.debug("[KeyMetricsDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const { stockSnapshotJson, logDebug } = useStockAnalysis();
+  logDebug(DebugLogCategory.UI_DATA_RECEPTION, "[KeyMetricsDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let tickerDisplay = "N/A";
   let currentPriceDisplay = "N/A";
@@ -92,16 +92,16 @@ export function KeyMetricsDisplay() {
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
-      console.debug("[KeyMetricsDisplay] stockSnapshotJson is in pending/initializing state.");
+      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[KeyMetricsDisplay] stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      console.warn("[KeyMetricsDisplay] stockSnapshotJson indicates an error or skipped state.");
+      logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[KeyMetricsDisplay] stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        console.debug("[KeyMetricsDisplay] Successfully parsed stockSnapshotJson. Ticker:", snapshot?.ticker);
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[KeyMetricsDisplay] Successfully parsed stockSnapshotJson. Ticker:", snapshot?.ticker);
         if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
           isLoading = false;
           isError = false;
@@ -115,22 +115,23 @@ export function KeyMetricsDisplay() {
             else if (todaysChangePerc < 0) dayChangeSentiment = 'bearish';
           }
         } else {
-          console.warn("[KeyMetricsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
+          logDebug(DebugLogCategory.UI_DATA_PARSING, "[KeyMetricsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
-        console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e);
+        console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e); // Keep console.error
+        logDebug(DebugLogCategory.UI_DATA_PARSING, "[KeyMetricsDisplay] Error during stockSnapshotJson parsing.", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    console.debug("[KeyMetricsDisplay] stockSnapshotJson is empty or null.");
+    logDebug(DebugLogCategory.UI_COMPONENT_STATE, "[KeyMetricsDisplay] stockSnapshotJson is empty or null.");
     isLoading = false;
   }
 
-  console.debug(`[KeyMetricsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
+  logDebug(DebugLogCategory.UI_COMPONENT_STATE, `[KeyMetricsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
 
   if (isError && !isLoading) {
       tickerDisplay = "N/A";
