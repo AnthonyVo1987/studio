@@ -32,14 +32,21 @@ class PolygonAdapter {
   constructor(apiKey?: string) {
     const keyToUse = apiKey || process.env.POLYGON_API_KEY;
     if (!keyToUse) {
-      console.error('Polygon API key is MISSING or EMPTY in constructor. PolygonAdapter will likely fail.');
-      // Initialize with a dummy key to prevent immediate crash, errors will occur on API calls
-      this.client = restClient("DUMMY_KEY_BECAUSE_ENV_VAR_IS_MISSING");
+      console.error('[StockSage Critical] Polygon API key is MISSING or EMPTY in constructor. PolygonAdapter will likely fail.');
+      this.client = restClient("DUMMY_KEY_BECAUSE_ENV_VAR_IS_MISSING_OR_EMPTY");
     } else {
-      // Log a portion of the key for verification (first 5 and last 5 chars)
       const keyDisplay = `${keyToUse.substring(0, Math.min(5, keyToUse.length))}...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}`;
-      console.log(`[StockSage Debug] PolygonAdapter constructor using API key (Ends In): ...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}, Length: ${keyToUse.length}`);
+      console.log(`[StockSage Debug] PolygonAdapter constructor attempting to use API key (Ends In): ...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}, Length: ${keyToUse.length}`);
       this.client = restClient(keyToUse);
+      
+      // Test call immediately after client initialization
+      this.client.reference.marketHolidays({limit:1})
+        .then(() => {
+          console.log("[StockSage Debug] Polygon constructor test call (marketHolidays) SUCCEEDED.");
+        })
+        .catch(err => {
+          console.error("[StockSage Debug] Polygon constructor test call (marketHolidays) FAILED:", err);
+        });
     }
   }
 
@@ -104,29 +111,28 @@ class PolygonAdapter {
         }
       } catch (error: any) {
         let detailedErrorMessage = `Polygon client error: ${error.message || String(error)}`;
-        let rawErrorDetails: any = { message: error.message || String(error) }; // Ensure message is always present
+        const rawErrorDetails: any = { message: error.message || String(error) }; 
 
         if (error.stack) rawErrorDetails.stack = error.stack.substring(0, 500);
-        if (error.request_id) rawErrorDetails.requestId = error.request_id; // From Polygon's error
-        if (error.status) rawErrorDetails.status = error.status; // From Polygon's error (like "NotFound")
         
-        // Attempt to capture more context if it's an HTTP-like error from the client library
-         if (typeof error === 'object' && error !== null) {
-            for (const prop in error) {
-                if (Object.prototype.hasOwnProperty.call(error, prop) && typeof error[prop] !== 'function') {
-                     // Avoid trying to serialize the entire error object if it's complex
-                    if (prop === 'response' && typeof error[prop] === 'object' && error[prop] !== null) {
-                        rawErrorDetails.responseStatus = (error[prop] as any).status;
-                        rawErrorDetails.responseData = (error[prop] as any).data || (error[prop] as any).body; // common places for response body
-                    } else if (typeof error[prop] !== 'object' || error[prop] === null) {
-                        rawErrorDetails[prop] = error[prop];
-                    }
+        const polygonError = error as any; // Type assertion to access potential Polygon-specific fields
+        if (polygonError.request_id) rawErrorDetails.requestId = polygonError.request_id;
+        if (polygonError.status) rawErrorDetails.status = polygonError.status; // Like "NotFound"
+        if (polygonError.response && typeof polygonError.response === 'object') {
+            rawErrorDetails.responseStatus = polygonError.response.status;
+            rawErrorDetails.responseData = polygonError.response.data || polygonError.response.body;
+        }
+        // Capture other non-function properties of the error
+        for (const prop in polygonError) {
+            if (Object.prototype.hasOwnProperty.call(polygonError, prop) && typeof polygonError[prop] !== 'function') {
+                if (!rawErrorDetails[prop]) { // Avoid overwriting already captured fields
+                    rawErrorDetails[prop] = polygonError[prop];
                 }
             }
         }
         
         const errorMessage = `Failed to fetch snapshot for ${ticker}. ${detailedErrorMessage}`;
-        console.error(`Error fetching stock snapshot for ${ticker} from Polygon (Adapter):`, error); // Full error to server logs
+        console.error(`Error fetching stock snapshot for ${ticker} from Polygon (Adapter):`, polygonError); 
         stockDataPackage.stockSnapshot = { 
             error: errorMessage, 
             rawErrorDetails: rawErrorDetails 
@@ -246,7 +252,7 @@ class PolygonAdapter {
 
     } catch (error: any) {
       const overallErrorMessage = `Overall failure in fetching data for ${ticker}. Some data might be missing or incomplete. Original error: ${error.message || String(error)}`;
-      console.error(`An unexpected error occurred in getFullStockData for ${ticker}:`, error); // Full error to server logs
+      console.error(`An unexpected error occurred in getFullStockData for ${ticker}:`, error); 
       return {
         stockData: {
           ...stockDataPackage,
@@ -272,3 +278,5 @@ export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const adapter = new PolygonAdapter(apiKeyFromEnv); 
   return adapter.getFullStockData(ticker);
 }
+
+    
