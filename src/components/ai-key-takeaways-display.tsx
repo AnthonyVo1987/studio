@@ -59,46 +59,54 @@ const categoryLabels: Record<TakeawayCategory, string> = {
   patterns: "Patterns",
 };
 
-
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson } = useStockAnalysis();
+  console.debug("[AiKeyTakeawaysDisplay] Props received. aiKeyTakeawaysJson (start):", aiKeyTakeawaysJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
   let displayTakeaways: TakeawayDisplayItem[] = [];
 
-  if (
-    aiKeyTakeawaysJson.includes('"status": "initializing"') ||
-    aiKeyTakeawaysJson.includes('"status": "pending"')
-  ) {
-    isLoading = true;
-  } else if (
-    aiKeyTakeawaysJson.includes('"status": "error"') ||
-    aiKeyTakeawaysJson.includes('"status": "skipped"') ||
-    aiKeyTakeawaysJson === '{}'
-  ) {
-    isError = true;
-  } else {
-    try {
-      const data = JSON.parse(aiKeyTakeawaysJson) as StockAnalysisOutput;
-      if (data && typeof data === 'object' && !data.error && !data.status && data.priceAction) { 
-         displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
-            categoryKey: key,
-            categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
-            sentiment: data[key]?.sentiment || "neutral",
-            text: data[key]?.takeaway || "No takeaway generated.",
-            textSentimentClass: getTextSentimentColorClass(data[key]?.sentiment || "neutral")
-         }));
-      } else {
-         isError = true;
-         if(data && data.error) console.error("AI Key Takeaways data contains error:", data.error);
-      }
-    } catch (e) {
-      console.error("Failed to parse aiKeyTakeawaysJson in AiKeyTakeawaysDisplay:", e);
+  if (aiKeyTakeawaysJson && aiKeyTakeawaysJson !== '{}') {
+    if (aiKeyTakeawaysJson.includes('"status": "initializing"') || aiKeyTakeawaysJson.includes('"status": "pending"')) {
+      console.debug("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is in pending/initializing state.");
+      isLoading = true;
+    } else if (aiKeyTakeawaysJson.includes('"status": "error"') || aiKeyTakeawaysJson.includes('"status": "skipped"')) {
+      console.warn("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson indicates an error or skipped state.");
+      isLoading = false;
       isError = true;
+    } else {
+      try {
+        const data = JSON.parse(aiKeyTakeawaysJson) as StockAnalysisOutput;
+        console.debug("[AiKeyTakeawaysDisplay] Successfully parsed aiKeyTakeawaysJson:", data);
+        if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.priceAction) { 
+          isLoading = false;
+          isError = false;
+          displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
+              categoryKey: key,
+              categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
+              sentiment: data[key]?.sentiment || "neutral",
+              text: data[key]?.takeaway || "No takeaway generated.",
+              textSentimentClass: getTextSentimentColorClass(data[key]?.sentiment || "neutral")
+          }));
+        } else {
+          console.warn("[AiKeyTakeawaysDisplay] Parsed aiKeyTakeawaysJson is missing priceAction or contains error/status field.");
+          isLoading = false;
+          isError = true;
+          if(data && (data as any).error) console.error("[AiKeyTakeawaysDisplay] AI Key Takeaways data contains error field:", (data as any).error);
+        }
+      } catch (e) {
+        console.error("[AiKeyTakeawaysDisplay] Failed to parse aiKeyTakeawaysJson:", e, "JSON:", aiKeyTakeawaysJson.substring(0,200));
+        isLoading = false;
+        isError = true;
+      }
     }
+  } else {
+    console.debug("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is empty or null.");
+    isLoading = false;
   }
-
+  
+  console.debug(`[AiKeyTakeawaysDisplay] Render state: isLoading=${isLoading}, isError=${isError}, displayTakeaways.length=${displayTakeaways.length}`);
 
   return (
     <Card>
@@ -118,9 +126,11 @@ export function AiKeyTakeawaysDisplay() {
               <Skeleton className="h-4 w-3/4 mt-1" />
             </div>
           ))
-        ) : isError ? (
-           <div className="p-3 text-center text-muted-foreground h-24">AI Key Takeaways not available.</div>
-        ) : displayTakeaways.length > 0 ? (
+        ) : isError || displayTakeaways.length === 0 ? (
+           <div className="p-3 text-center text-muted-foreground h-24">
+             {isError ? "AI Key Takeaways not available." : "No AI Key Takeaways to display. Ensure stock data and AI TA were successfully processed."}
+           </div>
+        ) : (
           displayTakeaways.map((takeaway) => (
             <div key={takeaway.categoryKey} className="p-3 border rounded-md bg-card/60 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
@@ -132,8 +142,6 @@ export function AiKeyTakeawaysDisplay() {
               <p className={cn("text-sm", takeaway.textSentimentClass)}>{takeaway.text}</p>
             </div>
           ))
-        ) : (
-            <div className="p-3 text-center text-muted-foreground h-24">No AI Key Takeaways to display. Ensure stock data and AI TA were successfully processed.</div>
         )}
       </CardContent>
     </Card>

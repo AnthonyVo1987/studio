@@ -3,60 +3,54 @@
  * @fileOverview Type definitions for data retrieved from stock data sources.
  */
 
-// For individual stock tick/aggregate data, often part of snapshots
 export interface StockPriceData {
-  o: number; // Open price
-  h: number; // High price
-  l: number; // Low price
-  c: number; // Close price
-  v: number; // Volume
-  vw?: number | null; // Volume weighted average price
-  t?: number | null; // Timestamp (epoch ms)
-  n?: number | null; // Number of transactions
+  o: number | null | undefined; 
+  h: number | null | undefined; 
+  l: number | null | undefined; 
+  c: number | null | undefined; 
+  v: number | null | undefined; 
+  vw?: number | null | undefined; 
+  t?: number | null | undefined; 
+  n?: number | null | undefined; 
 }
 
-// For market status
 export interface MarketStatusData {
-  market: string; // e.g., "stocks" or "extended-hours"
-  earlyHours?: boolean;
-  lateHours?: boolean;
-  serverTime?: string | null; // ISO string or formatted time
-  exchanges?: Record<string, string>; // e.g., { "nasdaq": "open", "nyse": "closed" }
-  currencies?: Record<string, string>; // e.g., { "fx": "open", "crypto": "open" }
-  [key: string]: any; // For any other fields
+  market?: string | null; 
+  earlyHours?: boolean | null;
+  lateHours?: boolean | null;
+  serverTime?: string | null; 
+  exchanges?: Record<string, string> | null; 
+  currencies?: Record<string, string> | null; 
+  [key: string]: any; 
 }
 
-// For stock snapshot data (current and previous day)
 export interface StockSnapshotData {
-  ticker: string;
-  day: StockPriceData;
-  prevDay: StockPriceData;
+  ticker?: string | null;
+  day?: StockPriceData | null;
+  prevDay?: StockPriceData | null;
   todaysChange?: number | null;
   todaysChangePerc?: number | null;
-  updated?: number | null; // Last update timestamp (epoch ns from Polygon)
+  updated?: number | null; 
   currentPrice?: number | null; 
   [key: string]: any; 
 }
 
-// For technical indicators
 export interface TechnicalIndicatorValue {
   value?: number | null;
   [key: string]: any; 
 }
 export interface TechnicalIndicatorsData {
-  RSI?: TechnicalIndicatorValue;
-  EMA?: TechnicalIndicatorValue;
-  SMA?: TechnicalIndicatorValue;
-  MACD?: TechnicalIndicatorValue & { signal?: number | null; histogram?: number | null };
-  VWAP?: TechnicalIndicatorValue; 
+  RSI?: TechnicalIndicatorValue | null;
+  EMA?: TechnicalIndicatorValue | null;
+  SMA?: TechnicalIndicatorValue | null;
+  MACD?: TechnicalIndicatorValue & { signal?: number | null; histogram?: number | null } | null;
+  VWAP?: TechnicalIndicatorValue | null; 
   [key: string]: any; 
 }
 
 export interface StreamlinedOptionContract {
   strike_price: number;
   option_type: 'call' | 'put'; 
-  // contract_name removed as per request
-  // underlying_ticker removed as per request
   primary_exchange?: string | null; 
 
   iv?: number | null;                
@@ -81,17 +75,16 @@ export interface StreamlinedOptionContract {
   [key: string]: any; 
 }
 
-
 export interface OptionsTableRow {
-  call?: StreamlinedOptionContract; 
+  call?: StreamlinedOptionContract | null; 
   strike: number;
-  put?: StreamlinedOptionContract; 
+  put?: StreamlinedOptionContract | null; 
 }
 
 export interface OptionsChainData {
-  ticker: string;
-  expiration_date: string; // YYYY-MM-DD
-  contracts: OptionsTableRow[]; 
+  ticker?: string | null;
+  expiration_date?: string | null; 
+  contracts?: OptionsTableRow[] | null; 
   underlying_price?: number | null; 
   [key: string]: any;
 }
@@ -104,11 +97,13 @@ export interface StockDataPackage {
   optionsChain?: OptionsChainData | { error?: string; rawErrorDetails?: any };
   error?: string; 
   rawOverallError?: any;
+  polygonAdapterDebugMessages?: string[]; // For adapter-specific debug logs
   [key: string]: any;
 }
 
 export interface AdapterOutput {
   stockData: StockDataPackage; 
-  rawRequestParams?: any; 
-  rawResponse?: any; 
+  rawRequestParams?: any; // For high-level input to the adapter
+  rawResponseSummary?: any; // For high-level output/error summary from the adapter
+  polygonAdapterDebugMessages?: string[]; // For granular Polygon call logs
 }

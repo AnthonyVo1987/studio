@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 interface TaIndicatorDisplayInfo {
   key: keyof TechnicalIndicatorsData;
   label: string;
-  formatter: (value?: TechnicalIndicatorValue) => string;
-  getSentiment?: (value?: TechnicalIndicatorValue) => 'bullish' | 'bearish' | 'neutral';
+  formatter: (value?: TechnicalIndicatorValue | null) => string;
+  getSentiment?: (value?: TechnicalIndicatorValue | null) => 'bullish' | 'bearish' | 'neutral';
 }
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
@@ -29,8 +29,8 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
     formatter: (val) => formatToTwoDecimals(val?.value),
     getSentiment: (val) => {
       if (val?.value === undefined || val.value === null) return 'neutral';
-      if (val.value < 30) return 'bullish'; // Oversold
-      if (val.value > 70) return 'bearish'; // Overbought
+      if (val.value < 30) return 'bullish'; 
+      if (val.value > 70) return 'bearish'; 
       return 'neutral';
     }
   },
@@ -67,37 +67,46 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
 
 export function StandardTaDisplay() {
   const { standardTasJson } = useStockAnalysis(); 
+  console.debug("[StandardTaDisplay] Props received. standardTasJson (start):", standardTasJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
   let parsedTaData: Partial<TechnicalIndicatorsData> | null = null;
 
-  if (
-    standardTasJson.includes('"status": "initializing"') ||
-    standardTasJson.includes('"status": "pending"')
-  ) {
-    isLoading = true;
-  } else if (standardTasJson.includes('"error":') || standardTasJson.includes('"status": "skipped"')) {
-    isError = true;
-    isLoading = false;
-  } else {
-    try {
-      const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
-      // Check for actual data presence beyond just not being an error/status string
-      if (data && typeof data === 'object' && !data.error && (data.RSI || data.EMA || data.SMA || data.MACD || data.VWAP)) {
-        isLoading = false;
-        parsedTaData = data;
-      } else {
-        isError = !standardTasJson.includes('{ "status":'); // If not a status JSON, but no data, it's an error/empty state
-        isLoading = false;
-        if (data && data.error) console.error("Standard TA data contains error:", data.error);
-      }
-    } catch (e) {
-      console.error("Failed to parse standardTasJson in StandardTaDisplay:", e);
-      isError = true;
+  if (standardTasJson && standardTasJson !== '{}') {
+    if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"')) {
+      console.debug("[StandardTaDisplay] standardTasJson is in pending/initializing state.");
+      isLoading = true;
+    } else if (standardTasJson.includes('"error":') || standardTasJson.includes('"status": "skipped"')) {
+      console.warn("[StandardTaDisplay] standardTasJson indicates an error or skipped state.");
       isLoading = false;
+      isError = true;
+    } else {
+      try {
+        const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
+        console.debug("[StandardTaDisplay] Successfully parsed standardTasJson:", data);
+        if (data && typeof data === 'object' && !data.error && (data.RSI || data.EMA || data.SMA || data.MACD || data.VWAP)) {
+          isLoading = false;
+          isError = false;
+          parsedTaData = data;
+        } else {
+          console.warn("[StandardTaDisplay] Parsed standardTasJson is missing expected TA data or is not an object.");
+          isLoading = false; 
+          isError = true; 
+          if (data && (data as any).error) console.error("[StandardTaDisplay] Standard TA data contains error field:", (data as any).error);
+        }
+      } catch (e) {
+        console.error("[StandardTaDisplay] Failed to parse standardTasJson:", e, "JSON:", standardTasJson.substring(0,200));
+        isLoading = false;
+        isError = true;
+      }
     }
+  } else {
+    console.debug("[StandardTaDisplay] standardTasJson is empty or null.");
+    isLoading = false;
   }
+  
+  console.debug(`[StandardTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData keys=${parsedTaData ? Object.keys(parsedTaData).length : 'null'}`);
 
   return (
     <Card>
@@ -136,7 +145,7 @@ export function StandardTaDisplay() {
                 </TableRow>
               );
             })}
-             {isError && !isLoading && !parsedTaData && (
+             {isError && !isLoading && (!parsedTaData || Object.keys(parsedTaData).length === 0) && (
                 <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                         Technical indicators data not available.

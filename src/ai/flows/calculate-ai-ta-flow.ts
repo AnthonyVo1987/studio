@@ -17,15 +17,15 @@ import {
   CalculateAiTaOutputSchema,
   type CalculateAiTaOutput,
 } from '@/ai/schemas/ai-calculated-ta-schemas';
-import { formatToTwoDecimals } from '@/lib/number-utils'; // For consistent formatting
+import { formatToTwoDecimals } from '@/lib/number-utils'; 
 
 export async function calculateAiTaIndicators(
   input: CalculateAiTaInput
 ): Promise<CalculateAiTaOutput> {
+  console.log('[AIFlow:calculateAiTaIndicators] Received input:', input);
   return calculateAiTaIndicatorsFlow(input);
 }
 
-// This flow performs direct calculations for pivot points.
 const calculateAiTaIndicatorsFlow = ai.defineFlow(
   {
     name: 'calculateAiTaIndicatorsFlow',
@@ -33,25 +33,22 @@ const calculateAiTaIndicatorsFlow = ai.defineFlow(
     outputSchema: CalculateAiTaOutputSchema,
   },
   async (input: CalculateAiTaInput): Promise<CalculateAiTaOutput> => {
+    console.log('[AIFlow:calculateAiTaIndicatorsFlow] Starting calculation with input:', input);
     const H = input.previousDayHigh;
     const L = input.previousDayLow;
     const C = input.previousDayClose;
 
     const PP = (H + L + C) / 3;
-
     const S1 = (2 * PP) - H;
     const R1 = (2 * PP) - L;
-
     const S2 = PP - (H - L);
     const R2 = PP + (H - L);
-
     const S3 = L - 2 * (H - PP);
     const R3 = H + 2 * (PP - L);
 
-    // Helper to parse to number and format, ensures correct numeric type for schema
     const parseAndFormat = (value: number) => parseFloat(formatToTwoDecimals(value, "0.00"));
 
-    return {
+    const output = {
       pivotPoint: parseAndFormat(PP),
       support1: parseAndFormat(S1),
       support2: parseAndFormat(S2),
@@ -60,5 +57,7 @@ const calculateAiTaIndicatorsFlow = ai.defineFlow(
       resistance2: parseAndFormat(R2),
       resistance3: parseAndFormat(R3),
     };
+    console.log('[AIFlow:calculateAiTaIndicatorsFlow] Calculation complete. Output:', output);
+    return output;
   }
 );

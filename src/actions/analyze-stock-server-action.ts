@@ -4,95 +4,81 @@
 import { getFullStockData } from '@/services/data-sources/adapters/polygon-adapter';
 import type { AdapterOutput } from '@/services/data-sources/types';
 
-// Structure for the data returned by the action on success
 export interface StockDataFetchResult {
   marketStatusJson: string;
   stockSnapshotJson: string;
   standardTasJson: string;
   optionsChainJson: string;
-  polygonApiRequestLogJson: string;
-  polygonApiResponseLogJson: string;
+  polygonApiRequestLogJson: string; // Will now store input to getFullStockData
+  polygonApiResponseLogJson: string; // Will now store summary of getFullStockData output
+  polygonAdapterDebugMessages?: string[]; // For granular logs from adapter
 }
 
-// Defines the state that this server action will manage and return.
-// This is designed for use with React's useActionState hook on the client.
 export interface AnalyzeStockServerActionState {
-  status: 'idle' | 'success' | 'error'; // 'pending' is handled by useActionState
+  status: 'idle' | 'success' | 'error'; 
   data?: StockDataFetchResult;
   error?: string | null;
-  message?: string | null; // General feedback message
+  message?: string | null; 
 }
 
-// Initial state for the action, to be used with useActionState
-// This is NOT exported anymore. It will be defined in the client component.
-const initialStockDataFetchState: AnalyzeStockServerActionState = {
-  status: 'idle',
-  data: undefined,
-  error: null,
-  message: null,
-};
-
-// Input parameters for the server action
 interface FetchStockDataActionInputs {
   ticker: string;
-  dataSource?: string; // Currently unused, adapter defaults to Polygon
-  analysisType?: string; // Currently unused for basic data fetching
+  dataSource?: string; 
+  analysisType?: string; 
 }
 
-// Server Action: Fetches stock data
 export async function fetchStockDataAction(
-  prevState: AnalyzeStockServerActionState, // Previous state from useActionState
+  prevState: AnalyzeStockServerActionState, 
   payload: FetchStockDataActionInputs
 ): Promise<AnalyzeStockServerActionState> {
   const { ticker } = payload;
+  console.log(`[ServerAction:fetchStockDataAction] Received request for ticker: ${ticker}`);
 
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
+    const errorMsg = 'Ticker symbol is required and must be a non-empty string.';
+    console.error(`[ServerAction:fetchStockDataAction] Validation Error: ${errorMsg}`);
     return {
       status: 'error',
-      error: 'Ticker symbol is required and must be a non-empty string.',
+      error: errorMsg,
       message: 'Invalid ticker symbol provided.',
       data: undefined,
     };
   }
 
   try {
-    // Call the adapter to get stock data
+    console.log(`[ServerAction:fetchStockDataAction] Calling getFullStockData for ${ticker.toUpperCase()}`);
     const adapterOutput: AdapterOutput = await getFullStockData(ticker.toUpperCase());
+    console.log(`[ServerAction:fetchStockDataAction] getFullStockData returned for ${ticker.toUpperCase()}. Error in package: ${adapterOutput.stockData.error || 'none'}`);
 
-    // Check for errors reported by the adapter itself (e.g., API key missing)
     if (adapterOutput.stockData.error) {
+      console.error(`[ServerAction:fetchStockDataAction] Adapter Error for ${ticker.toUpperCase()}: ${adapterOutput.stockData.error}`);
       return {
         status: 'error',
         error: `Adapter Error: ${adapterOutput.stockData.error}`,
-        message: `Failed to fetch data for ${ticker}. Adapter reported an error.`,
+        message: `Failed to fetch data for ${ticker}. Adapter reported an error. Check client debug console for Polygon Adapter logs.`,
         data: undefined,
       };
     }
 
-    // Helper to safely stringify objects, returning "{}" for undefined/null
     const stringify = (obj: any): string => {
       if (obj === undefined || obj === null) return '{}';
       try {
         return JSON.stringify(obj, null, 2);
       } catch (e) {
-        console.error("Error stringifying object for action state:", e);
-        // Provide a structured error in the JSON string itself
+        console.error("[ServerAction:fetchStockDataAction] Error stringifying object:", e);
         return JSON.stringify({ error: "Failed to stringify content", details: (e as Error).message }, null, 2);
       }
     };
 
-    // Prepare JSON strings for the context/Debug Tab
     const marketStatusJson = stringify(adapterOutput.stockData.marketStatus);
     const stockSnapshotJson = stringify(adapterOutput.stockData.stockSnapshot);
     const standardTasJson = stringify(adapterOutput.stockData.technicalIndicators);
     const optionsChainJson = stringify(adapterOutput.stockData.optionsChain);
     
-    // For Debug Tab: Polygon API Request/Response Logs
-    // The current polygon-adapter.ts does not populate rawRequestParams or rawResponse.
-    // So these will be "{}" unless the adapter is updated.
-    const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams);
-    const polygonApiResponseLogJson = stringify(adapterOutput.rawResponse);
+    const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams); 
+    const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary);
 
+    console.log(`[ServerAction:fetchStockDataAction] Successfully fetched and processed data for ${ticker.toUpperCase()}.`);
     return {
       status: 'success',
       data: {
@@ -102,16 +88,17 @@ export async function fetchStockDataAction(
         optionsChainJson,
         polygonApiRequestLogJson,
         polygonApiResponseLogJson,
+        polygonAdapterDebugMessages: adapterOutput.polygonAdapterDebugMessages || [],
       },
       message: `Data for ${ticker.toUpperCase()} fetched successfully.`,
       error: null,
     };
   } catch (error: any) {
-    console.error(`Error in fetchStockDataAction for ${ticker.toUpperCase()}:`, error);
+    console.error(`[ServerAction:fetchStockDataAction] CRITICAL Error for ${ticker.toUpperCase()}:`, error);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during data fetching.',
-      message: `Failed to fetch data for ${ticker.toUpperCase()}.`,
+      message: `Failed to fetch data for ${ticker.toUpperCase()}. Check server logs.`,
       data: undefined,
     };
   }

@@ -19,19 +19,9 @@ import {
 import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
+  console.log(`[AIFlow:chatWithBot] Received input for ticker: ${input.ticker}, User input: "${input.userInput}"`);
   return chatFlow(input);
 }
-
-// Constructing the prompt history for the model
-const buildChatHistoryForPrompt = (chatHistory?: ChatInput['chatHistory']) => {
-  if (!chatHistory || chatHistory.length === 0) {
-    return '';
-  }
-  return chatHistory
-    .map(turn => `{{#if (eq role "${turn.role}")}}${turn.role}: ${turn.content}{{/if}}`)
-    .join('\n');
-};
-
 
 const prompt = ai.definePrompt({
   name: 'stockChatBotPrompt',
@@ -48,9 +38,11 @@ You will be provided with the following contextual information for the stock: {{
 2.  **AI Key Takeaways JSON:** {{{aiKeyTakeawaysJson}}} (Contains AI-generated analysis on price action, trend, volatility, momentum, and patterns, along with sentiment.)
 3.  **AI Calculated TA JSON:** {{{aiCalculatedTaJson}}} (Contains AI-calculated technical indicators like pivot points.)
 
-{{#if chatHistory}}
+{{#if chatHistory.length}}
 Conversation History:
-{{{chatHistory}}}
+{{#each chatHistory}}
+{{this.role}}: {{this.content}}
+{{/each}}
 {{/if}}
 
 User's Current Input: {{{userInput}}}
@@ -65,60 +57,6 @@ Based ONLY on the provided contextual information and conversation history (if a
 
 Model Response:
 `,
-  // Customize prompt to handle history if present
-  customize: (prompt, input) => {
-    const historyTurns = (input.chatHistory || []).map(turn => ({
-      role: turn.role,
-      content: turn.content,
-    }));
-    
-    // The main prompt text already includes Handlebars for history.
-    // Here, we ensure the history is part of what Handlebars can access.
-    // However, the \`generate\` call needs messages in a specific format.
-    // For prompts defined with \`ai.definePrompt\`, the input object is directly available
-    // to the Handlebars template. We will pass the structured history to \`generate\` later.
-    // For now, the Handlebars \`{{{chatHistory}}}\` in the prompt string is not directly usable
-    // in the way an array of messages is for the \`generate\` API.
-    // The actual history injection needs to be done when calling \`generate\`.
-    // The definePrompt's \`prompt\` string itself is a template for the text part of the generate call.
-
-    // Let's simplify: The prompt string will reference fields from the ChatInputSchema directly.
-    // The flow will then prepare the messages array for the \`generate\` call.
-    // This means the \`{{{chatHistory}}}\` in the prompt string itself isn't ideal.
-    // Better to use a system message and pass history separately.
-
-    // Re-thinking: for \`ai.definePrompt\`, the prompt string IS the main user instruction.
-    // We need to ensure the \`chatHistory\` part of the input schema can be rendered by Handlebars.
-    // The \`buildChatHistoryForPrompt\` helper is not needed if Handlebars can iterate.
-    // Handlebars can iterate over \`chatHistory\` if it's an array of objects.
-
-    // The model's \`generate\` method takes \`messages\` or a \`prompt\` string.
-    // If using \`ai.definePrompt\`, the prompt string is primary.
-    // Let's construct the history string and provide it if Handlebars has issues with complex objects.
-    
-    let historyString = "";
-    if (input.chatHistory && input.chatHistory.length > 0) {
-      historyString = input.chatHistory.map(h => `${h.role === 'user' ? 'User' : 'Model'}: ${h.content}`).join('\n');
-    }
-    // The prompt itself needs to be just the text.
-    // The history is better handled by passing messages to generate().
-    // However, ai.definePrompt output is a function that takes input and returns a model response.
-    // It's simpler if the prompt template can handle everything.
-
-    // Final approach for ai.definePrompt:
-    // The prompt template will iterate chatHistory directly.
-    // The \`ChatInputSchema\` defines \`chatHistory\` as \`z.array(z.object({role: z.enum(['user', 'model']), content: z.string()}))\`
-    // Handlebars can do:
-    // {{#if chatHistory}}
-    // Conversation History:
-    // {{#each chatHistory}}
-    // {{this.role}}: {{this.content}}
-    // {{/each}}
-    // {{/if}}
-    // This should work. My current prompt string already uses this.
-
-    return prompt; // No customization needed if Handlebars handles it.
-  },
   config: {
     safetySettings: [
       {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH'},
@@ -138,12 +76,13 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input: ChatInput) => {
-    // The \`ai.definePrompt\` output \`prompt\` is a function that internally calls \`ai.generate\`.
-    // It will use the \`prompt\` string template from its definition, filling it with \`input\`.
+    console.log(`[AIFlow:stockChatBotFlow] Starting Genkit prompt for ticker: ${input.ticker}, User input: "${input.userInput}". History length: ${input.chatHistory?.length || 0}`);
     const {output} = await prompt(input);
     if (!output) {
+        console.error(`[AIFlow:stockChatBotFlow] Chatbot flow for ${input.ticker} did not return an output.`);
         throw new Error('Chatbot flow did not return an output.');
     }
+    console.log(`[AIFlow:stockChatBotFlow] Genkit prompt for ${input.ticker} succeeded. Response length: ${output.response.length}`);
     return output;
   }
 );

@@ -10,23 +10,21 @@ import {
 export interface ChatActionResult {
   chatbotRequestJson: string;
   chatbotResponseJson: string;
-  // We might also return the updated full chat history here if needed by client
 }
 
 export interface ChatActionState {
-  status: 'idle' | 'success' | 'error' | 'pending'; // Added pending for explicit client use
+  status: 'idle' | 'success' | 'error' | 'pending'; 
   data?: ChatActionResult;
   error?: string | null;
   message?: string | null;
 }
 
-// This is the payload the client-side form/action call will send
 export interface ChatActionInputs {
   ticker: string;
   stockSnapshotJson: string;
   aiKeyTakeawaysJson: string;
   aiCalculatedTaJson: string;
-  chatHistory?: Array<{ role: 'user' | 'model'; content: string }>; // Pass existing history
+  chatHistory?: Array<{ role: 'user' | 'model'; content: string }>; 
   userInput: string;
 }
 
@@ -42,19 +40,26 @@ export async function chatServerAction(
     chatHistory, 
     userInput 
   } = payload;
+  console.log(`[ServerAction:chatServerAction] Request for ticker: ${ticker}, User Input: "${userInput}"`);
 
   if (!userInput || userInput.trim() === '') {
+    const errorMsg = 'User input cannot be empty.';
+    console.warn(`[ServerAction:chatServerAction] Validation Error for ${ticker}: ${errorMsg}`);
     return {
       status: 'error',
-      error: 'User input cannot be empty.',
+      error: errorMsg,
       message: 'Please provide a question or statement.',
       data: undefined,
     };
   }
-  if (!ticker || !stockSnapshotJson || !aiKeyTakeawaysJson || !aiCalculatedTaJson) {
+  if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' || 
+      !aiKeyTakeawaysJson || aiKeyTakeawaysJson === '{}' || 
+      !aiCalculatedTaJson || aiCalculatedTaJson === '{}') {
+     const errorMsg = 'Contextual stock data is missing for the chat.';
+     console.warn(`[ServerAction:chatServerAction] Validation Error for ${ticker}: ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, TA empty: ${aiCalculatedTaJson === '{}'}`);
      return {
       status: 'error',
-      error: 'Contextual stock data is missing for the chat.',
+      error: errorMsg,
       message: 'Cannot process chat without full stock context.',
       data: undefined,
     };
@@ -70,10 +75,12 @@ export async function chatServerAction(
   };
 
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
+  console.log(`[ServerAction:chatServerAction] Calling chatWithBot flow for ${ticker}. Input (partial): ${chatbotRequestJson.substring(0,300)}...`);
 
   try {
     const flowOutput: ChatOutput = await chatWithBot(flowInput);
     const chatbotResponseJson = JSON.stringify(flowOutput, null, 2);
+    console.log(`[ServerAction:chatServerAction] chatWithBot flow succeeded for ${ticker}. Response: ${chatbotResponseJson.substring(0,200)}...`);
 
     return {
       status: 'success',
@@ -85,12 +92,12 @@ export async function chatServerAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`Error in chatServerAction for ${ticker} with input "${userInput}":`, error);
+    console.error(`[ServerAction:chatServerAction] CRITICAL Error for ${ticker} with input "${userInput}":`, error);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during chat processing.',
       message: 'Chatbot failed to respond.',
-      data: { // Still return the request JSON if it was formed
+      data: { 
         chatbotRequestJson,
         chatbotResponseJson: JSON.stringify({ error: error.message || 'Flow execution failed' }, null, 2),
       },

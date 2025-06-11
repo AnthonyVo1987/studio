@@ -21,6 +21,7 @@ import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 export async function analyzeStockData(
   input: StockAnalysisInput
 ): Promise<StockAnalysisOutput> {
+  console.log(`[AIFlow:analyzeStockData] Received input for ticker: ${input.ticker}`);
   return analyzeStockDataFlow(input);
 }
 
@@ -57,7 +58,7 @@ Market Status: {{{marketStatusJson}}}
 Provide your analysis as a JSON object strictly conforming to the StockAnalysisOutputSchema.
 `,
   config: {
-    safetySettings: [ // Using less restrictive settings for analysis, adjust if needed
+    safetySettings: [ 
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -73,10 +74,13 @@ const analyzeStockDataFlow = ai.defineFlow(
     outputSchema: StockAnalysisOutputSchema,
   },
   async input => {
+    console.log(`[AIFlow:analyzeStockDataFlow] Starting Genkit prompt for ticker: ${input.ticker}. Input length (snapshot): ${input.stockSnapshotJson.length}, (TAs): ${input.standardTasJson.length}, (AI TA): ${input.aiCalculatedTaJson.length}`);
     const {output} = await prompt(input);
     if (!output) {
+      console.error(`[AIFlow:analyzeStockDataFlow] AI analysis flow for ${input.ticker} did not return an output.`);
       throw new Error('AI analysis flow did not return an output.');
     }
+    console.log(`[AIFlow:analyzeStockDataFlow] Genkit prompt for ${input.ticker} succeeded. Output length: ${JSON.stringify(output).length}`);
     return output;
   }
 );

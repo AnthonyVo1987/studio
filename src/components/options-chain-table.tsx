@@ -68,44 +68,60 @@ const renderSkeletonRow = (rowIndex: number) => (
 
 export function OptionsChainTable() {
   const { optionsChainJson, stockSnapshotJson } = useStockAnalysis(); 
+  console.debug("[OptionsChainTable] Props received. optionsChainJson (start):", optionsChainJson.substring(0,100));
+  console.debug("[OptionsChainTable] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
   let parsedData: OptionsChainData | null = null;
   let parsedSnapshotData: StockSnapshotData | null = null;
 
-  if (
-    optionsChainJson.includes('"status": "initializing"') ||
-    optionsChainJson.includes('"status": "pending"')
-  ) {
-    isLoading = true;
-  } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
-    isError = true;
-    isLoading = false;
-  } else {
-    try {
-      const data = JSON.parse(optionsChainJson) as OptionsChainData;
-      if (data && typeof data === 'object' && !data.error && Array.isArray(data.contracts)) {
-        isLoading = false;
-        parsedData = data;
-      } else {
-        isError = true; 
-        isLoading = false;
-      }
-    } catch (e) {
-      console.error("Failed to parse optionsChainJson in OptionsChainTable:", e);
-      isError = true;
+  if (optionsChainJson && optionsChainJson !== '{}') {
+    if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"')) {
+      console.debug("[OptionsChainTable] optionsChainJson is in pending/initializing state.");
+      isLoading = true;
+    } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
+      console.warn("[OptionsChainTable] optionsChainJson indicates an error or skipped state.");
       isLoading = false;
+      isError = true;
+    } else {
+      try {
+        const data = JSON.parse(optionsChainJson) as OptionsChainData;
+        console.debug("[OptionsChainTable] Successfully parsed optionsChainJson:", data);
+        if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
+          isLoading = false;
+          isError = false;
+          parsedData = data;
+        } else {
+          console.warn("[OptionsChainTable] Parsed optionsChainJson is missing contracts array or contains error field.");
+          isLoading = false; 
+          isError = true; 
+          if (data && (data as any).error) console.error("[OptionsChainTable] Options chain data contains error field:", (data as any).error);
+        }
+      } catch (e) {
+        console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e, "JSON:", optionsChainJson.substring(0,200));
+        isLoading = false;
+        isError = true;
+      }
     }
+  } else {
+    console.debug("[OptionsChainTable] optionsChainJson is empty or null.");
+    isLoading = false;
   }
 
-  try {
-    if (stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
-      parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
+  if (stockSnapshotJson && stockSnapshotJson !== '{}') {
+    try {
+      if (!stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
+        parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
+        console.debug("[OptionsChainTable] Successfully parsed stockSnapshotJson for ATM price:", parsedSnapshotData);
+      } else {
+         console.warn("[OptionsChainTable] stockSnapshotJson contains status/error, cannot get current price for ATM.");
+      }
+    } catch (e) {
+      console.error("[OptionsChainTable] Failed to parse stockSnapshotJson for ATM price:", e, "JSON:", stockSnapshotJson.substring(0,200));
     }
-  } catch (e) {
-    console.error("Failed to parse stockSnapshotJson for ATM price:", e);
-    // ATM highlighting will not work, but table can still render
+  } else {
+     console.debug("[OptionsChainTable] stockSnapshotJson is empty or null, cannot determine ATM strike.");
   }
   
   const displayTicker = parsedData?.ticker || (isLoading ? "" : "N/A");
@@ -115,9 +131,14 @@ export function OptionsChainTable() {
   let atmStrikeValue: number | null = null;
   if (parsedSnapshotData?.currentPrice && contracts.length > 0) {
     atmStrikeValue = contracts.reduce((prev, curr) => {
-      return (Math.abs(curr.strike - parsedSnapshotData!.currentPrice!) < Math.abs(prev.strike - parsedSnapshotData!.currentPrice!)) ? curr : prev;
+      return (Math.abs((curr.strike || 0) - (parsedSnapshotData!.currentPrice || 0)) < Math.abs((prev.strike || 0) - (parsedSnapshotData!.currentPrice || 0))) ? curr : prev;
     }).strike;
+    console.debug(`[OptionsChainTable] ATM Strike determined: ${atmStrikeValue} based on current price: ${parsedSnapshotData.currentPrice}`);
+  } else {
+     console.debug(`[OptionsChainTable] Could not determine ATM strike. Current price: ${parsedSnapshotData?.currentPrice}, Contracts count: ${contracts.length}`);
   }
+  
+  console.debug(`[OptionsChainTable] Render state: isLoading=${isLoading}, isError=${isError}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}`);
 
   return (
     <Card>
@@ -156,11 +177,11 @@ export function OptionsChainTable() {
           <TableBody>
             {isLoading 
               ? Array.from({ length: 15 }).map((_, index) => renderSkeletonRow(index))  
-              : isError || !parsedData
-                ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">Options data not available or failed to load.</TableCell></TableRow>
-                : contracts.length === 0 
-                    ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">No option contracts found for this expiration and strike range.</TableCell></TableRow>
-                    : contracts.map((row: OptionsTableRow, index: number) => {
+              : isError || !parsedData || contracts.length === 0
+                ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">
+                    {isError ? "Options data failed to load." : "No option contracts found for this expiration and strike range."}
+                  </TableCell></TableRow>
+                : contracts.map((row: OptionsTableRow, index: number) => {
                         const isATMRow = row.strike === atmStrikeValue;
                         const rowClasses = cn(
                             isATMRow ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30" : 
@@ -175,7 +196,7 @@ export function OptionsChainTable() {
                                 ))}
                                 <TableCell className={cn(
                                     "p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 z-10 border-l border-r",
-                                    isATMRow ? "bg-primary/10 dark:bg-primary/20" : (index % 2 === 0 ? "bg-muted/25 dark:bg-muted/10" : "bg-card")
+                                    isATMRow ? "bg-primary/20 dark:bg-primary/30" : (index % 2 === 0 ? "bg-muted/30 dark:bg-muted/15" : "bg-card") 
                                 )}>
                                 {formatCurrency(row.strike, "$", "-", true)}
                                 </TableCell>

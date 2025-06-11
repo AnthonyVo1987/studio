@@ -32,60 +32,66 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 
 export function MarketStatusDisplay() {
   const { marketStatusJson } = useStockAnalysis(); 
+  console.debug("[MarketStatusDisplay] Props received. marketStatusJson (start):", marketStatusJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
   let details: MarketDetailItem[] = [];
 
-  if (
-    marketStatusJson.includes('"status": "initializing"') ||
-    marketStatusJson.includes('"status": "pending"')
-  ) {
-    isLoading = true;
-  } else if (marketStatusJson.includes('"error":') || marketStatusJson.includes('"status": "skipped"')) {
-    isError = true;
-    isLoading = false;
-  } else {
-    try {
-      const data = JSON.parse(marketStatusJson) as MarketStatusData;
-      if (data && typeof data === 'object' && !data.error) {
-        isLoading = false;
-        details = [
-          { label: "Market Status", value: data.market?.toUpperCase() || "N/A" },
-          { label: "Early Hours Trading", value: data.earlyHours ? "Yes" : "No" },
-          { label: "Late Hours Trading", value: data.lateHours ? "Yes" : "No" },
-          { label: "Server Time (ET)", value: formatTimestampToPacificTime(data.serverTime) },
-        ];
-        if (data.exchanges) {
-          Object.entries(data.exchanges).forEach(([key, value]) => {
-            details.push({ label: `${key.toUpperCase()} Exchange`, value: value?.toUpperCase() || "N/A" });
-          });
-        }
-        // Filter out crypto and fx from currencies
-        if (data.currencies) {
-          Object.entries(data.currencies)
-            .filter(([key]) => {
-              const lowerKey = key.toLowerCase();
-              return lowerKey !== 'crypto' && lowerKey !== 'fx';
-            })
-            .forEach(([key, value]) => {
-              details.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
-            });
-        }
-      } else {
-        isError = true;
-        isLoading = false;
-         if (data && data.error) {
-          console.error("Market status data contains error:", data.error);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to parse marketStatusJson in MarketStatusDisplay:", e);
-      isError = true;
+  if (marketStatusJson && marketStatusJson !== '{}') {
+    if (marketStatusJson.includes('"status": "initializing"') || marketStatusJson.includes('"status": "pending"')) {
+      console.debug("[MarketStatusDisplay] marketStatusJson is in pending/initializing state.");
+      isLoading = true;
+    } else if (marketStatusJson.includes('"error":') || marketStatusJson.includes('"status": "skipped"')) {
+      console.warn("[MarketStatusDisplay] marketStatusJson indicates an error or skipped state.");
       isLoading = false;
+      isError = true;
+    } else {
+      try {
+        const data = JSON.parse(marketStatusJson) as MarketStatusData;
+        console.debug("[MarketStatusDisplay] Successfully parsed marketStatusJson:", data);
+        if (data && typeof data === 'object' && !data.error) {
+          isLoading = false;
+          isError = false;
+          details = [
+            { label: "Market Status", value: data.market?.toUpperCase() || "N/A" },
+            { label: "Early Hours Trading", value: data.earlyHours ? "Yes" : "No" },
+            { label: "Late Hours Trading", value: data.lateHours ? "Yes" : "No" },
+            { label: "Server Time (ET)", value: formatTimestampToPacificTime(data.serverTime) },
+          ];
+          if (data.exchanges) {
+            Object.entries(data.exchanges).forEach(([key, value]) => {
+              details.push({ label: `${key.toUpperCase()} Exchange`, value: value?.toUpperCase() || "N/A" });
+            });
+          }
+          if (data.currencies) {
+            Object.entries(data.currencies)
+              .filter(([key]) => {
+                const lowerKey = key.toLowerCase();
+                return lowerKey !== 'crypto' && lowerKey !== 'fx';
+              })
+              .forEach(([key, value]) => {
+                details.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
+              });
+          }
+        } else {
+           console.warn("[MarketStatusDisplay] Parsed marketStatusJson is not a valid object or contains error field.");
+           isLoading = false; 
+           isError = true;
+            if (data && (data as any).error) console.error("[MarketStatusDisplay] Market status data contains error field:", (data as any).error);
+        }
+      } catch (e) {
+        console.error("[MarketStatusDisplay] Failed to parse marketStatusJson:", e, "JSON:", marketStatusJson.substring(0,200));
+        isLoading = false;
+        isError = true;
+      }
     }
+  } else {
+    console.debug("[MarketStatusDisplay] marketStatusJson is empty or null.");
+    isLoading = false;
   }
 
+  console.debug(`[MarketStatusDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 3);
 
   return (
@@ -99,7 +105,7 @@ export function MarketStatusDisplay() {
           <TableBody>
              {isLoading
               ? Array.from({ length: placeholderRows }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
-              : isError
+              : isError || details.length === 0
                 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Market status data not available.</TableCell></TableRow>
                 : details.length > 0 && details.some(d => d.value && d.value !== "N/A")
                     ? details.map((item, index) => renderDetailRow(item, index, false))

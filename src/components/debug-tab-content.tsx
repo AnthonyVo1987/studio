@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardCopy } from "lucide-react";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context"; // Import context hook
+import { useStockAnalysis } from "@/contexts/stock-analysis-context"; 
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -14,13 +14,17 @@ interface JsonDisplayAreaProps {
   title: string;
   jsonContent: string; 
   onCopy: () => void;
+  description?: string;
 }
 
-function JsonDisplayArea({ title, jsonContent, onCopy }: JsonDisplayAreaProps) { 
+function JsonDisplayArea({ title, jsonContent, onCopy, description }: JsonDisplayAreaProps) { 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div>
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {description && <CardDescription className="text-xs mt-1">{description}</CardDescription>}
+        </div>
         <Button variant="outline" size="icon" onClick={onCopy} className="h-7 w-7">
           <ClipboardCopy className="h-4 w-4" />
           <span className="sr-only">Copy JSON for {title}</span>
@@ -54,21 +58,24 @@ export function DebugTabContent() {
     chatbotResponseJson,
   } = useStockAnalysis();
   const { toast } = useToast();
+  console.debug("[DebugTabContent] Rendering. polygonApiRequestLogJson (start):", polygonApiRequestLogJson.substring(0,100));
+
 
   const handleCopy = (title: string, content: string) => {
+    console.debug(`[DebugTabContent] Copying JSON for: ${title}`);
     navigator.clipboard.writeText(content)
       .then(() => {
         toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
       })
       .catch(err => {
-        console.error(`Failed to copy ${title}: `, err);
+        console.error(`[DebugTabContent] Failed to copy ${title}: `, err);
         toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON.` });
       });
   };
 
   const debugAreasConfig = [
-    { title: "Polygon API Request Log JSON", data: polygonApiRequestLogJson },
-    { title: "Polygon API Response Log JSON", data: polygonApiResponseLogJson },
+    { title: "Polygon Adapter Input JSON", data: polygonApiRequestLogJson, description: "Input parameters passed to the main Polygon data fetching adapter function." },
+    { title: "Polygon Adapter Output Summary JSON", data: polygonApiResponseLogJson, description: "Summary of data successfully fetched or errors from the Polygon adapter." },
     { title: "Market Status JSON", data: marketStatusJson },
     { title: "Stock Snapshot JSON", data: stockSnapshotJson },
     { title: "Standard Technical Indicators JSON", data: standardTasJson },
@@ -86,7 +93,7 @@ export function DebugTabContent() {
       <CardHeader>
         <CardTitle>Debug Information</CardTitle>
         <CardDescription>
-          Raw JSON data from APIs and AI flows for debugging and verification. Scroll within cards to see full content.
+          Raw JSON data from APIs and AI flows for debugging and verification. Granular Polygon API call logs are in the Client Debug Console.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -98,6 +105,7 @@ export function DebugTabContent() {
                 title={area.title}
                 jsonContent={area.data} 
                 onCopy={() => handleCopy(area.title, area.data)}
+                description={area.description}
               />
             ))}
           </div>

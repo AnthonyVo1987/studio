@@ -5,15 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockSnapshotData } from "@/services/data-sources/types";
-import { formatCurrency, formatToTwoDecimals, formatPercentage } from "@/lib/number-utils";
+import { formatCurrency, formatPercentage } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface KeyMetricProps {
   label: string;
   value: string;
-  changeAbsolute?: number | null; // For Day's Change absolute value if needed for icon
-  changePercent?: number | null; // For Day's Change percentage value for text and icon
+  changeAbsolute?: number | null; 
+  changePercent?: number | null; 
   icon?: React.ReactNode;
   isLoading?: boolean;
   sentiment?: 'bullish' | 'bearish' | 'neutral';
@@ -34,7 +34,6 @@ const getChangeIconColorClass = (changeValue?: number | null): string => {
 
 function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLoading, sentiment }: KeyMetricProps) {
   let ChangeIcon = Minus;
-  // Use changePercent for icon determination primarily if available, otherwise changeAbsolute
   const changeForIcon = changePercent !== null && changePercent !== undefined ? changePercent : changeAbsolute;
   let changeIconColor = getChangeIconColorClass(changeForIcon);
   
@@ -42,9 +41,8 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
   if (changePercent !== null && changePercent !== undefined) {
     if (changePercent > 0) ChangeIcon = TrendingUp;
     else if (changePercent < 0) ChangeIcon = TrendingDown;
-    formattedChangePercent = formatPercentage(changePercent, "0.00%", true); // Use formatPercentage for display
+    formattedChangePercent = formatPercentage(changePercent, "0.00%", true); 
   }
-
 
   if (isLoading) {
     return (
@@ -68,11 +66,11 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
         {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
       <CardContent>
-        <div className={cn("text-2xl font-bold", getSentimentColorClass(sentiment))}>{value}</div>
+        <div className={cn("text-2xl font-bold", label === "Day's Change" ? getSentimentColorClass(sentiment) : "")}>{value}</div>
         {label === "Day's Change" && (
           <p className={cn("text-xs flex items-center", getSentimentColorClass(sentiment))}>
             <ChangeIcon className={cn("mr-1 h-4 w-4", changeIconColor)} />
-            {formattedChangePercent}
+            {formattedChangePercent} {/* This already part of value for "Day's Change", but kept for icon logic clarity if needed */}
           </p>
         )}
       </CardContent>
@@ -82,39 +80,63 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 
 export function KeyMetricsDisplay() {
   const { stockSnapshotJson } = useStockAnalysis(); 
+  console.debug("[KeyMetricsDisplay] Props received. stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let tickerDisplay = "N/A";
   let currentPriceDisplay = "N/A";
   let todaysChangePerc: number | null = null;
   let isLoading = true;
-  let currentPriceSentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+  let isError = false;
+  let dayChangeSentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
 
-  if (stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":') && stockSnapshotJson !== '{}') {
-    try {
-      const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-      if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
-        isLoading = false;
-        tickerDisplay = snapshot.ticker || "N/A";
-        const price = snapshot.currentPrice ?? snapshot.day?.c;
-        currentPriceDisplay = formatCurrency(price, "$", "N/A");
-        todaysChangePerc = snapshot.todaysChangePerc ?? null;
-
-        if (todaysChangePerc !== null) {
-          if (todaysChangePerc > 0) currentPriceSentiment = 'bullish';
-          else if (todaysChangePerc < 0) currentPriceSentiment = 'bearish';
-        }
-      } else {
-        isLoading = false; 
-        if (snapshot && snapshot.error) console.error("Snapshot data error:", snapshot.error);
-      }
-    } catch (e) {
-      console.error("Failed to parse stockSnapshotJson in KeyMetricsDisplay:", e);
+  if (stockSnapshotJson && stockSnapshotJson !== '{}') {
+    if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"')) {
+      console.debug("[KeyMetricsDisplay] stockSnapshotJson is in pending/initializing state.");
+      isLoading = true;
+    } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
+      console.warn("[KeyMetricsDisplay] stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
-    }
-  } else if (!stockSnapshotJson.includes('"status": "initializing"') && !stockSnapshotJson.includes('"status": "pending"')) {
-      isLoading = false; 
-  }
+      isError = true;
+    } else {
+      try {
+        const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
+        console.debug("[KeyMetricsDisplay] Successfully parsed stockSnapshotJson:", snapshot);
+        if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
+          isLoading = false;
+          isError = false;
+          tickerDisplay = snapshot.ticker || "N/A";
+          const price = snapshot.currentPrice ?? snapshot.day?.c;
+          currentPriceDisplay = formatCurrency(price, "$", "N/A");
+          todaysChangePerc = snapshot.todaysChangePerc ?? null;
 
+          if (todaysChangePerc !== null) {
+            if (todaysChangePerc > 0) dayChangeSentiment = 'bullish';
+            else if (todaysChangePerc < 0) dayChangeSentiment = 'bearish';
+          }
+        } else {
+          console.warn("[KeyMetricsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
+          isLoading = false; 
+          isError = true;
+          if (snapshot && (snapshot as any).error) console.error("[KeyMetricsDisplay] Snapshot data contains error field:", (snapshot as any).error);
+        }
+      } catch (e) {
+        console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e, "JSON:", stockSnapshotJson.substring(0,200));
+        isLoading = false;
+        isError = true;
+      }
+    }
+  } else {
+    console.debug("[KeyMetricsDisplay] stockSnapshotJson is empty or null.");
+    isLoading = false; // No longer initializing if it's empty
+    // isError can remain false if it's just empty and not an error string
+  }
+  
+  console.debug(`[KeyMetricsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
+
+  if (isError && !isLoading) { // Show N/A if error and not loading
+      tickerDisplay = "N/A";
+      currentPriceDisplay = "N/A";
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -134,10 +156,10 @@ export function KeyMetricsDisplay() {
       />
       <KeyMetricCard
         label="Day's Change"
-        value={todaysChangePerc !== null ? formatPercentage(todaysChangePerc, "N/A", true) : "N/A"}
+        value={isLoading ? "Loading..." : (isError || todaysChangePerc === null ? "N/A" : formatPercentage(todaysChangePerc, "N/A", true))}
         changePercent={todaysChangePerc} 
         isLoading={isLoading}
-        sentiment={currentPriceSentiment} 
+        sentiment={dayChangeSentiment} 
       />
     </div>
   );
