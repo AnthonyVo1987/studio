@@ -61,60 +61,69 @@ const categoryLabels: Record<TakeawayCategory, string> = {
 
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, logDebug } = useStockAnalysis();
-  logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson (start):", aiKeyTakeawaysJson ? aiKeyTakeawaysJson.substring(0,100) : "null");
+  const jsonString = aiKeyTakeawaysJson; // Use a local const for checks
 
   let isLoading = false;
   let isError = false;
   let displayTakeaways: TakeawayDisplayItem[] = [];
 
-  if (aiKeyTakeawaysJson === null || 
-      (typeof aiKeyTakeawaysJson === 'string' && 
-        (aiKeyTakeawaysJson.includes('"status": "initializing"') || 
-         aiKeyTakeawaysJson.includes('"status": "pending"') || 
-         aiKeyTakeawaysJson.includes('"status": "full_analysis_pending..."')
-        )
-      )
-     ) {
-    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is null or explicitly indicates pending/initializing state.");
-    isLoading = true;
-  } else if (typeof aiKeyTakeawaysJson === 'string' && aiKeyTakeawaysJson !== '{}') {
-    if (aiKeyTakeawaysJson.includes('"status": "error"') || aiKeyTakeawaysJson.includes('"status": "skipped"')) {
-      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates an error or skipped state.");
-      isError = true;
-    } else {
-      try {
-        const data = JSON.parse(aiKeyTakeawaysJson) as StockAnalysisOutput;
-        logDebug('AiKeyTakeawaysDisplay', "Successfully parsed aiKeyTakeawaysJson. PriceAction takeaway:", data?.priceAction?.takeaway);
-        if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.priceAction) {
-          displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
-              categoryKey: key,
-              categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
-              sentiment: data[key]?.sentiment || "neutral",
-              text: data[key]?.takeaway || "No takeaway generated.",
-              textSentimentClass: getTextSentimentColorClass(data[key]?.sentiment || "neutral")
-          }));
-        } else {
-          logDebug('AiKeyTakeawaysDisplay', "Parsed aiKeyTakeawaysJson is missing priceAction or contains implicit error/status field not caught above. Treating as error or empty.");
-          // If it's not a recognized error/skipped string, but also not valid data, it implies an issue or truly empty.
-          if (!aiKeyTakeawaysJson.includes('"status":') && Object.keys(data || {}).length === 0) {
-            // Valid JSON but empty object, not an error, just no takeaways.
-            logDebug('AiKeyTakeawaysDisplay', "Parsed JSON is empty object, no takeaways to display.");
-          } else {
-            isError = true; // Treat other malformed "success" as error.
-          }
-        }
-      } catch (e) {
-        console.error("[AiKeyTakeawaysDisplay] Failed to parse aiKeyTakeawaysJson:", e);
-        logDebug('AiKeyTakeawaysDisplay', "Error during aiKeyTakeawaysJson parsing.", e);
-        isError = true;
-      }
-    }
-  } else if (!aiKeyTakeawaysJson || aiKeyTakeawaysJson === '{}') {
-    // This covers undefined, or explicit '{}' string. If null, caught by the first 'if'.
-    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is effectively empty (undefined or '{}' string), treating as loading.");
-    isLoading = true;
-  }
+  logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson (start):", jsonString ? jsonString.substring(0,100) : "null");
 
+  // 1. Check for explicit loading states or null
+  if (jsonString === null) {
+    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is null. Treating as loading.");
+    isLoading = true;
+  } else if (typeof jsonString === 'string' &&
+             (jsonString.includes('"status": "initializing"') ||
+              jsonString.includes('"status": "pending"') ||
+              jsonString.includes('"status": "full_analysis_pending..."'))) {
+    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson explicitly indicates pending/initializing state.");
+    isLoading = true;
+  } else {
+    // Not an explicit loading state, and not null. Proceed to check for error or parse data.
+    isLoading = false; // Definitely not loading if we reach here.
+
+    if (typeof jsonString === 'string' && jsonString !== '{}') {
+      if (jsonString.includes('"status": "error"') || jsonString.includes('"status": "skipped"')) {
+        logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates an error or skipped state.");
+        isError = true;
+      } else {
+        // Attempt to parse actual data
+        try {
+          const data = JSON.parse(jsonString) as StockAnalysisOutput;
+          logDebug('AiKeyTakeawaysDisplay', "Attempting to parse jsonString. PriceAction takeaway:", data?.priceAction?.takeaway);
+          if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.priceAction) {
+            displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
+                categoryKey: key,
+                categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
+                sentiment: data[key]?.sentiment || "neutral",
+                text: data[key]?.takeaway || "No takeaway generated.",
+                textSentimentClass: getTextSentimentColorClass(data[key]?.sentiment || "neutral")
+            }));
+            logDebug('AiKeyTakeawaysDisplay', `Successfully parsed. displayTakeaways.length: ${displayTakeaways.length}`);
+          } else {
+            logDebug('AiKeyTakeawaysDisplay', "Parsed JSON, but no valid takeaways found or it contained an implicit error/status. Original JSON:", jsonString);
+            // If it's an empty object but not an error string, it means no data, not an error.
+            if (Object.keys(data || {}).length === 0 && !jsonString.includes('"error"')) {
+                logDebug('AiKeyTakeawaysDisplay', "Parsed JSON is effectively empty. No takeaways to display.");
+                isError = false; // Not an error, just no takeaways.
+            } else {
+                isError = true; // Treat other malformed or error-implicit data as an error.
+            }
+          }
+        } catch (e) {
+          console.error("[AiKeyTakeawaysDisplay] Failed to parse aiKeyTakeawaysJson:", e, "Original JSON:", jsonString);
+          logDebug('AiKeyTakeawaysDisplay', "Error during aiKeyTakeawaysJson parsing.", e);
+          isError = true;
+        }
+      }
+    } else if (!jsonString || jsonString === '{}') {
+      // Covers undefined or explicit '{}' string (which wasn't caught by pending/error checks).
+      // This means no data, not an error, not loading.
+      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is undefined or '{}'. No data to display.");
+      // isLoading remains false, isError false, displayTakeaways empty
+    }
+  }
 
   logDebug('AiKeyTakeawaysDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, displayTakeaways.length=${displayTakeaways.length}`);
 
@@ -136,9 +145,13 @@ export function AiKeyTakeawaysDisplay() {
               <Skeleton className="h-4 w-3/4 mt-1" />
             </div>
           ))
-        ) : isError || displayTakeaways.length === 0 ? (
+        ) : isError ? ( // Prioritize error message if isError is true
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             {isError ? "AI Key Takeaways not available." : "No AI Key Takeaways to display. Ensure stock data and AI TA were successfully processed."}
+             AI Key Takeaways not available.
+           </div>
+        ) : displayTakeaways.length === 0 ? ( // If not loading and not error, but no takeaways
+           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
+             No AI Key Takeaways to display. Ensure stock data and AI TA were successfully processed.
            </div>
         ) : (
           displayTakeaways.map((takeaway) => (
@@ -157,4 +170,3 @@ export function AiKeyTakeawaysDisplay() {
     </Card>
   );
 }
-    
