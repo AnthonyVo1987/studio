@@ -94,7 +94,7 @@ export function AiCalculatedTaDisplay() {
       }
   }
 
-  // console.debug(`[AiCalculatedTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
+  console.debug(`[AiCalculatedTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
 
   return (
     <Card>
