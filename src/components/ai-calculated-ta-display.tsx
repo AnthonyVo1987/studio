@@ -33,8 +33,8 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
 
 export function AiCalculatedTaDisplay() {
   const { aiCalculatedTaJson, stockSnapshotJson } = useStockAnalysis();
-  console.debug("[AiCalculatedTaDisplay] Props received. aiCalculatedTaJson (start):", aiCalculatedTaJson.substring(0,100));
-  console.debug("[AiCalculatedTaDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  // console.debug("[AiCalculatedTaDisplay] Props received. aiCalculatedTaJson (start):", aiCalculatedTaJson.substring(0,100));
+  // console.debug("[AiCalculatedTaDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
 
   let isLoading = false;
@@ -44,57 +44,57 @@ export function AiCalculatedTaDisplay() {
 
   if (aiCalculatedTaJson && aiCalculatedTaJson !== '{}') {
     if (aiCalculatedTaJson.includes('"status": "initializing"') || aiCalculatedTaJson.includes('"status": "pending"')) {
-      console.debug("[AiCalculatedTaDisplay] aiCalculatedTaJson is in pending/initializing state.");
+      // console.debug("[AiCalculatedTaDisplay] aiCalculatedTaJson is in pending/initializing state.");
       isLoading = true;
     } else if (aiCalculatedTaJson.includes('"status": "error"') || aiCalculatedTaJson.includes('"status": "skipped"')) {
-      console.warn("[AiCalculatedTaDisplay] aiCalculatedTaJson indicates an error or skipped state.");
+      // console.warn("[AiCalculatedTaDisplay] aiCalculatedTaJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(aiCalculatedTaJson) as CalculateAiTaOutput;
-        console.debug("[AiCalculatedTaDisplay] Successfully parsed aiCalculatedTaJson:", data);
+        // console.debug("[AiCalculatedTaDisplay] Successfully parsed aiCalculatedTaJson:", data);
         if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.pivotPoint !== undefined) {
           isLoading = false;
           isError = false;
           parsedTaData = data;
         } else {
-          console.warn("[AiCalculatedTaDisplay] Parsed aiCalculatedTaJson is missing pivotPoint or contains error/status field.");
+          // console.warn("[AiCalculatedTaDisplay] Parsed aiCalculatedTaJson is missing pivotPoint or contains error/status field.");
           isLoading = false;
-          isError = true; 
-          if (data && (data as any).error) console.error("[AiCalculatedTaDisplay] AI TA data contains error field:", (data as any).error);
+          isError = true;
+          // if (data && (data as any).error) console.error("[AiCalculatedTaDisplay] AI TA data contains error field:", (data as any).error);
         }
       } catch (e) {
-        console.error("[AiCalculatedTaDisplay] Failed to parse aiCalculatedTaJson:", e, "JSON:", aiCalculatedTaJson.substring(0,200));
+        // console.error("[AiCalculatedTaDisplay] Failed to parse aiCalculatedTaJson:", e, "JSON:", aiCalculatedTaJson.substring(0,200));
         isLoading = false;
         isError = true;
       }
     }
   } else {
-     console.debug("[AiCalculatedTaDisplay] aiCalculatedTaJson is empty or null.");
+     // console.debug("[AiCalculatedTaDisplay] aiCalculatedTaJson is empty or null.");
      isLoading = false;
   }
-  
-  if (!isLoading && !isError && parsedTaData && stockSnapshotJson && stockSnapshotJson !== '{}') { 
+
+  if (!isLoading && !isError && parsedTaData && stockSnapshotJson && stockSnapshotJson !== '{}') {
       try {
         if (!stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
             const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-             console.debug("[AiCalculatedTaDisplay] Successfully parsed stockSnapshotJson for current price:", snapshot);
+             // console.debug("[AiCalculatedTaDisplay] Successfully parsed stockSnapshotJson for current price:", snapshot);
             if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
                 currentPrice = snapshot.currentPrice;
-                console.debug("[AiCalculatedTaDisplay] Current price for PP sentiment: ", currentPrice);
+                // console.debug("[AiCalculatedTaDisplay] Current price for PP sentiment: ", currentPrice);
             } else {
-                console.warn("[AiCalculatedTaDisplay] Current price not found in parsed stockSnapshotJson.");
+                // console.warn("[AiCalculatedTaDisplay] Current price not found in parsed stockSnapshotJson.");
             }
         } else {
-            console.warn("[AiCalculatedTaDisplay] stockSnapshotJson contains status/error, cannot get current price.");
+            // console.warn("[AiCalculatedTaDisplay] stockSnapshotJson contains status/error, cannot get current price.");
         }
       } catch (e) {
-        console.warn("[AiCalculatedTaDisplay] Could not parse stockSnapshotJson for current price. JSON:", stockSnapshotJson.substring(0,200), e);
+        // console.warn("[AiCalculatedTaDisplay] Could not parse stockSnapshotJson for current price. JSON:", stockSnapshotJson.substring(0,200), e);
       }
   }
-  
-  console.debug(`[AiCalculatedTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
+
+  // console.debug(`[AiCalculatedTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
 
   return (
     <Card>
@@ -129,13 +129,13 @@ export function AiCalculatedTaDisplay() {
               const displayValue = isError && !parsedTaData ? "N/A" : (value === null || value === undefined
                 ? "N/A"
                 : formatToTwoDecimals(value as number, "N/A"));
-              
+
               let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
               if (pointDef.key === 'pivotPoint' && currentPrice !== null && value !== null && value !== undefined) {
                   if (currentPrice > (value as number)) sentiment = 'bullish';
                   else if (currentPrice < (value as number)) sentiment = 'bearish';
               }
-              
+
               const colorClass = pointDef.key === 'pivotPoint' ? getSentimentColorClass(sentiment) : '';
 
               return (

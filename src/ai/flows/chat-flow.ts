@@ -19,7 +19,6 @@ import {
 import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
-  console.log(`[AIFlow:chatWithBot] Received input for ticker: ${input.ticker}, User input: "${input.userInput}"`);
   return chatFlow(input);
 }
 
@@ -76,13 +75,10 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input: ChatInput) => {
-    console.log(`[AIFlow:stockChatBotFlow] Starting Genkit prompt for ticker: ${input.ticker}, User input: "${input.userInput}". History length: ${input.chatHistory?.length || 0}`);
     const {output} = await prompt(input);
     if (!output) {
-        console.error(`[AIFlow:stockChatBotFlow] Chatbot flow for ${input.ticker} did not return an output.`);
         throw new Error('Chatbot flow did not return an output.');
     }
-    console.log(`[AIFlow:stockChatBotFlow] Genkit prompt for ${input.ticker} succeeded. Response length: ${output.response.length}`);
     return output;
   }
 );

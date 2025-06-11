@@ -58,7 +58,7 @@ export function DebugTabContent() {
     chatbotResponseJson,
   } = useStockAnalysis();
   const { toast } = useToast();
-  console.debug("[DebugTabContent] Rendering. polygonApiRequestLogJson (start):", polygonApiRequestLogJson.substring(0,100));
+  // console.debug("[DebugTabContent] Rendering. polygonApiRequestLogJson (start):", polygonApiRequestLogJson.substring(0,100));
 
 
   const handleCopy = (title: string, content: string) => {

@@ -19,55 +19,55 @@ interface TaIndicatorDisplayInfo {
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
   if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
   if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
-  return ''; 
+  return '';
 };
 
 const taDefinitions: TaIndicatorDisplayInfo[] = [
-  { 
-    key: "RSI", 
-    label: "RSI (14)", 
+  {
+    key: "RSI",
+    label: "RSI (14)",
     formatter: (val) => formatToTwoDecimals(val?.value),
     getSentiment: (val) => {
       if (val?.value === undefined || val.value === null) return 'neutral';
-      if (val.value < 30) return 'bullish'; 
-      if (val.value > 70) return 'bearish'; 
+      if (val.value < 30) return 'bullish'; // Oversold
+      if (val.value > 70) return 'bearish'; // Overbought
       return 'neutral';
     }
   },
-  { 
-    key: "EMA", 
-    label: "EMA (20)", 
+  {
+    key: "EMA",
+    label: "EMA (20)",
     formatter: (val) => `$${formatToTwoDecimals(val?.value)}`
   },
-  { 
-    key: "SMA", 
-    label: "SMA (50)", 
+  {
+    key: "SMA",
+    label: "SMA (50)",
     formatter: (val) => `$${formatToTwoDecimals(val?.value)}`
   },
-  { 
-    key: "MACD", 
-    label: "MACD (12,26,9)", 
-    formatter: (val) => 
+  {
+    key: "MACD",
+    label: "MACD (12,26,9)",
+    formatter: (val) =>
       val?.value !== undefined && val?.signal !== undefined && val?.histogram !== undefined
       ? `${formatToTwoDecimals(val.value)} / ${formatToTwoDecimals(val.signal)} / ${formatToTwoDecimals(val.histogram)}`
       : "N/A",
-    getSentiment: (val) => {
+    getSentiment: (val) => { // Sentiment based on histogram
       if (val?.histogram === undefined || val.histogram === null) return 'neutral';
-      if (val.histogram > 0) return 'bullish'; 
-      if (val.histogram < 0) return 'bearish'; 
+      if (val.histogram > 0) return 'bullish';
+      if (val.histogram < 0) return 'bearish';
       return 'neutral';
     }
   },
-  { 
-    key: "VWAP", 
-    label: "VWAP (Day)", 
+  {
+    key: "VWAP",
+    label: "VWAP (Day)",
     formatter: (val) => `$${formatToTwoDecimals(val?.value)}`
   },
 ];
 
 export function StandardTaDisplay() {
-  const { standardTasJson } = useStockAnalysis(); 
-  console.debug("[StandardTaDisplay] Props received. standardTasJson (start):", standardTasJson.substring(0,100));
+  const { standardTasJson } = useStockAnalysis();
+  // console.debug("[StandardTaDisplay] Props received. standardTasJson (start):", standardTasJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -75,38 +75,38 @@ export function StandardTaDisplay() {
 
   if (standardTasJson && standardTasJson !== '{}') {
     if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"')) {
-      console.debug("[StandardTaDisplay] standardTasJson is in pending/initializing state.");
+      // console.debug("[StandardTaDisplay] standardTasJson is in pending/initializing state.");
       isLoading = true;
     } else if (standardTasJson.includes('"error":') || standardTasJson.includes('"status": "skipped"')) {
-      console.warn("[StandardTaDisplay] standardTasJson indicates an error or skipped state.");
+      // console.warn("[StandardTaDisplay] standardTasJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
-        console.debug("[StandardTaDisplay] Successfully parsed standardTasJson:", data);
+        // console.debug("[StandardTaDisplay] Successfully parsed standardTasJson:", data);
         if (data && typeof data === 'object' && !data.error && (data.RSI || data.EMA || data.SMA || data.MACD || data.VWAP)) {
           isLoading = false;
           isError = false;
           parsedTaData = data;
         } else {
-          console.warn("[StandardTaDisplay] Parsed standardTasJson is missing expected TA data or is not an object.");
-          isLoading = false; 
-          isError = true; 
-          if (data && (data as any).error) console.error("[StandardTaDisplay] Standard TA data contains error field:", (data as any).error);
+          // console.warn("[StandardTaDisplay] Parsed standardTasJson is missing expected TA data or is not an object.");
+          isLoading = false;
+          isError = true;
+          // if (data && (data as any).error) console.error("[StandardTaDisplay] Standard TA data contains error field:", (data as any).error);
         }
       } catch (e) {
-        console.error("[StandardTaDisplay] Failed to parse standardTasJson:", e, "JSON:", standardTasJson.substring(0,200));
+        // console.error("[StandardTaDisplay] Failed to parse standardTasJson:", e, "JSON:", standardTasJson.substring(0,200));
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    console.debug("[StandardTaDisplay] standardTasJson is empty or null.");
+    // console.debug("[StandardTaDisplay] standardTasJson is empty or null.");
     isLoading = false;
   }
-  
-  console.debug(`[StandardTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData keys=${parsedTaData ? Object.keys(parsedTaData).length : 'null'}`);
+
+  // console.debug(`[StandardTaDisplay] Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData keys=${parsedTaData ? Object.keys(parsedTaData).length : 'null'}`);
 
   return (
     <Card>
@@ -132,7 +132,7 @@ export function StandardTaDisplay() {
                   </TableRow>
                 );
               }
-              
+
               const value = parsedTaData ? parsedTaData[def.key] : undefined;
               const displayValue = isError && !parsedTaData ? "N/A" : def.formatter(value);
               const sentiment = def.getSentiment ? def.getSentiment(value) : 'neutral';

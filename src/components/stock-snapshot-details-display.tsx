@@ -18,7 +18,7 @@ interface StockDetailItem {
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
   if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
   if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
-  return ''; 
+  return '';
 };
 
 const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolean) => {
@@ -39,8 +39,8 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
 };
 
 export function StockSnapshotDetailsDisplay() {
-  const { stockSnapshotJson } = useStockAnalysis(); 
-  console.debug("[StockSnapshotDetailsDisplay] Props received. stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const { stockSnapshotJson } = useStockAnalysis();
+  // console.debug("[StockSnapshotDetailsDisplay] Props received. stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -49,21 +49,22 @@ export function StockSnapshotDetailsDisplay() {
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"')) {
-      console.debug("[StockSnapshotDetailsDisplay] stockSnapshotJson is in pending/initializing state.");
+      // console.debug("[StockSnapshotDetailsDisplay] stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      console.warn("[StockSnapshotDetailsDisplay] stockSnapshotJson indicates an error or skipped state.");
+      // console.warn("[StockSnapshotDetailsDisplay] stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        console.debug("[StockSnapshotDetailsDisplay] Successfully parsed stockSnapshotJson:", data);
-        if (data && typeof data === 'object' && data.ticker) { 
+        // console.debug("[StockSnapshotDetailsDisplay] Successfully parsed stockSnapshotJson:", data);
+        // Ticker is removed from here, but check for its existence for data validity before removing.
+        if (data && typeof data === 'object' && data.ticker) {
           isLoading = false;
           isError = false;
           parsedSnapshotData = data;
-          
+
           const change = parsedSnapshotData.todaysChange ?? 0;
           const changePerc = parsedSnapshotData.todaysChangePerc ?? 0;
           const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
@@ -76,7 +77,7 @@ export function StockSnapshotDetailsDisplay() {
             { label: "Day's Volume", value: formatCompactNumber(parsedSnapshotData.day?.v) },
             { label: "Day's Close", value: formatCurrency(parsedSnapshotData.day?.c) },
           ];
-          
+
           const dayDetails: StockDetailItem[] = [
             { label: "Day's Open", value: formatCurrency(parsedSnapshotData.day?.o) },
             { label: "Day's High", value: formatCurrency(parsedSnapshotData.day?.h) },
@@ -98,24 +99,24 @@ export function StockSnapshotDetailsDisplay() {
             ...prevDayDetails,
           ];
         } else {
-          console.warn("[StockSnapshotDetailsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
-          isLoading = false; 
+          // console.warn("[StockSnapshotDetailsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
+          isLoading = false;
           isError = true;
-           if (data && (data as any).error) console.error("[StockSnapshotDetailsDisplay] Snapshot data contains error field:", (data as any).error);
+           // if (data && (data as any).error) console.error("[StockSnapshotDetailsDisplay] Snapshot data contains error field:", (data as any).error);
         }
       } catch (e) {
-        console.error("[StockSnapshotDetailsDisplay] Failed to parse stockSnapshotJson:", e, "JSON:", stockSnapshotJson.substring(0,200));
+        // console.error("[StockSnapshotDetailsDisplay] Failed to parse stockSnapshotJson:", e, "JSON:", stockSnapshotJson.substring(0,200));
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    console.debug("[StockSnapshotDetailsDisplay] stockSnapshotJson is empty or null.");
-    isLoading = false; 
+    // console.debug("[StockSnapshotDetailsDisplay] stockSnapshotJson is empty or null.");
+    isLoading = false;
   }
-  
-  console.debug(`[StockSnapshotDetailsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
-  const placeholderRowCount = 10; 
+
+  // console.debug(`[StockSnapshotDetailsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
+  const placeholderRowCount = 10;
 
   return (
     <Card>
@@ -126,7 +127,7 @@ export function StockSnapshotDetailsDisplay() {
       <CardContent>
         <Table>
           <TableBody>
-            {isLoading 
+            {isLoading
               ? Array.from({ length: placeholderRowCount }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
               : isError || !parsedSnapshotData || details.length === 0
                 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Snapshot data not available.</TableCell></TableRow>

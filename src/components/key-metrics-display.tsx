@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 interface KeyMetricProps {
   label: string;
   value: string;
-  changeAbsolute?: number | null; 
-  changePercent?: number | null; 
+  changeAbsolute?: number | null;
+  changePercent?: number | null;
   icon?: React.ReactNode;
   isLoading?: boolean;
   sentiment?: 'bullish' | 'bearish' | 'neutral';
@@ -22,7 +22,7 @@ interface KeyMetricProps {
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
   if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
   if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
-  return ''; 
+  return '';
 };
 
 const getChangeIconColorClass = (changeValue?: number | null): string => {
@@ -36,12 +36,12 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
   let ChangeIcon = Minus;
   const changeForIcon = changePercent !== null && changePercent !== undefined ? changePercent : changeAbsolute;
   let changeIconColor = getChangeIconColorClass(changeForIcon);
-  
+
   let formattedChangePercent = "N/A";
   if (changePercent !== null && changePercent !== undefined) {
     if (changePercent > 0) ChangeIcon = TrendingUp;
     else if (changePercent < 0) ChangeIcon = TrendingDown;
-    formattedChangePercent = formatPercentage(changePercent, "0.00%", true); 
+    formattedChangePercent = formatPercentage(changePercent, "0.00%", true);
   }
 
   if (isLoading) {
@@ -70,7 +70,7 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
         {label === "Day's Change" && (
           <p className={cn("text-xs flex items-center", getSentimentColorClass(sentiment))}>
             <ChangeIcon className={cn("mr-1 h-4 w-4", changeIconColor)} />
-            {formattedChangePercent} {/* This already part of value for "Day's Change", but kept for icon logic clarity if needed */}
+            {formattedChangePercent}
           </p>
         )}
       </CardContent>
@@ -79,8 +79,8 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 }
 
 export function KeyMetricsDisplay() {
-  const { stockSnapshotJson } = useStockAnalysis(); 
-  console.debug("[KeyMetricsDisplay] Props received. stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const { stockSnapshotJson } = useStockAnalysis();
+  // console.debug("[KeyMetricsDisplay] Props received. stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let tickerDisplay = "N/A";
   let currentPriceDisplay = "N/A";
@@ -91,16 +91,16 @@ export function KeyMetricsDisplay() {
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"')) {
-      console.debug("[KeyMetricsDisplay] stockSnapshotJson is in pending/initializing state.");
+      // console.debug("[KeyMetricsDisplay] stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      console.warn("[KeyMetricsDisplay] stockSnapshotJson indicates an error or skipped state.");
+      // console.warn("[KeyMetricsDisplay] stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        console.debug("[KeyMetricsDisplay] Successfully parsed stockSnapshotJson:", snapshot);
+        // console.debug("[KeyMetricsDisplay] Successfully parsed stockSnapshotJson:", snapshot);
         if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
           isLoading = false;
           isError = false;
@@ -114,26 +114,25 @@ export function KeyMetricsDisplay() {
             else if (todaysChangePerc < 0) dayChangeSentiment = 'bearish';
           }
         } else {
-          console.warn("[KeyMetricsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
-          isLoading = false; 
+          // console.warn("[KeyMetricsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
+          isLoading = false;
           isError = true;
-          if (snapshot && (snapshot as any).error) console.error("[KeyMetricsDisplay] Snapshot data contains error field:", (snapshot as any).error);
+          // if (snapshot && (snapshot as any).error) console.error("[KeyMetricsDisplay] Snapshot data contains error field:", (snapshot as any).error);
         }
       } catch (e) {
-        console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e, "JSON:", stockSnapshotJson.substring(0,200));
+        // console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e, "JSON:", stockSnapshotJson.substring(0,200));
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    console.debug("[KeyMetricsDisplay] stockSnapshotJson is empty or null.");
-    isLoading = false; // No longer initializing if it's empty
-    // isError can remain false if it's just empty and not an error string
+    // console.debug("[KeyMetricsDisplay] stockSnapshotJson is empty or null.");
+    isLoading = false;
   }
-  
-  console.debug(`[KeyMetricsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
 
-  if (isError && !isLoading) { // Show N/A if error and not loading
+  // console.debug(`[KeyMetricsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
+
+  if (isError && !isLoading) {
       tickerDisplay = "N/A";
       currentPriceDisplay = "N/A";
   }
@@ -152,14 +151,14 @@ export function KeyMetricsDisplay() {
         value={currentPriceDisplay}
         icon={<DollarSign className="h-4 w-4" />}
         isLoading={isLoading}
-        sentiment="neutral" 
+        sentiment="neutral"
       />
       <KeyMetricCard
         label="Day's Change"
         value={isLoading ? "Loading..." : (isError || todaysChangePerc === null ? "N/A" : formatPercentage(todaysChangePerc, "N/A", true))}
-        changePercent={todaysChangePerc} 
+        changePercent={todaysChangePerc}
         isLoading={isLoading}
-        sentiment={dayChangeSentiment} 
+        sentiment={dayChangeSentiment}
       />
     </div>
   );

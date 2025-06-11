@@ -1,7 +1,7 @@
 
 # **Product Requirements Document & AI Operating Manual: StockSage v2.1.0 (Re-Implementation)**
 
-*   **Document Version:** 1.3 (Updated with Phase Debug)
+*   **Document Version:** 1.2 (Reflects UI refinements up to Phase 6.1.6)
 *   **Date:** 2025-06-10
 *   **Author:** Firebase Studio (AI Prototyper)
 *   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality
@@ -36,7 +36,7 @@ The primary strategy for this re-implementation is **UI-First Development**. Thi
 *   **Address Past Pain Points:** Proactively design and implement solutions to avoid known development challenges, particularly those related to build processes and dependencies (e.g., `async_hooks`).
 *   **Modularity and Maintainability:** Create a codebase that is well-organized, with reusable components and clearly defined service layers.
 *   **User Experience:** Maintain a high-quality, responsive, and accessible user interface, consistent with the v1.2.14 style guidelines.
-*   **Enhanced Debuggability:** Implement a client-side debug console and comprehensive logging.
+*   **Enhanced Debuggability:** Implement comprehensive server-side logging and clear error reporting mechanisms. (Client-side debug console is a future phase).
 
 ## **2. Core Application Features (Based on v1.2.14 Functionality with UI Enhancements)**
 
@@ -49,10 +49,6 @@ The AI Agent must re-implement the following features, organized by the new tabb
 *   **Header & Footer:** Consistent header (App Name "StockSage", Version "v2.1.0") and footer with disclaimer.
 *   **Theme:** Light/Dark theme support with toggle button. Default to Dark.
 *   **Disclaimer:** Prominent financial advice disclaimer.
-*   **Client-Side Debug Console:**
-    *   An in-app, toggleable console for displaying client-side logs (console.log, .warn, .error, .info, .debug).
-    *   Features: Timestamped entries, log type display, text search, type filtering, clear logs, export (JSON, TXT), copy (JSON, TXT).
-    *   Docks at the bottom, main content area adjusts to prevent overlap.
 
 ### **2.2. "Main" Tab Features**
 *   **Stock Analysis Input Area:**
@@ -65,7 +61,7 @@ The AI Agent must re-implement the following features, organized by the new tabb
         *   *Data Source: Consumes relevant fields from the "Stock Snapshot JSON" in the "Debug" Tab.*
     2.  **Stock Snapshot Details Display:**
         *   Detailed price and volume information for the current day and previous day. Order: Current Price, Today's Change %, Today's Change, Day's VWAP, Day's Volume, Day's Close, followed by other daily and previous day stats. "Today's Change %" and "Today's Change" are color-coded for sentiment.
-        *   The Ticker symbol is not repeated here as it's present in Key Metrics.
+        *   The Ticker symbol is NOT displayed here.
         *   *Data Source: Consumes "Stock Snapshot JSON" from the "Debug" Tab.*
     3.  **Standard Technical Indicators Display:**
         *   Formatted display of RSI, EMA, SMA, MACD, VWAP.
@@ -97,8 +93,8 @@ The AI Agent must re-implement the following features, organized by the new tabb
 
 ### **2.3. "Debug" Tab Features**
 *   **Raw JSON Display Areas:** A series of read-only `Textarea` components, each clearly labeled, to display:
-    *   **Polygon Adapter Input JSON:** (Replaces "Polygon API Request Log JSON") Input parameters to the main `getFullStockData` adapter function.
-    *   **Polygon Adapter Output Summary JSON:** (Replaces "Polygon API Response Log JSON") Summary of data fetched or errors from the `getFullStockData` adapter function. Granular Polygon call logs are now in the Client Debug Console.
+    *   **Polygon API Request Log JSON:** Input to Polygon Adapter.
+    *   **Polygon API Response Log JSON:** Output from Polygon Adapter.
     *   **Market Status JSON:** (Derived from Polygon API Response)
     *   **Stock Snapshot JSON:** (Derived from Polygon API Response - includes current intraday and previous day's data)
     *   **Standard Technical Indicators JSON:** (Derived from Polygon API Response)
@@ -220,7 +216,7 @@ The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to
 *   Prefer ShadCN components. Responsive and accessible.
 
 ### **4.6. State Management**
-*   React Context API (`StockAnalysisProvider`) for global state (which will include all the JSON strings for the Debug Tab, and client console state).
+*   React Context API (`StockAnalysisProvider`) for global state (which will include all the JSON strings for the Debug Tab).
 *   `useActionState` for server actions.
 
 ### **4.7. Known Pain Points & Lessons Learned (CRITICAL - Guiding UI-First)**
@@ -276,7 +272,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
     *   Integrate this component into the "Debug" `TabsContent` in `src/app/page.tsx`.
 *   **Task 1.2: Implement JSON Display Areas in `DebugTabContent.tsx`**
     *   Action: For each data item listed in Section 2.3 ("Debug" Tab Features), add a labeled `Card` containing a read-only ShadCN `Textarea`.
-        *   Labels: "Polygon Adapter Input JSON", "Polygon Adapter Output Summary JSON", "Market Status JSON", "Stock Snapshot JSON", "Standard TAs JSON", "Options Chain JSON", "AI Calculated TA JSON", "AI Key Takeaways JSON", etc.
+        *   Labels: "Polygon API Request Log JSON", "Polygon API Response Log JSON", "Market Status JSON", "Stock Snapshot JSON", "Standard TAs JSON", "Options Chain JSON", "AI Calculated TA JSON", "AI Key Takeaways JSON", etc.
         *   Initial Content: Populate each `Textarea` with simple, static placeholder JSON strings (e.g., `{\n  "status": "placeholder data"\n}`).
     *   Deliverable: "Debug" tab fully populated with labeled `Textarea` components showing placeholder JSON.
 *   **Task 1.3: Implement Export/Copy Controls for Debug JSONs**
@@ -359,8 +355,8 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
             *   `stockSnapshotJson` (from `AdapterOutput.stockDataJson.stockSnapshot` - containing both current and prev day data)
             *   `standardTasJson` (from `AdapterOutput.stockDataJson.technicalAnalysis`)
             *   `optionsChainJson` (from `AdapterOutput.stockDataJson.optionsChain`)
-            *   `polygonAdapterInputJson` (input to adapter)
-            *   `polygonAdapterOutputSummaryJson` (summary from adapter)
+            *   `polygonApiRequestLogJson` (input to adapter)
+            *   `polygonApiResponseLogJson` (output from adapter)
         *   These individual JSON strings will populate the "Debug" Tab `Textarea`s.
     *   Deliverable: Server action that fetches data and updates context state for Debug Tab.
 *   **Task 4.5: Wire "Analyze Stock" Button**
@@ -399,24 +395,6 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
     *   Deliverable: "Debug" Tab shows live JSON for last chat interaction request and response.
 
 ---
-**Phase Debug: Client-Side Debug Console & Enhanced Logging**
-*(Goal: Implement a robust client-side debug console and enhance application-wide logging for improved troubleshooting.)*
-*   **Debug Task 1: Implement `DebugConsole.tsx` Component**
-    *   Action: Create and integrate `src/components/debug-console.tsx`. This includes:
-        *   Updating `StockAnalysisContext` to manage console state (`isClientDebugConsoleOpen`, `clientLogs`) and provide methods (`addClientLog`, `clearClientLogs`, `setClientDebugConsoleOpen`).
-        *   Implementing console log interception (`console.log`, `.warn`, `.error`, `.info`, `.debug`) within the context provider.
-        *   Building the `DebugConsole` UI with features: toggleable display, scrollable log area, timestamped and typed log entries, search, type filtering, clear logs, export (JSON, TXT), and copy (JSON, TXT).
-        *   Ensuring `src/app/page.tsx` adjusts main content padding when the console is toggled to prevent overlap.
-    *   Deliverable: Fully functional client-side debug console.
-*   **Debug Task 2: Enhance Client-Side Debug Logging**
-    *   Action:
-        *   Propagate detailed Polygon adapter operational logs from `polygon-adapter.ts` (via `AdapterOutput.polygonAdapterDebugMessages`) to the client-side `DebugConsole` via `MainTabContent.tsx`.
-        *   Repurpose "Polygon API Request Log JSON" and "Polygon API Response Log JSON" in the Debug Tab to display high-level adapter input and output summaries.
-        *   Add extensive `console.debug()` trace statements throughout client-side components (display components, `MainTabContent`), context, and utility functions to log component lifecycle events, props, state changes, data parsing, user interactions, and action/flow processing steps.
-        *   Add/refine server-side `console.log` statements in server actions and AI flows for backend debugging.
-    *   Deliverable: Enriched client debug console output with detailed Polygon adapter logs and comprehensive client-side execution traces. Improved server-side logs.
-
----
 **Phase 6: Connecting "Main" Tab UI to Live Data (from "Debug" Tab JSONs)**
 *(Goal: Modify the "Main" Tab components to parse the JSON strings from the StockAnalysisProvider's state (which are displayed in the "Debug" Tab) and render formatted data. This is where the two tabs are functionally linked.)*
 *   **Task 6.1 (Enhanced): Update `KeyMetricsDisplay.tsx`, `StockSnapshotDetailsDisplay.tsx`, `MarketStatusDisplay.tsx`, `StandardTaDisplay.tsx`**
@@ -449,7 +427,10 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
         *   Ensure specific section export/copy controls on the Main Tab (e.g., Key Takeaways as Text/CSV, Options Table as CSV) are functional, re-formatting data from context JSONs.
         *   Ensure "Debug" Tab "Copy JSON" buttons are fully functional for each Textarea.
     *   Deliverable: Comprehensive data export/copy functionality across all specified sections.
-*   **Task 7.2: (Covered by Phase Debug) - `DebugConsole.tsx` Component**
+*   **Task 7.2: Implement `DebugConsole.tsx` Component** (Placeholder until implemented)
+    *   Action: Create and integrate `src/components/debug-console.tsx`. Specifications include: intercepting console logs, UI for display, filtering by type/category, search, export (JSON, TXT, CSV), copy (JSON, TXT, CSV), clear logs, toggle button, and ensuring main content padding adjusts.
+    *   Deliverable: Fully functional client-side debug console. (Mark as To Be Implemented)
+
 
 ---
 **Phase 8: Final Styling, Cleanup, Documentation & Review**
@@ -467,7 +448,6 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy. |
 | 1.1     | 2025-06-09   | Firebase Studio (AI Prototyper) | Integrated Gemini Model ID specification (Section 4.3.6) to prevent "Model not found" errors. Clarified model ID usage in Phase 0 & 5. |
 | 1.2     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Main Tab features (Sec 2.2) & Phase 6 tasks to reflect UI refinements (card order, ticker removal, market status filtering, options table styling), new combined data export controls, and sentiment color-coding from Task 6.1.6. |
-| 1.3     | 2025-06-10   | Firebase Studio (AI Prototyper) | Added "Phase Debug" for client-side debug console and enhanced logging. Updated relevant feature descriptions and phased plan. |
 
 ---
 ## Project Implementation Commit Log
@@ -510,30 +490,6 @@ Key Changes Implemented:
 2.  New Feature: Combined Data Export/Copy (`MainTabContent.tsx`, `lib/export-utils.ts`): Added "Export All Data to JSON" and "Copy All Data to JSON" buttons.
 3.  Sentiment-Based Font Color Coding (Main Tab Displays): Applied bullish/bearish font colors to Key Metrics, Snapshot Details, Standard TAs, AI TA, and AI Key Takeaways.
 These changes significantly improve organization, usability, and visual feedback.
-
----
-**Tag:** `Phase-Debug_Task-2` ([v0.6.1.7])
-
-**Subject:** `feat: Enhance client-side debug logging and integrate Polygon adapter logs (Debug Task 2)`
-
-**Details:**
-This commit completes the "Intermediate Debug Phase" by significantly enhancing client-side logging capabilities to improve troubleshooting and development efficiency.
-Key Changes Implemented (Debug Task 2):
-1.  Polygon Adapter Debug Logging Propagation:
-    *   `polygon-adapter.ts` now collects detailed operational logs.
-    *   These logs are propagated via `analyze-stock-server-action.ts` to `main-tab-content.tsx`.
-    *   `main-tab-content.tsx` injects these logs into the client-side `DebugConsole`.
-    *   Repurposed Debug Tab's "Polygon API Request/Response Log JSON" to show adapter input/output summaries.
-2.  Extensive Client-Side Debug Trace Statements:
-    *   Added numerous `console.debug()` statements throughout client-side components, context, and utilities.
-    *   Logs capture component lifecycle, props, state, parsing, interactions, and action processing.
-    *   Logs are prefixed for easy identification.
-3.  Server-Side Logging Enhancements:
-    *   Added/refined `console.log` in server actions and AI flows.
-4.  Context and Type Updates:
-    *   `StockAnalysisContext` now intercepts `console.debug`.
-    *   `AdapterOutput` type includes `polygonAdapterDebugMessages`.
-This comprehensive logging aims to provide a detailed trace of the application's execution flow.
 
 ---
 

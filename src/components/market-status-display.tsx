@@ -31,8 +31,8 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 };
 
 export function MarketStatusDisplay() {
-  const { marketStatusJson } = useStockAnalysis(); 
-  console.debug("[MarketStatusDisplay] Props received. marketStatusJson (start):", marketStatusJson.substring(0,100));
+  const { marketStatusJson } = useStockAnalysis();
+  // console.debug("[MarketStatusDisplay] Props received. marketStatusJson (start):", marketStatusJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -40,16 +40,16 @@ export function MarketStatusDisplay() {
 
   if (marketStatusJson && marketStatusJson !== '{}') {
     if (marketStatusJson.includes('"status": "initializing"') || marketStatusJson.includes('"status": "pending"')) {
-      console.debug("[MarketStatusDisplay] marketStatusJson is in pending/initializing state.");
+      // console.debug("[MarketStatusDisplay] marketStatusJson is in pending/initializing state.");
       isLoading = true;
     } else if (marketStatusJson.includes('"error":') || marketStatusJson.includes('"status": "skipped"')) {
-      console.warn("[MarketStatusDisplay] marketStatusJson indicates an error or skipped state.");
+      // console.warn("[MarketStatusDisplay] marketStatusJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(marketStatusJson) as MarketStatusData;
-        console.debug("[MarketStatusDisplay] Successfully parsed marketStatusJson:", data);
+        // console.debug("[MarketStatusDisplay] Successfully parsed marketStatusJson:", data);
         if (data && typeof data === 'object' && !data.error) {
           isLoading = false;
           isError = false;
@@ -68,30 +68,30 @@ export function MarketStatusDisplay() {
             Object.entries(data.currencies)
               .filter(([key]) => {
                 const lowerKey = key.toLowerCase();
-                return lowerKey !== 'crypto' && lowerKey !== 'fx';
+                return lowerKey !== 'crypto' && lowerKey !== 'fx'; // Filter out crypto and fx
               })
               .forEach(([key, value]) => {
                 details.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
               });
           }
         } else {
-           console.warn("[MarketStatusDisplay] Parsed marketStatusJson is not a valid object or contains error field.");
-           isLoading = false; 
+           // console.warn("[MarketStatusDisplay] Parsed marketStatusJson is not a valid object or contains error field.");
+           isLoading = false;
            isError = true;
-            if (data && (data as any).error) console.error("[MarketStatusDisplay] Market status data contains error field:", (data as any).error);
+            // if (data && (data as any).error) console.error("[MarketStatusDisplay] Market status data contains error field:", (data as any).error);
         }
       } catch (e) {
-        console.error("[MarketStatusDisplay] Failed to parse marketStatusJson:", e, "JSON:", marketStatusJson.substring(0,200));
+        // console.error("[MarketStatusDisplay] Failed to parse marketStatusJson:", e, "JSON:", marketStatusJson.substring(0,200));
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    console.debug("[MarketStatusDisplay] marketStatusJson is empty or null.");
+    // console.debug("[MarketStatusDisplay] marketStatusJson is empty or null.");
     isLoading = false;
   }
 
-  console.debug(`[MarketStatusDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
+  // console.debug(`[MarketStatusDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 3);
 
   return (

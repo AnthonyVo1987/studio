@@ -1,34 +1,33 @@
 
-'use client'; // Needs to be client component to use context for padding
+'use client';
 
 import { Header } from "@/components/layout/header";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+// import { Label } from "@/components/ui/label"; // No longer needed
+// import { Switch } from "@/components/ui/switch"; // No longer needed
 import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
-import { StockAnalysisProvider, useStockAnalysis, CONSOLE_HEIGHT } from "@/contexts/stock-analysis-context";
-import { DebugConsole } from "@/components/debug-console"; // Import DebugConsole
+import { StockAnalysisProvider } from "@/contexts/stock-analysis-context"; // Remove useStockAnalysis and CONSOLE_HEIGHT if they were only for debug console
+// import { DebugConsole } from "@/components/debug-console"; // No longer needed
 import { cn } from "@/lib/utils";
 
 function PageContent() {
-  const { 
-    isClientDebugConsoleOpen, 
-    isClientDebugConsoleEnabled, // Correctly destructure
-    setClientDebugConsoleEnabled // Correctly destructure
-  } = useStockAnalysis();
+  // Remove useStockAnalysis hook usage if it was only for debug console state
+  // const { isClientDebugConsoleOpen } = useStockAnalysis(); // Example, remove if not used elsewhere
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main 
+      <main
         className={cn(
           "flex-grow container mx-auto py-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ease-in-out"
         )}
-        style={{ paddingBottom: isClientDebugConsoleOpen ? `${CONSOLE_HEIGHT + 16}px` : '32px' }} // 16px buffer + console height or default padding
+        // Remove dynamic style for paddingBottom if it was only for debug console
+        // style={{ paddingBottom: isClientDebugConsoleOpen ? `${CONSOLE_HEIGHT + 16}px` : '32px' }}
       >
-        {/* Add the Switch control here */}
+        {/* Remove Switch control for debug console */}
+        {/*
         <div className="flex items-center space-x-2 mb-4">
           <Switch
             id="enable-debug-console"
@@ -36,6 +35,7 @@ function PageContent() {
             onCheckedChange={setClientDebugConsoleEnabled} />
           <Label htmlFor="enable-debug-console">Enable Debug Console</Label>
         </div>
+        */}
         <Tabs defaultValue="main" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="main">Main</TabsTrigger>
@@ -50,7 +50,8 @@ function PageContent() {
         </Tabs>
       </main>
       <Footer />
-      <DebugConsole /> {/* Add DebugConsole here so it's part of the layout */}
+      {/* Remove DebugConsole component */}
+      {/* <DebugConsole /> */}
     </div>
   );
 }
