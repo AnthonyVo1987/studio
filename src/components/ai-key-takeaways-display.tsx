@@ -92,7 +92,12 @@ export function AiKeyTakeawaysDisplay() {
         } else {
           logDebug('AiKeyTakeawaysDisplay', "Parsed aiKeyTakeawaysJson is missing priceAction or contains error/status field.");
           isLoading = false;
-          isError = true;
+          // isError = true; // Don't set to error if it's just not parseable yet but not an explicit error string
+          if(aiKeyTakeawaysJson && !aiKeyTakeawaysJson.includes('"status":') && !aiKeyTakeawaysJson.includes('"error":') && Object.keys(data).length === 0) {
+            // If it's valid JSON but empty, not an error, just no data
+          } else {
+            isError = true;
+          }
         }
       } catch (e) {
         console.error("[AiKeyTakeawaysDisplay] Failed to parse aiKeyTakeawaysJson:", e);
@@ -102,8 +107,8 @@ export function AiKeyTakeawaysDisplay() {
       }
     }
   } else {
-    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is empty or null.");
-    isLoading = false;
+    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is empty or null, implies loading or not yet fetched.");
+    isLoading = true; // If empty or null, and not explicitly error, assume it's loading/pending.
   }
 
   logDebug('AiKeyTakeawaysDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, displayTakeaways.length=${displayTakeaways.length}`);
@@ -147,3 +152,4 @@ export function AiKeyTakeawaysDisplay() {
     </Card>
   );
 }
+
