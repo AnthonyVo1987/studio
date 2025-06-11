@@ -19,39 +19,49 @@ import type {
 import { calculateNextFridayExpiration } from '@/lib/date-utils';
 import { formatToTwoDecimals } from '@/lib/number-utils';
 
-// Ensure Polygon API key is available
-if (!process.env.POLYGON_API_KEY) {
-  console.warn(
-    'POLYGON_API_KEY environment variable is not set. PolygonAdapter will not function.'
-  );
-}
-
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 class PolygonAdapter {
   private client: IRestClient;
+  private apiKeyValidForBasicCheck: boolean = false;
 
   constructor(apiKey?: string) {
     const keyToUse = apiKey || process.env.POLYGON_API_KEY;
-    if (!keyToUse) {
-      console.error('[StockSage Critical] Polygon API key is MISSING or EMPTY in constructor. PolygonAdapter will likely fail.');
-      // Provide a dummy key to prevent the client from throwing an immediate error,
-      // allowing the rest of the app to potentially load for debugging UI.
-      this.client = restClient("DUMMY_KEY_BECAUSE_ENV_VAR_IS_MISSING_OR_EMPTY");
-    } else {
-      const keyDisplay = `${keyToUse.substring(0, Math.min(5, keyToUse.length))}...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}`;
-      console.log(`[StockSage Debug] PolygonAdapter constructor attempting to use API key (Ends In): ...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}, Length: ${keyToUse.length}`);
-      this.client = restClient(keyToUse);
+
+    if (!keyToUse || keyToUse.trim() === "") {
+      const errorMessage = "[StockSage Critical Error] Polygon API key is MISSING or EMPTY. PolygonAdapter cannot be initialized correctly. Please set POLYGON_API_KEY environment variable.";
+      console.error(errorMessage);
+      // Initialize with a clearly invalid key. This should cause auth errors from Polygon.
+      this.client = restClient("INVALID_KEY_ADAPTER_INIT_FAILURE");
+      console.error("[StockSage Debug] Initializing Polygon client with INVALID_KEY_ADAPTER_INIT_FAILURE due to missing actual key.");
       
-      // Test call immediately after client initialization
       this.client.reference.marketHolidays({limit:1})
         .then(() => {
-          console.log("[StockSage Debug] Polygon constructor test call (marketHolidays) SUCCEEDED.");
+          console.error("[StockSage Debug] Polygon constructor test call with INVALID_KEY_ADAPTER_INIT_FAILURE unexpectedly SUCCEEDED. This is very odd.");
         })
         .catch(err => {
-          console.error("[StockSage Debug] Polygon constructor test call (marketHolidays) FAILED:", err);
+          const errorDetails = err as any;
+          console.log(`[StockSage Debug] Polygon constructor test call with INVALID_KEY_ADAPTER_INIT_FAILURE FAILED as expected: Status: ${errorDetails?.status}, Request ID: ${errorDetails?.request_id}, Message: ${errorDetails?.message}`);
         });
+      return; // Stop constructor if key is bad
     }
+    
+    // If keyToUse is present
+    const keyDisplay = `${keyToUse.substring(0, Math.min(5, keyToUse.length))}...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}`;
+    console.log(`[StockSage Debug] PolygonAdapter constructor attempting to use API key (Ends In): ...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}, Length: ${keyToUse.length}`);
+    this.client = restClient(keyToUse);
+    
+    // Test call immediately after client initialization with the actual key
+    this.client.reference.marketHolidays({limit:1})
+      .then(() => {
+        console.log("[StockSage Debug] Polygon constructor test call (marketHolidays) with actual key SUCCEEDED.");
+        this.apiKeyValidForBasicCheck = true;
+      })
+      .catch(err => {
+        const errorDetails = err as any;
+        console.error(`[StockSage Debug] Polygon constructor test call (marketHolidays) with actual key FAILED: Status: ${errorDetails?.status}, Request ID: ${errorDetails?.request_id}, Message: ${errorDetails?.message}`);
+        this.apiKeyValidForBasicCheck = false;
+      });
   }
 
   private mapToStockPriceData(
@@ -77,6 +87,14 @@ class PolygonAdapter {
     let currentStockPrice: number | undefined;
     const apiCallDelay = 100; // 100ms delay
 
+    if (!this.apiKeyValidForBasicCheck && process.env.POLYGON_API_KEY && process.env.POLYGON_API_KEY.trim() !== "" && process.env.POLYGON_API_KEY !== "INVALID_KEY_ADAPTER_INIT_FAILURE") {
+      // This implies the constructor's async test call might not have completed or failed.
+      // For critical operations, you might want to await this or handle it.
+      // For now, we'll proceed but note this state.
+      console.warn("[StockSage Debug] Proceeding with getFullStockData, but initial API key validity check (marketHolidays) may not have succeeded or completed yet.");
+    }
+
+
     try {
       // 1. Fetch Market Status
       try {
@@ -93,13 +111,19 @@ class PolygonAdapter {
       } catch (error: any) {
         const errorMessage = `Failed to fetch market status. Polygon client error: ${error.message || String(error)}`;
         console.error(`Error fetching market status from Polygon:`, error);
-        stockDataPackage.marketStatus = { error: errorMessage, rawError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))) } as any;
+        stockDataPackage.marketStatus = { error: errorMessage, rawErrorDetails: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request'))) } as any;
       }
       
       // 2. Fetch Ticker Snapshot (current day, prev day, current price)
       try {
         await delay(apiCallDelay);
-        const snapshotResponse = await this.client.stocks.snapshotTicker({ ticker });
+        // Use the minimal parameter for snapshotTicker as per library's primary use.
+        // The type definition is snapshotTicker(params: { ticker: string }): Promise<StocksSnapshot>;
+        // OR snapshotTicker(symbol: string, query?: SnapshotRequest): Promise<SnapshotResponse>;
+        // The { ticker: string } object form is often for the "all tickers snapshot".
+        // For a single ticker, just the symbol string is common. Let's try with just the ticker string.
+        const snapshotResponse = await this.client.stocks.snapshotTicker(ticker.toUpperCase());
+
         if (snapshotResponse.ticker) {
           const { day, prevDay, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
           currentStockPrice = lastTrade?.p ?? day?.c ?? prevDay?.c;
@@ -125,13 +149,9 @@ class PolygonAdapter {
         const polygonError = error as any; 
         if (polygonError.request_id) rawErrorDetails.requestId = polygonError.request_id;
         if (polygonError.status) rawErrorDetails.status = polygonError.status; 
-        if (polygonError.response && typeof polygonError.response === 'object') {
-            rawErrorDetails.responseStatus = polygonError.response.status;
-            rawErrorDetails.responseData = polygonError.response.data || polygonError.response.body;
-        }
-        
+        // Avoid circular structures or overly large objects like 'config' or 'request' from Axios
         for (const prop in polygonError) {
-            if (Object.prototype.hasOwnProperty.call(polygonError, prop) && typeof polygonError[prop] !== 'function') {
+            if (Object.prototype.hasOwnProperty.call(polygonError, prop) && typeof polygonError[prop] !== 'function' && prop !== 'config' && prop !== 'request') {
                 if (!rawErrorDetails[prop]) { 
                     rawErrorDetails[prop] = polygonError[prop];
                 }
@@ -139,7 +159,7 @@ class PolygonAdapter {
         }
         
         const errorMessage = `Failed to fetch snapshot for ${ticker}. ${detailedErrorMessage}`;
-        console.error(`Error fetching stock snapshot for ${ticker} from Polygon (Adapter):`, polygonError); 
+        console.error(`Error fetching stock snapshot for ${ticker} from Polygon (Adapter):`, JSON.stringify(rawErrorDetails, null, 2)); 
         stockDataPackage.stockSnapshot = { 
             error: errorMessage, 
             rawErrorDetails: rawErrorDetails 
@@ -183,7 +203,7 @@ class PolygonAdapter {
       } catch (error: any) {
           const errorMessage = `Failed to fetch TAs for ${ticker}. Polygon client error: ${error.message || String(error)}`;
           console.error(`Error fetching technical indicators for ${ticker} from Polygon:`, error);
-          stockDataPackage.technicalIndicators = { ...(stockDataPackage.technicalIndicators || {}), error: errorMessage, rawError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))) } as any;
+          stockDataPackage.technicalIndicators = { ...(stockDataPackage.technicalIndicators || {}), error: errorMessage, rawErrorDetails: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request'))) } as any;
       }
       
       // 4. Fetch Options Chain
@@ -254,12 +274,11 @@ class PolygonAdapter {
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${ticker}. Polygon client error: ${error.message || String(error)}`;
         console.error(`Error fetching options chain for ${ticker} from Polygon:`, error);
-        stockDataPackage.optionsChain = { error: errorMessage, rawError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))) } as any;
+        stockDataPackage.optionsChain = { error: errorMessage, rawErrorDetails: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request'))) } as any;
       }
 
       return {
         stockData: stockDataPackage,
-        // rawRequestParams and rawResponse are not populated by this adapter structure
       };
 
     } catch (error: any) {
@@ -269,7 +288,7 @@ class PolygonAdapter {
         stockData: {
           ...stockDataPackage,
           error: overallErrorMessage,
-          rawOverallError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+          rawOverallError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request')))
         } as StockDataPackage,
       };
     }
@@ -278,18 +297,7 @@ class PolygonAdapter {
 
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const apiKeyFromEnv = process.env.POLYGON_API_KEY;
-  if (!apiKeyFromEnv || apiKeyFromEnv.trim() === "") { 
-     console.error('[StockSage Critical] POLYGON_API_KEY environment variable is not set or is empty. Cannot fetch data from Polygon.');
-     return {
-       stockData: {
-         ticker,
-         error: 'Configuration Error: POLYGON_API_KEY environment variable is not set or is empty. Cannot fetch data.',
-       }
-     };
-  }
+  // No need to check apiKeyFromEnv here again, constructor handles it.
   const adapter = new PolygonAdapter(apiKeyFromEnv); 
   return adapter.getFullStockData(ticker);
 }
-    
-
-    
