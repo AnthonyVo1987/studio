@@ -85,7 +85,7 @@ interface StockAnalysisContextType extends StockAnalysisState {
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
 
 // Keep a reference to the original console methods
-const originalConsole = {
+const browserConsole = {
   log: typeof console !== 'undefined' ? console.log : () => {},
   warn: typeof console !== 'undefined' ? console.warn : () => {},
   error: typeof console !== 'undefined' ? console.error : () => {},
@@ -143,11 +143,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
   const [debugLogConfig, _setDebugLogConfig] = useState<DebugLogConfig>(defaultState.debugLogConfig);
 
+  const addClientLog = useCallback((log: Omit<LogEntry, 'id' | 'timestamp'>) => {
+    // This update is already deferred by queueMicrotask in the interceptor for application logs
+    _setClientLogs(prevLogs => [
+      ...prevLogs,
+      {
+        ...log,
+        id: Date.now().toString() + Math.random().toString(36).substring(2),
+        timestamp: new Date().toISOString(),
+      },
+    ].slice(-200));
+  }, []);
 
   const logDebug = useCallback((category: DebugLogCategory, ...messages: any[]) => {
     if (isClientDebugConsoleEnabled && debugLogConfig[category]) {
-      // This will be picked up by the interceptor which adds its own category handling
-      // for the clientLogs array. The native console will see the category prefix.
       console.debug(`[${category}]`, ...messages);
     }
   }, [isClientDebugConsoleEnabled, debugLogConfig]);
@@ -170,107 +179,61 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setChatbotRequestJson = (json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson', json);
   const setChatbotResponseJson = (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson', json);
 
-  const setFullAnalysisStatus = (status: FullAnalysisStatus) => {
-    _setFullAnalysisStatus(status);
-  };
-  const setIsFullAnalysisTriggered = (triggered: boolean) => {
-    _setIsFullAnalysisTriggered(triggered);
-  };
+  const setFullAnalysisStatus = (status: FullAnalysisStatus) => _setFullAnalysisStatus(status);
+  const setIsFullAnalysisTriggered = (triggered: boolean) => _setIsFullAnalysisTriggered(triggered);
+  const setChatHistory = (history: ChatMessage[]) => _setChatHistory(history);
+  const clearChatHistory = useCallback(() => _setChatHistory([]), []);
+  const addChatMessage = useCallback((message: ChatMessage) => _setChatHistory(prev => [...prev, message]), []);
 
-  const setChatHistory = (history: ChatMessage[]) => {
-    _setChatHistory(history);
-  };
-
-  const clearChatHistory = useCallback(() => {
-    _setChatHistory([]);
-  }, []);
-
-  const addChatMessage = useCallback((message: ChatMessage) => {
-    _setChatHistory(prev => [...prev, message]);
-  }, []);
-
-  // Debug Console Logic
-  const addClientLog = useCallback((log: Omit<LogEntry, 'id' | 'timestamp'>) => {
-    queueMicrotask(() => {
-      _setClientLogs(prevLogs => [
-        ...prevLogs,
-        {
-          ...log,
-          id: Date.now().toString() + Math.random().toString(36).substring(2),
-          timestamp: new Date().toISOString(),
-        },
-      ].slice(-200)); 
-    });
-  }, []);
-
-  const clearClientLogs = useCallback(() => {
-    _setClientLogs([]);
-  }, []);
-
+  const clearClientLogs = useCallback(() => _setClientLogs([]), []);
   const setClientDebugConsoleEnabled = (enabled: boolean) => {
     _setClientDebugConsoleEnabled(enabled);
-    if (!enabled) { 
-        _setClientDebugConsoleOpen(false);
-    }
+    if (!enabled) _setClientDebugConsoleOpen(false);
   };
   const setClientDebugConsoleOpen = (open: boolean) => {
-    if (isClientDebugConsoleEnabled || !open) { 
-        _setClientDebugConsoleOpen(open);
-    }
+    if (isClientDebugConsoleEnabled || !open) _setClientDebugConsoleOpen(open);
   };
-  
   const setDebugLogCategoryEnabled = useCallback((category: DebugLogCategory, enabled: boolean) => {
-    _setDebugLogConfig(prevConfig => ({
-      ...prevConfig,
-      [category]: enabled,
-    }));
+    _setDebugLogConfig(prevConfig => ({ ...prevConfig, [category]: enabled }));
   }, []);
-
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isClientDebugConsoleEnabled) {
-      // If disabling, ensure originals are restored if they were ever changed
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
         delete (console as any).__stockSageOriginals;
-        originalConsole.debug('[DebugConsoleInterceptor] Console interception disabled, originals restored.');
+        browserConsole.debug('[DebugConsoleInterceptor] Console interception disabled, originals restored.');
       }
       return;
     }
 
-    // Store originals if not already stored
     if (!(console as any).__stockSageOriginals) {
-      (console as any).__stockSageOriginals = {
-        log: console.log,
-        warn: console.warn,
-        error: console.error,
-        info: console.info,
-        debug: console.debug,
-      };
+      (console as any).__stockSageOriginals = { ...browserConsole };
     }
-    
     const currentOriginals = (console as any).__stockSageOriginals;
 
     const interceptAndLog = (type: LogEntry['type'], ...args: any[]) => {
-      if (args.some(arg => typeof arg === 'string' && arg.startsWith('[DebugConsoleInterceptor]'))) {
-        currentOriginals[type](...args);
+      const isSelfLog = args.some(arg => typeof arg === 'string' && arg.startsWith('[DebugConsoleInterceptor]'));
+
+      if (isSelfLog) {
+        currentOriginals[type](...args); // Interceptor's own logs go directly to native console
         return;
       }
       
-      let categoryForLog: DebugLogCategory | undefined = undefined;
-      let messagesForLog = args;
-
-      // Special handling for our new logDebug, which passes category as the first arg to console.debug
-      if (type === 'debug' && args.length > 0 && typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
-          const potentialCategoryKey = args[0].substring(1, args[0].length - 1);
-          if (Object.values(DebugLogCategory).includes(potentialCategoryKey as DebugLogCategory)) {
-            categoryForLog = potentialCategoryKey as DebugLogCategory;
-            messagesForLog = args.slice(1); // Remove the category prefix from messages
-          }
-      }
-      
-      addClientLog({ type, messages: messagesForLog, category: categoryForLog });
-      currentOriginals[type](...args); // Call original console method
+      // For application logs, queue both adding to our UI log and calling the original console
+      queueMicrotask(() => {
+        let categoryForLog: DebugLogCategory | undefined = undefined;
+        let messagesForLog = args;
+        if (type === 'debug' && args.length > 0 && typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
+            const potentialCategoryKey = args[0].substring(1, args[0].length - 1);
+            if (Object.values(DebugLogCategory).includes(potentialCategoryKey as DebugLogCategory)) {
+              categoryForLog = potentialCategoryKey as DebugLogCategory;
+              messagesForLog = args.slice(1);
+            }
+        }
+        addClientLog({ type, messages: messagesForLog, category: categoryForLog });
+        currentOriginals[type](...args);
+      });
     };
 
     console.log = (...args) => interceptAndLog('log', ...args);
@@ -285,11 +248,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
         delete (console as any).__stockSageOriginals;
-        currentOriginals.debug('[DebugConsoleInterceptor] Console interception disabled on cleanup, originals restored.');
+        browserConsole.debug('[DebugConsoleInterceptor] Console interception disabled on cleanup, originals restored.');
       }
     };
-  }, [isClientDebugConsoleEnabled, addClientLog, debugLogConfig]);
-
+  }, [isClientDebugConsoleEnabled, addClientLog, debugLogConfig]); // debugLogConfig added as it's used in logDebug, which is called by setAndLogJson
 
   const contextValue: StockAnalysisContextType = {
     polygonApiRequestLogJson, setPolygonApiRequestLogJson,
@@ -304,23 +266,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiKeyTakeawaysJson, setAiKeyTakeawaysJson,
     chatbotRequestJson, setChatbotRequestJson,
     chatbotResponseJson, setChatbotResponseJson,
-
     fullAnalysisStatus, setFullAnalysisStatus,
     isFullAnalysisTriggered, setIsFullAnalysisTriggered,
     chatHistory, setChatHistory,
-    clearChatHistory,
-    addChatMessage,
-
-    clientLogs,
-    isClientDebugConsoleEnabled,
-    isClientDebugConsoleOpen,
-    debugLogConfig,
-    addClientLog,
-    clearClientLogs,
-    setClientDebugConsoleEnabled,
-    setClientDebugConsoleOpen,
-    setDebugLogCategoryEnabled,
-    logDebug,
+    clearChatHistory, addChatMessage,
+    clientLogs, isClientDebugConsoleEnabled, isClientDebugConsoleOpen,
+    debugLogConfig, addClientLog, clearClientLogs,
+    setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
+    setDebugLogCategoryEnabled, logDebug,
   };
 
   return (
