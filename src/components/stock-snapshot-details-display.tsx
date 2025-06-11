@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockSnapshotData, StockPriceData } from "@/services/data-sources/types";
-import { formatCurrency, formatToTwoDecimals, formatCompactNumber, formatPercentage } from "@/lib/number-utils"; // Added formatPercentage
+import { formatCurrency, formatToTwoDecimals, formatCompactNumber, formatPercentage } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface StockDetailItem {
   label: string;
   value: string | null;
+  isCritical?: boolean; // Optional flag for styling
 }
 
 const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolean) => {
@@ -49,28 +50,43 @@ export function StockSnapshotDetailsDisplay() {
   } else {
     try {
       const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-      if (data && typeof data === 'object' && !data.error && data.ticker) { // Check for ticker as a sign of valid data
+      if (data && typeof data === 'object' && !data.error && data.ticker) { 
         isLoading = false;
         parsedSnapshotData = data;
-        const formatPriceData = (pd?: StockPriceData, prefix: string = "") => [
-          { label: `${prefix} Open`, value: formatCurrency(pd?.o) },
-          { label: `${prefix} High`, value: formatCurrency(pd?.h) },
-          { label: `${prefix} Low`, value: formatCurrency(pd?.l) },
-          { label: `${prefix} Close`, value: formatCurrency(pd?.c) },
-          { label: `${prefix} Volume`, value: formatCompactNumber(pd?.v) },
-          { label: `${prefix} VWAP`, value: formatCurrency(pd?.vw) },
+        
+        const criticalDetails: StockDetailItem[] = [
+          { label: "Current Price", value: formatCurrency(parsedSnapshotData.currentPrice), isCritical: true },
+          { label: "Today's Change %", value: formatPercentage(parsedSnapshotData.todaysChangePerc, "N/A", true), isCritical: true },
+          { label: "Today's Change", value: formatCurrency(parsedSnapshotData.todaysChange), isCritical: true },
+          { label: "Day's VWAP", value: formatCurrency(parsedSnapshotData.day?.vw), isCritical: true },
+          { label: "Day's Volume", value: formatCompactNumber(parsedSnapshotData.day?.v), isCritical: true },
+          { label: "Day's Close", value: formatCurrency(parsedSnapshotData.day?.c), isCritical: true },
+        ];
+        
+        const dayDetails: StockDetailItem[] = [
+          { label: "Day's Open", value: formatCurrency(parsedSnapshotData.day?.o) },
+          { label: "Day's High", value: formatCurrency(parsedSnapshotData.day?.h) },
+          { label: "Day's Low", value: formatCurrency(parsedSnapshotData.day?.l) },
+          // VWAP, Volume, Close are already in criticalDetails
+        ];
+
+        const prevDayDetails: StockDetailItem[] = [
+          { label: "Prev. Open", value: formatCurrency(parsedSnapshotData.prevDay?.o) },
+          { label: "Prev. High", value: formatCurrency(parsedSnapshotData.prevDay?.h) },
+          { label: "Prev. Low", value: formatCurrency(parsedSnapshotData.prevDay?.l) },
+          { label: "Prev. Close", value: formatCurrency(parsedSnapshotData.prevDay?.c) },
+          { label: "Prev. Volume", value: formatCompactNumber(parsedSnapshotData.prevDay?.v) },
+          { label: "Prev. VWAP", value: formatCurrency(parsedSnapshotData.prevDay?.vw) },
         ];
 
         details = [
+          ...criticalDetails,
           { label: "Ticker", value: parsedSnapshotData.ticker || "N/A" },
-          ...formatPriceData(parsedSnapshotData.prevDay, "Prev."),
-          ...formatPriceData(parsedSnapshotData.day, "Day's"),
-          { label: "Today's Change", value: formatCurrency(parsedSnapshotData.todaysChange) },
-          { label: "Today's Change %", value: formatPercentage(parsedSnapshotData.todaysChangePerc, "N/A", true) }, // Value is already a percentage
-          { label: "Current Price (from Snapshot)", value: formatCurrency(parsedSnapshotData.currentPrice) },
+          ...dayDetails.filter(d => !criticalDetails.find(cd => cd.label.startsWith(d.label.split(" ")[0]))), // Avoid duplication
+          ...prevDayDetails,
+          // Removed "Current Price (from Snapshot)" as it's now at the top
         ];
       } else {
-        // If not loading, and data is not in expected format or has an error property
         isError = true; 
         isLoading = false;
       }
@@ -81,7 +97,7 @@ export function StockSnapshotDetailsDisplay() {
     }
   }
   
-  const placeholderRows = 8; 
+  const placeholderRowCount = 12; // Adjusted for more items
 
   return (
     <Card>
@@ -93,7 +109,7 @@ export function StockSnapshotDetailsDisplay() {
         <Table>
           <TableBody>
             {isLoading 
-              ? Array.from({ length: placeholderRows }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
+              ? Array.from({ length: placeholderRowCount }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
               : isError || !parsedSnapshotData
                 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Snapshot data not available.</TableCell></TableRow>
                 : details.map((item, index) => renderDetailRow(item, index, false))}

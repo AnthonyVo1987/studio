@@ -4,6 +4,24 @@
  */
 
 /**
+ * Rounds a number to a specified number of decimal places.
+ * Returns the number type.
+ * @param {number | null | undefined} value The number to round.
+ * @param {number} decimalPlaces The number of decimal places. Defaults to 2.
+ * @returns {number | null | undefined} The rounded number or original value if not a number.
+ */
+export function roundNumber(value: number | string | null | undefined, decimalPlaces: number = 2): number | null | undefined {
+  if (value === null || value === undefined) return undefined; // Return undefined for consistency with how missing values are often handled
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (typeof num !== 'number' || isNaN(num)) {
+    return undefined; 
+  }
+  const factor = Math.pow(10, decimalPlaces);
+  return Math.round(num * factor) / factor;
+}
+
+
+/**
  * Formats a number to a string with a specified number of decimal places.
  * If the input is null or undefined, or not a valid number,
  * it returns "N/A" or a specified placeholder.
@@ -17,14 +35,11 @@ export function formatNumber(
   decimalPlaces: number = 2,
   placeholder: string = "N/A"
 ): string {
-  if (value === null || value === undefined) {
+  const roundedValue = roundNumber(value, decimalPlaces);
+  if (roundedValue === undefined || roundedValue === null) { // Check for undefined explicitly due to roundNumber change
     return placeholder;
   }
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (typeof num !== 'number' || isNaN(num)) {
-    return placeholder;
-  }
-  return num.toFixed(decimalPlaces);
+  return roundedValue.toFixed(decimalPlaces);
 }
 
 
@@ -72,16 +87,15 @@ export function formatCurrency(
 
   let formattedNumStr;
   if (isStrikePrice) {
-    if (num % 1 === 0) { // Whole number
+    if (num % 1 === 0) { 
       formattedNumStr = num.toFixed(0);
-    } else { // Has decimals
-      // Show one decimal if it's like X.5, two otherwise up to 2.
+    } else { 
       const s = num.toString();
       const decimalPart = s.split('.')[1];
-      if (decimalPart && decimalPart.length === 1 && decimalPart === '5') {
+      if (decimalPart && decimalPart.length === 1 && (decimalPart === '5' || decimalPart === '0')) { // Handle X.5 or X.0 correctly
         formattedNumStr = num.toFixed(1);
       } else {
-        formattedNumStr = num.toFixed(2); // Default to 2 for other decimal strikes
+        formattedNumStr = num.toFixed(2); 
       }
     }
   } else {
@@ -119,6 +133,7 @@ export function formatPercentage(
   if (!alreadyPercent) {
     num = num * 100;
   }
+  // Round to whole number for display as per request (IV and % Chg)
   return `${Math.round(num)}%`;
 }
 
@@ -146,31 +161,16 @@ export function formatCompactNumber(
   const absValue = Math.abs(num);
   let formattedNum;
 
-  if (absValue < 1e3) { // Less than 1,000
+  if (absValue < 1e3) { 
     formattedNum = num.toFixed(0); 
-  } else if (absValue < 1e6) { // Thousands
+  } else if (absValue < 1e6) { 
     formattedNum = (num / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
-  } else if (absValue < 1e9) { // Millions
+  } else if (absValue < 1e9) { 
     formattedNum = (num / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
-  } else if (absValue < 1e12) { // Billions
+  } else if (absValue < 1e12) { 
     formattedNum = (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
-  } else { // Trillions
+  } else { 
     formattedNum = (num / 1e12).toFixed(1).replace(/\.0$/, '') + 'T';
   }
   return formattedNum;
-}
-
-/**
- * Rounds a number to a specified number of decimal places.
- * Returns the number type.
- * @param {number | null | undefined} value The number to round.
- * @param {number} decimalPlaces The number of decimal places. Defaults to 2.
- * @returns {number | null | undefined} The rounded number or original value if not a number.
- */
-export function roundNumber(value: number | null | undefined, decimalPlaces: number = 2): number | null | undefined {
-  if (typeof value !== 'number' || isNaN(value)) {
-    return value; // Return as is if not a valid number
-  }
-  const factor = Math.pow(10, decimalPlaces);
-  return Math.round(value * factor) / factor;
 }

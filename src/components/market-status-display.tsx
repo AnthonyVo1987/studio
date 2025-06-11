@@ -31,17 +31,15 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 };
 
 export function MarketStatusDisplay() {
-  const { marketStatusJson, aiCalculatedTaJson } = useStockAnalysis(); // aiCalculatedTaJson as proxy for loading chain
+  const { marketStatusJson } = useStockAnalysis(); 
 
-  let isLoading = true;
+  let isLoading = false;
   let isError = false;
   let details: MarketDetailItem[] = [];
 
   if (
     marketStatusJson.includes('"status": "initializing"') ||
-    marketStatusJson.includes('"status": "pending"') ||
-    aiCalculatedTaJson.includes('"status": "pending"') || 
-    aiCalculatedTaJson.includes('"status": "initializing"')
+    marketStatusJson.includes('"status": "pending"')
   ) {
     isLoading = true;
   } else if (marketStatusJson.includes('"error":') || marketStatusJson.includes('"status": "skipped"')) {
@@ -63,10 +61,13 @@ export function MarketStatusDisplay() {
             details.push({ label: `${key.toUpperCase()} Exchange`, value: value?.toUpperCase() || "N/A" });
           });
         }
+        // Filter out crypto and fx from currencies
         if (data.currencies) {
-          Object.entries(data.currencies).forEach(([key, value]) => {
-            details.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
-          });
+          Object.entries(data.currencies)
+            .filter(([key]) => key.toLowerCase() !== 'crypto' && key.toLowerCase() !== 'fx')
+            .forEach(([key, value]) => {
+              details.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
+            });
         }
       } else {
         isError = true;
@@ -79,7 +80,7 @@ export function MarketStatusDisplay() {
     }
   }
 
-  const placeholderRows = 5; 
+  const placeholderRows = 3; // Adjusted based on typical output after filtering
 
   return (
     <Card>
@@ -94,7 +95,9 @@ export function MarketStatusDisplay() {
               ? Array.from({ length: placeholderRows }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
               : isError
                 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Market status data not available.</TableCell></TableRow>
-                : details.map((item, index) => renderDetailRow(item, index, false))}
+                : details.length > 0 
+                    ? details.map((item, index) => renderDetailRow(item, index, false))
+                    : <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">No applicable market status to display.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </CardContent>
