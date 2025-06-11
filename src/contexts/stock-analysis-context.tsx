@@ -144,7 +144,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [debugLogConfig, _setDebugLogConfig] = useState<DebugLogConfig>(defaultState.debugLogConfig);
 
 
+  const logDebug = useCallback((category: DebugLogCategory, ...messages: any[]) => {
+    if (isClientDebugConsoleEnabled && debugLogConfig[category]) {
+      // This will be picked up by the interceptor which adds its own category handling
+      // for the clientLogs array. The native console will see the category prefix.
+      console.debug(`[${category}]`, ...messages);
+    }
+  }, [isClientDebugConsoleEnabled, debugLogConfig]);
+
   const setAndLogJson = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
+    logDebug(DebugLogCategory.CONTEXT_INTERNALS, `Setting ${name} to:`, value.substring(0, 100));
     setter(value);
   };
 
@@ -217,13 +226,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const logDebug = useCallback((category: DebugLogCategory, ...messages: any[]) => {
-    if (isClientDebugConsoleEnabled && debugLogConfig[category]) {
-      // This will be picked up by the interceptor
-      console.debug(`[${category}]`, ...messages);
-    }
-  }, [isClientDebugConsoleEnabled, debugLogConfig]);
-
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isClientDebugConsoleEnabled) {
@@ -249,7 +251,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     
     const currentOriginals = (console as any).__stockSageOriginals;
 
-    const interceptAndLog = (type: LogEntry['type'], categoryOverride: DebugLogCategory | null, ...args: any[]) => {
+    const interceptAndLog = (type: LogEntry['type'], ...args: any[]) => {
       if (args.some(arg => typeof arg === 'string' && arg.startsWith('[DebugConsoleInterceptor]'))) {
         currentOriginals[type](...args);
         return;
@@ -260,9 +262,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       // Special handling for our new logDebug, which passes category as the first arg to console.debug
       if (type === 'debug' && args.length > 0 && typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
-          const potentialCategory = args[0].substring(1, args[0].length - 1) as DebugLogCategory;
-          if (Object.values(DebugLogCategory).includes(potentialCategory)) {
-            categoryForLog = potentialCategory;
+          const potentialCategoryKey = args[0].substring(1, args[0].length - 1);
+          if (Object.values(DebugLogCategory).includes(potentialCategoryKey as DebugLogCategory)) {
+            categoryForLog = potentialCategoryKey as DebugLogCategory;
             messagesForLog = args.slice(1); // Remove the category prefix from messages
           }
       }
@@ -271,11 +273,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       currentOriginals[type](...args); // Call original console method
     };
 
-    console.log = (...args) => interceptAndLog('log', null, ...args);
-    console.warn = (...args) => interceptAndLog('warn', null, ...args);
-    console.error = (...args) => interceptAndLog('error', null, ...args);
-    console.info = (...args) => interceptAndLog('info', null, ...args);
-    console.debug = (...args) => interceptAndLog('debug', null, ...args); // The logDebug utility will ensure category is handled
+    console.log = (...args) => interceptAndLog('log', ...args);
+    console.warn = (...args) => interceptAndLog('warn', ...args);
+    console.error = (...args) => interceptAndLog('error', ...args);
+    console.info = (...args) => interceptAndLog('info', ...args);
+    console.debug = (...args) => interceptAndLog('debug', ...args);
     
     currentOriginals.debug('[DebugConsoleInterceptor] Console interception enabled.');
 
@@ -286,7 +288,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         currentOriginals.debug('[DebugConsoleInterceptor] Console interception disabled on cleanup, originals restored.');
       }
     };
-  }, [isClientDebugConsoleEnabled, addClientLog, debugLogConfig]); // Added debugLogConfig here
+  }, [isClientDebugConsoleEnabled, addClientLog, debugLogConfig]);
 
 
   const contextValue: StockAnalysisContextType = {
