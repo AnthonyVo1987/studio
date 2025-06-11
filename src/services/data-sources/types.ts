@@ -52,38 +52,46 @@ export interface TechnicalIndicatorsData {
   [key: string]: any; 
 }
 
-// For individual option contract details (streamlined)
+// For individual option contract details (streamlined based on snapshotOptionChain)
 export interface StreamlinedOptionContract {
   strike_price: number;
   option_type: 'call' | 'put'; 
-  gamma?: number | null;
-  iv?: number | null; 
-  percent_change?: number | null; 
-  bid?: number | null;
-  ask?: number | null;
-  last_price?: number | null; 
-  volume?: number | null;
-  open_interest?: number | null;
-  delta?: number | null;
-  theta?: number | null;
-  vega?: number | null;
-  rho?: number | null;
-  bid_size?: number | null;
-  ask_size?: number | null;
-  change?: number | null; 
   contract_name?: string; 
   primary_exchange?: string;
   underlying_ticker?: string; 
-  break_even_price?: number | null;
+
+  // Fields from Polygon's SnapshotOptionContract (result items from snapshotOptionChain)
+  iv?: number | null;                 // from result.implied_volatility
+  last_price?: number | null;         // from result.day.close (snapshot uses day.close)
+  change?: number | null;             // from result.day.change
+  percent_change?: number | null;     // from result.day.change_percent
+  volume?: number | null;             // from result.day.volume
+  open_interest?: number | null;      // from result.open_interest
+  break_even_price?: number | null;   // from result.details.break_even_price
+
+  // Greeks from result.greeks
+  delta?: number | null;
+  gamma?: number | null;
+  theta?: number | null;
+  vega?: number | null;
+  rho?: number | null; // Often not present or less critical for display
+
+  // Bid/Ask are NOT typically in snapshotOptionChain results directly.
+  // If needed, they would come from a quotes endpoint. For now, mark as optional/nullable.
+  bid?: number | null;
+  ask?: number | null;
+  bid_size?: number | null;
+  ask_size?: number | null;
+  
   [key: string]: any; 
 }
 
 
 // Representing a row in the options chain table as designed
 export interface OptionsTableRow {
-  call?: Partial<StreamlinedOptionContract>;
+  call?: StreamlinedOptionContract; // Changed from Partial to allow full object or undefined
   strike: number;
-  put?: Partial<StreamlinedOptionContract>;
+  put?: StreamlinedOptionContract; // Changed from Partial
 }
 
 // For the entire options chain for a specific expiration
@@ -97,12 +105,12 @@ export interface OptionsChainData {
 
 // Comprehensive structure for all fetched stock data
 export interface StockDataPackage {
-  ticker: string; // Ensure ticker is always present at the top level
+  ticker: string; 
   marketStatus?: MarketStatusData | { error?: string; rawErrorDetails?: any };
   stockSnapshot?: StockSnapshotData | { error?: string; rawErrorDetails?: any };
   technicalIndicators?: TechnicalIndicatorsData | { error?: string; rawErrorDetails?: any };
   optionsChain?: OptionsChainData | { error?: string; rawErrorDetails?: any };
-  error?: string; // Top-level error for the entire package if something catastrophic happens
+  error?: string; 
   rawOverallError?: any;
   [key: string]: any;
 }

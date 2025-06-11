@@ -31,7 +31,6 @@ class PolygonAdapter {
     if (!keyToUse || keyToUse.trim() === "") {
       const errorMessage = "[StockSage Critical Error] Polygon API key is MISSING or EMPTY. PolygonAdapter cannot be initialized correctly. Please set POLYGON_API_KEY environment variable.";
       console.error(errorMessage);
-      // Initialize with a clearly invalid key. This should cause auth errors from Polygon.
       this.client = restClient("INVALID_KEY_ADAPTER_INIT_FAILURE");
       console.error("[StockSage Debug] Initializing Polygon client with INVALID_KEY_ADAPTER_INIT_FAILURE due to missing actual key.");
       
@@ -43,15 +42,13 @@ class PolygonAdapter {
           const errorDetails = err as any;
           console.log(`[StockSage Debug] Polygon constructor test call with INVALID_KEY_ADAPTER_INIT_FAILURE FAILED as expected: Status: ${errorDetails?.status}, Request ID: ${errorDetails?.request_id}, Message: ${errorDetails?.message}`);
         });
-      return; // Stop constructor if key is bad
+      return; 
     }
     
-    // If keyToUse is present
     const keyDisplay = `${keyToUse.substring(0, Math.min(5, keyToUse.length))}...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}`;
     console.log(`[StockSage Debug] PolygonAdapter constructor attempting to use API key (Ends In): ...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}, Length: ${keyToUse.length}`);
     this.client = restClient(keyToUse);
     
-    // Test call immediately after client initialization with the actual key
     this.client.reference.marketHolidays({limit:1})
       .then(() => {
         console.log("[StockSage Debug] Polygon constructor test call (marketHolidays) with actual key SUCCEEDED.");
@@ -85,15 +82,11 @@ class PolygonAdapter {
       ticker,
     };
     let currentStockPrice: number | undefined;
-    const apiCallDelay = 100; // 100ms delay
+    const apiCallDelay = 100; 
 
     if (!this.apiKeyValidForBasicCheck && process.env.POLYGON_API_KEY && process.env.POLYGON_API_KEY.trim() !== "" && process.env.POLYGON_API_KEY !== "INVALID_KEY_ADAPTER_INIT_FAILURE") {
-      // This implies the constructor's async test call might not have completed or failed.
-      // For critical operations, you might want to await this or handle it.
-      // For now, we'll proceed but note this state.
       console.warn("[StockSage Debug] Proceeding with getFullStockData, but initial API key validity check (marketHolidays) may not have succeeded or completed yet.");
     }
-
 
     try {
       // 1. Fetch Market Status
@@ -117,11 +110,6 @@ class PolygonAdapter {
       // 2. Fetch Ticker Snapshot (current day, prev day, current price)
       try {
         await delay(apiCallDelay);
-        // Use the minimal parameter for snapshotTicker as per library's primary use.
-        // The type definition is snapshotTicker(params: { ticker: string }): Promise<StocksSnapshot>;
-        // OR snapshotTicker(symbol: string, query?: SnapshotRequest): Promise<SnapshotResponse>;
-        // The { ticker: string } object form is often for the "all tickers snapshot".
-        // For a single ticker, just the symbol string is common. Let's try with just the ticker string.
         const snapshotResponse = await this.client.stocks.snapshotTicker(ticker.toUpperCase());
 
         if (snapshotResponse.ticker) {
@@ -143,13 +131,10 @@ class PolygonAdapter {
       } catch (error: any) {
         let detailedErrorMessage = `Polygon client error: ${error.message || String(error)}`;
         const rawErrorDetails: any = { message: error.message || String(error) }; 
-
         if (error.stack) rawErrorDetails.stack = error.stack.substring(0, 500);
-        
         const polygonError = error as any; 
         if (polygonError.request_id) rawErrorDetails.requestId = polygonError.request_id;
         if (polygonError.status) rawErrorDetails.status = polygonError.status; 
-        // Avoid circular structures or overly large objects like 'config' or 'request' from Axios
         for (const prop in polygonError) {
             if (Object.prototype.hasOwnProperty.call(polygonError, prop) && typeof polygonError[prop] !== 'function' && prop !== 'config' && prop !== 'request') {
                 if (!rawErrorDetails[prop]) { 
@@ -157,13 +142,9 @@ class PolygonAdapter {
                 }
             }
         }
-        
         const errorMessage = `Failed to fetch snapshot for ${ticker}. ${detailedErrorMessage}`;
         console.error(`Error fetching stock snapshot for ${ticker} from Polygon (Adapter):`, JSON.stringify(rawErrorDetails, null, 2)); 
-        stockDataPackage.stockSnapshot = { 
-            error: errorMessage, 
-            rawErrorDetails: rawErrorDetails 
-        } as any;
+        stockDataPackage.stockSnapshot = { error: errorMessage, rawErrorDetails: rawErrorDetails } as any;
       }
 
       // 3. Fetch Standard Technical Indicators (RSI, EMA, SMA, MACD) & map VWAP from snapshot
@@ -176,28 +157,20 @@ class PolygonAdapter {
         } else {
             technicalIndicators.VWAP = { error: "VWAP not available, snapshot data missing or incomplete." } as any;
         }
-
         await delay(apiCallDelay);
-        const rsiRes = await this.client.stocks.rsi(ticker, { timespan: 'day', window: 14, series_type: 'close', limit: 1 });
+        const rsiRes = await this.client.stocks.rsi(ticker.toUpperCase(), { timespan: 'day', window: 14, series_type: 'close', limit: 1 });
         if (rsiRes.results?.values?.[0]?.value) technicalIndicators.RSI = { value: rsiRes.results.values[0].value };
-
         await delay(apiCallDelay);
-        const emaRes = await this.client.stocks.ema(ticker, { timespan: 'day', window: 20, series_type: 'close', limit: 1 });
+        const emaRes = await this.client.stocks.ema(ticker.toUpperCase(), { timespan: 'day', window: 20, series_type: 'close', limit: 1 });
         if (emaRes.results?.values?.[0]?.value) technicalIndicators.EMA = { value: emaRes.results.values[0].value };
-        
         await delay(apiCallDelay);
-        const smaRes = await this.client.stocks.sma(ticker, { timespan: 'day', window: 50, series_type: 'close', limit: 1 });
+        const smaRes = await this.client.stocks.sma(ticker.toUpperCase(), { timespan: 'day', window: 50, series_type: 'close', limit: 1 });
         if (smaRes.results?.values?.[0]?.value) technicalIndicators.SMA = { value: smaRes.results.values[0].value };
-
         await delay(apiCallDelay);
-        const macdRes = await this.client.stocks.macd(ticker, { timespan: 'day', series_type: 'close', limit: 1 });
+        const macdRes = await this.client.stocks.macd(ticker.toUpperCase(), { timespan: 'day', series_type: 'close', limit: 1 });
         if (macdRes.results?.values?.[0]) {
           const macdValue = macdRes.results.values[0];
-          technicalIndicators.MACD = {
-            value: macdValue.value,
-            signal: macdValue.signal,
-            histogram: macdValue.histogram,
-          };
+          technicalIndicators.MACD = { value: macdValue.value, signal: macdValue.signal, histogram: macdValue.histogram };
         }
         stockDataPackage.technicalIndicators = technicalIndicators;
       } catch (error: any) {
@@ -206,66 +179,118 @@ class PolygonAdapter {
           stockDataPackage.technicalIndicators = { ...(stockDataPackage.technicalIndicators || {}), error: errorMessage, rawErrorDetails: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request'))) } as any;
       }
       
-      // 4. Fetch Options Chain
+      // 4. Fetch Options Chain using snapshotOptionChain
       try {
         if (currentStockPrice !== undefined) { 
           await delay(apiCallDelay);
           const expirationDate = calculateNextFridayExpiration();
-          const optionsChainResponse = await this.client.reference.optionsContracts({
-            underlying_ticker: ticker,
+          // Define a strike price window (e.g., +/- 20% of current price, or a fixed number of strikes)
+          const strikePriceWindowPercentage = 0.20; // 20%
+          const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
+          const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
+
+          const commonOptionsParams = {
+            // underlying_ticker: ticker.toUpperCase(), // Not needed for snapshotOptionChain as ticker is the first arg
             expiration_date: expirationDate,
-            limit: 1000, 
+            "strike_price.gte": formatToTwoDecimals(lowerStrikeBound, "0"),
+            "strike_price.lte": formatToTwoDecimals(upperStrikeBound, "0"),
+            limit: 250, // Fetch a generous limit to ensure we get enough strikes. Max is 250 for snapshot.
+            // order: "asc", // Default is asc by strike price
+            // sort: "strike_price" // Default
+          };
+
+          // Fetch Calls
+          const callsSnapshot = await this.client.options.snapshotOptionChain(ticker.toUpperCase(), {
+            ...commonOptionsParams,
+            contract_type: 'call',
+          });
+          await delay(apiCallDelay);
+
+          // Fetch Puts
+          const putsSnapshot = await this.client.options.snapshotOptionChain(ticker.toUpperCase(), {
+            ...commonOptionsParams,
+            contract_type: 'put',
+          });
+          
+          const allStrikes = new Set<number>();
+          const callDataByStrike = new Map<number, any>();
+          const putDataByStrike = new Map<number, any>();
+
+          (callsSnapshot.results || []).forEach(contract => {
+            const strike = contract.details.strike_price;
+            allStrikes.add(strike);
+            callDataByStrike.set(strike, contract);
           });
 
-          const allContracts: StreamlinedOptionContract[] = (optionsChainResponse.results || []).map(contract => ({
-            strike_price: contract.strike_price as number,
-            option_type: contract.contract_type as 'call' | 'put',
-            gamma: contract.greeks?.gamma,
-            iv: contract.details?.implied_volatility,
-            percent_change: contract.day?.change_percent, 
-            bid: contract.last_quote?.bid,
-            ask: contract.last_quote?.ask,
-            last_price: contract.last_trade?.price,
-            volume: contract.day?.volume,
-            open_interest: contract.open_interest,
-            delta: contract.greeks?.delta,
-            theta: contract.greeks?.theta,
-            vega: contract.greeks?.vega,
-            rho: contract.greeks?.rho,
-            bid_size: contract.last_quote?.bid_size,
-            ask_size: contract.last_quote?.ask_size,
-            change: contract.day?.change,
-            contract_name: contract.ticker, 
-            primary_exchange: contract.primary_exchange,
-            underlying_ticker: contract.underlying_ticker,
-            break_even_price: contract.details?.break_even_price,
-          }));
-
-          const uniqueStrikes = Array.from(new Set(allContracts.map(c => c.strike_price))).sort((a, b) => a - b);
-          const closestStrikeIndex = uniqueStrikes.reduce((prev, curr, index) => 
-            (Math.abs(curr - currentStockPrice!) < Math.abs(uniqueStrikes[prev] - currentStockPrice!) ? index : prev), 0);
+          (putsSnapshot.results || []).forEach(contract => {
+            const strike = contract.details.strike_price;
+            allStrikes.add(strike);
+            putDataByStrike.set(strike, contract);
+          });
           
-          const startIndex = Math.max(0, closestStrikeIndex - 10);
-          const endIndex = Math.min(uniqueStrikes.length - 1, closestStrikeIndex + 10);
-          const selectedStrikes = uniqueStrikes.slice(startIndex, endIndex + 1);
+          const sortedStrikes = Array.from(allStrikes).sort((a, b) => b - a); // Sort descending
 
           const optionsTableRows: OptionsTableRow[] = [];
-          selectedStrikes.sort((a, b) => b - a); 
+          let addedStrikesCount = 0;
+          const maxStrikesToDisplay = 20; // +/- 10 effectively
 
-          for (const strike of selectedStrikes) {
-            const callContract = allContracts.find(c => c.strike_price === strike && c.option_type === 'call');
-            const putContract = allContracts.find(c => c.strike_price === strike && c.option_type === 'put');
+          // Find index of strike closest to currentStockPrice
+          let closestStrikeIndex = 0;
+          if (sortedStrikes.length > 0) {
+             closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrike, currentIdx) => {
+                return (Math.abs(currentStrike - currentStockPrice) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice)) ? currentIdx : prevIdx;
+            }, 0);
+          }
+          
+          const startIndex = Math.max(0, closestStrikeIndex - 10);
+          const endIndex = Math.min(sortedStrikes.length -1, closestStrikeIndex + 10);
+
+          const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex + 1);
+
+
+          for (const strike of finalStrikesToProcess) {
+            const callContractData = callDataByStrike.get(strike);
+            const putContractData = putDataByStrike.get(strike);
+
+            const mapContractData = (data: any, type: 'call' | 'put'): StreamlinedOptionContract | undefined => {
+              if (!data) return undefined;
+              return {
+                strike_price: data.details.strike_price,
+                option_type: type,
+                contract_name: data.details.ticker,
+                primary_exchange: data.details.primary_exchange,
+                underlying_ticker: data.underlying_asset.ticker,
+                iv: data.implied_volatility,
+                last_price: data.day?.close, // Snapshot uses day.close for last price
+                change: data.day?.change,
+                percent_change: data.day?.change_percent,
+                volume: data.day?.volume,
+                open_interest: data.open_interest,
+                break_even_price: data.details?.break_even_price,
+                delta: data.greeks?.delta,
+                gamma: data.greeks?.gamma,
+                theta: data.greeks?.theta,
+                vega: data.greeks?.vega,
+                rho: data.greeks?.rho,
+                // Bid/Ask and their sizes are not typically in snapshotOptionChain results
+                bid: undefined, 
+                ask: undefined,
+                bid_size: undefined,
+                ask_size: undefined,
+              };
+            };
+            
             optionsTableRows.push({
               strike: strike,
-              call: callContract ? { ...callContract } : undefined,
-              put: putContract ? { ...putContract } : undefined,
+              call: mapContractData(callContractData, 'call'),
+              put: mapContractData(putContractData, 'put'),
             });
           }
 
           stockDataPackage.optionsChain = {
             ticker: ticker,
             expiration_date: expirationDate,
-            contracts: optionsTableRows,
+            contracts: optionsTableRows, // Already sorted descending and filtered
             underlying_price: currentStockPrice,
           };
         } else {
@@ -297,7 +322,6 @@ class PolygonAdapter {
 
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const apiKeyFromEnv = process.env.POLYGON_API_KEY;
-  // No need to check apiKeyFromEnv here again, constructor handles it.
   const adapter = new PolygonAdapter(apiKeyFromEnv); 
   return adapter.getFullStockData(ticker);
 }
