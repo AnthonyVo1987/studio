@@ -17,6 +17,7 @@ export const CONSOLE_HEIGHT = 250;
 interface StockAnalysisState {
   polygonApiRequestLogJson: string;
   polygonApiResponseLogJson: string;
+  isClientDebugConsoleEnabled: boolean; // Added state variable
   marketStatusJson: string;
   stockSnapshotJson: string;
   standardTasJson: string;
@@ -34,6 +35,7 @@ interface StockAnalysisState {
 interface StockAnalysisContextType extends StockAnalysisState {
   setPolygonApiRequestLogJson: (json: string) => void;
   setPolygonApiResponseLogJson: (json: string) => void;
+  setClientDebugConsoleEnabled: (isEnabled: boolean) => void; // Added setter
   setMarketStatusJson: (json: string) => void;
   setStockSnapshotJson: (json: string) => void;
   setStandardTasJson: (json: string) => void;
@@ -54,6 +56,7 @@ const initialJsonPlaceholder = '{ "status": "initializing..." }';
 const defaultState: StockAnalysisState = {
   polygonApiRequestLogJson: initialJsonPlaceholder,
   polygonApiResponseLogJson: initialJsonPlaceholder,
+  isClientDebugConsoleEnabled: true, // Initialize to true by default
   marketStatusJson: initialJsonPlaceholder,
   stockSnapshotJson: initialJsonPlaceholder,
   standardTasJson: initialJsonPlaceholder,
@@ -73,6 +76,7 @@ const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>
 export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [polygonApiRequestLogJson, _setPolygonApiRequestLogJson] = useState<string>(defaultState.polygonApiRequestLogJson);
   const [polygonApiResponseLogJson, _setPolygonApiResponseLogJson] = useState<string>(defaultState.polygonApiResponseLogJson);
+  const [isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled); // Add state variable
   const [marketStatusJson, _setMarketStatusJson] = useState<string>(defaultState.marketStatusJson);
   const [stockSnapshotJson, _setStockSnapshotJson] = useState<string>(defaultState.stockSnapshotJson);
   const [standardTasJson, _setStandardTasJson] = useState<string>(defaultState.standardTasJson);
@@ -98,34 +102,37 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const originalConsoleLog = console.log;
-    const originalConsoleWarn = console.warn;
-    const originalConsoleError = console.error;
-    const originalConsoleInfo = console.info;
-    const originalConsoleDebug = console.debug;
+    if (isClientDebugConsoleEnabled) {
+      const originalConsoleLog = console.log;
+      const originalConsoleWarn = console.warn;
+      const originalConsoleError = console.error;
+      const originalConsoleInfo = console.info;
+      const originalConsoleDebug = console.debug;
 
-    console.log = (...args: any[]) => {
-      originalConsoleLog.apply(console, args);
-      addClientLog({ type: 'log', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
-    };
-    console.warn = (...args: any[]) => {
-      originalConsoleWarn.apply(console, args);
-      addClientLog({ type: 'warn', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
-    };
-    console.error = (...args: any[]) => {
-      originalConsoleError.apply(console, args);
-      addClientLog({ type: 'error', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
-    };
-    console.info = (...args: any[]) => {
-      originalConsoleInfo.apply(console, args);
-      addClientLog({ type: 'info', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
-    };
-    console.debug = (...args: any[]) => {
-      originalConsoleDebug.apply(console, args);
-      addClientLog({ type: 'debug', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
-    };
-    
-    console.debug("[StockAnalysisProvider] Console interception enabled.");
+      console.log = (...args: any[]) => {
+        originalConsoleLog.apply(console, args);
+        addClientLog({ type: 'log', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
+      };
+      console.warn = (...args: any[]) => {
+        originalConsoleWarn.apply(console, args);
+        addClientLog({ type: 'warn', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
+      };
+      console.error = (...args: any[]) => {
+        originalConsoleError.apply(console, args);
+        addClientLog({ type: 'error', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
+      };
+      console.info = (...args: any[]) => {
+        originalConsoleInfo.apply(console, args);
+        addClientLog({ type: 'info', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
+      };
+      console.debug = (...args: any[]) => {
+        originalConsoleDebug.apply(console, args);
+        addClientLog({ type: 'debug', message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') });
+      };
+      
+      // Only log this if interception is enabled
+      originalConsoleDebug("[StockAnalysisProvider] Console interception enabled.");
+    }
 
     return () => {
       console.log = originalConsoleLog;
@@ -134,10 +141,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       console.info = originalConsoleInfo;
       console.debug = originalConsoleDebug;
     };
-  }, [addClientLog]);
+  }, [addClientLog, isClientDebugConsoleEnabled]); // Add isClientDebugConsoleEnabled as dependency
 
   const setAndLog = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
-    console.debug(`[StockAnalysisContext] Setting ${name} to:`, value.substring(0,100) + (value.length > 100 ? '...' : ''));
+    const originalConsoleDebug = (console as any).__originalDebug || console.debug; // Access original if available, fallback otherwise
+    originalConsoleDebug(`[StockAnalysisContext] Setting ${name} to:`, value.substring(0,100) + (value.length > 100 ? '...' : ''));
     setter(value);
   };
 
@@ -153,13 +161,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setAiKeyTakeawaysJson = (json: string) => setAndLog(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json);
   const setChatbotRequestJson = (json: string) => setAndLog(_setChatbotRequestJson, 'chatbotRequestJson', json);
   const setChatbotResponseJson = (json: string) => setAndLog(_setChatbotResponseJson, 'chatbotResponseJson', json);
+
   const setClientDebugConsoleOpen = (isOpen: boolean) => {
     console.debug(`[StockAnalysisContext] Setting clientDebugConsoleOpen to: ${isOpen}`);
     _setClientDebugConsoleOpen(isOpen);
   };
 
+  const setClientDebugConsoleEnabled = (isEnabled: boolean) => {
+    console.debug(`[StockAnalysisContext] Setting clientDebugConsoleEnabled to: ${isEnabled}`);
+    _setClientDebugConsoleEnabled(isEnabled);
+  };
+
   const clearClientLogs = useCallback(() => {
-    console.debug("[StockAnalysisContext] Clearing client logs.");
     setClientLogs([]);
   }, []);
 
@@ -176,7 +189,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiKeyTakeawaysJson, setAiKeyTakeawaysJson,
     chatbotRequestJson, setChatbotRequestJson,
     chatbotResponseJson, setChatbotResponseJson,
-    isClientDebugConsoleOpen, setClientDebugConsoleOpen,
+    isClientDebugConsoleOpen, setClientDebugConsoleOpen, isClientDebugConsoleEnabled, setClientDebugConsoleEnabled,
     clientLogs, addClientLog, clearClientLogs,
   };
 
