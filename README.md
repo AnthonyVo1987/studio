@@ -54,27 +54,41 @@ The AI Agent must re-implement the following features, organized by the new tabb
     *   Ticker Input field (default "NVDA").
     *   API Data Source Selection (default Polygon.io).
     *   "Analyze Stock" and "AI Full Stock Analysis" buttons.
-*   **Key Metrics Display:**
-    *   Formatted display of Ticker, Current Price, Day's Change %.
-    *   *Data Source: Consumes relevant fields from the "Stock Snapshot JSON" in the "Debug" Tab.*
-*   **AI-Calculated Technical Analysis Display:**
-    *   Formatted display of AI-calculated Pivot Points (PP, S1-S3, R1-R3). Values formatted to two decimal places.
-    *   *Data Source: Consumes "AI Calculated TA JSON" from the "Debug" Tab.*
-*   **AI Key Takeaways Display:**
-    *   Formatted display of 5 key takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting. Numerical values to two decimal places, monetary values prefixed with "$".
-    *   *Data Source: Consumes "AI Key Takeaways JSON" from the "Debug" Tab.*
-*   **Options Chain Table Display:**
-    *   A visually formatted table for options chain data.
-    *   **Header:** Dynamically display "Options Chain for [TICKER] - Expires: [EXPIRATION_DATE]".
-    *   **Layout:** Single combined table: Calls on the left, Strike Prices in the center (sorted descending), Puts on the right.
-    *   **Columns (for both Calls and Puts, mirrored around Strike):** Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
-    *   Based on the provided CSV example structure.
-    *   *Data Source: Consumes "Options Chain JSON" from the "Debug" Tab.*
-*   **AI Chatbot Interface:**
+*   **Display Card Order & Content:** The Main Tab will display information in the following top-to-bottom card order:
+    1.  **Key Metrics Display:**
+        *   Formatted display of Ticker, Current Price, Day's Change %. Day's Change % is color-coded for sentiment (green for positive, red for negative).
+        *   *Data Source: Consumes relevant fields from the "Stock Snapshot JSON" in the "Debug" Tab.*
+    2.  **Stock Snapshot Details Display:**
+        *   Detailed price and volume information for the current day and previous day. Order: Current Price, Today's Change %, Today's Change, Day's VWAP, Day's Volume, Day's Close, followed by other daily and previous day stats. "Today's Change %" and "Today's Change" are color-coded for sentiment.
+        *   The Ticker symbol is not repeated here as it's present in Key Metrics.
+        *   *Data Source: Consumes "Stock Snapshot JSON" from the "Debug" Tab.*
+    3.  **Standard Technical Indicators Display:**
+        *   Formatted display of RSI, EMA, SMA, MACD, VWAP.
+        *   RSI and MACD Histogram values are color-coded for sentiment (RSI: <30 bullish, >70 bearish; MACD Histogram: positive bullish, negative bearish).
+        *   *Data Source: Consumes "Standard Technical Indicators JSON" from the "Debug" Tab.*
+    4.  **AI-Calculated Technical Analysis Display:**
+        *   Formatted display of AI-calculated Pivot Points (PP, S1-S3, R1-R3). Values formatted to two decimal places.
+        *   The Pivot Point (PP) row is color-coded based on current price relative to PP (current > PP bullish, current < PP bearish).
+        *   *Data Source: Consumes "AI Calculated TA JSON" from the "Debug" Tab.*
+    5.  **Options Chain Table Display:**
+        *   A visually formatted table for options chain data with alternating row shading and At-the-Money (ATM) strike highlighting.
+        *   **Header:** Dynamically display "Options Chain for [TICKER] - Expires: [EXPIRATION_DATE]".
+        *   **Layout:** Single combined table: Calls on the left, Strike Prices in the center (sorted descending), Puts on the right.
+        *   **Columns (for both Calls and Puts, mirrored around Strike):** Gamma (2 dec), IV (whole %), % Chg (whole %), Bid, Ask, Last, Volume (compact), Open Int (compact), Delta (2 dec).
+        *   Based on the provided CSV example structure.
+        *   *Data Source: Consumes "Options Chain JSON" from the "Debug" Tab.*
+    6.  **AI Key Takeaways Display:**
+        *   Formatted display of 5 key takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting (badges and text color). Numerical values to two decimal places, monetary values prefixed with "$".
+        *   *Data Source: Consumes "AI Key Takeaways JSON" from the "Debug" Tab.*
+    7.  **Market Status Display:**
+        *   Current status of relevant markets and exchanges. Excludes "Crypto Market" and "FX Market".
+        *   *Data Source: Consumes "Market Status JSON" from the "Debug" Tab.* This card is always the last one displayed.
+*   **AI Chatbot Interface:** (To be implemented in a later phase)
     *   Standard chatbot UI (message display, input, example prompts, history export/copy).
     *   *Data Source: Chat history is managed internally; contextual data (stock JSON, analysis summary, AI TA JSON) for prompts will be sourced from their respective JSON displays in the "Debug" Tab.*
 *   **Data Export Controls:**
-    *   Buttons to export/copy various sections of data displayed on the Main Tab (e.g., Key Takeaways (Text, JSON, CSV), Options Chain Table (CSV)). This will re-format the JSON from the "Debug" tab.
+    *   **New:** Buttons to "Export All Data to JSON" and "Copy All Data to JSON". This compiles Stock Snapshot, Standard TAs, AI Calculated TAs, Options Chain, and Market Status into a single JSON object in that order.
+    *   Buttons to export/copy other specific sections of data displayed on the Main Tab (e.g., Key Takeaways (Text, JSON, CSV), Options Chain Table (CSV)). This will re-format the JSON from the "Debug" tab.
 
 ### **2.3. "Debug" Tab Features**
 *   **Raw JSON Display Areas:** A series of read-only `Textarea` components, each clearly labeled, to display:
@@ -98,12 +112,12 @@ The AI Agent must re-implement the following features, organized by the new tabb
     *   Current Market Status.
     *   **Ticker Snapshot (current day, prev day):** The Polygon snapshot API provides both current intraday aggregates and previous day's closing data in a single response. This is crucial for initial testing and comprehensive analysis.
     *   Standard TAs (RSI, EMA, SMA, MACD, VWAP).
-    *   **Options Chain Snapshot:**
+    *   **Options Chain Snapshot (using `snapshotOptionChain` endpoint):**
         *   Fetch for the nearest Friday expiration.
-        *   Query a window around current stock price (+/- 20-30%).
+        *   Query a window around current stock price (+/- 10-15 strikes or equivalent percentage).
         *   Filter and select up to **10 call & 10 put strikes above** and **10 call & 10 put strikes below** current stock price.
         *   Ensure final selected strikes data for the "Options Chain JSON" (and thus the Main Tab table) is sorted in **descending order** by strike price.
-        *   Streamline `OptionContractDetails` in the JSON to exclude: `ticker`, `exercise_style`, `expiration_date`, `last_quote`, and the nested `underlying_asset` object.
+        *   Streamline `StreamlinedOptionContract` in the JSON to exclude: `contract_name` and `underlying_ticker`. Other fields (like `bid`, `ask`) might be unavailable from basic snapshot and will show as "-".
 *   **AI-Calculated Technical Analysis (Genkit Flow):**
     *   Calculate Classic Daily Pivot Points from previous day HLC. Output as JSON.
 *   **AI Key Takeaways (Genkit Flow):**
@@ -112,7 +126,7 @@ The AI Agent must re-implement the following features, organized by the new tabb
     *   Contextual chat, no web search. Markdown, emojis. Monetary/numerical formatting. Robustness settings. Output as JSON.
 *   **Client-Side Logging & Debug Console Component:** (Standard debug console feature from v1.2.14)
 *   **Data Formatting Consistency:**
-    *   Numerical data: max two decimal places.
+    *   Numerical data: max two decimal places for display (prices, changes). Greeks and IV may have more precision in raw JSON but are formatted for display.
     *   Monetary values: "$" prefix. (This formatting will be applied by Main Tab components when consuming JSON from Debug Tab).
 
 ## **3. Technology Stack (Mandatory)**
@@ -191,10 +205,10 @@ The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to
 *   **`4.3.9. Cost Calculation`**: Implement utility in `src/ai/utils/cost-calculator.ts` for tracking token usage and cost.
 
 ### **4.4. Data Fetching (Polygon.io)**
-*   **Mandatory Library:** **MUST use `@polygon.io/client-js` (`^7.3.2` or latest stable) for all Polygon API calls.** Do not implement custom `fetch` calls to Polygon endpoints. The client library's snapshot function naturally returns both current intraday and previous day's data.
+*   **Mandatory Library:** **MUST use `@polygon.io/client-js` (`^7.3.2` or latest stable) for all Polygon API calls.** Do not implement custom `fetch` calls to Polygon endpoints. The client library's snapshot function naturally returns both current intraday and previous day's data. For options, use `snapshotOptionChain`.
 *   **Adapter Pattern:** Abstract Polygon calls in `src/services/data-sources/adapters/polygon-adapter.ts`.
 *   **Fetching Order & Content:** As per Section 2.4.
-*   **Output:** The adapter's primary output should be raw JSON data suitable for display in the "Debug" Tab and consumption by "Main" Tab formatters. Numerical data from adapter should be clean (e.g., actual numbers, not strings if they are numeric).
+*   **Output:** The adapter's primary output should be raw JSON data suitable for display in the "Debug" Tab and consumption by "Main" Tab formatters. Numerical data from adapter should be clean (e.g., actual numbers, not strings if they are numeric, rounded appropriately e.g. 2-4 decimal places).
 
 ### **4.5. Styling & UI (ShadCN & Tailwind)**
 *   Use `Tabs` from ShadCN for "Main" / "Debug" navigation.
@@ -318,7 +332,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
     *   Deliverable: Context provider setup. Debug Tab `Textarea`s now reflect state (initially empty/placeholders).
 *   **Task 4.2: Create Data Source Types & Utilities**
     *   Action:
-        *   `src/services/data-sources/types.ts`: Define `StockDataJson`, `MarketStatusData`, `StockSnapshotData` (ensure it includes `day` and `prevDay`), `TechnicalAnalysisData`, `OptionsChainData`, `OptionContractDetails` (streamlined), `AdapterOutput`, etc.
+        *   `src/services/data-sources/types.ts`: Define `StockDataPackage`, `MarketStatusData`, `StockSnapshotData` (ensure it includes `day` and `prevDay`), `TechnicalAnalysisData`, `OptionsChainData`, `StreamlinedOptionContract` (streamlined), `OptionsTableRow`, `AdapterOutput`, etc.
         *   `src/lib/date-utils.ts`: Implement `calculateNextFridayExpiration` and `formatTimestampToPacificTime`.
         *   `src/lib/number-utils.ts`: Implement `formatToTwoDecimalsOrNull`.
     *   Deliverable: Core type definitions and utility functions.
@@ -329,8 +343,8 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
             *   Fetch Market Status.
             *   Fetch Ticker Snapshot (ensure it retrieves both current day's aggregates and previous day's aggregates).
             *   Fetch Standard TAs (RSI, EMA, SMA, MACD). Map snapshot VWAP.
-            *   Fetch Options Chain data (as per Section 2.4 specs: nearest Friday, +/-10 strikes, descending sort, streamlined details).
-        *   Return an `AdapterOutput` containing a comprehensive `StockDataJson` object (which itself will have `marketStatus`, `stockSnapshot` (with `day` and `prevDay`), `technicalAnalysis`, `optionsChain` fields).
+            *   Fetch Options Chain data (as per Section 2.4 specs: nearest Friday, +/-10 strikes, descending sort, streamlined details, using `snapshotOptionChain`).
+        *   Return an `AdapterOutput` containing a comprehensive `StockDataPackage` object (which itself will have `marketStatus`, `stockSnapshot` (with `day` and `prevDay`), `technicalIndicators`, `optionsChain` fields).
     *   Deliverable: Functional Polygon data adapter returning structured JSON object.
 *   **Task 4.4: Implement `fetchStockDataAction` Server Action**
     *   Action: Create `src/actions/analyze-stock-server-action.ts`.
@@ -368,7 +382,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
         *   `src/ai/schemas/stock-analysis-schemas.ts`: Define Zod schemas.
         *   `src/ai/flows/analyze-stock-data.ts`: Implement `analyzeStockData` Genkit flow (5 takeaways, sentiment, formatting rules). Ensure model ID used is correctly prefixed.
         *   `src/actions/perform-ai-analysis-action.ts`: Server action.
-        *   Update `StockAnalysisProvider`: Chain this after AI TA calc. Update context state with `aiKeyTakeawaysJson` and `aiKeyTakeawaysRequestJson` for "Debug" Tab.
+        *   Update `StockAnalysisProvider`: Chain this after AI TA calc. Update context state with `aiKeyTakeawaysJson` and `aiKeyTakeawaysRequestJson` for the "Debug" Tab.
     *   Deliverable: "Debug" Tab shows live "AI Key Takeaways JSON" and "AI Key Takeaways Request JSON".
 *   **Task 5.3: Implement AI Chatbot Flow & Action**
     *   Action:
@@ -381,18 +395,18 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 6: Connecting "Main" Tab UI to Live Data (from "Debug" Tab JSONs)**
 *(Goal: Modify the "Main" Tab components to parse the JSON strings from the StockAnalysisProvider's state (which are displayed in the "Debug" Tab) and render formatted data. This is where the two tabs are functionally linked.)*
-*   **Task 6.1: Update `KeyMetricsDisplay.tsx`**
-    *   Action: Modify to parse `stockSnapshotJson` from context and display live data.
-    *   Deliverable: Key Metrics display live data.
+*   **Task 6.1 (Enhanced): Update `KeyMetricsDisplay.tsx`, `StockSnapshotDetailsDisplay.tsx`, `MarketStatusDisplay.tsx`, `StandardTaDisplay.tsx`**
+    *   Action: Modified components to parse their respective JSON data (`stockSnapshotJson`, `marketStatusJson`, `standardTasJson`) from context and display live, formatted data. Implemented requested UI refinements (card order, ticker removal from snapshot, market status filtering, sentiment color-coding). Added combined data export/copy functionality.
+    *   Deliverable: Key Metrics, Stock Snapshot Details, Market Status, and Standard TA displays show live data with UI/UX enhancements and new export/copy features.
 *   **Task 6.2: Update `AiCalculatedTaDisplay.tsx`**
-    *   Action: Modify to parse `aiCalculatedTaJson` from context and display live, formatted TA values.
-    *   Deliverable: AI TA display shows live data.
+    *   Action: Modify to parse `aiCalculatedTaJson` from context and display live, formatted TA values. Implement sentiment color-coding for Pivot Point.
+    *   Deliverable: AI TA display shows live data with sentiment coloring.
 *   **Task 6.3: Update `AiKeyTakeawaysDisplay.tsx`**
-    *   Action: Modify to parse `aiKeyTakeawaysJson` from context and display live takeaways with sentiment styling.
-    *   Deliverable: Key Takeaways display shows live data.
+    *   Action: Modify to parse `aiKeyTakeawaysJson` from context and display live takeaways with sentiment styling (badges and text color).
+    *   Deliverable: Key Takeaways display shows live data with enhanced sentiment coloring.
 *   **Task 6.4: Update `OptionsChainTable.tsx`**
-    *   Action: Modify to parse `optionsChainJson` from context. Render the live options data in the table, correctly formatted with dynamic Ticker/Expiration headers.
-    *   Deliverable: Options Chain Table displays live data.
+    *   Action: Modify to parse `optionsChainJson` from context. Render the live options data in the table, correctly formatted with dynamic Ticker/Expiration headers, alternating row shading, and ATM strike highlighting.
+    *   Deliverable: Options Chain Table displays live data with UI enhancements.
 *   **Task 6.5: Implement "AI Full Stock Analysis" Button Logic**
     *   Action: In `StockAnalysisProvider`, implement the logic for this button to sequentially trigger data fetch, AI TA calc, Key Takeaways, and then auto-submit the "Full Detailed Analysis" prompt to the chatbot, using the live JSON data from context for the chat prompt.
     *   Deliverable: "AI Full Stock Analysis" button fully functional.
@@ -408,9 +422,9 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 *(Goal: Implement final utility features.)*
 *   **Task 7.1: Implement Full Data Export Controls**
     *   Action:
-        *   `src/lib/export-utils.ts`: Create/refine export utilities.
-        *   `src/components/data-export-controls.tsx`: Create reusable component.
-        *   Integrate into "Main" Tab for various sections (Key Takeaways, Options Table as CSV). Main tab exports should format data from the context's JSON strings.
+        *   `src/lib/export-utils.ts`: Create/refine export utilities. (Completed as part of Task 6.1.6 refinements)
+        *   `src/components/data-export-controls.tsx`: Create reusable component (or integrate directly if simple).
+        *   Integrate into "Main" Tab for various sections (Key Takeaways, Options Table as CSV). Main tab exports should format data from the context's JSON strings. (Combined export implemented in 6.1.6; specific section exports can be added if needed).
         *   Ensure "Debug" Tab "Copy JSON" buttons are fully functional.
     *   Deliverable: Comprehensive data export/copy functionality.
 *   **Task 7.2: Implement `DebugConsole.tsx` Component**
@@ -432,6 +446,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 | :------ | :----------- | :---------------------------- | :--------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy. |
 | 1.1     | 2025-06-09   | Firebase Studio (AI Prototyper) | Integrated Gemini Model ID specification (Section 4.3.6) to prevent "Model not found" errors. Clarified model ID usage in Phase 0 & 5. |
+| 1.2     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Main Tab features (Sec 2.2) & Phase 6 tasks to reflect UI refinements (card order, ticker removal, market status filtering, options table styling), new combined data export controls, and sentiment color-coding from Task 6.1.6. |
 
 ---
 ## Project Implementation Commit Log
@@ -611,7 +626,7 @@ With these changes, the foundational UI for both "Main" and "Debug" tabs is esta
 This commit marks the completion of Phase 3 (UI shell for the Options Chain Table) and Phase 4 (Backend data fetching using Polygon.io and populating the "Debug" Tab). The application can now fetch live stock data, display raw JSONs in the Debug tab, and has the UI structure for the Options Chain.
 
 **Phase 3 Accomplishments (UI Shell - Options Chain Table - Task 3.1):**
-*   Created `src/components/options-chain-table.tsx`.
+*   Created `src/components/options-chain-table.tsx`
     *   Implemented the table structure using ShadCN `Table` components with Calls on the left, Strikes (descending) in the center, and Puts on the right.
     *   Populated with 3-5 rows of static, hardcoded placeholder data for correct visual formatting.
     *   Included a placeholder header for "Options Chain for [TICKER] - Expires: [EXPIRATION_DATE]".
@@ -638,7 +653,7 @@ This commit marks the completion of Phase 3 (UI shell for the Options Chain Tabl
 *   **Task 4.4: `fetchStockDataAction` Server Action**
     *   Created `src/actions/analyze-stock-server-action.ts`.
     *   Defined `fetchStockDataAction` which calls the `PolygonAdapter`.
-    *   On success, it updates the `StockAnalysisProvider` state with separate JSON strings for market status, stock snapshot, standard TAs, options chain, and (currently empty) Polygon API request/response logs.
+    *   On success, it updates the `StockAnalysisProvider` state with the *separate* JSON strings for market status, stock snapshot, standard TAs, options chain, and (currently empty) Polygon API request/response logs.
 *   **Task 4.5: Wire "Analyze Stock" Button**
     *   Modified `src/components/main-tab-content.tsx`:
         *   Converted to a Client Component.
@@ -853,4 +868,71 @@ Further investigation is required to resolve the "NotFound" error for the Polygo
 *   None
 
 ---
+**Tag:** `Phase-6_Task-6.1.6` ([v0.6.1.6])
+
+**Subject:** `feat: Implement Main Tab UI refinements, data export, and sentiment coloring`
+
+**Details:**
+
+This commit delivers several UI/UX enhancements and a new data export feature for the Main Tab as part of Task 6.1.6, further refining the "Connecting 'Main' Tab UI to Live Data" phase.
+
+**Key Changes Implemented:**
+
+1.  **UI Display Adjustments:**
+    *   **Snapshot Details (`StockSnapshotDetailsDisplay.tsx`):**
+        *   Removed the "Ticker" field from the display to reduce redundancy (ticker is already in Key Metrics).
+        *   Reordered data items to prioritize: Current Price, Today's Change %, Today's Change, Day's VWAP, Day's Volume, Day's Close, followed by other day/previous day details.
+    *   **Main Tab Card Order (`MainTabContent.tsx`):**
+        *   The display cards on the Main Tab are now arranged in the following sequence:
+            1.  (Input Area)
+            2.  Key Metrics
+            3.  Stock Snapshot Details
+            4.  Standard Technical Indicators
+            5.  AI-Calculated Technical Analysis
+            6.  Options Chain Table
+            7.  AI Key Takeaways
+            8.  Market Status (now the last card).
+    *   **Market Status Filter (`MarketStatusDisplay.tsx`):**
+        *   Filtered out "Crypto Market" and "FX Market" entries from the display for a more focused view.
+
+2.  **New Feature: Combined Data Export/Copy (`MainTabContent.tsx`, `lib/export-utils.ts`):**
+    *   Added "Export All Data to JSON" and "Copy All Data to JSON" buttons to the Main Tab.
+    *   These buttons allow users to easily export or copy a single JSON file containing:
+        1.  Stock Snapshot data
+        2.  Standard Technical Indicators data
+        3.  AI-Calculated Technical Analysis data
+        4.  Options Chain data
+        5.  Market Status data
+        (in this specific order within the combined JSON object).
+    *   The `src/lib/export-utils.ts` file (created in a previous step, now utilized by these new buttons) provides the `downloadJson` and `copyToClipboard` helper functions.
+
+3.  **Sentiment-Based Font Color Coding (Main Tab Displays):**
+    *   Implemented bullish (green: `text-green-600 dark:text-green-400`) and bearish (red: `text-red-600 dark:text-red-400`) font colors for key data points to provide quick visual insights:
+        *   **`KeyMetricsDisplay`**: Applied to "Day's Change %" value.
+        *   **`StockSnapshotDetailsDisplay`**: Applied to "Today's Change %" and "Today's Change" values.
+        *   **`StandardTaDisplay`**:
+            *   RSI: Values < 30 (bullish/oversold), > 70 (bearish/overbought).
+            *   MACD Histogram: Positive values (bullish), negative values (bearish).
+        *   **`AiCalculatedTaDisplay`**: Pivot Point (PP) row colored based on current stock price relative to PP (current > PP is bullish, current < PP is bearish).
+        *   **`AiKeyTakeawaysDisplay`**: The main text of each takeaway is now colored according to its identified sentiment.
+
+These changes significantly improve the organization, usability, and visual feedback of the Main Tab, providing users with clearer data presentation and convenient export options.
+
+**File Manifest:**
+
+**Code Files Added:**
+*   None (lib/export-utils.ts was added in a previous step of Task 6.1.x)
+
+**Code Files Modified:**
+*   `src/components/main-tab-content.tsx`
+*   `src/components/stock-snapshot-details-display.tsx`
+*   `src/components/market-status-display.tsx`
+*   `src/components/key-metrics-display.tsx`
+*   `src/components/standard-ta-display.tsx`
+*   `src/components/ai-calculated-ta-display.tsx`
+*   `src/components/ai-key-takeaways-display.tsx`
+*   `README.md` (This file)
+
+**Code Files Removed:**
+*   None
 
