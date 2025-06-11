@@ -32,9 +32,15 @@ class PolygonAdapter {
   constructor(apiKey?: string) {
     const keyToUse = apiKey || process.env.POLYGON_API_KEY;
     if (!keyToUse) {
-      console.error('Polygon API key is missing or empty. PolygonAdapter may not function correctly.');
+      console.error('Polygon API key is MISSING or EMPTY in constructor. PolygonAdapter will likely fail.');
+      // Initialize with a dummy key to prevent immediate crash, errors will occur on API calls
+      this.client = restClient("DUMMY_KEY_BECAUSE_ENV_VAR_IS_MISSING");
+    } else {
+      // Log a portion of the key for verification (first 5 and last 5 chars)
+      const keyDisplay = `${keyToUse.substring(0, Math.min(5, keyToUse.length))}...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}`;
+      console.log(`[StockSage Debug] PolygonAdapter constructor using API key (Ends In): ...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}, Length: ${keyToUse.length}`);
+      this.client = restClient(keyToUse);
     }
-    this.client = restClient(keyToUse);
   }
 
   private mapToStockPriceData(
@@ -98,25 +104,29 @@ class PolygonAdapter {
         }
       } catch (error: any) {
         let detailedErrorMessage = `Polygon client error: ${error.message || String(error)}`;
-        let rawErrorDetails: any = { message: error.message };
+        let rawErrorDetails: any = { message: error.message || String(error) }; // Ensure message is always present
 
         if (error.stack) rawErrorDetails.stack = error.stack.substring(0, 500);
-        // For Polygon, error responses might be structured differently than typical HTTP libraries
-        // Check for common fields in Polygon error objects if known, or serialize safely
-        if (error.request_id) rawErrorDetails.requestId = error.request_id;
-        if (error.status) rawErrorDetails.status = error.status; // Polygon sometimes includes a status in error obj
+        if (error.request_id) rawErrorDetails.requestId = error.request_id; // From Polygon's error
+        if (error.status) rawErrorDetails.status = error.status; // From Polygon's error (like "NotFound")
         
         // Attempt to capture more context if it's an HTTP-like error from the client library
-        if (typeof error === 'object' && error !== null) {
+         if (typeof error === 'object' && error !== null) {
             for (const prop in error) {
-                if (Object.prototype.hasOwnProperty.call(error, prop) && typeof error[prop] !== 'function' && typeof error[prop] !== 'object') {
-                    rawErrorDetails[prop] = error[prop];
+                if (Object.prototype.hasOwnProperty.call(error, prop) && typeof error[prop] !== 'function') {
+                     // Avoid trying to serialize the entire error object if it's complex
+                    if (prop === 'response' && typeof error[prop] === 'object' && error[prop] !== null) {
+                        rawErrorDetails.responseStatus = (error[prop] as any).status;
+                        rawErrorDetails.responseData = (error[prop] as any).data || (error[prop] as any).body; // common places for response body
+                    } else if (typeof error[prop] !== 'object' || error[prop] === null) {
+                        rawErrorDetails[prop] = error[prop];
+                    }
                 }
             }
         }
-
+        
         const errorMessage = `Failed to fetch snapshot for ${ticker}. ${detailedErrorMessage}`;
-        console.error(`Error fetching stock snapshot for ${ticker} from Polygon:`, error); // Full error to server logs
+        console.error(`Error fetching stock snapshot for ${ticker} from Polygon (Adapter):`, error); // Full error to server logs
         stockDataPackage.stockSnapshot = { 
             error: errorMessage, 
             rawErrorDetails: rawErrorDetails 
@@ -249,18 +259,16 @@ class PolygonAdapter {
 }
 
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
-  if (!process.env.POLYGON_API_KEY || process.env.POLYGON_API_KEY.trim() === "") { 
-     console.error('POLYGON_API_KEY is not set or is empty. Returning error structure.');
+  const apiKeyFromEnv = process.env.POLYGON_API_KEY;
+  if (!apiKeyFromEnv || apiKeyFromEnv.trim() === "") { 
+     console.error('[StockSage Critical] POLYGON_API_KEY environment variable is not set or is empty. Cannot fetch data from Polygon.');
      return {
        stockData: {
          ticker,
-         error: 'POLYGON_API_KEY environment variable is not set or is empty. Cannot fetch data.',
+         error: 'Configuration Error: POLYGON_API_KEY environment variable is not set or is empty. Cannot fetch data.',
        }
      };
   }
-  const adapter = new PolygonAdapter(); 
+  const adapter = new PolygonAdapter(apiKeyFromEnv); 
   return adapter.getFullStockData(ticker);
 }
-    
-
-    
