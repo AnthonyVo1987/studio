@@ -22,11 +22,11 @@ interface OptionHeaderConfig {
   formatter: (value: any) => string;
 }
 
-const defaultFormatter = (value: any) => formatToTwoDecimals(value, "-");
+// const defaultFormatter = (value: any) => formatToTwoDecimals(value, "-");
 
 const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v ? v * 100 : undefined, "-") }, // IV often given as decimal
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v ? v * 100 : undefined, "-") },
   { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-") },
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
@@ -36,7 +36,7 @@ const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
-const putHeadersConfig: OptionHeaderConfig[] = [ // Mirrored for puts
+const putHeadersConfig: OptionHeaderConfig[] = [
   { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
   { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
   { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
@@ -68,29 +68,31 @@ const renderSkeletonRow = (rowIndex: number) => (
 
 
 export function OptionsChainTable() {
-  const { optionsChainJson, aiCalculatedTaJson } = useStockAnalysis(); // aiCalculatedTaJson as proxy
+  const { optionsChainJson } = useStockAnalysis(); // Removed aiCalculatedTaJson from direct dependency for loading state
 
   let isLoading = true;
   let isError = false;
   let parsedData: OptionsChainData | null = null;
 
+  // Simplified loading logic: primarily based on optionsChainJson content
   if (
     optionsChainJson.includes('"status": "initializing"') ||
-    optionsChainJson.includes('"status": "pending"') ||
-    aiCalculatedTaJson.includes('"status": "pending"') || 
-    aiCalculatedTaJson.includes('"status": "initializing"')
+    optionsChainJson.includes('"status": "pending"')
   ) {
     isLoading = true;
   } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
     isError = true;
     isLoading = false;
   } else {
+    // Attempt to parse if not explicitly loading, errored, or skipped
     try {
       const data = JSON.parse(optionsChainJson) as OptionsChainData;
-      if (data && typeof data === 'object' && !data.error && data.contracts) {
+      // Check for a well-formed object with contracts array
+      if (data && typeof data === 'object' && !data.error && Array.isArray(data.contracts)) {
         isLoading = false;
         parsedData = data;
       } else {
+        // JSON might be malformed or not the expected OptionsChainData structure
         isError = true;
         isLoading = false;
       }
@@ -141,11 +143,11 @@ export function OptionsChainTable() {
           </TableHeader>
           <TableBody>
             {isLoading 
-              ? Array.from({ length: 5 }).map((_, index) => renderSkeletonRow(index)) 
+              ? Array.from({ length: 10 }).map((_, index) => renderSkeletonRow(index))  // Show more skeleton rows
               : isError
-                ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">Options data not available.</TableCell></TableRow>
+                ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">Options data not available or failed to load.</TableCell></TableRow>
                 : contracts.length === 0 
-                    ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">No option contracts found for this expiration.</TableCell></TableRow>
+                    ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">No option contracts found for this expiration and strike range.</TableCell></TableRow>
                     : contracts.map((row: OptionsTableRow, index: number) => (
               <TableRow key={`options-row-${row.strike}-${index}`}>
                 {callHeadersConfig.map((header) => (
