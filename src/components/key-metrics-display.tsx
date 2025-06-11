@@ -81,7 +81,7 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 
 export function KeyMetricsDisplay() {
   const { stockSnapshotJson } = useStockAnalysis();
-  // console.debug("[KeyMetricsDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  console.debug("[KeyMetricsDisplay] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let tickerDisplay = "N/A";
   let currentPriceDisplay = "N/A";
@@ -92,16 +92,16 @@ export function KeyMetricsDisplay() {
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
-      // console.debug("[KeyMetricsDisplay] stockSnapshotJson is in pending/initializing state.");
+      console.debug("[KeyMetricsDisplay] stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      // console.warn("[KeyMetricsDisplay] stockSnapshotJson indicates an error or skipped state.");
+      console.warn("[KeyMetricsDisplay] stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        // console.debug("[KeyMetricsDisplay] Successfully parsed stockSnapshotJson:", snapshot);
+        console.debug("[KeyMetricsDisplay] Successfully parsed stockSnapshotJson. Ticker:", snapshot?.ticker);
         if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
           isLoading = false;
           isError = false;
@@ -115,22 +115,22 @@ export function KeyMetricsDisplay() {
             else if (todaysChangePerc < 0) dayChangeSentiment = 'bearish';
           }
         } else {
-          // console.warn("[KeyMetricsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
+          console.warn("[KeyMetricsDisplay] Parsed stockSnapshotJson is missing ticker or not an object.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
-        // console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e);
+        console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    // console.debug("[KeyMetricsDisplay] stockSnapshotJson is empty or null.");
+    console.debug("[KeyMetricsDisplay] stockSnapshotJson is empty or null.");
     isLoading = false;
   }
 
-  // console.debug(`[KeyMetricsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
+  console.debug(`[KeyMetricsDisplay] Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
 
   if (isError && !isLoading) {
       tickerDisplay = "N/A";

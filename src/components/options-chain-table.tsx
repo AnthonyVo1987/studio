@@ -70,8 +70,8 @@ const renderSkeletonRow = (rowIndex: number) => (
 
 export function OptionsChainTable() {
   const { optionsChainJson, stockSnapshotJson } = useStockAnalysis();
-  // console.debug("[OptionsChainTable] optionsChainJson (start):", optionsChainJson.substring(0,100));
-  // console.debug("[OptionsChainTable] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  console.debug("[OptionsChainTable] optionsChainJson (start):", optionsChainJson.substring(0,100));
+  console.debug("[OptionsChainTable] stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -81,33 +81,33 @@ export function OptionsChainTable() {
 
   if (optionsChainJson && optionsChainJson !== '{}') {
     if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"') || optionsChainJson.includes('"status": "full_analysis_pending..."')) {
-      // console.debug("[OptionsChainTable] optionsChainJson is in pending/initializing state.");
+      console.debug("[OptionsChainTable] optionsChainJson is in pending/initializing state.");
       isLoading = true;
     } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
-      // console.warn("[OptionsChainTable] optionsChainJson indicates an error or skipped state.");
+      console.warn("[OptionsChainTable] optionsChainJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(optionsChainJson) as OptionsChainData;
-        // console.debug("[OptionsChainTable] Successfully parsed optionsChainJson:", data);
+        console.debug("[OptionsChainTable] Successfully parsed optionsChainJson. Contracts count:", data?.contracts?.length);
         if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
           isLoading = false;
           isError = false;
           parsedData = data;
         } else {
-          // console.warn("[OptionsChainTable] Parsed optionsChainJson is missing contracts array or contains error/status field.");
+          console.warn("[OptionsChainTable] Parsed optionsChainJson is missing contracts array or contains error/status field.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
-        // console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e);
+        console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    // console.debug("[OptionsChainTable] optionsChainJson is empty or null.");
+    console.debug("[OptionsChainTable] optionsChainJson is empty or null.");
     isLoading = false;
   }
 
@@ -116,15 +116,15 @@ export function OptionsChainTable() {
       if (!stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
         parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
         currentPriceForATM = parsedSnapshotData?.currentPrice ?? parsedSnapshotData?.day?.c ?? null;
-        // console.debug("[OptionsChainTable] Successfully parsed stockSnapshotJson for ATM price:", currentPriceForATM);
+        console.debug("[OptionsChainTable] Successfully parsed stockSnapshotJson for ATM price:", currentPriceForATM);
       } else {
-         // console.warn("[OptionsChainTable] stockSnapshotJson contains status/error, cannot get current price for ATM.");
+         console.warn("[OptionsChainTable] stockSnapshotJson contains status/error, cannot get current price for ATM.");
       }
     } catch (e) {
-      // console.error("[OptionsChainTable] Failed to parse stockSnapshotJson for ATM price:", e);
+      console.error("[OptionsChainTable] Failed to parse stockSnapshotJson for ATM price:", e);
     }
   } else {
-     // console.debug("[OptionsChainTable] stockSnapshotJson is empty or null, cannot determine ATM strike.");
+     console.debug("[OptionsChainTable] stockSnapshotJson is empty or null, cannot determine ATM strike.");
   }
 
   const displayTicker = parsedData?.ticker || (isLoading ? "" : "N/A");
@@ -136,21 +136,16 @@ export function OptionsChainTable() {
     atmStrikeValue = contracts.reduce((prev, curr) => {
       return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
     }).strike;
-    // console.debug(`[OptionsChainTable] ATM Strike determined: ${atmStrikeValue} based on current price: ${currentPriceForATM}`);
   } else if (contracts.length > 0 && !currentPriceForATM && parsedData?.underlying_price) {
     currentPriceForATM = parsedData.underlying_price;
     if(currentPriceForATM){
         atmStrikeValue = contracts.reduce((prev, curr) => {
             return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
         }).strike;
-        // console.debug(`[OptionsChainTable] ATM Strike determined (fallback): ${atmStrikeValue} based on underlying_price: ${currentPriceForATM}`);
     }
   }
-  else {
-     // console.debug(`[OptionsChainTable] Could not determine ATM strike. Current price for ATM: ${currentPriceForATM}, Contracts count: ${contracts.length}`);
-  }
 
-  // console.debug(`[OptionsChainTable] Render state: isLoading=${isLoading}, isError=${isError}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}`);
+  console.debug(`[OptionsChainTable] Render state: isLoading=${isLoading}, isError=${isError}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}`);
 
   return (
     <Card>

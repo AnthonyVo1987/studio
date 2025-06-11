@@ -32,7 +32,7 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 
 export function MarketStatusDisplay() {
   const { marketStatusJson } = useStockAnalysis();
-  // console.debug("[MarketStatusDisplay] marketStatusJson (start):", marketStatusJson.substring(0,100));
+  console.debug("[MarketStatusDisplay] marketStatusJson (start):", marketStatusJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -40,16 +40,16 @@ export function MarketStatusDisplay() {
 
   if (marketStatusJson && marketStatusJson !== '{}') {
     if (marketStatusJson.includes('"status": "initializing"') || marketStatusJson.includes('"status": "pending"') || marketStatusJson.includes('"status": "full_analysis_pending..."')) {
-      // console.debug("[MarketStatusDisplay] marketStatusJson is in pending/initializing state.");
+      console.debug("[MarketStatusDisplay] marketStatusJson is in pending/initializing state.");
       isLoading = true;
     } else if (marketStatusJson.includes('"error":') || marketStatusJson.includes('"status": "skipped"')) {
-      // console.warn("[MarketStatusDisplay] marketStatusJson indicates an error or skipped state.");
+      console.warn("[MarketStatusDisplay] marketStatusJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(marketStatusJson) as MarketStatusData;
-        // console.debug("[MarketStatusDisplay] Successfully parsed marketStatusJson:", data);
+        console.debug("[MarketStatusDisplay] Successfully parsed marketStatusJson. Market status:", data?.market);
         if (data && typeof data === 'object' && !data.error) {
           isLoading = false;
           isError = false;
@@ -75,22 +75,22 @@ export function MarketStatusDisplay() {
               });
           }
         } else {
-           // console.warn("[MarketStatusDisplay] Parsed marketStatusJson is not a valid object or contains error field.");
+           console.warn("[MarketStatusDisplay] Parsed marketStatusJson is not a valid object or contains error field.");
            isLoading = false;
            isError = true;
         }
       } catch (e) {
-        // console.error("[MarketStatusDisplay] Failed to parse marketStatusJson:", e);
+        console.error("[MarketStatusDisplay] Failed to parse marketStatusJson:", e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    // console.debug("[MarketStatusDisplay] marketStatusJson is empty or null.");
+    console.debug("[MarketStatusDisplay] marketStatusJson is empty or null.");
     isLoading = false;
   }
 
-  // console.debug(`[MarketStatusDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
+  console.debug(`[MarketStatusDisplay] Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 3);
 
   return (
