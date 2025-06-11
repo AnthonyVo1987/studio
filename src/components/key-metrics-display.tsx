@@ -41,7 +41,8 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
   if (changePercent !== null && changePercent !== undefined) {
     if (changePercent > 0) ChangeIcon = TrendingUp;
     else if (changePercent < 0) ChangeIcon = TrendingDown;
-    formattedChangePercent = formatPercentage(changePercent, "0.00%", true);
+    // Apply 2 decimal places for Day's Change percentage
+    formattedChangePercent = formatPercentage(changePercent, "N/A", true, 2);
   }
 
   if (isLoading) {
@@ -155,7 +156,7 @@ export function KeyMetricsDisplay() {
       />
       <KeyMetricCard
         label="Day's Change"
-        value={isLoading ? "Loading..." : (isError || todaysChangePerc === null ? "N/A" : formatPercentage(todaysChangePerc, "N/A", true))}
+        value={isLoading ? "Loading..." : (isError || todaysChangePerc === null ? "N/A" : formatPercentage(todaysChangePerc, "N/A", true, 2))}
         changePercent={todaysChangePerc}
         isLoading={isLoading}
         sentiment={dayChangeSentiment}
@@ -163,3 +164,4 @@ export function KeyMetricsDisplay() {
     </div>
   );
 }
+

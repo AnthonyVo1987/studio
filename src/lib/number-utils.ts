@@ -6,7 +6,7 @@
 /**
  * Rounds a number to a specified number of decimal places.
  * Returns the number type.
- * @param {number | null | undefined} value The number to round.
+ * @param {number | string | null | undefined} value The number to round.
  * @param {number} decimalPlaces The number of decimal places. Defaults to 2.
  * @returns {number | null | undefined} The rounded number or original value if not a number.
  */
@@ -108,20 +108,21 @@ export function formatCurrency(
 }
 
 /**
- * Formats a number as a percentage string (e.g., 12%).
- * Rounds to the nearest whole number for the percentage value.
- * If the input is null or undefined, or not a valid number,
- * it returns "N/A" or a specified placeholder.
- * The input value should be the actual percentage value (e.g., 12.34 for 12.34%, or 0.1234 for IV that needs *100).
+ * Formats a number as a percentage string.
+ * If the input is null/undefined or not a valid number, returns placeholder.
+ * Input value should be actual percentage (e.g., 12.34 for 12.34%) if alreadyPercent is true,
+ * or decimal (e.g., 0.1234 for 12.34%) if alreadyPercent is false.
  * @param {number | string | null | undefined} value The percentage value.
- * @param {string} placeholder The string to return if value is null/undefined or not a valid number. Defaults to "N/A".
- * @param {boolean} alreadyPercent If true, value is 50 for 50%. If false (default), value is 0.5 for 50%.
- * @returns {string} The formatted percentage string, or the placeholder.
+ * @param {string} placeholder String for invalid input. Defaults to "N/A".
+ * @param {boolean} alreadyPercent True if value is 50 for 50%; false (default) if value is 0.5 for 50%.
+ * @param {number | undefined} decimalPlaces Number of decimal places. Defaults to 0 (whole number).
+ * @returns {string} Formatted percentage string or placeholder.
  */
 export function formatPercentage(
   value: number | string | null | undefined,
   placeholder: string = "N/A",
   alreadyPercent: boolean = false,
+  decimalPlaces?: number,
 ): string {
   if (value === null || value === undefined) {
     return placeholder;
@@ -133,8 +134,14 @@ export function formatPercentage(
   if (!alreadyPercent) {
     num = num * 100;
   }
-  // Round to whole number for display as per request (IV and % Chg)
-  return `${Math.round(num)}%`;
+
+  const dp = decimalPlaces === undefined || decimalPlaces < 0 ? 0 : decimalPlaces;
+  
+  if (dp === 0) {
+    return `${Math.round(num)}%`;
+  } else {
+    return `${num.toFixed(dp)}%`;
+  }
 }
 
 /**
@@ -174,3 +181,4 @@ export function formatCompactNumber(
   }
   return formattedNum;
 }
+

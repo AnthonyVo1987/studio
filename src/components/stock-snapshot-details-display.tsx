@@ -66,12 +66,13 @@ export function StockSnapshotDetailsDisplay() {
           parsedSnapshotData = data;
 
           const change = parsedSnapshotData.todaysChange ?? 0;
-          const changePerc = parsedSnapshotData.todaysChangePerc ?? 0;
+          const changePerc = parsedSnapshotData.todaysChangePerc ?? null; // Keep as null if undefined
           const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
 
           const criticalDetails: StockDetailItem[] = [
             { label: "Current Price", value: formatCurrency(parsedSnapshotData.currentPrice)},
-            { label: "Today's Change %", value: formatPercentage(changePerc, "N/A", true), sentiment: changeSentiment },
+            // Apply 2 decimal places for Today's Change %
+            { label: "Today's Change %", value: formatPercentage(changePerc, "N/A", true, 2), sentiment: changeSentiment },
             { label: "Today's Change", value: formatCurrency(change, "$", "N/A"), sentiment: changeSentiment },
             { label: "Day's VWAP", value: formatCurrency(parsedSnapshotData.day?.vw) },
             { label: "Day's Volume", value: formatCompactNumber(parsedSnapshotData.day?.v) },
@@ -138,3 +139,4 @@ export function StockSnapshotDetailsDisplay() {
     </Card>
   );
 }
+

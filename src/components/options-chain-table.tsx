@@ -23,11 +23,11 @@ interface OptionHeaderConfig {
   formatter: (value: any) => string;
 }
 
-// Updated formatters for Gamma, IV, % Chg, Delta
+// decimalPlaces (4th arg) for formatPercentage: undefined or 0 means whole number
 const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, // false: value is 0.xx
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, // true: value is already xx.xx
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, // Defaults to 0 decimal places (whole %)
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, // Defaults to 0 decimal places (whole %)
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
@@ -43,14 +43,14 @@ const putHeadersConfig: OptionHeaderConfig[] = [
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, // Defaults to 0 decimal places (whole %)
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, // Defaults to 0 decimal places (whole %)
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
 
 const renderSkeletonRow = (rowIndex: number) => (
-  <TableRow key={`skeleton-options-${rowIndex}`} className={rowIndex % 2 === 0 ? "bg-muted/20 dark:bg-muted/10" : ""}>
+  <TableRow key={`skeleton-options-${rowIndex}`} className={rowIndex % 2 !== 0 ? "bg-muted/20 dark:bg-muted/10" : ""}>
     {callHeadersConfig.map((header) => (
       <TableCell key={`call-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
         <Skeleton className="h-4 w-10 mx-auto" />
@@ -77,6 +77,7 @@ export function OptionsChainTable() {
   let isError = false;
   let parsedData: OptionsChainData | null = null;
   let parsedSnapshotData: StockSnapshotData | null = null;
+  let currentPriceForATM: number | null = null;
 
   if (optionsChainJson && optionsChainJson !== '{}') {
     if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"')) {
@@ -115,7 +116,8 @@ export function OptionsChainTable() {
     try {
       if (!stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
         parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        // console.debug("[OptionsChainTable] Successfully parsed stockSnapshotJson for ATM price:", parsedSnapshotData);
+        currentPriceForATM = parsedSnapshotData?.currentPrice ?? parsedSnapshotData?.day?.c ?? null;
+        // console.debug("[OptionsChainTable] Successfully parsed stockSnapshotJson for ATM price:", currentPriceForATM);
       } else {
          // console.warn("[OptionsChainTable] stockSnapshotJson contains status/error, cannot get current price for ATM.");
       }
@@ -131,13 +133,23 @@ export function OptionsChainTable() {
   const contracts = parsedData?.contracts || [];
 
   let atmStrikeValue: number | null = null;
-  if (parsedSnapshotData?.currentPrice && contracts.length > 0) {
+  if (currentPriceForATM !== null && contracts.length > 0) {
     atmStrikeValue = contracts.reduce((prev, curr) => {
-      return (Math.abs((curr.strike || 0) - (parsedSnapshotData!.currentPrice || 0)) < Math.abs((prev.strike || 0) - (parsedSnapshotData!.currentPrice || 0))) ? curr : prev;
+      return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
     }).strike;
-    // console.debug(`[OptionsChainTable] ATM Strike determined: ${atmStrikeValue} based on current price: ${parsedSnapshotData.currentPrice}`);
-  } else {
-     // console.debug(`[OptionsChainTable] Could not determine ATM strike. Current price: ${parsedSnapshotData?.currentPrice}, Contracts count: ${contracts.length}`);
+    // console.debug(`[OptionsChainTable] ATM Strike determined: ${atmStrikeValue} based on current price: ${currentPriceForATM}`);
+  } else if (contracts.length > 0 && !currentPriceForATM && parsedData?.underlying_price) {
+    // Fallback to underlying_price from optionsChainJson if snapshot current price is missing
+    currentPriceForATM = parsedData.underlying_price;
+    if(currentPriceForATM){
+        atmStrikeValue = contracts.reduce((prev, curr) => {
+            return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
+        }).strike;
+        // console.debug(`[OptionsChainTable] ATM Strike determined (fallback): ${atmStrikeValue} based on underlying_price: ${currentPriceForATM}`);
+    }
+  }
+  else {
+     // console.debug(`[OptionsChainTable] Could not determine ATM strike. Current price for ATM: ${currentPriceForATM}, Contracts count: ${contracts.length}`);
   }
 
   // console.debug(`[OptionsChainTable] Render state: isLoading=${isLoading}, isError=${isError}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}`);
@@ -147,7 +159,7 @@ export function OptionsChainTable() {
       <CardHeader>
         <CardTitle>Options Chain</CardTitle>
         {isLoading ? (
-            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-5 w-3/4" />
         ) : (
             <CardDescription>
             Options chain for {displayTicker} - Expires: {displayExpirationDate}
@@ -184,11 +196,11 @@ export function OptionsChainTable() {
                     {isError ? "Options data failed to load." : "No option contracts found for this expiration and strike range."}
                   </TableCell></TableRow>
                 : contracts.map((row: OptionsTableRow, index: number) => {
-                        const isATMRow = row.strike === atmStrikeValue;
+                        const isATMRow = row.strike !== null && row.strike !== undefined && atmStrikeValue !== null && row.strike === atmStrikeValue;
                         const rowClasses = cn(
-                            isATMRow ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30" :
+                            isATMRow ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 font-semibold" :
                                        (index % 2 !== 0 ? "bg-muted/25 dark:bg-muted/10 hover:bg-muted/40 dark:hover:bg-muted/20" : "hover:bg-muted/40 dark:hover:bg-muted/20")
-                        ); // odd:bg-muted for alternating, ensure index is 0-based for correct striping
+                        );
                         return (
                             <TableRow key={`options-row-${row.strike}-${index}`} className={rowClasses}>
                                 {callHeadersConfig.map((header) => (
@@ -198,7 +210,7 @@ export function OptionsChainTable() {
                                 ))}
                                 <TableCell className={cn(
                                     "p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 z-10 border-l border-r",
-                                    isATMRow ? "bg-primary/20 dark:bg-primary/30" : (index % 2 !== 0 ? "bg-muted/30 dark:bg-muted/15" : "bg-card")
+                                    isATMRow ? "bg-primary/20 dark:bg-primary/30 text-primary-foreground" : (index % 2 !== 0 ? "bg-muted/30 dark:bg-muted/15" : "bg-card")
                                 )}>
                                 {formatCurrency(row.strike, "$", "-", true)}
                                 </TableCell>
@@ -216,3 +228,4 @@ export function OptionsChainTable() {
     </Card>
   );
 }
+
