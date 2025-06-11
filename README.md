@@ -1,7 +1,7 @@
 
 # **Product Requirements Document & AI Operating Manual: StockSage v2.1.0 (Re-Implementation)**
 
-*   **Document Version:** 1.5 (Reflects completion of Task 6.4)
+*   **Document Version:** 1.6 (Reflects completion of Task 6.5)
 *   **Date:** 2025-06-10
 *   **Author:** Firebase Studio (AI Prototyper)
 *   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality
@@ -84,7 +84,7 @@ The AI Agent must re-implement the following features, organized by the new tabb
     7.  **Market Status Display:**
         *   Current status of relevant markets and exchanges. Excludes "Crypto Market" and "FX Market".
         *   *Data Source: Consumes "Market Status JSON" from the "Debug" Tab.* This card is always the last one displayed.
-*   **AI Chatbot Interface:** (To be implemented in a later phase)
+*   **AI Chatbot Interface:** (To be implemented in a later phase - Task 6.6)
     *   Standard chatbot UI (message display, input, example prompts, history export/copy).
     *   *Data Source: Chat history is managed internally; contextual data (stock JSON, analysis summary, AI TA JSON) for prompts will be sourced from their respective JSON displays in the "Debug" Tab.*
 *   **Data Export Controls:**
@@ -424,14 +424,15 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
     *   Action: Modify to parse `optionsChainJson` from context. Render the live options data in the table, correctly formatted with dynamic Ticker/Expiration headers, alternating row shading, and ATM strike highlighting. Refined percentage formatting in display components (`KeyMetricsDisplay`, `StockSnapshotDetailsDisplay`) to show up to two decimal places for specific percentage fields.
     *   Deliverable: Options Chain Table displays live data with UI enhancements. Day's Change % and Today's Change % also show max two decimal places.
 *   **Task 6.5: Implement "AI Full Stock Analysis" Button Logic**
-    *   Action: In `StockAnalysisProvider`, implement the logic for this button to sequentially trigger data fetch, AI TA calc, Key Takeaways, and then auto-submit the "Full Detailed Analysis" prompt to the chatbot, using the live JSON data from context for the chat prompt.
-    *   Deliverable: "AI Full Stock Analysis" button fully functional.
+    *   Action: In `StockAnalysisProvider` and `MainTabContent.tsx`, implement the logic for this button to sequentially trigger data fetch, AI TA calc, Key Takeaways, and then auto-submit the "Full Detailed Analysis" prompt to the chatbot, using the live JSON data from context for the chat prompt. Orchestrate state updates for `fullAnalysisStatus` and `isFullAnalysisTriggered`.
+    *   Deliverable: "AI Full Stock Analysis" button fully functional, orchestrating the analysis sequence and preparing for chatbot display.
 *   **Task 6.6: Implement Chatbot UI & Contextual Prompts**
     *   Action:
         *   Create `src/components/chatbot.tsx`.
         *   Integrate into `MainTabContent.tsx`.
         *   Chat input should use `stockSnapshotJson`, `aiKeyTakeawaysJson`, `aiCalculatedTaJson`, etc., from context to provide context to the `chatWithBot` flow.
-    *   Deliverable: Chatbot UI functional and uses context from "Debug" Tab JSONs.
+        *   Display chat history from context, including the auto-generated response from the "AI Full Stock Analysis" sequence.
+    *   Deliverable: Chatbot UI functional and uses context from "Debug" Tab JSONs. Displays full analysis summary if generated.
 
 ---
 **Phase 7: Data Export & Final Client-Side Features**
@@ -465,6 +466,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 | 1.3     | 2025-06-10   | Firebase Studio (AI Prototyper) | Added commit log for v0.6.1.6 (revert). Added detailed post-mortem (Section 4.7.4) for failed DebugConsole attempt. Updated Phase 7 (Task 7.2) to reflect "To Be Implemented" status for DebugConsole. |
 | 1.4     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Tasks 6.2 & 6.3 as complete. Added commit log for v0.6.3.0. |
 | 1.5     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.4 as complete (Options Chain Table live data, percentage formatting). Added commit log for v0.6.4.0. |
+| 1.6     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.5 as complete ("AI Full Stock Analysis" button logic). Added commit log for v0.6.5.0. |
 
 ---
 ## Project Implementation Commit Log
@@ -559,5 +561,39 @@ This commit completes Task 6.4 of Phase 6, focusing on making the Options Chain 
 These changes ensure the Options Chain Table is fully integrated with the live data flow and provides a more precise display for key percentage metrics on the Main Tab.
 
 ---
+**Tag:** `Phase-6_Task-6.5` ([v0.6.5.0]) - Commit Hash: `a1bf333c`
+
+**Subject:** `feat: Implement "AI Full Stock Analysis" button logic and orchestration (Task 6.5)`
+
+**Details:**
+This commit completes Task 6.5, implementing the core logic for the "AI Full Stock Analysis" button on the Main Tab. This feature orchestrates a sequence of data fetching and AI processing steps, culminating in an automated chat prompt.
+
+**Key Changes Implemented:**
+
+1.  **`src/contexts/stock-analysis-context.tsx`:**
+    *   Introduced new state variables:
+        *   `fullAnalysisStatus`: Tracks the progress of the full analysis sequence (e.g., `pending`, `fetchingData`, `calculatingAiTa`, `generatingTakeaways`, `chatting`, `success`, `error`).
+        *   `isFullAnalysisTriggered`: A boolean flag to indicate if the full analysis sequence is currently active.
+        *   `chatHistory`: An array to store chat messages (prepared for Task 6.6).
+    *   Added corresponding setters and helper functions (`setFullAnalysisStatus`, `setIsFullAnalysisTriggered`, `setChatHistory`, `clearChatHistory`, `addChatMessage`).
+
+2.  **`src/components/main-tab-content.tsx`:**
+    *   Consumed the new context states and setters.
+    *   Implemented `handleAiFullAnalysisSubmit()`:
+        *   This function is triggered by the "AI Full Stock Analysis" button.
+        *   It sets `isFullAnalysisTriggered` to `true`, updates `fullAnalysisStatus` to `'pending'`, clears previous chat history, and initiates the data fetching action (`analyzeStockFormAction`).
+        *   It also resets all relevant JSON display states in the context to indicate a pending full analysis.
+    *   Modified existing `useEffect` hooks (for `analyzeStockState`, `calculateAiTaState`, `performAiAnalysisState`, `chatActionState`):
+        *   The hooks now check `isFullAnalysisTriggered` to conditionally manage the `fullAnalysisStatus` and trigger the next step in the sequence.
+        *   Upon successful completion of `performAiAnalysisState` (AI Key Takeaways) during a full analysis, the system now automatically calls `chatFormAction` with the prompt: "Provide a full detailed analysis of this stock based on all the context provided."
+        *   Error handling within the sequence updates `fullAnalysisStatus` to `'error'` and resets `isFullAnalysisTriggered`.
+    *   The "AI Full Stock Analysis" button's UI is updated to show a loading spinner (`Loader2` with `Zap` icon) and is disabled during the sequence or if other actions are pending.
+    *   The standard "Analyze Stock" button is also disabled if a full analysis is in progress.
+    *   Toast notifications are used to provide feedback to the user about the progress and outcome of the full analysis.
+
+This implementation successfully orchestrates the multi-step "AI Full Stock Analysis" process, preparing the ground for the visual chat interface in Task 6.6.
+
+---
 
 ... (Future commit logs will follow)
+
