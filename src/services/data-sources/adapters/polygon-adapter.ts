@@ -26,6 +26,8 @@ if (!process.env.POLYGON_API_KEY) {
   );
 }
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 class PolygonAdapter {
   private client: IRestClient;
 
@@ -33,6 +35,8 @@ class PolygonAdapter {
     const keyToUse = apiKey || process.env.POLYGON_API_KEY;
     if (!keyToUse) {
       console.error('[StockSage Critical] Polygon API key is MISSING or EMPTY in constructor. PolygonAdapter will likely fail.');
+      // Provide a dummy key to prevent the client from throwing an immediate error,
+      // allowing the rest of the app to potentially load for debugging UI.
       this.client = restClient("DUMMY_KEY_BECAUSE_ENV_VAR_IS_MISSING_OR_EMPTY");
     } else {
       const keyDisplay = `${keyToUse.substring(0, Math.min(5, keyToUse.length))}...${keyToUse.substring(Math.max(0, keyToUse.length - 5))}`;
@@ -71,10 +75,12 @@ class PolygonAdapter {
       ticker,
     };
     let currentStockPrice: number | undefined;
+    const apiCallDelay = 100; // 100ms delay
 
     try {
       // 1. Fetch Market Status
       try {
+        await delay(apiCallDelay);
         const marketStatusResponse = await this.client.reference.marketStatus();
         stockDataPackage.marketStatus = {
           market: marketStatusResponse.market === 'extended-hours' ? 'Extended Hours' : marketStatusResponse.market,
@@ -92,6 +98,7 @@ class PolygonAdapter {
       
       // 2. Fetch Ticker Snapshot (current day, prev day, current price)
       try {
+        await delay(apiCallDelay);
         const snapshotResponse = await this.client.stocks.snapshotTicker({ ticker });
         if (snapshotResponse.ticker) {
           const { day, prevDay, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
@@ -115,17 +122,17 @@ class PolygonAdapter {
 
         if (error.stack) rawErrorDetails.stack = error.stack.substring(0, 500);
         
-        const polygonError = error as any; // Type assertion to access potential Polygon-specific fields
+        const polygonError = error as any; 
         if (polygonError.request_id) rawErrorDetails.requestId = polygonError.request_id;
-        if (polygonError.status) rawErrorDetails.status = polygonError.status; // Like "NotFound"
+        if (polygonError.status) rawErrorDetails.status = polygonError.status; 
         if (polygonError.response && typeof polygonError.response === 'object') {
             rawErrorDetails.responseStatus = polygonError.response.status;
             rawErrorDetails.responseData = polygonError.response.data || polygonError.response.body;
         }
-        // Capture other non-function properties of the error
+        
         for (const prop in polygonError) {
             if (Object.prototype.hasOwnProperty.call(polygonError, prop) && typeof polygonError[prop] !== 'function') {
-                if (!rawErrorDetails[prop]) { // Avoid overwriting already captured fields
+                if (!rawErrorDetails[prop]) { 
                     rawErrorDetails[prop] = polygonError[prop];
                 }
             }
@@ -150,15 +157,19 @@ class PolygonAdapter {
             technicalIndicators.VWAP = { error: "VWAP not available, snapshot data missing or incomplete." } as any;
         }
 
+        await delay(apiCallDelay);
         const rsiRes = await this.client.stocks.rsi(ticker, { timespan: 'day', window: 14, series_type: 'close', limit: 1 });
         if (rsiRes.results?.values?.[0]?.value) technicalIndicators.RSI = { value: rsiRes.results.values[0].value };
 
+        await delay(apiCallDelay);
         const emaRes = await this.client.stocks.ema(ticker, { timespan: 'day', window: 20, series_type: 'close', limit: 1 });
         if (emaRes.results?.values?.[0]?.value) technicalIndicators.EMA = { value: emaRes.results.values[0].value };
         
+        await delay(apiCallDelay);
         const smaRes = await this.client.stocks.sma(ticker, { timespan: 'day', window: 50, series_type: 'close', limit: 1 });
         if (smaRes.results?.values?.[0]?.value) technicalIndicators.SMA = { value: smaRes.results.values[0].value };
 
+        await delay(apiCallDelay);
         const macdRes = await this.client.stocks.macd(ticker, { timespan: 'day', series_type: 'close', limit: 1 });
         if (macdRes.results?.values?.[0]) {
           const macdValue = macdRes.results.values[0];
@@ -178,6 +189,7 @@ class PolygonAdapter {
       // 4. Fetch Options Chain
       try {
         if (currentStockPrice !== undefined) { 
+          await delay(apiCallDelay);
           const expirationDate = calculateNextFridayExpiration();
           const optionsChainResponse = await this.client.reference.optionsContracts({
             underlying_ticker: ticker,
@@ -278,5 +290,6 @@ export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const adapter = new PolygonAdapter(apiKeyFromEnv); 
   return adapter.getFullStockData(ticker);
 }
+    
 
     
