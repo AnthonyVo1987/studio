@@ -246,7 +246,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
     *   Action:
         *   Create `src/ai/genkit.ts` (initially with basic `genkit({plugins: [googleAI()]})` ensuring correct model prefix usage if any default model is set here, but **NO `genkitPluginNextjs()`**).
         *   Create `src/ai/models.ts` (define model ID constants using `googleai/` prefix, e.g., `export const DEFAULT_CHAT_MODEL_ID = 'googleai/gemini-2.5-flash-preview-05-20';`).
-        *   Create empty placeholder files for flows (e.g., `src/ai/flows/analyze-stock-data-flow.ts`, etc.).
+        *   Create empty placeholder files for flows (e.g., `src/ai/flows/analyze-stock-data.ts`, etc.).
     *   Deliverable: Genkit file structure ready. **No complex Genkit initialization or flow logic yet.**
 
 ---
@@ -811,3 +811,46 @@ The "Main" tab display components still use placeholder data; connecting them to
 *   None
 
 ---
+**Tag:** `WIP-Phase-6_Task-6.1`
+
+**Subject:** `feat: Connect KeyMetricsDisplay & Debug Polygon API "NotFound" Error`
+
+**Details:**
+
+This commit includes the initial implementation for Task 6.1, aiming to connect `KeyMetricsDisplay.tsx` to the `StockAnalysisContext` to display live data.
+
+However, a persistent "NotFound" error from the Polygon API for the stock snapshot endpoint (`/v2/snapshot/...`) is currently blocking the display of live key metrics. This commit also includes several debugging attempts within `src/services/data-sources/adapters/polygon-adapter.ts` to diagnose this issue:
+
+*   **Task 6.1 Partial Implementation:**
+    *   Updated `src/components/key-metrics-display.tsx` to attempt parsing `stockSnapshotJson` from context and display live Ticker, Current Price, and Day's Change %.
+    *   Added basic loading skeleton states to `KeyMetricsDisplay.tsx`.
+
+*   **Polygon API Debugging Efforts:**
+    *   Enhanced error capturing in `polygon-adapter.ts` to include more detailed `rawErrorDetails` from the Polygon client in the JSON output for the Debug Tab, particularly for snapshot failures.
+    *   Added logging in the `PolygonAdapter` constructor to verify the API key being used (length and last 5 characters) in the Next.js server environment.
+    *   Implemented an immediate test API call (for `marketHolidays`) within the `PolygonAdapter` constructor to check fundamental API key validity and connectivity from the Next.js server.
+    *   Introduced a 100ms delay between sequential Polygon API calls within the `getFullStockData` method to rule out issues related to rapid requests.
+
+**Current Status:**
+*   The `POLYGON_API_KEY` is confirmed to be correctly set in the `.env` file and logged as being used by the adapter.
+*   The test API call (`marketHolidays`) in the adapter's constructor succeeds, indicating the API key is fundamentally valid and usable from the Next.js server environment.
+*   Despite these checks and the success of direct Node.js script tests with the same API key, the `snapshotTicker` call continues to return a "NotFound" error when invoked through the Next.js application's server action flow.
+*   The `KeyMetricsDisplay` component will show "N/A" or loading states until the snapshot API issue is resolved.
+
+Further investigation is required to resolve the "NotFound" error for the Polygon snapshot endpoint.
+
+**File Manifest:**
+
+**Code Files Modified:**
+*   `src/components/key-metrics-display.tsx` (Initial connection to context, loading states)
+*   `src/services/data-sources/adapters/polygon-adapter.ts` (Enhanced error logging, API key logging, constructor test call, inter-call delays)
+*   `src/components/main-tab-content.tsx` (Wrapped chained action calls in `React.startTransition` to address console warnings related to `useActionState`)
+
+**Code Files Added:**
+*   None
+
+**Code Files Removed:**
+*   None
+
+---
+
