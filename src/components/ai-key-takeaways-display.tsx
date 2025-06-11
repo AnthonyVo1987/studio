@@ -61,7 +61,7 @@ const categoryLabels: Record<TakeawayCategory, string> = {
 
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson } = useStockAnalysis();
-  // console.debug("[AiKeyTakeawaysDisplay] Props received. aiKeyTakeawaysJson (start):", aiKeyTakeawaysJson.substring(0,100));
+  console.debug("[AiKeyTakeawaysDisplay] Props received. aiKeyTakeawaysJson (start):", aiKeyTakeawaysJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
@@ -69,16 +69,16 @@ export function AiKeyTakeawaysDisplay() {
 
   if (aiKeyTakeawaysJson && aiKeyTakeawaysJson !== '{}') {
     if (aiKeyTakeawaysJson.includes('"status": "initializing"') || aiKeyTakeawaysJson.includes('"status": "pending"')) {
-      // console.debug("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is in pending/initializing state.");
+      console.debug("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is in pending/initializing state.");
       isLoading = true;
     } else if (aiKeyTakeawaysJson.includes('"status": "error"') || aiKeyTakeawaysJson.includes('"status": "skipped"')) {
-      // console.warn("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson indicates an error or skipped state.");
+      console.warn("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const data = JSON.parse(aiKeyTakeawaysJson) as StockAnalysisOutput;
-        // console.debug("[AiKeyTakeawaysDisplay] Successfully parsed aiKeyTakeawaysJson:", data);
+        console.debug("[AiKeyTakeawaysDisplay] Successfully parsed aiKeyTakeawaysJson:", data);
         if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.priceAction) {
           isLoading = false;
           isError = false;
@@ -90,23 +90,23 @@ export function AiKeyTakeawaysDisplay() {
               textSentimentClass: getTextSentimentColorClass(data[key]?.sentiment || "neutral")
           }));
         } else {
-          // console.warn("[AiKeyTakeawaysDisplay] Parsed aiKeyTakeawaysJson is missing priceAction or contains error/status field.");
+          console.warn("[AiKeyTakeawaysDisplay] Parsed aiKeyTakeawaysJson is missing priceAction or contains error/status field.");
           isLoading = false;
           isError = true;
-          // if(data && (data as any).error) console.error("[AiKeyTakeawaysDisplay] AI Key Takeaways data contains error field:", (data as any).error);
+          if(data && (data as any).error) console.error("[AiKeyTakeawaysDisplay] AI Key Takeaways data contains error field:", (data as any).error);
         }
       } catch (e) {
-        // console.error("[AiKeyTakeawaysDisplay] Failed to parse aiKeyTakeawaysJson:", e, "JSON:", aiKeyTakeawaysJson.substring(0,200));
+        console.error("[AiKeyTakeawaysDisplay] Failed to parse aiKeyTakeawaysJson:", e, "JSON:", aiKeyTakeawaysJson.substring(0,200));
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    // console.debug("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is empty or null.");
+    console.debug("[AiKeyTakeawaysDisplay] aiKeyTakeawaysJson is empty or null.");
     isLoading = false;
   }
 
-  // console.debug(`[AiKeyTakeawaysDisplay] Render state: isLoading=${isLoading}, isError=${isError}, displayTakeaways.length=${displayTakeaways.length}`);
+  console.debug(`[AiKeyTakeawaysDisplay] Render state: isLoading=${isLoading}, isError=${isError}, displayTakeaways.length=${displayTakeaways.length}`);
 
   return (
     <Card>
