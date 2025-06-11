@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Type definitions for data retrieved from stock data sources.
  */
@@ -16,11 +17,11 @@ export interface StockPriceData {
 
 // For market status
 export interface MarketStatusData {
-  market: string; // e.g., "株式市場" (Japanese for "stock market") or "extended hours"
-  earlyHours: boolean;
-  lateHours: boolean;
-  serverTime: string; // ISO string or formatted time
-  exchanges: Record<string, string>; // e.g., { "nasdaq": "open", "nyse": "closed" }
+  market: string; // e.g., "stocks" or "extended-hours"
+  earlyHours?: boolean;
+  lateHours?: boolean;
+  serverTime?: string; // ISO string or formatted time
+  exchanges?: Record<string, string>; // e.g., { "nasdaq": "open", "nyse": "closed" }
   currencies?: Record<string, string>; // e.g., { "fx": "open", "crypto": "open" }
   [key: string]: any; // For any other fields
 }
@@ -28,50 +29,53 @@ export interface MarketStatusData {
 // For stock snapshot data (current and previous day)
 export interface StockSnapshotData {
   ticker: string;
-  day: StockPriceData; // Current day's aggregates
-  prevDay: StockPriceData; // Previous day's aggregates
+  day: StockPriceData;
+  prevDay: StockPriceData;
   todaysChange?: number;
   todaysChangePerc?: number;
-  updated?: number; // Last update timestamp
+  updated?: number; // Last update timestamp (epoch ns from Polygon)
+  currentPrice?: number; // Added for convenience
   [key: string]: any; // For any other fields
 }
 
 // For technical indicators
+export interface TechnicalIndicatorValue {
+  value?: number;
+  [key: string]: any; // For other fields like signal, histogram for MACD
+}
 export interface TechnicalIndicatorsData {
-  RSI?: { value: number; [key: string]: any };
-  EMA?: { value: number; [key: string]: any };
-  SMA?: { value: number; [key: string]: any };
-  MACD?: { value: number; signal?: number; histogram?: number; [key: string]: any };
-  VWAP?: { value: number; [key: string]: any }; // Often from snapshot
-  [key: string]: any; // For other indicators
+  RSI?: TechnicalIndicatorValue;
+  EMA?: TechnicalIndicatorValue;
+  SMA?: TechnicalIndicatorValue;
+  MACD?: TechnicalIndicatorValue & { signal?: number; histogram?: number };
+  VWAP?: TechnicalIndicatorValue; 
+  [key: string]: any; 
 }
 
 // For individual option contract details (streamlined)
 export interface StreamlinedOptionContract {
   strike_price: number;
-  option_type: 'call' | 'put'; // To differentiate if not clear from context
-  // Fields present in the UI:
+  option_type: 'call' | 'put'; 
   gamma?: number | null;
-  iv?: number | null; // Implied Volatility
-  percent_change?: number | null; // % Chg
+  iv?: number | null; 
+  percent_change?: number | null; 
   bid?: number | null;
   ask?: number | null;
-  last_price?: number | null; // Last
+  last_price?: number | null; 
   volume?: number | null;
   open_interest?: number | null;
   delta?: number | null;
-  // Other potentially useful fields (not directly in PRD table, but common)
   theta?: number | null;
   vega?: number | null;
   rho?: number | null;
   bid_size?: number | null;
   ask_size?: number | null;
-  change?: number | null; // Absolute change
-  contract_name?: string; // Full contract name if needed for debugging or display
+  change?: number | null; 
+  contract_name?: string; 
   primary_exchange?: string;
-  underlying_ticker?: string; // Re-added for context if needed, PRD said remove underlying_asset object
+  underlying_ticker?: string; 
   break_even_price?: number | null;
-  [key: string]: any; // For flexibility
+  [key: string]: any; 
 }
 
 
@@ -93,16 +97,19 @@ export interface OptionsChainData {
 
 // Comprehensive structure for all fetched stock data
 export interface StockDataPackage {
-  marketStatus?: MarketStatusData;
-  stockSnapshot?: StockSnapshotData;
-  technicalIndicators?: TechnicalIndicatorsData;
-  optionsChain?: OptionsChainData;
+  ticker: string; // Ensure ticker is always present at the top level
+  marketStatus?: MarketStatusData | { error?: string; rawErrorDetails?: any };
+  stockSnapshot?: StockSnapshotData | { error?: string; rawErrorDetails?: any };
+  technicalIndicators?: TechnicalIndicatorsData | { error?: string; rawErrorDetails?: any };
+  optionsChain?: OptionsChainData | { error?: string; rawErrorDetails?: any };
+  error?: string; // Top-level error for the entire package if something catastrophic happens
+  rawOverallError?: any;
   [key: string]: any;
 }
 
 // Output from the data source adapter
 export interface AdapterOutput {
-  stockData: StockDataPackage; // All data packaged together
-  rawRequestParams?: any; // Optional: Log of params sent to API
-  rawResponse?: any; // Optional: Full raw response from API
+  stockData: StockDataPackage; 
+  rawRequestParams?: any; 
+  rawResponse?: any; 
 }

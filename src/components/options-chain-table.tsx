@@ -10,98 +10,115 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-
-// Assuming data will conform to StreamlinedOptionContract keys (snake_case)
-// This interface is for the placeholder data shape.
-interface PlaceholderOptionContract {
-  gamma?: string | number;
-  iv?: string | number;
-  percent_change?: string | number; // Note: key changed to snake_case
-  bid?: string | number;
-  ask?: string | number;
-  last_price?: string | number; // Note: key changed to snake_case
-  volume?: string | number;
-  open_interest?: string | number; // Note: key changed to snake_case
-  delta?: string | number;
-}
-
-interface OptionsRow {
-  call?: PlaceholderOptionContract;
-  strike: string | number;
-  put?: PlaceholderOptionContract;
-}
-
-const placeholderOptionsData: OptionsRow[] = [
-  {
-    call: { gamma: "0.05", iv: "55.2%", percent_change: "+2.5%", bid: "2.50", ask: "2.55", last_price: "2.52", volume: "150", open_interest: "1200", delta: "0.65" },
-    strike: "130.00",
-    put: { delta: "-0.35", open_interest: "950", volume: "90", last_price: "0.83",  bid: "0.80", ask: "0.85", percent_change: "-1.2%", iv: "60.1%", gamma: "0.03" },
-  },
-  {
-    call: { gamma: "0.06", iv: "53.0%", percent_change: "+1.8%", bid: "1.80", ask: "1.85", last_price: "1.83", volume: "220", open_interest: "1500", delta: "0.55" },
-    strike: "125.00",
-    put: { delta: "-0.45", open_interest: "1100", volume: "180", last_price: "1.23", bid: "1.20", ask: "1.25", percent_change: "-0.9%", iv: "58.5%", gamma: "0.04" },
-  },
-  {
-    call: { gamma: "0.07", iv: "50.5%", percent_change: "+0.5%", bid: "1.15", ask: "1.20", last_price: "1.18", volume: "300", open_interest: "1800", delta: "0.45" },
-    strike: "120.00",
-    put: { delta: "-0.55", open_interest: "1300", volume: "250", last_price: "1.93", bid: "1.90", ask: "1.95", percent_change: "+0.3%", iv: "56.2%", gamma: "0.05" },
-  },
-   {
-    strike: "115.00", // Example with only a put
-    put: { delta: "-0.65", open_interest: "1000", volume: "120", last_price: "2.83", bid: "2.80", ask: "2.85", percent_change: "+1.5%", iv: "54.0%", gamma: "0.06" },
-  },
-    {
-    call: { gamma: "0.04", iv: "57.2%", percent_change: "-0.5%", bid: "3.50", ask: "3.55", last_price: "3.52", volume: "100", open_interest: "800", delta: "0.75" },
-    strike: "110.00", // Example with only a call
-  },
-];
+import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import type { OptionsChainData, OptionsTableRow, StreamlinedOptionContract } from "@/services/data-sources/types";
+import { formatToTwoDecimals, formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
+import { formatDisplayDate } from "@/lib/date-utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface OptionHeaderConfig {
-  key: keyof PlaceholderOptionContract;
+  key: keyof StreamlinedOptionContract;
   label: string;
+  formatter: (value: any) => string;
 }
 
+const defaultFormatter = (value: any) => formatToTwoDecimals(value, "-");
+
 const callHeadersConfig: OptionHeaderConfig[] = [
-  { key: "gamma", label: "Gamma" },
-  { key: "iv", label: "IV" },
-  { key: "percent_change", label: "% Chg" },
-  { key: "bid", label: "Bid" },
-  { key: "ask", label: "Ask" },
-  { key: "last_price", label: "Last" },
-  { key: "volume", label: "Volume" },
-  { key: "open_interest", label: "Open Int" },
-  { key: "delta", label: "Delta" },
+  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v ? v * 100 : undefined, "-") }, // IV often given as decimal
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-") },
+  { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
+  { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
+  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
-// Puts headers are in mirrored order relative to strike
-const putHeadersConfig: OptionHeaderConfig[] = [
-  { key: "delta", label: "Delta" },
-  { key: "open_interest", label: "Open Int" },
-  { key: "volume", label: "Volume" },
-  { key: "last_price", label: "Last" },
-  { key: "bid", label: "Bid" },
-  { key: "ask", label: "Ask" },
-  { key: "percent_change", label: "% Chg" },
-  { key: "iv", label: "IV" },
-  { key: "gamma", label: "Gamma" },
+const putHeadersConfig: OptionHeaderConfig[] = [ // Mirrored for puts
+  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
+  { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
+  { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
+  { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-") },
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v ? v * 100 : undefined, "-") },
+  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
+
+const renderSkeletonRow = (rowIndex: number) => (
+  <TableRow key={`skeleton-options-${rowIndex}`}>
+    {callHeadersConfig.map((header) => (
+      <TableCell key={`call-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
+        <Skeleton className="h-4 w-10 mx-auto" />
+      </TableCell>
+    ))}
+    <TableCell className="p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r">
+      <Skeleton className="h-4 w-12 mx-auto" />
+    </TableCell>
+    {putHeadersConfig.map((header) => (
+      <TableCell key={`put-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
+        <Skeleton className="h-4 w-10 mx-auto" />
+      </TableCell>
+    ))}
+  </TableRow>
+);
 
 
 export function OptionsChainTable() {
-  const ticker = "NVDA"; // Placeholder
-  const expirationDate = "2025-07-18"; // Placeholder
+  const { optionsChainJson, aiCalculatedTaJson } = useStockAnalysis(); // aiCalculatedTaJson as proxy
+
+  let isLoading = true;
+  let isError = false;
+  let parsedData: OptionsChainData | null = null;
+
+  if (
+    optionsChainJson.includes('"status": "initializing"') ||
+    optionsChainJson.includes('"status": "pending"') ||
+    aiCalculatedTaJson.includes('"status": "pending"') || 
+    aiCalculatedTaJson.includes('"status": "initializing"')
+  ) {
+    isLoading = true;
+  } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
+    isError = true;
+    isLoading = false;
+  } else {
+    try {
+      const data = JSON.parse(optionsChainJson) as OptionsChainData;
+      if (data && typeof data === 'object' && !data.error && data.contracts) {
+        isLoading = false;
+        parsedData = data;
+      } else {
+        isError = true;
+        isLoading = false;
+      }
+    } catch (e) {
+      console.error("Failed to parse optionsChainJson in OptionsChainTable:", e);
+      isError = true;
+      isLoading = false;
+    }
+  }
+  
+  const displayTicker = parsedData?.ticker || (isLoading ? "" : "N/A");
+  const displayExpirationDate = parsedData?.expiration_date ? formatDisplayDate(parsedData.expiration_date) : (isLoading ? "" : "N/A");
+  const contracts = parsedData?.contracts || [];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Options Chain</CardTitle>
-        <CardDescription>
-          Options chain for {ticker} - Expires: {expirationDate}
-        </CardDescription>
+        {isLoading ? (
+            <Skeleton className="h-5 w-1/2" />
+        ) : (
+            <CardDescription>
+            Options chain for {displayTicker} - Expires: {displayExpirationDate}
+            </CardDescription>
+        )}
       </CardHeader>
-      <CardContent className="overflow-x-auto p-2 md:p-3"> {/* Reduced padding and added overflow */}
-        <Table className="min-w-max text-xs"> {/* min-w-max to allow table to expand, text-xs for smaller font */}
+      <CardContent className="overflow-x-auto p-2 md:p-3">
+        <Table className="min-w-max text-xs">
           <TableHeader>
             <TableRow>
               <TableHead colSpan={callHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">CALLS</TableHead>
@@ -123,24 +140,25 @@ export function OptionsChainTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {placeholderOptionsData.map((row, index) => (
-              <TableRow key={`options-row-${index}`}>
-                {/* Calls Data */}
+            {isLoading 
+              ? Array.from({ length: 5 }).map((_, index) => renderSkeletonRow(index)) 
+              : isError
+                ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">Options data not available.</TableCell></TableRow>
+                : contracts.length === 0 
+                    ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">No option contracts found for this expiration.</TableCell></TableRow>
+                    : contracts.map((row: OptionsTableRow, index: number) => (
+              <TableRow key={`options-row-${row.strike}-${index}`}>
                 {callHeadersConfig.map((header) => (
                   <TableCell key={`call-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
-                    {row.call?.[header.key] ?? "-"}
+                    {header.formatter(row.call?.[header.key])}
                   </TableCell>
                 ))}
-
-                {/* Strike Price */}
                 <TableCell className="p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r">
-                  {typeof row.strike === 'number' ? row.strike.toFixed(2) : row.strike}
+                  {formatCurrency(row.strike, "$", "-")}
                 </TableCell>
-
-                {/* Puts Data */}
                 {putHeadersConfig.map((header) => (
                   <TableCell key={`put-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
-                    {row.put?.[header.key] ?? "-"}
+                     {header.formatter(row.put?.[header.key])}
                   </TableCell>
                 ))}
               </TableRow>
