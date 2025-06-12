@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { type LogSourceId, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
-import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, GlobalLogEntry } from '@/lib/global-log-buffer';
+import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer'; // Removed GlobalLogEntry as it's not used directly here
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
@@ -19,6 +19,7 @@ export type FullAnalysisStatus =
   | 'error';
 
 export interface ChatMessage {
+  id: string; // Add an ID for keying in React lists
   role: 'user' | 'model';
   content: string;
 }
@@ -72,7 +73,7 @@ interface StockAnalysisContextType extends StockAnalysisState {
   setIsFullAnalysisTriggered: (triggered: boolean) => void;
   setChatHistory: (history: ChatMessage[]) => void;
   clearChatHistory: () => void;
-  addChatMessage: (message: ChatMessage) => void;
+  addChatMessage: (message: ChatMessage) => void; // Ensure this is in the type
 
   setClientDebugConsoleEnabled: (enabled: boolean) => void;
   setClientDebugConsoleOpen: (open: boolean) => void;
@@ -152,8 +153,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setFullAnalysisStatus = useCallback((status: FullAnalysisStatus) => _setFullAnalysisStatus(status), [_setFullAnalysisStatus]);
   const setIsFullAnalysisTriggered = useCallback((triggered: boolean) => _setIsFullAnalysisTriggered(triggered), [_setIsFullAnalysisTriggered]);
   const setChatHistory = useCallback((history: ChatMessage[]) => _setChatHistory(history), [_setChatHistory]);
-  const clearChatHistory = useCallback(() => _setChatHistory([]), [_setChatHistory]);
-  const addChatMessage = useCallback((message: ChatMessage) => _setChatHistory(prev => [...prev, message]), [_setChatHistory]);
+  const clearChatHistory = useCallback(() => {
+    _setChatHistory([]);
+    logDebug('StockAnalysisContext', 'Chat history cleared');
+  }, [_setChatHistory, logDebug]);
+  
+  const addChatMessage = useCallback((message: ChatMessage) => {
+    _setChatHistory(prev => [...prev, message]);
+    logDebug('StockAnalysisContext', `Added chat message from ${message.role}:`, message.content.substring(0, 50));
+  }, [_setChatHistory, logDebug]);
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
     _setClientDebugConsoleEnabled(enabled);
@@ -164,7 +172,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen]);
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
-    if (isClientDebugConsoleEnabled || !open) { // Only allow opening if enabled, or always allow closing
+    if (isClientDebugConsoleEnabled || !open) { 
         _setClientDebugConsoleOpen(open);
     }
   }, [isClientDebugConsoleEnabled, _setClientDebugConsoleOpen]);
@@ -186,16 +194,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       type: 'log' | 'warn' | 'error' | 'info' | 'debug',
       ...args: any[]
     ) => {
-      // Check if this log call is from the interceptor itself to avoid infinite loops
       if (args.length > 0 && args[0] === LOGDEBUG_MARKER && args[1] === 'StockAnalysisContext' && args[2] === 'Console Interceptor Native Call') {
-        currentOriginals[type](...args.slice(3)); // Log only the message part
+        currentOriginals[type](...args.slice(3)); 
         return;
       }
       
-      currentOriginals[type](...args); // Always log to native console immediately
+      currentOriginals[type](...args); 
 
       queueMicrotask(() => {
-        if (!isClientDebugConsoleEnabled) return; // Master switch
+        if (!isClientDebugConsoleEnabled) return; 
 
         let source: LogSourceId = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
@@ -204,21 +211,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
           source = args[1] as LogSourceId;
           messagesForBuffer = args.slice(2);
-          logTypeForBuffer = 'debug'; // Logs from logDebug are always 'debug' type for buffer
+          logTypeForBuffer = 'debug'; 
           if (!logSourceConfig[source]) {
-            return; // Specific source is disabled
+            return; 
           }
         } else {
-          // This is a general console.x call not from our logDebug
           if (!logSourceConfig['NATIVE_CONSOLE']) {
-            return; // Native console passthrough is disabled for UI console
+            return; 
           }
         }
         addEntryToGlobalLogBuffer({ type: logTypeForBuffer, messages: messagesForBuffer, source });
       });
     };
     
-    if (isClientDebugConsoleEnabled) { // This only controls if we add to buffer, not interception itself
+    if (isClientDebugConsoleEnabled) { 
       console.log = (...args) => interceptAndProcessLog('log', ...args);
       console.warn = (...args) => interceptAndProcessLog('warn', ...args);
       console.error = (...args) => interceptAndProcessLog('error', ...args);
@@ -226,26 +232,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       console.debug = (...args) => interceptAndProcessLog('debug', ...args);
       logDebug('StockAnalysisContext', 'Console Interceptor Native Call', 'Console interception active (for UI buffer).');
     } else {
-      // Restore original console methods if they were overridden
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
-         // No logDebug here as it might be restored
          currentOriginals.debug('[StockAnalysisContext]', 'Console Interceptor Native Call', 'Console interception for UI buffer disabled, originals restored.');
-        // Keep __stockSageOriginals so we know they were stored
       }
     }
 
     return () => {
-      // On cleanup, always restore originals if they exist
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
-        // No logDebug here as it might be restored
         currentOriginals.debug('[StockAnalysisContext]', 'Console Interceptor Native Call', 'Console interception disabled on cleanup, originals restored.');
-        // Optionally delete: delete (console as any).__stockSageOriginals; 
-        // but keeping it might be safer if component re-mounts rapidly
       }
     };
-  }, [isClientDebugConsoleEnabled, logSourceConfig, logDebug]); // logDebug is stable, logSourceConfig changes
+  }, [isClientDebugConsoleEnabled, logSourceConfig, logDebug]); 
 
   const contextValue: StockAnalysisContextType = {
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson,

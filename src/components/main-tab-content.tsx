@@ -16,6 +16,7 @@ import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
+import { Chatbot } from "@/components/chatbot"; // Import Chatbot
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 
 import { fetchStockDataAction, type AnalyzeStockServerActionState } from "@/actions/analyze-stock-server-action";
@@ -53,6 +54,8 @@ export function MainTabContent() {
     optionsChainJson: contextOptionsChainJson,
     aiCalculatedTaJson: contextAiCalculatedTaJson,
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
+    chatbotRequestJson: contextChatbotRequestJson,
+    chatbotResponseJson: contextChatbotResponseJson,
     setMarketStatusJson,
     setStockSnapshotJson,
     setStandardTasJson,
@@ -65,6 +68,7 @@ export function MainTabContent() {
     setAiKeyTakeawaysJson,
     setChatbotRequestJson,
     setChatbotResponseJson,
+    addChatMessage,
     fullAnalysisStatus,
     setFullAnalysisStatus,
     isFullAnalysisTriggered,
@@ -114,15 +118,13 @@ export function MainTabContent() {
     setPolygonApiRequestLogJson(requestLogPlaceholder);
     setPolygonApiResponseLogJson(placeholderToUse);
     
-    setAiCalculatedTaRequestJson(placeholderToUse); // Use consistent pending for AI steps
+    setAiCalculatedTaRequestJson(placeholderToUse); 
     setAiCalculatedTaJson(placeholderToUse);
     setAiKeyTakeawaysRequestJson(placeholderToUse);
     setAiKeyTakeawaysJson(placeholderToUse);
 
-    if (isFullAnalysisTriggered) {
-        setChatbotRequestJson(initializingPlaceholder); // Chat starts later, so init is fine
-        setChatbotResponseJson(initializingPlaceholder);
-    }
+    setChatbotRequestJson(initializingPlaceholder); 
+    setChatbotResponseJson(initializingPlaceholder);
     
     startTransition(() => {
       analyzeStockFormAction({ ticker: currentTickerToAnalyze });
@@ -157,7 +159,6 @@ export function MainTabContent() {
     initiateAnalysisSequence(tickerInput);
   };
 
-  // Effect for Data Fetching -> AI TA Calculation
   useEffect(() => {
     logDebug('MainTabContent', "analyzeStockState changed:", analyzeStockState);
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
@@ -246,7 +247,6 @@ export function MainTabContent() {
       performAiAnalysisFormAction, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
       toast, logDebug]);
 
-  // Effect for AI TA Calculation -> AI Key Takeaways
   useEffect(() => {
     logDebug('MainTabContent', "calculateAiTaState changed:", calculateAiTaState);
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
@@ -305,7 +305,7 @@ export function MainTabContent() {
                  ticker: currentAnalysisTicker,
                  stockSnapshotJson: analyzeStockState.data?.stockSnapshotJson || `{ "status": "error", "reason": "Snapshot missing/error for ${currentAnalysisTicker}" }`, 
                  aiKeyTakeawaysJson: skippedJson, 
-                 aiCalculatedTaJson: calculateAiTaState.data.aiCalculatedTaJson, // Could be valid AI TA data
+                 aiCalculatedTaJson: calculateAiTaState.data.aiCalculatedTaJson, 
                  userInput: autoPrompt,
                  chatHistory: []
                });
@@ -338,7 +338,6 @@ export function MainTabContent() {
       setChatbotRequestJson, setChatbotResponseJson,
       toast, logDebug]);
 
-  // Effect for AI Key Takeaways -> Chat (for full analysis)
   useEffect(() => {
     logDebug('MainTabContent', "performAiAnalysisState changed:", performAiAnalysisState);
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
@@ -402,7 +401,6 @@ export function MainTabContent() {
         setFullAnalysisStatus('error');
         setIsFullAnalysisTriggered(false);
       }
-      // Clear ref for both full and standard if this step errors
       analysisTriggeredForTickerRef.current = null;
       logDebug('MainTabContent', "performAiAnalysisState error, cleared analysisTriggeredForTickerRef for", currentAnalysisTicker);
     }
@@ -412,15 +410,17 @@ export function MainTabContent() {
       setChatbotRequestJson, setChatbotResponseJson,
       toast, logDebug]);
 
-  // Effect for Chat completion
   useEffect(() => {
     logDebug('MainTabContent', "chatActionState changed:", chatActionState);
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current; 
 
     if (chatActionState.status === 'success' && chatActionState.data) {
+      const modelResponse = JSON.parse(chatActionState.data.chatbotResponseJson);
+      addChatMessage({ id: Date.now().toString() + '_model', role: 'model', content: modelResponse.response || "Model did not provide a response." });
       toast({ title: "Chatbot Responded", description: chatActionState.message });
       setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
       setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
+
       if (isFullAnalysisTriggered) {
         setFullAnalysisStatus('success');
         setIsFullAnalysisTriggered(false);
@@ -439,6 +439,8 @@ export function MainTabContent() {
       const errorResponseJson = chatActionState.data?.chatbotResponseJson || `{ "status": "error", "message": "${chatActionState.message?.replace(/"/g, '\\"')}" }`;
       setChatbotRequestJson(errorRequestJson);
       setChatbotResponseJson(errorResponseJson);
+      addChatMessage({ id: Date.now().toString() + '_model_error', role: 'model', content: `Error: ${chatActionState.message || 'Failed to get response.'}` });
+
       if (isFullAnalysisTriggered) {
         setFullAnalysisStatus('error');
         setIsFullAnalysisTriggered(false);
@@ -448,7 +450,7 @@ export function MainTabContent() {
           analysisTriggeredForTickerRef.current = null; 
       }
     }
-  }, [chatActionState, isFullAnalysisTriggered,
+  }, [chatActionState, isFullAnalysisTriggered, addChatMessage,
       setChatbotRequestJson, setChatbotResponseJson,
       setFullAnalysisStatus, setIsFullAnalysisTriggered, toast, logDebug]);
   
@@ -577,12 +579,14 @@ export function MainTabContent() {
           <AiCalculatedTaDisplay />
           <OptionsChainTable />
           <AiKeyTakeawaysDisplay />
-          {/* Chatbot UI will be added here in Task 6.6 */}
+          <Chatbot 
+            chatFormAction={chatFormAction}
+            isChatPending={isChatPending || (isFullAnalysisTriggered && fullAnalysisStatus === 'chatting')}
+            currentTicker={analysisTriggeredForTickerRef.current || tickerInput}
+          />
           <MarketStatusDisplay />
         </div>
       </CardContent>
     </Card>
   );
 }
-
-    
