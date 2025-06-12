@@ -15,7 +15,7 @@ export const logSourceIds = [
   'MainTabContent',
   'StockAnalysisContext',
   'NATIVE_CONSOLE',
-  'Chatbot', // Added for Chatbot UI specific logs
+  'Chatbot', // Ensured for Chatbot UI specific logs
   // Add new source identifiers here
 ] as const;
 

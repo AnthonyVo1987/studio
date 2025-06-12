@@ -47,12 +47,19 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const isContextReady = useCallback(() => {
-    const snapshotReady = stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":') && stockSnapshotJson !== '{}';
-    const takeawaysReady = aiKeyTakeawaysJson && !aiKeyTakeawaysJson.includes('"status":') && !aiKeyTakeawaysJson.includes('"error":') && aiKeyTakeawaysJson !== '{}';
-    const taReady = aiCalculatedTaJson && !aiCalculatedTaJson.includes('"status":') && !aiCalculatedTaJson.includes('"error":') && aiCalculatedTaJson !== '{}';
-    return snapshotReady && takeawaysReady && taReady;
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, aiCalculatedTaJson]);
+  const isContextJsonReady = useCallback((jsonString: string | null | undefined): boolean => {
+    return !!jsonString && 
+           jsonString !== '{}' && 
+           !jsonString.includes('"status":') && 
+           !jsonString.includes('"error":');
+  }, []);
+
+  const currentContextReady = useCallback(() => {
+    return isContextJsonReady(stockSnapshotJson) && 
+           isContextJsonReady(aiKeyTakeawaysJson) && 
+           isContextJsonReady(aiCalculatedTaJson);
+  }, [stockSnapshotJson, aiKeyTakeawaysJson, aiCalculatedTaJson, isContextJsonReady]);
+
 
   useEffect(() => {
     logDebug('Chatbot', 'Initial render / props update:', { currentTicker, isChatPending });
@@ -65,27 +72,30 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   }, [chatHistory]);
 
   useEffect(() => {
+    const snapshotReady = isContextJsonReady(stockSnapshotJson);
+    const takeawaysReady = isContextJsonReady(aiKeyTakeawaysJson);
+    const taReady = isContextJsonReady(aiCalculatedTaJson);
     logDebug('Chatbot', 'Context readiness check:', { 
-      isReady: isContextReady(), 
-      snapshotJsonValid: !!stockSnapshotJson && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":') && stockSnapshotJson !== '{}',
-      takeawaysJsonValid: !!aiKeyTakeawaysJson && !aiKeyTakeawaysJson.includes('"status":') && !aiKeyTakeawaysJson.includes('"error":') && aiKeyTakeawaysJson !== '{}',
-      aiTaJsonValid: !!aiCalculatedTaJson && !aiCalculatedTaJson.includes('"status":') && !aiCalculatedTaJson.includes('"error":') && aiCalculatedTaJson !== '{}',
+      isOverallReady: currentContextReady(), 
+      snapshotJsonValid: snapshotReady,
+      takeawaysJsonValid: takeawaysReady,
+      aiTaJsonValid: taReady,
     });
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, aiCalculatedTaJson, logDebug, isContextReady]);
+  }, [stockSnapshotJson, aiKeyTakeawaysJson, aiCalculatedTaJson, logDebug, currentContextReady, isContextJsonReady]);
 
 
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (!userInput.trim() || isChatPending || !isContextReady()) {
-        if(!isContextReady()) {
+    if (!userInput.trim() || isChatPending || !currentContextReady()) {
+        if(!currentContextReady()) {
             toast({ variant: 'destructive', title: 'Context Not Ready', description: 'Please analyze a stock first for full chat context.' });
         }
-        logDebug('Chatbot', 'Submit prevented:', {userInputEmpty: !userInput.trim(), isChatPending, contextNotReady: !isContextReady() });
+        logDebug('Chatbot', 'Submit prevented:', {userInputEmpty: !userInput.trim(), isChatPending, contextNotReady: !currentContextReady() });
         return;
     }
 
     const userMessage: ChatMessage = { id: Date.now().toString() + '_user', role: 'user', content: userInput.trim() };
-    addChatMessage(userMessage);
+    addChatMessage(userMessage); // This will also log from StockAnalysisContext
 
     logDebug('Chatbot', `Submitting chat message for ${currentTicker}: "${userInput.trim()}"`);
 
@@ -103,7 +113,7 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   };
 
   const handleExamplePromptClick = (promptTemplate: string) => {
-    if (!isContextReady()) {
+    if (!currentContextReady()) {
         toast({ variant: 'destructive', title: 'Context Not Ready', description: 'Analyze a stock before using example prompts.' });
         logDebug('Chatbot', 'Example prompt click prevented: context not ready.');
         return;
@@ -114,7 +124,10 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   };
 
   const handleCopyChat = async () => {
-    if (chatHistory.length === 0) return;
+    if (chatHistory.length === 0) {
+        logDebug('Chatbot', 'Copy chat: No history to copy.');
+        return;
+    }
     const success = await copyToClipboard(JSON.stringify(chatHistory, null, 2));
     if (success) {
       toast({ title: 'Chat Copied', description: 'Chat history copied to clipboard as JSON.' });
@@ -126,7 +139,10 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   };
 
   const handleExportChat = () => {
-    if (chatHistory.length === 0) return;
+    if (chatHistory.length === 0) {
+        logDebug('Chatbot', 'Export chat: No history to export.');
+        return;
+    }
     try {
       downloadJson(chatHistory, `${currentTicker || 'stocksage'}_chat_history.json`);
       toast({ title: 'Chat Exported', description: 'Chat history downloaded as JSON.' });
@@ -137,7 +153,7 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     }
   };
   
-  const currentContextReady = isContextReady();
+  const contextReady = currentContextReady();
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -167,7 +183,7 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { clearChatHistory(); toast({title: "Chat Cleared"}); logDebug('Chatbot', 'Chat history cleared by user.');}}>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={() => { clearChatHistory(); toast({title: "Chat Cleared"}); }}>Continue</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -213,7 +229,7 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
           </div>
         </ScrollArea>
         
-        {!currentContextReady && (
+        {!contextReady && (
           <div className="p-3 mb-2 text-center text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-700/20 border border-orange-200 dark:border-orange-600/50 rounded-md">
             Chat context is not fully loaded. Please analyze a stock first for the best experience.
           </div>
@@ -226,7 +242,7 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
               variant="outline"
               size="sm"
               onClick={() => handleExamplePromptClick(p.prompt)}
-              disabled={isChatPending || !currentContextReady}
+              disabled={isChatPending || !contextReady}
               className="text-xs px-2 py-1 h-auto"
             >
               <HelpCircle className="mr-1.5 h-3 w-3" />
@@ -239,12 +255,12 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
           <Input
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            placeholder={currentContextReady ? `Ask about ${currentTicker || 'the stock'}...` : "Analyze a stock to enable chat..."}
-            disabled={isChatPending || !currentContextReady}
+            placeholder={contextReady ? `Ask about ${currentTicker || 'the stock'}...` : "Analyze a stock to enable chat..."}
+            disabled={isChatPending || !contextReady}
             className="flex-grow"
             onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) handleSubmit(e as any);}}
           />
-          <Button type="submit" disabled={isChatPending || !userInput.trim() || !currentContextReady}>
+          <Button type="submit" disabled={isChatPending || !userInput.trim() || !contextReady}>
             {isChatPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
