@@ -16,7 +16,7 @@ import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiCalculatedTaDisplay } from "@/components/ai-calculated-ta-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
-import { Chatbot } from "@/components/chatbot"; // Import Chatbot
+import { Chatbot } from "@/components/chatbot";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 
 import { fetchStockDataAction, type AnalyzeStockServerActionState } from "@/actions/analyze-stock-server-action";
@@ -53,9 +53,8 @@ export function MainTabContent() {
     standardTasJson: contextStandardTasJson,
     optionsChainJson: contextOptionsChainJson,
     aiCalculatedTaJson: contextAiCalculatedTaJson,
-    aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
-    chatbotRequestJson: contextChatbotRequestJson,
-    chatbotResponseJson: contextChatbotResponseJson,
+    // aiKeyTakeawaysJson is used by AiKeyTakeawaysDisplay, but not directly in combined export
+    // chatbotRequestJson and chatbotResponseJson are for the chatbot component
     setMarketStatusJson,
     setStockSnapshotJson,
     setStandardTasJson,
@@ -133,12 +132,15 @@ export function MainTabContent() {
 
   const handleAnalyzeStockButtonSubmit = (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
+    logDebug('MainTabContent', 'Analyze Stock button clicked.');
     if (isFullAnalysisTriggered) {
       toast({ title: "Full Analysis in Progress", description: "Please wait for the current full AI analysis to complete.", variant: "default" });
+      logDebug('MainTabContent', 'Analyze Stock button: Full analysis already in progress.');
       return;
     }
     if (isAnyActionPending) {
        toast({ title: "Process Busy", description: "Another analysis process is currently running.", variant: "default" });
+       logDebug('MainTabContent', 'Analyze Stock button: Another action is pending.');
        return;
     }
     setIsFullAnalysisTriggered(false); 
@@ -146,8 +148,10 @@ export function MainTabContent() {
   };
 
   const handleAiFullAnalysisSubmit = () => {
+    logDebug('MainTabContent', 'AI Full Stock Analysis button clicked.');
     if (isAnyActionPending) {
       toast({ title: "Process Busy", description: "Another analysis process is currently running.", variant: "default" });
+      logDebug('MainTabContent', 'AI Full Stock Analysis button: Another action is pending.');
       return;
     }
     toast({ title: "Starting Full AI Analysis...", description: `Initiating sequence for ${tickerInput.toUpperCase()}.` });
@@ -458,24 +462,86 @@ export function MainTabContent() {
   const isAnyActionPending = isAnySubActionPending || (isFullAnalysisTriggered && fullAnalysisStatus !== 'success' && fullAnalysisStatus !== 'error' && fullAnalysisStatus !== 'idle');
 
   const getCombinedDataForExport = () => {
-    return {
-      stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'),
-      standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'),
-      aiCalculatedTechnicalAnalysis: JSON.parse(contextAiCalculatedTaJson || '{}'),
-      optionsChain: JSON.parse(contextOptionsChainJson || '{}'),
-      marketStatus: JSON.parse(contextMarketStatusJson || '{}'),
-      aiKeyTakeaways: JSON.parse(contextAiKeyTakeawaysJson || '{}'),
-    };
+    logDebug('MainTabContent', 'getCombinedDataForExport called.');
+    try {
+      return {
+        stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'),
+        standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'),
+        aiCalculatedTechnicalAnalysis: JSON.parse(contextAiCalculatedTaJson || '{}'),
+        optionsChain: JSON.parse(contextOptionsChainJson || '{}'),
+        marketStatus: JSON.parse(contextMarketStatusJson || '{}'),
+      };
+    } catch (e) {
+        logDebug('MainTabContent', 'Error parsing JSON in getCombinedDataForExport:', e);
+        toast({variant: "destructive", title: "Data Preparation Error", description: "Could not parse all data components for export."});
+        return { error: "Failed to parse one or more data components." };
+    }
   };
 
-  const isDataReadyForExport =
-    !contextStockSnapshotJson.includes('"status":') && !contextStockSnapshotJson.includes('"error":') && contextStockSnapshotJson !== '{}' &&
-    !contextStandardTasJson.includes('"status":') && !contextStandardTasJson.includes('"error":') && contextStandardTasJson !== '{}' &&
-    !contextAiCalculatedTaJson.includes('"status":') && !contextAiCalculatedTaJson.includes('"error":') && contextAiCalculatedTaJson !== '{}' &&
-    !contextOptionsChainJson.includes('"status":') && !contextOptionsChainJson.includes('"error":') && contextOptionsChainJson !== '{}' &&
-    !contextMarketStatusJson.includes('"status":') && !contextMarketStatusJson.includes('"error":') && contextMarketStatusJson !== '{}';
+  const isJsonReadyForExport = (jsonString: string): boolean => {
+    return jsonString && jsonString !== '{}' && !jsonString.includes('"status":') && !jsonString.includes('"error":');
+  };
 
-  logDebug('MainTabContent', `Rendering. isAnyActionPending=${isAnyActionPending}, fullAnalysisStatus=${fullAnalysisStatus}, currentTickerInput=${tickerInput}, analysisTriggeredFor=${analysisTriggeredForTickerRef.current}`);
+  const isDataReadyForCombinedExport =
+    isJsonReadyForExport(contextStockSnapshotJson) &&
+    isJsonReadyForExport(contextStandardTasJson) &&
+    isJsonReadyForExport(contextAiCalculatedTaJson) &&
+    isJsonReadyForExport(contextOptionsChainJson) &&
+    isJsonReadyForExport(contextMarketStatusJson);
+
+  const handleExportAllToJson = async () => {
+    logDebug('MainTabContent', 'Export All to JSON button clicked.');
+    if (!isDataReadyForCombinedExport) {
+        toast({variant: "destructive", title: "Data Not Ready", description: "Not all required data sections are available for combined export."});
+        logDebug('MainTabContent', 'Export All to JSON: Data not ready.');
+        return;
+    }
+    try {
+      const dataToExport = getCombinedDataForExport();
+      if ((dataToExport as any).error) {
+          logDebug('MainTabContent', 'Export All to JSON: Error during data preparation.', dataToExport);
+          return; // Toast already shown by getCombinedDataForExport
+      }
+      const currentDisplayTicker = dataToExport.stockSnapshot?.ticker || tickerInput || 'STOCK';
+      downloadJson(dataToExport, `${currentDisplayTicker}_stocksage_all_data.json`);
+      toast({ title: "Data Exported", description: `Combined analysis for ${currentDisplayTicker} downloaded as JSON.` });
+      logDebug('MainTabContent', 'Export All to JSON: Success.');
+    } catch (e) {
+      toast({variant: "destructive", title: "Export Error", description: "Could not export combined data."});
+      logDebug('MainTabContent', 'Export All to JSON: Unexpected error.', e);
+    }
+  };
+  
+  const handleCopyAllToJson = async () => {
+    logDebug('MainTabContent', 'Copy All to JSON button clicked.');
+    if (!isDataReadyForCombinedExport) {
+        toast({variant: "destructive", title: "Data Not Ready", description: "Not all required data sections are available for combined copy."});
+        logDebug('MainTabContent', 'Copy All to JSON: Data not ready.');
+        return;
+    }
+    try {
+      const dataToExport = getCombinedDataForExport();
+       if ((dataToExport as any).error) {
+          logDebug('MainTabContent', 'Copy All to JSON: Error during data preparation.', dataToExport);
+          return; // Toast already shown by getCombinedDataForExport
+      }
+      const currentDisplayTicker = dataToExport.stockSnapshot?.ticker || tickerInput || 'STOCK';
+      const success = await copyToClipboard(JSON.stringify(dataToExport, null, 2));
+      if (success) {
+        toast({ title: "Data Copied", description: `Combined analysis for ${currentDisplayTicker} copied to clipboard.` });
+        logDebug('MainTabContent', 'Copy All to JSON: Success.');
+      } else {
+        toast({variant: "destructive", title: "Copy Failed", description: "Could not copy combined data."});
+        logDebug('MainTabContent', 'Copy All to JSON: Failed.');
+      }
+    } catch (e) {
+       toast({variant: "destructive", title: "Copy Error", description: "Could not prepare combined data for copy."});
+       logDebug('MainTabContent', 'Copy All to JSON: Unexpected error.', e);
+    }
+  };
+
+
+  logDebug('MainTabContent', `Rendering. isAnyActionPending=${isAnyActionPending}, fullAnalysisStatus=${fullAnalysisStatus}, currentTickerInput=${tickerInput}, analysisTriggeredFor=${analysisTriggeredForTickerRef.current}, isDataReadyForCombinedExport=${isDataReadyForCombinedExport}`);
 
   return (
     <Card>
@@ -528,42 +594,24 @@ export function MainTabContent() {
         <Separator />
 
         <div className="space-y-2">
-            <h3 className="text-lg font-medium">Data Export</h3>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <h3 className="text-lg font-medium">Combined Data Export</h3>
+            <CardDescription>Exports Stock Snapshot, Standard TAs, AI Calculated TAs, Options Chain, and Market Status.</CardDescription>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button 
-                  onClick={() => {
-                    try {
-                      const dataToExport = getCombinedDataForExport();
-                      const currentDisplayTicker = JSON.parse(contextStockSnapshotJson || '{}').ticker || tickerInput || 'STOCK';
-                      downloadJson(dataToExport, `${currentDisplayTicker}_stocksage_analysis.json`);
-                    } catch (e) {
-                      toast({variant: "destructive", title: "Export Error", description: "Could not prepare data for export."});
-                      console.error("Export error:", e);
-                    }
-                  }} 
+                  onClick={handleExportAllToJson}
                   type="button" 
                   variant="outline" 
                   className="w-full sm:w-auto" 
-                  disabled={!isDataReadyForExport || isAnyActionPending}
+                  disabled={!isDataReadyForCombinedExport || isAnyActionPending}
                 >
                     <Download className="mr-2 h-4 w-4" /> Export All to JSON
                 </Button>
                 <Button 
-                  onClick={() => {
-                    try {
-                      const dataToExport = getCombinedDataForExport();
-                      const currentDisplayTicker = JSON.parse(contextStockSnapshotJson || '{}').ticker || tickerInput || 'STOCK';
-                      copyToClipboard(JSON.stringify(dataToExport, null, 2));
-                      toast({ title: "Data Copied", description: `Combined analysis for ${currentDisplayTicker} copied to clipboard.` });
-                    } catch (e) {
-                       toast({variant: "destructive", title: "Copy Error", description: "Could not prepare data for copy."});
-                       console.error("Copy error:", e);
-                    }
-                  }} 
+                  onClick={handleCopyAllToJson}
                   type="button" 
                   variant="outline" 
                   className="w-full sm:w-auto" 
-                  disabled={!isDataReadyForExport || isAnyActionPending}
+                  disabled={!isDataReadyForCombinedExport || isAnyActionPending}
                 >
                     <Copy className="mr-2 h-4 w-4" /> Copy All to JSON
                 </Button>
@@ -590,3 +638,5 @@ export function MainTabContent() {
     </Card>
   );
 }
+
+    
