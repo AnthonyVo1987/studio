@@ -15,6 +15,7 @@ export const logSourceIds = [
   'MainTabContent',
   'StockAnalysisContext',
   'NATIVE_CONSOLE',
+  'Chatbot', // Added for Chatbot UI specific logs
   // Add new source identifiers here
 ] as const;
 
@@ -34,6 +35,7 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   MainTabContent: false,
   StockAnalysisContext: false,
   NATIVE_CONSOLE: false,
+  Chatbot: false, // Default for Chatbot UI logs
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -48,4 +50,6 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   MainTabContent: 'Main Tab Content (Actions/Logic)',
   StockAnalysisContext: 'Stock Analysis Context (Internals)',
   NATIVE_CONSOLE: 'Native Console Logs (General)',
+  Chatbot: 'Chatbot UI', // Label for Chatbot UI logs
 };
+
