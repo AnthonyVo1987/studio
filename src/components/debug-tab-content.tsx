@@ -65,20 +65,25 @@ export function DebugTabContent() {
 
   logDebug('DebugTabContent', "Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
 
-
   const handleCopy = (title: string, content: string) => {
-    logDebug('DebugTabContent', `Copying JSON for: ${title}`);
+    logDebug('DebugTabContent', `Attempting to copy JSON for: ${title}`);
     copyToClipboard(content)
       .then((success) => {
         if (success) {
           toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
+          logDebug('DebugTabContent', `Successfully copied ${title} JSON to clipboard.`);
         } else {
-          toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON.` });
+          // This case might be rare if copyToClipboard primarily throws errors for failures
+          toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON. The copy operation returned false.` });
+          logDebug('DebugTabContent', `Failed to copy ${title} JSON to clipboard. copyToClipboard returned false.`);
         }
       })
       .catch(err => {
-        console.error(`[DebugTabContent] Failed to copy ${title}: `, err);
-        toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON: ${ (err as Error).message || 'Unknown error'}` });
+        const errorMessage = (err as Error).message || 'Unknown error';
+        // Keep the console.error for developer visibility in browser dev tools
+        console.error(`[DebugTabContent] Error copying ${title} JSON to clipboard:`, err);
+        toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON: ${errorMessage}` });
+        logDebug('DebugTabContent', `Error caught while trying to copy ${title} JSON to clipboard:`, errorMessage, err);
       });
   };
 
