@@ -31,12 +31,14 @@ const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 200;
 
 function formatLogMessage(messages: any[]): string {
+  const seen = new Set(); 
   return messages
     .map((msg) => {
       if (typeof msg === 'string') return msg;
       if (typeof msg === 'object' && msg !== null) {
         try {
-          // Attempt to stringify, but handle circular references or other errors gracefully
+          // Reset 'seen' for each top-level message part to handle multiple objects correctly
+          seen.clear();
           return JSON.stringify(msg, (key, value) => {
             if (typeof value === 'object' && value !== null) {
               if (seen.has(value)) {
@@ -50,7 +52,6 @@ function formatLogMessage(messages: any[]): string {
           return String(msg);
         }
       }
-      const seen = new Set(); // Reset 'seen' for each top-level message part
       return String(msg);
     })
     .join(' ');
@@ -67,8 +68,6 @@ const escapeCsvField = (field: any): string => {
     return '';
   }
   const stringField = String(field);
-  // If the field contains a comma, newline, or double quote, enclose it in double quotes.
-  // Also, double up any existing double quotes within the field.
   if (/[",\n]/.test(stringField)) {
     return `"${stringField.replace(/"/g, '""')}"`;
   }
@@ -78,7 +77,7 @@ const escapeCsvField = (field: any): string => {
 // Helper function to generate TXT content from logs
 const generateLogsTxt = (logs: GlobalLogEntry[]): string => {
   return logs.map(log => {
-    const timestamp = `[${new Date(log.timestamp).toISOString()}]`;
+    const timestamp = `[${new Date(log.timestamp).toISOString()}]`; // Full ISO for precision in TXT
     const type = `[${log.type.toUpperCase()}]`;
     const source = log.source ? `[${getSourceLabel(log.source)}]` : '[UNKNOWN_SOURCE]';
     const message = formatLogMessage(log.messages);
@@ -90,7 +89,7 @@ const generateLogsTxt = (logs: GlobalLogEntry[]): string => {
 const generateLogsCsv = (logs: GlobalLogEntry[]): string => {
   const headers = "Timestamp,Type,Source,Message\n";
   const rows = logs.map(log => {
-    const timestamp = log.timestamp;
+    const timestamp = log.timestamp; // ISO string for CSV
     const type = log.type;
     const source = log.source ? getSourceLabel(log.source) : '';
     const message = formatLogMessage(log.messages);
@@ -171,13 +170,47 @@ export function DebugConsole() {
     logDebug('DebugConsole', 'Client debug logs cleared by user. Search term also cleared.');
   };
 
-  const handleCopyLogs = () => {
-    if (copyToClipboard(JSON.stringify(displayedLogs, null, 2))) { 
+  const handleCopyJson = async () => {
+    logDebug('DebugConsole', 'Copying logs as JSON.');
+    if (displayedLogs.length === 0) {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
+    }
+    if (await copyToClipboard(JSON.stringify(displayedLogs, null, 2))) { 
       toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as JSON.' });
-      logDebug('DebugConsole', `Displayed client logs copied to clipboard. Count: ${displayedLogs.length}`);
+      logDebug('DebugConsole', `Displayed client logs copied as JSON. Count: ${displayedLogs.length}`);
     } else {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs.' });
-      logDebug('DebugConsole', 'Failed to copy client logs to clipboard.');
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as JSON.' });
+      logDebug('DebugConsole', 'Failed to copy client logs as JSON.');
+    }
+  };
+
+  const handleCopyTxt = async () => {
+    logDebug('DebugConsole', 'Copying logs as TXT.');
+    if (displayedLogs.length === 0) {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
+    }
+    const txtData = generateLogsTxt(displayedLogs);
+    if (await copyToClipboard(txtData)) {
+      toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as TXT.' });
+      logDebug('DebugConsole', `Displayed client logs copied as TXT. Count: ${displayedLogs.length}`);
+    } else {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as TXT.' });
+      logDebug('DebugConsole', 'Failed to copy client logs as TXT.');
+    }
+  };
+  
+  const handleCopyCsv = async () => {
+    logDebug('DebugConsole', 'Copying logs as CSV.');
+    if (displayedLogs.length === 0) {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
+    }
+    const csvData = generateLogsCsv(displayedLogs);
+    if (await copyToClipboard(csvData)) {
+      toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as CSV.' });
+      logDebug('DebugConsole', `Displayed client logs copied as CSV. Count: ${displayedLogs.length}`);
+    } else {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as CSV.' });
+      logDebug('DebugConsole', 'Failed to copy client logs as CSV.');
     }
   };
 
@@ -222,7 +255,7 @@ export function DebugConsole() {
     }
     try {
       const csvData = generateLogsCsv(displayedLogs);
-      downloadTxt(csvData, 'stocksage_client_logs.csv'); // downloadTxt is fine for CSV
+      downloadTxt(csvData, 'stocksage_client_logs.csv'); 
       toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as CSV.' });
       logDebug('DebugConsole', `Displayed client logs exported as CSV. Count: ${displayedLogs.length}`);
     } catch (error) {
@@ -280,7 +313,7 @@ export function DebugConsole() {
   };
 
   const activeFilterCount = activeFilters.types.size + activeFilters.sources.size;
-  const isExportDisabled = displayedLogs.length === 0;
+  const isUserInteractionDisabled = displayedLogs.length === 0;
 
   return (
     <Card
@@ -371,20 +404,29 @@ export function DebugConsole() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="icon" onClick={handleCopyLogs} title="Copy Logs (Raw JSON)" className="h-7 w-7">
-              <ClipboardCopy className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Copy Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
+                        <ClipboardCopy className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleCopyJson} disabled={isUserInteractionDisabled}>Copy as JSON</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleCopyTxt} disabled={isUserInteractionDisabled}>Copy as TXT</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleCopyCsv} disabled={isUserInteractionDisabled}>Copy as CSV</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" title="Export Logs" className="h-7 w-7" disabled={isExportDisabled}>
+                <Button variant="ghost" size="icon" title="Export Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
                   <Download className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportJson} disabled={isExportDisabled}>Export as JSON</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportTxt} disabled={isExportDisabled}>Export as TXT</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportCsv} disabled={isExportDisabled}>Export as CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportJson} disabled={isUserInteractionDisabled}>Export as JSON</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportTxt} disabled={isUserInteractionDisabled}>Export as TXT</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCsv} disabled={isUserInteractionDisabled}>Export as CSV</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -433,5 +475,7 @@ export function DebugConsole() {
     </Card>
   );
 }
+
+    
 
     
