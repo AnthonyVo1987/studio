@@ -1,10 +1,10 @@
 
 # **Product Requirements Document & AI Operating Manual: StockSage v2.1.0 (Re-Implementation)**
 
-*   **Document Version:** 1.10
+*   **Document Version:** 1.11
 *   **Date:** 2025-06-12
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality; Experimental Debug Console Implemented. Phase 7, Task 7.1 Complete.
+*   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality; Experimental Debug Console Implemented. Phase 7 COMPLETE.
 
 ## **0. Preamble: Purpose of this Document & Core Strategy**
 
@@ -36,7 +36,7 @@ The primary strategy for this re-implementation is **UI-First Development**. Thi
 *   **Address Past Pain Points:** Proactively design and implement solutions to avoid known development challenges, particularly those related to build processes and dependencies (e.g., `async_hooks`).
 *   **Modularity and Maintainability:** Create a codebase that is well-organized, with reusable components and clearly defined service layers.
 *   **User Experience:** Maintain a high-quality, responsive, and accessible user interface, consistent with the v1.2.14 style guidelines.
-*   **Enhanced Debuggability:** Implement comprehensive server-side logging and clear error reporting mechanisms. A client-side debug console has been experimentally implemented (see Task 7.2).
+*   **Enhanced Debuggability:** Implement comprehensive server-side logging and clear error reporting mechanisms. A client-side debug console has been implemented (see Task 7.2).
 
 ## **2. Core Application Features (Based on v1.2.14 Functionality with UI Enhancements)**
 
@@ -245,7 +245,7 @@ The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to
         *   **Layout Shifts & DOM Manipulation Conflicts:** The console's behavior of appearing/disappearing from the bottom of the screen and dynamically adjusting the main content area's padding might have interfered with React's reconciliation process or Next.js's rendering lifecycle, leading to instability.
         *   **Potential Hydration/SSR Conflicts:** Introducing a global, pervasive UI component that intercepts browser functionalities early in the client-side lifecycle could have conflicted with Next.js hydration processes.
     *   **Resolution (Former):** The entire `DebugConsole` feature and its associated "Intermediate Debug Phase" (formerly Task 6.1.7) were **fully reverted** to restore application stability to the v0.6.1.6 baseline.
-    *   **Current Status (Experimental Branch):** A new, more stable iteration of the client-side debug console has been implemented (see Task 7.2 status). This version uses a global log buffer outside of React state for log collection and has undergone several stability fixes (Tasks DebugConsole 3.1, 3.2.5-3.2.8) to address issues like log categorization, rendering performance, and data consistency during rapid application interactions.
+    *   **Current Status (Task 7.2 Complete):** The client-side debug console (`DebugConsole.tsx`) has been successfully implemented with a stable architecture. It includes log interception, display, configurable log categories, advanced filtering by type/source, text search, and multi-format (JSON, TXT, CSV) copy/export capabilities.
     *   **Future Approach Considerations (if re-attempted from scratch or significantly enhanced):**
         *   **Simplify:** Start with a much simpler version (e.g., a passive log viewer that reads from a simple global array, without interception or complex filtering UI).
         *   **Performance First:** Prioritize performance and minimal intrusiveness. Avoid frequent, widespread state updates triggered by console calls.
@@ -318,29 +318,24 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 *   **Task 6.6.2 (Fix): Resolve `async_hooks` Build Errors by Removing `@genkit-ai/next`** - Status: **COMPLETE** (Commit `c14e3af6`)
 
 ---
-**Phase 7: Data Export & Final Client-Side Features**
+**Phase 7: Data Export & Final Client-Side Features** - Status: **COMPLETE**
 *(Goal: Implement final utility features and complete the client-side experience.)*
-*   **Task 7.1: Implement Remaining Data Export Controls** - Status: **COMPLETE**
+*   **Task 7.1: Implement Remaining Data Export Controls** - Status: **COMPLETE** (Commit `b6ea6dff`)
     *   Action:
         *   **Task 7.1.0 (Sub-task):** Implement "Export All Data to JSON" and "Copy All Data to JSON" buttons on Main Tab. (Status: **COMPLETE**)
         *   **Task 7.1.2 (Sub-task):** Implement "Export Options (CSV)" and "Copy Options (CSV)" for Options Chain Table on Main Tab. (Status: **COMPLETE**)
         *   **Task 7.1.3 (Sub-task):** Implement "Export/Copy Key Takeaways" (Text, JSON, CSV) for AI Key Takeaways on Main Tab. (Status: **COMPLETE**)
         *   **Task 7.1.4 (Sub-task):** Verify and ensure Debug Tab "Copy JSON" button functionality. (Status: **COMPLETE**)
     *   Deliverable: Comprehensive data export/copy functionality across all specified sections.
-*   **Task 7.2: Implement `DebugConsole.tsx` Component** - Status: **Partially Implemented (Experimental Branch `v6.5.0_DebugConsole_exp`)**
+*   **Task 7.2: Implement `DebugConsole.tsx` Component** - Status: **COMPLETE**
     *   Action: Create and integrate `src/components/debug-console.tsx`.
-    *   **Status (Experimental Branch `v6.5.0_DebugConsole_exp`):** Partially Implemented. A new, more stable version of the client-side debug console has been implemented. It includes:
+    *   **Status:** Implemented a stable client-side debug console with:
         *   Log interception (via global buffer) and display in a fixed bottom panel.
-        *   Basic controls: Copy Logs (JSON), Export Logs (JSON), Clear Logs, Close Console.
-        *   Toggle switch in the main UI (`page.tsx`) to enable/disable the console and its log interception.
-        *   Configurable log categories via a `DebugSettingsCard` in the `DebugTabContent.tsx`, allowing users to toggle specific log sources on/off for the custom console.
-        *   Numerous stability fixes related to state management, high-frequency log handling, and data consistency during rapid application interactions (covered in `DebugConsole_Task-1`, `DebugConsole_Task-3.1`, and `DebugConsole_Task-3.2.x` series on the experimental branch).
-    *   **Original Specification Points from PRD Still Pending / To Be Enhanced:**
-        *   Advanced filtering by log type/category/source *within the console UI*.
-        *   Search functionality *within the console UI*.
-        *   Export to TXT, CSV (currently only JSON).
-        *   Copy to TXT, CSV (currently only JSON).
-    *   **Deliverable (Current Experimental):** A functional client-side debug console with core display, export (JSON), copy (JSON), clear, and toggle capabilities, along with configurable log source categories. Further UI enhancements for filtering/searching are pending.
+        *   Controls: Enable/Disable Console, Copy Logs (JSON, TXT, CSV), Export Logs (JSON, TXT, CSV), Clear Logs, Close Console.
+        *   Configurable log categories via `DebugSettingsCard` in `DebugTabContent.tsx`.
+        *   Advanced filtering by log type and source category within the console UI.
+        *   Search functionality within the console UI for log messages.
+    *   **Deliverable:** A fully functional client-side debug console with display, toggle, configurable log sources, advanced filtering, search, and multi-format (JSON, TXT, CSV) copy/export capabilities.
 
 ---
 **Phase 8: Final Styling, Cleanup, Documentation & Review**
@@ -353,19 +348,20 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 
 ## **6. Changelog (This Re-Implementation PRD)**
 
-| Version | Date         | Author                        | Summary of Changes                                                                 |
-| :------ | :----------- | :---------------------------- | :--------------------------------------------------------------------------------- |
-| 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy. |
-| 1.1     | 2025-06-09   | Firebase Studio (AI Prototyper) | Integrated Gemini Model ID specification (Section 4.3.6) to prevent "Model not found" errors. Clarified model ID usage in Phase 0 & 5. |
-| 1.2     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Main Tab features (Sec 2.2) & Phase 6 tasks to reflect UI refinements (card order, ticker removal, market status filtering, options table styling), new combined data export controls, and sentiment color-coding from Task 6.1.6. |
-| 1.3     | 2025-06-10   | Firebase Studio (AI Prototyper) | Added commit log for v0.6.1.6 (revert). Added detailed post-mortem (Section 4.7.4) for failed DebugConsole attempt. Updated Phase 7 (Task 7.2) to reflect "To Be Implemented" status for DebugConsole. |
-| 1.4     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Tasks 6.2 & 6.3 as complete. Added commit log for v0.6.3.0. |
-| 1.5     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.4 as complete (Options Chain Table live data, percentage formatting). Added commit log for v0.6.4.0. |
-| 1.6     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.5 as complete ("AI Full Stock Analysis" button logic). Added commit log for v0.6.5.0. |
+| Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                            |
+| :------ | :----------- | :---------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                 |
+| 1.1     | 2025-06-09   | Firebase Studio (AI Prototyper) | Integrated Gemini Model ID specification (Section 4.3.6) to prevent "Model not found" errors. Clarified model ID usage in Phase 0 & 5.                                                                                                      |
+| 1.2     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Main Tab features (Sec 2.2) & Phase 6 tasks to reflect UI refinements (card order, ticker removal, market status filtering, options table styling), new combined data export controls, and sentiment color-coding from Task 6.1.6.          |
+| 1.3     | 2025-06-10   | Firebase Studio (AI Prototyper) | Added commit log for v0.6.1.6 (revert). Added detailed post-mortem (Section 4.7.4) for failed DebugConsole attempt. Updated Phase 7 (Task 7.2) to reflect "To Be Implemented" status for DebugConsole.                                          |
+| 1.4     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Tasks 6.2 & 6.3 as complete. Added commit log for v0.6.3.0.                                                                                                                                                                  |
+| 1.5     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.4 as complete (Options Chain Table live data, percentage formatting). Added commit log for v0.6.4.0.                                                                                                                   |
+| 1.6     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.5 as complete ("AI Full Stock Analysis" button logic). Added commit log for v0.6.5.0.                                                                                                                                |
 | 1.7     | 2025-06-12   | Firebase Studio (AI Prototyper) | Updated PRD to reflect implementation and stabilization of the experimental client-side debug console (partially fulfilling Task 7.2) on branch `v6.5.0_DebugConsole_exp`. Incorporates fixes from debug tasks up to 3.2.8 (data consistency, loading states, log categorization). Added commit log for experimental branch. |
 | 1.8     | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 6 as complete, including Task 6.6 (Chatbot UI) and Task 6.6.1 (Chatbot UI Debug Logging Audit Fix). Added commit log for Task 6.6.1 (Commit `601df92c`). Highlighted persistent `async_hooks` issue in Sec 4.7.1 and recommended user performs environment re-init. Updated Genkit config in Sec 4.3.1 to include `enableOpenTelemetry: false`. |
 | 1.9     | 2025-06-12   | Firebase Studio (AI Prototyper) | Added Task 6.6.2 (Fix: Resolve `async_hooks` Build Errors) and marked as complete. Updated Sec 4.3.1 and 4.7.1 to reflect removal of `@genkit-ai/next` and strongly emphasize user environment re-initialization. Added commit log for Task 6.6.2 (Commit `c14e3af6`). Phase 6 remains complete. |
 | 1.10    | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 7, Task 7.1 (Implement Remaining Data Export Controls) as complete, encompassing sub-tasks for combined data export (7.1.0), options chain CSV export (7.1.2), key takeaways export (Text, JSON, CSV) (7.1.3), and debug tab copy JSON verification (7.1.4). Updated commit log for commit `b6ea6dff`. |
+| 1.11    | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 7, Task 7.2 (`DebugConsole.tsx` Component) as **COMPLETE**. This includes sub-tasks for advanced filtering (7.2.1), search functionality (7.2.2), export to TXT/CSV (7.2.3), and copy to TXT/CSV (7.2.4). Phase 7 is now fully complete. Updated commit log for `b6bc90e8`. Updated Sec 4.7.4. |
 
 ---
 ## Project Implementation Commit Log
@@ -457,8 +453,27 @@ Key changes implemented:
 All new export/copy functionalities include user feedback via toasts and appropriate `logDebug` integration for the client-side debug console. With this, Task 7.1 is complete.
 
 ---
+**Tag:** `Phase-7_Tasks-7.1-7.2` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `b6bc90e8`
+
+**Subject:** `feat: Complete Phase 7 - Data Export & Client Debug Console Enhancements`
+
+**Details:**
+This commit finalizes Phase 7, encompassing all data export functionalities and comprehensive enhancements to the client-side debug console.
+
+**Task 7.1: Implement Remaining Data Export Controls (Previously completed under commit `b6ea6dff` and verified):**
+*   Main Tab: Combined data export/copy (JSON).
+*   Main Tab: Options Chain export/copy (CSV).
+*   Main Tab: AI Key Takeaways export/copy (Text, JSON, CSV).
+*   Debug Tab: Verified "Copy JSON" buttons.
+
+**Task 7.2: Implement `DebugConsole.tsx` Component (Full Enhancements):**
+*   **Sub-Task 7.2.1 (Advanced Filtering):** Implemented UI and logic for filtering logs by type (debug, info, log, warn, error) and source (component/context). Includes "Select All" / "Clear All" options.
+*   **Sub-Task 7.2.2 (Search Functionality):** Added an input field in the console header to search displayed logs (case-insensitive message search) with a clear button.
+*   **Sub-Task 7.2.3 (Export to TXT/CSV):** Enhanced the export feature to a dropdown, allowing export of displayed logs as TXT and CSV formats, in addition to JSON.
+*   **Sub-Task 7.2.4 (Copy to TXT/CSV):** Enhanced the copy feature to a dropdown, allowing copy of displayed logs as TXT and CSV formatted text, in addition to JSON.
+
+The client-side debug console now offers robust filtering, searching, and multi-format export/copy capabilities.
+All specified functionalities for Phase 7 are now complete.
+---
 
 ... (Future commit logs will follow)
-
-
-
