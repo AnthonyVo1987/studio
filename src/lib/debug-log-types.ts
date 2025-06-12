@@ -15,7 +15,8 @@ export const logSourceIds = [
   'MainTabContent',
   'StockAnalysisContext',
   'NATIVE_CONSOLE',
-  'Chatbot', // Ensured for Chatbot UI specific logs
+  'Chatbot',
+  'DebugConsole', // Added for logs from the debug console itself
   // Add new source identifiers here
 ] as const;
 
@@ -35,7 +36,8 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   MainTabContent: false,
   StockAnalysisContext: false,
   NATIVE_CONSOLE: false,
-  Chatbot: false, // Default for Chatbot UI logs
+  Chatbot: false,
+  DebugConsole: true, // Default to true to see console's own debug messages
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -50,6 +52,11 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   MainTabContent: 'Main Tab Content (Actions/Logic)',
   StockAnalysisContext: 'Stock Analysis Context (Internals)',
   NATIVE_CONSOLE: 'Native Console Logs (General)',
-  Chatbot: 'Chatbot UI', // Label for Chatbot UI logs
+  Chatbot: 'Chatbot UI',
+  DebugConsole: 'Debug Console UI/Internals',
 };
+
+// For DebugConsole.tsx filter UI
+export const logTypes = ['debug', 'info', 'log', 'warn', 'error'] as const;
+export type LogType = typeof logTypes[number];
 
