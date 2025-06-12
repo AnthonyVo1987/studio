@@ -1,10 +1,10 @@
 
 # **Product Requirements Document & AI Operating Manual: StockSage v2.1.0 (Re-Implementation)**
 
-*   **Document Version:** 1.7
+*   **Document Version:** 1.8
 *   **Date:** 2025-06-12
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality; Experimental Debug Console Implemented.
+*   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality; Experimental Debug Console Implemented. Phase 6 Complete.
 
 ## **0. Preamble: Purpose of this Document & Core Strategy**
 
@@ -82,12 +82,12 @@ The AI Agent must re-implement the following features, organized by the new tabb
     6.  **AI Key Takeaways Display:**
         *   Formatted display of 5 key takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting (badges and text color). Numerical values to two decimal places, monetary values prefixed with "$".
         *   *Data Source: Consumes "AI Key Takeaways JSON" from the "Debug" Tab.*
-    7.  **Market Status Display:**
+    7.  **AI Chatbot Interface:**
+        *   Standard chatbot UI (message display, input, example prompts, history export/copy).
+        *   *Data Source: Chat history is managed internally; contextual data (stock JSON, analysis summary, AI TA JSON) for prompts will be sourced from their respective JSON displays in the "Debug" Tab.*
+    8.  **Market Status Display:**
         *   Current status of relevant markets and exchanges. Excludes "Crypto Market" and "FX Market".
         *   *Data Source: Consumes "Market Status JSON" from the "Debug" Tab.* This card is always the last one displayed.
-*   **AI Chatbot Interface:** (To be implemented in a later phase - Task 6.6)
-    *   Standard chatbot UI (message display, input, example prompts, history export/copy).
-    *   *Data Source: Chat history is managed internally; contextual data (stock JSON, analysis summary, AI TA JSON) for prompts will be sourced from their respective JSON displays in the "Debug" Tab.*
 *   **Data Export Controls:**
     *   Buttons to "Export All Data to JSON" and "Copy All Data to JSON". This compiles Stock Snapshot, Standard TAs, AI Calculated TAs, Options Chain, and Market Status into a single JSON object in that order.
     *   Buttons to export/copy other specific sections of data displayed on the Main Tab (e.g., Key Takeaways (Text, JSON, CSV), Options Chain Table (CSV)). This will re-format the JSON from the "Debug" tab.
@@ -165,7 +165,7 @@ The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to
 *   App Router, Server Components by default, Server Actions, `next/image` (with `placehold.co` and `data-ai-hint`), single root JSX.
 
 ### **4.3. Genkit (v1.x) Specifics**
-*   **`4.3.1. Initialization`**: Use the global `ai` object (to be created in `src/ai/genkit.ts`) for `ai.defineFlow`, `ai.definePrompt`, `ai.defineSchema`, etc.
+*   **`4.3.1. Initialization`**: Use the global `ai` object (created in `src/ai/genkit.ts`) for `ai.defineFlow`, `ai.definePrompt`, `ai.defineSchema`, etc. **Crucially, `enableOpenTelemetry: false` has been added to the `genkit` constructor in `src/ai/genkit.ts` as a potential mitigation for `async_hooks` issues. If `async_hooks` errors persist after an environment re-initialization (see `reinit.md`), this setting should be verified.**
 *   **`4.3.2. Strict v1.x Syntax`**:
     *   `const ai = genkit({plugins: [googleAI()]});` (No `logLevel` in constructor).
     *   `response.text` (property access, not `response.text()`).
@@ -223,11 +223,11 @@ The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to
 
 ### **4.7. Known Pain Points & Lessons Learned (CRITICAL - Guiding UI-First)**
 *   **`4.7.1. async_hooks` Module Resolution & Turbopack:**
-    *   **Context:** This was a major blocker. The UI-First strategy is designed to mitigate this by deferring backend/Genkit integrations.
+    *   **Context:** This has been a recurring major blocker. The UI-First strategy is designed to mitigate this by deferring backend/Genkit integrations. **The latest occurrence of this error after Task 6.6.1 (Commit `601df92c`) strongly suggests that a full local environment re-initialization (see `reinit.md`) should be performed by the user before proceeding with further development or assuming the issue is a new code-level defect. The `@genkit-ai/next` package has been removed previously, and `enableOpenTelemetry: false` has been set in `src/ai/genkit.ts` as mitigation attempts. If a re-init does not solve the issue, it indicates a deeper conflict with Genkit's core or Turbopack.**
     *   **Rule 1:** **DO NOT use or add `genkitPluginNextjs()`** initially.
     *   **Rule 2:** Be extremely cautious with new dependencies, especially APM/tracing.
     *   **Rule 3:** Keep `next.config.ts` simple. **AVOID Webpack `resolve.fallback` for Node.js built-ins.**
-    *   **Rule 4:** If `async_hooks` (or similar build errors) appear when integrating backend logic (Phase 4+), flag immediately. **Do not spend extensive time trying to fix with Webpack fallbacks.** The solution might be to isolate the problematic Genkit flow or re-evaluate dependencies.
+    *   **Rule 4:** If `async_hooks` (or similar build errors) appear when integrating backend logic (Phase 4+) or persist after attempts to simplify Genkit setup, flag immediately. **Do not spend extensive time trying to fix with Webpack fallbacks.** The solution might be to isolate the problematic Genkit flow or re-evaluate dependencies.
 *   **`4.7.2. Genkit v1.x Syntax`:** Adhere strictly.
 *   **`4.7.3. Data Flow:`** Raw data populates "Debug" Tab JSONs first. "Main" Tab components then read from these state variables (JSON strings) and format them for display. This two-step process is key.
 *   **`4.7.4. Client-Side Debug Console (`DebugConsole.tsx`) Implementation Issues (Post-Mortem for former Task 6.1.7 / Intermediate Debug Phase):`**
@@ -238,7 +238,7 @@ The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to
         *   **Layout Shifts & DOM Manipulation Conflicts:** The console's behavior of appearing/disappearing from the bottom of the screen and dynamically adjusting the main content area's padding might have interfered with React's reconciliation process or Next.js's rendering lifecycle, leading to instability.
         *   **Potential Hydration/SSR Conflicts:** Introducing a global, pervasive UI component that intercepts browser functionalities early in the client-side lifecycle could have conflicted with Next.js hydration processes.
     *   **Resolution (Former):** The entire `DebugConsole` feature and its associated "Intermediate Debug Phase" (formerly Task 6.1.7) were **fully reverted** to restore application stability to the v0.6.1.6 baseline.
-    *   **Current Status (Experimental Branch `v6.5.0_DebugConsole_exp`):** A new, more stable iteration of the client-side debug console has been implemented (see Task 7.2 status). This version uses a global log buffer outside of React state for log collection and has undergone several stability fixes (Tasks DebugConsole 3.1, 3.2.5-3.2.8) to address issues like log categorization, rendering performance, and data consistency during rapid application interactions.
+    *   **Current Status (Experimental Branch):** A new, more stable iteration of the client-side debug console has been implemented (see Task 7.2 status). This version uses a global log buffer outside of React state for log collection and has undergone several stability fixes (Tasks DebugConsole 3.1, 3.2.5-3.2.8) to address issues like log categorization, rendering performance, and data consistency during rapid application interactions.
     *   **Future Approach Considerations (if re-attempted from scratch or significantly enhanced):**
         *   **Simplify:** Start with a much simpler version (e.g., a passive log viewer that reads from a simple global array, without interception or complex filtering UI).
         *   **Performance First:** Prioritize performance and minimal intrusiveness. Avoid frequent, widespread state updates triggered by console calls.
@@ -253,16 +253,16 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 0: Project Setup & Core Layout**
 *(Goal: Establish foundational project structure, dependencies, and the basic UI shell with Tab navigation. This phase sets up the visual framework without any backend logic.)*
-*   **Task 0.1: Initialize Next.js Project**
+*   **Task 0.1: Initialize Next.js Project** - Status: **COMPLETE**
     *   Action: Create Next.js project (App Router, TypeScript, Tailwind CSS).
     *   Deliverable: Basic Next.js structure, initial `package.json`.
-*   **Task 0.2: Install Core Dependencies**
+*   **Task 0.2: Install Core Dependencies** - Status: **COMPLETE**
     *   Action: Install `@polygon.io/client-js` (`^7.3.2`), `genkit` (`^1.x`), `@genkit-ai/googleai` (`^1.x`), ShadCN UI (CLI will handle), `lucide-react`, `zod`, `react-markdown`, `remark-gfm`, `date-fns`.
     *   Deliverable: Updated `package.json`, `package-lock.json`.
-*   **Task 0.3: Setup ShadCN UI & Initial Components**
+*   **Task 0.3: Setup ShadCN UI & Initial Components** - Status: **COMPLETE**
     *   Action: Init ShadCN (`components.json`). Add: `button`, `card`, `input`, `textarea`, `select`, `toast`, `scroll-area`, `label`, `separator`, `tabs`, `table`, `tooltip`.
     *   Deliverable: `components.json`, UI components in `src/components/ui`.
-*   **Task 0.4: Implement Basic Application Shell with Tabs**
+*   **Task 0.4: Implement Basic Application Shell with Tabs** - Status: **COMPLETE**
     *   Action:
         *   `src/app/layout.tsx`: HTML structure, `ThemeProvider` (default dark), Inter font, Toaster.
         *   `src/app/page.tsx`:
@@ -270,10 +270,10 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
             *   Implement main page structure using ShadCN `Tabs` for "Main" and "Debug" tabs.
             *   Basic placeholder content within each tab.
     *   Deliverable: Functional basic page layout with "Main" and "Debug" tabs.
-*   **Task 0.5: Define Global Styles & Theme**
+*   **Task 0.5: Define Global Styles & Theme** - Status: **COMPLETE**
     *   Action: Update `src/app/globals.css` with Tailwind base layers and CSS HSL variables for StockSage theme (primary blue, light gray background, green accent, etc.). Update `tailwind.config.ts`.
     *   Deliverable: Themed application shell.
-*   **Task 0.6: Basic Genkit Setup (File Structure Only)**
+*   **Task 0.6: Basic Genkit Setup (File Structure Only)** - Status: **COMPLETE**
     *   Action:
         *   Create `src/ai/genkit.ts` (initially with basic `genkit({plugins: [googleAI()]})` ensuring correct model prefix usage if any default model is set here, but **NO `genkitPluginNextjs()`**).
         *   Create `src/ai/models.ts` (define model ID constants using `googleai/` prefix, e.g., `export const DEFAULT_CHAT_MODEL_ID = 'googleai/gemini-2.5-flash-preview-05-20';`).
@@ -283,42 +283,42 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 1: UI Shell Implementation - "Debug" Tab**
 *(Goal: Build out all the UI elements within the "Debug" Tab. These will be Textarea components intended to display raw JSON data. They will be populated with static placeholder JSON initially. This verifies the UI structure for data display before any backend calls are made.)*
-*   **Task 1.1: Create `DebugTabContent.tsx` Component**
+*   **Task 1.1: Create `DebugTabContent.tsx` Component** - Status: **COMPLETE**
     *   Action: Create a new component `src/components/debug-tab-content.tsx`.
     *   This component will house all the `Textarea` displays for the Debug tab.
     *   Integrate this component into the "Debug" `TabsContent` in `src/app/page.tsx`.
-*   **Task 1.2: Implement JSON Display Areas in `DebugTabContent.tsx`**
+*   **Task 1.2: Implement JSON Display Areas in `DebugTabContent.tsx`** - Status: **COMPLETE**
     *   Action: For each data item listed in Section 2.3 ("Debug" Tab Features), add a labeled `Card` containing a read-only ShadCN `Textarea`.
         *   Labels: "Polygon API Request Log JSON", "Polygon API Response Log JSON", "Market Status JSON", "Stock Snapshot JSON", "Standard TAs JSON", "Options Chain JSON", "AI Calculated TA JSON", "AI Key Takeaways JSON", etc.
         *   Initial Content: Populate each `Textarea` with simple, static placeholder JSON strings (e.g., `{\n  "status": "placeholder data"\n}`).
     *   Deliverable: "Debug" tab fully populated with labeled `Textarea` components showing placeholder JSON.
-*   **Task 1.3: Implement Export/Copy Controls for Debug JSONs**
+*   **Task 1.3: Implement Export/Copy Controls for Debug JSONs** - Status: **COMPLETE**
     *   Action: Add basic "Copy JSON" buttons next to each `Textarea` in the Debug tab. These will eventually copy the content of the `Textarea`. For now, they can be minimally functional (e.g., log to console).
     *   Deliverable: Copy buttons present in "Debug" tab.
 
 ---
 **Phase 2: UI Shell Implementation - "Main" Tab (Part 1: Static Data & Key Takeaways Displays)**
 *(Goal: Build the static display components on the "Main" Tab. These will display formatted data based on what *will eventually* be in the "Debug" Tab JSONs. Populate with static placeholder content.)*
-*   **Task 2.1: Create `MainTabContent.tsx` Component**
+*   **Task 2.1: Create `MainTabContent.tsx` Component** - Status: **COMPLETE**
     *   Action: Create `src/components/main-tab-content.tsx`.
     *   This component will house all content for the "Main" tab.
     *   Integrate into the "Main" `TabsContent` in `src/app/page.tsx`.
-*   **Task 2.2: Implement Stock Analysis Input Area in `MainTabContent.tsx`**
+*   **Task 2.2: Implement Stock Analysis Input Area in `MainTabContent.tsx`** - Status: **COMPLETE**
     *   Action: Add Ticker `Input`, Data Source `Select`, "Analyze Stock" `Button`, "AI Full Stock Analysis" `Button`. These buttons will be non-functional initially (or log to console).
     *   Deliverable: Input area UI complete.
-*   **Task 2.3: Implement Key Metrics Display Component**
+*   **Task 2.3: Implement Key Metrics Display Component** - Status: **COMPLETE**
     *   Action: Create `src/components/key-metrics-display.tsx`.
     *   Display Ticker, Current Price, Day's Change %.
     *   Use static placeholder values (e.g., "NVDA", "$120.50", "+1.25%").
     *   Integrate into `MainTabContent.tsx`.
     *   Deliverable: Key Metrics display complete with placeholders.
-*   **Task 2.4: Implement AI-Calculated TA Display Component**
+*   **Task 2.4: Implement AI-Calculated TA Display Component** - Status: **COMPLETE**
     *   Action: Create `src/components/ai-calculated-ta-display.tsx`.
     *   Display formatted Pivot Points (PP, S1-S3, R1-R3).
     *   Use static placeholder values (e.g., "PP: 150.00", "S1: 148.50").
     *   Integrate into `MainTabContent.tsx`.
     *   Deliverable: AI TA display complete with placeholders.
-*   **Task 2.5: Implement AI Key Takeaways Display Component**
+*   **Task 2.5: Implement AI Key Takeaways Display Component** - Status: **COMPLETE**
     *   Action: Create `src/components/ai-key-takeaways-display.tsx`.
     *   Display 5 key takeaways with text and sentiment.
     *   Use static placeholder text and sentiments (e.g., "Price Action (bullish): Price is showing strong upward movement."). Apply sentiment-based styling.
@@ -328,7 +328,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 3: UI Shell Implementation - "Main" Tab (Part 2: Options Chain Table)**
 *(Goal: Build the visual component for the Options Chain table on the "Main" Tab, populated with static placeholder data matching the target layout and styling. This focuses purely on the UI representation.)*
-*   **Task 3.1: Create `OptionsChainTable.tsx` Component**
+*   **Task 3.1: Create `OptionsChainTable.tsx` Component** - Status: **COMPLETE**
     *   Action: Create `src/components/options-chain-table.tsx`.
     *   Implement the table structure using ShadCN `Table` components.
     *   **Layout:** Calls on left, Strikes (descending) in center, Puts on right.
@@ -341,19 +341,19 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 4: Backend Data Fetching & "Debug" Tab Population (Polygon.io)**
 *(Goal: Implement the Polygon.io data fetching logic. The fetched raw JSON data, including both current intraday and previous day's snapshot data, will populate the corresponding Textarea components in the "Debug" Tab. The "Main" Tab still uses placeholders.)*
-*   **Task 4.1: Implement `StockAnalysisProvider` Context (Initial State)**
+*   **Task 4.1: Implement `StockAnalysisProvider` Context (Initial State)** - Status: **COMPLETE**
     *   Action: Create `src/contexts/stock-analysis-context.tsx`.
     *   Define state to hold all JSON strings that will be displayed in the "Debug" Tab (e.g., `marketStatusJson`, `stockSnapshotJson`, `optionsChainJson`, etc.). Initialize with empty strings or placeholder indicators.
     *   Wrap `src/app/page.tsx`'s content with this provider.
     *   Connect `DebugTabContent.tsx` to consume these state values for its `Textarea` components.
     *   Deliverable: Context provider setup. Debug Tab `Textarea`s now reflect state (initially empty/placeholders).
-*   **Task 4.2: Create Data Source Types & Utilities**
+*   **Task 4.2: Create Data Source Types & Utilities** - Status: **COMPLETE**
     *   Action:
         *   `src/services/data-sources/types.ts`: Define `StockDataPackage`, `MarketStatusData`, `StockSnapshotData` (ensure it includes `day` and `prevDay`), `TechnicalAnalysisData`, `OptionsChainData`, `StreamlinedOptionContract` (streamlined), `OptionsTableRow`, `AdapterOutput`, etc.
         *   `src/lib/date-utils.ts`: Implement `calculateNextFridayExpiration` and `formatTimestampToPacificTime`.
         *   `src/lib/number-utils.ts`: Implement `formatToTwoDecimalsOrNull`.
     *   Deliverable: Core type definitions and utility functions.
-*   **Task 4.3: Implement Polygon Adapter (`polygon-adapter.ts`)**
+*   **Task 4.3: Implement Polygon Adapter (`polygon-adapter.ts`)** - Status: **COMPLETE**
     *   Action: Create `src/services/data-sources/adapters/polygon-adapter.ts`.
         *   Implement `PolygonAdapter` using `@polygon.io/client-js`.
         *   Method `getFullStockData(ticker: string)`:
@@ -363,7 +363,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
             *   Fetch Options Chain data (as per Section 2.4 specs: nearest Friday, +/-10-11 strikes around current price, sorted descending, streamlined details, using `snapshotOptionChain` for calls and puts).
         *   Return an `AdapterOutput` containing a comprehensive `StockDataPackage` object (which itself will have `marketStatus`, `stockSnapshot` (with `day` and `prevDay`), `technicalIndicators`, `optionsChain` fields).
     *   Deliverable: Functional Polygon data adapter returning structured JSON object.
-*   **Task 4.4: Implement `fetchStockDataAction` Server Action**
+*   **Task 4.4: Implement `fetchStockDataAction` Server Action** - Status: **COMPLETE**
     *   Action: Create `src/actions/analyze-stock-server-action.ts`.
         *   Define `StockDataFetchState`.
         *   Action takes ticker, data source, analysisType. Calls `PolygonAdapter`.
@@ -376,11 +376,11 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
             *   `polygonApiResponseLogJson` (output from adapter)
         *   These individual JSON strings will populate the "Debug" Tab `Textarea`s.
     *   Deliverable: Server action that fetches data and updates context state for Debug Tab.
-*   **Task 4.5: Wire "Analyze Stock" Button**
+*   **Task 4.5: Wire "Analyze Stock" Button** - Status: **COMPLETE**
     *   Action: In `MainTabContent.tsx`, make the "Analyze Stock" button trigger `fetchStockDataAction` via the context.
     *   Observe the "Debug" Tab `Textarea`s populate with live JSON data from Polygon.
     *   Deliverable: "Debug" Tab now shows live data from Polygon (including current and previous day snapshot and options chain). "Main" Tab still shows placeholders.
-    *   **Task 4.5.1 (Fix): Address persistent `<table>` hydration errors & Options Chain formatting**
+    *   **Task 4.5.1 (Fix): Address persistent `<table>` hydration errors & Options Chain formatting** - Status: **COMPLETE**
         *   Action: Systematically updated `src/components/ui/table.tsx` to ensure all table structural components (`Table`, `TableHeader`, `TableBody`, etc.) correctly handle children, preventing whitespace-related hydration errors.
         *   Action: Refined `src/components/options-chain-table.tsx` for correct column mirroring, explicit CALLS/PUTS headers, and compact styling for better data visibility.
         *   Action: Performed a full local environment re-initialization (`reinit.md`) due to persistent hydration issues. Post-re-init, a separate hydration error caused by a browser extension (Dark Reader) was identified and resolved by disabling the extension.
@@ -389,21 +389,21 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 5: AI Logic Implementation & "Debug" Tab Population**
 *(Goal: Implement all Genkit AI flows. Their raw JSON outputs will populate the corresponding Textarea components in the "Debug" Tab. "Main" Tab still uses placeholders or shows basic status.)*
-*   **Task 5.1: Implement AI TA Calculation Flow & Action**
+*   **Task 5.1: Implement AI TA Calculation Flow & Action** - Status: **COMPLETE**
     *   Action:
         *   `src/ai/schemas/ai-calculated-ta-schemas.ts`: Define Zod schemas.
         *   `src/ai/flows/calculate-ai-ta-flow.ts`: Implement `calculateAiTaIndicators` Genkit flow (classic pivots from prevDay HLC). Ensure model ID used is correctly prefixed (e.g., `googleai/gemini-2.5-flash-preview-05-20`).
         *   `src/actions/calculate-ai-ta-action.ts`: Server action to call the flow.
         *   Update `StockAnalysisProvider`: Chain this action after successful data fetch. Update context state with `aiCalculatedTaJson` and `aiCalculatedTaRequestJson` (input to flow) for the "Debug" Tab.
     *   Deliverable: "Debug" Tab shows live "AI Calculated TA JSON" and "AI Calculated TA Request JSON".
-*   **Task 5.2: Implement AI Key Takeaways Flow & Action**
+*   **Task 5.2: Implement AI Key Takeaways Flow & Action** - Status: **COMPLETE**
     *   Action:
         *   `src/ai/schemas/stock-analysis-schemas.ts`: Define Zod schemas.
         *   `src/ai/flows/analyze-stock-data.ts`: Implement `analyzeStockData` Genkit flow (5 takeaways, sentiment, formatting rules). Ensure model ID used is correctly prefixed.
         *   `src/actions/perform-ai-analysis-action.ts`: Server action.
         *   Update `StockAnalysisProvider`: Chain this after AI TA calc. Update context state with `aiKeyTakeawaysJson` and `aiKeyTakeawaysRequestJson` for the "Debug" Tab.
     *   Deliverable: "Debug" Tab shows live "AI Key Takeaways JSON" and "AI Key Takeaways Request JSON".
-*   **Task 5.3: Implement AI Chatbot Flow & Action**
+*   **Task 5.3: Implement AI Chatbot Flow & Action** - Status: **COMPLETE**
     *   Action:
         *   `src/ai/schemas/chat-schemas.ts` & `chat-prompts.ts`: Define Zod schemas and example prompts.
         *   `src/ai/flows/chat-flow.ts`: Implement `chatWithBot` Genkit flow (persona, no web search, context rules). Ensure model ID used is correctly prefixed.
@@ -414,38 +414,41 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 6: Connecting "Main" Tab UI to Live Data (from "Debug" Tab JSONs)**
 *(Goal: Modify the "Main" Tab components to parse the JSON strings from the StockAnalysisProvider's state (which are displayed in the "Debug" Tab) and render formatted data. This is where the two tabs are functionally linked.)*
-*   **Task 6.1 (Enhanced - Formerly 6.1.6): Update `KeyMetricsDisplay.tsx`, `StockSnapshotDetailsDisplay.tsx`, `MarketStatusDisplay.tsx`, `StandardTaDisplay.tsx`**
+*   **Task 6.1 (Enhanced - Formerly 6.1.6): Update `KeyMetricsDisplay.tsx`, `StockSnapshotDetailsDisplay.tsx`, `MarketStatusDisplay.tsx`, `StandardTaDisplay.tsx`** - Status: **COMPLETE**
     *   Action: Modified components to parse their respective JSON data (`stockSnapshotJson`, `marketStatusJson`, `standardTasJson`) from context and display live, formatted data. Implemented requested UI refinements (card order, ticker removal from snapshot, market status filtering, sentiment color-coding). Added combined data export/copy functionality.
     *   Deliverable: Key Metrics, Stock Snapshot Details, Market Status, and Standard TA displays show live data with UI/UX enhancements and new export/copy features.
-*   **Task 6.2: Update `AiCalculatedTaDisplay.tsx`**
+*   **Task 6.2: Update `AiCalculatedTaDisplay.tsx`** - Status: **COMPLETE**
     *   Action: Modify to parse `aiCalculatedTaJson` from context and display live, formatted TA values. Implement sentiment color-coding for Pivot Point. Verified component was largely complete; activated a final debug log for render state confirmation.
     *   Deliverable: AI TA display shows live data with sentiment coloring. Component confirmed functional.
-*   **Task 6.3: Update `AiKeyTakeawaysDisplay.tsx`**
+*   **Task 6.3: Update `AiKeyTakeawaysDisplay.tsx`** - Status: **COMPLETE**
     *   Action: Modify to parse `aiKeyTakeawaysJson` from context and display live takeaways with sentiment styling (badges and text color). Verified component was largely complete; activated a final debug log for render state confirmation.
     *   Deliverable: Key Takeaways display shows live data with enhanced sentiment coloring. Component confirmed functional.
-*   **Task 6.4: Update `OptionsChainTable.tsx`**
+*   **Task 6.4: Update `OptionsChainTable.tsx`** - Status: **COMPLETE**
     *   Action: Modify to parse `optionsChainJson` from context. Render the live options data in the table, correctly formatted with dynamic Ticker/Expiration headers, alternating row shading, and ATM strike highlighting. Refined percentage formatting in display components (`KeyMetricsDisplay`, `StockSnapshotDetailsDisplay`) to show up to two decimal places for specific percentage fields.
     *   Deliverable: Options Chain Table displays live data with UI enhancements. Day's Change % and Today's Change % also show max two decimal places.
-*   **Task 6.5: Implement "AI Full Stock Analysis" Button Logic**
+*   **Task 6.5: Implement "AI Full Stock Analysis" Button Logic** - Status: **COMPLETE**
     *   Action: In `StockAnalysisProvider` and `MainTabContent.tsx`, implement the logic for this button to sequentially trigger data fetch, AI TA calc, Key Takeaways, and then auto-submit the "Full Detailed Analysis" prompt to the chatbot, using the live JSON data from context for the chat prompt. Orchestrate state updates for `fullAnalysisStatus` and `isFullAnalysisTriggered`.
     *   Deliverable: "AI Full Stock Analysis" button fully functional, orchestrating the analysis sequence and preparing for chatbot display.
-*   **Task 6.6: Implement Chatbot UI & Contextual Prompts**
+*   **Task 6.6: Implement Chatbot UI & Contextual Prompts** - Status: **COMPLETE**
     *   Action:
         *   Create `src/components/chatbot.tsx`.
         *   Integrate into `MainTabContent.tsx`.
         *   Chat input should use `stockSnapshotJson`, `aiKeyTakeawaysJson`, `aiCalculatedTaJson`, etc., from context to provide context to the `chatWithBot` flow.
         *   Display chat history from context, including the auto-generated response from the "AI Full Stock Analysis" sequence.
     *   Deliverable: Chatbot UI functional and uses context from "Debug" Tab JSONs. Displays full analysis summary if generated.
+*   **Task 6.6.1 (Audit Fix): Enhance Chatbot UI Debug Logging** - Status: **COMPLETE** (Commit `601df92c`)
+    *   Action: Added a specific `LogSourceId` for `Chatbot` UI. Updated `chatbot.tsx` to use this source and added more detailed logging for interactions and state.
+    *   Deliverable: Improved debuggability of the Chatbot UI component.
 
 ---
 **Phase 7: Data Export & Final Client-Side Features**
 *(Goal: Implement final utility features and complete the client-side experience.)*
-*   **Task 7.1: Implement Remaining Data Export Controls**
+*   **Task 7.1: Implement Remaining Data Export Controls** - Status: **PENDING**
     *   Action:
         *   Ensure specific section export/copy controls on the Main Tab (e.g., Key Takeaways as Text/CSV, Options Table as CSV) are functional, re-formatting data from context JSONs.
         *   Ensure "Debug" Tab "Copy JSON" buttons are fully functional for each Textarea.
     *   Deliverable: Comprehensive data export/copy functionality across all specified sections.
-*   **Task 7.2: Implement `DebugConsole.tsx` Component**
+*   **Task 7.2: Implement `DebugConsole.tsx` Component** - Status: **Partially Implemented (Experimental Branch `v6.5.0_DebugConsole_exp`)**
     *   Action: Create and integrate `src/components/debug-console.tsx`.
     *   **Status (Experimental Branch `v6.5.0_DebugConsole_exp`):** Partially Implemented. A new, more stable version of the client-side debug console has been implemented. It includes:
         *   Log interception (via global buffer) and display in a fixed bottom panel.
@@ -455,7 +458,7 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
         *   Numerous stability fixes related to state management, high-frequency log handling, and data consistency during rapid application interactions (covered in `DebugConsole_Task-1`, `DebugConsole_Task-3.1`, and `DebugConsole_Task-3.2.x` series on the experimental branch).
     *   **Original Specification Points from PRD Still Pending / To Be Enhanced:**
         *   Advanced filtering by log type/category/source *within the console UI*.
-        *   Search functionality within the console UI.
+        *   Search functionality *within the console UI*.
         *   Export to TXT, CSV (currently only JSON).
         *   Copy to TXT, CSV (currently only JSON).
     *   **Deliverable (Current Experimental):** A functional client-side debug console with core display, export (JSON), copy (JSON), clear, and toggle capabilities, along with configurable log source categories. Further UI enhancements for filtering/searching are pending.
@@ -463,11 +466,11 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 ---
 **Phase 8: Final Styling, Cleanup, Documentation & Review**
 *(Goal: Polish the application, ensure all requirements are met, write documentation.)*
-*   **Task 8.1: UI & Styling Review:** Thorough review for consistency, responsiveness, accessibility.
-*   **Task 8.2: Create `README.md` for v2.1.0:** Generate a new `README.md` accurately describing the *implemented* v2.1.0 application.
-*   **Task 8.3: Prepare Firebase Deployment Config:** `apphosting.yaml`, `.env.example`.
-*   **Task 8.4: Final Code Review & Cleanup:** Remove test code, ensure clarity.
-*   **Task 8.5: Comprehensive End-to-End Test:** Test all features and data flows.
+*   **Task 8.1: UI & Styling Review:** - Status: **PENDING**
+*   **Task 8.2: Create `README.md` for v2.1.0:** - Status: **PENDING** (Generate a new `README.md` accurately describing the *implemented* v2.1.0 application.)
+*   **Task 8.3: Prepare Firebase Deployment Config:** - Status: **PENDING** (`apphosting.yaml`, `.env.example`.)
+*   **Task 8.4: Final Code Review & Cleanup:** - Status: **PENDING** (Remove test code, ensure clarity.)
+*   **Task 8.5: Comprehensive End-to-End Test:** - Status: **PENDING** (Test all features and data flows.)
 
 ## **6. Changelog (This Re-Implementation PRD)**
 
@@ -480,7 +483,8 @@ The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tas
 | 1.4     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Tasks 6.2 & 6.3 as complete. Added commit log for v0.6.3.0. |
 | 1.5     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.4 as complete (Options Chain Table live data, percentage formatting). Added commit log for v0.6.4.0. |
 | 1.6     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.5 as complete ("AI Full Stock Analysis" button logic). Added commit log for v0.6.5.0. |
-| 1.7     | 2025-06-12   | Firebase Studio (AI Prototyper) | Updated PRD to reflect implementation and stabilization of the experimental client-side debug console (partially fulfilling Task 7.2) on branch `v6.5.0_DebugConsole_exp`. Incorporates fixes from debug tasks up to 3.2.8 (data consistency, loading states, log categorization). Updated commit log for experimental branch. |
+| 1.7     | 2025-06-12   | Firebase Studio (AI Prototyper) | Updated PRD to reflect implementation and stabilization of the experimental client-side debug console (partially fulfilling Task 7.2) on branch `v6.5.0_DebugConsole_exp`. Incorporates fixes from debug tasks up to 3.2.8 (data consistency, loading states, log categorization). Added commit log for experimental branch. |
+| 1.8     | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 6 as complete, including Task 6.6 (Chatbot UI) and Task 6.6.1 (Chatbot UI Debug Logging Audit Fix). Added commit log for Task 6.6.1 (Commit `601df92c`). Highlighted persistent `async_hooks` issue in Sec 4.7.1 and recommended user performs environment re-init. Updated Genkit config in Sec 4.3.1 to include `enableOpenTelemetry: false`. |
 
 ---
 ## Project Implementation Commit Log
@@ -709,8 +713,42 @@ This commit encapsulates a series of fixes (DebugConsole Tasks 3.2.5 through 3.2
 These changes build upon the foundational work of `DebugConsole_Task-1` (console re-implementation) and `DebugConsole_Task-3.1` (log categories), making the experimental client debug console and the application's core analysis workflow more robust.
 
 ---
+**Tag:** `Phase-6_Task-6.6.1` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `601df92c`
+
+**Subject:** `feat: Implement Chatbot UI and enhance its debug logging (Task 6.6 & 6.6.1)`
+
+**Details:**
+This commit completes Phase 6 by implementing the full Chatbot UI (Task 6.6) and integrating enhanced debug logging for it (Task 6.6.1).
+
+**Key Changes Implemented:**
+
+1.  **Chatbot UI (`src/components/chatbot.tsx`):**
+    *   Created a new component to house the chatbot interface, including message display, input field, example prompts, and chat management controls (clear, copy, export history).
+    *   Integrated `react-markdown` for rendering model responses.
+    *   The chatbot uses contextual data (`stockSnapshotJson`, `aiKeyTakeawaysJson`, `aiCalculatedTaJson`) from `StockAnalysisContext` for its prompts.
+    *   The UI correctly displays the initial response from the "AI Full Stock Analysis" sequence (Task 6.5).
+    *   Handles pending states for chat responses.
+    *   Context readiness checks are in place to guide users if prerequisite data isn't loaded.
+
+2.  **Chatbot Integration (`src/components/main-tab-content.tsx`):**
+    *   The `<Chatbot />` component is now embedded in the Main Tab.
+    *   The `chatFormAction` and related pending/state variables from `MainTabContent` are passed as props to the `Chatbot` component.
+    *   `useEffect` hooks in `MainTabContent` correctly update `chatHistory` in context upon receiving model responses.
+
+3.  **Debug Logging Enhancements (`src/lib/debug-log-types.ts`, `src/components/chatbot.tsx`, `src/contexts/stock-analysis-context.tsx`):**
+    *   Added a new `LogSourceId.Chatbot` for UI-specific logs.
+    *   Updated `chatbot.tsx` to use `logDebug('Chatbot', ...)` for its internal logging, providing detailed traces for user interactions, state changes, and context readiness.
+    *   Ensured `ChatMessage` interface in context includes an `id` for React keys.
+    *   Verified context functions like `addChatMessage` and `clearChatHistory` have appropriate logging.
+
+4.  **`async_hooks` Issue Mitigation:**
+    *   The recurring `async_hooks` module resolution error was noted. As a potential mitigation (if it persists after environment re-initialization), `enableOpenTelemetry: false` was added to the Genkit constructor in `src/ai/genkit.ts`.
+    *   **Recommendation**: The user should perform a full local environment re-initialization as per `reinit.md` to ensure this is not a stale environment issue.
+
+With these changes, all tasks in Phase 6 are now complete. The application features a fully functional chatbot UI that is integrated with the application's data flow and the experimental client-side debug console.
+
+---
 
 ... (Future commit logs will follow)
 
 
-    
