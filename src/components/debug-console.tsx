@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useStockAnalysis } from '@/contexts/stock-analysis-context';
 import { globalLogEntries, clearGlobalLogBuffer, type GlobalLogEntry } from '@/lib/global-log-buffer';
-import { downloadJson, copyToClipboard } from '@/lib/export-utils';
+import { downloadJson, copyToClipboard, downloadTxt } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
 import { ClipboardCopy, Download, Trash2, X, Filter, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -36,15 +36,69 @@ function formatLogMessage(messages: any[]): string {
       if (typeof msg === 'string') return msg;
       if (typeof msg === 'object' && msg !== null) {
         try {
-          return JSON.stringify(msg);
+          // Attempt to stringify, but handle circular references or other errors gracefully
+          return JSON.stringify(msg, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+              if (seen.has(value)) {
+                return '[Circular Reference]';
+              }
+              seen.add(value);
+            }
+            return value;
+          });
         } catch {
           return String(msg);
         }
       }
+      const seen = new Set(); // Reset 'seen' for each top-level message part
       return String(msg);
     })
     .join(' ');
 }
+
+const getSourceLabel = (source?: LogSourceId): string => {
+  if (!source) return '';
+  return `${logSourceLabels[source] || source}`;
+};
+
+// Helper function to escape CSV fields
+const escapeCsvField = (field: any): string => {
+  if (field === null || field === undefined) {
+    return '';
+  }
+  const stringField = String(field);
+  // If the field contains a comma, newline, or double quote, enclose it in double quotes.
+  // Also, double up any existing double quotes within the field.
+  if (/[",\n]/.test(stringField)) {
+    return `"${stringField.replace(/"/g, '""')}"`;
+  }
+  return stringField;
+};
+
+// Helper function to generate TXT content from logs
+const generateLogsTxt = (logs: GlobalLogEntry[]): string => {
+  return logs.map(log => {
+    const timestamp = `[${new Date(log.timestamp).toISOString()}]`;
+    const type = `[${log.type.toUpperCase()}]`;
+    const source = log.source ? `[${getSourceLabel(log.source)}]` : '[UNKNOWN_SOURCE]';
+    const message = formatLogMessage(log.messages);
+    return `${timestamp} ${type} ${source} ${message}`;
+  }).join('\n');
+};
+
+// Helper function to generate CSV content from logs
+const generateLogsCsv = (logs: GlobalLogEntry[]): string => {
+  const headers = "Timestamp,Type,Source,Message\n";
+  const rows = logs.map(log => {
+    const timestamp = log.timestamp;
+    const type = log.type;
+    const source = log.source ? getSourceLabel(log.source) : '';
+    const message = formatLogMessage(log.messages);
+    return `${escapeCsvField(timestamp)},${escapeCsvField(type)},${escapeCsvField(source)},${escapeCsvField(message)}`;
+  }).join('\n');
+  return headers + rows;
+};
+
 
 export function DebugConsole() {
   const {
@@ -112,7 +166,7 @@ export function DebugConsole() {
   const handleClearLogs = () => {
     clearGlobalLogBuffer();
     setDisplayedLogs([]); 
-    setSearchTerm(''); // Clear search term as well
+    setSearchTerm('');
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
     logDebug('DebugConsole', 'Client debug logs cleared by user. Search term also cleared.');
   };
@@ -127,21 +181,56 @@ export function DebugConsole() {
     }
   };
 
-  const handleExportLogs = () => {
+  const handleExportJson = () => {
+    logDebug('DebugConsole', 'Exporting logs as JSON.');
+    if (displayedLogs.length === 0) {
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' });
+      return;
+    }
     try {
       downloadJson(displayedLogs, 'stocksage_client_logs.json'); 
       toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as JSON.' });
       logDebug('DebugConsole', `Displayed client logs exported as JSON. Count: ${displayedLogs.length}`);
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs.' });
-      logDebug('DebugConsole', 'Error exporting client logs:', error);
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as JSON.' });
+      logDebug('DebugConsole', 'Error exporting client logs as JSON:', error);
     }
   };
 
-  const getSourceLabel = (source?: LogSourceId): string => {
-    if (!source) return '';
-    return `[${logSourceLabels[source] || source}] `;
+  const handleExportTxt = () => {
+    logDebug('DebugConsole', 'Exporting logs as TXT.');
+    if (displayedLogs.length === 0) {
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' });
+      return;
+    }
+    try {
+      const txtData = generateLogsTxt(displayedLogs);
+      downloadTxt(txtData, 'stocksage_client_logs.txt');
+      toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as TXT.' });
+      logDebug('DebugConsole', `Displayed client logs exported as TXT. Count: ${displayedLogs.length}`);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as TXT.' });
+      logDebug('DebugConsole', 'Error exporting client logs as TXT:', error);
+    }
   };
+
+  const handleExportCsv = () => {
+    logDebug('DebugConsole', 'Exporting logs as CSV.');
+    if (displayedLogs.length === 0) {
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' });
+      return;
+    }
+    try {
+      const csvData = generateLogsCsv(displayedLogs);
+      downloadTxt(csvData, 'stocksage_client_logs.csv'); // downloadTxt is fine for CSV
+      toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as CSV.' });
+      logDebug('DebugConsole', `Displayed client logs exported as CSV. Count: ${displayedLogs.length}`);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as CSV.' });
+      logDebug('DebugConsole', 'Error exporting client logs as CSV:', error);
+    }
+  };
+
 
   const toggleFilterType = (type: LogType) => {
     setActiveFilters(prev => {
@@ -191,6 +280,7 @@ export function DebugConsole() {
   };
 
   const activeFilterCount = activeFilters.types.size + activeFilters.sources.size;
+  const isExportDisabled = displayedLogs.length === 0;
 
   return (
     <Card
@@ -222,6 +312,7 @@ export function DebugConsole() {
                   size="icon"
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
                   onClick={clearSearchTerm}
+                  title="Clear search"
                 >
                   <X className="h-3 w-3" />
                   <span className="sr-only">Clear search</span>
@@ -280,12 +371,23 @@ export function DebugConsole() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="icon" onClick={handleCopyLogs} title="Copy Logs (JSON)" className="h-7 w-7">
+            <Button variant="ghost" size="icon" onClick={handleCopyLogs} title="Copy Logs (Raw JSON)" className="h-7 w-7">
               <ClipboardCopy className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleExportLogs} title="Export Logs (JSON)" className="h-7 w-7">
-              <Download className="h-4 w-4" />
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" title="Export Logs" className="h-7 w-7" disabled={isExportDisabled}>
+                  <Download className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportJson} disabled={isExportDisabled}>Export as JSON</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportTxt} disabled={isExportDisabled}>Export as TXT</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCsv} disabled={isExportDisabled}>Export as CSV</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button variant="ghost" size="icon" onClick={handleClearLogs} title="Clear Logs" className="h-7 w-7">
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -307,7 +409,7 @@ export function DebugConsole() {
               {displayedLogs.map((log) => (
                 <div key={log.id} className="flex items-start">
                   <span className="text-muted-foreground/70 mr-1 whitespace-nowrap">
-                    [{new Date(log.timestamp).toLocaleTimeString()}]
+                    [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })}]
                   </span>
                   <span
                     className={cn('mr-1 font-semibold uppercase', {
@@ -320,7 +422,7 @@ export function DebugConsole() {
                   >
                     [{log.type}]
                   </span>
-                  <span className="text-muted-foreground/80 mr-1">{getSourceLabel(log.source)}</span>
+                  <span className="text-muted-foreground/80 mr-1">{log.source ? `[${getSourceLabel(log.source)}]` : ''}</span>
                   <span className="whitespace-pre-wrap break-all">{formatLogMessage(log.messages)}</span>
                 </div>
               ))}
@@ -331,3 +433,5 @@ export function DebugConsole() {
     </Card>
   );
 }
+
+    
