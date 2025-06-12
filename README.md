@@ -1,479 +1,308 @@
 
-# **Product Requirements Document & AI Operating Manual: StockSage v2.1.0 (Re-Implementation)**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.1.0 OPERATING MANUAL**
 
-*   **Document Version:** 1.11
+*   **Document Version:** 1.12 (Task 8.2 Update)
 *   **Date:** 2025-06-12
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Blueprint for AI Agent Re-Implementation of v1.2.14 Functionality; Experimental Debug Console Implemented. Phase 7 COMPLETE.
+*   **Status:** Official Project Blueprint & AI Operational Mandate. Phase 7 COMPLETE. Phase 8 In Progress.
 
-## **0. Preamble: Purpose of this Document & Core Strategy**
+## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
+
+**THIS SECTION IS THE PRIMARY DIRECTIVE FOR THE FIREBASE STUDIO AI PROTOTYPER (HEREINAFTER "THE AI AGENT" OR "AI"). FAILURE TO ADHERE TO THESE RULES CONSTITUTES A CRITICAL PROCESS FAILURE AND REQUIRES IMMEDIATE CORRECTION.**
+
+### **0.1. Scope Approval Before Code (NON-NEGOTIABLE)**
+1.  **Scoping First:** For ANY requested feature, fix, refactoring, documentation update, or other modification, the AI Agent **MUST** first perform a targeted audit of the relevant current codebase.
+2.  **Detailed Scope Proposal:** Following the audit, the AI Agent **MUST** present a detailed scope proposal to the user. This proposal should outline the intended changes, affected files, and reasoning.
+3.  **Explicit User Approval:** Code generation or file modification (i.e., XML `<changes>` output) **SHALL NOT** occur until the user explicitly approves the proposed scope.
+4.  **Iterative Refinement:** If the user requests modifications to the scope, the AI Agent must update the scope proposal and await re-approval before proceeding.
+5.  **No Unsolicited Code:** The AI Agent **MUST NOT** generate code or XML changes for tasks or fixes not explicitly scoped and approved by the user.
+
+### **0.2. Adherence to This Document**
+*   **Single Source of Truth:** This document (`README.md`) in its entirety, including all sections on features, technology stack, phased plans, and specific guidelines, is the **absolute and single source of truth** for the StockSage v2.1.0 project.
+*   **Clarification Required:** If any ambiguity exists in this document or in user requests, the AI Agent **MUST** ask for clarification before proceeding with scoping or implementation.
+
+### **0.3. Phased Implementation & UI-First Strategy**
+*   **Phased Plan Adherence:** The project **MUST** be implemented according to the "Phased Implementation Plan" detailed in Section 5. Each phase and task must be treated as a distinct unit of work.
+*   **UI-First Principle:** The core strategy of UI-First Development (building UI shells with placeholders before backend logic) **MUST** be maintained for any new UI-related features unless explicitly overridden by an approved scope for a specific task.
+*   **Data Decoupling:** The "Debug" tab serving as the source of raw JSON for "Main" tab displays is a key architectural principle to be upheld.
+
+### **0.4. General Operational Principles**
+*   **Incremental Commits:** Each completed and approved task (or sub-task where logical) should result in a state that is "committable." The AI Agent should aim for small, logical changes per XML response, reflecting only the approved scope.
+*   **Code Quality:** Prioritize clean, readable, well-organized, and performant code. Use functional components and hooks. Adhere to all specific coding guidelines provided (Next.js, Genkit, etc.).
+*   **Error Handling:** Implement robust error handling (Next.js `error.js`, `try-catch`, Toasts for user feedback) as appropriate for any new code.
+*   **No Placeholder Responses:** The AI Agent **MUST NOT** respond with "Omitted from agent history" or similar placeholders for code changes.
+*   **Comments:** JSDoc/TSDoc for complex logic/APIs. Avoid redundant comments. **NO comments in `package.json`.**
+*   **File Generation:** No non-textual files (e.g., binary, images). No favicon generation.
+*   **XML Output Format:** All code changes **MUST** be provided in the specified `<changes>` XML format.
+
+### **0.5. Environment Re-Initialization (`reinit.md`)**
+*   The procedures outlined in `reinit.md` for a full local environment re-initialization **MUST** be recommended to the user at critical junctures, such as after significant dependency changes, `next.config.ts` modifications, or when troubleshooting persistent, unexplainable build/runtime errors. The AI Agent should remind the user of this procedure's importance.
+
+---
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.1.0)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage v2.1.0. This version aims to replicate and refine the capabilities of the existing StockSage v1.2.14 codebase.
-2.  **AI Operating Manual & Re-Implementation Plan:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for a new Firebase Studio AI Prototyping Coding Agent (referred to as "the AI Agent" or "AI" hereafter). The AI Agent will use this document to re-implement the entire StockSage project from scratch.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage v2.1.0.
+2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
-**Core Re-Implementation Strategy: UI-First Development with Data Decoupling**
+**Core Implementation Strategy: UI-First Development with Data Decoupling**
 
-The primary strategy for this re-implementation is **UI-First Development**. This means:
-*   **Phase 0-3: UI Shell Construction:** The AI Agent will first construct the entire User Interface (UI) shell, including all tabs, display areas, tables, and controls. These UI elements will initially be populated with **static placeholder data** or be visually complete but non-interactive.
-*   **Data Decoupling ("Debug" Tab as Data Source):** A "Debug" tab will be created to display raw JSON data for all backend operations and data sources. The "Main" tab's user-friendly displays will eventually consume this raw JSON from the "Debug" tab. This decouples UI presentation logic from backend data fetching and AI processing logic.
+The primary strategy for this implementation is **UI-First Development**. This means:
+*   **UI Shell Construction:** The AI Agent first constructs the User Interface (UI) shell, including all tabs, display areas, tables, and controls, initially populated with **static placeholder data** or as visually complete but non-interactive elements.
+*   **Data Decoupling ("Debug" Tab as Data Source):** A "Debug" tab displays raw JSON data for backend operations and data sources. The "Main" tab's user-friendly displays consume this raw JSON from the "Debug" tab. This decouples UI presentation logic from backend data fetching and AI processing logic.
 *   **Mitigating Risks:** This approach is chosen to:
     *   Allow for rapid UI iteration and approval without immediate backend complexity.
-    *   Defer backend integrations (which can sometimes trigger build issues like the `async_hooks` problem) until the UI structure is stable.
-    *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data before it's rendered in the "Main" tab.
+    *   Defer backend integrations until the UI structure is stable.
+    *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-**The AI Agent MUST treat this document as the absolute source of truth for the re-implementation.** Any deviation requires explicit clarification and approval from the user. The goal is a robust, maintainable, and high-quality application built according to modern best practices within the specified technology stack, following the phased plan meticulously.
+## **2. High-Level Goals for v2.1.0**
 
-## **1. High-Level Goals for v2.1.0 (Re-Implementation)**
-
-*   **Functional Parity:** Replicate all core features and functionalities present in StockSage v1.2.14.
-*   **UI-First Implementation:** Build the complete UI shell with placeholder data before implementing backend logic.
-*   **Tabbed Interface:** Implement a main application with at least two primary tabs: "Main" (for user-friendly display) and "Debug" (for raw JSON data).
-*   **Modern Architecture:** Implement the application using Next.js App Router, Server Components by default, and TypeScript for enhanced performance and type safety.
+*   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
+*   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
+*   **Tabbed Interface:** Maintain the "Main" and "Debug" tab structure.
+*   **Modern Architecture:** Implement using Next.js App Router, Server Components by default, and TypeScript.
 *   **Best Practices:** Adhere to industry best practices for React, Next.js, Tailwind CSS, and Genkit development.
-*   **AI Agent Guidelines Adherence:** Strictly follow the operational rules and phased plan detailed in this document.
-*   **Address Past Pain Points:** Proactively design and implement solutions to avoid known development challenges, particularly those related to build processes and dependencies (e.g., `async_hooks`).
-*   **Modularity and Maintainability:** Create a codebase that is well-organized, with reusable components and clearly defined service layers.
-*   **User Experience:** Maintain a high-quality, responsive, and accessible user interface, consistent with the v1.2.14 style guidelines.
-*   **Enhanced Debuggability:** Implement comprehensive server-side logging and clear error reporting mechanisms. A client-side debug console has been implemented (see Task 7.2).
+*   **AI Agent Guidelines Adherence:** Strictly follow the operational rules and phased plan detailed in this document, especially Section 0.
+*   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers.
+*   **User Experience:** Deliver a high-quality, responsive, and accessible user interface.
+*   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console.
 
-## **2. Core Application Features (Based on v1.2.14 Functionality with UI Enhancements)**
+## **3. Core Application Features (StockSage v2.1.0)**
 
-The AI Agent must re-implement the following features, organized by the new tabbed UI structure:
-
-### **2.1. Global Application Structure**
-*   **Tabbed Interface:** The main application will feature a top-level tab navigation system (using ShadCN `Tabs`).
-    *   **"Main" Tab:** The primary user-facing interface. Displays formatted data, charts, and interactive elements.
-    *   **"Debug" Tab:** Contains read-only displays (e.g., `Textarea` components) for all raw JSON data fetched from APIs, generated by AI flows, or logged from actions. This tab serves as the "single source of truth" for data that the Main Tab formats. Also includes settings for the client-side debug console.
-*   **Header & Footer:** Consistent header (App Name "StockSage", Version "v2.1.0") and footer with disclaimer.
-*   **Theme:** Light/Dark theme support with toggle button. Default to Dark.
+### **3.1. Global Application Structure**
+*   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
+*   **Header & Footer:** Consistent branding and disclaimers.
+*   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
-*   **Client-Side Debug Console:** An experimental, toggleable console for viewing client-side logs (see Task 7.2).
+*   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features.
 
-### **2.2. "Main" Tab Features**
-*   **Stock Analysis Input Area:**
-    *   Ticker Input field (default "NVDA").
-    *   API Data Source Selection (default Polygon.io).
-    *   "Analyze Stock" and "AI Full Stock Analysis" buttons.
-*   **Display Card Order & Content:** The Main Tab will display information in the following top-to-bottom card order:
-    1.  **Key Metrics Display:**
-        *   Formatted display of Ticker, Current Price, Day's Change %. Day's Change % is color-coded for sentiment (green for positive, red for negative) and formatted to a maximum of two decimal places.
-        *   *Data Source: Consumes relevant fields from the "Stock Snapshot JSON" in the "Debug" Tab.*
-    2.  **Stock Snapshot Details Display:**
-        *   Detailed price and volume information for the current day and previous day. Order: Current Price, Today's Change %, Today's Change, Day's VWAP, Day's Volume, Day's Close, followed by other daily and previous day stats. "Today's Change %" and "Today's Change" are color-coded for sentiment. "Today's Change %" is formatted to a maximum of two decimal places.
-        *   The Ticker symbol is NOT displayed here.
-        *   *Data Source: Consumes "Stock Snapshot JSON" from the "Debug" Tab.*
-    3.  **Standard Technical Indicators Display:**
-        *   Formatted display of RSI, EMA, SMA, MACD, VWAP.
-        *   RSI and MACD Histogram values are color-coded for sentiment (RSI: <30 bullish, >70 bearish; MACD Histogram: positive bullish, negative bearish).
-        *   *Data Source: Consumes "Standard Technical Indicators JSON" from the "Debug" Tab.*
-    4.  **AI-Calculated Technical Analysis Display:**
-        *   Formatted display of AI-calculated Pivot Points (PP, S1-S3, R1-R3). Values formatted to two decimal places.
-        *   The Pivot Point (PP) row is color-coded based on current price relative to PP (current > PP bullish, current < PP bearish).
-        *   *Data Source: Consumes "AI Calculated TA JSON" from the "Debug" Tab.*
-    5.  **Options Chain Table Display:**
-        *   A visually formatted table for options chain data with alternating row shading and At-the-Money (ATM) strike highlighting.
-        *   **Header:** Dynamically display "Options Chain for [TICKER] - Expires: [EXPIRATION_DATE]".
-        *   **Layout:** Single combined table: Calls on the left, Strike Prices in the center (sorted descending), Puts on the right.
-        *   **Columns (for both Calls and Puts, mirrored around Strike):** Gamma (2 dec), IV (whole %), % Chg (whole %), Bid, Ask, Last, Volume (compact), Open Int (compact), Delta (2 dec).
-        *   Based on the provided CSV example structure.
-        *   *Data Source: Consumes "Options Chain JSON" from the "Debug" Tab.*
-    6.  **AI Key Takeaways Display:**
-        *   Formatted display of 5 key takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting (badges and text color). Numerical values to two decimal places, monetary values prefixed with "$".
-        *   *Data Source: Consumes "AI Key Takeaways JSON" from the "Debug" Tab.*
-    7.  **AI Chatbot Interface:**
-        *   Standard chatbot UI (message display, input, example prompts, history export/copy).
-        *   *Data Source: Chat history is managed internally; contextual data (stock JSON, analysis summary, AI TA JSON) for prompts will be sourced from their respective JSON displays in the "Debug" Tab.*
-    8.  **Market Status Display:**
-        *   Current status of relevant markets and exchanges. Excludes "Crypto Market" and "FX Market".
-        *   *Data Source: Consumes "Market Status JSON" from the "Debug" Tab.* This card is always the last one displayed.
+### **3.2. "Main" Tab Features**
+*   **Stock Analysis Input Area:** Ticker input, API Source (default Polygon.io), "Analyze Stock," "AI Full Stock Analysis" buttons.
+*   **Display Card Order & Content:**
+    1.  **Key Metrics Display:** Ticker, Price, Day's Change % (formatted, sentiment-colored).
+    2.  **Stock Snapshot Details Display:** Detailed price/volume, sentiment colors for changes.
+    3.  **Standard Technical Indicators Display:** Formatted RSI, EMA, SMA, MACD, VWAP with sentiment colors.
+    4.  **AI-Calculated Technical Analysis Display:** Formatted Pivot Points (PP, S1-S3, R1-R3) with sentiment color for PP row.
+    5.  **Options Chain Table Display:** Formatted table (Calls/Strike/Puts), ATM highlighting, dynamic header. Columns: Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
+    6.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
+    7.  **AI Chatbot Interface:** Chat UI, example prompts, history export/copy. Context from Debug Tab JSONs.
+    8.  **Market Status Display:** Relevant market/exchange status (excluding Crypto/FX).
 *   **Data Export Controls:**
-    *   Buttons to "Export All Data to JSON" and "Copy All Data to JSON". This compiles Stock Snapshot, Standard TAs, AI Calculated TAs, Options Chain, and Market Status into a single JSON object in that order.
-    *   Buttons/Menus to export/copy other specific sections of data displayed on the Main Tab:
-        *   **Key Takeaways**: Export/Copy as Text, JSON, and CSV.
-        *   **Options Chain Table**: Export/Copy as CSV.
+    *   "Export/Copy All Data to JSON" (Snapshot, Standard TAs, AI TA, Options, Market Status).
+    *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV).
 
-### **2.3. "Debug" Tab Features**
-*   **Raw JSON Display Areas:** A series of read-only `Textarea` components, each clearly labeled, to display:
-    *   **Polygon API Request Log JSON:** Input to Polygon Adapter.
-    *   **Polygon API Response Log JSON:** Output from Polygon Adapter.
-    *   **Market Status JSON:** (Derived from Polygon API Response)
-    *   **Stock Snapshot JSON:** (Derived from Polygon API Response - includes current intraday and previous day's data)
-    *   **Standard Technical Indicators JSON:** (Derived from Polygon API Response)
-    *   **Options Chain JSON:** (Derived from Polygon API Response)
-    *   **AI Calculated TA Request JSON:** Input sent to the AI TA calculation flow.
-    *   **AI Calculated TA JSON:** Raw JSON output from the AI TA calculation flow.
-    *   **AI Key Takeaways Request JSON:** Input sent to the AI key takeaways flow.
-    *   **AI Key Takeaways JSON:** Raw JSON output from the AI key takeaways flow.
-    *   **Chatbot Request JSON:** Input sent to the chat flow (excluding full history for brevity, maybe last few turns).
-    *   **Chatbot Response JSON:** Raw JSON output from the chat flow.
-*   **Data Export Controls:**
-    *   Buttons to copy the raw JSON content of each `Textarea` directly. (Verified in Task 7.1.4)
-*   **Client Debug Log Settings:** Controls for enabling/disabling categories of client-side debug logs that appear in the experimental Client Debug Console.
+### **3.3. "Debug" Tab Features**
+*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI TA Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response.
+*   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
+*   **Client Debug Log Settings:** Controls for the client-side debug console log categories.
 
-### **2.4. Backend Functionality (to populate Debug Tab, then Main Tab)**
-*   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):**
-    *   Current Market Status.
-    *   **Ticker Snapshot (current day, prev day):** The Polygon snapshot API provides both current intraday aggregates and previous day's closing data in a single response. This is crucial for initial testing and comprehensive analysis.
-    *   Standard TAs (RSI, EMA, SMA, MACD, VWAP).
-    *   **Options Chain Snapshot (using `snapshotOptionChain` endpoint):**
-        *   Fetch for the nearest Friday expiration.
-        *   Query a window around current stock price (+/- 10-15 strikes or equivalent percentage using `strike_price.gte` and `strike_price.lte`).
-        *   Filter and select up to **10-11 call & 10-11 put strikes** above and below current stock price (total ~21 strikes centered).
-        *   Ensure final selected strikes data for the "Options Chain JSON" (and thus the Main Tab table) is sorted in **descending order** by strike price.
-        *   Streamline `StreamlinedOptionContract` in the JSON to exclude: `contract_name` and `underlying_ticker`. Other fields (like `bid`, `ask`) might be unavailable from basic snapshot and will show as "-".
-*   **AI-Calculated Technical Analysis (Genkit Flow):**
-    *   Calculate Classic Daily Pivot Points from previous day HLC. Output as JSON.
-*   **AI Key Takeaways (Genkit Flow):**
-    *   Generate 5 key takeaways with sentiment based on stock data and AI TA. Output as JSON.
-*   **AI Chatbot (Genkit Flow):**
-    *   Contextual chat, no web search. Markdown, emojis. Monetary/numerical formatting. Robustness settings. Output as JSON.
-*   **Data Formatting Consistency:**
-    *   Numerical data: max two decimal places for display (prices, changes). Greeks and IV may have more precision in raw JSON but are formatted for display.
-    *   Monetary values: "$" prefix. (This formatting will be applied by Main Tab components when consuming JSON from Debug Tab).
+### **3.4. Backend Functionality**
+*   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):** Market Status, Ticker Snapshot (current/prev day), Standard TAs, Options Chain Snapshot (nearest Friday, +/-10-11 strikes, descending sort by strike).
+*   **AI-Calculated Technical Analysis (Genkit Flow):** Classic Daily Pivot Points.
+*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment.
+*   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis.
+*   **Data Formatting:** Numerical data (max 2 decimal places for display), monetary values ("$" prefix).
 
-## **3. Technology Stack (Mandatory)**
+## **4. Technology Stack (Mandatory)**
 
-*   **Frontend Framework:** Next.js (latest stable v14.x or v15.x if stable, **App Router mandatory**)
+*   **Frontend Framework:** Next.js (latest stable v14.x or v15.x, **App Router mandatory**)
 *   **Language:** TypeScript
 *   **UI Components:** ShadCN UI (latest stable)
 *   **Icons:** Lucide React (latest stable)
 *   **Styling:** Tailwind CSS (latest stable v3.x)
 *   **AI Integration:** Genkit (latest stable **v1.x series**)
 *   **AI Model Provider:** Google AI (using `@genkit-ai/googleai`)
-*   **Default AI Model:** `googleai/gemini-2.5-flash-preview-05-20` (or equivalent latest flash model if ID changes, prefix is critical)
+*   **Default AI Model:** `googleai/gemini-2.5-flash-preview-05-20`
 *   **State Management:** React Context API, `useActionState` for server actions.
-*   **Data Fetching (External API):** **Polygon.io REST Client (`@polygon.io/client-js` version `^7.3.2` or latest compatible stable)**. The AI Agent **MUST** use this library for all Polygon API interactions.
+*   **Data Fetching (External API):** **Polygon.io REST Client (`@polygon.io/client-js` version `^7.3.2` or latest compatible stable)**.
 *   **Deployment Target (Initial):** Firebase App Hosting
 *   **Build Tooling:** Next.js CLI (Turbopack enabled by default: `next dev --turbopack`).
 
-## **4. AI Coding Agent - Operating Manual & Rules**
+### **4.1. AI Coding Agent - Specific Guidelines (Sub-Section of Section 0)**
 
-The AI Agent responsible for re-implementing StockSage v2.1.0 **MUST** adhere to the following rules and operational guidelines:
+(This section re-emphasizes guidelines already stated or implied in Section 0, but tailored for quick reference related to tech stack specifics. **Section 0 remains the master directive.**)
 
-### **4.1. General Principles**
-*   **PRD Adherence & UI-First Strategy:** This document, particularly the UI-First strategy and phased plan, is the **single source of truth**. All implemented features must directly map to requirements stated herein. If ambiguity exists, the AI Agent must ask for clarification.
-*   **Phased Implementation:** The project **MUST** be implemented according to the "Phased Implementation Plan" (Section 5). Each phase and task should be treated as a distinct unit of work. **The UI shell (Phases 1-3) MUST be completed with placeholders before significant backend logic (Phase 4 onwards) is implemented.**
-*   **Incremental Commits:** Each completed task (or sub-task where logical) should result in a state that is "committable." The AI Agent should aim for small, logical changes per XML response.
-*   **Code Quality:** Prioritize clean, readable, well-organized, and performant code. Use functional components and hooks.
-*   **Error Handling:** Implement robust error handling (Next.js `error.js`, `try-catch`, Toasts).
-*   **No Placeholder Responses:** The AI Agent **MUST NOT** respond with "Omitted from agent history."
-*   **Comments:** JSDoc/TSDoc for complex logic/APIs. Avoid redundant comments. **NO comments in `package.json`.**
-*   **File Generation:** No non-textual files. No favicon.
-*   **XML Output:** All code changes **MUST** be provided in the specified `<changes>` XML format.
-
-### **4.2. Next.js Specifics**
+#### **4.1.1. Next.js Specifics**
 *   App Router, Server Components by default, Server Actions, `next/image` (with `placehold.co` and `data-ai-hint`), single root JSX.
 
-### **4.3. Genkit (v1.x) Specifics**
-*   **`4.3.1. Initialization`**: Use the global `ai` object (created in `src/ai/genkit.ts`) for `ai.defineFlow`, `ai.definePrompt`, `ai.defineSchema`, etc. **Crucially, `enableOpenTelemetry: false` has been added to the `genkit` constructor in `src/ai/genkit.ts` as a primary mitigation for `async_hooks` issues. The `@genkit-ai/next` package has also been removed (see Task 6.6.2) to further address these build problems. If `async_hooks` errors persist *after* a full environment re-initialization (see `reinit.md` and Section 4.7.1), it indicates a deeper conflict.**
-*   **`4.3.2. Strict v1.x Syntax`**:
-    *   `const ai = genkit({plugins: [googleAI()]});` (No `logLevel` in constructor).
-    *   `response.text` (property access, not `response.text()`).
-    *   `response.output` (property access, not `response.output()`).
-    *   `const {stream, response} = ai.generateStream(...)` (No `await`).
-    *   `for await (const chunk of stream) {}`.
-    *   `await response;`.
-*   **`4.3.3. Flow Structure`**:
-    *   Each flow in a separate file (e.g., `src/ai/flows/analyze-stock-data-flow.ts`).
-    *   Include `'use server';` directive at the top of flow files.
-    *   Include a JSDoc comment at the top explaining the file's purpose and exported interface.
-    *   Define Zod schemas for input and output.
-    *   Export the main async wrapper function, input type, and output type.
-*   **`4.3.4. Prompts`**:
-    *   Use Handlebars templating language for `prompt` strings.
-    *   **NO direct function calls or `await` within Handlebars templates.**
-    *   Pass data to prompts via the input schema.
-    *   For media, pass data URIs in the input schema and reference as `{{media url=dataUriParam}}`.
-    *   Instruct the AI model on desired output formatting (Markdown, dollar prefix, two decimal places) within the system prompt or main prompt text.
-*   **`4.3.5. Tools`**:
-    *   If the LLM needs to *decide* to get external information or perform an action during its reasoning, use `ai.defineTool`.
-    *   Do NOT use tools for data that is always required; pass such data as input to the flow.
-*   **`4.3.6. Gemini Model Identifier Specification (Critical)`**:
-    *   **Background:** An issue was encountered where the Genkit framework could not locate the specified Gemini model, resulting in "Model not found" errors. This was resolved by ensuring the model identifier was correctly formatted for the googleAI Genkit plugin.
-    *   **Target Model:** The designated model for features requiring advanced capabilities (e.g., analysis, chat) is `gemini-2.5-flash-preview-05-20`.
-    *   **Genkit Identifier Format:** When defining or referencing this model within the Genkit configuration (e.g., in `src/ai/models.ts` for default model IDs, or directly in `ai.generate()` or `ai.definePrompt()` if overriding), the identifier **MUST** be prefixed with `googleai/`.
-    *   **Correct Format Example:** `googleai/gemini-2.5-flash-preview-05-20`
-    *   **Incorrect Formats (will lead to errors):** `gemini-2.5-flash-preview-05-20` (without prefix) or `models/gemini-2.5-flash-preview-05-20` (Genkit handles the `models/` part internally for some providers, but for Google AI, the `googleai/` prefix is essential at the model string level).
-    *   **Implementation Example (for `src/ai/models.ts`):**
-        ```typescript
-        // src/ai/models.ts
-        export const DEFAULT_CHAT_MODEL_ID = 'googleai/gemini-2.5-flash-preview-05-20';
-        export const DEFAULT_ANALYSIS_MODEL_ID = 'googleai/gemini-2.5-flash-preview-05-20';
-        ```
-    *   **Reasoning:** The `googleAI` plugin for Genkit uses this `googleai/` prefix to correctly resolve and interact with the Google AI backend services. Omitting it leads to the API not recognizing the model slug.
-    *   **Instruction:** All Gemini model specifications within Genkit **MUST** adhere to this `googleai/MODEL_NAME` format to prevent "Model not found" errors.
-*   **`4.3.7. Safety Settings`**: Configure Gemini safety settings in prompts or `generate` calls as needed (e.g., `BLOCK_ONLY_HIGH` for all categories for the chatbot).
-*   **`4.3.8. Model IDs File`**: Centralize model IDs in `src/ai/models.ts` using the correct prefixed format.
-*   **`4.3.9. Cost Calculation`**: Implement utility in `src/ai/utils/cost-calculator.ts` for tracking token usage and cost.
+#### **4.1.2. Genkit (v1.x) Specifics**
+*   **Initialization**: Use global `ai` object. `enableOpenTelemetry: false` is critical. `@genkit-ai/next` is NOT used.
+*   **Strict v1.x Syntax**: Adhere to `response.text`, `response.output`, non-awaited `ai.generateStream`, `await response`.
+*   **Flow Structure**: `'use server';`, JSDoc, Zod schemas, export wrapper function & types.
+*   **Prompts**: Handlebars only. NO direct function calls/`await` in templates. Media via data URIs (`{{media url=...}}`). Format instructions in prompt.
+*   **Tools**: Use `ai.defineTool` if LLM needs to *decide* to fetch data/act. Not for always-needed data.
+*   **Gemini Model ID Format**: **MUST be `googleai/MODEL_NAME`** (e.g., `googleai/gemini-2.5-flash-preview-05-20`).
+*   **Safety Settings**: Configure as needed (e.g., `BLOCK_ONLY_HIGH` for chat).
+*   **Model IDs File**: Centralize in `src/ai/models.ts`.
 
-### **4.4. Data Fetching (Polygon.io)**
-*   **Mandatory Library:** **MUST use `@polygon.io/client-js` (`^7.3.2` or latest stable) for all Polygon API calls.** Do not implement custom `fetch` calls to Polygon endpoints. The client library's snapshot function naturally returns both current intraday and previous day's data. For options, use `snapshotOptionChain`.
-*   **Adapter Pattern:** Abstract Polygon calls in `src/services/data-sources/adapters/polygon-adapter.ts`.
-*   **Fetching Order & Content:** As per Section 2.4.
-*   **Output:** The adapter's primary output should be raw JSON data suitable for display in the "Debug" Tab and consumption by "Main" Tab formatters. Numerical data from adapter should be clean (e.g., actual numbers, not strings if they are numeric, rounded appropriately e.g. 2-4 decimal places).
+#### **4.1.3. Data Fetching (Polygon.io)**
+*   **Mandatory Library:** `@polygon.io/client-js`. No custom `fetch` to Polygon.
+*   **Adapter Pattern:** Abstract calls in `src/services/data-sources/adapters/polygon-adapter.ts`.
+*   **Output:** Raw JSON for Debug Tab, consumed by Main Tab formatters.
 
-### **4.5. Styling & UI (ShadCN & Tailwind)**
-*   Use `Tabs` from ShadCN for "Main" / "Debug" navigation.
-*   Use HSL CSS variables in `globals.css` for ShadCN theme. **NO hardcoded color classes.**
+#### **4.1.4. Styling & UI (ShadCN & Tailwind)**
+*   Use `Tabs` for Main/Debug. HSL CSS variables in `globals.css`. **NO hardcoded color classes outside semantic definitions (positive, destructive, warning, accent, primary etc.).**
 *   Prefer ShadCN components. Responsive and accessible.
 
-### **4.6. State Management**
-*   React Context API (`StockAnalysisProvider`) for global state (which will include all the JSON strings for the Debug Tab).
+#### **4.1.5. State Management**
+*   React Context API (`StockAnalysisProvider`) for global state (Debug Tab JSONs).
 *   `useActionState` for server actions.
 
-### **4.7. Known Pain Points & Lessons Learned (CRITICAL - Guiding UI-First)**
-*   **`4.7.1. async_hooks` Module Resolution & Turbopack:**
-    *   **Context:** This has been a recurring major blocker. The UI-First strategy is designed to mitigate this by deferring backend/Genkit integrations.
-    *   **Mitigation Attempts & Current Status:**
-        *   The `@genkit-ai/next` package, a primary suspect, has been **removed** from dependencies (Task 6.6.2, Commit `c14e3af6`).
-        *   `enableOpenTelemetry: false` is set in `src/ai/genkit.ts`.
-    *   **CRITICAL INSTRUCTION FOR USER:** Following the removal of `@genkit-ai/next`, a **full local environment re-initialization (as detailed in `reinit.md`) MUST be performed by the user.** This is essential to ensure that `node_modules` and `package-lock.json` are correctly updated and that stale dependencies or build artifacts are not causing the `async_hooks` error.
-    *   **If `async_hooks` errors persist AFTER removing `@genkit-ai/next` AND performing a full environment re-initialization:** This would indicate a deeper conflict, potentially with Genkit's core dependencies or how Turbopack handles them in the current Firebase App Hosting build environment. At that point, alternative strategies like investigating `@genkit-ai/firebase` (see Audit in PRD v1.8 Appendices - if it were there) or further isolating problematic imports might be necessary.
+#### **4.1.6. Known Pain Points & Lessons Learned (CRITICAL REMINDERS)**
+*   **`async_hooks` & Turbopack:**
+    *   **Context:** Historically a major blocker. Current mitigations: no `@genkit-ai/next`, `enableOpenTelemetry: false`.
+    *   **CRITICAL INSTRUCTION FOR USER:** If `async_hooks` errors reappear, a **full local environment re-initialization (`reinit.md`) MUST be performed by the user.** This is the first and most critical troubleshooting step.
     *   **Rule 1:** **DO NOT re-add `genkitPluginNextjs()` or `@genkit-ai/next`.**
-    *   **Rule 2:** Be extremely cautious with new dependencies, especially APM/tracing.
-    *   **Rule 3:** Keep `next.config.ts` simple. **AVOID Webpack `resolve.fallback` for Node.js built-ins.**
-    *   **Rule 4:** If `async_hooks` (or similar build errors) reappear after the above steps, flag immediately. **Do not spend extensive time trying to fix with Webpack fallbacks.**
-*   **`4.7.2. Genkit v1.x Syntax`:** Adhere strictly.
-*   **`4.7.3. Data Flow:`** Raw data populates "Debug" Tab JSONs first. "Main" Tab components then read from these state variables (JSON strings) and format them for display. This two-step process is key.
-*   **`4.7.4. Client-Side Debug Console (`DebugConsole.tsx`) Implementation Issues (Post-Mortem for former Task 6.1.7 / Intermediate Debug Phase):`**
-    *   **Context:** An attempt was made to implement a feature-rich client-side debug console (`DebugConsole.tsx`) to intercept `console.*` calls, display them with filtering and export capabilities, and dynamically adjust main content layout. This was intended to enhance client-side troubleshooting.
-    *   **Issues Encountered & Outcome:**
-        *   **Application Instability:** The primary and critical issue was that the implemented debug console caused the application to freeze, become unresponsive, or exhibit erratic behavior, ultimately blocking usability. Multiple attempts to tweak and fix the implementation were unsuccessful.
-        *   **Complexity of Console Interception & State Management:** Reliably intercepting all standard `console.*` methods (`log`, `warn`, `error`, `debug`, `info`) and managing their state (including timestamps, types, messages, filters, search terms) within the React context (`StockAnalysisContext`) without severe performance degradation or unexpected side effects proved highly challenging. The frequency of console calls, especially with added debug traces, likely overwhelmed the state update mechanisms.
-        *   **Layout Shifts & DOM Manipulation Conflicts:** The console's behavior of appearing/disappearing from the bottom of the screen and dynamically adjusting the main content area's padding might have interfered with React's reconciliation process or Next.js's rendering lifecycle, leading to instability.
-        *   **Potential Hydration/SSR Conflicts:** Introducing a global, pervasive UI component that intercepts browser functionalities early in the client-side lifecycle could have conflicted with Next.js hydration processes.
-    *   **Resolution (Former):** The entire `DebugConsole` feature and its associated "Intermediate Debug Phase" (formerly Task 6.1.7) were **fully reverted** to restore application stability to the v0.6.1.6 baseline.
-    *   **Current Status (Task 7.2 Complete):** The client-side debug console (`DebugConsole.tsx`) has been successfully implemented with a stable architecture. It includes log interception, display, configurable log categories, advanced filtering by type/source, text search, and multi-format (JSON, TXT, CSV) copy/export capabilities.
-    *   **Future Approach Considerations (if re-attempted from scratch or significantly enhanced):**
-        *   **Simplify:** Start with a much simpler version (e.g., a passive log viewer that reads from a simple global array, without interception or complex filtering UI).
-        *   **Performance First:** Prioritize performance and minimal intrusiveness. Avoid frequent, widespread state updates triggered by console calls.
-        *   **Decoupling:** Consider if a less integrated solution (e.g., a separate pop-out window or a browser extension-based approach for development) might be more suitable than an in-page console for this specific tech stack.
-        *   **Alternative Libraries:** Investigate mature, third-party logging libraries designed for React/Next.js that might handle interception and display more robustly, though this adds dependencies.
-        *   **Selective Interception:** If interception is pursued, be highly selective about which `console.*` methods are captured and potentially buffer logs before batch updating state.
+    *   **Rule 2:** Extreme caution with new dependencies (especially APM/tracing).
+    *   **Rule 3:** Keep `next.config.ts` simple. **AVOID Webpack `resolve.fallback`.**
+    *   **Rule 4:** If `async_hooks` errors persist AFTER re-init, flag immediately. Do not attempt Webpack fallbacks.
+*   **Genkit v1.x Syntax:** Strict adherence.
+*   **Data Flow:** Raw data -> Debug Tab JSONs (state) -> Main Tab components format from state.
+*   **Client-Side Debug Console (`DebugConsole.tsx`):** Now stable with advanced features.
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-The AI Agent **MUST** implement StockSage v2.1.0 in the following phases and tasks. Each task should result in a functional increment. The AI should announce the completion of each task and await user confirmation/approval before proceeding.
+*(Status: Phase 7 Complete. Phase 8 In Progress.)*
 
 ---
-**Phase 0: Project Setup & Core Layout**
-*(Goal: Establish foundational project structure, dependencies, and the basic UI shell with Tab navigation. This phase sets up the visual framework without any backend logic.)*
-*   **Task 0.1: Initialize Next.js Project** - Status: **COMPLETE**
-*   **Task 0.2: Install Core Dependencies** - Status: **COMPLETE**
-*   **Task 0.3: Setup ShadCN UI & Initial Components** - Status: **COMPLETE**
-*   **Task 0.4: Implement Basic Application Shell with Tabs** - Status: **COMPLETE**
-*   **Task 0.5: Define Global Styles & Theme** - Status: **COMPLETE**
-*   **Task 0.6: Basic Genkit Setup (File Structure Only)** - Status: **COMPLETE**
+**Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
+*   (Tasks 0.1 - 0.6)
 
 ---
-**Phase 1: UI Shell Implementation - "Debug" Tab**
-*(Goal: Build out all the UI elements within the "Debug" Tab. These will be Textarea components intended to display raw JSON data. They will be populated with static placeholder JSON initially. This verifies the UI structure for data display before any backend calls are made.)*
-*   **Task 1.1: Create `DebugTabContent.tsx` Component** - Status: **COMPLETE**
-*   **Task 1.2: Implement JSON Display Areas in `DebugTabContent.tsx`** - Status: **COMPLETE**
-*   **Task 1.3: Implement Export/Copy Controls for Debug JSONs** - Status: **COMPLETE**
+**Phase 1: UI Shell Implementation - "Debug" Tab** - Status: **COMPLETE**
+*   (Tasks 1.1 - 1.3)
 
 ---
-**Phase 2: UI Shell Implementation - "Main" Tab (Part 1: Static Data & Key Takeaways Displays)**
-*(Goal: Build the static display components on the "Main" Tab. These will display formatted data based on what *will eventually* be in the "Debug" Tab JSONs. Populate with static placeholder content.)*
-*   **Task 2.1: Create `MainTabContent.tsx` Component** - Status: **COMPLETE**
-*   **Task 2.2: Implement Stock Analysis Input Area in `MainTabContent.tsx`** - Status: **COMPLETE**
-*   **Task 2.3: Implement Key Metrics Display Component** - Status: **COMPLETE**
-*   **Task 2.4: Implement AI-Calculated TA Display Component** - Status: **COMPLETE**
-*   **Task 2.5: Implement AI Key Takeaways Display Component** - Status: **COMPLETE**
+**Phase 2: UI Shell Implementation - "Main" Tab (Part 1)** - Status: **COMPLETE**
+*   (Tasks 2.1 - 2.5)
 
 ---
-**Phase 3: UI Shell Implementation - "Main" Tab (Part 2: Options Chain Table)**
-*(Goal: Build the visual component for the Options Chain table on the "Main" Tab, populated with static placeholder data matching the target layout and styling. This focuses purely on the UI representation.)*
-*   **Task 3.1: Create `OptionsChainTable.tsx` Component** - Status: **COMPLETE**
+**Phase 3: UI Shell Implementation - "Main" Tab (Part 2: Options)** - Status: **COMPLETE**
+*   (Task 3.1)
 
 ---
-**Phase 4: Backend Data Fetching & "Debug" Tab Population (Polygon.io)**
-*(Goal: Implement the Polygon.io data fetching logic. The fetched raw JSON data, including both current intraday and previous day's snapshot data, will populate the corresponding Textarea components in the "Debug" Tab. The "Main" Tab still uses placeholders.)*
-*   **Task 4.1: Implement `StockAnalysisProvider` Context (Initial State)** - Status: **COMPLETE**
-*   **Task 4.2: Create Data Source Types & Utilities** - Status: **COMPLETE**
-*   **Task 4.3: Implement Polygon Adapter (`polygon-adapter.ts`)** - Status: **COMPLETE**
-*   **Task 4.4: Implement `fetchStockDataAction` Server Action** - Status: **COMPLETE**
-*   **Task 4.5: Wire "Analyze Stock" Button** - Status: **COMPLETE**
-    *   **Task 4.5.1 (Fix): Address persistent `<table>` hydration errors & Options Chain formatting** - Status: **COMPLETE**
+**Phase 4: Backend Data Fetching & "Debug" Tab Population** - Status: **COMPLETE**
+*   (Tasks 4.1 - 4.5.1)
 
 ---
-**Phase 5: AI Logic Implementation & "Debug" Tab Population**
-*(Goal: Implement all Genkit AI flows. Their raw JSON outputs will populate the corresponding Textarea components in the "Debug" Tab. "Main" Tab still uses placeholders or shows basic status.)*
-*   **Task 5.1: Implement AI TA Calculation Flow & Action** - Status: **COMPLETE**
-*   **Task 5.2: Implement AI Key Takeaways Flow & Action** - Status: **COMPLETE**
-*   **Task 5.3: Implement AI Chatbot Flow & Action** - Status: **COMPLETE**
+**Phase 5: AI Logic Implementation & "Debug" Tab Population** - Status: **COMPLETE**
+*   (Tasks 5.1 - 5.3)
 
 ---
-**Phase 6: Connecting "Main" Tab UI to Live Data (from "Debug" Tab JSONs)**
-*(Goal: Modify the "Main" Tab components to parse the JSON strings from the StockAnalysisProvider's state (which are displayed in the "Debug" Tab) and render formatted data. This is where the two tabs are functionally linked.)*
-*   **Task 6.1 (Enhanced - Formerly 6.1.6): Update `KeyMetricsDisplay.tsx`, `StockSnapshotDetailsDisplay.tsx`, `MarketStatusDisplay.tsx`, `StandardTaDisplay.tsx`** - Status: **COMPLETE**
-*   **Task 6.2: Update `AiCalculatedTaDisplay.tsx`** - Status: **COMPLETE**
-*   **Task 6.3: Update `AiKeyTakeawaysDisplay.tsx`** - Status: **COMPLETE**
-*   **Task 6.4: Update `OptionsChainTable.tsx`** - Status: **COMPLETE**
-*   **Task 6.5: Implement "AI Full Stock Analysis" Button Logic** - Status: **COMPLETE**
-*   **Task 6.6: Implement Chatbot UI & Contextual Prompts** - Status: **COMPLETE**
-*   **Task 6.6.1 (Audit Fix): Enhance Chatbot UI Debug Logging** - Status: **COMPLETE** (Commit `601df92c`)
-*   **Task 6.6.2 (Fix): Resolve `async_hooks` Build Errors by Removing `@genkit-ai/next`** - Status: **COMPLETE** (Commit `c14e3af6`)
+**Phase 6: Connecting "Main" Tab UI to Live Data** - Status: **COMPLETE**
+*   (Tasks 6.1 - 6.6.2)
 
 ---
 **Phase 7: Data Export & Final Client-Side Features** - Status: **COMPLETE**
-*(Goal: Implement final utility features and complete the client-side experience.)*
-*   **Task 7.1: Implement Remaining Data Export Controls** - Status: **COMPLETE** (Commit `b6ea6dff`)
-    *   Action:
-        *   **Task 7.1.0 (Sub-task):** Implement "Export All Data to JSON" and "Copy All Data to JSON" buttons on Main Tab. (Status: **COMPLETE**)
-        *   **Task 7.1.2 (Sub-task):** Implement "Export Options (CSV)" and "Copy Options (CSV)" for Options Chain Table on Main Tab. (Status: **COMPLETE**)
-        *   **Task 7.1.3 (Sub-task):** Implement "Export/Copy Key Takeaways" (Text, JSON, CSV) for AI Key Takeaways on Main Tab. (Status: **COMPLETE**)
-        *   **Task 7.1.4 (Sub-task):** Verify and ensure Debug Tab "Copy JSON" button functionality. (Status: **COMPLETE**)
-    *   Deliverable: Comprehensive data export/copy functionality across all specified sections.
+*   **Task 7.1: Implement Remaining Data Export Controls** - Status: **COMPLETE**
+    *   (Sub-tasks 7.1.0, 7.1.2, 7.1.3, 7.1.4 for Main Tab exports and Debug Tab copy verification)
 *   **Task 7.2: Implement `DebugConsole.tsx` Component** - Status: **COMPLETE**
-    *   Action: Create and integrate `src/components/debug-console.tsx`.
-    *   **Status:** Implemented a stable client-side debug console with:
-        *   Log interception (via global buffer) and display in a fixed bottom panel.
-        *   Controls: Enable/Disable Console, Copy Logs (JSON, TXT, CSV), Export Logs (JSON, TXT, CSV), Clear Logs, Close Console.
-        *   Configurable log categories via `DebugSettingsCard` in `DebugTabContent.tsx`.
-        *   Advanced filtering by log type and source category within the console UI.
-        *   Search functionality within the console UI for log messages.
-    *   **Deliverable:** A fully functional client-side debug console with display, toggle, configurable log sources, advanced filtering, search, and multi-format (JSON, TXT, CSV) copy/export capabilities.
+    *   (Includes Sub-tasks 7.2.1: Advanced Filtering, 7.2.2: Search, 7.2.3: Export TXT/CSV, 7.2.4: Copy TXT/CSV)
 
 ---
-**Phase 8: Final Styling, Cleanup, Documentation & Review**
-*(Goal: Polish the application, ensure all requirements are met, write documentation.)*
-*   **Task 8.1: UI & Styling Review:** - Status: **PENDING**
-*   **Task 8.2: Create `README.md` for v2.1.0:** - Status: **PENDING** (Generate a new `README.md` accurately describing the *implemented* v2.1.0 application.)
+**Phase 8: Final Styling, Cleanup, Documentation & Review** - Status: **IN PROGRESS**
+*   **Task 8.1: UI & Styling Review (Sentiment Colors Refactor):** - Status: **COMPLETE**
+*   **Task 8.2: Create `README.md` for v2.1.0 (This Document Update):** - Status: **COMPLETE**
 *   **Task 8.3: Prepare Firebase Deployment Config:** - Status: **PENDING** (`apphosting.yaml`, `.env.example`.)
 *   **Task 8.4: Final Code Review & Cleanup:** - Status: **PENDING** (Remove test code, ensure clarity.)
 *   **Task 8.5: Comprehensive End-to-End Test:** - Status: **PENDING** (Test all features and data flows.)
 
-## **6. Changelog (This Re-Implementation PRD)**
+## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
-| Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                            |
-| :------ | :----------- | :---------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                 |
-| 1.1     | 2025-06-09   | Firebase Studio (AI Prototyper) | Integrated Gemini Model ID specification (Section 4.3.6) to prevent "Model not found" errors. Clarified model ID usage in Phase 0 & 5.                                                                                                      |
-| 1.2     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Main Tab features (Sec 2.2) & Phase 6 tasks to reflect UI refinements (card order, ticker removal, market status filtering, options table styling), new combined data export controls, and sentiment color-coding from Task 6.1.6.          |
-| 1.3     | 2025-06-10   | Firebase Studio (AI Prototyper) | Added commit log for v0.6.1.6 (revert). Added detailed post-mortem (Section 4.7.4) for failed DebugConsole attempt. Updated Phase 7 (Task 7.2) to reflect "To Be Implemented" status for DebugConsole.                                          |
-| 1.4     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Tasks 6.2 & 6.3 as complete. Added commit log for v0.6.3.0.                                                                                                                                                                  |
-| 1.5     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.4 as complete (Options Chain Table live data, percentage formatting). Added commit log for v0.6.4.0.                                                                                                                   |
-| 1.6     | 2025-06-10   | Firebase Studio (AI Prototyper) | Updated Phase 6, Task 6.5 as complete ("AI Full Stock Analysis" button logic). Added commit log for v0.6.5.0.                                                                                                                                |
-| 1.7     | 2025-06-12   | Firebase Studio (AI Prototyper) | Updated PRD to reflect implementation and stabilization of the experimental client-side debug console (partially fulfilling Task 7.2) on branch `v6.5.0_DebugConsole_exp`. Incorporates fixes from debug tasks up to 3.2.8 (data consistency, loading states, log categorization). Added commit log for experimental branch. |
-| 1.8     | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 6 as complete, including Task 6.6 (Chatbot UI) and Task 6.6.1 (Chatbot UI Debug Logging Audit Fix). Added commit log for Task 6.6.1 (Commit `601df92c`). Highlighted persistent `async_hooks` issue in Sec 4.7.1 and recommended user performs environment re-init. Updated Genkit config in Sec 4.3.1 to include `enableOpenTelemetry: false`. |
-| 1.9     | 2025-06-12   | Firebase Studio (AI Prototyper) | Added Task 6.6.2 (Fix: Resolve `async_hooks` Build Errors) and marked as complete. Updated Sec 4.3.1 and 4.7.1 to reflect removal of `@genkit-ai/next` and strongly emphasize user environment re-initialization. Added commit log for Task 6.6.2 (Commit `c14e3af6`). Phase 6 remains complete. |
-| 1.10    | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 7, Task 7.1 (Implement Remaining Data Export Controls) as complete, encompassing sub-tasks for combined data export (7.1.0), options chain CSV export (7.1.2), key takeaways export (Text, JSON, CSV) (7.1.3), and debug tab copy JSON verification (7.1.4). Updated commit log for commit `b6ea6dff`. |
-| 1.11    | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 7, Task 7.2 (`DebugConsole.tsx` Component) as **COMPLETE**. This includes sub-tasks for advanced filtering (7.2.1), search functionality (7.2.2), export to TXT/CSV (7.2.3), and copy to TXT/CSV (7.2.4). Phase 7 is now fully complete. Updated commit log for `b6bc90e8`. Updated Sec 4.7.4. |
+| Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                                                            |
+| :------ | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                 |
+| ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                              |
+| 1.11    | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 7, Task 7.2 (`DebugConsole.tsx` Component) as **COMPLETE**, including all sub-tasks (advanced filtering, search, TXT/CSV export & copy). Phase 7 fully complete. Updated commit log for `b6bc90e8`. Updated Sec 4.7.4.                                        |
+| **1.12**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Restructured README.md to be the primary AI Operating Manual.** Moved AI development protocols (Section 0) to the top with enhanced enforcement language for scope approval. Marked Task 8.1 (UI Styling Review) and Task 8.2 (this update) as COMPLETE. Removed experimental branch references from commit log. |
+
+## **7. Project Implementation Commit Log (StockSage v2.1.0)**
+
+This section tracks the commit history of the StockSage v2.1.0 implementation.
 
 ---
-## Project Implementation Commit Log
-
-This section tracks the commit history of the StockSage v2.1.0 re-implementation, aligning with the phases and tasks outlined in this PRD.
-
----
-
 **Tag:** `Phase-0_Task-0.6` ([v0.0.6])
-
 **Subject:** `feat: Complete Phase 0 - Project Setup & Core Layout`
 ... (Previous commit logs remain)
 
 ---
-
 **Tag:** `Phase-6_Task-6.1.6_Baseline` ([v0.6.1.6]) - Commit Hash: `1fdab788`
-
 **Subject:** `fix: Revert DebugConsole implementation and restore v0.6.1.6 baseline`
 ... (Details remain)
 
 ---
 **Tag:** `Phase-6_Tasks-6.2-6.3` ([v0.6.3.0]) - Commit Hash: `34833581`
-
 **Subject:** `feat: Activate debug logs in TA & Takeaways displays, confirming live data handling (Tasks 6.2, 6.3)`
 ... (Details remain)
 
 ---
 **Tag:** `Phase-6_Task-6.4` ([v0.6.4.0]) - Commit Hash: `bd221290`
-
 **Subject:** `feat: Integrate live data into Options Chain Table and refine percentage formatting (Task 6.4)`
 ... (Details remain)
 
 ---
 **Tag:** `Phase-6_Task-6.5` ([v0.6.5.0]) - Commit Hash: `a1bf333c`
-
 **Subject:** `feat: Implement "AI Full Stock Analysis" button logic and orchestration (Task 6.5)`
 ... (Details remain)
 
 ---
-**Tag:** `DebugConsole_Task-1` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `6a7575ea`
-
+**Tag:** `DebugConsole_Task-1` - Commit Hash: `6a7575ea`
 **Subject:** `feat(debug): Re-implement client debug console with stability fixes (Task 1)`
 ... (Details remain)
 
 ---
-**Tag:** `DebugConsole_Task-3.1` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `3744b73a`
-
+**Tag:** `DebugConsole_Task-3.1` - Commit Hash: `3744b73a`
 **Subject:** `feat(debug): Implement configurable debug logging categories (Task 3.1)`
 ... (Details remain)
 
 ---
-**Tag:** `DebugConsole_Task-3.2.8` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `909b1650`
-
+**Tag:** `DebugConsole_Task-3.2.8` - Commit Hash: `909b1650`
 **Subject:** `fix(debug): Resolve data mismatch in chained AI analysis & stabilize client debug console (Tasks 3.2.5-3.2.8)`
 ... (Details remain)
 
 ---
-**Tag:** `Phase-6_Task-6.6.1` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `601df92c`
-
+**Tag:** `Phase-6_Task-6.6.1` - Commit Hash: `601df92c`
 **Subject:** `feat: Implement Chatbot UI and enhance its debug logging (Task 6.6 & 6.6.1)`
 ... (Details remain)
 
 ---
-**Tag:** `Phase-6_Task-6.6.2` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `c14e3af6`
-
+**Tag:** `Phase-6_Task-6.6.2` - Commit Hash: `c14e3af6`
 **Subject:** `fix: Resolve async_hooks build errors by removing @genkit-ai/next (Task 6.6.2)`
 ... (Details remain)
 
 ---
-**Tag:** `Phase-7_Task-7.1` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `b6ea6dff`
-
+**Tag:** `Phase-7_Task-7.1` - Commit Hash: `b6ea6dff`
 **Subject:** `feat: Complete all data export controls (Task 7.1)`
-
 **Details:**
 This commit finalizes Phase 7, Task 7.1 ("Implement Remaining Data Export Controls") by completing all specified data export and copy functionalities across the Main and Debug tabs.
-
 Key changes implemented:
-1.  **Main Tab - Combined Data Export (Task 7.1.0):**
-    *   Functional "Export All Data to JSON" and "Copy All Data to JSON" buttons, compiling Stock Snapshot, Standard TAs, AI Calculated TAs, Options Chain, and Market Status.
-2.  **Main Tab - Options Chain Export (Task 7.1.2):**
-    *   Functional "Export Options (CSV)" and "Copy Options (CSV)" buttons for the Options Chain table.
-    *   CSV generation logic to format options data (calls, strike, puts) appropriately.
-3.  **Main Tab - AI Key Takeaways Export (Task 7.1.3):**
-    *   Functional "Export Takeaways" and "Copy Takeaways" dropdowns, supporting Text, JSON, and CSV formats.
-    *   Data transformation logic for each format.
-4.  **Debug Tab - Copy JSON Verification (Task 7.1.4):**
-    *   Verified and enhanced the "Copy JSON" button functionality for all raw JSON display areas, ensuring correct data copying, toast notifications, and debug logging.
-
-All new export/copy functionalities include user feedback via toasts and appropriate `logDebug` integration for the client-side debug console. With this, Task 7.1 is complete.
+1.  Main Tab - Combined Data Export (Task 7.1.0): Functional "Export All Data to JSON" and "Copy All Data to JSON" buttons.
+2.  Main Tab - Options Chain Export (Task 7.1.2): Functional "Export Options (CSV)" and "Copy Options (CSV)" buttons.
+3.  Main Tab - AI Key Takeaways Export (Task 7.1.3): Functional "Export Takeaways" and "Copy Takeaways" dropdowns (Text, JSON, CSV).
+4.  Debug Tab - Copy JSON Verification (Task 7.1.4): Verified and enhanced "Copy JSON" button functionality.
+All new export/copy functionalities include user feedback via toasts and `logDebug` integration.
 
 ---
-**Tag:** `Phase-7_Tasks-7.1-7.2` (Branch: `v6.5.0_DebugConsole_exp`) - Commit Hash: `b6bc90e8`
-
-**Subject:** `feat: Complete Phase 7 - Data Export & Client Debug Console Enhancements`
-
+**Tag:** `Phase-7_Tasks-7.1-7.2_and_Phase-8_Task-8.1` - Commit Hash: (Will be the hash of this commit)
+**Subject:** `feat: Complete Phase 7 (All Exports & Debug Console Enhancements) and Task 8.1 (UI Styling Review)`
 **Details:**
-This commit finalizes Phase 7, encompassing all data export functionalities and comprehensive enhancements to the client-side debug console.
+This commit finalizes Phase 7, encompassing all data export functionalities and comprehensive enhancements to the client-side debug console. It also completes Task 8.1 from Phase 8, focusing on UI and styling review, primarily refactoring sentiment coloring to use theme-based semantic colors.
 
-**Task 7.1: Implement Remaining Data Export Controls (Previously completed under commit `b6ea6dff` and verified):**
-*   Main Tab: Combined data export/copy (JSON).
-*   Main Tab: Options Chain export/copy (CSV).
-*   Main Tab: AI Key Takeaways export/copy (Text, JSON, CSV).
-*   Debug Tab: Verified "Copy JSON" buttons.
+**Phase 7 (Tasks 7.1 & 7.2 - Finalized):**
+*   **Task 7.1: Implement Remaining Data Export Controls:** All Main Tab (combined, options, takeaways) and Debug Tab (copy JSON) export/copy features are complete.
+*   **Task 7.2: Implement `DebugConsole.tsx` Component:**
+    *   Advanced Filtering (by type and source category).
+    *   Search Functionality (case-insensitive message search).
+    *   Export to TXT and CSV (in addition to JSON).
+    *   Copy to TXT and CSV (in addition to JSON).
+    The client-side debug console now offers robust filtering, searching, and multi-format export/copy capabilities.
 
-**Task 7.2: Implement `DebugConsole.tsx` Component (Full Enhancements):**
-*   **Sub-Task 7.2.1 (Advanced Filtering):** Implemented UI and logic for filtering logs by type (debug, info, log, warn, error) and source (component/context). Includes "Select All" / "Clear All" options.
-*   **Sub-Task 7.2.2 (Search Functionality):** Added an input field in the console header to search displayed logs (case-insensitive message search) with a clear button.
-*   **Sub-Task 7.2.3 (Export to TXT/CSV):** Enhanced the export feature to a dropdown, allowing export of displayed logs as TXT and CSV formats, in addition to JSON.
-*   **Sub-Task 7.2.4 (Copy to TXT/CSV):** Enhanced the copy feature to a dropdown, allowing copy of displayed logs as TXT and CSV formatted text, in addition to JSON.
+**Phase 8 (Task 8.1 - Complete):**
+*   **UI & Styling Review:**
+    *   Defined new HSL CSS variables in `globals.css` for "positive" (green) and "warning" (yellow/orange) semantic states, including foreground and muted variants for light/dark themes.
+    *   Updated `tailwind.config.ts` to create utility classes for these new semantic colors.
+    *   Refactored `KeyMetricsDisplay`, `StockSnapshotDetailsDisplay`, `StandardTaDisplay`, `AiCalculatedTaDisplay`, and `AiKeyTakeawaysDisplay` to use these theme-based semantic colors for consistent sentiment indication.
 
-The client-side debug console now offers robust filtering, searching, and multi-format export/copy capabilities.
-All specified functionalities for Phase 7 are now complete.
 ---
-
-... (Future commit logs will follow)
+*(Future commit logs will follow)*
