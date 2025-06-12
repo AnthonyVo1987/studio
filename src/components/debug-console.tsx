@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,7 @@ import { useStockAnalysis } from '@/contexts/stock-analysis-context';
 import { globalLogEntries, clearGlobalLogBuffer, type GlobalLogEntry } from '@/lib/global-log-buffer';
 import { downloadJson, copyToClipboard } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
-import { ClipboardCopy, Download, Trash2, X, Filter } from 'lucide-react';
+import { ClipboardCopy, Download, Trash2, X, Filter, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType } from '@/lib/debug-log-types';
 
@@ -50,7 +51,7 @@ export function DebugConsole() {
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
-    logDebug, // Get logDebug from context
+    logDebug, 
   } = useStockAnalysis();
   const { toast } = useToast();
   const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
@@ -58,9 +59,11 @@ export function DebugConsole() {
     types: new Set(),
     sources: new Set(),
   });
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const processLogs = useCallback(() => {
-    let logsToProcess = [...globalLogEntries]; // Work with a copy
+    let logsToProcess = [...globalLogEntries]; 
+    const currentSearchTerm = searchTerm.toLowerCase();
 
     if (activeFilters.types.size > 0) {
       logsToProcess = logsToProcess.filter(log => activeFilters.types.has(log.type as LogType));
@@ -69,15 +72,21 @@ export function DebugConsole() {
       logsToProcess = logsToProcess.filter(log => log.source && activeFilters.sources.has(log.source));
     }
     
+    if (currentSearchTerm) {
+      logsToProcess = logsToProcess.filter(log => 
+        formatLogMessage(log.messages).toLowerCase().includes(currentSearchTerm)
+      );
+      logDebug('DebugConsole', `Search: "${currentSearchTerm}" matched ${logsToProcess.length} logs after type/source filters.`);
+    }
+    
     return logsToProcess.slice(Math.max(0, logsToProcess.length - MAX_DISPLAYED_LOGS));
-  }, [activeFilters]);
+  }, [activeFilters, searchTerm, logDebug]);
 
 
   const fetchAndUpdateLogs = useCallback(() => {
     if (!isClientDebugConsoleOpen || !isClientDebugConsoleEnabled) return;
 
     const newLogs = processLogs();
-    // Efficiently check if displayedLogs needs update
     if (newLogs.length !== displayedLogs.length || 
         (newLogs.length > 0 && displayedLogs.length > 0 && newLogs[newLogs.length -1].id !== displayedLogs[displayedLogs.length-1]?.id) ||
         (newLogs.length > 0 && displayedLogs.length === 0) ||
@@ -90,11 +99,11 @@ export function DebugConsole() {
 
   useEffect(() => {
     if (isClientDebugConsoleOpen && isClientDebugConsoleEnabled) {
-      fetchAndUpdateLogs(); // Initial fetch
+      fetchAndUpdateLogs(); 
       const intervalId = setInterval(fetchAndUpdateLogs, POLLING_INTERVAL_MS);
       return () => clearInterval(intervalId);
     }
-  }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, fetchAndUpdateLogs, activeFilters]); // activeFilters added
+  }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, fetchAndUpdateLogs, activeFilters, searchTerm]);
 
   if (!isClientDebugConsoleEnabled || !isClientDebugConsoleOpen) {
     return null;
@@ -102,15 +111,16 @@ export function DebugConsole() {
 
   const handleClearLogs = () => {
     clearGlobalLogBuffer();
-    setDisplayedLogs([]); // Clear displayed logs immediately
+    setDisplayedLogs([]); 
+    setSearchTerm(''); // Clear search term as well
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
-    logDebug('DebugConsole', 'Client debug logs cleared by user.');
+    logDebug('DebugConsole', 'Client debug logs cleared by user. Search term also cleared.');
   };
 
   const handleCopyLogs = () => {
-    if (copyToClipboard(JSON.stringify(displayedLogs, null, 2))) { // displayedLogs is already filtered
+    if (copyToClipboard(JSON.stringify(displayedLogs, null, 2))) { 
       toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as JSON.' });
-      logDebug('DebugConsole', 'Displayed client logs copied to clipboard.');
+      logDebug('DebugConsole', `Displayed client logs copied to clipboard. Count: ${displayedLogs.length}`);
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs.' });
       logDebug('DebugConsole', 'Failed to copy client logs to clipboard.');
@@ -119,9 +129,9 @@ export function DebugConsole() {
 
   const handleExportLogs = () => {
     try {
-      downloadJson(displayedLogs, 'stocksage_client_logs.json'); // displayedLogs is already filtered
+      downloadJson(displayedLogs, 'stocksage_client_logs.json'); 
       toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as JSON.' });
-      logDebug('DebugConsole', 'Displayed client logs exported as JSON.');
+      logDebug('DebugConsole', `Displayed client logs exported as JSON. Count: ${displayedLogs.length}`);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs.' });
       logDebug('DebugConsole', 'Error exporting client logs:', error);
@@ -169,6 +179,17 @@ export function DebugConsole() {
     });
   };
 
+  const handleSearchTermChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearchTerm = event.target.value;
+    setSearchTerm(newSearchTerm);
+    logDebug('DebugConsole', 'Search term changed:', newSearchTerm);
+  };
+
+  const clearSearchTerm = () => {
+    setSearchTerm('');
+    logDebug('DebugConsole', 'Search term cleared.');
+  };
+
   const activeFilterCount = activeFilters.types.size + activeFilters.sources.size;
 
   return (
@@ -180,10 +201,33 @@ export function DebugConsole() {
       style={{ height: `${CONSOLE_HEIGHT_PX}px` }}
     >
       <CardHeader className="p-2 border-b">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-sm">Client Debug Console</CardTitle>
-            <CardDescription className="text-xs">({displayedLogs.length} entries displayed)</CardDescription>
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink min-w-0">
+            <CardTitle className="text-sm truncate">Client Debug Console</CardTitle>
+            <CardDescription className="text-xs whitespace-nowrap">({displayedLogs.length} entries)</CardDescription>
+          </div>
+          <div className="flex items-center gap-1.5 flex-grow justify-center px-2">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search logs..."
+                value={searchTerm}
+                onChange={handleSearchTermChange}
+                className="h-7 pl-8 pr-7 text-xs"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                  onClick={clearSearchTerm}
+                >
+                  <X className="h-3 w-3" />
+                  <span className="sr-only">Clear search</span>
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <DropdownMenu>
@@ -209,7 +253,7 @@ export function DebugConsole() {
                     key={type}
                     checked={activeFilters.types.has(type)}
                     onCheckedChange={() => toggleFilterType(type)}
-                    onSelect={(e) => e.preventDefault()} // Prevent menu close on select
+                    onSelect={(e) => e.preventDefault()} 
                   >
                     {type.toUpperCase()}
                   </DropdownMenuCheckboxItem>
@@ -227,7 +271,7 @@ export function DebugConsole() {
                       key={source}
                       checked={activeFilters.sources.has(source)}
                       onCheckedChange={() => toggleFilterSource(source)}
-                      onSelect={(e) => e.preventDefault()} // Prevent menu close on select
+                      onSelect={(e) => e.preventDefault()} 
                     >
                       {logSourceLabels[source] || source}
                     </DropdownMenuCheckboxItem>
@@ -256,7 +300,7 @@ export function DebugConsole() {
         <ScrollArea className="h-full p-2">
           {displayedLogs.length === 0 ? (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              No client logs matching current filters.
+              {searchTerm ? `No logs found for "${searchTerm}" with current filters.` : "No client logs matching current filters."}
             </div>
           ) : (
             <div className="space-y-1 font-code text-xs">
@@ -287,4 +331,3 @@ export function DebugConsole() {
     </Card>
   );
 }
-
