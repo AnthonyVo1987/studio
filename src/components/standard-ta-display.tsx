@@ -17,8 +17,8 @@ interface TaIndicatorDisplayInfo {
 }
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
-  if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
-  if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
+  if (sentiment === 'bullish') return 'text-positive'; // Use theme color
+  if (sentiment === 'bearish') return 'text-destructive'; // Use theme color
   return '';
 };
 
@@ -29,8 +29,8 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
     formatter: (val) => formatToTwoDecimals(val?.value),
     getSentiment: (val) => {
       if (val?.value === undefined || val.value === null) return 'neutral';
-      if (val.value < 30) return 'bullish';
-      if (val.value > 70) return 'bearish';
+      if (val.value < 30) return 'bullish'; // RSI < 30 often considered oversold/bullish
+      if (val.value > 70) return 'bearish'; // RSI > 70 often considered overbought/bearish
       return 'neutral';
     }
   },
@@ -51,7 +51,7 @@ const taDefinitions: TaIndicatorDisplayInfo[] = [
       val?.value !== undefined && val?.signal !== undefined && val?.histogram !== undefined
       ? `${formatToTwoDecimals(val.value)} / ${formatToTwoDecimals(val.signal)} / ${formatToTwoDecimals(val.histogram)}`
       : "N/A",
-    getSentiment: (val) => {
+    getSentiment: (val) => { // Sentiment based on histogram
       if (val?.histogram === undefined || val.histogram === null) return 'neutral';
       if (val.histogram > 0) return 'bullish';
       if (val.histogram < 0) return 'bearish';
@@ -135,13 +135,32 @@ export function StandardTaDisplay() {
 
               const value = parsedTaData ? parsedTaData[def.key] : undefined;
               const displayValue = isError && !parsedTaData ? "N/A" : def.formatter(value);
+              // For MACD, sentiment is based on the histogram value which is the 3rd part of the formatted string if available.
+              // For RSI, sentiment is based on its value.
+              // Other indicators here don't have direct bullish/bearish sentiment applied by color in this table.
               const sentiment = def.getSentiment ? def.getSentiment(value) : 'neutral';
               const colorClass = getSentimentColorClass(sentiment);
+              
+              // Only apply color to RSI value and MACD Histogram part of the string
+              let finalDisplayValue: React.ReactNode = displayValue;
+              if (def.key === "MACD" && value?.histogram !== undefined && value.histogram !== null && displayValue !== "N/A") {
+                const parts = displayValue.split(" / ");
+                if (parts.length === 3) {
+                   finalDisplayValue = (
+                     <>
+                       {parts[0]} / {parts[1]} / <span className={colorClass}>{parts[2]}</span>
+                     </>
+                   );
+                }
+              } else if (def.key === "RSI" && displayValue !== "N/A") {
+                finalDisplayValue = <span className={colorClass}>{displayValue}</span>;
+              }
+
 
               return (
                 <TableRow key={def.key}>
                   <TableCell className="font-medium">{def.label}</TableCell>
-                  <TableCell className={cn("text-right", colorClass)}>{displayValue}</TableCell>
+                  <TableCell className="text-right">{finalDisplayValue}</TableCell>
                 </TableRow>
               );
             })}

@@ -22,36 +22,35 @@ interface TakeawayDisplayItem {
   sentiment: string;
   text: string;
   textSentimentClass: string;
+  badgeSentimentClass: string;
 }
 
-const sentimentColorMap: Record<string, string> = {
-  bullish: "bg-green-100 text-green-800 dark:bg-green-700/30 dark:text-green-300 border-green-300 dark:border-green-600",
-  positive: "bg-green-100 text-green-800 dark:bg-green-700/30 dark:text-green-300 border-green-300 dark:border-green-600",
-  strong: "bg-green-100 text-green-800 dark:bg-green-700/30 dark:text-green-300 border-green-300 dark:border-green-600",
-  increasing: "bg-green-100 text-green-800 dark:bg-green-700/30 dark:text-green-300 border-green-300 dark:border-green-600",
-  bearish: "bg-red-100 text-red-800 dark:bg-red-700/30 dark:text-red-300 border-red-300 dark:border-red-600",
-  negative: "bg-red-100 text-red-800 dark:bg-red-700/30 dark:text-red-300 border-red-300 dark:border-red-600",
-  weak: "bg-red-100 text-red-800 dark:bg-red-700/30 dark:text-red-300 border-red-300 dark:border-red-600",
-  decreasing: "bg-red-100 text-red-800 dark:bg-red-700/30 dark:text-red-300 border-red-300 dark:border-red-600",
-  neutral: "bg-gray-100 text-gray-800 dark:bg-gray-700/30 dark:text-gray-300 border-gray-300 dark:border-gray-600",
-  moderate: "bg-blue-100 text-blue-800 dark:bg-blue-700/30 dark:text-blue-300 border-blue-300 dark:border-blue-600",
-  stable: "bg-indigo-100 text-indigo-800 dark:bg-indigo-700/30 dark:text-indigo-300 border-indigo-300 dark:border-indigo-600",
-  high: "bg-yellow-100 text-yellow-800 dark:bg-yellow-700/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-600",
-  low: "bg-purple-100 text-purple-800 dark:bg-purple-700/30 dark:text-purple-300 border-purple-300 dark:border-purple-600",
-  default: "bg-gray-100 text-gray-800 dark:bg-gray-700/30 dark:text-gray-300 border-gray-300 dark:border-gray-600",
+// Updated to use theme-based semantic colors
+const getSemanticBadgeClass = (sentiment?: string): string => {
+  if (!sentiment) return "bg-muted text-muted-foreground border-border";
+  const s = sentiment.toLowerCase();
+  if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) {
+    return "bg-positive-muted text-positive-muted-foreground border-positive";
+  }
+  if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) {
+    return "bg-destructive text-destructive-foreground border-destructive"; // Using main destructive for badge like default ShadCN destructive badge
+  }
+  if (s.includes('high') || s.includes('low') || s.includes('moderate')) { // Assuming 'high', 'low', 'moderate' volatility/momentum map to warning
+    return "bg-warning-muted text-warning-muted-foreground border-warning";
+  }
+  // Default to neutral
+  return "bg-muted text-muted-foreground border-border";
 };
 
-const getTextSentimentColorClass = (detailedSentiment: string): string => {
-    const s = detailedSentiment.toLowerCase();
-    if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) return 'text-green-600 dark:text-green-400';
-    if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) return 'text-red-600 dark:text-red-400';
+const getSemanticTextColorClass = (sentiment?: string): string => {
+    if (!sentiment) return 'text-muted-foreground';
+    const s = sentiment.toLowerCase();
+    if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) return 'text-positive';
+    if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) return 'text-destructive';
+    if (s.includes('high') || s.includes('low') || s.includes('moderate')) return 'text-warning-foreground'; // Using foreground variant for text
     return 'text-muted-foreground';
 };
 
-const getBadgeSentimentClasses = (sentiment?: string): string => {
-  if (!sentiment) return sentimentColorMap.default;
-  return sentimentColorMap[sentiment.toLowerCase()] || sentimentColorMap.default;
-};
 
 const categoryLabels: Record<TakeawayCategory, string> = {
   priceAction: "Price Action",
@@ -61,7 +60,6 @@ const categoryLabels: Record<TakeawayCategory, string> = {
   patterns: "Patterns",
 };
 
-// Helper function to safely parse JSON and get the ticker
 const getTickerFromSnapshot = (snapshotJson: string, logDebug: Function): string => {
   try {
     if (snapshotJson && snapshotJson !== '{}' && !snapshotJson.includes('"status":') && !snapshotJson.includes('"error":')) {
@@ -85,8 +83,6 @@ const generateKeyTakeawaysText = (data: StockAnalysisOutput, ticker: string): st
 };
 
 const escapeCsvField = (field: string): string => {
-  // If the field contains a comma, newline, or double quote, enclose it in double quotes.
-  // Also, double up any existing double quotes within the field.
   if (/[",\n]/.test(field)) {
     return `"${field.replace(/"/g, '""')}"`;
   }
@@ -136,7 +132,8 @@ export function AiKeyTakeawaysDisplay() {
               categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
               sentiment: data[key]?.sentiment || "neutral",
               text: data[key]?.takeaway || "No takeaway generated.",
-              textSentimentClass: getTextSentimentColorClass(data[key]?.sentiment || "neutral")
+              textSentimentClass: getSemanticTextColorClass(data[key]?.sentiment),
+              badgeSentimentClass: getSemanticBadgeClass(data[key]?.sentiment)
           }));
         } else {
           if (Object.keys(data || {}).length === 0 && !jsonString.includes('"error"')) {
@@ -173,7 +170,7 @@ export function AiKeyTakeawaysDisplay() {
         toast({ title: "Exported as Text", description: "Key takeaways downloaded." });
       } else if (format === 'csv') {
         const csvData = generateKeyTakeawaysCsv(parsedTakeawaysData);
-        downloadTxt(csvData, `${filename}.csv`);
+        downloadTxt(csvData, `${filename}.csv`); // Using downloadTxt for CSV
         toast({ title: "Exported as CSV", description: "Key takeaways downloaded." });
       }
       logDebug('AiKeyTakeawaysDisplay:handleExport', `Successfully exported as ${format}`);
@@ -271,7 +268,7 @@ export function AiKeyTakeawaysDisplay() {
             <div key={takeaway.categoryKey} className="p-3 border rounded-md bg-card/60 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
                 <h4 className="font-semibold text-md">{takeaway.categoryLabel}</h4>
-                <Badge variant="outline" className={cn("capitalize px-2.5 py-0.5 text-xs", getBadgeSentimentClasses(takeaway.sentiment))}>
+                <Badge variant="outline" className={cn("capitalize px-2.5 py-0.5 text-xs", takeaway.badgeSentimentClass)}>
                   {takeaway.sentiment}
                 </Badge>
               </div>
@@ -283,5 +280,3 @@ export function AiKeyTakeawaysDisplay() {
     </Card>
   );
 }
-
-    

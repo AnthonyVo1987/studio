@@ -22,12 +22,22 @@
     --muted: 210 20% 85%;
     --muted-foreground: 210 20% 30%; 
 
-    --accent: 180 65% 45%; /* Energetic green */
+    --accent: 180 65% 45%; /* Energetic green-teal */
     --accent-foreground: 180 65% 98%; /* Light color for text on accent */
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84.2% 60.2%; /* Bright Red */
     --destructive-foreground: 0 0% 98%;
 
+    --positive: 130 60% 45%; /* Green */
+    --positive-foreground: 130 60% 98%;
+    --positive-muted: 130 60% 95%; /* Lighter Green for backgrounds */
+    --positive-muted-foreground: 130 60% 15%; /* Darker Green for text on light green */
+
+    --warning: 45 90% 55%; /* Orange/Yellow */
+    --warning-foreground: 45 90% 98%;
+    --warning-muted: 45 90% 95%; /* Lighter Orange/Yellow for backgrounds */
+    --warning-muted-foreground: 45 90% 20%; /* Darker Orange/Yellow for text */
+    
     --border: 210 20% 80%;
     --input: 210 20% 80%;
     --ring: 210 75% 50%; /* Primary blue for rings */
@@ -70,11 +80,21 @@
     --muted: 210 20% 20%;
     --muted-foreground: 210 20% 70%;
 
-    --accent: 180 65% 45%; /* Energetic green (can be same or slightly lighter) */
+    --accent: 180 65% 45%; /* Energetic green-teal (can be same or slightly lighter) */
     --accent-foreground: 180 65% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 70% 50%; /* Slightly less bright Red for dark mode */
     --destructive-foreground: 0 0% 98%;
+
+    --positive: 130 55% 50%; /* Green for dark mode */
+    --positive-foreground: 130 55% 98%;
+    --positive-muted: 130 50% 12%; /* Darker Green for backgrounds in dark mode */
+    --positive-muted-foreground: 130 60% 70%; /* Lighter Green for text on dark green */
+
+    --warning: 45 80% 50%; /* Orange/Yellow for dark mode */
+    --warning-foreground: 45 80% 98%;
+    --warning-muted: 45 70% 15%; /* Darker Orange/Yellow for backgrounds in dark mode */
+    --warning-muted-foreground: 45 80% 75%; /* Lighter Orange/Yellow for text */
 
     --border: 210 20% 25%;
     --input: 210 20% 25%;

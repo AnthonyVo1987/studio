@@ -20,15 +20,15 @@ interface KeyMetricProps {
 }
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
-  if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
-  if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
+  if (sentiment === 'bullish') return 'text-positive'; // Use theme color
+  if (sentiment === 'bearish') return 'text-destructive'; // Use theme color
   return '';
 };
 
 const getChangeIconColorClass = (changeValue?: number | null): string => {
   if (changeValue === null || changeValue === undefined) return "text-muted-foreground";
-  if (changeValue > 0) return "text-green-500 dark:text-green-400";
-  if (changeValue < 0) return "text-red-500 dark:text-red-400";
+  if (changeValue > 0) return "text-positive"; // Use theme color
+  if (changeValue < 0) return "text-destructive"; // Use theme color
   return "text-muted-foreground";
 };
 

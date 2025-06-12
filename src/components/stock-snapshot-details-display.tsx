@@ -16,8 +16,8 @@ interface StockDetailItem {
 }
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
-  if (sentiment === 'bullish') return 'text-green-600 dark:text-green-400';
-  if (sentiment === 'bearish') return 'text-red-600 dark:text-red-400';
+  if (sentiment === 'bullish') return 'text-positive'; // Use theme color
+  if (sentiment === 'bearish') return 'text-destructive'; // Use theme color
   return '';
 };
 
