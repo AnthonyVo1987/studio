@@ -66,8 +66,6 @@ function isDataReadyForProcessing(jsonString: string | null | undefined, logDebu
     logDebugFn?.(callContext, `Data is not ready: string is a pending placeholder: '${jsonString.substring(0,50)}...'`);
     return false;
   }
-  // Check for explicit error or skipped status within the JSON itself
-  // This is important because some steps might successfully return a JSON that internally denotes an error/skipped status from the AI flow
   try {
     const parsed = JSON.parse(jsonString);
     if (parsed && typeof parsed === 'object') {
@@ -75,24 +73,20 @@ function isDataReadyForProcessing(jsonString: string | null | undefined, logDebu
         logDebugFn?.(callContext, `Data is not ready: JSON content indicates error/skipped status: '${jsonString.substring(0,100)}...'`);
         return false;
       }
-       // For AI Key Takeaways, which has a specific structure
       if (dataName === 'aiKeyTakeawaysJson' && (!parsed.priceAction || !parsed.trend || !parsed.volatility || !parsed.momentum || !parsed.patterns)) {
         logDebugFn?.(callContext, `Data is not ready: AI Key Takeaways JSON missing one or more core takeaway categories.`);
         return false;
       }
-      // For AI Analyzed TA (Pivot Points)
-      if (dataName === 'aiAnalyzedTaJson' && parsed.pivotPoint === undefined) { // Pivot point is a good indicator
+      if (dataName === 'aiAnalyzedTaJson' && parsed.pivotPoint === undefined) {
         logDebugFn?.(callContext, `Data is not ready: AI Analyzed TA JSON missing pivotPoint field.`);
         return false;
       }
-       // For AI Options Analysis
-      if (dataName === 'aiOptionsAnalysisJson' && parsed.callWalls === undefined && parsed.putWalls === undefined) { // Check for core structure
+      if (dataName === 'aiOptionsAnalysisJson' && parsed.callWalls === undefined && parsed.putWalls === undefined) { 
         logDebugFn?.(callContext, `Data is not ready: AI Options Analysis JSON missing callWalls/putWalls fields.`);
         return false;
       }
     }
   } catch(e) {
-    // If JSON.parse fails, it's not valid data (unless it was one of the placeholder strings, handled above)
     logDebugFn?.(callContext, `Data is not ready: JSON.parse failed for string: '${jsonString.substring(0,100)}...'`);
     return false;
   }
@@ -151,6 +145,10 @@ export function MainTabContent() {
   );
   
   const isPipelineActive = fsmState !== FsmState.IDLE && fsmState !== FsmState.FULL_ANALYSIS_COMPLETE && fsmState !== FsmState.PARTIAL_ANALYSIS_COMPLETE;
+
+  useEffect(() => {
+    logDebug('FSM_PIPELINE', `MainTabContent: fsmState changed to: ${fsmState}. Current Ticker Ref: ${analysisTriggeredForTickerRef.current}. IsFullAnalysisTriggered: ${isFullAnalysisTriggered}`);
+  }, [fsmState, isFullAnalysisTriggered, logDebug]);
 
 
   const handleAnalyzeStockButtonSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
@@ -228,6 +226,7 @@ export function MainTabContent() {
       if (analysisTriggeredForTickerRef.current) {
         const snapshotIsValid = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent:AWAITING_AI_TA_TRIGGER', 'contextStockSnapshotJson');
         logDebug('FSM_PIPELINE', `MainTabContent: AWAITING_AI_TA_TRIGGER for ${analysisTriggeredForTickerRef.current}. Snapshot valid (isDataReadyForProcessing): ${snapshotIsValid}.`);
+        
         if (snapshotIsValid) {
           dispatchFsmEvent({ type: 'TRIGGER_AI_TA' });
         } else {
@@ -237,7 +236,7 @@ export function MainTabContent() {
           else if (contextStockSnapshotJson.includes('"error":') || contextStockSnapshotJson.includes('"status": "error"')) failureReason = "Snapshot JSON indicates an error state.";
           else if (contextStockSnapshotJson.includes('"status": "skipped"')) failureReason = "Snapshot JSON indicates a skipped state.";
           
-          logDebug('FSM_PIPELINE', `MainTabContent: AWAITING_AI_TA_TRIGGER - Snapshot not valid for AI TA. Reason: ${failureReason}. Snapshot content (first 100): '${contextStockSnapshotJson?.substring(0,100)}'. Dispatching AI_TA_FAILURE.`);
+          logDebug('FSM_PIPELINE', `MainTabContent: AWAITING_AI_TA_TRIGGER - Snapshot not valid. Reason: ${failureReason}. Snapshot content (first 100): '${contextStockSnapshotJson?.substring(0,100)}'. Dispatching AI_TA_FAILURE.`);
           dispatchFsmEvent({
             type: 'AI_TA_FAILURE',
             payload: { 
@@ -489,13 +488,11 @@ export function MainTabContent() {
             const prereqs = {
                 snapshot: isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextStockSnapshotJson'),
                 stdTAs: isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextStandardTasJson'),
-                aiTA: isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextAiAnalyzedTaJson'), // Should be actual data or error, not pending
-                keyTakeaways: isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextAiKeyTakeawaysJson'), // same
-                options: isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextAiOptionsAnalysisJson'), // same
+                aiTA: isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextAiAnalyzedTaJson'), 
+                keyTakeaways: isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextAiKeyTakeawaysJson'), 
+                options: isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextAiOptionsAnalysisJson'), 
                 market: isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent:AWAITING_CHAT_SUMMARY', 'contextMarketStatusJson'),
             };
-             // For summary, we can proceed even if some AI steps failed (their JSONs would reflect error/skipped)
-             // The core data (snapshot, std TAs, market) must be valid.
             const coreDataValid = prereqs.snapshot && prereqs.stdTAs && prereqs.market;
             const aiStepsNonPending = 
                 contextAiAnalyzedTaJson && !PENDING_PLACEHOLDER_JSON_STRINGS.includes(contextAiAnalyzedTaJson.trim()) &&
@@ -511,7 +508,7 @@ export function MainTabContent() {
                 if (!prereqs.snapshot) missing.push("Snapshot");
                 if (!prereqs.stdTAs) missing.push("Standard TAs");
                 if (!prereqs.market) missing.push("Market Status");
-                if (!aiStepsNonPending) missing.push("One or more AI analysis steps still pending");
+                if (!aiStepsNonPending) missing.push("One or more AI analysis steps still pending or not successfully processed");
                 
                 dispatchFsmEvent({
                     type: 'CHAT_SUMMARY_FAILURE',
@@ -548,10 +545,13 @@ export function MainTabContent() {
           market: isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent:GENERATING_CHAT_SUMMARY', 'contextMarketStatusJson'),
       };
       const coreDataValid = prereqs.snapshot && prereqs.stdTAs && prereqs.market;
-      const aiStepsNonPending = prereqs.aiTA && prereqs.keyTakeaways && prereqs.options;
+      const aiStepsNonPendingAndValid = 
+          isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent:GENERATING_CHAT_SUMMARY_AITA', 'contextAiAnalyzedTaJson') &&
+          isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent:GENERATING_CHAT_SUMMARY_KT', 'contextAiKeyTakeawaysJson') &&
+          isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent:GENERATING_CHAT_SUMMARY_OPT', 'contextAiOptionsAnalysisJson');
 
 
-      if (coreDataValid && aiStepsNonPending) {
+      if (coreDataValid && aiStepsNonPendingAndValid) {
         const payload: GenerateChatSummaryActionInputs = {
             ticker: currentTicker,
             stockSnapshotJson: contextStockSnapshotJson!,
@@ -570,9 +570,9 @@ export function MainTabContent() {
         if (!prereqs.snapshot) missing.push("Snapshot");
         if (!prereqs.stdTAs) missing.push("Standard TAs");
         if (!prereqs.market) missing.push("Market Status");
-        if (!prereqs.aiTA) missing.push("AI TA (still pending/invalid)");
-        if (!prereqs.keyTakeaways) missing.push("Key Takeaways (still pending/invalid)");
-        if (!prereqs.options) missing.push("Options Analysis (still pending/invalid)");
+        if (!isDataReadyForProcessing(contextAiAnalyzedTaJson)) missing.push("AI TA (invalid/error/skipped)");
+        if (!isDataReadyForProcessing(contextAiKeyTakeawaysJson)) missing.push("Key Takeaways (invalid/error/skipped)");
+        if (!isDataReadyForProcessing(contextAiOptionsAnalysisJson)) missing.push("Options Analysis (invalid/error/skipped)");
         logDebug('FSM_PIPELINE', `MainTabContent: GENERATING_CHAT_SUMMARY for ${currentTicker}, but prereqs became invalid: ${missing.join(', ')}. Dispatching CHAT_SUMMARY_FAILURE.`);
         dispatchFsmEvent({
           type: 'CHAT_SUMMARY_FAILURE',
@@ -703,7 +703,6 @@ export function MainTabContent() {
     }
   }, [isDataReadyForCombinedExport, getCombinedDataForExport, tickerInput, toast, logDebug]);
 
-  logDebug('MainTabContent', `Rendering. FSM State=${fsmState}, isPipelineActive=${isPipelineActive}, analysisTriggeredForTickerRef=${analysisTriggeredForTickerRef.current}`);
   const activeTickerForChat = (analysisTriggeredForTickerRef.current && (isPipelineActive || isFullAnalysisTriggered)) ? analysisTriggeredForTickerRef.current : tickerInput;
 
   const isFormDisabled = isPipelineActive;
@@ -795,3 +794,5 @@ export function MainTabContent() {
   );
 }
 
+
+    
