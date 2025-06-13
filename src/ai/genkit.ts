@@ -1,6 +1,4 @@
 
-'use server';
-
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 import { DEFAULT_ANALYSIS_MODEL_ID } from './models';
