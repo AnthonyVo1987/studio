@@ -1,7 +1,7 @@
 
 # **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.1.0 OPERATING MANUAL**
 
-*   **Document Version:** 1.15 (Task 8.6 - Genkit 'use server' Fix)
+*   **Document Version:** 1.16 (Tasks 8.7.0 & 8.7.1 - Proactive Guards & Cleanup)
 *   **Date:** 2025-06-12
 *   **Author:** Firebase Studio (AI Prototyper)
 *   **Status:** Official Project Blueprint & AI Operational Mandate. Phase 8 IN PROGRESS. **Major Build Issues RESOLVED.**
@@ -179,6 +179,7 @@ This section documents critical issues encountered during development and their 
     *   **DO NOT use `import {z} from 'genkit';` in such schema files.** This is a primary cause of Webpack attempting to bundle server-side Node.js modules and OpenTelemetry components into the client, leading to "Module not found" errors.
     *   The removal of `@genkit-ai/next` was essential for `async_hooks` stability, but it requires stricter adherence to separating client-safe imports.
     *   The AI Agent **MUST** verify this Zod import pattern for any *new* schema files it creates or modifies that are intended for client-side type consumption. Failure to do so risks reintroducing critical build failures.
+    *   **Reinforcement (Commit `69bcf1a6`):** A client-side execution guard has been added to `src/ai/genkit.ts`. If this server-only module is ever executed in a client environment (e.g., due to a new problematic import chain), it will throw an error in development and log a critical error in production, aiding in rapid diagnosis.
 
 ##### **4.1.6.3. Incorrect `'use server';` Directive on Non-Action Modules (e.g., `genkit.ts`) - RESOLVED**
 *   **Context (Post-Mortem of Commit `8d199845`):** After resolving the schema import issues, the project faced a persistent build error: "A 'use server' file can only export async functions, found object."
@@ -239,13 +240,15 @@ This section documents critical issues encountered during development and their 
 *   (Tasks 7.1 - 7.2)
 
 ---
-**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **COMPLETE**
+**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **IN PROGRESS** (Finalizing minor audits)
 *   **Task 8.1: UI & Styling Review (Sentiment Colors Refactor):** - Status: **COMPLETE** (Commit: `b6bc90e8`)
 *   **Task 8.2: Update `README.md` to AI Operating Manual:** - Status: **COMPLETE** (Commit: `b6bc90e8`)
 *   **Task 8.3: Prepare Firebase Deployment Config:** - Status: **PENDING** (Deferred)
 *   **Task 8.4: Final Code Review & Cleanup:** - Status: **COMPLETE** (Commit: `bef12d70`)
 *   **Task 8.5: Resolve Critical Build Failures & Confirm Stability (Zod Imports):** - Status: **COMPLETE** (Commit: `fc96d65a`)
 *   **Task 8.6: Resolve Critical Build Failures & Confirm Stability ('use server' on `genkit.ts`):** - Status: **COMPLETE** (Commit: `8d199845`)
+*   **Task 8.7.0: Deep Dive Audit (Post v8.6.0) & Minor Cleanup:** - Status: **COMPLETE** (Part of Commit: `69bcf1a6`)
+*   **Task 8.7.1: Add Enhanced Client Execution Guard to `genkit.ts`:** - Status: **COMPLETE** (Part of Commit: `69bcf1a6`)
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
@@ -254,9 +257,9 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                 |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                              |
-| 1.13    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.4 (Final Code Review & Cleanup) complete.** Minor code cleanup in `src/app/page.tsx`. Marked Task 8.4 complete. Updated commit log for `bef12d70`.                                                                                                              |
 | 1.14    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.5 (Resolve Critical Build Failures & Confirm Stability) complete.** Updated Zod imports in schema files. Integrated detailed post-mortem of build issues and resolution into Sec 4.1.6 (specifically 4.1.6.2). Marked Task 8.5 complete. Updated commit log for `fc96d65a`. Phase 8 core tasks complete. Enhanced AI guidelines in Sec 4.1.6.2 regarding Zod imports. |
-| **1.15**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.6 (Resolve 'use server' export error) complete.** Removed `'use server';` directive from `src/ai/genkit.ts` as it exports an object, not async functions. Updated Sec 4.1.6.3 to document this lesson (subsequent sections renumbered). Updated commit log for `8d199845`. Phase 8 tasks now fully complete (excluding deferred 8.3). |
+| 1.15    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.6 (Resolve 'use server' export error) complete.** Removed `'use server';` directive from `src/ai/genkit.ts` as it exports an object, not async functions. Updated Sec 4.1.6.3 to document this lesson. Marked Task 8.6 complete. Updated commit log for `8d199845`. |
+| **1.16**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Tasks 8.7.0 & 8.7.1 (Proactive Guards & Cleanup) complete.** Minor cleanup in `analyze-stock-server-action.ts` (Task 8.7.0). Added enhanced client-side execution guard to `src/ai/genkit.ts` (Task 8.7.1) to aid future debugging of bundling issues. Updated Sec 4.1.6.2 to note this guard. Marked Tasks 8.7.0 & 8.7.1 complete. Updated commit log for `69bcf1a6`. Phase 8 nearly complete. |
 
 ## **7. Project Implementation Commit Log (StockSage v2.1.0)**
 
@@ -266,12 +269,6 @@ This section tracks the commit history of the StockSage v2.1.0 implementation.
 **Tag:** `Phase-0_Task-0.6` ([v0.0.6])
 **Subject:** `feat: Complete Phase 0 - Project Setup & Core Layout`
 ... (Previous commit logs remain)
-
----
-**Tag:** `Phase-8_Task-8.4` - Commit Hash: `bef12d70`
-**Subject:** `chore: Final Code Review & Cleanup (Task 8.4)`
-**Details:**
-Addressed Task 8.4. Removed a minor block of commented-out code in `src/app/page.tsx`. Retained essential server-side `console.log` statements in `polygon-adapter.ts` for diagnostics. Confirmed no other major cleanup items (TODOs, placeholders) remained.
 
 ---
 **Tag:** `Phase-8_Task-8.5_Build-Fix` - Commit Hash: `fc96d65a`
@@ -292,5 +289,14 @@ This commit addresses the persistent Next.js build error: "A 'use server' file c
 This change resolves the build error.
 
 ---
+**Tag:** `Phase-8_Task-8.7.1_Debug-Enhancements` - Commit Hash: `69bcf1a6`
+**Subject:** `feat(debug): Enhance server-only module guards and minor action cleanup`
+**Details:**
+This commit combines the outcomes of Task 8.7.0 and Task 8.7.1.
+**Task 8.7.0:** Removed `polygonAdapterDebugMessages` handling from `src/actions/analyze-stock-server-action.ts` for consistency, as the adapter no longer populates this specific field.
+**Task 8.7.1:** Added an enhanced client-side execution guard to `src/ai/genkit.ts`. If this server-only module is mistakenly executed in a client environment, it will now throw an error in development (and log critically in production), aiding in rapid diagnosis of bundling issues. This reinforces lessons from previous build problems.
+
+---
 
 *(Future commit logs will follow)*
+
