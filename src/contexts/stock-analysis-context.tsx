@@ -10,11 +10,11 @@ const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
 export type FullAnalysisStatus =
   | 'idle'
-  | 'pending'
-  | 'fetchingData'
-  | 'analyzingTa' // Renamed from calculatingAiTa
-  | 'analyzingOptions' // New state
-  | 'generatingTakeaways'
+  | 'pending' // General pending state for the whole sequence initiation
+  | 'fetchingData' // Or rely on isAnalyzeStockPending
+  | 'analyzingTa'
+  | 'generatingTakeaways' // New distinct status
+  | 'analyzingOptions'
   | 'chatting'
   | 'success'
   | 'error';
@@ -40,10 +40,10 @@ interface StockAnalysisState {
   stockSnapshotJson: string;
   standardTasJson: string;
   optionsChainJson: string;
-  aiAnalyzedTaRequestJson: string; // Renamed
-  aiAnalyzedTaJson: string;        // Renamed
-  aiOptionsAnalysisRequestJson: string; // New
-  aiOptionsAnalysisJson: string;        // New
+  aiAnalyzedTaRequestJson: string;
+  aiAnalyzedTaJson: string;
+  aiOptionsAnalysisRequestJson: string;
+  aiOptionsAnalysisJson: string;
   aiKeyTakeawaysRequestJson: string;
   aiKeyTakeawaysJson: string;
   chatbotRequestJson: string;
@@ -65,10 +65,10 @@ interface StockAnalysisContextType extends StockAnalysisState {
   setStockSnapshotJson: (json: string) => void;
   setStandardTasJson: (json: string) => void;
   setOptionsChainJson: (json: string) => void;
-  setAiAnalyzedTaRequestJson: (json: string) => void; // Renamed
-  setAiAnalyzedTaJson: (json: string) => void;        // Renamed
-  setAiOptionsAnalysisRequestJson: (json: string) => void; // New
-  setAiOptionsAnalysisJson: (json: string) => void;        // New
+  setAiAnalyzedTaRequestJson: (json: string) => void;
+  setAiAnalyzedTaJson: (json: string) => void;
+  setAiOptionsAnalysisRequestJson: (json: string) => void;
+  setAiOptionsAnalysisJson: (json: string) => void;
   setAiKeyTakeawaysRequestJson: (json: string) => void;
   setAiKeyTakeawaysJson: (json: string) => void;
   setChatbotRequestJson: (json: string) => void;
@@ -95,10 +95,10 @@ const defaultState: StockAnalysisState = {
   stockSnapshotJson: initialJsonPlaceholder,
   standardTasJson: initialJsonPlaceholder,
   optionsChainJson: initialJsonPlaceholder,
-  aiAnalyzedTaRequestJson: initialJsonPlaceholder, // Renamed
-  aiAnalyzedTaJson: initialJsonPlaceholder,        // Renamed
-  aiOptionsAnalysisRequestJson: initialJsonPlaceholder, // New
-  aiOptionsAnalysisJson: initialJsonPlaceholder,        // New
+  aiAnalyzedTaRequestJson: initialJsonPlaceholder,
+  aiAnalyzedTaJson: initialJsonPlaceholder,
+  aiOptionsAnalysisRequestJson: initialJsonPlaceholder,
+  aiOptionsAnalysisJson: initialJsonPlaceholder,
   aiKeyTakeawaysRequestJson: initialJsonPlaceholder,
   aiKeyTakeawaysJson: initialJsonPlaceholder,
   chatbotRequestJson: initialJsonPlaceholder,
@@ -120,10 +120,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_stockSnapshotJson, _setStockSnapshotJson] = useState<string>(defaultState.stockSnapshotJson);
   const [_standardTasJson, _setStandardTasJson] = useState<string>(defaultState.standardTasJson);
   const [_optionsChainJson, _setOptionsChainJson] = useState<string>(defaultState.optionsChainJson);
-  const [_aiAnalyzedTaRequestJson, _setAiAnalyzedTaRequestJson] = useState<string>(defaultState.aiAnalyzedTaRequestJson); // Renamed
-  const [_aiAnalyzedTaJson, _setAiAnalyzedTaJson] = useState<string>(defaultState.aiAnalyzedTaJson);                     // Renamed
-  const [_aiOptionsAnalysisRequestJson, _setAiOptionsAnalysisRequestJson] = useState<string>(defaultState.aiOptionsAnalysisRequestJson); // New
-  const [_aiOptionsAnalysisJson, _setAiOptionsAnalysisJson] = useState<string>(defaultState.aiOptionsAnalysisJson);                     // New
+  const [_aiAnalyzedTaRequestJson, _setAiAnalyzedTaRequestJson] = useState<string>(defaultState.aiAnalyzedTaRequestJson);
+  const [_aiAnalyzedTaJson, _setAiAnalyzedTaJson] = useState<string>(defaultState.aiAnalyzedTaJson);
+  const [_aiOptionsAnalysisRequestJson, _setAiOptionsAnalysisRequestJson] = useState<string>(defaultState.aiOptionsAnalysisRequestJson);
+  const [_aiOptionsAnalysisJson, _setAiOptionsAnalysisJson] = useState<string>(defaultState.aiOptionsAnalysisJson);
   const [_aiKeyTakeawaysRequestJson, _setAiKeyTakeawaysRequestJson] = useState<string>(defaultState.aiKeyTakeawaysRequestJson);
   const [_aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
   const [_chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
@@ -152,17 +152,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setStockSnapshotJson = useCallback((json: string) => setAndLogJson(_setStockSnapshotJson, 'stockSnapshotJson', json), [_setStockSnapshotJson, setAndLogJson]);
   const setStandardTasJson = useCallback((json: string) => setAndLogJson(_setStandardTasJson, 'standardTasJson', json), [_setStandardTasJson, setAndLogJson]);
   const setOptionsChainJson = useCallback((json: string) => setAndLogJson(_setOptionsChainJson, 'optionsChainJson', json), [_setOptionsChainJson, setAndLogJson]);
-  const setAiAnalyzedTaRequestJson = useCallback((json: string) => setAndLogJson(_setAiAnalyzedTaRequestJson, 'aiAnalyzedTaRequestJson', json), [_setAiAnalyzedTaRequestJson, setAndLogJson]); // Renamed
-  const setAiAnalyzedTaJson = useCallback((json: string) => setAndLogJson(_setAiAnalyzedTaJson, 'aiAnalyzedTaJson', json), [_setAiAnalyzedTaJson, setAndLogJson]);                         // Renamed
-  const setAiOptionsAnalysisRequestJson = useCallback((json: string) => setAndLogJson(_setAiOptionsAnalysisRequestJson, 'aiOptionsAnalysisRequestJson', json), [_setAiOptionsAnalysisRequestJson, setAndLogJson]); // New
-  const setAiOptionsAnalysisJson = useCallback((json: string) => setAndLogJson(_setAiOptionsAnalysisJson, 'aiOptionsAnalysisJson', json), [_setAiOptionsAnalysisJson, setAndLogJson]);                         // New
+  const setAiAnalyzedTaRequestJson = useCallback((json: string) => setAndLogJson(_setAiAnalyzedTaRequestJson, 'aiAnalyzedTaRequestJson', json), [_setAiAnalyzedTaRequestJson, setAndLogJson]);
+  const setAiAnalyzedTaJson = useCallback((json: string) => setAndLogJson(_setAiAnalyzedTaJson, 'aiAnalyzedTaJson', json), [_setAiAnalyzedTaJson, setAndLogJson]);
+  const setAiOptionsAnalysisRequestJson = useCallback((json: string) => setAndLogJson(_setAiOptionsAnalysisRequestJson, 'aiOptionsAnalysisRequestJson', json), [_setAiOptionsAnalysisRequestJson, setAndLogJson]);
+  const setAiOptionsAnalysisJson = useCallback((json: string) => setAndLogJson(_setAiOptionsAnalysisJson, 'aiOptionsAnalysisJson', json), [_setAiOptionsAnalysisJson, setAndLogJson]);
   const setAiKeyTakeawaysRequestJson = useCallback((json: string) => setAndLogJson(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json), [_setAiKeyTakeawaysRequestJson, setAndLogJson]);
   const setAiKeyTakeawaysJson = useCallback((json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json), [_setAiKeyTakeawaysJson, setAndLogJson]);
   const setChatbotRequestJson = useCallback((json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson', json), [_setChatbotRequestJson, setAndLogJson]);
   const setChatbotResponseJson = useCallback((json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson', json), [_setChatbotResponseJson, setAndLogJson]);
 
-  const setFullAnalysisStatus = useCallback((status: FullAnalysisStatus) => _setFullAnalysisStatus(status), [_setFullAnalysisStatus]);
-  const setIsFullAnalysisTriggered = useCallback((triggered: boolean) => _setIsFullAnalysisTriggered(triggered), [_setIsFullAnalysisTriggered]);
+  const setFullAnalysisStatus = useCallback((status: FullAnalysisStatus) => {
+    logDebug('StockAnalysisContext', `Setting fullAnalysisStatus to: ${status}`);
+    _setFullAnalysisStatus(status);
+  }, [_setFullAnalysisStatus, logDebug]);
+
+  const setIsFullAnalysisTriggered = useCallback((triggered: boolean) => {
+     logDebug('StockAnalysisContext', `Setting isFullAnalysisTriggered to: ${triggered}`);
+    _setIsFullAnalysisTriggered(triggered);
+  }, [_setIsFullAnalysisTriggered, logDebug]);
+
   const setChatHistory = useCallback((history: ChatMessage[]) => _setChatHistory(history), [_setChatHistory]);
   const clearChatHistory = useCallback(() => {
     _setChatHistory([]);
@@ -180,17 +188,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       _setClientDebugConsoleOpen(false);
       clearGlobalLogBuffer(); 
     }
-  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen]);
+     logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled set to: ${enabled}`);
+  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
     if (isClientDebugConsoleEnabled || !open) { 
         _setClientDebugConsoleOpen(open);
+        logDebug('StockAnalysisContext', `ClientDebugConsoleOpen set to: ${open}`);
     }
-  }, [isClientDebugConsoleEnabled, _setClientDebugConsoleOpen]);
+  }, [isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
     _setLogSourceConfig(prevConfig => ({ ...prevConfig, [source]: enabled }));
-  }, [_setLogSourceConfig]);
+     logDebug('StockAnalysisContext', `Log source '${source}' set to: ${enabled}`);
+  }, [_setLogSourceConfig, logDebug]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -264,10 +275,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     stockSnapshotJson: _stockSnapshotJson, setStockSnapshotJson,
     standardTasJson: _standardTasJson, setStandardTasJson,
     optionsChainJson: _optionsChainJson, setOptionsChainJson,
-    aiAnalyzedTaRequestJson: _aiAnalyzedTaRequestJson, setAiAnalyzedTaRequestJson, // Renamed
-    aiAnalyzedTaJson: _aiAnalyzedTaJson, setAiAnalyzedTaJson,                       // Renamed
-    aiOptionsAnalysisRequestJson: _aiOptionsAnalysisRequestJson, setAiOptionsAnalysisRequestJson, // New
-    aiOptionsAnalysisJson: _aiOptionsAnalysisJson, setAiOptionsAnalysisJson,                       // New
+    aiAnalyzedTaRequestJson: _aiAnalyzedTaRequestJson, setAiAnalyzedTaRequestJson,
+    aiAnalyzedTaJson: _aiAnalyzedTaJson, setAiAnalyzedTaJson,
+    aiOptionsAnalysisRequestJson: _aiOptionsAnalysisRequestJson, setAiOptionsAnalysisRequestJson,
+    aiOptionsAnalysisJson: _aiOptionsAnalysisJson, setAiOptionsAnalysisJson,
     aiKeyTakeawaysRequestJson: _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson,
     chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson,
