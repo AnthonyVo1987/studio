@@ -113,26 +113,30 @@ export function AiKeyTakeawaysDisplay() {
 
   logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson (start):", jsonString ? jsonString.substring(0,100) : "null");
 
-  if (jsonString === null || (typeof jsonString === 'string' &&
-    (jsonString.includes('"status": "initializing"') ||
-     jsonString.includes('"status": "pending"') ||
-     jsonString.includes('"status": "full_analysis_pending..."')))) {
-    isLoading = true;
-    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is in pending/initializing state.");
-  } else if (typeof jsonString === 'string' && jsonString !== '{}') {
-    if (jsonString.includes('"status": "error"')) {
+  if (jsonString && jsonString !== '{}') {
+    if (jsonString.includes('"status": "initializing"') || jsonString.includes('"status": "pending"') || jsonString.includes('"status": "full_analysis_pending..."')) {
+      isLoading = true;
+      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is in pending/initializing state.");
+    } else if (jsonString.includes('"status": "error"')) {
       isError = true;
-      errorOrSkippedMessage = "Error loading AI Key Takeaways.";
+      isLoading = false;
+      try {
+        const errorData = JSON.parse(jsonString);
+        errorOrSkippedMessage = errorData.message || "Error loading AI Key Takeaways.";
+      } catch {
+        errorOrSkippedMessage = "Error loading AI Key Takeaways.";
+      }
       logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates an error state.");
     } else if (jsonString.includes('"status": "skipped"')) {
       isError = true;
+      isLoading = false;
       errorOrSkippedMessage = "AI Key Takeaways were skipped.";
       logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates a skipped state.");
     } else {
       try {
         const data = JSON.parse(jsonString) as StockAnalysisOutput;
         logDebug('AiKeyTakeawaysDisplay', "Attempting to parse aiKeyTakeawaysJson. Parsed priceAction:", data?.priceAction);
-        if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.priceAction) {
+        if (data && typeof data === 'object' && data.priceAction) { // Check for a known key
           parsedTakeawaysData = data;
           displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
               categoryKey: key,
@@ -145,7 +149,7 @@ export function AiKeyTakeawaysDisplay() {
         } else {
           isError = true;
           errorOrSkippedMessage = "AI Key Takeaways data is malformed or incomplete.";
-          logDebug('AiKeyTakeawaysDisplay', "Parsed aiKeyTakeawaysJson missing priceAction or contains error/status field.");
+          logDebug('AiKeyTakeawaysDisplay', "Parsed aiKeyTakeawaysJson missing priceAction or critical data.");
         }
       } catch (e) {
         isError = true;
@@ -155,7 +159,7 @@ export function AiKeyTakeawaysDisplay() {
     }
   } else {
     isLoading = false;
-    isError = true; // Treat as error/unavailable if null or empty
+    isError = true; 
     errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
     logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is empty or null.");
   }
@@ -271,7 +275,7 @@ export function AiKeyTakeawaysDisplay() {
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              {errorOrSkippedMessage}
            </div>
-        ) : displayTakeaways.length === 0 ? (
+        ) : displayTakeaways.length === 0 ? ( // This condition might be hit if parsedTakeawaysData is null
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              No AI Key Takeaways data.
            </div>
@@ -293,3 +297,4 @@ export function AiKeyTakeawaysDisplay() {
   );
 }
 
+    

@@ -37,32 +37,33 @@ export function AiOptionsAnalysisDisplay() {
   let errorOrSkippedMessage = "AI Options Analysis data not available.";
   let parsedAnalysisData: AiOptionsAnalysisOutput | null = null;
 
-  if (aiOptionsAnalysisJson === null || (typeof aiOptionsAnalysisJson === 'string' &&
-    (aiOptionsAnalysisJson.includes('"status": "initializing"') ||
-     aiOptionsAnalysisJson.includes('"status": "pending"') ||
-     aiOptionsAnalysisJson.includes('"status": "full_analysis_pending..."')))) {
-    isLoading = true;
-    logDebug('AiOptionsAnalysisDisplay', "aiOptionsAnalysisJson is in pending/initializing state.");
-  } else if (typeof aiOptionsAnalysisJson === 'string' && aiOptionsAnalysisJson !== '{}') {
-    if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"error":')) { // Check for general error or specific status
+  if (aiOptionsAnalysisJson && aiOptionsAnalysisJson !== '{}') {
+    if (aiOptionsAnalysisJson.includes('"status": "initializing"') || aiOptionsAnalysisJson.includes('"status": "pending"') || aiOptionsAnalysisJson.includes('"status": "full_analysis_pending..."')) {
+      isLoading = true;
+      logDebug('AiOptionsAnalysisDisplay', "aiOptionsAnalysisJson is in pending/initializing state.");
+    } else if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"error":')) {
       isError = true;
-      errorOrSkippedMessage = "Error loading AI Options Analysis.";
+      isLoading = false;
       logDebug('AiOptionsAnalysisDisplay', 'aiOptionsAnalysisJson indicates an error state.');
        try {
         const tempError = JSON.parse(aiOptionsAnalysisJson);
+        errorOrSkippedMessage = tempError.message || tempError.error || "Error loading AI Options Analysis.";
         if (tempError.error) {
             logDebug('AiOptionsAnalysisDisplay', 'Parsed error field from JSON:', tempError.error);
         }
-      } catch (e) { /* Ignore if not valid JSON */ }
+      } catch (e) { 
+        errorOrSkippedMessage = "Error loading AI Options Analysis.";
+      }
     } else if (aiOptionsAnalysisJson.includes('"status": "skipped"')) {
       isError = true;
+      isLoading = false;
       errorOrSkippedMessage = "AI Options Analysis was skipped.";
       logDebug('AiOptionsAnalysisDisplay', 'aiOptionsAnalysisJson indicates a skipped state.');
     } else {
       try {
         const data = JSON.parse(aiOptionsAnalysisJson) as AiOptionsAnalysisOutput;
         logDebug('AiOptionsAnalysisDisplay', 'Attempting to parse aiOptionsAnalysisJson. Parsed CallWalls length:', data?.callWalls?.length);
-        if (data && typeof data === 'object' && data.callWalls !== undefined && data.putWalls !== undefined) {
+        if (data && typeof data === 'object' && data.callWalls !== undefined && data.putWalls !== undefined) { // Check for known keys
             parsedAnalysisData = data;
         } else {
           isError = true;
@@ -77,7 +78,7 @@ export function AiOptionsAnalysisDisplay() {
     }
   } else {
     isLoading = false;
-    isError = true; // Treat as error/unavailable if null or empty
+    isError = true; 
     errorOrSkippedMessage = "No AI Options Analysis data. Ensure options chain was processed by AI.";
     logDebug('AiOptionsAnalysisDisplay', "aiOptionsAnalysisJson is empty or null.");
   }
@@ -172,7 +173,6 @@ export function AiOptionsAnalysisDisplay() {
     );
   };
 
-
   logDebug('AiOptionsAnalysisDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedDataExists=${!!parsedAnalysisData}`);
 
   return (
@@ -203,7 +203,7 @@ export function AiOptionsAnalysisDisplay() {
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              {errorOrSkippedMessage}
            </div>
-        ) : !parsedAnalysisData || (
+        ) : !parsedAnalysisData || ( // Check if parsedAnalysisData itself is null or empty
             (!parsedAnalysisData.callWalls || parsedAnalysisData.callWalls.length === 0) &&
             (!parsedAnalysisData.putWalls || parsedAnalysisData.putWalls.length === 0) &&
             (!parsedAnalysisData.callClusters || parsedAnalysisData.callClusters.length === 0) &&
@@ -216,7 +216,7 @@ export function AiOptionsAnalysisDisplay() {
         ) : (
           <>
             {parsedAnalysisData.analysisSummary && (
-              <p className="text-sm text-muted-foreground p-2 mb-3 border-l-4 border-blue-500 bg-blue-500/10 dark:bg-blue-500/20">
+              <p className="text-sm text-muted-foreground p-2 mb-3 border-l-4 border-primary/50 bg-primary/10 dark:bg-primary/20">
                 <strong>AI Note:</strong> {parsedAnalysisData.analysisSummary}
               </p>
             )}
@@ -253,3 +253,4 @@ export function AiOptionsAnalysisDisplay() {
   );
 }
 
+    

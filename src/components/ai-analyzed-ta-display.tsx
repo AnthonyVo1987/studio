@@ -50,7 +50,12 @@ export function AiAnalyzedTaDisplay() {
       logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson indicates an error state.");
       isLoading = false;
       isError = true;
-      errorOrSkippedMessage = "Error loading AI Analyzed TA.";
+      try {
+        const errorData = JSON.parse(aiAnalyzedTaJson);
+        errorOrSkippedMessage = errorData.message || "Error loading AI Analyzed TA.";
+      } catch {
+        errorOrSkippedMessage = "Error loading AI Analyzed TA.";
+      }
     } else if (aiAnalyzedTaJson.includes('"status": "skipped"')) {
       logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson indicates a skipped state.");
       isLoading = false;
@@ -60,12 +65,12 @@ export function AiAnalyzedTaDisplay() {
       try {
         const data = JSON.parse(aiAnalyzedTaJson) as AnalyzeTaOutput; 
         logDebug('AiAnalyzedTaDisplay', "Attempting to parse aiAnalyzedTaJson. Parsed PivotPoint:", data?.pivotPoint);
-        if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.pivotPoint !== undefined) {
+        if (data && typeof data === 'object' && data.pivotPoint !== undefined) {
           isLoading = false;
           isError = false;
           parsedTaData = data;
         } else {
-          logDebug('AiAnalyzedTaDisplay', "Parsed aiAnalyzedTaJson is missing pivotPoint or contains error/status field.");
+          logDebug('AiAnalyzedTaDisplay', "Parsed aiAnalyzedTaJson is missing pivotPoint or critical data.");
           isLoading = false;
           isError = true;
           errorOrSkippedMessage = "AI Analyzed TA data is malformed or incomplete.";
@@ -80,9 +85,9 @@ export function AiAnalyzedTaDisplay() {
     }
   } else {
      logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson is empty or null. No data to display.");
-     isLoading = false;
-     isError = true; // Treat as error/unavailable if null or empty
-     errorOrSkippedMessage = "No AI Analyzed TA data to display. Ensure stock data was fetched.";
+     isLoading = false; // Not loading if empty
+     isError = true; // Treat as error/unavailable if null or empty and not explicitly loading
+     errorOrSkippedMessage = "No AI Analyzed TA data. Ensure stock data was fetched and AI TA processed.";
   }
 
   if (!isLoading && !isError && parsedTaData && stockSnapshotJson && stockSnapshotJson !== '{}') {
@@ -152,14 +157,14 @@ export function AiAnalyzedTaDisplay() {
                 </TableRow>
               );
             })}
-            {isError && !isLoading && (
+            {isError && !isLoading && !parsedTaData && (
                 <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                         {errorOrSkippedMessage}
                     </TableCell>
                 </TableRow>
             )}
-             {!isLoading && !isError && !parsedTaData && !aiAnalyzedTaJson && (
+             {!isLoading && !isError && !parsedTaData && aiAnalyzedTaJson && aiAnalyzedTaJson === '{}' && ( // Explicitly check for empty JSON if not loading/error
                  <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                         No AI Analyzed TA data.
@@ -173,3 +178,4 @@ export function AiAnalyzedTaDisplay() {
   );
 }
 
+    
