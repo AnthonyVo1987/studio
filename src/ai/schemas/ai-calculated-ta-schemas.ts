@@ -4,7 +4,7 @@
  * Defines the input and output structures for the AI TA calculation flow.
  */
 
-import {z} from 'genkit';
+import {z} from 'zod';
 
 export const CalculateAiTaInputSchema = z.object({
   previousDayHigh: z.number().describe('The high price of the stock from the previous trading day.'),

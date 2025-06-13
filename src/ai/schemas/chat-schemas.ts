@@ -4,7 +4,7 @@
  * Defines the input and output structures for the chatbot flow.
  */
 
-import {z} from 'genkit';
+import {z} from 'zod';
 
 export const ChatInputSchema = z.object({
   ticker: z.string().describe('The stock ticker symbol relevant to the chat context.'),

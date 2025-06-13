@@ -4,7 +4,7 @@
  * Defines the input and output structures for the stock analysis flow.
  */
 
-import {z} from 'genkit';
+import {z} from 'zod';
 
 export const StockAnalysisInputSchema = z.object({
   ticker: z.string().describe('The ticker symbol of the stock being analyzed.'),
