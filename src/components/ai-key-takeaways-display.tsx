@@ -25,7 +25,6 @@ interface TakeawayDisplayItem {
   badgeSentimentClass: string;
 }
 
-// Updated to use theme-based semantic colors
 const getSemanticBadgeClass = (sentiment?: string): string => {
   if (!sentiment) return "bg-muted text-muted-foreground border-border";
   const s = sentiment.toLowerCase();
@@ -33,12 +32,11 @@ const getSemanticBadgeClass = (sentiment?: string): string => {
     return "bg-positive-muted text-positive-muted-foreground border-positive";
   }
   if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) {
-    return "bg-destructive text-destructive-foreground border-destructive"; // Using main destructive for badge like default ShadCN destructive badge
+    return "bg-destructive text-destructive-foreground border-destructive"; 
   }
-  if (s.includes('high') || s.includes('low') || s.includes('moderate')) { // Assuming 'high', 'low', 'moderate' volatility/momentum map to warning
+  if (s.includes('high') || s.includes('low') || s.includes('moderate')) { 
     return "bg-warning-muted text-warning-muted-foreground border-warning";
   }
-  // Default to neutral
   return "bg-muted text-muted-foreground border-border";
 };
 
@@ -47,7 +45,7 @@ const getSemanticTextColorClass = (sentiment?: string): string => {
     const s = sentiment.toLowerCase();
     if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) return 'text-positive';
     if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) return 'text-destructive';
-    if (s.includes('high') || s.includes('low') || s.includes('moderate')) return 'text-warning-foreground'; // Using foreground variant for text
+    if (s.includes('high') || s.includes('low') || s.includes('moderate')) return 'text-warning-foreground'; 
     return 'text-muted-foreground';
 };
 
@@ -109,6 +107,7 @@ export function AiKeyTakeawaysDisplay() {
 
   let isLoading = false;
   let isError = false;
+  let errorOrSkippedMessage = "AI Key Takeaways not available.";
   let parsedTakeawaysData: StockAnalysisOutput | null = null;
   let displayTakeaways: TakeawayDisplayItem[] = [];
 
@@ -119,12 +118,20 @@ export function AiKeyTakeawaysDisplay() {
      jsonString.includes('"status": "pending"') ||
      jsonString.includes('"status": "full_analysis_pending..."')))) {
     isLoading = true;
+    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is in pending/initializing state.");
   } else if (typeof jsonString === 'string' && jsonString !== '{}') {
-    if (jsonString.includes('"status": "error"') || jsonString.includes('"status": "skipped"')) {
+    if (jsonString.includes('"status": "error"')) {
       isError = true;
+      errorOrSkippedMessage = "Error loading AI Key Takeaways.";
+      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates an error state.");
+    } else if (jsonString.includes('"status": "skipped"')) {
+      isError = true;
+      errorOrSkippedMessage = "AI Key Takeaways were skipped.";
+      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates a skipped state.");
     } else {
       try {
         const data = JSON.parse(jsonString) as StockAnalysisOutput;
+        logDebug('AiKeyTakeawaysDisplay', "Attempting to parse aiKeyTakeawaysJson. Parsed priceAction:", data?.priceAction);
         if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.priceAction) {
           parsedTakeawaysData = data;
           displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
@@ -136,19 +143,24 @@ export function AiKeyTakeawaysDisplay() {
               badgeSentimentClass: getSemanticBadgeClass(data[key]?.sentiment)
           }));
         } else {
-          if (Object.keys(data || {}).length === 0 && !jsonString.includes('"error"')) {
-            // No data, not an error
-          } else {
-            isError = true;
-          }
+          isError = true;
+          errorOrSkippedMessage = "AI Key Takeaways data is malformed or incomplete.";
+          logDebug('AiKeyTakeawaysDisplay', "Parsed aiKeyTakeawaysJson missing priceAction or contains error/status field.");
         }
       } catch (e) {
         isError = true;
+        errorOrSkippedMessage = "Failed to parse AI Key Takeaways data.";
+        logDebug('AiKeyTakeawaysDisplay', "Error parsing AI Key Takeaways JSON.", e);
       }
     }
+  } else {
+    isLoading = false;
+    isError = true; // Treat as error/unavailable if null or empty
+    errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
+    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is empty or null.");
   }
 
-  logDebug('AiKeyTakeawaysDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
+  logDebug('AiKeyTakeawaysDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
 
   const isDataReadyForExport = !isLoading && !isError && parsedTakeawaysData && Object.keys(parsedTakeawaysData).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
@@ -170,7 +182,7 @@ export function AiKeyTakeawaysDisplay() {
         toast({ title: "Exported as Text", description: "Key takeaways downloaded." });
       } else if (format === 'csv') {
         const csvData = generateKeyTakeawaysCsv(parsedTakeawaysData);
-        downloadTxt(csvData, `${filename}.csv`); // Using downloadTxt for CSV
+        downloadTxt(csvData, `${filename}.csv`); 
         toast({ title: "Exported as CSV", description: "Key takeaways downloaded." });
       }
       logDebug('AiKeyTakeawaysDisplay:handleExport', `Successfully exported as ${format}`);
@@ -257,11 +269,11 @@ export function AiKeyTakeawaysDisplay() {
           ))
         ) : isError ? (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             AI Key Takeaways not available.
+             {errorOrSkippedMessage}
            </div>
         ) : displayTakeaways.length === 0 ? (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             No AI Key Takeaways to display. Ensure stock data and AI TA were successfully processed.
+             No AI Key Takeaways data.
            </div>
         ) : (
           displayTakeaways.map((takeaway) => (
@@ -280,3 +292,4 @@ export function AiKeyTakeawaysDisplay() {
     </Card>
   );
 }
+

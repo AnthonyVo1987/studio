@@ -17,20 +17,19 @@ import {
   type AnalyzeTaInput,
   AnalyzeTaOutputSchema,
   type AnalyzeTaOutput,
-} from '@/ai/schemas/ai-analyzed-ta-schemas'; // Updated import
+} from '@/ai/schemas/ai-analyzed-ta-schemas'; 
 import { formatToTwoDecimals } from '@/lib/number-utils'; 
 
-export async function analyzeTaIndicators( // Renamed function
+export async function analyzeTaIndicators( 
   input: AnalyzeTaInput
 ): Promise<AnalyzeTaOutput> {
-  console.log('[AIFlow:analyzeTaIndicators] Received input:', input);
-  return analyzeTaIndicatorsFlow(input); // Renamed flow variable
+  console.log('[AIFlow:analyzeTaIndicators] Received input (keys):', Object.keys(input).join(', '));
+  return analyzeTaIndicatorsFlow(input); 
 }
 
-// Renamed flow variable
 const analyzeTaIndicatorsFlow = ai.defineFlow( 
   {
-    name: 'analyzeTaIndicatorsFlow', // Renamed flow
+    name: 'analyzeTaIndicatorsFlow', 
     inputSchema: AnalyzeTaInputSchema,
     outputSchema: AnalyzeTaOutputSchema,
   },
@@ -59,7 +58,8 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
       resistance2: parseAndFormat(R2),
       resistance3: parseAndFormat(R3),
     };
-    console.log('[AIFlow:analyzeTaIndicatorsFlow] Calculation complete. Output:', output);
+    console.log('[AIFlow:analyzeTaIndicatorsFlow] Calculation complete. Output (keys):', Object.keys(output).join(', '));
     return output;
   }
 );
+

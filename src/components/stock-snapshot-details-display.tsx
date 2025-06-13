@@ -16,8 +16,8 @@ interface StockDetailItem {
 }
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
-  if (sentiment === 'bullish') return 'text-positive'; // Use theme color
-  if (sentiment === 'bearish') return 'text-destructive'; // Use theme color
+  if (sentiment === 'bullish') return 'text-positive'; 
+  if (sentiment === 'bearish') return 'text-destructive'; 
   return '';
 };
 
@@ -44,6 +44,7 @@ export function StockSnapshotDetailsDisplay() {
 
   let isLoading = false;
   let isError = false;
+  let errorOrSkippedMessage = "Snapshot data not available.";
   let details: StockDetailItem[] = [];
   let parsedSnapshotData: StockSnapshotData | null = null;
 
@@ -55,6 +56,11 @@ export function StockSnapshotDetailsDisplay() {
       logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
+      if (stockSnapshotJson.includes('"status": "skipped"')) {
+        errorOrSkippedMessage = "Snapshot data loading was skipped.";
+      } else {
+        errorOrSkippedMessage = "Error loading snapshot data.";
+      }
     } else {
       try {
         const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
@@ -101,20 +107,23 @@ export function StockSnapshotDetailsDisplay() {
           logDebug('StockSnapshotDetailsDisplay', "Parsed stockSnapshotJson is missing ticker or not an object.");
           isLoading = false;
           isError = true;
+          errorOrSkippedMessage = "Snapshot data is malformed or incomplete.";
         }
       } catch (e) {
         console.error("[StockSnapshotDetailsDisplay] Failed to parse stockSnapshotJson:", e);
         logDebug('StockSnapshotDetailsDisplay', "Error during stockSnapshotJson parsing.", e);
         isLoading = false;
         isError = true;
+        errorOrSkippedMessage = "Failed to parse snapshot data.";
       }
     }
   } else {
     logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson is empty or null.");
     isLoading = false;
+    // Not setting isError true here as it's just empty initially
   }
 
-  logDebug('StockSnapshotDetailsDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}, parsedSnapshotData exists=${!!parsedSnapshotData}`);
+  logDebug('StockSnapshotDetailsDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, details.length=${details.length}, parsedSnapshotData exists=${!!parsedSnapshotData}`);
   const placeholderRowCount = 10;
 
   return (
@@ -128,12 +137,15 @@ export function StockSnapshotDetailsDisplay() {
           <TableBody>
             {isLoading
               ? Array.from({ length: placeholderRowCount }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
-              : isError || !parsedSnapshotData || details.length === 0
-                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Snapshot data not available.</TableCell></TableRow>
-                : details.map((item, index) => renderDetailRow(item, index, false))}
+              : isError
+                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessage}</TableCell></TableRow>
+                : !parsedSnapshotData || details.length === 0
+                    ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">No snapshot data to display.</TableCell></TableRow>
+                    : details.map((item, index) => renderDetailRow(item, index, false))}
           </TableBody>
         </Table>
       </CardContent>
     </Card>
   );
 }
+

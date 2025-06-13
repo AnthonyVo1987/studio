@@ -4,14 +4,14 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import type { AnalyzeTaOutput } from "@/ai/schemas/ai-analyzed-ta-schemas"; // Updated import
+import type { AnalyzeTaOutput } from "@/ai/schemas/ai-analyzed-ta-schemas"; 
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface TaPointDisplayInfo {
-  key: keyof AnalyzeTaOutput; // Updated type
+  key: keyof AnalyzeTaOutput; 
   label: string;
 }
 
@@ -31,28 +31,35 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
   { key: "resistance3", label: "Resistance 3 (R3)" },
 ];
 
-export function AiAnalyzedTaDisplay() { // Renamed component
-  const { aiAnalyzedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis(); // Renamed context variable
+export function AiAnalyzedTaDisplay() { 
+  const { aiAnalyzedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis(); 
   logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson (start):", aiAnalyzedTaJson.substring(0,100));
   logDebug('AiAnalyzedTaDisplay', "stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
 
   let isLoading = false;
   let isError = false;
-  let parsedTaData: AnalyzeTaOutput | null = null; // Updated type
+  let errorOrSkippedMessage = "AI Analyzed TA data not available."; 
+  let parsedTaData: AnalyzeTaOutput | null = null; 
   let currentPrice: number | null = null;
 
   if (aiAnalyzedTaJson && aiAnalyzedTaJson !== '{}') {
     if (aiAnalyzedTaJson.includes('"status": "initializing"') || aiAnalyzedTaJson.includes('"status": "pending"') || aiAnalyzedTaJson.includes('"status": "full_analysis_pending..."')) {
       logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson is in pending/initializing state.");
       isLoading = true;
-    } else if (aiAnalyzedTaJson.includes('"status": "error"') || aiAnalyzedTaJson.includes('"status": "skipped"')) {
-      logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson indicates an error or skipped state.");
+    } else if (aiAnalyzedTaJson.includes('"status": "error"')) {
+      logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson indicates an error state.");
       isLoading = false;
       isError = true;
+      errorOrSkippedMessage = "Error loading AI Analyzed TA.";
+    } else if (aiAnalyzedTaJson.includes('"status": "skipped"')) {
+      logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson indicates a skipped state.");
+      isLoading = false;
+      isError = true; 
+      errorOrSkippedMessage = "AI Analyzed TA was skipped.";
     } else {
       try {
-        const data = JSON.parse(aiAnalyzedTaJson) as AnalyzeTaOutput; // Updated type
-        logDebug('AiAnalyzedTaDisplay', "Successfully parsed aiAnalyzedTaJson. PivotPoint:", data?.pivotPoint);
+        const data = JSON.parse(aiAnalyzedTaJson) as AnalyzeTaOutput; 
+        logDebug('AiAnalyzedTaDisplay', "Attempting to parse aiAnalyzedTaJson. Parsed PivotPoint:", data?.pivotPoint);
         if (data && typeof data === 'object' && !(data as any).error && !(data as any).status && data.pivotPoint !== undefined) {
           isLoading = false;
           isError = false;
@@ -61,17 +68,21 @@ export function AiAnalyzedTaDisplay() { // Renamed component
           logDebug('AiAnalyzedTaDisplay', "Parsed aiAnalyzedTaJson is missing pivotPoint or contains error/status field.");
           isLoading = false;
           isError = true;
+          errorOrSkippedMessage = "AI Analyzed TA data is malformed or incomplete.";
         }
       } catch (e) {
         console.error("[AiAnalyzedTaDisplay] Failed to parse aiAnalyzedTaJson:", e);
         logDebug('AiAnalyzedTaDisplay', "Error during aiAnalyzedTaJson parsing.", e);
         isLoading = false;
         isError = true;
+        errorOrSkippedMessage = "Failed to parse AI Analyzed TA data.";
       }
     }
   } else {
-     logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson is empty or null.");
+     logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson is empty or null. No data to display.");
      isLoading = false;
+     isError = true; // Treat as error/unavailable if null or empty
+     errorOrSkippedMessage = "No AI Analyzed TA data to display. Ensure stock data was fetched.";
   }
 
   if (!isLoading && !isError && parsedTaData && stockSnapshotJson && stockSnapshotJson !== '{}') {
@@ -81,6 +92,8 @@ export function AiAnalyzedTaDisplay() { // Renamed component
             if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
                 currentPrice = snapshot.currentPrice;
                 logDebug('AiAnalyzedTaDisplay', "Current price from stockSnapshotJson for sentiment:", currentPrice);
+            } else {
+                logDebug('AiAnalyzedTaDisplay', "Current price not found in valid stockSnapshotJson.");
             }
         }
       } catch (e) {
@@ -88,12 +101,12 @@ export function AiAnalyzedTaDisplay() { // Renamed component
       }
   }
 
-  logDebug('AiAnalyzedTaDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
+  logDebug('AiAnalyzedTaDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Analyzed Technical Analysis</CardTitle> {/* Updated title */}
+        <CardTitle>AI Analyzed Technical Analysis</CardTitle> 
         <CardDescription>Daily Pivot Points based on previous day HLC. Color indicates current price relative to Pivot Point.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -139,17 +152,17 @@ export function AiAnalyzedTaDisplay() { // Renamed component
                 </TableRow>
               );
             })}
-            {isError && !isLoading && (!parsedTaData || Object.keys(parsedTaData).length === 0) && (
+            {isError && !isLoading && (
                 <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                        AI Analyzed TA data not available. {/* Updated text */}
+                        {errorOrSkippedMessage}
                     </TableCell>
                 </TableRow>
             )}
-             {!isLoading && !isError && !parsedTaData && (
+             {!isLoading && !isError && !parsedTaData && !aiAnalyzedTaJson && (
                  <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                        No AI Analyzed TA data to display. Ensure stock data was fetched. {/* Updated text */}
+                        No AI Analyzed TA data.
                     </TableCell>
                 </TableRow>
             )}
@@ -159,3 +172,4 @@ export function AiAnalyzedTaDisplay() { // Renamed component
     </Card>
   );
 }
+

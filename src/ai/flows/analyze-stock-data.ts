@@ -21,6 +21,7 @@ import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 export async function analyzeStockData(
   input: StockAnalysisInput
 ): Promise<StockAnalysisOutput> {
+  console.log('[AIFlow:analyzeStockData] Received request for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
   return analyzeStockDataFlow(input);
 }
 
@@ -81,10 +82,13 @@ const analyzeStockDataFlow = ai.defineFlow(
     outputSchema: StockAnalysisOutputSchema,
   },
   async input => {
+    console.log('[AIFlow:analyzeStockDataFlow] Executing for ticker:', input.ticker);
     const {output} = await prompt(input);
     if (!output) {
+      console.error('[AIFlow:analyzeStockDataFlow] AI analysis flow did not return an output for ticker:', input.ticker);
       throw new Error('AI analysis flow did not return an output.');
     }
+    console.log('[AIFlow:analyzeStockDataFlow] Successfully executed for ticker:', input.ticker, 'Output keys:', Object.keys(output).join(', '));
     return output;
   }
 );

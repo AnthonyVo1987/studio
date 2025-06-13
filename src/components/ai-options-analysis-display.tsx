@@ -34,6 +34,7 @@ export function AiOptionsAnalysisDisplay() {
 
   let isLoading = false;
   let isError = false;
+  let errorOrSkippedMessage = "AI Options Analysis data not available.";
   let parsedAnalysisData: AiOptionsAnalysisOutput | null = null;
 
   if (aiOptionsAnalysisJson === null || (typeof aiOptionsAnalysisJson === 'string' &&
@@ -41,31 +42,44 @@ export function AiOptionsAnalysisDisplay() {
      aiOptionsAnalysisJson.includes('"status": "pending"') ||
      aiOptionsAnalysisJson.includes('"status": "full_analysis_pending..."')))) {
     isLoading = true;
+    logDebug('AiOptionsAnalysisDisplay', "aiOptionsAnalysisJson is in pending/initializing state.");
   } else if (typeof aiOptionsAnalysisJson === 'string' && aiOptionsAnalysisJson !== '{}') {
-    if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"status": "skipped"') || aiOptionsAnalysisJson.includes('"error":')) {
+    if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"error":')) { // Check for general error or specific status
       isError = true;
+      errorOrSkippedMessage = "Error loading AI Options Analysis.";
+      logDebug('AiOptionsAnalysisDisplay', 'aiOptionsAnalysisJson indicates an error state.');
        try {
         const tempError = JSON.parse(aiOptionsAnalysisJson);
         if (tempError.error) {
-            logDebug('AiOptionsAnalysisDisplay', 'Error status from JSON string or parsed error field:', tempError.error);
-        } else {
-            logDebug('AiOptionsAnalysisDisplay', 'Error/skipped status from JSON string.');
+            logDebug('AiOptionsAnalysisDisplay', 'Parsed error field from JSON:', tempError.error);
         }
       } catch (e) { /* Ignore if not valid JSON */ }
+    } else if (aiOptionsAnalysisJson.includes('"status": "skipped"')) {
+      isError = true;
+      errorOrSkippedMessage = "AI Options Analysis was skipped.";
+      logDebug('AiOptionsAnalysisDisplay', 'aiOptionsAnalysisJson indicates a skipped state.');
     } else {
       try {
         const data = JSON.parse(aiOptionsAnalysisJson) as AiOptionsAnalysisOutput;
+        logDebug('AiOptionsAnalysisDisplay', 'Attempting to parse aiOptionsAnalysisJson. Parsed CallWalls length:', data?.callWalls?.length);
         if (data && typeof data === 'object' && data.callWalls !== undefined && data.putWalls !== undefined) {
             parsedAnalysisData = data;
         } else {
           isError = true;
+          errorOrSkippedMessage = "AI Options Analysis data is malformed or incomplete.";
           logDebug('AiOptionsAnalysisDisplay', 'Parsed data missing expected fields (callWalls/putWalls).');
         }
       } catch (e) {
         isError = true;
+        errorOrSkippedMessage = "Failed to parse AI Options Analysis data.";
         logDebug('AiOptionsAnalysisDisplay', 'Error parsing AI Options Analysis JSON:', e);
       }
     }
+  } else {
+    isLoading = false;
+    isError = true; // Treat as error/unavailable if null or empty
+    errorOrSkippedMessage = "No AI Options Analysis data. Ensure options chain was processed by AI.";
+    logDebug('AiOptionsAnalysisDisplay', "aiOptionsAnalysisJson is empty or null.");
   }
 
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
@@ -159,7 +173,7 @@ export function AiOptionsAnalysisDisplay() {
   };
 
 
-  logDebug('AiOptionsAnalysisDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, parsedDataExists=${!!parsedAnalysisData}`);
+  logDebug('AiOptionsAnalysisDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedDataExists=${!!parsedAnalysisData}`);
 
   return (
     <Card>
@@ -187,7 +201,7 @@ export function AiOptionsAnalysisDisplay() {
           </div>
         ) : isError ? (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             AI Options Analysis data not available or an error occurred.
+             {errorOrSkippedMessage}
            </div>
         ) : !parsedAnalysisData || (
             (!parsedAnalysisData.callWalls || parsedAnalysisData.callWalls.length === 0) &&
@@ -197,7 +211,7 @@ export function AiOptionsAnalysisDisplay() {
             !parsedAnalysisData.analysisSummary
         ) ? (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             No AI Options Analysis data to display. Ensure options chain was successfully processed by AI.
+             No AI Options Analysis data to display.
            </div>
         ) : (
           <>
@@ -238,3 +252,4 @@ export function AiOptionsAnalysisDisplay() {
     </Card>
   );
 }
+

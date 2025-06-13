@@ -27,11 +27,10 @@ interface OptionHeaderConfig {
   formatter: (value: any) => string;
 }
 
-// Configuration for visual table display
 const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, // Polygon IV is decimal, so format as %
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, // Polygon % change is already %, e.g. 1.23 for 1.23%
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, 
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, 
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
@@ -52,7 +51,6 @@ const putHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
-// Keys for CSV export, ensuring raw numeric data where possible
 const csvCallKeys: (keyof StreamlinedOptionContract)[] = ["gamma", "iv", "percent_change", "bid", "ask", "last_price", "volume", "open_interest", "delta"];
 const csvPutKeys: (keyof StreamlinedOptionContract)[] = ["delta", "open_interest", "volume", "last_price", "bid", "ask", "percent_change", "iv", "gamma"];
 
@@ -76,17 +74,17 @@ const renderSkeletonRow = (rowIndex: number) => (
 );
 
 const generateOptionsCsv = (optionsData: OptionsChainData, logDebug: Function): string => {
-  logDebug('OptionsChainTable:generateOptionsCsv', 'Starting CSV generation.');
+  logDebug('OptionsChainTable:generateOptionsCsv', 'Starting CSV generation for ticker:', optionsData.ticker);
   const headers: string[] = [
     ...csvCallKeys.map(k => `Call ${k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`),
     "Strike",
     ...csvPutKeys.map(k => `Put ${k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`),
   ];
 
-  const rows: string[] = [(optionsData.contracts || []).map(contractRow => {
+  const rows: string[] = (optionsData.contracts || []).map(contractRow => {
     const callValues = csvCallKeys.map(key => {
       let val = contractRow.call?.[key];
-      if (key === 'percent_change' && typeof val === 'number') { // Polygon % change is already percentage, convert to decimal for CSV
+      if (key === 'percent_change' && typeof val === 'number') { 
         val = roundNumber(val / 100, 4);
       }
       return val !== undefined && val !== null ? String(val) : "";
@@ -99,7 +97,7 @@ const generateOptionsCsv = (optionsData: OptionsChainData, logDebug: Function): 
       return val !== undefined && val !== null ? String(val) : "";
     });
     return [...callValues, String(contractRow.strike ?? ""), ...putValues].join(',');
-  }).join('\n')];
+  });
   
   const csvString = [headers.join(','), ...rows].join('\n');
   logDebug('OptionsChainTable:generateOptionsCsv', `CSV generation complete. Header: ${headers.join(',')}. First data row preview: ${rows[0]?.substring(0,100)}`);
@@ -116,6 +114,7 @@ export function OptionsChainTable() {
 
   let isLoading = false;
   let isError = false;
+  let errorOrSkippedMessage = "Options data failed to load.";
   let parsedData: OptionsChainData | null = null;
   let currentPriceForATM: number | null = null;
 
@@ -123,10 +122,16 @@ export function OptionsChainTable() {
     if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"') || optionsChainJson.includes('"status": "full_analysis_pending..."')) {
       logDebug('OptionsChainTable', "optionsChainJson is in pending/initializing state.");
       isLoading = true;
-    } else if (optionsChainJson.includes('"error":') || optionsChainJson.includes('"status": "skipped"')) {
-      logDebug('OptionsChainTable', "optionsChainJson indicates an error or skipped state.");
+    } else if (optionsChainJson.includes('"status": "error"') || optionsChainJson.includes('"error":')) {
+      logDebug('OptionsChainTable', "optionsChainJson indicates an error state.");
       isLoading = false;
       isError = true;
+      errorOrSkippedMessage = "Error loading options data.";
+    } else if (optionsChainJson.includes('"status": "skipped"')) {
+      logDebug('OptionsChainTable', "optionsChainJson indicates a skipped state.");
+      isLoading = false;
+      isError = true;
+      errorOrSkippedMessage = "Options data loading was skipped.";
     } else {
       try {
         const data = JSON.parse(optionsChainJson) as OptionsChainData;
@@ -139,17 +144,19 @@ export function OptionsChainTable() {
           logDebug('OptionsChainTable', "Parsed optionsChainJson is missing contracts array or contains error/status field. Data:", data);
           isLoading = false;
           isError = true;
+          errorOrSkippedMessage = "Options data is malformed or incomplete.";
         }
       } catch (e) {
         console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e);
         logDebug('OptionsChainTable', "Error during optionsChainJson parsing.", e);
         isLoading = false;
         isError = true;
+        errorOrSkippedMessage = "Failed to parse options data.";
       }
     }
   } else {
     logDebug('OptionsChainTable', "optionsChainJson is empty or null.");
-    isLoading = false; // Not loading if it's just empty.
+    isLoading = false; 
   }
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
@@ -178,22 +185,23 @@ export function OptionsChainTable() {
     atmStrikeValue = contracts.reduce((prev, curr) => {
       return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
     }).strike;
+    logDebug('OptionsChainTable', 'Determined ATM strike based on currentPriceForATM:', atmStrikeValue);
   } else if (contracts.length > 0 && !currentPriceForATM && parsedData?.underlying_price) {
     currentPriceForATM = parsedData.underlying_price;
     if(currentPriceForATM){
         atmStrikeValue = contracts.reduce((prev, curr) => {
             return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
         }).strike;
+        logDebug('OptionsChainTable', 'Determined ATM strike based on parsedData.underlying_price:', atmStrikeValue);
     }
   }
 
   const isDataReadyForExport = !isLoading && !isError && parsedData && (parsedData.contracts?.length || 0) > 0;
 
   const handleExportOptionsCsv = () => {
-    logDebug('OptionsChainTable:handleExportOptionsCsv', 'Export Options CSV button clicked.');
+    logDebug('OptionsChainTable:handleExportOptionsCsv', 'Export Options CSV button clicked. Data ready:', isDataReadyForExport);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for export.' });
-      logDebug('OptionsChainTable:handleExportOptionsCsv', 'Export aborted, data not ready.');
       return;
     }
     try {
@@ -203,7 +211,6 @@ export function OptionsChainTable() {
       const filename = `${filenameTicker}_options_${filenameExpDate}.csv`;
       downloadTxt(csvString, filename);
       toast({ title: 'Options Exported', description: `Options chain for ${filenameTicker} downloaded as ${filename}.` });
-      logDebug('OptionsChainTable:handleExportOptionsCsv', 'Export successful.');
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Export Error', description: `Failed to generate or download CSV: ${e.message}` });
       logDebug('OptionsChainTable:handleExportOptionsCsv', 'Export error:', e);
@@ -211,10 +218,9 @@ export function OptionsChainTable() {
   };
 
   const handleCopyOptionsCsv = async () => {
-    logDebug('OptionsChainTable:handleCopyOptionsCsv', 'Copy Options CSV button clicked.');
+    logDebug('OptionsChainTable:handleCopyOptionsCsv', 'Copy Options CSV button clicked. Data ready:', isDataReadyForExport);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for copy.' });
-      logDebug('OptionsChainTable:handleCopyOptionsCsv', 'Copy aborted, data not ready.');
       return;
     }
     try {
@@ -222,10 +228,8 @@ export function OptionsChainTable() {
       const success = await copyToClipboard(csvString);
       if (success) {
         toast({ title: 'Options Copied', description: 'Options chain CSV data copied to clipboard.' });
-        logDebug('OptionsChainTable:handleCopyOptionsCsv', 'Copy successful.');
       } else {
         toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy options chain CSV data.' });
-        logDebug('OptionsChainTable:handleCopyOptionsCsv', 'Copy failed (clipboard API).');
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Copy Error', description: `Failed to generate or copy CSV: ${e.message}` });
@@ -233,7 +237,7 @@ export function OptionsChainTable() {
     }
   };
 
-  logDebug('OptionsChainTable', `Render state: isLoading=${isLoading}, isError=${isError}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}, isDataReadyForExport=${isDataReadyForExport}`);
+  logDebug('OptionsChainTable', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}, isDataReadyForExport=${isDataReadyForExport}`);
 
   return (
     <Card>
@@ -284,11 +288,15 @@ export function OptionsChainTable() {
           <TableBody>
             {isLoading
               ? Array.from({ length: 15 }).map((_, index) => renderSkeletonRow(index))
-              : isError || !parsedData || contracts.length === 0
+              : isError
                 ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">
-                    {isError ? "Options data failed to load." : "No option contracts found for this expiration and strike range."}
+                    {errorOrSkippedMessage}
                   </TableCell></TableRow>
-                : contracts.map((row: OptionsTableRow, index: number) => {
+                : !parsedData || contracts.length === 0
+                    ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">
+                        No option contracts found for this expiration and strike range.
+                      </TableCell></TableRow>
+                    : contracts.map((row: OptionsTableRow, index: number) => {
                         const isATMRow = row.strike !== null && row.strike !== undefined && atmStrikeValue !== null && row.strike === atmStrikeValue;
                         const rowClasses = cn(
                             "transition-colors",

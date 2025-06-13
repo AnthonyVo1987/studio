@@ -23,7 +23,7 @@ export interface PerformAiOptionsAnalysisActionState {
 interface PerformAiOptionsAnalysisActionInputs {
   ticker: string;
   optionsChainJson: string;
-  stockSnapshotJson: string; // To get current underlying price
+  stockSnapshotJson: string; 
 }
 
 export async function performAiOptionsAnalysisAction(
@@ -39,18 +39,27 @@ export async function performAiOptionsAnalysisAction(
 
   let currentUnderlyingPrice: number;
   let flowInput: AiOptionsAnalysisInput;
-  let aiOptionsAnalysisRequestJson: string = "{}"; // Initialize
+  let aiOptionsAnalysisRequestJson: string; 
+
+  const baseErrorReturn = (errMsg: string, detailMsg?: string, reqJson?: string) => ({
+    status: 'error' as 'error',
+    error: errMsg,
+    message: detailMsg || errMsg,
+    data: {
+      aiOptionsAnalysisRequestJson: reqJson || JSON.stringify({ error: "Failed to prepare request", ticker }, null, 2),
+      aiOptionsAnalysisJson: JSON.stringify({ 
+          error: errMsg, 
+          callWalls:[], putWalls:[], callClusters: [], putClusters:[], 
+          analysisSummary: `Action execution failed: ${errMsg}` 
+      }, null, 2),
+    },
+  });
 
   try {
     if (!ticker || !optionsChainJson || optionsChainJson === '{}' || !stockSnapshotJson || stockSnapshotJson === '{}') {
       const errorMsg = 'Ticker, Options Chain JSON, or Stock Snapshot JSON is missing or empty. Cannot perform AI options analysis.';
       console.warn(`[ServerAction:performAiOptionsAnalysisAction] Validation Error for ${ticker}: ${errorMsg}`);
-      return {
-        status: 'error',
-        error: errorMsg,
-        message: 'Prerequisite data not available for AI options analysis.',
-        data: undefined, // Or provide placeholder error JSONs if needed by context
-      };
+      return baseErrorReturn(errorMsg, 'Prerequisite data not available for AI options analysis.');
     }
     
     try {
@@ -62,12 +71,7 @@ export async function performAiOptionsAnalysisAction(
     } catch (e: any) {
       const errorMsg = `Failed to get current price from stockSnapshotJson: ${e.message}`;
       console.error(`[ServerAction:performAiOptionsAnalysisAction] ${errorMsg} for ${ticker}`);
-      return {
-        status: 'error',
-        error: errorMsg,
-        message: 'Could not determine current price for AI options analysis.',
-        data: undefined,
-      };
+      return baseErrorReturn(errorMsg, 'Could not determine current price for AI options analysis.');
     }
 
     flowInput = {
@@ -77,26 +81,21 @@ export async function performAiOptionsAnalysisAction(
     };
     aiOptionsAnalysisRequestJson = JSON.stringify(flowInput, null, 2);
 
-    console.log(`[ServerAction:performAiOptionsAnalysisAction] Calling analyzeOptionsChain flow for ${ticker}. Input (partial options): ${optionsChainJson.substring(0,100)}...`);
+    console.log(`[ServerAction:performAiOptionsAnalysisAction] Calling analyzeOptionsChain flow for ${ticker}. Input Keys: ${Object.keys(flowInput).join(', ')}. Current Price: ${currentUnderlyingPrice}`);
     
     const flowOutput: AiOptionsAnalysisOutput = await analyzeOptionsChain(flowInput);
     
-    // Check if the flow itself indicated an internal error in its summary, even if it didn't throw
     if (flowOutput && flowOutput.analysisSummary && flowOutput.analysisSummary.toLowerCase().includes('error:')) {
         console.warn(`[ServerAction:performAiOptionsAnalysisAction] Flow for ${ticker} returned an error in summary: ${flowOutput.analysisSummary}`);
-        return {
-            status: 'error',
-            error: `Flow error: ${flowOutput.analysisSummary}`,
-            message: `AI options analysis for ${ticker} reported an internal error.`,
-            data: {
-                aiOptionsAnalysisRequestJson,
-                aiOptionsAnalysisJson: JSON.stringify(flowOutput, null, 2), // Return the flow's error output
-            }
-        };
+        return baseErrorReturn(
+            `Flow error: ${flowOutput.analysisSummary}`, 
+            `AI options analysis for ${ticker} reported an internal error.`,
+            aiOptionsAnalysisRequestJson
+        );
     }
     
     const aiOptionsAnalysisJson = JSON.stringify(flowOutput, null, 2);
-    console.log(`[ServerAction:performAiOptionsAnalysisAction] analyzeOptionsChain flow succeeded for ${ticker}. Output (summary): ${flowOutput.analysisSummary || `CallWalls: ${flowOutput.callWalls.length}, PutWalls: ${flowOutput.putWalls.length}`}`);
+    console.log(`[ServerAction:performAiOptionsAnalysisAction] analyzeOptionsChain flow succeeded for ${ticker}. Output summary: ${flowOutput.analysisSummary || `CallWalls: ${flowOutput.callWalls?.length || 0}, PutWalls: ${flowOutput.putWalls?.length || 0}`}`);
 
     return {
       status: 'success',
@@ -108,34 +107,20 @@ export async function performAiOptionsAnalysisAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`[ServerAction:performAiOptionsAnalysisAction] CRITICAL Error for ${ticker}:`, error);
     const errorMessage = error.message || 'An unknown error occurred during AI options analysis.';
-    // Ensure aiOptionsAnalysisRequestJson is stringified even in error if flowInput was prepared
-    if (!flowInput! && payload.optionsChainJson && payload.stockSnapshotJson && payload.ticker) {
-        try {
-             const tempSnapshot = JSON.parse(payload.stockSnapshotJson) as StockSnapshotData;
-             const tempCurrentPrice = tempSnapshot.currentPrice;
-             if (tempCurrentPrice !== null && tempCurrentPrice !== undefined) {
-                aiOptionsAnalysisRequestJson = JSON.stringify({ticker: payload.ticker, optionsChainJson: payload.optionsChainJson, currentUnderlyingPrice: tempCurrentPrice}, null, 2);
-             }
-        } catch { /* ignore, keep default "{}" */ }
+    console.error(`[ServerAction:performAiOptionsAnalysisAction] CRITICAL Error for ${ticker}:`, error);
+    
+    // Ensure aiOptionsAnalysisRequestJson has a value even if flowInput wasn't fully prepared (though earlier checks should catch this)
+    if (!aiOptionsAnalysisRequestJson!) {
+        aiOptionsAnalysisRequestJson = JSON.stringify({ 
+            error: "Flow input preparation failed prior to call", 
+            ticker, 
+            optionsChainJsonProvided: !!(optionsChainJson && optionsChainJson !== '{}'),
+            stockSnapshotJsonProvided: !!(stockSnapshotJson && stockSnapshotJson !== '{}'),
+        }, null, 2);
     }
 
-    return {
-      status: 'error',
-      error: errorMessage,
-      message: `Failed to generate AI options analysis for ${ticker}.`,
-      data: { 
-        aiOptionsAnalysisRequestJson,
-        aiOptionsAnalysisJson: JSON.stringify({ 
-            error: errorMessage, 
-            callWalls:[], 
-            putWalls:[], 
-            callClusters: [], 
-            putClusters:[], 
-            analysisSummary: `Action execution failed: ${errorMessage}` 
-        }, null, 2),
-      },
-    };
+    return baseErrorReturn(errorMessage, `Failed to generate AI options analysis for ${ticker}.`, aiOptionsAnalysisRequestJson);
   }
 }
+

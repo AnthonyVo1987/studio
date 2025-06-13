@@ -15,18 +15,17 @@ const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): 
   return '';
 };
 
-// Helper to render multiple values for an indicator
 const renderMultiWindowValues = (
   label: string,
   data?: MultiWindowIndicatorValues | null,
-  windows?: string[], // Specified windows to display in order
-  sentimentKey?: string, // e.g., "14" for RSI sentiment
+  windows?: string[], 
+  sentimentKey?: string, 
   getSentiment?: (value?: number | null) => 'bullish' | 'bearish' | 'neutral'
 ) => {
   if (!windows || windows.length === 0) return null;
 
   const valuesExist = data && windows.some(w => data[w] !== undefined && data[w] !== null);
-  if (!valuesExist && !(data && (data as any).error)) return null; // Don't render if no values and no error
+  if (!valuesExist && !(data && (data as any).error)) return null; 
 
   const displayValues = windows.map(window => {
     const val = data?.[window];
@@ -53,31 +52,34 @@ export function StandardTaDisplay() {
 
   let isLoading = false;
   let isError = false;
-  let generalErrorMessage: string | null = null;
+  let errorOrSkippedMessage: string | null = "Technical indicators data not available.";
   let parsedTaData: TechnicalIndicatorsData | null = null;
 
   if (standardTasJson && standardTasJson !== '{}') {
     if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"') || standardTasJson.includes('"status": "full_analysis_pending..."')) {
       isLoading = true;
-    } else if (standardTasJson.includes('"status": "error"') || standardTasJson.includes('"status": "skipped"') || standardTasJson.includes('"error":')) {
-        // Check for top-level error string first
+      logDebug('StandardTaDisplay', "standardTasJson is in pending/initializing state.");
+    } else if (standardTasJson.includes('"status": "error"') || standardTasJson.includes('"error":')) {
+        isLoading = false;
+        isError = true;
+        errorOrSkippedMessage = "Error loading technical indicators.";
+        logDebug('StandardTaDisplay', "standardTasJson indicates an error state.");
         try {
             const tempData = JSON.parse(standardTasJson);
             if (tempData.error) {
-                 generalErrorMessage = tempData.error;
-                 logDebug('StandardTaDisplay', "standardTasJson indicates a top-level error state:", generalErrorMessage);
-            } else {
-                 logDebug('StandardTaDisplay', "standardTasJson indicates a status error/skipped.");
+                 errorOrSkippedMessage = tempData.error;
+                 logDebug('StandardTaDisplay', "Parsed error from JSON:", tempData.error);
             }
-        } catch(e) {
-            logDebug('StandardTaDisplay', "standardTasJson indicates an error/skipped status, and is not valid JSON itself.");
-        }
+        } catch(e) { /* Ignore if not valid JSON */ }
+    } else if (standardTasJson.includes('"status": "skipped"')) {
         isLoading = false;
         isError = true;
+        errorOrSkippedMessage = "Technical indicators loading was skipped.";
+        logDebug('StandardTaDisplay', "standardTasJson indicates a skipped state.");
     } else {
       try {
         const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
-        if (data && typeof data === 'object' && !data.error) { // Check for internal error property
+        if (data && typeof data === 'object' && !data.error) { 
           isLoading = false;
           isError = false;
           parsedTaData = data;
@@ -85,12 +87,12 @@ export function StandardTaDisplay() {
         } else if (data && data.error) {
           isLoading = false;
           isError = true;
-          generalErrorMessage = data.error;
+          errorOrSkippedMessage = data.error;
           logDebug('StandardTaDisplay', "Parsed standardTasJson contains an error property:", data.error);
         } else {
           isLoading = false;
           isError = true;
-          generalErrorMessage = "TA data is malformed or incomplete.";
+          errorOrSkippedMessage = "TA data is malformed or incomplete.";
           logDebug('StandardTaDisplay', "Parsed standardTasJson is missing expected TA data or structure.");
         }
       } catch (e) {
@@ -98,15 +100,16 @@ export function StandardTaDisplay() {
         logDebug('StandardTaDisplay', "Error during standardTasJson parsing.", e);
         isLoading = false;
         isError = true;
-        generalErrorMessage = "Failed to parse technical indicators data.";
+        errorOrSkippedMessage = "Failed to parse technical indicators data.";
       }
     }
   } else {
     isLoading = false;
     logDebug('StandardTaDisplay', "standardTasJson is empty or null.");
+    // Do not set isError true here, just means no data yet
   }
 
-  logDebug('StandardTaDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, parsedTaData exists=${!!parsedTaData}`);
+  logDebug('StandardTaDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}`);
 
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';
@@ -155,7 +158,7 @@ export function StandardTaDisplay() {
             ) : isError ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                  {generalErrorMessage || "Technical indicators data not available."}
+                  {errorOrSkippedMessage}
                 </TableCell>
               </TableRow>
             ) : !parsedTaData || Object.keys(parsedTaData).length === 0 ? (
@@ -166,10 +169,7 @@ export function StandardTaDisplay() {
               </TableRow>
             ) : (
               <>
-                {/* RSI */}
                 {renderMultiWindowValues("RSI", parsedTaData.RSI, ["7", "10", "14"], "14", rsiSentiment)}
-
-                {/* MACD */}
                 <TableRow>
                   <TableCell className="font-medium">MACD (12,26,9)</TableCell>
                   <TableCell className="text-right">
@@ -180,8 +180,6 @@ export function StandardTaDisplay() {
                     ) : "N/A"}
                   </TableCell>
                 </TableRow>
-
-                {/* VWAP */}
                 <TableRow>
                   <TableCell className="font-medium">VWAP</TableCell>
                   <TableCell className="text-right">
@@ -190,11 +188,7 @@ export function StandardTaDisplay() {
                     ) : "N/A"}
                   </TableCell>
                 </TableRow>
-
-                {/* EMA */}
                 {renderMultiWindowValues("EMA", parsedTaData.EMA, ["5", "10", "20", "50", "200"])}
-                
-                {/* SMA */}
                 {renderMultiWindowValues("SMA", parsedTaData.SMA, ["5", "10", "20", "50", "200"])}
               </>
             )}
@@ -204,3 +198,4 @@ export function StandardTaDisplay() {
     </Card>
   );
 }
+

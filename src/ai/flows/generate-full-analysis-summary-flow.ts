@@ -16,12 +16,12 @@ import {
   GenerateFullAnalysisSummaryOutputSchema,
   type GenerateFullAnalysisSummaryOutput,
 } from '@/ai/schemas/chat-summary-schemas';
-import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models'; // Use chat model for conversational summary
+import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models'; 
 
 export async function generateFullAnalysisSummary(
   input: GenerateFullAnalysisSummaryInput
 ): Promise<GenerateFullAnalysisSummaryOutput> {
-  console.log('[AIFlow:generateFullAnalysisSummary] Received input for ticker:', input.ticker);
+  console.log('[AIFlow:generateFullAnalysisSummary] Received input for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
   return generateFullAnalysisSummaryFlow(input);
 }
 
@@ -75,14 +75,16 @@ const generateFullAnalysisSummaryFlow = ai.defineFlow(
     outputSchema: GenerateFullAnalysisSummaryOutputSchema,
   },
   async (input: GenerateFullAnalysisSummaryInput): Promise<GenerateFullAnalysisSummaryOutput> => {
+    console.log('[AIFlow:generateFullAnalysisSummaryFlow] Executing prompt for ticker:', input.ticker);
     const {output} = await generateFullAnalysisSummaryPrompt(input);
     if (!output || !output.summaryText) {
-      console.error('[AIFlow:generateFullAnalysisSummaryFlow] AI summary generation flow did not return a valid summaryText.');
+      console.error('[AIFlow:generateFullAnalysisSummaryFlow] AI summary generation flow did not return a valid summaryText for ticker:', input.ticker);
       return {
         summaryText: 'I was unable to generate a summary for this stock at the moment. Please try again later or ask a specific question.'
       };
     }
-    console.log('[AIFlow:generateFullAnalysisSummaryFlow] Summary generation complete for ticker:', input.ticker);
+    console.log('[AIFlow:generateFullAnalysisSummaryFlow] Summary generation complete for ticker:', input.ticker, 'Summary (first 50):', output.summaryText.substring(0,50));
     return output;
   }
 );
+

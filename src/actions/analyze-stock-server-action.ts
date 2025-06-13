@@ -9,8 +9,8 @@ export interface StockDataFetchResult {
   stockSnapshotJson: string;
   standardTasJson: string;
   optionsChainJson: string;
-  polygonApiRequestLogJson: string; // Will now store input to getFullStockData
-  polygonApiResponseLogJson: string; // Will now store summary of getFullStockData output
+  polygonApiRequestLogJson: string; 
+  polygonApiResponseLogJson: string; 
 }
 
 export interface AnalyzeStockServerActionState {
@@ -47,15 +47,23 @@ export async function fetchStockDataAction(
   try {
     console.log(`[ServerAction:fetchStockDataAction] Calling getFullStockData for ${ticker.toUpperCase()}`);
     const adapterOutput: AdapterOutput = await getFullStockData(ticker.toUpperCase());
-    console.log(`[ServerAction:fetchStockDataAction] getFullStockData returned for ${ticker.toUpperCase()}. Error in package: ${adapterOutput.stockData.error || 'none'}`);
+    console.log(`[ServerAction:fetchStockDataAction] getFullStockData returned for ${ticker.toUpperCase()}. Adapter reported error: ${adapterOutput.stockData.error || 'none'}`);
 
     if (adapterOutput.stockData.error) {
       console.error(`[ServerAction:fetchStockDataAction] Adapter Error for ${ticker.toUpperCase()}: ${adapterOutput.stockData.error}`);
+      const adapterErrorJson = JSON.stringify({ error: adapterOutput.stockData.error, rawErrorDetails: adapterOutput.stockData.rawOverallError || adapterOutput.stockData.rawErrorDetails }, null, 2);
       return {
         status: 'error',
         error: `Adapter Error: ${adapterOutput.stockData.error}`,
         message: `Failed to fetch data for ${ticker}. Adapter reported an error. Check client debug console for Polygon Adapter logs.`,
-        data: undefined,
+        data: {
+            marketStatusJson: adapterErrorJson,
+            stockSnapshotJson: adapterErrorJson,
+            standardTasJson: adapterErrorJson,
+            optionsChainJson: adapterErrorJson,
+            polygonApiRequestLogJson: JSON.stringify(adapterOutput.rawRequestParams || { error: "Request params missing" }, null, 2),
+            polygonApiResponseLogJson: JSON.stringify(adapterOutput.rawResponseSummary || { error: "Response summary missing" }, null, 2),
+        },
       };
     }
 
@@ -101,3 +109,4 @@ export async function fetchStockDataAction(
     };
   }
 }
+

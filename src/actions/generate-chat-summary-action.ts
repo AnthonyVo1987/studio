@@ -8,8 +8,8 @@ import {
 } from '@/ai/flows/generate-full-analysis-summary-flow';
 
 export interface GenerateChatSummaryResult {
-  requestJson: string; // Stringified GenerateFullAnalysisSummaryInput
-  summaryText: string; // The actual summary
+  requestJson: string; 
+  summaryText: string; 
 }
 
 export interface GenerateChatSummaryActionState {
@@ -19,7 +19,6 @@ export interface GenerateChatSummaryActionState {
   message?: string | null;
 }
 
-// Input directly matches GenerateFullAnalysisSummaryInput
 export type GenerateChatSummaryActionInputs = GenerateFullAnalysisSummaryInput;
 
 export async function generateChatSummaryAction(
@@ -30,7 +29,7 @@ export async function generateChatSummaryAction(
   console.log(`[ServerAction:generateChatSummaryAction] Request for ticker: ${ticker}`);
 
   const requestJson = JSON.stringify(payload, null, 2);
-  console.log(`[ServerAction:generateChatSummaryAction] Calling generateFullAnalysisSummary flow for ${ticker}. Input snapshot (first 100): ${payload.stockSnapshotJson.substring(0,100)}...`);
+  console.log(`[ServerAction:generateChatSummaryAction] Calling generateFullAnalysisSummary flow for ${ticker}. Input keys: ${Object.keys(payload).join(', ')}`);
 
   try {
     const flowOutput: GenerateFullAnalysisSummaryOutput = await generateFullAnalysisSummary(payload);
@@ -45,7 +44,7 @@ export async function generateChatSummaryAction(
         };
     }
     
-    console.log(`[ServerAction:generateChatSummaryAction] generateFullAnalysisSummary flow succeeded for ${ticker}. Summary preview: ${flowOutput.summaryText.substring(0,100)}...`);
+    console.log(`[ServerAction:generateChatSummaryAction] generateFullAnalysisSummary flow succeeded for ${ticker}. Summary preview (first 100 chars): ${flowOutput.summaryText.substring(0,100)}...`);
 
     return {
       status: 'success',
@@ -69,3 +68,4 @@ export async function generateChatSummaryAction(
     };
   }
 }
+

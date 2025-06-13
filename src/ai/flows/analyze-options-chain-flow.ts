@@ -22,7 +22,7 @@ import type { OptionsChainData } from '@/services/data-sources/types';
 export async function analyzeOptionsChain(
   input: AiOptionsAnalysisInput
 ): Promise<AiOptionsAnalysisOutput> {
-  console.log('[AIFlow:analyzeOptionsChain] Received input for ticker:', input.ticker);
+  console.log('[AIFlow:analyzeOptionsChain] Received input for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
   return analyzeOptionsChainFlow(input);
 }
 
@@ -87,9 +87,9 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     let parsedOptionsData: OptionsChainData | null = null;
     try {
       parsedOptionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
-      if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { // Adjusted minimum for better cluster potential
+      console.log('[AIFlow:analyzeOptionsChainFlow] Parsed options chain JSON. Contracts count:', parsedOptionsData.contracts?.length);
+      if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { 
         console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient. Contracts length:', parsedOptionsData.contracts?.length);
-        // Allow flow to proceed; AI can determine insufficiency and note in summary
       }
     } catch (e) {
       console.error('[AIFlow:analyzeOptionsChainFlow] Failed to parse optionsChainJson in pre-check:', e);
@@ -102,9 +102,11 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       };
     }
 
+    console.log('[AIFlow:analyzeOptionsChainFlow] Executing prompt for ticker:', input.ticker);
     const {output} = await analyzeOptionsChainPrompt(input);
+
     if (!output) {
-      console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return an output.');
+      console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return an output for ticker:', input.ticker);
       return {
         callWalls: [],
         putWalls: [],
@@ -114,12 +116,17 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       };
     }
     
+    if (output.analysisSummary && output.analysisSummary.toLowerCase().includes('error:')) {
+        console.warn('[AIFlow:analyzeOptionsChainFlow] Flow returned an error in analysisSummary:', output.analysisSummary);
+    }
+    
     output.callWalls = output.callWalls?.slice(0, 3) || [];
     output.putWalls = output.putWalls?.slice(0, 3) || [];
     output.callClusters = output.callClusters?.slice(0, 3) || [];
     output.putClusters = output.putClusters?.slice(0, 3) || [];
     
-    console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete. Call Walls:', output.callWalls.length, 'Put Walls:', output.putWalls.length, 'Call Clusters:', output.callClusters.length, 'Put Clusters:', output.putClusters.length);
+    console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete for ticker:', input.ticker, 'Call Walls:', output.callWalls.length, 'Put Walls:', output.putWalls.length, 'Call Clusters:', output.callClusters.length, 'Put Clusters:', output.putClusters.length);
     return output;
   }
 );
+

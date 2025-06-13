@@ -2,30 +2,30 @@
 'use server';
 
 import {
-  analyzeTaIndicators, // Renamed import
-  type AnalyzeTaInput,    // Renamed import
-  type AnalyzeTaOutput,   // Renamed import
-} from '@/ai/flows/analyze-ta-flow'; // Updated import path
+  analyzeTaIndicators, 
+  type AnalyzeTaInput,    
+  type AnalyzeTaOutput,   
+} from '@/ai/flows/analyze-ta-flow'; 
 import type { StockSnapshotData } from '@/services/data-sources/types';
 
-export interface AnalyzeTaResult { // Renamed interface
-  aiAnalyzedTaRequestJson: string; // Renamed field
-  aiAnalyzedTaJson: string;        // Renamed field
+export interface AnalyzeTaResult { 
+  aiAnalyzedTaRequestJson: string; 
+  aiAnalyzedTaJson: string;        
 }
 
-export interface AnalyzeTaActionState { // Renamed interface
+export interface AnalyzeTaActionState { 
   status: 'idle' | 'success' | 'error';
-  data?: AnalyzeTaResult; // Updated type
+  data?: AnalyzeTaResult; 
   error?: string | null;
   message?: string | null;
 }
 
-interface AnalyzeTaActionInputs { // Renamed interface
+interface AnalyzeTaActionInputs { 
   stockSnapshotJson: string;
-  ticker?: string; // For logging
+  ticker?: string; 
 }
 
-export async function analyzeTaAction( // Renamed function
+export async function analyzeTaAction( 
   prevState: AnalyzeTaActionState,
   payload: AnalyzeTaActionInputs
 ): Promise<AnalyzeTaActionState> {
@@ -79,29 +79,37 @@ export async function analyzeTaAction( // Renamed function
       previousDayClose: snapshotData.prevDay.c,
     };
 
-    const aiAnalyzedTaRequestJson = JSON.stringify(flowInput, null, 2); // Renamed variable
-    console.log(`[ServerAction:analyzeTaAction] Calling analyzeTaIndicators flow for ${ticker || snapshotData.ticker} with input: ${aiAnalyzedTaRequestJson}`);
+    const aiAnalyzedTaRequestJson = JSON.stringify(flowInput, null, 2); 
+    console.log(`[ServerAction:analyzeTaAction] Calling analyzeTaIndicators flow for ${ticker || snapshotData.ticker} with input (keys): ${Object.keys(flowInput).join(', ')}`);
 
-    const flowOutput: AnalyzeTaOutput = await analyzeTaIndicators(flowInput); // Call renamed function
-    const aiAnalyzedTaJson = JSON.stringify(flowOutput, null, 2); // Renamed variable
-    console.log(`[ServerAction:analyzeTaAction] analyzeTaIndicators flow succeeded for ${ticker || snapshotData.ticker}. Output: ${aiAnalyzedTaJson}`);
+    const flowOutput: AnalyzeTaOutput = await analyzeTaIndicators(flowInput); 
+    const aiAnalyzedTaJson = JSON.stringify(flowOutput, null, 2); 
+    console.log(`[ServerAction:analyzeTaAction] analyzeTaIndicators flow succeeded for ${ticker || snapshotData.ticker}. Output (keys): ${Object.keys(flowOutput).join(', ')}`);
 
     return {
       status: 'success',
       data: {
-        aiAnalyzedTaRequestJson, // Renamed field
-        aiAnalyzedTaJson,        // Renamed field
+        aiAnalyzedTaRequestJson, 
+        aiAnalyzedTaJson,        
       },
-      message: `AI Analyzed TA for ${ticker || snapshotData.ticker || 'stock'} completed successfully.`, // Updated message
+      message: `AI Analyzed TA for ${ticker || snapshotData.ticker || 'stock'} completed successfully.`, 
       error: null,
     };
   } catch (error: any) {
     console.error(`[ServerAction:analyzeTaAction] CRITICAL Error for ${ticker || snapshotData?.ticker || 'Unknown'}:`, error);
+    const requestJsonOnError = JSON.stringify({ 
+      error: 'Flow input could not be prepared or flow failed', 
+      snapshotPrevDay: snapshotData?.prevDay 
+    }, null, 2);
     return {
       status: 'error',
-      error: error.message || 'An unknown error occurred during AI TA analysis.', // Updated message
-      message: 'Failed to complete AI TA analysis.', // Updated message
-      data: undefined,
+      error: error.message || 'An unknown error occurred during AI TA analysis.', 
+      message: 'Failed to complete AI TA analysis.', 
+      data: {
+        aiAnalyzedTaRequestJson: requestJsonOnError,
+        aiAnalyzedTaJson: JSON.stringify({ error: error.message || 'Flow execution failed' }, null, 2),
+      },
     };
   }
 }
+

@@ -40,8 +40,8 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     clearChatHistory,
     stockSnapshotJson,
     aiKeyTakeawaysJson,
-    aiAnalyzedTaJson: contextAiAnalyzedTaJson, // Use destructured & aliased version
-    aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, // Use destructured & aliased version
+    aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
+    aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, 
     logDebug,
   } = useStockAnalysis();
   const [userInput, setUserInput] = useState('');
@@ -56,15 +56,17 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   }, []);
 
   const currentContextReady = useCallback(() => {
-    return isContextJsonReady(stockSnapshotJson) && 
+    const ready = isContextJsonReady(stockSnapshotJson) && 
            isContextJsonReady(aiKeyTakeawaysJson) && 
-           isContextJsonReady(contextAiAnalyzedTaJson) && // Corrected to use context variable
-           isContextJsonReady(contextAiOptionsAnalysisJson); // Added options analysis check
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, isContextJsonReady]);
+           isContextJsonReady(contextAiAnalyzedTaJson) && 
+           isContextJsonReady(contextAiOptionsAnalysisJson);
+    logDebug('Chatbot:currentContextReady', `Snapshot: ${isContextJsonReady(stockSnapshotJson)}, Takeaways: ${isContextJsonReady(aiKeyTakeawaysJson)}, AI TA: ${isContextJsonReady(contextAiAnalyzedTaJson)}, Options: ${isContextJsonReady(contextAiOptionsAnalysisJson)}. Overall: ${ready}`);
+    return ready;
+  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, isContextJsonReady, logDebug]);
 
 
   useEffect(() => {
-    logDebug('Chatbot', 'Initial render / props update:', { currentTicker, isChatPending });
+    logDebug('Chatbot', 'Props update / initial render:', { currentTicker, isChatPending });
   }, [currentTicker, isChatPending, logDebug]);
   
   useEffect(() => {
@@ -78,23 +80,24 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     const takeawaysReady = isContextJsonReady(aiKeyTakeawaysJson);
     const taReady = isContextJsonReady(contextAiAnalyzedTaJson);
     const optionsReady = isContextJsonReady(contextAiOptionsAnalysisJson);
-    logDebug('Chatbot', 'Context readiness check:', { 
-      isOverallReady: currentContextReady(), 
+    logDebug('Chatbot', 'Context readiness check in dedicated effect:', { 
+      isOverallReady: snapshotReady && takeawaysReady && taReady && optionsReady, 
       snapshotJsonValid: snapshotReady,
       takeawaysJsonValid: takeawaysReady,
       aiTaJsonValid: taReady,
       aiOptionsJsonValid: optionsReady,
     });
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, logDebug, currentContextReady, isContextJsonReady]);
+  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, logDebug, isContextJsonReady]);
 
 
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (!userInput.trim() || isChatPending || !currentContextReady()) {
-        if(!currentContextReady()) {
+    const contextIsReady = currentContextReady();
+    if (!userInput.trim() || isChatPending || !contextIsReady) {
+        if(!contextIsReady) {
             toast({ variant: 'destructive', title: 'Context Not Ready', description: 'Please analyze a stock first for full chat context.' });
         }
-        logDebug('Chatbot', 'Submit prevented:', {userInputEmpty: !userInput.trim(), isChatPending, contextNotReady: !currentContextReady() });
+        logDebug('Chatbot', 'Submit prevented:', {userInputEmpty: !userInput.trim(), isChatPending, contextNotReady: !contextIsReady });
         return;
     }
 
@@ -107,18 +110,28 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
       ticker: currentTicker,
       stockSnapshotJson,
       aiKeyTakeawaysJson,
-      aiAnalyzedTaJson: contextAiAnalyzedTaJson, // Pass correct context variable
-      aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, // Pass correct context variable
+      aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
+      aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, 
       chatHistory: [...chatHistory, userMessage], 
       userInput: userInput.trim(),
     };
+    logDebug('Chatbot', 'Calling chatFormAction with payload:', {
+        ticker: chatPayload.ticker,
+        userInput: chatPayload.userInput,
+        chatHistoryLength: chatPayload.chatHistory.length,
+        snapshotJsonProvided: !!chatPayload.stockSnapshotJson,
+        takeawaysJsonProvided: !!chatPayload.aiKeyTakeawaysJson,
+        aiTaJsonProvided: !!chatPayload.aiAnalyzedTaJson,
+        optionsAnalysisJsonProvided: !!chatPayload.aiOptionsAnalysisJson,
+    });
     
     chatFormAction(chatPayload);
     setUserInput('');
   };
 
   const handleExamplePromptClick = (promptTemplate: string) => {
-    if (!currentContextReady()) {
+    const contextIsReady = currentContextReady();
+    if (!contextIsReady) {
         toast({ variant: 'destructive', title: 'Context Not Ready', description: 'Analyze a stock before using example prompts.' });
         logDebug('Chatbot', 'Example prompt click prevented: context not ready.');
         return;
@@ -274,3 +287,4 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     </Card>
   );
 }
+

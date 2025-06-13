@@ -36,20 +36,27 @@ export function MarketStatusDisplay() {
 
   let isLoading = false;
   let isError = false;
+  let errorOrSkippedMessage = "Market status data not available.";
   let details: MarketDetailItem[] = [];
 
   if (marketStatusJson && marketStatusJson !== '{}') {
     if (marketStatusJson.includes('"status": "initializing"') || marketStatusJson.includes('"status": "pending"') || marketStatusJson.includes('"status": "full_analysis_pending..."')) {
       logDebug('MarketStatusDisplay', "marketStatusJson is in pending/initializing state.");
       isLoading = true;
-    } else if (marketStatusJson.includes('"error":') || marketStatusJson.includes('"status": "skipped"')) {
-      logDebug('MarketStatusDisplay', "marketStatusJson indicates an error or skipped state.");
+    } else if (marketStatusJson.includes('"status": "error"') || marketStatusJson.includes('"error":')) {
+      logDebug('MarketStatusDisplay', "marketStatusJson indicates an error state.");
       isLoading = false;
       isError = true;
+      errorOrSkippedMessage = "Error loading market status.";
+    } else if (marketStatusJson.includes('"status": "skipped"')) {
+      logDebug('MarketStatusDisplay', "marketStatusJson indicates a skipped state.");
+      isLoading = false;
+      isError = true;
+      errorOrSkippedMessage = "Market status loading was skipped.";
     } else {
       try {
         const data = JSON.parse(marketStatusJson) as MarketStatusData;
-        logDebug('MarketStatusDisplay', "Successfully parsed marketStatusJson. Market status:", data?.market, "Error field in data:", data?.error);
+        logDebug('MarketStatusDisplay', "Successfully parsed marketStatusJson. Market status:", data?.market);
         if (data && typeof data === 'object' && !data.error) {
           isLoading = false;
           isError = false;
@@ -76,9 +83,11 @@ export function MarketStatusDisplay() {
           }
         } else {
            if (data?.error) {
-             logDebug('MarketStatusDisplay', "Parsed marketStatusJson contains an error field, treating as error state. Error:", data.error);
+             logDebug('MarketStatusDisplay', "Parsed marketStatusJson contains an error field:", data.error);
+             errorOrSkippedMessage = `Error in market data: ${data.error}`;
            } else {
-             logDebug('MarketStatusDisplay', "Parsed marketStatusJson is not a valid object for display (e.g., missing expected structure, or was not an object after parse). Data:", data);
+             logDebug('MarketStatusDisplay', "Parsed marketStatusJson is not a valid object for display.");
+             errorOrSkippedMessage = "Market status data is malformed.";
            }
            isLoading = false;
            isError = true;
@@ -88,14 +97,16 @@ export function MarketStatusDisplay() {
         logDebug('MarketStatusDisplay', "Error during marketStatusJson parsing.", e);
         isLoading = false;
         isError = true;
+        errorOrSkippedMessage = "Failed to parse market status data.";
       }
     }
   } else {
     logDebug('MarketStatusDisplay', "marketStatusJson is empty or null.");
     isLoading = false;
+    // Don't set isError true here, it's just empty initially
   }
 
-  logDebug('MarketStatusDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, details.length=${details.length}`);
+  logDebug('MarketStatusDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, details.length=${details.length}`);
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 3);
 
   return (
@@ -109,8 +120,8 @@ export function MarketStatusDisplay() {
           <TableBody>
              {isLoading
               ? Array.from({ length: placeholderRows }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
-              : isError || details.length === 0
-                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Market status data not available.</TableCell></TableRow>
+              : isError
+                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessage}</TableCell></TableRow>
                 : details.length > 0 && details.some(d => d.value && d.value !== "N/A")
                     ? details.map((item, index) => renderDetailRow(item, index, false))
                     : <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">No applicable market status to display.</TableCell></TableRow>}
@@ -120,3 +131,4 @@ export function MarketStatusDisplay() {
     </Card>
   );
 }
+

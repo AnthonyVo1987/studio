@@ -328,7 +328,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   };
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
-    logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event:`, event);
+    logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event Type: ${event.type}, Event Payload (preview):`, 
+        Object.entries(event).reduce((acc, [key, value]) => {
+          if (key === 'payload' && typeof value === 'object' && value !== null) {
+            acc[key] = Object.entries(value).reduce((pAcc, [pKey, pValue]) => {
+              pAcc[pKey] = typeof pValue === 'string' ? pValue.substring(0, 50) + '...' : pValue;
+              return pAcc;
+            }, {} as any);
+          } else {
+            acc[key] = value;
+          }
+          return acc;
+        }, {} as any)
+    );
     const pendingJson = `{ "status": "pending..." }`;
     const errorJsonWithDetails = (message: string, details: string) => 
       `{ "status": "error", "message": "${message.replace(/"/g, '\\"')}", "details": "${details.replace(/"/g, '\\"')}" }`;
@@ -336,7 +348,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     switch (state) {
       case FsmState.IDLE:
         if (event.type === 'START_PARTIAL_ANALYSIS' || event.type === 'START_FULL_ANALYSIS') {
-          logDebug('FSM_PIPELINE', `Transition: IDLE -> INITIALIZING_ANALYSIS on ${event.type}`);
+          logDebug('FSM_PIPELINE', `Transition: IDLE -> INITIALIZING_ANALYSIS on ${event.type} for ticker: ${event.payload.ticker}`);
           _setIsFullAnalysisTriggered(event.type === 'START_FULL_ANALYSIS'); 
           setAllPlaceholdersInternal(event.payload.ticker, event.type === 'START_FULL_ANALYSIS');
           clearChatHistoryInternal();
@@ -363,7 +375,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.FETCHING_DATA:
         if (event.type === 'FETCH_DATA_SUCCESS') {
-          logDebug('FSM_PIPELINE', `Transition: FETCHING_DATA -> DATA_FETCH_SUCCEEDED on FETCH_DATA_SUCCESS.`);
+          logDebug('FSM_PIPELINE', `Transition: FETCHING_DATA -> DATA_FETCH_SUCCEEDED on FETCH_DATA_SUCCESS. Payload keys: ${Object.keys(event.payload).join(', ')}`);
           contextSetters.setMarketStatusJson(event.payload.marketStatusJson);
           contextSetters.setStockSnapshotJson(event.payload.stockSnapshotJson);
           contextSetters.setStandardTasJson(event.payload.standardTasJson);
@@ -373,7 +385,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           return FsmState.DATA_FETCH_SUCCEEDED;
         }
         if (event.type === 'FETCH_DATA_FAILURE') {
-          logDebug('FSM_PIPELINE', `Transition: FETCHING_DATA -> DATA_FETCH_FAILED on FETCH_DATA_FAILURE.`);
+          logDebug('FSM_PIPELINE', `Transition: FETCHING_DATA -> DATA_FETCH_FAILED on FETCH_DATA_FAILURE. Message: ${event.payload.message}`);
           const errorMsg = event.payload.message || 'Data fetch failed';
           const errorDetails = event.payload.error || 'Unknown data fetch error';
           const dataFetchErrorJson = errorJsonWithDetails(errorMsg, errorDetails);
@@ -404,7 +416,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return FsmState.AWAITING_AI_TA_TRIGGER;
 
       case FsmState.DATA_FETCH_FAILED:
-        logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_FAILED -> IDLE`);
+        logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_FAILED -> IDLE. isFullAnalysisTriggered was: ${isFullAnalysisTriggered}`);
         _setIsFullAnalysisTriggered(false); 
         return FsmState.IDLE;
 
@@ -419,13 +431,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.ANALYZING_TA:
         if (event.type === 'AI_TA_SUCCESS') {
-          logDebug('FSM_PIPELINE', `Transition: ANALYZING_TA -> AI_TA_SUCCEEDED on AI_TA_SUCCESS.`);
+          logDebug('FSM_PIPELINE', `Transition: ANALYZING_TA -> AI_TA_SUCCEEDED on AI_TA_SUCCESS. Payload keys: ${Object.keys(event.payload).join(', ')}`);
           contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson);
           contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
           return FsmState.AI_TA_SUCCEEDED;
         }
         if (event.type === 'AI_TA_FAILURE') {
-          logDebug('FSM_PIPELINE', `Transition: ANALYZING_TA -> AI_TA_FAILED on AI_TA_FAILURE.`);
+          logDebug('FSM_PIPELINE', `Transition: ANALYZING_TA -> AI_TA_FAILED on AI_TA_FAILURE. Message: ${event.payload.message}`);
           const errorPayload = event.payload;
           const errorMsg = errorPayload.message || 'AI TA analysis failed';
           const errorDetails = errorPayload.error || 'Unknown AI TA error';
@@ -475,8 +487,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'TRIGGER_KEY_TAKEAWAYS') {
            if (_aiKeyTakeawaysJson.includes("skipped_due_to_")) { 
              logDebug('FSM_PIPELINE', `Transition: AWAITING_KEY_TAKEAWAYS_TRIGGER -> KEY_TAKEAWAYS_FAILED (pre-skipped due to prior failure) on TRIGGER_KEY_TAKEAWAYS`);
-             // Context JSONs for takeaways already set to skipped by prior failure handler.
-             // Mark subsequent steps as skipped too.
              const skippedFromKT = createSkippedJson("key_takeaways_pre_skipped");
              contextSetters.setAiOptionsAnalysisRequestJson(skippedFromKT);
              contextSetters.setAiOptionsAnalysisJson(skippedFromKT);
@@ -493,13 +503,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.GENERATING_KEY_TAKEAWAYS:
         if (event.type === 'KEY_TAKEAWAYS_SUCCESS') {
-          logDebug('FSM_PIPELINE', `Transition: GENERATING_KEY_TAKEAWAYS -> KEY_TAKEAWAYS_SUCCEEDED.`);
+          logDebug('FSM_PIPELINE', `Transition: GENERATING_KEY_TAKEAWAYS -> KEY_TAKEAWAYS_SUCCEEDED. Payload keys: ${Object.keys(event.payload).join(', ')}`);
           contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
           contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
           return FsmState.KEY_TAKEAWAYS_SUCCEEDED;
         }
         if (event.type === 'KEY_TAKEAWAYS_FAILURE') {
-          logDebug('FSM_PIPELINE', `Transition: GENERATING_KEY_TAKEAWAYS -> KEY_TAKEAWAYS_FAILED.`);
+          logDebug('FSM_PIPELINE', `Transition: GENERATING_KEY_TAKEAWAYS -> KEY_TAKEAWAYS_FAILED. Message: ${event.payload.message}`);
           const ktErrorPayload = event.payload;
           const ktErrorMsg = ktErrorPayload.message || 'AI Key Takeaways generation failed';
           const ktErrorDetails = ktErrorPayload.error || '';
@@ -540,13 +550,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.ANALYZING_OPTIONS:
         if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') {
-          logDebug('FSM_PIPELINE', `Transition: ANALYZING_OPTIONS -> OPTIONS_ANALYSIS_SUCCEEDED.`);
+          logDebug('FSM_PIPELINE', `Transition: ANALYZING_OPTIONS -> OPTIONS_ANALYSIS_SUCCEEDED. Payload keys: ${Object.keys(event.payload).join(', ')}`);
           contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
           contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
           return FsmState.OPTIONS_ANALYSIS_SUCCEEDED;
         }
         if (event.type === 'OPTIONS_ANALYSIS_FAILURE') {
-          logDebug('FSM_PIPELINE', `Transition: ANALYZING_OPTIONS -> OPTIONS_ANALYSIS_FAILED.`);
+          logDebug('FSM_PIPELINE', `Transition: ANALYZING_OPTIONS -> OPTIONS_ANALYSIS_FAILED. Message: ${event.payload.message}`);
           const optErrorPayload = event.payload;
           const optErrorMsg = optErrorPayload.message || 'AI Options Analysis failed';
           const optErrorDetails = optErrorPayload.error || '';
@@ -582,14 +592,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.GENERATING_CHAT_SUMMARY:
         if (event.type === 'CHAT_SUMMARY_SUCCESS') {
-          logDebug('FSM_PIPELINE', `Transition: GENERATING_CHAT_SUMMARY -> CHAT_SUMMARY_SUCCEEDED.`);
+          logDebug('FSM_PIPELINE', `Transition: GENERATING_CHAT_SUMMARY -> CHAT_SUMMARY_SUCCEEDED. Payload keys: ${Object.keys(event.payload).join(', ')}`);
           contextSetters.setChatbotRequestJson(event.payload.requestJson);
           contextSetters.setChatbotResponseJson(JSON.stringify({ summaryText: event.payload.summaryText }, null, 2));
           _setChatHistory([{ id: 'summary_0', role: 'model', content: event.payload.summaryText }]);
           return FsmState.CHAT_SUMMARY_SUCCEEDED;
         }
         if (event.type === 'CHAT_SUMMARY_FAILURE') {
-          logDebug('FSM_PIPELINE', `Transition: GENERATING_CHAT_SUMMARY -> CHAT_SUMMARY_FAILED.`);
+          logDebug('FSM_PIPELINE', `Transition: GENERATING_CHAT_SUMMARY -> CHAT_SUMMARY_FAILED. Message: ${event.payload.message}`);
           const chatErrorPayload = event.payload;
           const chatErrorMsg = chatErrorPayload.message || 'Chat summary generation failed';
           const chatErrorDetails = chatErrorPayload.error || '';
@@ -784,3 +794,4 @@ export function useStockAnalysis() {
   }
   return context;
 }
+

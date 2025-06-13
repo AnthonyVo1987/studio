@@ -19,6 +19,7 @@ import {
 import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
+  console.log('[AIFlow:chatWithBot] Received request for ticker:', input.ticker, 'User input (first 50):', input.userInput.substring(0,50), 'History length:', input.chatHistory?.length || 0);
   return chatFlow(input);
 }
 
@@ -35,7 +36,7 @@ Politely decline any requests for information outside of the provided context (e
 You will be provided with the following contextual information for the stock: {{ticker}}
 1.  **Stock Snapshot JSON:** {{{stockSnapshotJson}}} (Contains current and previous day prices, volume, etc.)
 2.  **AI Key Takeaways JSON:** {{{aiKeyTakeawaysJson}}} (Contains AI-generated analysis on price action, trend, volatility, momentum, and patterns, along with sentiment.)
-3.  **AI Analyzed TA JSON:** {{{aiAnalyzedTaJson}}} (Contains AI-analyzed technical analysis like pivot points.) <!-- Renamed -->
+3.  **AI Analyzed TA JSON:** {{{aiAnalyzedTaJson}}} (Contains AI-analyzed technical analysis like pivot points.) 
 {{#if aiOptionsAnalysisJson}}
 4.  **AI Options Analysis JSON:** {{{aiOptionsAnalysisJson}}} (Contains AI-identified call/put walls from options data. If empty or "{}", no significant walls were identified or data was unavailable.)
 {{/if}}
@@ -78,10 +79,14 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input: ChatInput) => {
+    console.log('[AIFlow:stockChatBotFlow] Executing for ticker:', input.ticker, 'User input (first 50):', input.userInput.substring(0,50));
     const {output} = await prompt(input);
     if (!output) {
+        console.error('[AIFlow:stockChatBotFlow] Chatbot flow did not return an output for ticker:', input.ticker);
         throw new Error('Chatbot flow did not return an output.');
     }
+    console.log('[AIFlow:stockChatBotFlow] Successfully executed for ticker:', input.ticker, 'Response (first 50):', output.response.substring(0,50));
     return output;
   }
 );
+
