@@ -31,6 +31,12 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
   { key: "resistance3", label: "Resistance 3 (R3)" },
 ];
 
+const PENDING_STATUS_JSON_VARIANTS = [
+  '{ "status": "pending..." }',
+  '{ "status": "initializing..." }',
+  '{ "status": "full_analysis_pending..." }'
+];
+
 export function AiAnalyzedTaDisplay() { 
   const { aiAnalyzedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis(); 
   const componentName = 'AiAnalyzedTaDisplay';
@@ -46,14 +52,15 @@ export function AiAnalyzedTaDisplay() {
 
   if (!aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') {
     isLoading = false;
-    isError = true; // Treat as error/unavailable if null or empty and not explicitly loading
+    isError = true; 
     errorOrSkippedMessage = "No AI Analyzed TA data. Ensure stock data was fetched and AI TA processed.";
     logDebug(componentName, "aiAnalyzedTaJson is empty or null.");
-  } else if (aiAnalyzedTaJson.includes('"status": "initializing"') || aiAnalyzedTaJson.includes('"status": "pending"') || aiAnalyzedTaJson.includes('"status": "full_analysis_pending..."')) {
+  } else if (PENDING_STATUS_JSON_VARIANTS.includes(aiAnalyzedTaJson.trim())) {
     isLoading = true;
     isError = false;
     parsedTaData = null;
-    logDebug(componentName, "aiAnalyzedTaJson is in pending/initializing state.");
+    errorOrSkippedMessage = ""; // Clear any previous error message
+    logDebug(componentName, "aiAnalyzedTaJson is in a defined pending/initializing state.");
   } else if (aiAnalyzedTaJson.includes('"status": "error"') || aiAnalyzedTaJson.includes('"status": "skipped"')) {
     isLoading = false;
     isError = true;
@@ -163,7 +170,7 @@ export function AiAnalyzedTaDisplay() {
                   </TableRow>
                 );
               })
-            ) : ( // Should not be reached if logic is correct, but as a fallback
+            ) : ( 
                  <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                         AI Analyzed TA data is unavailable.

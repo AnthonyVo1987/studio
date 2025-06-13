@@ -99,6 +99,11 @@ const generateKeyTakeawaysCsv = (data: StockAnalysisOutput): string => {
   return headers + csvRows.trim();
 };
 
+const PENDING_STATUS_JSON_VARIANTS = [
+  '{ "status": "pending..." }',
+  '{ "status": "initializing..." }',
+  '{ "status": "full_analysis_pending..." }'
+];
 
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, stockSnapshotJson, logDebug } = useStockAnalysis();
@@ -119,11 +124,12 @@ export function AiKeyTakeawaysDisplay() {
     isError = true; 
     errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
     logDebug(componentName, "aiKeyTakeawaysJson is empty or null.");
-  } else if (jsonString.includes('"status": "initializing"') || jsonString.includes('"status": "pending"') || jsonString.includes('"status": "full_analysis_pending..."')) {
+  } else if (PENDING_STATUS_JSON_VARIANTS.includes(jsonString.trim())) {
     isLoading = true;
     isError = false;
     parsedTakeawaysData = null;
-    logDebug(componentName, "aiKeyTakeawaysJson is in pending/initializing state.");
+    errorOrSkippedMessage = ""; // Clear any previous error message
+    logDebug(componentName, "aiKeyTakeawaysJson is in a defined pending/initializing state.");
   } else if (jsonString.includes('"status": "error"') || jsonString.includes('"status": "skipped"')) {
     isLoading = false;
     isError = true;

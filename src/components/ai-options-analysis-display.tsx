@@ -26,6 +26,12 @@ const getTickerFromSnapshot = (snapshotJson: string, logDebug: Function): string
   return "STOCK";
 };
 
+const PENDING_STATUS_JSON_VARIANTS = [
+  '{ "status": "pending..." }',
+  '{ "status": "initializing..." }',
+  '{ "status": "full_analysis_pending..." }'
+];
+
 export function AiOptionsAnalysisDisplay() {
   const { aiOptionsAnalysisJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
@@ -43,12 +49,13 @@ export function AiOptionsAnalysisDisplay() {
     isError = true; 
     errorOrSkippedMessage = "No AI Options Analysis data. Ensure options chain was processed by AI.";
     logDebug(componentName, "aiOptionsAnalysisJson is empty or null.");
-  } else if (aiOptionsAnalysisJson.includes('"status": "initializing"') || aiOptionsAnalysisJson.includes('"status": "pending"') || aiOptionsAnalysisJson.includes('"status": "full_analysis_pending..."')) {
+  } else if (PENDING_STATUS_JSON_VARIANTS.includes(aiOptionsAnalysisJson.trim())) {
     isLoading = true;
     isError = false;
     parsedAnalysisData = null;
-    logDebug(componentName, "aiOptionsAnalysisJson is in pending/initializing state.");
-  } else if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"status": "skipped"') || aiOptionsAnalysisJson.includes('"error":')) { // Added || aiOptionsAnalysisJson.includes('"error":')
+    errorOrSkippedMessage = ""; // Clear any previous error message
+    logDebug(componentName, "aiOptionsAnalysisJson is in a defined pending/initializing state.");
+  } else if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"status": "skipped"') || aiOptionsAnalysisJson.includes('"error":')) { 
     isLoading = false;
     isError = true;
     parsedAnalysisData = null;
@@ -56,7 +63,7 @@ export function AiOptionsAnalysisDisplay() {
       const statusObj = JSON.parse(aiOptionsAnalysisJson);
       if (statusObj.status === "skipped") {
         errorOrSkippedMessage = statusObj.message || "AI Options Analysis was skipped.";
-      } else { // Covers "error" status or direct error object
+      } else { 
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Options Analysis.";
       }
       logDebug(componentName, `JSON indicates status/error: ${statusObj.status || 'direct_error'}, message: ${errorOrSkippedMessage}`);

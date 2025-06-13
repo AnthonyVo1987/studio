@@ -104,13 +104,19 @@ const generateOptionsCsv = (optionsData: OptionsChainData, logDebug: Function): 
   return csvString;
 };
 
+const PENDING_STATUS_JSON_VARIANTS = [
+  '{ "status": "pending..." }',
+  '{ "status": "initializing..." }',
+  '{ "status": "full_analysis_pending..." }'
+];
 
 export function OptionsChainTable() {
   const { optionsChainJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
+  const componentName = 'OptionsChainTable';
 
-  logDebug('OptionsChainTable', "optionsChainJson (start):", optionsChainJson ? optionsChainJson.substring(0,100) : "null");
-  logDebug('OptionsChainTable', "stockSnapshotJson (start):", stockSnapshotJson ? stockSnapshotJson.substring(0,100) : "null");
+  logDebug(componentName, "optionsChainJson (start):", optionsChainJson ? optionsChainJson.substring(0,100) : "null");
+  logDebug(componentName, "stockSnapshotJson (start):", stockSnapshotJson ? stockSnapshotJson.substring(0,100) : "null");
 
   let isLoading = false;
   let isError = false;
@@ -118,62 +124,75 @@ export function OptionsChainTable() {
   let parsedData: OptionsChainData | null = null;
   let currentPriceForATM: number | null = null;
 
-  if (optionsChainJson && optionsChainJson !== '{}') {
-    if (optionsChainJson.includes('"status": "initializing"') || optionsChainJson.includes('"status": "pending"') || optionsChainJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug('OptionsChainTable', "optionsChainJson is in pending/initializing state.");
-      isLoading = true;
-    } else if (optionsChainJson.includes('"status": "error"') || optionsChainJson.includes('"error":')) {
-      logDebug('OptionsChainTable', "optionsChainJson indicates an error state.");
-      isLoading = false;
-      isError = true;
-      errorOrSkippedMessage = "Error loading options data.";
-    } else if (optionsChainJson.includes('"status": "skipped"')) {
-      logDebug('OptionsChainTable', "optionsChainJson indicates a skipped state.");
-      isLoading = false;
-      isError = true;
-      errorOrSkippedMessage = "Options data loading was skipped.";
-    } else {
-      try {
-        const data = JSON.parse(optionsChainJson) as OptionsChainData;
-        logDebug('OptionsChainTable', "Successfully parsed optionsChainJson. Contracts count:", data?.contracts?.length);
-        if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
-          isLoading = false;
-          isError = false;
-          parsedData = data;
-        } else {
-          logDebug('OptionsChainTable', "Parsed optionsChainJson is missing contracts array or contains error/status field. Data:", data);
-          isLoading = false;
-          isError = true;
-          errorOrSkippedMessage = "Options data is malformed or incomplete.";
-        }
-      } catch (e) {
-        console.error("[OptionsChainTable] Failed to parse optionsChainJson:", e);
-        logDebug('OptionsChainTable', "Error during optionsChainJson parsing.", e);
+  if (!optionsChainJson || optionsChainJson === '{}') {
+    isLoading = false;
+    isError = true;
+    errorOrSkippedMessage = "No options chain data available.";
+    logDebug(componentName, "optionsChainJson is empty or null.");
+  } else if (PENDING_STATUS_JSON_VARIANTS.includes(optionsChainJson.trim())) {
+    isLoading = true;
+    isError = false;
+    parsedData = null;
+    errorOrSkippedMessage = ""; 
+    logDebug(componentName, "optionsChainJson is in a defined pending/initializing state.");
+  } else if (optionsChainJson.includes('"status": "error"') || optionsChainJson.includes('"error":')) {
+    isLoading = false;
+    isError = true;
+    errorOrSkippedMessage = "Error loading options data.";
+     try {
+        const statusObj = JSON.parse(optionsChainJson);
+        errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading options data.";
+     } catch(e) { /* no-op */ }
+    logDebug(componentName, "optionsChainJson indicates an error state.", errorOrSkippedMessage);
+  } else if (optionsChainJson.includes('"status": "skipped"')) {
+    isLoading = false;
+    isError = true;
+    try {
+        const statusObj = JSON.parse(optionsChainJson);
+        errorOrSkippedMessage = statusObj.message || "Options data loading was skipped.";
+    } catch(e) {
+        errorOrSkippedMessage = "Options data loading was skipped.";
+    }
+    logDebug(componentName, "optionsChainJson indicates a skipped state.", errorOrSkippedMessage);
+  } else {
+    try {
+      const data = JSON.parse(optionsChainJson) as OptionsChainData;
+      logDebug(componentName, "Attempting to parse optionsChainJson. Contracts count:", data?.contracts?.length);
+      if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
+        isLoading = false;
+        isError = false;
+        parsedData = data;
+        logDebug(componentName, "Successfully parsed optionsChainJson.");
+      } else {
+        logDebug(componentName, "Parsed optionsChainJson is missing contracts array or contains error/status field. Data:", data);
         isLoading = false;
         isError = true;
-        errorOrSkippedMessage = "Failed to parse options data.";
+        errorOrSkippedMessage = "Options data is malformed or incomplete.";
       }
+    } catch (e) {
+      console.error(`[${componentName}] Failed to parse optionsChainJson:`, e);
+      logDebug(componentName, "Error during optionsChainJson parsing.", e);
+      isLoading = false;
+      isError = true;
+      errorOrSkippedMessage = "Failed to parse options data.";
     }
-  } else {
-    logDebug('OptionsChainTable', "optionsChainJson is empty or null.");
-    isLoading = false; 
   }
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     try {
-      if (!stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
+      if (!PENDING_STATUS_JSON_VARIANTS.includes(stockSnapshotJson.trim()) && !stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
         const parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
         currentPriceForATM = parsedSnapshotData?.currentPrice ?? parsedSnapshotData?.day?.c ?? null;
-        logDebug('OptionsChainTable', "Successfully parsed stockSnapshotJson for ATM price:", currentPriceForATM);
+        logDebug(componentName, "Successfully parsed stockSnapshotJson for ATM price:", currentPriceForATM);
       } else {
-         logDebug('OptionsChainTable', "stockSnapshotJson contains status/error, cannot get current price for ATM.");
+         logDebug(componentName, "stockSnapshotJson contains status/error or is pending, cannot get current price for ATM.");
       }
     } catch (e) {
-      console.error("[OptionsChainTable] Failed to parse stockSnapshotJson for ATM price:", e);
-      logDebug('OptionsChainTable', "Error during stockSnapshotJson parsing for ATM.", e);
+      console.error(`[${componentName}] Failed to parse stockSnapshotJson for ATM price:`, e);
+      logDebug(componentName, "Error during stockSnapshotJson parsing for ATM.", e);
     }
   } else {
-     logDebug('OptionsChainTable', "stockSnapshotJson is empty or null, cannot determine ATM strike accurately for display.");
+     logDebug(componentName, "stockSnapshotJson is empty or null, cannot determine ATM strike accurately for display.");
   }
 
   const displayTicker = parsedData?.ticker || (isLoading ? "" : "N/A");
@@ -185,21 +204,21 @@ export function OptionsChainTable() {
     atmStrikeValue = contracts.reduce((prev, curr) => {
       return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
     }).strike;
-    logDebug('OptionsChainTable', 'Determined ATM strike based on currentPriceForATM:', atmStrikeValue);
+    logDebug(componentName, 'Determined ATM strike based on currentPriceForATM:', atmStrikeValue);
   } else if (contracts.length > 0 && !currentPriceForATM && parsedData?.underlying_price) {
     currentPriceForATM = parsedData.underlying_price;
     if(currentPriceForATM){
         atmStrikeValue = contracts.reduce((prev, curr) => {
             return (Math.abs((curr.strike || 0) - (currentPriceForATM!)) < Math.abs((prev.strike || 0) - (currentPriceForATM!))) ? curr : prev;
         }).strike;
-        logDebug('OptionsChainTable', 'Determined ATM strike based on parsedData.underlying_price:', atmStrikeValue);
+        logDebug(componentName, 'Determined ATM strike based on parsedData.underlying_price:', atmStrikeValue);
     }
   }
 
   const isDataReadyForExport = !isLoading && !isError && parsedData && (parsedData.contracts?.length || 0) > 0;
 
   const handleExportOptionsCsv = () => {
-    logDebug('OptionsChainTable:handleExportOptionsCsv', 'Export Options CSV button clicked. Data ready:', isDataReadyForExport);
+    logDebug(componentName, 'Export Options CSV button clicked. Data ready:', isDataReadyForExport);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for export.' });
       return;
@@ -213,12 +232,12 @@ export function OptionsChainTable() {
       toast({ title: 'Options Exported', description: `Options chain for ${filenameTicker} downloaded as ${filename}.` });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Export Error', description: `Failed to generate or download CSV: ${e.message}` });
-      logDebug('OptionsChainTable:handleExportOptionsCsv', 'Export error:', e);
+      logDebug(componentName, 'Export error:', e);
     }
   };
 
   const handleCopyOptionsCsv = async () => {
-    logDebug('OptionsChainTable:handleCopyOptionsCsv', 'Copy Options CSV button clicked. Data ready:', isDataReadyForExport);
+    logDebug(componentName, 'Copy Options CSV button clicked. Data ready:', isDataReadyForExport);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for copy.' });
       return;
@@ -233,11 +252,11 @@ export function OptionsChainTable() {
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Copy Error', description: `Failed to generate or copy CSV: ${e.message}` });
-      logDebug('OptionsChainTable:handleCopyOptionsCsv', 'Copy error:', e);
+      logDebug(componentName, 'Copy error:', e);
     }
   };
 
-  logDebug('OptionsChainTable', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}, isDataReadyForExport=${isDataReadyForExport}`);
+  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}, isDataReadyForExport=${isDataReadyForExport}`);
 
   return (
     <Card>
@@ -330,5 +349,3 @@ export function OptionsChainTable() {
     </Card>
   );
 }
-
-      
