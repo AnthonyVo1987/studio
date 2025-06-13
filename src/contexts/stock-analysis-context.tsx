@@ -6,6 +6,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useReducer
 import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer'; 
 import type { StockDataFetchResult } from '@/actions/analyze-stock-server-action';
+import type { AnalyzeTaResult } from '@/actions/analyze-ta-action';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
@@ -17,8 +18,13 @@ export enum FsmState {
   FETCHING_DATA = 'FETCHING_DATA',
   DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
   DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
-  AWAITING_AI_TA_TRIGGER = 'AWAITING_AI_TA_TRIGGER', // Next step after successful data fetch
-  // Future states: ANALYZING_TA, AI_TA_SUCCEEDED, AI_TA_FAILED, etc.
+  AWAITING_AI_TA_TRIGGER = 'AWAITING_AI_TA_TRIGGER',
+  ANALYZING_TA = 'ANALYZING_TA',
+  AI_TA_SUCCEEDED = 'AI_TA_SUCCEEDED',
+  AI_TA_FAILED = 'AI_TA_FAILED',
+  PARTIAL_ANALYSIS_COMPLETE = 'PARTIAL_ANALYSIS_COMPLETE',
+  AWAITING_KEY_TAKEAWAYS_TRIGGER = 'AWAITING_KEY_TAKEAWAYS_TRIGGER',
+  // Future states: ANALYZING_KEY_TAKEAWAYS, etc.
 }
 
 // FSM Event Types & Payloads
@@ -26,19 +32,28 @@ interface FetchDataSuccessPayload extends StockDataFetchResult {}
 interface FetchDataFailurePayload {
   error?: string | null;
   message?: string | null;
-  // Optionally include polygonApiRequestLogJson if available from a failed action
   polygonApiRequestLogJson?: string; 
   polygonApiResponseLogJson?: string;
 }
+interface AiTaSuccessPayload extends AnalyzeTaResult {}
+interface AiTaFailurePayload {
+  error?: string | null;
+  message?: string | null;
+  aiAnalyzedTaRequestJson?: string; // Potentially pass through request if available
+}
+
 
 export type FsmEvent =
   | { type: 'START_PARTIAL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
-  | { type: 'TRIGGER_DATA_FETCH' } // New event
-  | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload } // New event with payload
-  | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }; // New event with payload
-  // Future events: TRIGGER_AI_TA, AI_TA_SUCCESS, AI_TA_FAILURE, etc.
+  | { type: 'TRIGGER_DATA_FETCH' }
+  | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
+  | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
+  | { type: 'TRIGGER_AI_TA' }
+  | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
+  | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload };
+  // Future events: TRIGGER_KEY_TAKEAWAYS, KEY_TAKEAWAYS_SUCCESS, etc.
 
 export type FullAnalysisStatus =
   | 'idle'
@@ -270,6 +285,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
     logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event:`, event);
+    const pendingJson = `{ "status": "pending..." }`;
+    const skippedKeyTakeawaysJson = `{ "status": "skipped_due_to_ai_ta_failure" }`;
+    const skippedOptionsAnalysisJson = `{ "status": "skipped_due_to_ai_ta_failure" }`;
+
+
     switch (state) {
       case FsmState.IDLE:
         if (event.type === 'START_PARTIAL_ANALYSIS' || event.type === 'START_FULL_ANALYSIS') {
@@ -291,7 +311,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.AWAITING_DATA_FETCH_TRIGGER:
         if (event.type === 'TRIGGER_DATA_FETCH') {
           logDebug('FSM_PIPELINE', `Transition: AWAITING_DATA_FETCH_TRIGGER -> FETCHING_DATA on TRIGGER_DATA_FETCH`);
-          // Set loading state for Polygon logs here before action is called
           const fetchingLogPlaceholder = `{ "status": "fetching_data..." }`;
           contextSetters.setPolygonApiRequestLogJson(fetchingLogPlaceholder);
           contextSetters.setPolygonApiResponseLogJson(fetchingLogPlaceholder);
@@ -313,17 +332,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'FETCH_DATA_FAILURE') {
           logDebug('FSM_PIPELINE', `Transition: FETCHING_DATA -> DATA_FETCH_FAILED on FETCH_DATA_FAILURE. Payload:`, event.payload);
           const errorJson = `{ "status": "error", "message": "${(event.payload.message || 'Data fetch failed').replace(/"/g, '\\"')}", "details": "${(event.payload.error || '').replace(/"/g, '\\"')}" }`;
-          const errorLogJson = (details: string | null | undefined) => details ? `{ "status": "error", "message": "${(event.payload.message || 'Data fetch failed').replace(/"/g, '\\"')}", "details": ${details} }` : errorJson;
-
+          
           contextSetters.setMarketStatusJson(errorJson);
           contextSetters.setStockSnapshotJson(errorJson);
           contextSetters.setStandardTasJson(errorJson);
           contextSetters.setOptionsChainJson(errorJson);
-          // Use specific request/response from payload if available, otherwise general error
           contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson || errorJson);
           contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson || errorJson);
           
-          // Set subsequent steps to error/skipped as well
           const skippedJson = `{ "status": "skipped_due_to_data_fetch_error" }`;
           contextSetters.setAiAnalyzedTaRequestJson(skippedJson);
           contextSetters.setAiAnalyzedTaJson(skippedJson);
@@ -337,19 +353,73 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return state;
 
       case FsmState.DATA_FETCH_SUCCEEDED:
-        // For this task, this state transitions to AWAITING_AI_TA_TRIGGER
-        // In a subsequent task, this would transition to ANALYZING_TA if isFullAnalysisTriggered
-        // or PARTIAL_ANALYSIS_COMPLETE if not.
         logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_SUCCEEDED -> AWAITING_AI_TA_TRIGGER`);
         return FsmState.AWAITING_AI_TA_TRIGGER;
 
       case FsmState.DATA_FETCH_FAILED:
-        // For this task, this state transitions back to IDLE to allow a new attempt.
-        // A more robust error handling state could be implemented later.
         logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_FAILED -> IDLE`);
-        _setIsFullAnalysisTriggered(false); // Reset trigger
+        _setIsFullAnalysisTriggered(false); 
         return FsmState.IDLE;
+
+      case FsmState.AWAITING_AI_TA_TRIGGER:
+        if (event.type === 'TRIGGER_AI_TA') {
+          logDebug('FSM_PIPELINE', `Transition: AWAITING_AI_TA_TRIGGER -> ANALYZING_TA on TRIGGER_AI_TA`);
+          contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
+          contextSetters.setAiAnalyzedTaJson(pendingJson);
+          return FsmState.ANALYZING_TA;
+        }
+        return state;
+
+      case FsmState.ANALYZING_TA:
+        if (event.type === 'AI_TA_SUCCESS') {
+          logDebug('FSM_PIPELINE', `Transition: ANALYZING_TA -> AI_TA_SUCCEEDED on AI_TA_SUCCESS. Payload:`, event.payload);
+          contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson);
+          contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
+          return FsmState.AI_TA_SUCCEEDED;
+        }
+        if (event.type === 'AI_TA_FAILURE') {
+          logDebug('FSM_PIPELINE', `Transition: ANALYZING_TA -> AI_TA_FAILED on AI_TA_FAILURE. Payload:`, event.payload);
+          const errorPayload = event.payload;
+          const errorMsg = errorPayload.message || 'AI TA analysis failed';
+          const errorDetails = errorPayload.error || '';
+          const taErrorJson = `{ "status": "error", "message": "${errorMsg.replace(/"/g, '\\"')}", "details": "${errorDetails.replace(/"/g, '\\"')}" }`;
+          
+          contextSetters.setAiAnalyzedTaRequestJson(errorPayload.aiAnalyzedTaRequestJson || taErrorJson);
+          contextSetters.setAiAnalyzedTaJson(taErrorJson);
+
+          contextSetters.setAiKeyTakeawaysRequestJson(skippedKeyTakeawaysJson);
+          contextSetters.setAiKeyTakeawaysJson(skippedKeyTakeawaysJson);
+          contextSetters.setAiOptionsAnalysisRequestJson(skippedOptionsAnalysisJson);
+          contextSetters.setAiOptionsAnalysisJson(skippedOptionsAnalysisJson);
+          return FsmState.AI_TA_FAILED;
+        }
+        return state;
+
+      case FsmState.AI_TA_SUCCEEDED:
+        logDebug('FSM_PIPELINE', `In AI_TA_SUCCEEDED. isFullAnalysisTriggered: ${isFullAnalysisTriggered}`);
+        if (isFullAnalysisTriggered) {
+          logDebug('FSM_PIPELINE', `Transition: AI_TA_SUCCEEDED -> AWAITING_KEY_TAKEAWAYS_TRIGGER (Full Analysis)`);
+          return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
+        } else {
+          logDebug('FSM_PIPELINE', `Transition: AI_TA_SUCCEEDED -> PARTIAL_ANALYSIS_COMPLETE (Partial Analysis)`);
+          return FsmState.PARTIAL_ANALYSIS_COMPLETE;
+        }
+
+      case FsmState.AI_TA_FAILED:
+        logDebug('FSM_PIPELINE', `In AI_TA_FAILED. isFullAnalysisTriggered: ${isFullAnalysisTriggered}`);
+        if (isFullAnalysisTriggered) {
+          logDebug('FSM_PIPELINE', `Transition: AI_TA_FAILED -> AWAITING_KEY_TAKEAWAYS_TRIGGER (Full Analysis, TA error noted)`);
+          return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
+        } else {
+          logDebug('FSM_PIPELINE', `Transition: AI_TA_FAILED -> IDLE (Partial Analysis Error)`);
+           _setIsFullAnalysisTriggered(false); 
+          return FsmState.IDLE;
+        }
       
+      case FsmState.PARTIAL_ANALYSIS_COMPLETE:
+         logDebug('FSM_PIPELINE', `Reached PARTIAL_ANALYSIS_COMPLETE. Remaining in this state. Will transition to IDLE on next analysis request.`);
+        return state; // Remains here until a new analysis starts, which will reset to IDLE first
+
       default:
         logDebug('FSM_PIPELINE', `Unhandled state in FSM reducer: ${state}`);
         return state;
