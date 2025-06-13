@@ -11,24 +11,23 @@ export interface StockDataFetchResult {
   optionsChainJson: string;
   polygonApiRequestLogJson: string; // Will now store input to getFullStockData
   polygonApiResponseLogJson: string; // Will now store summary of getFullStockData output
-  // polygonAdapterDebugMessages?: string[]; // Removed as adapter no longer provides this
 }
 
 export interface AnalyzeStockServerActionState {
-  status: 'idle' | 'success' | 'error'; 
+  status: 'idle' | 'success' | 'error';
   data?: StockDataFetchResult;
   error?: string | null;
-  message?: string | null; 
+  message?: string | null;
 }
 
 interface FetchStockDataActionInputs {
   ticker: string;
-  dataSource?: string; 
-  analysisType?: string; 
+  dataSource?: string;
+  analysisType?: string;
 }
 
 export async function fetchStockDataAction(
-  prevState: AnalyzeStockServerActionState, 
+  prevState: AnalyzeStockServerActionState,
   payload: FetchStockDataActionInputs
 ): Promise<AnalyzeStockServerActionState> {
   const { ticker } = payload;
@@ -74,8 +73,8 @@ export async function fetchStockDataAction(
     const stockSnapshotJson = stringify(adapterOutput.stockData.stockSnapshot);
     const standardTasJson = stringify(adapterOutput.stockData.technicalIndicators);
     const optionsChainJson = stringify(adapterOutput.stockData.optionsChain);
-    
-    const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams); 
+
+    const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams);
     const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary);
 
     console.log(`[ServerAction:fetchStockDataAction] Successfully fetched and processed data for ${ticker.toUpperCase()}.`);
@@ -88,7 +87,6 @@ export async function fetchStockDataAction(
         optionsChainJson,
         polygonApiRequestLogJson,
         polygonApiResponseLogJson,
-        // polygonAdapterDebugMessages: adapterOutput.polygonAdapterDebugMessages || [], // Removed
       },
       message: `Data for ${ticker.toUpperCase()} fetched successfully.`,
       error: null,
