@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.5.0 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.6.0 OPERATING MANUAL**
 
-*   **Document Version:** 1.26 (Task 9.5.0 - FSM AI Options Analysis Integration)
+*   **Document Version:** 1.27 (Task 9.6.0 - FSM Chat Summary Integration)
 *   **Date:** 2025-06-13 (Date of last significant structure update, versioning SOP added now)
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.5.0.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.6.0.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -53,11 +53,11 @@
 *   **Example:** If the current phase is 9, current task is 1, and this is the 0th iteration/commit for this task, the version will be `v2.9.1.0`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.5.0)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.6.0)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.5.0`).
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.6.0`).
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling**
@@ -70,7 +70,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Defer backend integrations until the UI structure is stable.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-## **2. High-Level Goals (Current Version v2.9.5.0)**
+## **2. High-Level Goals (Current Version v2.9.6.0)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
@@ -83,13 +83,13 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console. **Phase 9 FSM will add dedicated pipeline logging.**
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.9.5.0)**
+## **3. Core Application Features (StockSage v2.9.6.0)**
 
 *(No changes to core features for this task. Focus is on architectural refactoring of the pipeline.)*
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
-*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.9.5.0`).
+*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.9.6.0`).
 *   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
 *   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features. When enabled, all individual log sources default to ON.
@@ -104,14 +104,14 @@ The primary strategy for this implementation is **UI-First Development**. This m
     5.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
     6.  **Options Chain Table Display:** Formatted table (Calls/Strike/Puts), ATM highlighting, dynamic header. Columns: Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
     7.  **AI Analyzed Options Chain Display:** Expandable card (Accordion) showing AI-identified Call/Put "Walls" and "OI Clusters" based on Open Interest analysis (min 1, max 3 walls per side; min 0, max 3 clusters per side).
-    8.  **AI Chatbot Interface:** Chat UI, example prompts, history export/copy. Context from Debug Tab JSONs (including new AI Options Analysis).
+    8.  **AI Chatbot Interface:** Chat UI, example prompts, history export/copy. Context from Debug Tab JSONs (including new AI Options Analysis). Initial message for full analysis is an AI-generated summary.
     9.  **Market Status Display:** Relevant market/exchange status (excluding Crypto/FX).
 *   **Data Export Controls:**
     *   "Export/Copy All Data to JSON" (Snapshot, Standard TAs, AI Analyzed TA, AI Options Analysis, Options, Market Status).
     *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV), AI Options Analysis (JSON).
 
 ### **3.3. "Debug" Tab Features**
-*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response, **FSM Log display (via Client Debug Console)**.
+*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response (will contain Chat Summary request/response during full analysis), **FSM Log display (via Client Debug Console)**.
 *   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
 *   **Client Debug Log Settings:** Controls for the client-side debug console log categories, including "Enable All Sources" and "Disable All Sources" buttons.
 
@@ -120,6 +120,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **AI Analyzed Technical Analysis (Genkit Flow):** Classic Daily Pivot Points.
 *   **AI Analyzed Options Chain (Genkit Flow):** Identification of Call/Put Walls and OI Clusters (min 1/max 3 walls per side; min 0/max 3 clusters per side) based on Open Interest.
 *   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of AI Analyzed TA, and AI Options Analysis.
+*   **AI Chat Summary (Genkit Flow - New in Phase 9.6):** Generates a textual summary of all analysis steps (Snapshot, TAs, AI TA, AI Key Takeaways, AI Options Analysis, Market Status) to serve as the initial message in the chatbot for a full analysis.
 *   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis, aware of AI Analyzed TA and AI Options Analysis.
 *   **Data Formatting:** Numerical data (max 2 decimal places for display), monetary values ("$" prefix).
 
@@ -225,7 +226,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9 In Progress. Current application version: v2.9.5.0.)*
+*(Status: Phase 9 In Progress. Current application version: v2.9.6.0.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -272,10 +273,11 @@ This section documents critical issues encountered during development and their 
 *   **Task 9.3: Integrate AI Analyzed TA into FSM (v2.9.3.0):** - Status: **COMPLETE** (Commit: `bbc610b0`)
     *   **Sub-Task 9.3.0:** Further extended FSM in `stock-analysis-context.tsx` with states for AI TA (`AWAITING_AI_TA_TRIGGER`, `ANALYZING_TA`, `AI_TA_SUCCEEDED`, `AI_TA_FAILED`, `PARTIAL_ANALYSIS_COMPLETE`, `AWAITING_KEY_TAKEAWAYS_TRIGGER`) and events (`TRIGGER_AI_TA`, `AI_TA_SUCCESS`, `AI_TA_FAILURE`). FSM reducer now calls context setters for `aiAnalyzedTaJson` and handles branching logic for full/partial analysis. Subsequent AI step JSONs (Key Takeaways, Options Analysis) set to "skipped" if AI TA fails. `MainTabContent.tsx` triggers `analyzeTaAction` based on FSM state and translates `analyzeTaState` outcomes into FSM events. Header displays `v2.9.3.0`.
 *   **Task 9.4: Integrate AI Key Takeaways into FSM (v2.9.4.0):** - Status: **COMPLETE** (Commit: `a70d937a`)
-    *   **Sub-Task 9.4.0:** Extended FSM in `stock-analysis-context.tsx` for AI Key Takeaways (`AWAITING_KEY_TAKEAWAYS_TRIGGER`, `GENERATING_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`, `AWAITING_OPTIONS_ANALYSIS_TRIGGER`) and events (`TRIGGER_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCESS`, `KEY_TAKEAWAYS_FAILURE`). FSM reducer updates `aiKeyTakeawaysJson` and handles branching. Subsequent AI step JSONs (Options Analysis, Chat) set to "skipped" if Key Takeaways fail or if prior AI TA failed. `MainTabContent.tsx` triggers `performAiAnalysisAction` based on FSM state and dispatches FSM events from `performAiAnalysisState`. Header displays `v2.9.4.0`.
+    *   **Sub-Task 9.4.0:** Extended FSM in `stock-analysis-context.tsx` for AI Key Takeaways (`AWAITING_KEY_TAKEAWAYS_TRIGGER`, `GENERATING_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`, `AWAITING_OPTIONS_ANALYSIS_TRIGGER`) and events (`TRIGGER_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCESS`, `KEY_TAKEAWAYS_FAILURE`). FSM reducer updates `aiKeyTakeawaysJson` and handles branching. Subsequent AI steps (Options Analysis, Chat) set to "skipped" if Key Takeaways fail or AI TA failed. `MainTabContent.tsx` triggers `performAiAnalysisAction` based on FSM state and dispatches FSM events from `performAiAnalysisState`. Header displays `v2.9.4.0`.
 *   **Task 9.5: Integrate AI Options Analysis into FSM (v2.9.5.0):** - Status: **COMPLETE** (Commit: `d5fe9d27`)
     *   **Sub-Task 9.5.0:** Extended FSM in `stock-analysis-context.tsx` for AI Options Analysis (`AWAITING_OPTIONS_ANALYSIS_TRIGGER`, `ANALYZING_OPTIONS`, `OPTIONS_ANALYSIS_SUCCEEDED`, `OPTIONS_ANALYSIS_FAILED`, `AWAITING_CHAT_SUMMARY_TRIGGER`) and events (`TRIGGER_OPTIONS_ANALYSIS`, `OPTIONS_ANALYSIS_SUCCESS`, `OPTIONS_ANALYSIS_FAILURE`). FSM reducer updates `aiOptionsAnalysisJson`. Subsequent AI steps (Chat Summary) set to "skipped" if Options Analysis fails or prior AI steps failed. `MainTabContent.tsx` triggers `performAiOptionsAnalysisAction` based on FSM state and dispatches FSM events from `performAiOptionsAnalysisState`. Header displays `v2.9.5.0`.
-*   **Task 9.6: Integrate Chat Summary (Full Analysis) into FSM:** - Status: **PENDING**
+*   **Task 9.6: Integrate Chat Summary (Full Analysis) into FSM (v2.9.6.0):** - Status: **COMPLETE** (Commit: `f4ed4f56`)
+    *   **Sub-Task 9.6.0:** Added `GenerateFullAnalysisSummaryInputSchema` and `GenerateFullAnalysisSummaryOutputSchema` in `src/ai/schemas/chat-summary-schemas.ts`. Implemented `generate-full-analysis-summary-flow.ts` Genkit flow and `generate-chat-summary-action.ts` server action. Extended FSM in `stock-analysis-context.tsx` with states (`GENERATING_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCEEDED`, `CHAT_SUMMARY_FAILED`, `FULL_ANALYSIS_COMPLETE`) and events (`TRIGGER_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCESS`, `CHAT_SUMMARY_FAILURE`). FSM reducer now populates `chatbotRequestJson` and `chatbotResponseJson` (with summary), and initializes `chatHistory` with the AI-generated summary. `MainTabContent.tsx` triggers `generateChatSummaryAction` via FSM. Header displays `v2.9.6.0`.
 *   **Task 9.7: FSM Finalization & Error Handling Polish:** - Status: **PENDING**
 *   **Task 9.8: Update README.md for Phase 9 Completion:** - Status: **PENDING**
 
@@ -286,9 +288,9 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.24    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.3.0 (FSM AI TA Integration) COMPLETE.** Application version `v2.9.3.0`. Extended FSM in `stock-analysis-context.tsx` for AI TA processing (`AWAITING_AI_TA_TRIGGER`, `ANALYZING_TA`, `AI_TA_SUCCEEDED`, `AI_TA_FAILED`, `PARTIAL_ANALYSIS_COMPLETE`, `AWAITING_KEY_TAKEAWAYS_TRIGGER`) and events (`TRIGGER_AI_TA`, `AI_TA_SUCCESS`, `AI_TA_FAILURE`). FSM reducer updates `aiAnalyzedTaJson` and branches for full/partial analysis. Subsequent AI step JSONs set to "skipped" if AI TA fails. `MainTabContent.tsx` triggers `analyzeTaAction` based on FSM state and dispatches FSM events from `analyzeTaState`. Header displays `v2.9.3.0`. Phase 9 Task 9.3.0 status updated. **Commit: `bbc610b0`** |
 | 1.25    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.4.0 (FSM AI Key Takeaways Integration) COMPLETE.** Application version `v2.9.4.0`. Extended FSM in `stock-analysis-context.tsx` for AI Key Takeaways (`AWAITING_KEY_TAKEAWAYS_TRIGGER`, `GENERATING_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`, `AWAITING_OPTIONS_ANALYSIS_TRIGGER`) and events (`TRIGGER_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCESS`, `KEY_TAKEAWAYS_FAILURE`). FSM reducer updates `aiKeyTakeawaysJson`. Subsequent AI steps (Options Analysis, Chat) set to "skipped" if Key Takeaways fail or AI TA failed. `MainTabContent.tsx` triggers `performAiAnalysisAction` based on FSM state and dispatches FSM events from `performAiAnalysisState`. Header displays `v2.9.4.0`. Phase 9 Task 9.4.0 status updated. **Commit: `a70d937a`** |
-| **1.26**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.5.0 (FSM AI Options Analysis Integration) COMPLETE.** Application version `v2.9.5.0`. Extended FSM in `stock-analysis-context.tsx` for AI Options Analysis (`AWAITING_OPTIONS_ANALYSIS_TRIGGER`, `ANALYZING_OPTIONS`, `OPTIONS_ANALYSIS_SUCCEEDED`, `OPTIONS_ANALYSIS_FAILED`, `AWAITING_CHAT_SUMMARY_TRIGGER`) and events (`TRIGGER_OPTIONS_ANALYSIS`, `OPTIONS_ANALYSIS_SUCCESS`, `OPTIONS_ANALYSIS_FAILURE`). FSM reducer updates `aiOptionsAnalysisJson`. Subsequent AI steps (Chat Summary) set to "skipped" if Options Analysis fails or prior AI steps failed. `MainTabContent.tsx` triggers `performAiOptionsAnalysisAction` based on FSM state and dispatches FSM events from `performAiOptionsAnalysisState`. Header displays `v2.9.5.0`. Phase 9 Task 9.5.0 status updated. **Commit: `d5fe9d27`** |
+| 1.26    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.5.0 (FSM AI Options Analysis Integration) COMPLETE.** Application version `v2.9.5.0`. Extended FSM in `stock-analysis-context.tsx` for AI Options Analysis (`AWAITING_OPTIONS_ANALYSIS_TRIGGER`, `ANALYZING_OPTIONS`, `OPTIONS_ANALYSIS_SUCCEEDED`, `OPTIONS_ANALYSIS_FAILED`, `AWAITING_CHAT_SUMMARY_TRIGGER`) and events (`TRIGGER_OPTIONS_ANALYSIS`, `OPTIONS_ANALYSIS_SUCCESS`, `OPTIONS_ANALYSIS_FAILURE`). FSM reducer updates `aiOptionsAnalysisJson`. Subsequent AI steps (Chat Summary) set to "skipped" if Options Analysis fails or prior AI steps failed. `MainTabContent.tsx` triggers `performAiOptionsAnalysisAction` based on FSM state and dispatches FSM events from `performAiOptionsAnalysisState`. Header displays `v2.9.5.0`. Phase 9 Task 9.5.0 status updated. **Commit: `d5fe9d27`** |
+| **1.27**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.6.0 (FSM Chat Summary Integration) COMPLETE.** Application version `v2.9.6.0`. Added new AI flow (`generate-full-analysis-summary-flow.ts`), schema (`chat-summary-schemas.ts`), and server action (`generate-chat-summary-action.ts`). Extended FSM in `stock-analysis-context.tsx` with states (`GENERATING_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCEEDED`, `CHAT_SUMMARY_FAILED`, `FULL_ANALYSIS_COMPLETE`) and events (`TRIGGER_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCESS`, `CHAT_SUMMARY_FAILURE`). FSM reducer now manages chat summary generation, populates `chatbotRequestJson` and `chatbotResponseJson` (with summary), and initializes `chatHistory` with the AI summary as the first message on full analysis. `MainTabContent.tsx` orchestrates this via FSM. Header displays `v2.9.6.0`. Phase 9 Task 9.6.0 status updated. **Commit: `f4ed4f56`** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -411,6 +413,39 @@ This commit implements Task v2.9.5.0, integrating the AI Options Analysis step i
 - **Versioning:** UI header updated to `v2.9.5.0`. `README.md` updated to reflect completion of Task 9.5.0 and app version `v2.9.5.0`.
 
 ---
+**App Version:** `v2.9.6.0` (FSM Chat Summary Integration)
+**Tag:** `Phase-9_Task-9.6.0_FSM-Chat-Summary` - Commit Hash: `f4ed4f56`
+**Subject:** `feat(fsm): Integrate AI Chat Summary into FSM pipeline (v2.9.6.0)`
+**Details:**
+This commit implements Task v2.9.6.0, integrating AI-generated chat summaries into the FSM for full analysis flows.
+- **New AI Flow & Schemas:**
+    - `src/ai/schemas/chat-summary-schemas.ts`: Defines `GenerateFullAnalysisSummaryInputSchema` and `GenerateFullAnalysisSummaryOutputSchema`.
+    - `src/ai/flows/generate-full-analysis-summary-flow.ts`: Implements Genkit flow to generate a textual summary from all analysis data, acknowledging any prior skipped/errored steps.
+- **New Server Action:**
+    - `src/actions/generate-chat-summary-action.ts`: Defines `generateChatSummaryAction` to call the new flow.
+- **FSM Enhancements (`stock-analysis-context.tsx`):**
+    - Added new FSM states: `GENERATING_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCEEDED`, `CHAT_SUMMARY_FAILED`, `FULL_ANALYSIS_COMPLETE`.
+    - Added new FSM events: `TRIGGER_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCESS`, `CHAT_SUMMARY_FAILURE`.
+    - `fsmReducer` updated to handle these:
+        - `AWAITING_CHAT_SUMMARY_TRIGGER` -> `GENERATING_CHAT_SUMMARY` (if not pre-skipped). Sets `chatbotRequestJson` and `chatbotResponseJson` to pending.
+        - `GENERATING_CHAT_SUMMARY` -> `CHAT_SUMMARY_SUCCEEDED`. Updates context JSONs, and critically, initializes `chatHistory` with the AI-generated summary as the first message.
+        - `GENERATING_CHAT_SUMMARY` -> `CHAT_SUMMARY_FAILED`. Updates context JSONs with error.
+        - `CHAT_SUMMARY_SUCCEEDED` or `CHAT_SUMMARY_FAILED` -> `FULL_ANALYSIS_COMPLETE`.
+        - `FULL_ANALYSIS_COMPLETE` -> `IDLE`. Resets `isFullAnalysisTriggered`.
+- **UI Integration (`main-tab-content.tsx`):**
+    - Added `useActionState` for `generateChatSummaryAction`.
+    - `useEffect` added to dispatch `TRIGGER_CHAT_SUMMARY` from `AWAITING_CHAT_SUMMARY_TRIGGER`.
+    - `useEffect` added to call `generateChatSummaryFormAction` from `GENERATING_CHAT_SUMMARY`.
+    - `useEffect` hook processes `generateChatSummaryState` to dispatch FSM events.
+    - Loading indicators refined.
+- **Logging & Versioning:**
+    - Added `GenerateChatSummaryAction` and `GenerateFullAnalysisSummaryFlow` to `debug-log-types.ts`.
+    - UI header updated to `v2.9.6.0`. `README.md` updated to reflect completion of Task 9.6.0 and app version `v2.9.6.0`.
+
+---
 *(Future commit logs will follow)*
 
 
+
+
+    
