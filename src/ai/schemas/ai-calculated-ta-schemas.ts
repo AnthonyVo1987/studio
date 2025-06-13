@@ -20,6 +20,6 @@ export const CalculateAiTaOutputSchema = z.object({
   support3: z.number().describe('The third support level (S3).'),
   resistance1: z.number().describe('The first resistance level (R1).'),
   resistance2: z.number().describe('The second resistance level (R2).'),
-  resistance3: z.number().describe('The third resistance level (R3).'),
+  resistance3: z.number().describe('The third support level (R3).'),
 });
 export type CalculateAiTaOutput = z.infer<typeof CalculateAiTaOutputSchema>;
