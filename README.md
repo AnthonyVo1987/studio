@@ -97,10 +97,10 @@ The primary strategy for this implementation is **UI-First Development**. This m
     1.  **Key Metrics Display:** Ticker, Price, Day's Change % (formatted, sentiment-colored).
     2.  **Stock Snapshot Details Display:** Detailed price/volume, sentiment colors for changes.
     3.  **Standard Technical Indicators Display:** Formatted multi-window RSI (7,10,14), MACD (value/signal/histogram), VWAP (day/minute), multi-window EMA (5,10,20,50,200), multi-window SMA (5,10,20,50,200) with sentiment colors for RSI (14) and MACD histogram.
-    4.  **AI Analyzed Technical Analysis Display:** (Formerly "AI-Calculated TA") Formatted Pivot Points (PP, S1-S3, R1-R3) with sentiment color for PP row.
-    5.  **Options Chain Table Display:** Formatted table (Calls/Strike/Puts), ATM highlighting, dynamic header. Columns: Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
-    6.  **AI Analyzed Options Chain Display (NEW):** Expandable card initially showing AI-identified Call and Put "Walls" and "OI Clusters" based on Open Interest analysis (min 1, max 3 walls per side; min 0, max 3 clusters per side).
-    7.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
+    4.  **AI Analyzed Technical Analysis Display:** Formatted Pivot Points (PP, S1-S3, R1-R3) with sentiment color for PP row.
+    5.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
+    6.  **Options Chain Table Display:** Formatted table (Calls/Strike/Puts), ATM highlighting, dynamic header. Columns: Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
+    7.  **AI Analyzed Options Chain Display (NEW):** Expandable card (Accordion) showing AI-identified Call/Put "Walls" and "OI Clusters" based on Open Interest analysis (min 1, max 3 walls per side; min 0, max 3 clusters per side).
     8.  **AI Chatbot Interface:** Chat UI, example prompts, history export/copy. Context from Debug Tab JSONs (including new AI Options Analysis).
     9.  **Market Status Display:** Relevant market/exchange status (excluding Crypto/FX).
 *   **Data Export Controls:**
@@ -108,16 +108,16 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV), AI Options Analysis (JSON).
 
 ### **3.3. "Debug" Tab Features**
-*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs (new structure), Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response (NEW), AI Key Takeaways Request/Response, Chatbot Request/Response.
+*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response.
 *   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
 *   **Client Debug Log Settings:** Controls for the client-side debug console log categories.
 
 ### **3.4. Backend Functionality**
 *   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):** Market Status, Ticker Snapshot (current/prev day, minute bar), Standard TAs (multi-window RSI, EMA, SMA; MACD; VWAP day/minute), Options Chain Snapshot (nearest Friday, +/-10-11 strikes, descending sort by strike).
 *   **AI Analyzed Technical Analysis (Genkit Flow):** Classic Daily Pivot Points.
-*   **AI Analyzed Options Chain (Genkit Flow - NEW):** Identification of Call/Put Walls and OI Clusters (min 1/max 3 walls per side; min 0/max 3 clusters per side) based on Open Interest.
-*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of new TA structure and AI Options Analysis.
-*   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis, aware of new TA structure and AI Options Analysis.
+*   **AI Analyzed Options Chain (Genkit Flow):** Identification of Call/Put Walls and OI Clusters (min 1/max 3 walls per side; min 0/max 3 clusters per side) based on Open Interest.
+*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of AI Analyzed TA, but NOT YET of AI Options Analysis.
+*   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis, aware of AI Analyzed TA and AI Options Analysis.
 *   **Data Formatting:** Numerical data (max 2 decimal places for display), monetary values ("$" prefix).
 
 ## **4. Technology Stack (Mandatory)**
@@ -188,7 +188,7 @@ This section documents critical issues encountered during development and their 
     4.  **Effect of `@genkit-ai/next` Removal:** The `@genkit-ai/next` package, while causing `async_hooks` issues, likely provided implicit Webpack configurations or shims that previously (and perhaps imperfectly) prevented or mitigated the bundling of these deep server-side dependencies. Its removal (a necessary fix for `async_hooks`) unmasked this latent bundling problem.
     5.  **`enableOpenTelemetry: false` vs. Bundling:** The `enableOpenTelemetry: false` flag in `src/ai/genkit.ts` correctly prevents OpenTelemetry *runtime* initialization but **does not** stop Webpack from *attempting to bundle* the imported code if it's part of an import chain originating from client-side code.
 *   **Resolution (Commit `fc96d65a`):**
-    *   The Zod import in all relevant schema files (`src/ai/schemas/ai-analyzed-ta-schemas.ts` (renamed), `src/ai/schemas/chat-schemas.ts`, `src/ai/schemas/stock-analysis-schemas.ts`, and new `src/ai/schemas/ai-options-analysis-schemas.ts`) was changed from `import {z} from 'genkit';` to **`import {z} from 'zod';`**.
+    *   The Zod import in all relevant schema files (`src/ai/schemas/ai-analyzed-ta-schemas.ts`, `src/ai/schemas/chat-schemas.ts`, `src/ai/schemas/stock-analysis-schemas.ts`, and new `src/ai/schemas/ai-options-analysis-schemas.ts`) was changed from `import {z} from 'genkit';` to **`import {z} from 'zod';`**.
     *   This critical change decouples the schema definitions from the main `genkit` server-side package, allowing Webpack to correctly tree-shake the client bundle and exclude Node.js-specific modules and OpenTelemetry server components.
 *   **Lesson Learned & Critical Guideline for AI Agent:**
     *   **To prevent client-side bundling of server-only Genkit code, any schema files (`src/ai/schemas/*.ts`) that are, or whose types are, consumed (directly or indirectly) by client-side components MUST always import `zod` directly using `import {z} from 'zod';`**.
@@ -269,7 +269,7 @@ This section documents critical issues encountered during development and their 
 *   **Task 8.8.1: Final Proactive Audit (Post Task 8.8.0):** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
 *   **Task 8.8.2: Implement Dynamic Version Display & SOP (Version: v2.8.8.2):** - Status: **COMPLETE** (Commit: `07817f2a`)
 *   **Task 8.8.3: Update TA Data & Display (Multi-Window, VWAP Minute) (Version: v2.8.8.3):** - Status: **COMPLETE** (Commit: `b222bbfd`)
-*   **Task 8.8.4: AI Analyzed Options Chain (Call/Put Walls & OI Clusters) & TA Renaming (Current version: v2.8.8.4):** - Status: **IN PROGRESS (Current Task - Commit pending)**
+*   **Task 8.8.4: AI Analyzed Options Chain (Call/Put Walls & OI Clusters) & TA Renaming (Current version: v2.8.8.4):** - Status: **IN PROGRESS (WIP - Current Task - Commit `26e51654`)**
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
@@ -280,7 +280,7 @@ This section documents critical issues encountered during development and their 
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
 | 1.18    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.2 (Implement Dynamic Version Display & SOP) complete.** Updated UI to display `v2.8.8.2`. Added Section 0.6 defining the `2.x.y.z` dynamic versioning SOP. Updated various sections to reflect current version `v2.8.8.2`. Phase 8 Core Features now marked complete, project status updated to reflect new versioning. Updated commit log for `07817f2a`. |
 | 1.19    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.3 (Update TA Data & Display) complete.** Application version `v2.8.8.3`. Updated `src/services/data-sources/types.ts` for new TA structures. Updated `polygon-adapter.ts` to fetch multi-window RSI, EMA, SMA, and minute VWAP. Updated `standard-ta-display.tsx` to render new TA data. Updated AI prompt in `analyze-stock-data.ts` to understand new TA JSON. Updated header to display `v2.8.8.3`. Updated relevant README sections. Commit `b222bbfd`. |
-| **1.20**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.8.4 (AI Options Analysis & TA Renaming) in progress.** Application version `v2.8.8.4`. Renamed "AI-Calculated TA" to "AI Analyzed TA" throughout codebase & docs. Added new "AI Analyzed Options Chain" feature: new UI card, Genkit flow for Call/Put Walls & OI Clusters, server action, context updates, debug logs. Prompts for Key Takeaways and Chatbot updated. Header displays `v2.8.8.4`. Relevant README sections updated. Commit: `YOUR_NEXT_COMMIT_HASH`. |
+| **1.20**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 8.8.4 (AI Options Analysis & TA Renaming) IN PROGRESS (WIP).** Application version `v2.8.8.4`. Renamed "AI-Calculated TA" to "AI Analyzed TA" throughout codebase & docs. Added new "AI Analyzed Options Chain" feature: new UI card, Genkit flow for Call/Put Walls & OI Clusters, server action, context updates, debug logs. Prompts for Key Takeaways and Chatbot updated. Header displays `v2.8.8.4`. Relevant README sections updated. **Commit: `26e51654` (WIP).** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -326,33 +326,28 @@ This commit implements Task v2.8.8.3, significantly enhancing the Standard Techn
 - **Versioning:** UI header and `README.md` updated to `v2.8.8.3`.
 
 ---
-**App Version:** `v2.8.8.4` (Reflects AI Options Analysis and TA renaming)
-**Tag:** `Phase-8_Task-8.8.4_Options-AI-TA-Rename` - Commit Hash: `YOUR_NEXT_COMMIT_HASH`
-**Subject:** `feat(ai,ui): Add AI Options Wall & Cluster Analysis, rename AI TA components, update version to v2.8.8.4`
+**App Version:** `v2.8.8.4` (Reflects AI Options Analysis and TA renaming - WIP)
+**Tag:** `Phase-8_Task-8.8.4_Options-AI-TA-Rename` - Commit Hash: `26e51654`
+**Subject:** `feat(ai,ui): Add AI Options Wall & Cluster Analysis, rename AI TA components, update version to v2.8.8.4 (WIP)`
 **Details:**
-This commit implements Task v2.8.8.4.
-- **Renaming:** "AI-Calculated Technical Analysis" has been renamed to "AI Analyzed Technical Analysis" throughout the codebase. This includes:
-    - Component: `AiCalculatedTaDisplay.tsx` -> `AiAnalyzedTaDisplay.tsx`.
-    - Schemas: `ai-calculated-ta-schemas.ts` -> `ai-analyzed-ta-schemas.ts` (and internal types like `AnalyzeTaInput/OutputSchema`).
-    - Actions: `calculate-ai-ta-action.ts` -> `analyze-ta-action.ts` (and internal types/functions).
-    - Flows: `calculate-ai-ta-flow.ts` -> `analyze-ta-flow.ts` (and internal types/functions).
-    - Context variables: `aiCalculatedTaJson` -> `aiAnalyzedTaJson`, etc.
-    - UI text and descriptions.
+This commit implements Task v2.8.8.4 and is **Work-In-Progress**. Further testing and fixes are expected.
+- **Renaming:** "AI-Calculated Technical Analysis" has been renamed to "AI Analyzed Technical Analysis" throughout the codebase. This includes components, schemas, actions, flows, context variables, UI text, and descriptions.
 - **New Feature: AI Analyzed Options Chain:**
-    - Added a new "AI Analyzed Options Chain" card to the Main Tab.
-    - Implemented a new Genkit flow (`src/ai/flows/analyze-options-chain-flow.ts`) with a prompt to detect Call/Put "Walls" (OI >= 1.5x avg OI & >= 2x adjacent OI; min 1, max 3 walls per side) AND "OI Clusters" (2+ adjacent strikes with high OI; min 0, max 3 clusters per side).
-    - Created corresponding Zod schemas (`src/ai/schemas/ai-options-analysis-schemas.ts`) for input and output, including `ClusterDetailSchema`.
-    - Added a new server action (`src/actions/perform-ai-options-analysis-action.ts`) to orchestrate this flow.
-    - Updated `StockAnalysisContext` to store `aiOptionsAnalysisRequestJson` and `aiOptionsAnalysisJson`.
-    - Integrated the new action into the "Full AI Analysis" sequence in `MainTabContent.tsx`.
-    - The `AiOptionsAnalysisDisplay.tsx` component uses an Accordion for displaying results (Walls and OI Clusters), designed for future expandability.
-    - Added export/copy functionality for AI Options Analysis JSON.
+    - Added a new "AI Analyzed Options Chain" card to the Main Tab, using an Accordion for displaying results (Walls and OI Clusters).
+    - Implemented a new Genkit flow (`src/ai/flows/analyze-options-chain-flow.ts`) with a prompt to detect Call/Put "Walls" and "OI Clusters".
+    - Created corresponding Zod schemas (`src/ai/schemas/ai-options-analysis-schemas.ts`).
+    - Added a new server action (`src/actions/perform-ai-options-analysis-action.ts`).
+    - Updated `StockAnalysisContext` and `MainTabContent` to integrate the new feature into the "Full AI Analysis" pipeline (Data -> AI TA -> Key Takeaways -> Options Analysis -> Chat).
+    - Added export/copy functionality for AI Options Analysis JSON and included it in the "Export All" feature.
     * Updated `DebugTabContent.tsx` to display the new JSON fields.
-    * Added new log source IDs for relevant components/actions/flows.
-- **Chatbot Context:** The Chatbot prompt and input schema (`chat-schemas.ts`, `chat-flow.ts`) now include the `aiOptionsAnalysisJson` for richer contextual responses.
-- **Versioning:** UI header and `README.md` updated to `v2.8.8.4`. `README.md` sections updated to reflect new feature and renaming.
+    * Added new log source IDs.
+- **Chatbot Context:** The Chatbot prompt and input schema now include `aiOptionsAnalysisJson`.
+- **Pipeline Refactor:** The AI analysis pipeline in `MainTabContent.tsx` has been refactored for more granular, sequential execution of AI steps.
+- **Versioning:** UI header and `README.md` updated to `v2.8.8.4`. `README.md` sections updated.
+- **NOTE:** This feature is currently under active development and testing. The AI Options Analysis results and overall pipeline stability are still being verified.
 
 ---
 
 *(Future commit logs will follow)*
+
 
