@@ -1,7 +1,7 @@
 
 # **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.1.0 OPERATING MANUAL**
 
-*   **Document Version:** 1.14 (Task 8.5 Update)
+*   **Document Version:** 1.15 (Task 8.6 - Genkit 'use server' Fix)
 *   **Date:** 2025-06-12
 *   **Author:** Firebase Studio (AI Prototyper)
 *   **Status:** Official Project Blueprint & AI Operational Mandate. Phase 8 IN PROGRESS. **Major Build Issues RESOLVED.**
@@ -158,7 +158,7 @@ This section documents critical issues encountered during development and their 
 *   **Context:** Previous development phases encountered persistent `async_hooks` errors during Next.js builds (`next build`), particularly when Turbopack was enabled and Genkit (especially `@genkit-ai/next`) was integrated. These errors often presented as segmentation faults or cryptic messages related to asynchronous context propagation.
 *   **Resolution/Mitigation (Commit `c14e3af6` and ongoing):**
     1.  **CRITICAL: DO NOT re-add `genkitPluginNextjs()` or the `@genkit-ai/next` package.** This package was identified as a primary source of incompatibility with Turbopack's handling of `async_hooks`. Its removal was essential for build stability.
-    2.  **CRITICAL: Ensure `enableOpenTelemetry: false` in `src/ai/genkit.ts` (`genkit()_config`).** While OpenTelemetry is powerful, its deep integration with async context can conflict with Next.js/Turbopack. Disabling it at the Genkit initialization level is mandatory.
+    2.  **CRITICAL: Ensure `enableOpenTelemetry: false` in `src/ai/genkit.ts` (`genkit()`_config).** While OpenTelemetry is powerful, its deep integration with async context can conflict with Next.js/Turbopack. Disabling it at the Genkit initialization level is mandatory.
     3.  **Extreme Caution with New Dependencies:** Be highly cautious when adding new dependencies, especially those related to Application Performance Monitoring (APM), tracing, or deep Node.js/async operations. Thoroughly test builds after adding such packages.
     4.  **Keep `next.config.js` Simple:** **AVOID Webpack `resolve.fallback` configurations** or other complex Webpack customizations in `next.config.js` unless absolutely unavoidable and thoroughly tested. These can interfere with Next.js's built-in handling of modules and bundling. The current simple `next.config.ts` (only handling image remote patterns and ignoring build errors for TypeScript/ESLint) is the stable baseline.
 *   **CRITICAL INSTRUCTION FOR USER (AND AI AGENT):** If `async_hooks`-related errors (or similar difficult-to-diagnose build failures) reappear, a **full local environment re-initialization (as per `reinit.md`) MUST be performed by the user.** This is the first and most critical troubleshooting step. If errors persist *after* a full re-init, the issue must be flagged immediately to the user for deeper investigation. The AI Agent should not attempt complex Webpack fallbacks.
@@ -178,12 +178,28 @@ This section documents critical issues encountered during development and their 
     *   **To prevent client-side bundling of server-only Genkit code, any schema files (`src/ai/schemas/*.ts`) that are, or whose types are, consumed (directly or indirectly) by client-side components MUST always import `zod` directly using `import {z} from 'zod';`.**
     *   **DO NOT use `import {z} from 'genkit';` in such schema files.** This is a primary cause of Webpack attempting to bundle server-side Node.js modules and OpenTelemetry components into the client, leading to "Module not found" errors.
     *   The removal of `@genkit-ai/next` was essential for `async_hooks` stability, but it requires stricter adherence to separating client-safe imports.
+    *   The AI Agent **MUST** verify this Zod import pattern for any *new* schema files it creates or modifies that are intended for client-side type consumption. Failure to do so risks reintroducing critical build failures.
 
-##### **4.1.6.3. General Genkit v1.x Syntax & Data Flow**
+##### **4.1.6.3. Incorrect `'use server';` Directive on Non-Action Modules (e.g., `genkit.ts`) - RESOLVED**
+*   **Context (Post-Mortem of Commit `8d199845`):** After resolving the schema import issues, the project faced a persistent build error: "A 'use server' file can only export async functions, found object."
+*   **Root Cause:**
+    1.  The file `src/ai/genkit.ts`, which initializes and exports the main `ai` Genkit instance (an object), incorrectly had the `'use server';` directive at the top of the file.
+    2.  The `'use server';` directive, when placed at the top of a file, signals to Next.js that *all* exports from that file are Server Actions. Server Actions must be functions (typically async).
+    3.  Exporting the `ai` object from `src/ai/genkit.ts` while it was marked with `'use server';` directly violated this Next.js rule, as an object is not an async function.
+*   **Resolution (Commit `8d199845`):**
+    *   The `'use server';` directive was **removed** from `src/ai/genkit.ts`.
+    *   This allows `src/ai/genkit.ts` to function as a standard server-side module that exports the configured `ai` object. Other server-side modules (like Genkit flows, which *are* correctly marked with `'use server';` for their exported action functions) can then import and use this `ai` instance without issue.
+*   **Lesson Learned & Critical Guideline for AI Agent:**
+    *   The `'use server';` directive should **only** be used in files where *all* exports are intended to be Server Actions (async functions callable from the client or other server components).
+    *   For modules that primarily configure instances, export constants, or provide utility objects/functions for use *within other server-side code* (and are not themselves Server Actions), the `'use server';` directive should **not** be used at the top of the file. This was the case for `src/ai/genkit.ts`. It also applies to files like `src/ai/models.ts`, schema files (`src/ai/schemas/*.ts`), and general utility files (`src/lib/*.ts`) if they are not exporting Server Actions.
+    *   Flow files (`src/ai/flows/*.ts`) and Server Action files (`src/actions/*.ts`) correctly use `'use server';` because they export async functions.
+    *   The AI Agent **MUST** verify the correct use (or absence) of the `'use server';` directive based on a file's intended exports and usage context, especially for core configuration files or utility modules.
+
+##### **4.1.6.4. General Genkit v1.x Syntax & Data Flow**
 *   **Genkit v1.x Syntax:** Strict adherence to the v1.x syntax (e.g., `response.text`, `response.output`, non-awaited `ai.generateStream`, `await response`) is crucial.
 *   **Data Flow:** Maintain the established data flow: Raw data from sources -> "Debug" Tab JSONs (held in `StockAnalysisContext` state) -> "Main" Tab components read and format from this state. This decouples UI from direct data fetching/processing logic.
 
-##### **4.1.6.4. Client-Side Debug Console (`DebugConsole.tsx`)**
+##### **4.1.6.5. Client-Side Debug Console (`DebugConsole.tsx`)**
 *   The `DebugConsole.tsx` component with its advanced filtering, search, and export features is now stable and the primary tool for client-side debugging. Ensure `logDebug` calls are used appropriately to populate it.
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
@@ -228,7 +244,9 @@ This section documents critical issues encountered during development and their 
 *   **Task 8.2: Update `README.md` to AI Operating Manual:** - Status: **COMPLETE** (Commit: `b6bc90e8`)
 *   **Task 8.3: Prepare Firebase Deployment Config:** - Status: **PENDING** (Deferred)
 *   **Task 8.4: Final Code Review & Cleanup:** - Status: **COMPLETE** (Commit: `bef12d70`)
-*   **Task 8.5: Resolve Critical Build Failures & Confirm Stability:** - Status: **COMPLETE** (Commit: `fc96d65a`)
+*   **Task 8.5: Resolve Critical Build Failures & Confirm Stability (Zod Imports):** - Status: **COMPLETE** (Commit: `fc96d65a`)
+*   **Task 8.6: Resolve Critical Build Failures & Confirm Stability ('use server' on `genkit.ts`):** - Status: **COMPLETE** (Commit: `8d199845`)
+
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
@@ -236,10 +254,9 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                 |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                              |
-| 1.11    | 2025-06-12   | Firebase Studio (AI Prototyper) | Marked Phase 7, Task 7.2 (`DebugConsole.tsx` Component) as **COMPLETE**. Phase 7 fully complete. Updated commit log for `b6bc90e8`. Updated Sec 4.1.6.                                                                                                                |
-| 1.12    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Restructured README.md to be the primary AI Operating Manual.** Moved AI development protocols (Section 0) to the top. Marked Task 8.1 (UI Styling Review) and Task 8.2 (this update) as COMPLETE. Updated commit log for `b6bc90e8`.                                        |
 | 1.13    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.4 (Final Code Review & Cleanup) complete.** Minor code cleanup in `src/app/page.tsx`. Marked Task 8.4 complete. Updated commit log for `bef12d70`.                                                                                                              |
-| **1.14**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.5 (Resolve Critical Build Failures & Confirm Stability) complete.** Updated Zod imports in schema files. Integrated detailed post-mortem of build issues and resolution into Sec 4.1.6 (specifically 4.1.6.2). Marked Task 8.5 complete. Updated commit log for `fc96d65a`. Phase 8 core tasks complete. Enhanced AI guidelines in Sec 4.1.6.2 regarding Zod imports. |
+| 1.14    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.5 (Resolve Critical Build Failures & Confirm Stability) complete.** Updated Zod imports in schema files. Integrated detailed post-mortem of build issues and resolution into Sec 4.1.6 (specifically 4.1.6.2). Marked Task 8.5 complete. Updated commit log for `fc96d65a`. Phase 8 core tasks complete. Enhanced AI guidelines in Sec 4.1.6.2 regarding Zod imports. |
+| **1.15**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.6 (Resolve 'use server' export error) complete.** Removed `'use server';` directive from `src/ai/genkit.ts` as it exports an object, not async functions. Updated Sec 4.1.6.3 to document this lesson (subsequent sections renumbered). Updated commit log for `8d199845`. Phase 8 tasks now fully complete (excluding deferred 8.3). |
 
 ## **7. Project Implementation Commit Log (StockSage v2.1.0)**
 
@@ -249,57 +266,6 @@ This section tracks the commit history of the StockSage v2.1.0 implementation.
 **Tag:** `Phase-0_Task-0.6` ([v0.0.6])
 **Subject:** `feat: Complete Phase 0 - Project Setup & Core Layout`
 ... (Previous commit logs remain)
-
----
-**Tag:** `Phase-6_Task-6.1.6_Baseline` ([v0.6.1.6]) - Commit Hash: `1fdab788`
-**Subject:** `fix: Revert DebugConsole implementation and restore v0.6.1.6 baseline`
-... (Details remain)
-
----
-**Tag:** `Phase-6_Tasks-6.2-6.3` ([v0.6.3.0]) - Commit Hash: `34833581`
-**Subject:** `feat: Activate debug logs in TA & Takeaways displays, confirming live data handling (Tasks 6.2, 6.3)`
-... (Details remain)
-
----
-**Tag:** `Phase-6_Task-6.4` ([v0.6.4.0]) - Commit Hash: `bd221290`
-**Subject:** `feat: Integrate live data into Options Chain Table and refine percentage formatting (Task 6.4)`
-... (Details remain)
-
----
-**Tag:** `Phase-6_Task-6.5` ([v0.6.5.0]) - Commit Hash: `a1bf333c`
-**Subject:** `feat: Implement "AI Full Stock Analysis" button logic and orchestration (Task 6.5)`
-... (Details remain)
-
----
-**Tag:** `DebugConsole_Task-1` - Commit Hash: `6a7575ea`
-**Subject:** `feat(debug): Re-implement client debug console with stability fixes (Task 1)`
-... (Details remain)
-
----
-**Tag:** `DebugConsole_Task-3.1` - Commit Hash: `3744b73a`
-**Subject:** `feat(debug): Implement configurable debug logging categories (Task 3.1)`
-... (Details remain)
-
----
-**Tag:** `DebugConsole_Task-3.2.8` - Commit Hash: `909b1650`
-**Subject:** `fix(debug): Resolve data mismatch in chained AI analysis & stabilize client debug console (Tasks 3.2.5-3.2.8)`
-... (Details remain)
-
----
-**Tag:** `Phase-6_Task-6.6.1` - Commit Hash: `601df92c`
-**Subject:** `feat: Implement Chatbot UI and enhance its debug logging (Task 6.6 & 6.6.1)`
-... (Details remain)
-
----
-**Tag:** `Phase-6_Task-6.6.2` - Commit Hash: `c14e3af6`
-**Subject:** `fix: Resolve async_hooks build errors by removing @genkit-ai/next (Task 6.6.2)`
-**Details:** This commit addressed critical build failures (`async_hooks` errors with Turbopack) by removing the `@genkit-ai/next` package and ensuring `enableOpenTelemetry: false` in Genkit configuration. This was a key step towards build stability.
-
----
-**Tag:** `Phase-7_Full_And_Phase-8_Tasks-8.1-8.2` - Commit Hash: `b6bc90e8`
-**Subject:** `feat: Complete Phase 7 (Data Export & Debug Console) & Phase 8 Tasks 8.1 (Styling), 8.2 (README Update)`
-**Details:**
-Finalized Phase 7 (Data Export, Advanced Client Debug Console). Completed Task 8.1 (UI Styling Review - Semantic Colors Refactor) and Task 8.2 (Initial README.md update to AI Operating Manual).
 
 ---
 **Tag:** `Phase-8_Task-8.4` - Commit Hash: `bef12d70`
@@ -315,6 +281,15 @@ This commit addresses critical "Module not found" build errors for Node.js built
 **Root Cause:** Client-side schema files (`src/ai/schemas/*.ts`) importing `z` from `genkit`'s main package, exposed after `@genkit-ai/next` removal.
 **Solution:** Changed Zod imports in schema files to `import {z} from 'zod';` directly, preventing Webpack from bundling server-side Genkit machinery into the client.
 This resolves a major pain point and restores build stability.
+
+---
+**Tag:** `Phase-8_Task-8.6_Build-Fix` - Commit Hash: `8d199845`
+**Subject:** `fix(build): Resolve "use server" export error by removing directive from genkit.ts`
+**Details:**
+This commit addresses the persistent Next.js build error: "A 'use server' file can only export async functions, found object."
+**Root Cause Analysis:** The error was caused by the `src/ai/genkit.ts` file having the `'use server';` directive at the top. This directive instructs Next.js to treat all exports from that file as Server Actions, which must be async functions. However, `src/ai/genkit.ts` exports the `ai` constant, which is an initialized Genkit instance (an object), not an async function.
+**Solution Implemented:** The `'use server';` directive was removed from `src/ai/genkit.ts`. This allows `src/ai/genkit.ts` to function as a standard server-side module. Other server-side modules (like Genkit flows) can then import and use this `ai` instance without conflict.
+This change resolves the build error.
 
 ---
 
