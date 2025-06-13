@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.1.0 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.2.0 OPERATING MANUAL**
 
-*   **Document Version:** 1.22 (Task 9.1.0 - FSM Core Setup)
+*   **Document Version:** 1.23 (Task 9.2.0 - FSM Data Fetch Integration)
 *   **Date:** 2025-06-13 (Date of last significant structure update, versioning SOP added now)
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.1.0.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.2.0.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -46,18 +46,18 @@
     *   `z`: Sub-Task or iteration number for that specific Task. This increments with each commit related to the x.y task.
 *   **AI Agent Responsibility:** With each user request that results in code changes and an intended commit, the AI Agent **MUST**:
     1.  Determine the correct `2.x.y.z` version based on the current Phase, Task, and the new iteration/sub-task being implemented.
-    2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
+    2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`. (This part happens *before* the commit stage, during code generation for the task).
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
     5.  **README.md Update Timing:** All updates to this `README.md` document (including versioning, changelogs, and phased plan status) as described above **SHALL ONLY** be performed during an explicit 'COMMIT' stage, after the user has confirmed the code changes for that task version are ready to be finalized. The AI Agent **MUST NOT** propose `README.md` changes during scoping or iterative code development stages unless specifically instructed otherwise for a unique circumstance.
 *   **Example:** If the current phase is 9, current task is 1, and this is the 0th iteration/commit for this task, the version will be `v2.9.1.0`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.1.0)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.2.0)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.1.0`).
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.2.0`).
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling**
@@ -70,7 +70,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Defer backend integrations until the UI structure is stable.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-## **2. High-Level Goals (Current Version v2.9.1.0)**
+## **2. High-Level Goals (Current Version v2.9.2.0)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
@@ -83,13 +83,13 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console. **Phase 9 FSM will add dedicated pipeline logging.**
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.9.1.0)**
+## **3. Core Application Features (StockSage v2.9.2.0)**
 
 *(No changes to core features for this task. Focus is on architectural refactoring of the pipeline.)*
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
-*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.9.1.0`).
+*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.9.2.0`).
 *   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
 *   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features. When enabled, all individual log sources default to ON.
@@ -111,7 +111,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV), AI Options Analysis (JSON).
 
 ### **3.3. "Debug" Tab Features**
-*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response. **(Future: FSM Log display)**
+*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response, **FSM Log display (via Client Debug Console)**.
 *   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
 *   **Client Debug Log Settings:** Controls for the client-side debug console log categories, including "Enable All Sources" and "Disable All Sources" buttons.
 
@@ -133,7 +133,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **AI Integration:** Genkit (latest stable **v1.x series**)
 *   **AI Model Provider:** Google AI (using `@genkit-ai/googleai`)
 *   **Default AI Model:** `googleai/gemini-2.5-flash-preview-05-20`
-*   **State Management:** React Context API, `useActionState` for server actions. **Phase 9 will introduce `useReducer` for FSM pipeline state management within the context.**
+*   **State Management:** React Context API, `useActionState` for server actions. **Phase 9 introduces `useReducer` for FSM pipeline state management within the context.**
 *   **Data Fetching (External API):** **Polygon.io REST Client (`@polygon.io/client-js` version `^7.3.2` or latest compatible stable)**.
 *   **Deployment Target (Initial):** Firebase App Hosting
 *   **Build Tooling:** Next.js CLI (Turbopack enabled by default: `next dev --turbopack`).
@@ -225,7 +225,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 8 Complete. Starting Phase 9. Current application version: v2.9.1.0.)*
+*(Status: Phase 9 In Progress. Current application version: v2.9.2.0.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -267,7 +267,8 @@ This section documents critical issues encountered during development and their 
 **Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **IN PROGRESS**
 *   **Task 9.1: FSM Core Setup & Initial State Integration (v2.9.1.0):** - Status: **COMPLETE** (Commit: `544f6005`)
     *   **Sub-Task 9.1.0:** Defined FSM types (states: `IDLE`, `INITIALIZING_ANALYSIS`, `AWAITING_DATA_FETCH_TRIGGER`; events: `START_PARTIAL_ANALYSIS`, `START_FULL_ANALYSIS`, `INITIALIZATION_COMPLETE`) in `stock-analysis-context.tsx`. Implemented `useReducer` and initial `fsmReducer` logic. `MainTabContent.tsx` updated to dispatch FSM events. Placeholder setting and chat history clearing now handled by FSM logic upon entering `INITIALIZING_ANALYSIS`. Added `FSM_PIPELINE` log source. Application version updated to `v2.9.1.0`.
-*   **Task 9.2: Integrate Data Fetching into FSM:** - Status: **PENDING**
+*   **Task 9.2: Integrate Data Fetching into FSM (v2.9.2.0):** - Status: **COMPLETE** (Commit: `d8eff27b`)
+    *   **Sub-Task 9.2.0:** Extended FSM with states (`FETCHING_DATA`, `DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`) and events (`TRIGGER_DATA_FETCH`, `FETCH_DATA_SUCCESS`, `FETCH_DATA_FAILURE`) in `stock-analysis-context.tsx`. `fsmReducer` now handles these, updating context JSONs (market status, snapshot, TAs, options, Polygon logs) based on fetch success/failure. `MainTabContent.tsx` triggers `fetchStockDataAction` via FSM state and dispatches success/failure FSM events based on `analyzeStockState`. Application version updated to `v2.9.2.0`.
 *   **Task 9.3: Integrate AI Analyzed TA into FSM:** - Status: **PENDING**
 *   **Task 9.4: Integrate AI Key Takeaways into FSM:** - Status: **PENDING**
 *   **Task 9.5: Integrate AI Options Analysis into FSM:** - Status: **PENDING**
@@ -283,7 +284,8 @@ This section documents critical issues encountered during development and their 
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
 | 1.21    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 8.8.5 (Default Debug Console Settings) COMPLETE.** Application version `v2.8.8.5`. When main debug console switch is enabled, all individual log sources default to ON. Added "Enable All Sources" and "Disable All Sources" buttons to Debug Settings card. Updated header to `v2.8.8.5`. Relevant README sections updated. **Commit: `155968be`** |
-| **1.22**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.1.0 (FSM Core Setup) COMPLETE.** Application version `v2.9.1.0`. Initiated Phase 9 for FSM re-architecture. Defined FSM types (FsmState, FsmEvent) and initial reducer logic for `IDLE` & `INITIALIZING_ANALYSIS` states in `StockAnalysisContext`. `MainTabContent` updated to dispatch `START_PARTIAL_ANALYSIS` & `START_FULL_ANALYSIS` events. FSM now handles placeholder setting and chat history clearing. Added `FSM_PIPELINE` log source. Header displays `v2.9.1.0`. **New README update protocol added to Section 0.6.** Phase 9 Task 9.1.0 status updated. **Commit: `544f6005`** |
+| 1.22    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.1.0 (FSM Core Setup) COMPLETE.** Application version `v2.9.1.0`. Initiated Phase 9 for FSM re-architecture. Defined FSM types (FsmState, FsmEvent) and initial reducer logic for `IDLE` & `INITIALIZING_ANALYSIS` states in `StockAnalysisContext`. `MainTabContent` updated to dispatch `START_PARTIAL_ANALYSIS` & `START_FULL_ANALYSIS` events. FSM now handles placeholder setting and chat history clearing. Added `FSM_PIPELINE` log source. Header displays `v2.9.1.0`. **New README update protocol added to Section 0.6.** Phase 9 Task 9.1.0 status updated. **Commit: `544f6005`** |
+| **1.23**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.2.0 (FSM Data Fetch Integration) COMPLETE.** Application version `v2.9.2.0`. Extended FSM in `stock-analysis-context.tsx` with states for data fetching (`FETCHING_DATA`, `DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`) and events (`TRIGGER_DATA_FETCH`, `FETCH_DATA_SUCCESS`, `FETCH_DATA_FAILURE`). FSM reducer now calls context setters to update relevant data JSONs upon fetch success/failure. `MainTabContent.tsx` triggers `fetchStockDataAction` based on FSM state (`FETCHING_DATA`) and translates `analyzeStockState` outcomes into FSM events. Header displays `v2.9.2.0`. Phase 9 Task 9.2.0 status updated. **Commit: `d8eff27b`** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -336,5 +338,27 @@ This commit implements Task v2.9.1.0, starting Phase 9 by laying the groundwork 
 - **Versioning:** UI header and `README.md` updated to `v2.9.1.0`. Phase 9 introduced in README. **New README.md update protocol added to Section 0.6.**
 
 ---
+**App Version:** `v2.9.2.0` (FSM Data Fetch Integration)
+**Tag:** `Phase-9_Task-9.2.0_FSM-Data-Fetch` - Commit Hash: `d8eff27b`
+**Subject:** `feat(fsm): Integrate data fetching step into FSM pipeline (v2.9.2.0)`
+**Details:**
+This commit implements Task v2.9.2.0, further developing the FSM by integrating the data fetching process.
+- **FSM Enhancements (`stock-analysis-context.tsx`):**
+    - Added new FSM states: `FETCHING_DATA`, `DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`.
+    - Added new FSM events: `TRIGGER_DATA_FETCH`, `FETCH_DATA_SUCCESS` (with `StockDataFetchResult` payload), `FETCH_DATA_FAILURE` (with error payload).
+    - `fsmReducer` updated to handle these new states and events:
+        - `AWAITING_DATA_FETCH_TRIGGER` -> `FETCHING_DATA` on `TRIGGER_DATA_FETCH`.
+        - `FETCHING_DATA` -> `DATA_FETCH_SUCCEEDED` on `FETCH_DATA_SUCCESS`. Context JSONs (market status, snapshot, TAs, options, Polygon logs) are updated from the payload.
+        - `FETCHING_DATA` -> `DATA_FETCH_FAILED` on `FETCH_DATA_FAILURE`. Context JSONs updated with error/skipped status. Subsequent AI step JSONs also set to skipped.
+        - `DATA_FETCH_SUCCEEDED` -> `AWAITING_AI_TA_TRIGGER` (temporary next step).
+        - `DATA_FETCH_FAILED` -> `IDLE`, resets `isFullAnalysisTriggered`.
+- **UI Integration (`main-tab-content.tsx`):**
+    - `useEffect` added to dispatch `TRIGGER_DATA_FETCH` when `fsmState` is `AWAITING_DATA_FETCH_TRIGGER`.
+    - `useEffect` added to call `analyzeStockFormAction` when `fsmState` is `FETCHING_DATA`.
+    - The `useEffect` hook reacting to `analyzeStockState` (from `fetchStockDataAction`) now dispatches FSM events (`FETCH_DATA_SUCCESS` or `FETCH_DATA_FAILURE`) with the server action's payload, instead of directly setting context JSONs.
+- **Versioning:** UI header updated to `v2.9.2.0`. `README.md` updated to reflect completion of Task 9.2.0 and app version `v2.9.2.0`.
+
+---
 *(Future commit logs will follow)*
+
 
