@@ -49,6 +49,7 @@
     2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
+    5.  **README.md Update Timing:** All updates to this `README.md` document (including versioning, changelogs, and phased plan status) as described above **SHALL ONLY** be performed during an explicit 'COMMIT' stage, after the user has confirmed the code changes for that task version are ready to be finalized. The AI Agent **MUST NOT** propose `README.md` changes during scoping or iterative code development stages unless specifically instructed otherwise for a unique circumstance.
 *   **Example:** If the current phase is 9, current task is 1, and this is the 0th iteration/commit for this task, the version will be `v2.9.1.0`.
 
 ---
@@ -264,8 +265,8 @@ This section documents critical issues encountered during development and their 
 
 ---
 **Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **IN PROGRESS**
-*   **Task 9.1: FSM Core Setup & Initial State Integration (v2.9.1.0):** - Status: **IN PROGRESS**
-    *   **Sub-Task 9.1.0:** Define FSM types (states, events) in `stock-analysis-context.tsx`. Implement `useReducer` for basic FSM state (`IDLE`, `INITIALIZING_ANALYSIS`, temporary next state). Modify `MainTabContent.tsx` to dispatch `START_PARTIAL_ANALYSIS` / `START_FULL_ANALYSIS` events. FSM handles placeholder setting and chat clear. Add `FSM_PIPELINE` log source. Update versioning.
+*   **Task 9.1: FSM Core Setup & Initial State Integration (v2.9.1.0):** - Status: **COMPLETE** (Commit: `544f6005`)
+    *   **Sub-Task 9.1.0:** Defined FSM types (states: `IDLE`, `INITIALIZING_ANALYSIS`, `AWAITING_DATA_FETCH_TRIGGER`; events: `START_PARTIAL_ANALYSIS`, `START_FULL_ANALYSIS`, `INITIALIZATION_COMPLETE`) in `stock-analysis-context.tsx`. Implemented `useReducer` and initial `fsmReducer` logic. `MainTabContent.tsx` updated to dispatch FSM events. Placeholder setting and chat history clearing now handled by FSM logic upon entering `INITIALIZING_ANALYSIS`. Added `FSM_PIPELINE` log source. Application version updated to `v2.9.1.0`.
 *   **Task 9.2: Integrate Data Fetching into FSM:** - Status: **PENDING**
 *   **Task 9.3: Integrate AI Analyzed TA into FSM:** - Status: **PENDING**
 *   **Task 9.4: Integrate AI Key Takeaways into FSM:** - Status: **PENDING**
@@ -282,7 +283,7 @@ This section documents critical issues encountered during development and their 
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
 | 1.21    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 8.8.5 (Default Debug Console Settings) COMPLETE.** Application version `v2.8.8.5`. When main debug console switch is enabled, all individual log sources default to ON. Added "Enable All Sources" and "Disable All Sources" buttons to Debug Settings card. Updated header to `v2.8.8.5`. Relevant README sections updated. **Commit: `155968be`** |
-| **1.22**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.1.0 (FSM Core Setup & Initial State Integration) IN PROGRESS.** Application version `v2.9.1.0`. Initiated Phase 9 for FSM re-architecture. Defined FSM types (FsmState, FsmEvent) and initial reducer logic for `IDLE` & `INITIALIZING_ANALYSIS` states in `StockAnalysisContext`. `MainTabContent` updated to dispatch `START_PARTIAL_ANALYSIS` & `START_FULL_ANALYSIS` events. FSM now handles placeholder setting and chat history clearing. Added `FSM_PIPELINE` log source. Header displays `v2.9.1.0`. README sections updated to reflect Phase 9 and new version. **Commit: TBD** |
+| **1.22**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.1.0 (FSM Core Setup) COMPLETE.** Application version `v2.9.1.0`. Initiated Phase 9 for FSM re-architecture. Defined FSM types (FsmState, FsmEvent) and initial reducer logic for `IDLE` & `INITIALIZING_ANALYSIS` states in `StockAnalysisContext`. `MainTabContent` updated to dispatch `START_PARTIAL_ANALYSIS` & `START_FULL_ANALYSIS` events. FSM now handles placeholder setting and chat history clearing. Added `FSM_PIPELINE` log source. Header displays `v2.9.1.0`. **New README update protocol added to Section 0.6.** Phase 9 Task 9.1.0 status updated. **Commit: `544f6005`** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -316,7 +317,7 @@ This commit implements Task v2.8.8.5, improving the usability of the client-side
 
 ---
 **App Version:** `v2.9.1.0` (FSM Core Setup)
-**Tag:** `Phase-9_Task-9.1.0_FSM-Core-Setup` - Commit Hash: **TBD**
+**Tag:** `Phase-9_Task-9.1.0_FSM-Core-Setup` - Commit Hash: `544f6005`
 **Subject:** `feat(arch): Initialize FSM for analysis pipeline and integrate initial states (v2.9.1.0)`
 **Details:**
 This commit implements Task v2.9.1.0, starting Phase 9 by laying the groundwork for a Finite State Machine (FSM) to manage the analysis pipeline.
@@ -332,7 +333,7 @@ This commit implements Task v2.9.1.0, starting Phase 9 by laying the groundwork 
     - Initial `useEffect` added to react to `fsmState` (specifically `INITIALIZING_ANALYSIS` to dispatch `INITIALIZATION_COMPLETE`).
 - **Logging (`debug-log-types.ts`):**
     - Added new `FSM_PIPELINE` log source.
-- **Versioning:** UI header and `README.md` updated to `v2.9.1.0`. Phase 9 introduced in README.
+- **Versioning:** UI header and `README.md` updated to `v2.9.1.0`. Phase 9 introduced in README. **New README.md update protocol added to Section 0.6.**
 
 ---
 *(Future commit logs will follow)*
