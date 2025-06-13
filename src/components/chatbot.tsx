@@ -40,7 +40,8 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     clearChatHistory,
     stockSnapshotJson,
     aiKeyTakeawaysJson,
-    aiCalculatedTaJson,
+    aiAnalyzedTaJson: contextAiAnalyzedTaJson, // Use destructured & aliased version
+    aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, // Use destructured & aliased version
     logDebug,
   } = useStockAnalysis();
   const [userInput, setUserInput] = useState('');
@@ -57,8 +58,9 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   const currentContextReady = useCallback(() => {
     return isContextJsonReady(stockSnapshotJson) && 
            isContextJsonReady(aiKeyTakeawaysJson) && 
-           isContextJsonReady(aiCalculatedTaJson);
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, aiCalculatedTaJson, isContextJsonReady]);
+           isContextJsonReady(contextAiAnalyzedTaJson) && // Corrected to use context variable
+           isContextJsonReady(contextAiOptionsAnalysisJson); // Added options analysis check
+  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, isContextJsonReady]);
 
 
   useEffect(() => {
@@ -74,14 +76,16 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   useEffect(() => {
     const snapshotReady = isContextJsonReady(stockSnapshotJson);
     const takeawaysReady = isContextJsonReady(aiKeyTakeawaysJson);
-    const taReady = isContextJsonReady(aiCalculatedTaJson);
+    const taReady = isContextJsonReady(contextAiAnalyzedTaJson);
+    const optionsReady = isContextJsonReady(contextAiOptionsAnalysisJson);
     logDebug('Chatbot', 'Context readiness check:', { 
       isOverallReady: currentContextReady(), 
       snapshotJsonValid: snapshotReady,
       takeawaysJsonValid: takeawaysReady,
       aiTaJsonValid: taReady,
+      aiOptionsJsonValid: optionsReady,
     });
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, aiCalculatedTaJson, logDebug, currentContextReady, isContextJsonReady]);
+  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, logDebug, currentContextReady, isContextJsonReady]);
 
 
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
@@ -95,7 +99,7 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     }
 
     const userMessage: ChatMessage = { id: Date.now().toString() + '_user', role: 'user', content: userInput.trim() };
-    addChatMessage(userMessage); // This will also log from StockAnalysisContext
+    addChatMessage(userMessage); 
 
     logDebug('Chatbot', `Submitting chat message for ${currentTicker}: "${userInput.trim()}"`);
 
@@ -103,7 +107,8 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
       ticker: currentTicker,
       stockSnapshotJson,
       aiKeyTakeawaysJson,
-      aiCalculatedTaJson,
+      aiAnalyzedTaJson: contextAiAnalyzedTaJson, // Pass correct context variable
+      aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, // Pass correct context variable
       chatHistory: [...chatHistory, userMessage], 
       userInput: userInput.trim(),
     };
@@ -269,4 +274,3 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     </Card>
   );
 }
-
