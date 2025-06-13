@@ -17,17 +17,14 @@ function PageContent() {
     isClientDebugConsoleEnabled,
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
-    setClientDebugConsoleOpen,
     logDebug,
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
-    logDebug('StockAnalysisContext', `Main debug console switch toggled: ${checked}`);
-    setClientDebugConsoleEnabled(checked); 
-    // If enabling, also open it. If disabling, context's setClientDebugConsoleEnabled handles closing.
-    if (checked) {
-        setClientDebugConsoleOpen(true); 
-    }
+    logDebug('MainTabContent', `Main debug console switch toggled by user to: ${checked}`);
+    setClientDebugConsoleEnabled(checked);
+    // The logic to open/close the console panel is now fully handled 
+    // within the setClientDebugConsoleEnabled callback in the context.
   };
 
   return (
@@ -42,7 +39,7 @@ function PageContent() {
         <div className="flex items-center space-x-2 mb-4 p-4 border rounded-md bg-card/50">
           <Switch
             id="enable-debug-console"
-            checked={isClientDebugConsoleEnabled} // Switch reflects enablement state
+            checked={isClientDebugConsoleEnabled} 
             onCheckedChange={handleDebugConsoleToggle}
           />
           <Label htmlFor="enable-debug-console">Enable & Show Client Debug Console (All Logs On by Default)</Label>

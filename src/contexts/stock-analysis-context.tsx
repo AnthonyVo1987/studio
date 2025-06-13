@@ -229,12 +229,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
   
   const [fullAnalysisStatus, _setFullAnalysisStatus] = useState<FullAnalysisStatus>(defaultState.fullAnalysisStatus);
-  const [isFullAnalysisTriggered, _setIsFullAnalysisTriggered] = useState<boolean>(defaultState.isFullAnalysisTriggered);
+  const [_isFullAnalysisTriggered, _setIsFullAnalysisTriggered] = useState<boolean>(defaultState.isFullAnalysisTriggered); // Renamed from isFullAnalysisTriggered to avoid conflict with context value
   const [chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
   
-  const [isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
-  const [isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
-  const [logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
+  const [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
+  const [_isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
+  const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
 
   const logDebug = useCallback((source: LogSourceId, ...messages: any[]) => {
     console.debug(LOGDEBUG_MARKER, source, ...messages);
@@ -266,7 +266,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setFullAnalysisStatus, logDebug]);
 
   const setIsFullAnalysisTriggeredInternal = useCallback((triggered: boolean) => {
-     logDebug('StockAnalysisContext', `Setting isFullAnalysisTriggered to: ${triggered}`);
+     logDebug('StockAnalysisContext', `Setting _isFullAnalysisTriggered (internal state) to: ${triggered}`);
     _setIsFullAnalysisTriggered(triggered);
   }, [_setIsFullAnalysisTriggered, logDebug]);
 
@@ -328,7 +328,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   };
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
-    logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event Type: ${event.type}, Event Payload (preview):`, 
+    // Use a local variable to hold the current value of _isFullAnalysisTriggered for logging purposes within the reducer
+    const currentIsFullAnalysisTriggered = _isFullAnalysisTriggered; 
+    logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event Type: ${event.type}, Current _isFullAnalysisTriggered: ${currentIsFullAnalysisTriggered}, Event Payload (preview):`, 
         Object.entries(event).reduce((acc, [key, value]) => {
           if (key === 'payload' && typeof value === 'object' && value !== null) {
             acc[key] = Object.entries(value).reduce((pAcc, [pKey, pValue]) => {
@@ -416,7 +418,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return FsmState.AWAITING_AI_TA_TRIGGER;
 
       case FsmState.DATA_FETCH_FAILED:
-        logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_FAILED -> IDLE. isFullAnalysisTriggered was: ${isFullAnalysisTriggered}`);
+        logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_FAILED -> IDLE. _isFullAnalysisTriggered (at decision): ${currentIsFullAnalysisTriggered}`); 
         _setIsFullAnalysisTriggered(false); 
         return FsmState.IDLE;
 
@@ -458,8 +460,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return state;
 
       case FsmState.AI_TA_SUCCEEDED:
-        logDebug('FSM_PIPELINE', `In AI_TA_SUCCEEDED. isFullAnalysisTriggered: ${isFullAnalysisTriggered}`);
-        if (isFullAnalysisTriggered) {
+        logDebug('FSM_PIPELINE', `In AI_TA_SUCCEEDED. _isFullAnalysisTriggered (at decision): ${currentIsFullAnalysisTriggered}`);
+        if (currentIsFullAnalysisTriggered) {
           logDebug('FSM_PIPELINE', `Transition: AI_TA_SUCCEEDED -> AWAITING_KEY_TAKEAWAYS_TRIGGER (Full Analysis)`);
           return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
         } else {
@@ -468,8 +470,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
 
       case FsmState.AI_TA_FAILED:
-        logDebug('FSM_PIPELINE', `In AI_TA_FAILED. isFullAnalysisTriggered: ${isFullAnalysisTriggered}`);
-        if (isFullAnalysisTriggered) {
+        logDebug('FSM_PIPELINE', `In AI_TA_FAILED. _isFullAnalysisTriggered (at decision): ${currentIsFullAnalysisTriggered}`);
+        if (currentIsFullAnalysisTriggered) {
           logDebug('FSM_PIPELINE', `Transition: AI_TA_FAILED -> AWAITING_KEY_TAKEAWAYS_TRIGGER (Full Analysis, TA error noted)`);
           return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
         } else {
@@ -654,11 +656,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setLogSourceConfig, logDebug]);
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
-    logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled will be set to: ${enabled}. Current value: ${_isClientDebugConsoleEnabled => _isClientDebugConsoleEnabled}`);
+    logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled will be set to: ${enabled}.`);
     _setClientDebugConsoleEnabled(enabled);
     if (enabled) {
-      logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled is true, calling enableAllLogSources.`);
-      enableAllLogSources(); 
+      logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled is true, calling enableAllLogSources and opening console.`);
+      enableAllLogSources();
+      _setClientDebugConsoleOpen(true); 
     } else {
       logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled is false, ensuring console is closed and buffer cleared.`);
       _setClientDebugConsoleOpen(false);
@@ -666,12 +669,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
   }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
 
+
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
-    logDebug('StockAnalysisContext', `ClientDebugConsoleOpen will be set to: ${open}. Current value: ${_isClientDebugConsoleOpen => _isClientDebugConsoleOpen}. Enabled: ${isClientDebugConsoleEnabled}`);
-    if (isClientDebugConsoleEnabled || !open) { 
+    logDebug('StockAnalysisContext', `ClientDebugConsoleOpen will be set to: ${open}. Current isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
+    if (_isClientDebugConsoleEnabled || !open) { 
         _setClientDebugConsoleOpen(open);
+    } else if (!_isClientDebugConsoleEnabled && open) {
+        logDebug('StockAnalysisContext', 'Attempted to open console while it is disabled. Opening action will be ignored.');
     }
-  }, [isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
+  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
     _setLogSourceConfig(prevConfig => {
@@ -706,7 +712,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       currentOriginals[type](...args); 
 
       queueMicrotask(() => {
-        if (!isClientDebugConsoleEnabled) return; 
+        if (!_isClientDebugConsoleEnabled) return; 
 
         let source: LogSourceId = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
@@ -716,11 +722,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           source = args[1] as LogSourceId;
           messagesForBuffer = args.slice(2);
           logTypeForBuffer = 'debug'; 
-          if (!logSourceConfig[source]) {
+          if (!_logSourceConfig[source]) {
             return; 
           }
         } else {
-          if (!logSourceConfig['NATIVE_CONSOLE']) {
+          if (!_logSourceConfig['NATIVE_CONSOLE']) {
             return; 
           }
         }
@@ -728,7 +734,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       });
     };
     
-    if (isClientDebugConsoleEnabled) { 
+    if (_isClientDebugConsoleEnabled) { 
       console.log = (...args) => interceptAndProcessLog('log', ...args);
       console.warn = (...args) => interceptAndProcessLog('warn', ...args);
       console.error = (...args) => interceptAndProcessLog('error', ...args);
@@ -748,31 +754,31 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         currentOriginals.debug('[StockAnalysisContext]', 'Console Interceptor Native Call', 'Console interception disabled on cleanup, originals restored.');
       }
     };
-  }, [isClientDebugConsoleEnabled, logSourceConfig, logDebug]); 
+  }, [_isClientDebugConsoleEnabled, _logSourceConfig, logDebug]); 
 
   const contextValue: StockAnalysisContextType = {
-    polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson: _setPolygonApiRequestLogJson,
-    polygonApiResponseLogJson: _polygonApiResponseLogJson, setPolygonApiResponseLogJson: _setPolygonApiResponseLogJson,
-    marketStatusJson: _marketStatusJson, setMarketStatusJson: _setMarketStatusJson,
-    stockSnapshotJson: _stockSnapshotJson, setStockSnapshotJson: _setStockSnapshotJson,
-    standardTasJson: _standardTasJson, setStandardTasJson: _setStandardTasJson,
-    optionsChainJson: _optionsChainJson, setOptionsChainJson: _setOptionsChainJson,
-    aiAnalyzedTaRequestJson: _aiAnalyzedTaRequestJson, setAiAnalyzedTaRequestJson: _setAiAnalyzedTaRequestJson,
-    aiAnalyzedTaJson: _aiAnalyzedTaJson, setAiAnalyzedTaJson: _setAiAnalyzedTaJson,
-    aiOptionsAnalysisRequestJson: _aiOptionsAnalysisRequestJson, setAiOptionsAnalysisRequestJson: _setAiOptionsAnalysisRequestJson,
-    aiOptionsAnalysisJson: _aiOptionsAnalysisJson, setAiOptionsAnalysisJson: _setAiOptionsAnalysisJson,
-    aiKeyTakeawaysRequestJson: _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson: _setAiOptionsAnalysisRequestJson,
-    aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson: _setAiOptionsAnalysisJson,
-    chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson: _setAiOptionsAnalysisRequestJson,
-    chatbotResponseJson: _chatbotResponseJson, setChatbotResponseJson: _setAiOptionsAnalysisJson,
+    polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson,
+    polygonApiResponseLogJson: _polygonApiResponseLogJson, setPolygonApiResponseLogJson,
+    marketStatusJson: _marketStatusJson, setMarketStatusJson,
+    stockSnapshotJson: _stockSnapshotJson, setStockSnapshotJson,
+    standardTasJson: _standardTasJson, setStandardTasJson,
+    optionsChainJson: _optionsChainJson, setOptionsChainJson,
+    aiAnalyzedTaRequestJson: _aiAnalyzedTaRequestJson, setAiAnalyzedTaRequestJson,
+    aiAnalyzedTaJson: _aiAnalyzedTaJson, setAiAnalyzedTaJson,
+    aiOptionsAnalysisRequestJson: _aiOptionsAnalysisRequestJson, setAiOptionsAnalysisRequestJson,
+    aiOptionsAnalysisJson: _aiOptionsAnalysisJson, setAiOptionsAnalysisJson,
+    aiKeyTakeawaysRequestJson: _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson,
+    aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson,
+    chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson,
+    chatbotResponseJson: _chatbotResponseJson, setChatbotResponseJson,
     
     fullAnalysisStatus, setFullAnalysisStatus,
-    isFullAnalysisTriggered, setIsFullAnalysisTriggered: setIsFullAnalysisTriggeredInternal,
+    isFullAnalysisTriggered: _isFullAnalysisTriggered, setIsFullAnalysisTriggered: setIsFullAnalysisTriggeredInternal,
     chatHistory, setChatHistory,
     clearChatHistory: clearChatHistoryInternal, addChatMessage,
     
-    isClientDebugConsoleEnabled, isClientDebugConsoleOpen,
-    logSourceConfig,
+    isClientDebugConsoleEnabled: _isClientDebugConsoleEnabled, isClientDebugConsoleOpen: _isClientDebugConsoleOpen,
+    logSourceConfig: _logSourceConfig,
     setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
     setLogSourceEnabled, 
     enableAllLogSources, disableAllLogSources,
