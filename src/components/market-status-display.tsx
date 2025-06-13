@@ -49,7 +49,7 @@ export function MarketStatusDisplay() {
     } else {
       try {
         const data = JSON.parse(marketStatusJson) as MarketStatusData;
-        logDebug('MarketStatusDisplay', "Successfully parsed marketStatusJson. Market status:", data?.market);
+        logDebug('MarketStatusDisplay', "Successfully parsed marketStatusJson. Market status:", data?.market, "Error field in data:", data?.error);
         if (data && typeof data === 'object' && !data.error) {
           isLoading = false;
           isError = false;
@@ -75,7 +75,11 @@ export function MarketStatusDisplay() {
               });
           }
         } else {
-           logDebug('MarketStatusDisplay', "Parsed marketStatusJson is not a valid object or contains error field.");
+           if (data?.error) {
+             logDebug('MarketStatusDisplay', "Parsed marketStatusJson contains an error field, treating as error state. Error:", data.error);
+           } else {
+             logDebug('MarketStatusDisplay', "Parsed marketStatusJson is not a valid object for display (e.g., missing expected structure, or was not an object after parse). Data:", data);
+           }
            isLoading = false;
            isError = true;
         }
