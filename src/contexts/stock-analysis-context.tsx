@@ -13,7 +13,7 @@ export type FullAnalysisStatus =
   | 'pending'
   | 'fetchingData'
   | 'analyzingTa'
-  | 'generatingTakeaways'
+  | 'generatingTakeaways' // New status for clarity
   | 'analyzingOptions'
   | 'chatting'
   | 'success'
@@ -144,7 +144,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
-    logDebug('StockAnalysisContext', `Setting ${name} to:`, value.substring(0, 100));
+    logDebug('StockAnalysisContext', `Setting ${name} to:`, value.substring(0, 100) + (value.length > 100 ? '...' : ''));
     setter(value);
   }, [logDebug]);
 
@@ -186,45 +186,44 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const enableAllLogSources = useCallback(() => {
     logDebug('StockAnalysisContext', 'Enabling all log sources.');
-    const newConfig: LogSourceConfig = { ...defaultLogSourceConfig }; // Start with defaults
+    const newConfig: LogSourceConfig = { ...defaultLogSourceConfig }; 
     logSourceIds.forEach(id => { newConfig[id] = true; });
-    newConfig.DebugConsole = true; // Ensure DebugConsole itself remains enabled for its own logs
+    newConfig.DebugConsole = true; 
     _setLogSourceConfig(newConfig);
   }, [_setLogSourceConfig, logDebug]);
 
   const disableAllLogSources = useCallback(() => {
     logDebug('StockAnalysisContext', 'Disabling all log sources (except DebugConsole itself).');
-    const newConfig: LogSourceConfig = { ...defaultLogSourceConfig }; // Start with defaults
+    const newConfig: LogSourceConfig = { ...defaultLogSourceConfig }; 
     logSourceIds.forEach(id => { newConfig[id] = false; });
-    newConfig.DebugConsole = true; // Keep DebugConsole enabled
+    newConfig.DebugConsole = true; 
     _setLogSourceConfig(newConfig);
   }, [_setLogSourceConfig, logDebug]);
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
+    logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled will be set to: ${enabled}. Current value: ${_isClientDebugConsoleEnabled => _isClientDebugConsoleEnabled}`);
     _setClientDebugConsoleEnabled(enabled);
-    logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled set to: ${enabled}`);
     if (enabled) {
+      logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled is true, calling enableAllLogSources.`);
       enableAllLogSources(); 
     } else {
+      logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled is false, ensuring console is closed and buffer cleared.`);
       _setClientDebugConsoleOpen(false);
       clearGlobalLogBuffer(); 
-      // Optionally reset individual log source configs to default or keep them as user last set.
-      // For now, let's keep them as user might re-enable console and expect previous settings.
-      // If requirement is to reset all to false (except DebugConsole), then call disableAllLogSources() here too.
     }
   }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
+    logDebug('StockAnalysisContext', `ClientDebugConsoleOpen will be set to: ${open}. Current value: ${_isClientDebugConsoleOpen => _isClientDebugConsoleOpen}. Enabled: ${isClientDebugConsoleEnabled}`);
     if (isClientDebugConsoleEnabled || !open) { 
         _setClientDebugConsoleOpen(open);
-        logDebug('StockAnalysisContext', `ClientDebugConsoleOpen set to: ${open}`);
     }
   }, [isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
     _setLogSourceConfig(prevConfig => {
         const newConfig = { ...prevConfig, [source]: enabled };
-        if (source === 'DebugConsole' && !enabled) { // Prevent disabling DebugConsole itself via this method
+        if (source === 'DebugConsole' && !enabled) {
             logDebug('StockAnalysisContext', 'Attempted to disable DebugConsole source via setLogSourceEnabled, overriding to keep it true.');
             newConfig.DebugConsole = true;
         }

@@ -270,7 +270,7 @@ This section documents critical issues encountered during development and their 
 *   **Task 8.8.2: Implement Dynamic Version Display & SOP (Version: v2.8.8.2):** - Status: **COMPLETE** (Commit: `07817f2a`)
 *   **Task 8.8.3: Update TA Data & Display (Multi-Window, VWAP Minute) (Version: v2.8.8.3):** - Status: **COMPLETE** (Commit: `b222bbfd`)
 *   **Task 8.8.4: AI Analyzed Options Chain (Call/Put Walls & OI Clusters) & TA Renaming (Version: v2.8.8.4 - WIP):** - Status: **COMPLETE (Marked as WIP Commit `26e51654`)**
-*   **Task 8.8.5: Default Debug Console Settings (Current version: v2.8.8.5):** - Status: **IN PROGRESS (Current Task)**
+*   **Task 8.8.5: Default Debug Console Settings (Current version: v2.8.8.5):** - Status: **COMPLETE (Current Task)**
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
@@ -281,7 +281,7 @@ This section documents critical issues encountered during development and their 
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
 | 1.19    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.3 (Update TA Data & Display) complete.** Application version `v2.8.8.3`. Updated `src/services/data-sources/types.ts` for new TA structures. Updated `polygon-adapter.ts` to fetch multi-window RSI, EMA, SMA, and minute VWAP. Updated `standard-ta-display.tsx` to render new TA data. Updated AI prompt in `analyze-stock-data.ts` to understand new TA JSON. Updated header to display `v2.8.8.3`. Updated relevant README sections. Commit `b222bbfd`. |
 | 1.20    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 8.8.4 (AI Options Analysis & TA Renaming) marked complete for commit `26e51654` (WIP).** Application version `v2.8.8.4`. Renamed "AI-Calculated TA" to "AI Analyzed TA" throughout codebase & docs. Added new "AI Analyzed Options Chain" feature: new UI card, Genkit flow for Call/Put Walls & OI Clusters, server action, context updates, debug logs. Prompts for Key Takeaways and Chatbot updated. Header displays `v2.8.8.4`. Relevant README sections updated. **Commit: `26e51654` (WIP).** |
-| **1.21**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 8.8.5 (Default Debug Console Settings) IN PROGRESS.** Application version `v2.8.8.5`. When main debug console switch is enabled, all individual log sources default to ON. Added "Enable All Sources" and "Disable All Sources" buttons to Debug Settings card. Updated header to `v2.8.8.5`. Relevant README sections updated. |
+| **1.21**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 8.8.5 (Default Debug Console Settings) COMPLETE.** Application version `v2.8.8.5`. When main debug console switch is enabled, all individual log sources default to ON. Added "Enable All Sources" and "Disable All Sources" buttons to Debug Settings card. Updated header to `v2.8.8.5`. Relevant README sections updated. |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -328,7 +328,7 @@ This commit implements Task v2.8.8.3, significantly enhancing the Standard Techn
 
 ---
 **App Version:** `v2.8.8.4` (Reflects AI Options Analysis and TA renaming - WIP)
-**Tag:** `Phase-8_Task-8.8.4_Options-AI-TA-Rename` - Commit Hash: `26e51654`
+**Tag:** `Phase-8_Task-8.8.4_Options-AI-TA-Rename_WIP` - Commit Hash: `26e51654`
 **Subject:** `feat(ai,ui): Add AI Options Wall & Cluster Analysis, rename AI TA components, update version to v2.8.8.4 (WIP)`
 **Details:**
 This commit implements Task v2.8.8.4 and is **Work-In-Progress**. Further testing and fixes are expected.
@@ -345,6 +345,24 @@ This commit implements Task v2.8.8.4 and is **Work-In-Progress**. Further testin
 - **Pipeline Refactor:** The AI analysis pipeline in `MainTabContent.tsx` has been refactored for more granular, sequential execution of AI steps.
 - **Versioning:** UI header and `README.md` updated to `v2.8.8.4`. `README.md` sections updated.
 - **NOTE:** This feature is currently under active development and testing. The AI Options Analysis results and overall pipeline stability are still being verified.
+
+---
+**App Version:** `v2.8.8.5` (Reflects Debug Console Default Setting Enhancements)
+**Tag:** `Phase-8_Task-8.8.5_Debug-Console-Defaults` - Commit Hash: `(To be assigned)`
+**Subject:** `feat(debug): Enhance debug console with default-on sources and toggle-all buttons (v2.8.8.5)`
+**Details:**
+This commit implements Task v2.8.8.5, improving the usability of the client-side debug console.
+- **Context (`stock-analysis-context.tsx`):**
+    - Modified `setClientDebugConsoleEnabled`: When the console is enabled, it now automatically calls `enableAllLogSources` to turn on all individual log source toggles by default.
+    - Added `enableAllLogSources()`: Sets all log source toggles to `true`.
+    - Added `disableAllLogSources()`: Sets all log source toggles to `false` (except for the 'DebugConsole' source itself, which remains true if the main console is active).
+- **UI (`app/page.tsx`):**
+    - Simplified `handleDebugConsoleToggle` as the main logic for enabling all sources now resides in the context.
+    - Updated the label for the main debug console switch to "Enable & Show Client Debug Console (All Logs On by Default)".
+- **UI (`components/debug-settings-card.tsx`):**
+    - Added "Enable All Sources" button, which calls `enableAllLogSources`.
+    - Added "Disable All Sources (Except Console Itself)" button, which calls `disableAllLogSources`.
+- **Versioning:** UI header and `README.md` updated to `v2.8.8.5`.
 
 ---
 *(Future commit logs will follow)*

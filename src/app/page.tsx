@@ -18,15 +18,16 @@ function PageContent() {
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
-    // enableAllLogSources, // No longer need to call this directly here
     logDebug,
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
     logDebug('StockAnalysisContext', `Main debug console switch toggled: ${checked}`);
-    // The setClientDebugConsoleEnabled in the context will now handle enabling all log sources
     setClientDebugConsoleEnabled(checked); 
-    setClientDebugConsoleOpen(checked); 
+    // If enabling, also open it. If disabling, context's setClientDebugConsoleEnabled handles closing.
+    if (checked) {
+        setClientDebugConsoleOpen(true); 
+    }
   };
 
   return (
@@ -41,7 +42,7 @@ function PageContent() {
         <div className="flex items-center space-x-2 mb-4 p-4 border rounded-md bg-card/50">
           <Switch
             id="enable-debug-console"
-            checked={isClientDebugConsoleEnabled && isClientDebugConsoleOpen}
+            checked={isClientDebugConsoleEnabled} // Switch reflects enablement state
             onCheckedChange={handleDebugConsoleToggle}
           />
           <Label htmlFor="enable-debug-console">Enable & Show Client Debug Console (All Logs On by Default)</Label>
