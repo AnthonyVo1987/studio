@@ -104,73 +104,79 @@ export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
   const jsonString = aiKeyTakeawaysJson;
+  const componentName = 'AiKeyTakeawaysDisplay';
+
+  logDebug(componentName, "aiKeyTakeawaysJson (start):", jsonString ? jsonString.substring(0,100) : "null");
 
   let isLoading = false;
   let isError = false;
   let errorOrSkippedMessage = "AI Key Takeaways not available.";
   let parsedTakeawaysData: StockAnalysisOutput | null = null;
   let displayTakeaways: TakeawayDisplayItem[] = [];
-
-  logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson (start):", jsonString ? jsonString.substring(0,100) : "null");
-
-  if (jsonString && jsonString !== '{}') {
-    if (jsonString.includes('"status": "initializing"') || jsonString.includes('"status": "pending"') || jsonString.includes('"status": "full_analysis_pending..."')) {
-      isLoading = true;
-      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is in pending/initializing state.");
-    } else if (jsonString.includes('"status": "error"')) {
-      isError = true;
-      isLoading = false;
-      try {
-        const errorData = JSON.parse(jsonString);
-        errorOrSkippedMessage = errorData.message || "Error loading AI Key Takeaways.";
-      } catch {
-        errorOrSkippedMessage = "Error loading AI Key Takeaways.";
-      }
-      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates an error state.");
-    } else if (jsonString.includes('"status": "skipped"')) {
-      isError = true;
-      isLoading = false;
-      errorOrSkippedMessage = "AI Key Takeaways were skipped.";
-      logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson indicates a skipped state.");
-    } else {
-      try {
-        const data = JSON.parse(jsonString) as StockAnalysisOutput;
-        logDebug('AiKeyTakeawaysDisplay', "Attempting to parse aiKeyTakeawaysJson. Parsed priceAction:", data?.priceAction);
-        if (data && typeof data === 'object' && data.priceAction) { // Check for a known key
-          parsedTakeawaysData = data;
-          displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
-              categoryKey: key,
-              categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
-              sentiment: data[key]?.sentiment || "neutral",
-              text: data[key]?.takeaway || "No takeaway generated.",
-              textSentimentClass: getSemanticTextColorClass(data[key]?.sentiment),
-              badgeSentimentClass: getSemanticBadgeClass(data[key]?.sentiment)
-          }));
-        } else {
-          isError = true;
-          errorOrSkippedMessage = "AI Key Takeaways data is malformed or incomplete.";
-          logDebug('AiKeyTakeawaysDisplay', "Parsed aiKeyTakeawaysJson missing priceAction or critical data.");
-        }
-      } catch (e) {
-        isError = true;
-        errorOrSkippedMessage = "Failed to parse AI Key Takeaways data.";
-        logDebug('AiKeyTakeawaysDisplay', "Error parsing AI Key Takeaways JSON.", e);
-      }
-    }
-  } else {
+  
+  if (!jsonString || jsonString === '{}') {
     isLoading = false;
     isError = true; 
     errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
-    logDebug('AiKeyTakeawaysDisplay', "aiKeyTakeawaysJson is empty or null.");
+    logDebug(componentName, "aiKeyTakeawaysJson is empty or null.");
+  } else if (jsonString.includes('"status": "initializing"') || jsonString.includes('"status": "pending"') || jsonString.includes('"status": "full_analysis_pending..."')) {
+    isLoading = true;
+    isError = false;
+    parsedTakeawaysData = null;
+    logDebug(componentName, "aiKeyTakeawaysJson is in pending/initializing state.");
+  } else if (jsonString.includes('"status": "error"') || jsonString.includes('"status": "skipped"')) {
+    isLoading = false;
+    isError = true;
+    parsedTakeawaysData = null;
+    try {
+      const statusObj = JSON.parse(jsonString);
+      if (statusObj.status === "skipped") {
+        errorOrSkippedMessage = statusObj.message || "AI Key Takeaways were skipped.";
+      } else {
+        errorOrSkippedMessage = statusObj.message || "Error loading AI Key Takeaways.";
+      }
+      logDebug(componentName, `JSON indicates status: ${statusObj.status}, message: ${errorOrSkippedMessage}`);
+    } catch (e) {
+      errorOrSkippedMessage = "Failed to parse status message from error/skipped JSON for AI Key Takeaways.";
+      logDebug(componentName, "Failed to parse error/skipped status JSON for AI Key Takeaways.", e);
+    }
+  } else {
+    isLoading = false;
+    isError = false;
+    try {
+      const data = JSON.parse(jsonString) as StockAnalysisOutput;
+      if (data && typeof data === 'object' && data.priceAction && data.trend && data.volatility && data.momentum && data.patterns) {
+        parsedTakeawaysData = data;
+        displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
+            categoryKey: key,
+            categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
+            sentiment: data[key]?.sentiment || "neutral",
+            text: data[key]?.takeaway || "No takeaway generated.",
+            textSentimentClass: getSemanticTextColorClass(data[key]?.sentiment),
+            badgeSentimentClass: getSemanticBadgeClass(data[key]?.sentiment)
+        }));
+        logDebug(componentName, "Successfully parsed aiKeyTakeawaysJson data.", data);
+      } else {
+        isError = true;
+        errorOrSkippedMessage = "AI Key Takeaways data is malformed or incomplete.";
+        parsedTakeawaysData = null;
+        logDebug(componentName, "Parsed aiKeyTakeawaysJson data is malformed or missing critical fields.", data);
+      }
+    } catch (e) {
+      isError = true;
+      errorOrSkippedMessage = "Failed to parse AI Key Takeaways data.";
+      parsedTakeawaysData = null;
+      logDebug(componentName, "Error parsing AI Key Takeaways JSON.", e);
+    }
   }
 
-  logDebug('AiKeyTakeawaysDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
+  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
 
   const isDataReadyForExport = !isLoading && !isError && parsedTakeawaysData && Object.keys(parsedTakeawaysData).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
 
   const handleExport = (format: 'json' | 'text' | 'csv') => {
-    logDebug('AiKeyTakeawaysDisplay:handleExport', `Attempting to export takeaways as ${format} for ${currentTicker}`);
+    logDebug(componentName, `Attempting to export takeaways as ${format} for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysData) {
       toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
       return;
@@ -189,15 +195,15 @@ export function AiKeyTakeawaysDisplay() {
         downloadTxt(csvData, `${filename}.csv`); 
         toast({ title: "Exported as CSV", description: "Key takeaways downloaded." });
       }
-      logDebug('AiKeyTakeawaysDisplay:handleExport', `Successfully exported as ${format}`);
+      logDebug(componentName, `Successfully exported as ${format}`);
     } catch (e: any) {
-      logDebug('AiKeyTakeawaysDisplay:handleExport', `Error exporting as ${format}:`, e);
+      logDebug(componentName, `Error exporting as ${format}:`, e);
       toast({ variant: "destructive", title: "Export Error", description: `Could not export takeaways: ${e.message}` });
     }
   };
 
   const handleCopy = async (format: 'json' | 'text' | 'csv') => {
-    logDebug('AiKeyTakeawaysDisplay:handleCopy', `Attempting to copy takeaways as ${format} for ${currentTicker}`);
+    logDebug(componentName, `Attempting to copy takeaways as ${format} for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysData) {
       toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
       return;
@@ -215,12 +221,12 @@ export function AiKeyTakeawaysDisplay() {
       success = await copyToClipboard(dataToCopy);
       if (success) {
         toast({ title: `Copied as ${format.toUpperCase()}`, description: "Key takeaways copied to clipboard." });
-        logDebug('AiKeyTakeawaysDisplay:handleCopy', `Successfully copied as ${format}`);
+        logDebug(componentName, `Successfully copied as ${format}`);
       } else {
         throw new Error("Clipboard API failed.");
       }
     } catch (e: any) {
-      logDebug('AiKeyTakeawaysDisplay:handleCopy', `Error copying as ${format}:`, e);
+      logDebug(componentName, `Error copying as ${format}:`, e);
       toast({ variant: "destructive", title: "Copy Error", description: `Could not copy takeaways: ${e.message}` });
     }
   };
@@ -275,11 +281,7 @@ export function AiKeyTakeawaysDisplay() {
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              {errorOrSkippedMessage}
            </div>
-        ) : displayTakeaways.length === 0 ? ( // This condition might be hit if parsedTakeawaysData is null
-           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             No AI Key Takeaways data.
-           </div>
-        ) : (
+        ) : displayTakeaways.length > 0 && parsedTakeawaysData ? (
           displayTakeaways.map((takeaway) => (
             <div key={takeaway.categoryKey} className="p-3 border rounded-md bg-card/60 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
@@ -291,10 +293,12 @@ export function AiKeyTakeawaysDisplay() {
               <p className={cn("text-sm", takeaway.textSentimentClass)}>{takeaway.text}</p>
             </div>
           ))
+        ) : (
+           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
+             No AI Key Takeaways data to display.
+           </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
-    

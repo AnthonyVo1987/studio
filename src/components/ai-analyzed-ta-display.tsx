@@ -33,8 +33,10 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
 
 export function AiAnalyzedTaDisplay() { 
   const { aiAnalyzedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis(); 
-  logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson (start):", aiAnalyzedTaJson.substring(0,100));
-  logDebug('AiAnalyzedTaDisplay', "stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const componentName = 'AiAnalyzedTaDisplay';
+
+  logDebug(componentName, "aiAnalyzedTaJson (start):", aiAnalyzedTaJson ? aiAnalyzedTaJson.substring(0,100) : "null");
+  logDebug(componentName, "stockSnapshotJson (start):", stockSnapshotJson ? stockSnapshotJson.substring(0,100) : "null");
 
   let isLoading = false;
   let isError = false;
@@ -42,52 +44,52 @@ export function AiAnalyzedTaDisplay() {
   let parsedTaData: AnalyzeTaOutput | null = null; 
   let currentPrice: number | null = null;
 
-  if (aiAnalyzedTaJson && aiAnalyzedTaJson !== '{}') {
-    if (aiAnalyzedTaJson.includes('"status": "initializing"') || aiAnalyzedTaJson.includes('"status": "pending"') || aiAnalyzedTaJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson is in pending/initializing state.");
-      isLoading = true;
-    } else if (aiAnalyzedTaJson.includes('"status": "error"')) {
-      logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson indicates an error state.");
-      isLoading = false;
-      isError = true;
-      try {
-        const errorData = JSON.parse(aiAnalyzedTaJson);
-        errorOrSkippedMessage = errorData.message || "Error loading AI Analyzed TA.";
-      } catch {
-        errorOrSkippedMessage = "Error loading AI Analyzed TA.";
+  if (!aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') {
+    isLoading = false;
+    isError = true; // Treat as error/unavailable if null or empty and not explicitly loading
+    errorOrSkippedMessage = "No AI Analyzed TA data. Ensure stock data was fetched and AI TA processed.";
+    logDebug(componentName, "aiAnalyzedTaJson is empty or null.");
+  } else if (aiAnalyzedTaJson.includes('"status": "initializing"') || aiAnalyzedTaJson.includes('"status": "pending"') || aiAnalyzedTaJson.includes('"status": "full_analysis_pending..."')) {
+    isLoading = true;
+    isError = false;
+    parsedTaData = null;
+    logDebug(componentName, "aiAnalyzedTaJson is in pending/initializing state.");
+  } else if (aiAnalyzedTaJson.includes('"status": "error"') || aiAnalyzedTaJson.includes('"status": "skipped"')) {
+    isLoading = false;
+    isError = true;
+    parsedTaData = null;
+    try {
+      const statusObj = JSON.parse(aiAnalyzedTaJson);
+      if (statusObj.status === "skipped") {
+        errorOrSkippedMessage = statusObj.message || "AI Analyzed TA was skipped.";
+      } else {
+        errorOrSkippedMessage = statusObj.message || "Error loading AI Analyzed TA.";
       }
-    } else if (aiAnalyzedTaJson.includes('"status": "skipped"')) {
-      logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson indicates a skipped state.");
-      isLoading = false;
-      isError = true; 
-      errorOrSkippedMessage = "AI Analyzed TA was skipped.";
-    } else {
-      try {
-        const data = JSON.parse(aiAnalyzedTaJson) as AnalyzeTaOutput; 
-        logDebug('AiAnalyzedTaDisplay', "Attempting to parse aiAnalyzedTaJson. Parsed PivotPoint:", data?.pivotPoint);
-        if (data && typeof data === 'object' && data.pivotPoint !== undefined) {
-          isLoading = false;
-          isError = false;
-          parsedTaData = data;
-        } else {
-          logDebug('AiAnalyzedTaDisplay', "Parsed aiAnalyzedTaJson is missing pivotPoint or critical data.");
-          isLoading = false;
-          isError = true;
-          errorOrSkippedMessage = "AI Analyzed TA data is malformed or incomplete.";
-        }
-      } catch (e) {
-        console.error("[AiAnalyzedTaDisplay] Failed to parse aiAnalyzedTaJson:", e);
-        logDebug('AiAnalyzedTaDisplay', "Error during aiAnalyzedTaJson parsing.", e);
-        isLoading = false;
-        isError = true;
-        errorOrSkippedMessage = "Failed to parse AI Analyzed TA data.";
-      }
+      logDebug(componentName, `JSON indicates status: ${statusObj.status}, message: ${errorOrSkippedMessage}`);
+    } catch (e) {
+      errorOrSkippedMessage = "Failed to parse status message from error/skipped JSON for AI Analyzed TA.";
+      logDebug(componentName, "Failed to parse error/skipped status JSON for AI Analyzed TA.", e);
     }
   } else {
-     logDebug('AiAnalyzedTaDisplay', "aiAnalyzedTaJson is empty or null. No data to display.");
-     isLoading = false; // Not loading if empty
-     isError = true; // Treat as error/unavailable if null or empty and not explicitly loading
-     errorOrSkippedMessage = "No AI Analyzed TA data. Ensure stock data was fetched and AI TA processed.";
+    isLoading = false;
+    isError = false;
+    try {
+      const data = JSON.parse(aiAnalyzedTaJson) as AnalyzeTaOutput;
+      if (data && typeof data === 'object' && data.pivotPoint !== undefined) {
+        parsedTaData = data;
+        logDebug(componentName, "Successfully parsed aiAnalyzedTaJson data.", data);
+      } else {
+        isError = true;
+        errorOrSkippedMessage = "AI Analyzed TA data is malformed or incomplete.";
+        parsedTaData = null;
+        logDebug(componentName, "Parsed aiAnalyzedTaJson data is malformed or missing critical fields.", data);
+      }
+    } catch (e) {
+      isError = true;
+      errorOrSkippedMessage = "Failed to parse AI Analyzed TA data.";
+      parsedTaData = null;
+      logDebug(componentName, "Error parsing AI Analyzed TA data.", e);
+    }
   }
 
   if (!isLoading && !isError && parsedTaData && stockSnapshotJson && stockSnapshotJson !== '{}') {
@@ -96,17 +98,17 @@ export function AiAnalyzedTaDisplay() {
             const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
             if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
                 currentPrice = snapshot.currentPrice;
-                logDebug('AiAnalyzedTaDisplay', "Current price from stockSnapshotJson for sentiment:", currentPrice);
+                logDebug(componentName, "Current price from stockSnapshotJson for sentiment:", currentPrice);
             } else {
-                logDebug('AiAnalyzedTaDisplay', "Current price not found in valid stockSnapshotJson.");
+                logDebug(componentName, "Current price not found in valid stockSnapshotJson.");
             }
         }
       } catch (e) {
-        logDebug('AiAnalyzedTaDisplay', "Failed to parse stockSnapshotJson for current price:", e);
+        logDebug(componentName, "Failed to parse stockSnapshotJson for current price:", e);
       }
   }
 
-  logDebug('AiAnalyzedTaDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
+  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
 
   return (
     <Card>
@@ -123,51 +125,48 @@ export function AiAnalyzedTaDisplay() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {taPointDefinitions.map((pointDef) => {
-              if (isLoading) {
-                return (
-                  <TableRow key={`skeleton-${pointDef.key}`}>
-                    <TableCell className="font-medium">
-                      <Skeleton className="h-5 w-3/4" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="h-5 w-1/2 ml-auto" />
-                    </TableCell>
-                  </TableRow>
-                );
-              }
-
-              const value = parsedTaData ? parsedTaData[pointDef.key] : null;
-              const displayValue = isError && !parsedTaData ? "N/A" : (value === null || value === undefined
-                ? "N/A"
-                : formatToTwoDecimals(value as number, "N/A"));
-
-              let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
-              if (pointDef.key === 'pivotPoint' && currentPrice !== null && value !== null && value !== undefined) {
-                  if (currentPrice > (value as number)) sentiment = 'bullish';
-                  else if (currentPrice < (value as number)) sentiment = 'bearish';
-              }
-
-              const colorClass = pointDef.key === 'pivotPoint' ? getSentimentColorClass(sentiment) : '';
-
-              return (
-                <TableRow key={pointDef.key}>
-                  <TableCell className="font-medium">{pointDef.label}</TableCell>
-                  <TableCell className={cn("text-right", colorClass)}>{displayValue}</TableCell>
+            {isLoading ? (
+              taPointDefinitions.map((pointDef) => (
+                <TableRow key={`skeleton-${pointDef.key}`}>
+                  <TableCell className="font-medium">
+                    <Skeleton className="h-5 w-3/4" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-5 w-1/2 ml-auto" />
+                  </TableCell>
                 </TableRow>
-              );
-            })}
-            {isError && !isLoading && !parsedTaData && (
+              ))
+            ) : isError ? (
                 <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                         {errorOrSkippedMessage}
                     </TableCell>
                 </TableRow>
-            )}
-             {!isLoading && !isError && !parsedTaData && aiAnalyzedTaJson && aiAnalyzedTaJson === '{}' && ( // Explicitly check for empty JSON if not loading/error
+            ) : parsedTaData ? (
+              taPointDefinitions.map((pointDef) => {
+                const value = parsedTaData[pointDef.key];
+                const displayValue = (value === null || value === undefined)
+                  ? "N/A"
+                  : formatToTwoDecimals(value as number, "N/A");
+
+                let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+                if (pointDef.key === 'pivotPoint' && currentPrice !== null && value !== null && value !== undefined) {
+                    if (currentPrice > (value as number)) sentiment = 'bullish';
+                    else if (currentPrice < (value as number)) sentiment = 'bearish';
+                }
+                const colorClass = pointDef.key === 'pivotPoint' ? getSentimentColorClass(sentiment) : '';
+
+                return (
+                  <TableRow key={pointDef.key}>
+                    <TableCell className="font-medium">{pointDef.label}</TableCell>
+                    <TableCell className={cn("text-right", colorClass)}>{displayValue}</TableCell>
+                  </TableRow>
+                );
+              })
+            ) : ( // Should not be reached if logic is correct, but as a fallback
                  <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                        No AI Analyzed TA data.
+                        AI Analyzed TA data is unavailable.
                     </TableCell>
                 </TableRow>
             )}
@@ -177,5 +176,3 @@ export function AiAnalyzedTaDisplay() {
     </Card>
   );
 }
-
-    
