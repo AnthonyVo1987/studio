@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer } from 'react';
 import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer'; 
+import type { StockDataFetchResult } from '@/actions/analyze-stock-server-action';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
@@ -12,16 +13,32 @@ const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 export enum FsmState {
   IDLE = 'IDLE',
   INITIALIZING_ANALYSIS = 'INITIALIZING_ANALYSIS',
-  AWAITING_DATA_FETCH_TRIGGER = 'AWAITING_DATA_FETCH_TRIGGER', // Temp state
-  // Future states: FETCHING_DATA, DATA_FETCH_SUCCEEDED, DATA_FETCH_FAILED, etc.
+  AWAITING_DATA_FETCH_TRIGGER = 'AWAITING_DATA_FETCH_TRIGGER',
+  FETCHING_DATA = 'FETCHING_DATA',
+  DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
+  DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
+  AWAITING_AI_TA_TRIGGER = 'AWAITING_AI_TA_TRIGGER', // Next step after successful data fetch
+  // Future states: ANALYZING_TA, AI_TA_SUCCEEDED, AI_TA_FAILED, etc.
 }
 
-// FSM Event Types
+// FSM Event Types & Payloads
+interface FetchDataSuccessPayload extends StockDataFetchResult {}
+interface FetchDataFailurePayload {
+  error?: string | null;
+  message?: string | null;
+  // Optionally include polygonApiRequestLogJson if available from a failed action
+  polygonApiRequestLogJson?: string; 
+  polygonApiResponseLogJson?: string;
+}
+
 export type FsmEvent =
   | { type: 'START_PARTIAL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
-  | { type: 'INITIALIZATION_COMPLETE' };
-  // Future events: DATA_FETCH_SUCCESS, DATA_FETCH_FAILURE, etc.
+  | { type: 'INITIALIZATION_COMPLETE' }
+  | { type: 'TRIGGER_DATA_FETCH' } // New event
+  | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload } // New event with payload
+  | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }; // New event with payload
+  // Future events: TRIGGER_AI_TA, AI_TA_SUCCESS, AI_TA_FAILURE, etc.
 
 export type FullAnalysisStatus =
   | 'idle'
@@ -64,18 +81,18 @@ interface StockAnalysisState {
   chatbotRequestJson: string;
   chatbotResponseJson: string;
 
-  fullAnalysisStatus: FullAnalysisStatus; // Will be gradually replaced by FSM
-  isFullAnalysisTriggered: boolean; // Role to be re-evaluated with FSM
+  fullAnalysisStatus: FullAnalysisStatus; 
+  isFullAnalysisTriggered: boolean; 
   chatHistory: ChatMessage[];
 
   isClientDebugConsoleEnabled: boolean;
   isClientDebugConsoleOpen: boolean;
   logSourceConfig: LogSourceConfig;
 
-  fsmState: FsmState; // New FSM state
+  fsmState: FsmState; 
 }
 
-interface StockAnalysisContextType extends StockAnalysisState {
+interface StockAnalysisContextSetters {
   setPolygonApiRequestLogJson: (json: string) => void;
   setPolygonApiResponseLogJson: (json: string) => void;
   setMarketStatusJson: (json: string) => void;
@@ -90,11 +107,13 @@ interface StockAnalysisContextType extends StockAnalysisState {
   setAiKeyTakeawaysJson: (json: string) => void;
   setChatbotRequestJson: (json: string) => void;
   setChatbotResponseJson: (json: string) => void;
+  clearChatHistory: () => void;
+}
 
+interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisContextSetters {
   setFullAnalysisStatus: (status: FullAnalysisStatus) => void;
   setIsFullAnalysisTriggered: (triggered: boolean) => void;
   setChatHistory: (history: ChatMessage[]) => void;
-  clearChatHistory: () => void;
   addChatMessage: (message: ChatMessage) => void; 
 
   setClientDebugConsoleEnabled: (enabled: boolean) => void;
@@ -104,7 +123,7 @@ interface StockAnalysisContextType extends StockAnalysisState {
   disableAllLogSources: () => void;
   logDebug: (source: LogSourceId, ...messages: any[]) => void;
 
-  dispatchFsmEvent: React.Dispatch<FsmEvent>; // New FSM event dispatcher
+  dispatchFsmEvent: React.Dispatch<FsmEvent>; 
 }
 
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
@@ -130,7 +149,7 @@ const defaultState: StockAnalysisState = {
   isClientDebugConsoleEnabled: false,
   isClientDebugConsoleOpen: false,
   logSourceConfig: defaultLogSourceConfig,
-  fsmState: FsmState.IDLE, // Initial FSM state
+  fsmState: FsmState.IDLE, 
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -239,28 +258,98 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setChatbotRequestJson, setChatbotResponseJson, logDebug
   ]);
 
+  const contextSetters: StockAnalysisContextSetters = {
+    setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
+    setMarketStatusJson, setStockSnapshotJson, setStandardTasJson,
+    setOptionsChainJson, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson,
+    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
+    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
+    setChatbotRequestJson, setChatbotResponseJson,
+    clearChatHistory: clearChatHistoryInternal,
+  };
+
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
     logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event:`, event);
     switch (state) {
       case FsmState.IDLE:
         if (event.type === 'START_PARTIAL_ANALYSIS' || event.type === 'START_FULL_ANALYSIS') {
           logDebug('FSM_PIPELINE', `Transition: IDLE -> INITIALIZING_ANALYSIS on ${event.type}`);
-          setIsFullAnalysisTriggered(event.type === 'START_FULL_ANALYSIS'); // Set based on event
+          _setIsFullAnalysisTriggered(event.type === 'START_FULL_ANALYSIS'); 
           setAllPlaceholdersInternal(event.payload.ticker, event.type === 'START_FULL_ANALYSIS');
           clearChatHistoryInternal();
-          // Side effect to auto-dispatch INITIALIZATION_COMPLETE
-          // This needs to be handled carefully, often in a useEffect listening to fsmState changes
-          // For now, we'll assume it's handled by an effect in the context or component
           return FsmState.INITIALIZING_ANALYSIS;
         }
         return state;
+
       case FsmState.INITIALIZING_ANALYSIS:
         if (event.type === 'INITIALIZATION_COMPLETE') {
           logDebug('FSM_PIPELINE', `Transition: INITIALIZING_ANALYSIS -> AWAITING_DATA_FETCH_TRIGGER on INITIALIZATION_COMPLETE`);
           return FsmState.AWAITING_DATA_FETCH_TRIGGER;
         }
         return state;
-      // Future states will be handled here
+
+      case FsmState.AWAITING_DATA_FETCH_TRIGGER:
+        if (event.type === 'TRIGGER_DATA_FETCH') {
+          logDebug('FSM_PIPELINE', `Transition: AWAITING_DATA_FETCH_TRIGGER -> FETCHING_DATA on TRIGGER_DATA_FETCH`);
+          // Set loading state for Polygon logs here before action is called
+          const fetchingLogPlaceholder = `{ "status": "fetching_data..." }`;
+          contextSetters.setPolygonApiRequestLogJson(fetchingLogPlaceholder);
+          contextSetters.setPolygonApiResponseLogJson(fetchingLogPlaceholder);
+          return FsmState.FETCHING_DATA;
+        }
+        return state;
+
+      case FsmState.FETCHING_DATA:
+        if (event.type === 'FETCH_DATA_SUCCESS') {
+          logDebug('FSM_PIPELINE', `Transition: FETCHING_DATA -> DATA_FETCH_SUCCEEDED on FETCH_DATA_SUCCESS. Payload:`, event.payload);
+          contextSetters.setMarketStatusJson(event.payload.marketStatusJson);
+          contextSetters.setStockSnapshotJson(event.payload.stockSnapshotJson);
+          contextSetters.setStandardTasJson(event.payload.standardTasJson);
+          contextSetters.setOptionsChainJson(event.payload.optionsChainJson);
+          contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson);
+          contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson);
+          return FsmState.DATA_FETCH_SUCCEEDED;
+        }
+        if (event.type === 'FETCH_DATA_FAILURE') {
+          logDebug('FSM_PIPELINE', `Transition: FETCHING_DATA -> DATA_FETCH_FAILED on FETCH_DATA_FAILURE. Payload:`, event.payload);
+          const errorJson = `{ "status": "error", "message": "${(event.payload.message || 'Data fetch failed').replace(/"/g, '\\"')}", "details": "${(event.payload.error || '').replace(/"/g, '\\"')}" }`;
+          const errorLogJson = (details: string | null | undefined) => details ? `{ "status": "error", "message": "${(event.payload.message || 'Data fetch failed').replace(/"/g, '\\"')}", "details": ${details} }` : errorJson;
+
+          contextSetters.setMarketStatusJson(errorJson);
+          contextSetters.setStockSnapshotJson(errorJson);
+          contextSetters.setStandardTasJson(errorJson);
+          contextSetters.setOptionsChainJson(errorJson);
+          // Use specific request/response from payload if available, otherwise general error
+          contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson || errorJson);
+          contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson || errorJson);
+          
+          // Set subsequent steps to error/skipped as well
+          const skippedJson = `{ "status": "skipped_due_to_data_fetch_error" }`;
+          contextSetters.setAiAnalyzedTaRequestJson(skippedJson);
+          contextSetters.setAiAnalyzedTaJson(skippedJson);
+          contextSetters.setAiKeyTakeawaysRequestJson(skippedJson);
+          contextSetters.setAiKeyTakeawaysJson(skippedJson);
+          contextSetters.setAiOptionsAnalysisRequestJson(skippedJson);
+          contextSetters.setAiOptionsAnalysisJson(skippedJson);
+          
+          return FsmState.DATA_FETCH_FAILED;
+        }
+        return state;
+
+      case FsmState.DATA_FETCH_SUCCEEDED:
+        // For this task, this state transitions to AWAITING_AI_TA_TRIGGER
+        // In a subsequent task, this would transition to ANALYZING_TA if isFullAnalysisTriggered
+        // or PARTIAL_ANALYSIS_COMPLETE if not.
+        logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_SUCCEEDED -> AWAITING_AI_TA_TRIGGER`);
+        return FsmState.AWAITING_AI_TA_TRIGGER;
+
+      case FsmState.DATA_FETCH_FAILED:
+        // For this task, this state transitions back to IDLE to allow a new attempt.
+        // A more robust error handling state could be implemented later.
+        logDebug('FSM_PIPELINE', `Transition: DATA_FETCH_FAILED -> IDLE`);
+        _setIsFullAnalysisTriggered(false); // Reset trigger
+        return FsmState.IDLE;
+      
       default:
         logDebug('FSM_PIPELINE', `Unhandled state in FSM reducer: ${state}`);
         return state;
@@ -269,12 +358,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const [fsmState, dispatchFsmEvent] = useReducer(fsmReducer, defaultState.fsmState);
 
-  // Effect to handle actions upon entering INITIALIZING_ANALYSIS
   useEffect(() => {
     if (fsmState === FsmState.INITIALIZING_ANALYSIS) {
       logDebug('FSM_PIPELINE', 'Effect: Entered INITIALIZING_ANALYSIS. Dispatching INITIALIZATION_COMPLETE.');
-      // Note: Placeholders and chat clear are now handled within the reducer case for START_ANALYSIS events for immediate effect.
-      // This effect is just to move to the next state after initialization actions are done.
       dispatchFsmEvent({ type: 'INITIALIZATION_COMPLETE' });
     }
   }, [fsmState, logDebug]);
