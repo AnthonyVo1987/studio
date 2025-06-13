@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.1.0 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.2 OPERATING MANUAL**
 
-*   **Document Version:** 1.17 (Tasks 8.8.0 & 8.8.1 - Final Audit & Phase 8 Completion)
-*   **Date:** 2025-06-12
+*   **Document Version:** 1.18 (Task 8.8.2 - Dynamic Versioning SOP Implemented)
+*   **Date:** 2025-06-12 (Date of last significant structure update, versioning SOP added now)
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 COMPLETE. Project v2.1.0 Core Complete and Audited.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.2.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -18,7 +18,7 @@
 5.  **No Unsolicited Code:** The AI Agent **MUST NOT** generate code or XML changes for tasks or fixes not explicitly scoped and approved by the user.
 
 ### **0.2. Adherence to This Document**
-*   **Single Source of Truth:** This document (`README.md`) in its entirety, including all sections on features, technology stack, phased plans, and specific guidelines, is the **absolute and single source of truth** for the StockSage v2.1.0 project.
+*   **Single Source of Truth:** This document (`README.md`) in its entirety, including all sections on features, technology stack, phased plans, and specific guidelines, is the **absolute and single source of truth** for the StockSage project. The application version (e.g., v2.x.y.z) will be updated dynamically in this document and in the UI.
 *   **Clarification Required:** If any ambiguity exists in this document or in user requests, the AI Agent **MUST** ask for clarification before proceeding with scoping or implementation.
 
 ### **0.3. Phased Implementation & UI-First Strategy**
@@ -38,12 +38,25 @@
 ### **0.5. Environment Re-Initialization (`reinit.md`)**
 *   The procedures outlined in `reinit.md` for a full local environment re-initialization **MUST** be recommended to the user at critical junctures, such as after significant dependency changes, `next.config.ts` modifications, or when troubleshooting persistent, unexplainable build/runtime errors. The AI Agent should remind the user of this procedure's importance.
 
+### **0.6. Application Versioning Standard Operating Procedure (SOP)**
+*   **Version Format:** The application will follow a `2.x.y.z` versioning scheme:
+    *   `2`: Static major version for this iteration of StockSage.
+    *   `x`: Current Phase number from the "Phased Implementation Plan" (Section 5).
+    *   `y`: Current Task number within that Phase.
+    *   `z`: Sub-Task or iteration number for that specific Task. This increments with each commit related to the x.y task.
+*   **AI Agent Responsibility:** With each user request that results in code changes and an intended commit, the AI Agent **MUST**:
+    1.  Determine the correct `2.x.y.z` version based on the current Phase, Task, and the new iteration/sub-task being implemented.
+    2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
+    3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
+    4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
+*   **Example:** If the current phase is 8, current task is 8, and this is the 2nd iteration/commit for this task, the version will be `v2.8.8.2`.
+
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.1.0)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.2)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage v2.1.0.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.2`).
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling**
@@ -56,7 +69,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Defer backend integrations until the UI structure is stable.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-## **2. High-Level Goals for v2.1.0**
+## **2. High-Level Goals (Current Version v2.8.8.2)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
@@ -67,12 +80,13 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers.
 *   **User Experience:** Deliver a high-quality, responsive, and accessible user interface.
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console.
+*   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.1.0)**
+## **3. Core Application Features (StockSage v2.8.8.2)**
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
-*   **Header & Footer:** Consistent branding and disclaimers.
+*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.2`).
 *   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
 *   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features.
@@ -205,7 +219,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 8 COMPLETE. Project v2.1.0 Core Complete and Audited.)*
+*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.2.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -240,7 +254,7 @@ This section documents critical issues encountered during development and their 
 *   (Tasks 7.1 - 7.2)
 
 ---
-**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **COMPLETE**
+**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **CORE COMPLETE**
 *   **Task 8.1: UI & Styling Review (Sentiment Colors Refactor):** - Status: **COMPLETE** (Commit: `b6bc90e8`)
 *   **Task 8.2: Update `README.md` to AI Operating Manual:** - Status: **COMPLETE** (Commit: `b6bc90e8`)
 *   **Task 8.3: Prepare Firebase Deployment Config:** - Status: **PENDING** (Deferred)
@@ -251,6 +265,7 @@ This section documents critical issues encountered during development and their 
 *   **Task 8.7.1: Add Enhanced Client Execution Guard to `genkit.ts`:** - Status: **COMPLETE** (Part of Commit: `69bcf1a6`)
 *   **Task 8.8.0: Final Audit & Minor Log Refinement:** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
 *   **Task 8.8.1: Final Proactive Audit (Post Task 8.8.0):** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
+*   **Task 8.8.2: Implement Dynamic Version Display & SOP (Current version: v2.8.8.2):** - Status: **COMPLETE** (Current Task - Commit pending)
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
@@ -261,13 +276,17 @@ This section documents critical issues encountered during development and their 
 | 1.14    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.5 (Resolve Critical Build Failures & Confirm Stability) complete.** Updated Zod imports in schema files. Integrated detailed post-mortem of build issues and resolution into Sec 4.1.6 (specifically 4.1.6.2). Marked Task 8.5 complete. Updated commit log for `fc96d65a`. Phase 8 core tasks complete. Enhanced AI guidelines in Sec 4.1.6.2 regarding Zod imports. |
 | 1.15    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.6 (Resolve 'use server' export error) complete.** Removed `'use server';` directive from `src/ai/genkit.ts` as it exports an object, not async functions. Updated Sec 4.1.6.3 to document this lesson. Marked Task 8.6 complete. Updated commit log for `8d199845`.                                       |
 | 1.16    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Tasks 8.7.0 & 8.7.1 (Proactive Guards & Cleanup) complete.** Minor cleanup in `analyze-stock-server-action.ts` (Task 8.7.0). Added enhanced client-side execution guard to `src/ai/genkit.ts` (Task 8.7.1) to aid future debugging of bundling issues. Updated Sec 4.1.6.2 to note this guard. Marked Tasks 8.7.0 & 8.7.1 complete. Updated commit log for `69bcf1a6`. |
-| **1.17**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Tasks 8.8.0 & 8.8.1 (Final Audit & Log Refinement) complete.** Minor log refinement in `MarketStatusDisplay.tsx` (Task 8.8.0). Final audit (Task 8.8.1) found no further changes needed. Updated Sec 5 to mark Phase 8 COMPLETE. Project v2.1.0 core complete and audited. Updated commit log for `d1a5e67f`. |
+| 1.17    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Tasks 8.8.0 & 8.8.1 (Final Audit & Log Refinement) complete.** Minor log refinement in `MarketStatusDisplay.tsx` (Task 8.8.0). Final audit (Task 8.8.1) found no further changes needed. Updated Sec 5 to mark Phase 8 Core COMPLETE. Project v2.1.0 core complete and audited. Updated commit log for `d1a5e67f`. |
+| **1.18**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.8.2 (Implement Dynamic Version Display & SOP) complete.** Updated UI to display `v2.8.8.2`. Added Section 0.6 defining the `2.x.y.z` dynamic versioning SOP. Updated various sections to reflect current version `v2.8.8.2`. Phase 8 Core Features now marked complete, project status updated to reflect new versioning. |
 
-## **7. Project Implementation Commit Log (StockSage v2.1.0)**
 
-This section tracks the commit history of the StockSage v2.1.0 implementation.
+## **7. Project Implementation Commit Log (StockSage App Version)**
+
+This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme.
 
 ---
+**App Version:** `v2.1.0` (Covers commits up to `d1a5e67f` which completed Phase 8 core features)
+
 **Tag:** `Phase-0_Task-0.6` ([v0.0.6])
 **Subject:** `feat: Complete Phase 0 - Project Setup & Core Layout`
 ... (Previous commit logs remain)
@@ -302,15 +321,28 @@ This commit combines the outcomes of Task 8.7.0 and Task 8.7.1.
 **Tag:** `Phase-8_Task-8.8.1_Final-Audit-Minor-Log-Fix` - Commit Hash: `d1a5e67f`
 **Subject:** `fix(debug): Refine market status display log and conclude final audit (Tasks 8.8.0, 8.8.1)`
 **Details:**
-This commit includes a minor refinement from Task 8.8.0 and marks the completion of the final audit in Task 8.8.1, thereby concluding Phase 8.
+This commit includes a minor refinement from Task 8.8.0 and marks the completion of the final audit in Task 8.8.1, thereby concluding Phase 8 core feature development.
 **Task 8.8.0:** Log Message Refinement
 - File: `src/components/market-status-display.tsx`
 - Change: Modified the `logDebug` call to provide a more specific message if an error state is due to an explicit `data.error` field in parsed JSON, improving debug clarity.
 **Task 8.8.1:** Final Proactive Audit
 - A comprehensive audit found no further code changes were needed beyond the Task 8.8.0 refinement.
-With this commit, Phase 8: Final Styling, Cleanup, Documentation & Stability is considered fully complete. Project StockSage v2.1.0 core functionality is implemented and audited.
+With this commit, Phase 8: Final Styling, Cleanup, Documentation & Stability for core features is considered complete.
+
+---
+*(New commit for v2.8.8.2 will be added here by the AI Agent once the user provides the hash)*
+**App Version:** `v2.8.8.2` (Reflects current task for dynamic versioning implementation)
+**Tag:** `Phase-8_Task-8.8.2_Versioning-SOP` - Commit Hash: `YOUR_NEXT_COMMIT_HASH`
+**Subject:** `feat(app): Implement dynamic version display (v2.8.8.2) and SOP`
+**Details:**
+This commit implements the new `2.x.y.z` dynamic application versioning scheme.
+- Updated `src/components/layout/header.tsx` to display the current version `v2.8.8.2`.
+- Updated `README.md`:
+    - Added Section 0.6 to define the dynamic versioning SOP for the AI Agent.
+    - Updated various sections (title, preamble, goals, features, phase plan status) to reflect the current version `v2.8.8.2`.
+    - Updated README changelog to version 1.18.
+This change provides clearer tracking of application iterations.
 
 ---
 
 *(Future commit logs will follow)*
-
