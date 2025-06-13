@@ -11,22 +11,24 @@ export const logSourceIds = [
   'AiAnalyzedTaDisplay', // Renamed
   'AiKeyTakeawaysDisplay',
   'OptionsChainTable',
-  'AiOptionsAnalysisDisplay', // New
+  'AiOptionsAnalysisDisplay', 
   'DebugTabContent',
   'MainTabContent',
   'StockAnalysisContext',
   'NATIVE_CONSOLE',
   'Chatbot',
   'DebugConsole', 
-  'AnalyzeTaAction', // Renamed
+  'AnalyzeTaAction', 
   'PerformAiAnalysisAction',
-  'PerformAiOptionsAnalysisAction', // New
+  'PerformAiOptionsAnalysisAction', 
   'ChatServerAction',
-  'AnalyzeTaFlow', // Renamed
+  'GenerateChatSummaryAction', // New
+  'AnalyzeTaFlow', 
   'AnalyzeStockDataFlow',
   'ChatFlow',
-  'AnalyzeOptionsChainFlow', // New
-  'FSM_PIPELINE', // New FSM log source
+  'AnalyzeOptionsChainFlow', 
+  'GenerateFullAnalysisSummaryFlow', // New
+  'FSM_PIPELINE', 
   // Add new source identifiers here
 ] as const;
 
@@ -53,11 +55,13 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   PerformAiAnalysisAction: false,
   PerformAiOptionsAnalysisAction: false, 
   ChatServerAction: false,
+  GenerateChatSummaryAction: false, // New
   AnalyzeTaFlow: false, 
   AnalyzeStockDataFlow: false,
   ChatFlow: false,
   AnalyzeOptionsChainFlow: false, 
-  FSM_PIPELINE: true, // Default FSM logs to ON during development
+  GenerateFullAnalysisSummaryFlow: false, // New
+  FSM_PIPELINE: true, 
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -79,14 +83,15 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   PerformAiAnalysisAction: 'Perform AI Key Takeaways Action (Server)',
   PerformAiOptionsAnalysisAction: 'Perform AI Options Analysis Action (Server)', 
   ChatServerAction: 'Chat Server Action',
+  GenerateChatSummaryAction: 'Generate Chat Summary Action (Server)', // New
   AnalyzeTaFlow: 'Analyze TA Flow (Genkit)', 
   AnalyzeStockDataFlow: 'Analyze Stock Data (Key Takeaways) Flow (Genkit)',
   ChatFlow: 'Chat Flow (Genkit)',
   AnalyzeOptionsChainFlow: 'Analyze Options Chain Flow (Genkit)', 
+  GenerateFullAnalysisSummaryFlow: 'Generate Chat Summary Flow (Genkit)', // New
   FSM_PIPELINE: 'FSM Pipeline Events',
 };
 
 // For DebugConsole.tsx filter UI
 export const logTypes = ['debug', 'info', 'log', 'warn', 'error'] as const;
 export type LogType = typeof logTypes[number];
-

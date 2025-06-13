@@ -25,6 +25,7 @@ import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from "@/actions/perform-ai-analysis-action";
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from "@/actions/perform-ai-options-analysis-action";
 import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action";
+import { generateChatSummaryAction, type GenerateChatSummaryActionState, type GenerateChatSummaryResult, type GenerateChatSummaryActionInputs } from "@/actions/generate-chat-summary-action"; // New
 
 import { useStockAnalysis, type FullAnalysisStatus, type ChatMessage, FsmState } from "@/contexts/stock-analysis-context"; 
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +43,10 @@ const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
 const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
-const initialChatActionState: ChatActionState = {
+const initialGenerateChatSummaryState: GenerateChatSummaryActionState = { // New
+  status: 'idle', data: undefined, error: null, message: null,
+};
+const initialChatActionState: ChatActionState = { // For interactive chat
   status: 'idle', data: undefined, error: null, message: null,
 };
 
@@ -60,6 +64,8 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson, 
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, 
+    chatbotRequestJson: contextChatbotRequestJson, // Now used for summary request
+    chatbotResponseJson: contextChatbotResponseJson, // Now used for summary response
     chatHistory: contextChatHistory,
     
     fullAnalysisStatus, 
@@ -92,45 +98,39 @@ export function MainTabContent() {
     initialPerformAiOptionsAnalysisState
   );
   
-  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
+  const [generateChatSummaryState, generateChatSummaryFormAction, isGenerateChatSummaryPending] = useActionState<GenerateChatSummaryActionState, GenerateChatSummaryActionInputs>( // New
+    generateChatSummaryAction,
+    initialGenerateChatSummaryState
+  );
+
+  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>( // For interactive chat
     chatServerAction,
     initialChatActionState
   );
   
-  const isAnyLegacyActionPending = isAnalyzeStockPending || isAnalyzeTaPending || isPerformAiAnalysisPending || isPerformAiOptionsAnalysisPending || isChatPending;
-  const isPipelineActive = fsmState !== FsmState.IDLE;
+  const isPipelineActive = fsmState !== FsmState.IDLE && fsmState !== FsmState.FULL_ANALYSIS_COMPLETE;
 
-
-  const handleGenericError = useCallback((step: string, message: string | null | undefined, currentTicker: string) => {
-    logDebug('MainTabContent:handleGenericError', `Error during ${step} for ${currentTicker}: ${message}`);
-    toast({ variant: "destructive", title: `${step} Error`, description: message || "An unknown error occurred." });
-    setFullAnalysisStatus('error'); 
-    if (analysisTriggeredForTickerRef.current === currentTicker) {
-        analysisTriggeredForTickerRef.current = null; 
-    }
-  }, [logDebug, toast, setFullAnalysisStatus]);
-  
 
   const handleAnalyzeStockButtonSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     logDebug('MainTabContent', `Analyze Stock button clicked for ${tickerInput}. Current FSM State: ${fsmState}`);
-    if (fsmState !== FsmState.IDLE) {
-      toast({ title: "Process Busy", description: "An analysis sequence is already running or initializing.", variant: "default" });
+    if (isPipelineActive) {
+      toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" });
       return;
     }
     analysisTriggeredForTickerRef.current = tickerInput; 
     dispatchFsmEvent({ type: 'START_PARTIAL_ANALYSIS', payload: { ticker: tickerInput } });
-  }, [fsmState, toast, tickerInput, dispatchFsmEvent, logDebug]);
+  }, [fsmState, toast, tickerInput, dispatchFsmEvent, logDebug, isPipelineActive]);
 
   const handleAiFullAnalysisSubmit = useCallback(() => {
     logDebug('MainTabContent', `AI Full Stock Analysis button clicked for ${tickerInput}. Current FSM State: ${fsmState}`);
-    if (fsmState !== FsmState.IDLE) {
-      toast({ title: "Process Busy", description: "Another analysis process is currently running or initializing.", variant: "default" });
+    if (isPipelineActive) {
+      toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" });
       return;
     }
     analysisTriggeredForTickerRef.current = tickerInput; 
     dispatchFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
-  }, [fsmState, toast, tickerInput, dispatchFsmEvent, logDebug]);
+  }, [fsmState, toast, tickerInput, dispatchFsmEvent, logDebug, isPipelineActive]);
 
 
   // Effect to progress FSM from AWAITING_DATA_FETCH_TRIGGER to FETCHING_DATA
@@ -183,10 +183,10 @@ export function MainTabContent() {
         logDebug('FSM_PIPELINE', `MainTabContent: FSM in AWAITING_AI_TA_TRIGGER for ${analysisTriggeredForTickerRef.current}. Snapshot is valid. Dispatching TRIGGER_AI_TA.`);
         dispatchFsmEvent({ type: 'TRIGGER_AI_TA' });
       } else {
-        logDebug('FSM_PIPELINE', `MainTabContent: FSM in AWAITING_AI_TA_TRIGGER for ${analysisTriggeredForTickerRef.current}. Snapshot invalid/missing. AI TA will be skipped by reducer logic or next check.`);
+        logDebug('FSM_PIPELINE', `MainTabContent: FSM in AWAITING_AI_TA_TRIGGER for ${analysisTriggeredForTickerRef.current}. Snapshot invalid/missing. Dispatching AI_TA_FAILURE.`);
          dispatchFsmEvent({
           type: 'AI_TA_FAILURE',
-          payload: { error: 'Missing or invalid stock snapshot data for AI TA.', message: 'Prerequisite stock data not available.' }
+          payload: { error: 'Missing or invalid stock snapshot data for AI TA.', message: 'Prerequisite stock data not available for AI TA.' }
         });
       }
     }
@@ -204,7 +204,7 @@ export function MainTabContent() {
         logDebug('FSM_PIPELINE', `MainTabContent: FSM in ANALYZING_TA for ${analysisTriggeredForTickerRef.current}, but stockSnapshotJson is invalid. Dispatching AI_TA_FAILURE.`);
         dispatchFsmEvent({
           type: 'AI_TA_FAILURE',
-          payload: { error: 'Missing or invalid stock snapshot data for AI TA.', message: 'Prerequisite stock data not available.' }
+          payload: { error: 'Missing or invalid stock snapshot data for AI TA.', message: 'Prerequisite stock data not available for AI TA.' }
         });
       }
     }
@@ -247,10 +247,10 @@ export function MainTabContent() {
       logDebug('FSM_PIPELINE', `MainTabContent: FSM in GENERATING_KEY_TAKEAWAYS for ${analysisTriggeredForTickerRef.current}. Preparing to call performAiAnalysisFormAction.`);
       
       const ticker = analysisTriggeredForTickerRef.current;
-      const snapshotReady = contextStockSnapshotJson && contextStockSnapshotJson !== '{}' && !contextStockSnapshotJson.includes('"error":') && !contextStockSnapshotJson.includes('"status": "pending"'); 
-      const tasReady = contextStandardTasJson && contextStandardTasJson !== '{}' && !contextStandardTasJson.includes('"error":') && !contextStandardTasJson.includes('"status": "pending"');
-      const aiTaReady = contextAiAnalyzedTaJson && contextAiAnalyzedTaJson !== '{}' && !contextAiAnalyzedTaJson.includes('"status": "pending"'); 
-      const marketStatusReady = contextMarketStatusJson && contextMarketStatusJson !== '{}' && !contextMarketStatusJson.includes('"error":') && !contextMarketStatusJson.includes('"status": "pending"');
+      const snapshotReady = contextStockSnapshotJson && contextStockSnapshotJson !== '{}' && !contextStockSnapshotJson.includes('"error":') && !contextStockSnapshotJson.includes('"status":'); 
+      const tasReady = contextStandardTasJson && contextStandardTasJson !== '{}' && !contextStandardTasJson.includes('"error":') && !contextStandardTasJson.includes('"status":');
+      const aiTaReady = contextAiAnalyzedTaJson && contextAiAnalyzedTaJson !== '{}' && !contextAiAnalyzedTaJson.includes('"status":'); 
+      const marketStatusReady = contextMarketStatusJson && contextMarketStatusJson !== '{}' && !contextMarketStatusJson.includes('"error":') && !contextMarketStatusJson.includes('"status":');
 
       if (snapshotReady && tasReady && aiTaReady && marketStatusReady) {
         logDebug('FSM_PIPELINE', `MainTabContent: Prerequisites met for performAiAnalysisAction. Snapshot: ${snapshotReady}, TAs: ${tasReady}, AI TA: ${aiTaReady}, Market: ${marketStatusReady}`);
@@ -267,15 +267,15 @@ export function MainTabContent() {
         const missingPrereqs: string[] = [];
         if (!snapshotReady) missingPrereqs.push("Stock Snapshot");
         if (!tasReady) missingPrereqs.push("Standard TAs");
-        if (!aiTaReady) missingPrereqs.push("AI Analyzed TA (might be error state from prior step)");
+        if (!aiTaReady) missingPrereqs.push("AI Analyzed TA");
         if (!marketStatusReady) missingPrereqs.push("Market Status");
         logDebug('FSM_PIPELINE', `MainTabContent: FSM in GENERATING_KEY_TAKEAWAYS for ${ticker}, but prerequisites not met. Dispatching KEY_TAKEAWAYS_FAILURE. Missing: ${missingPrereqs.join(', ')}`);
         
         dispatchFsmEvent({
           type: 'KEY_TAKEAWAYS_FAILURE',
           payload: { 
-            error: `Missing prerequisite data for AI Key Takeaways: ${missingPrereqs.join(', ')}.`, 
-            message: 'Prerequisite data not available.' 
+            error: `Missing prerequisite data for AI Key Takeaways: ${missingPrereqs.join(', ')}. Check if AI TA step failed.`, 
+            message: 'Prerequisite data not available or prior AI step failed.' 
           }
         });
       }
@@ -329,8 +329,8 @@ export function MainTabContent() {
       logDebug('FSM_PIPELINE', `MainTabContent: FSM in ANALYZING_OPTIONS for ${analysisTriggeredForTickerRef.current}. Preparing to call performAiOptionsAnalysisFormAction.`);
       
       const ticker = analysisTriggeredForTickerRef.current;
-      const optionsChainReady = contextOptionsChainJson && contextOptionsChainJson !== '{}' && !contextOptionsChainJson.includes('"error":') && !contextOptionsChainJson.includes('"status": "pending"');
-      const snapshotReady = contextStockSnapshotJson && contextStockSnapshotJson !== '{}' && !contextStockSnapshotJson.includes('"error":') && !contextStockSnapshotJson.includes('"status": "pending"');
+      const optionsChainReady = contextOptionsChainJson && contextOptionsChainJson !== '{}' && !contextOptionsChainJson.includes('"error":') && !contextOptionsChainJson.includes('"status":');
+      const snapshotReady = contextStockSnapshotJson && contextStockSnapshotJson !== '{}' && !contextStockSnapshotJson.includes('"error":') && !contextStockSnapshotJson.includes('"status":');
 
       if (optionsChainReady && snapshotReady) {
         logDebug('FSM_PIPELINE', `MainTabContent: Prerequisites met for performAiOptionsAnalysisAction. OptionsChain: ${optionsChainReady}, Snapshot: ${snapshotReady}`);
@@ -351,7 +351,7 @@ export function MainTabContent() {
           type: 'OPTIONS_ANALYSIS_FAILURE',
           payload: { 
             error: `Missing prerequisite data for AI Options Analysis: ${missingPrereqs.join(', ')}.`, 
-            message: 'Prerequisite data not available.' 
+            message: 'Prerequisite data not available for AI Options Analysis.' 
           }
         });
       }
@@ -389,13 +389,118 @@ export function MainTabContent() {
     }
   }, [performAiOptionsAnalysisState, fsmState, dispatchFsmEvent, toast, logDebug]);
   
-  // Effect for chatActionState
+  // Effect to progress FSM from AWAITING_CHAT_SUMMARY_TRIGGER
   useEffect(() => {
-     if (fsmState !== FsmState.AWAITING_CHAT_SUMMARY_TRIGGER ) { // Placeholder - adapt to actual FSM state for chat summary
-        return; 
+    if (fsmState === FsmState.AWAITING_CHAT_SUMMARY_TRIGGER && isFullAnalysisTriggered && analysisTriggeredForTickerRef.current) {
+      // Check if this step should be skipped based on previous errors (indicated by chatbotResponseJson being in a skipped state)
+      if (contextChatbotResponseJson && contextChatbotResponseJson.includes('"status": "skipped_due_to_')) {
+          logDebug('FSM_PIPELINE', `MainTabContent: FSM in AWAITING_CHAT_SUMMARY_TRIGGER. Chat summary pre-skipped. Dispatching CHAT_SUMMARY_FAILURE.`);
+          dispatchFsmEvent({ type: 'CHAT_SUMMARY_FAILURE', payload: { error: 'Chat summary skipped due to prior failure.', message: 'Chat summary skipped.' }});
+      } else {
+          logDebug('FSM_PIPELINE', `MainTabContent: FSM in AWAITING_CHAT_SUMMARY_TRIGGER for ${analysisTriggeredForTickerRef.current}. Dispatching TRIGGER_CHAT_SUMMARY.`);
+          dispatchFsmEvent({ type: 'TRIGGER_CHAT_SUMMARY' });
+      }
     }
-    // ... (logic for chat summary if it were part of this task)
-  }, [chatActionState, isFullAnalysisTriggered, fullAnalysisStatus, toast, logDebug, fsmState]);
+  }, [fsmState, isFullAnalysisTriggered, contextChatbotResponseJson, dispatchFsmEvent, logDebug]);
+
+  // Effect to trigger Chat Summary server action
+  useEffect(() => {
+    if (fsmState === FsmState.GENERATING_CHAT_SUMMARY && analysisTriggeredForTickerRef.current && !isGenerateChatSummaryPending) {
+      logDebug('FSM_PIPELINE', `MainTabContent: FSM in GENERATING_CHAT_SUMMARY for ${analysisTriggeredForTickerRef.current}. Preparing to call generateChatSummaryFormAction.`);
+      
+      const ticker = analysisTriggeredForTickerRef.current;
+      // Check all required data fields. If any critical piece is missing or errored, we should skip.
+      const allContextDataReady = 
+        contextStockSnapshotJson && !contextStockSnapshotJson.includes('"error":') && !contextStockSnapshotJson.includes('"status":') &&
+        contextStandardTasJson && !contextStandardTasJson.includes('"error":') && !contextStandardTasJson.includes('"status":') &&
+        contextMarketStatusJson && !contextMarketStatusJson.includes('"error":') && !contextMarketStatusJson.includes('"status":') &&
+        contextAiAnalyzedTaJson && !contextAiAnalyzedTaJson.includes('"status":') && // Allow error content, but not "pending"
+        contextAiKeyTakeawaysJson && !contextAiKeyTakeawaysJson.includes('"status":') && // Allow error content
+        contextAiOptionsAnalysisJson && !contextAiOptionsAnalysisJson.includes('"status":'); // Allow error content
+
+      if (allContextDataReady) {
+        const payload: GenerateChatSummaryActionInputs = {
+            ticker,
+            stockSnapshotJson: contextStockSnapshotJson,
+            standardTasJson: contextStandardTasJson,
+            aiAnalyzedTaJson: contextAiAnalyzedTaJson,
+            aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
+            aiOptionsAnalysisJson: contextAiOptionsAnalysisJson,
+            marketStatusJson: contextMarketStatusJson,
+        };
+        startTransition(() => {
+          generateChatSummaryFormAction(payload);
+        });
+      } else {
+        logDebug('FSM_PIPELINE', `MainTabContent: FSM in GENERATING_CHAT_SUMMARY for ${ticker}, but prerequisite data not fully ready. Dispatching CHAT_SUMMARY_FAILURE.`);
+        dispatchFsmEvent({
+          type: 'CHAT_SUMMARY_FAILURE',
+          payload: { 
+            error: 'Missing or invalid prerequisite data for chat summary.', 
+            message: 'Could not generate chat summary due to missing data.' 
+          }
+        });
+      }
+    }
+  }, [
+    fsmState, 
+    generateChatSummaryFormAction, 
+    isGenerateChatSummaryPending, 
+    contextStockSnapshotJson, 
+    contextStandardTasJson, 
+    contextAiAnalyzedTaJson, 
+    contextAiKeyTakeawaysJson, 
+    contextAiOptionsAnalysisJson, 
+    contextMarketStatusJson, 
+    dispatchFsmEvent, 
+    logDebug
+  ]);
+
+  // Effect for generateChatSummaryState (Chat Summary) -> Dispatch FSM events
+  useEffect(() => {
+    if (fsmState !== FsmState.GENERATING_CHAT_SUMMARY || generateChatSummaryState.status === 'idle' || !analysisTriggeredForTickerRef.current) {
+      return;
+    }
+    logDebug('FSM_PIPELINE', "MainTabContent: Chat Summary Action state (generateChatSummaryState) changed:", generateChatSummaryState);
+
+    if (generateChatSummaryState.status === 'success' && generateChatSummaryState.data) {
+      toast({ title: "Chat Summary Generated", description: generateChatSummaryState.message || `Chat summary for ${analysisTriggeredForTickerRef.current} generated.` });
+      dispatchFsmEvent({ type: 'CHAT_SUMMARY_SUCCESS', payload: generateChatSummaryState.data as GenerateChatSummaryResult });
+    } else if (generateChatSummaryState.status === 'error') {
+      toast({ variant: "destructive", title: "Chat Summary Error", description: generateChatSummaryState.message || "Failed to generate chat summary." });
+      dispatchFsmEvent({ 
+        type: 'CHAT_SUMMARY_FAILURE', 
+        payload: { 
+          error: generateChatSummaryState.error, 
+          message: generateChatSummaryState.message,
+          requestJson: generateChatSummaryState.data?.requestJson
+        } 
+      });
+    }
+  }, [generateChatSummaryState, fsmState, dispatchFsmEvent, toast, logDebug]);
+
+  // Effect for interactive chatActionState (this remains for user-initiated chat after summary)
+  useEffect(() => {
+    if (chatActionState.status === 'idle' || !analysisTriggeredForTickerRef.current) return;
+
+    if (chatActionState.status === 'success' && chatActionState.data?.chatbotResponseJson) {
+        try {
+            const responseObj = JSON.parse(chatActionState.data.chatbotResponseJson);
+            const modelMessage: ChatMessage = { id: Date.now().toString() + '_model', role: 'model', content: responseObj.response || "No response text." };
+            dispatchFsmEvent({type: 'ADD_CHAT_MESSAGE' as any, payload: modelMessage }); // Temp any until ADD_CHAT_MESSAGE is official
+             logDebug('MainTabContent:chatActionState', 'Interactive chat success, added model message.');
+        } catch (e) {
+            logDebug('MainTabContent:chatActionState', 'Error parsing chatbot response for interactive chat:', e);
+            const errorMessage: ChatMessage = { id: Date.now().toString() + '_model_error', role: 'model', content: "Sorry, I had trouble formatting my response." };
+            dispatchFsmEvent({type: 'ADD_CHAT_MESSAGE' as any, payload: errorMessage });
+        }
+    } else if (chatActionState.status === 'error') {
+        const errorMessageContent = chatActionState.message || "Sorry, an error occurred with the chat.";
+        const errorModelMessage: ChatMessage = { id: Date.now().toString() + '_model_error', role: 'model', content: errorMessageContent };
+        dispatchFsmEvent({type: 'ADD_CHAT_MESSAGE' as any, payload: errorModelMessage });
+        logDebug('MainTabContent:chatActionState', 'Interactive chat error, added error model message.');
+    }
+  }, [chatActionState, dispatchFsmEvent, logDebug]);
 
 
   const getCombinedDataForExport = useCallback(() => {
@@ -469,16 +574,12 @@ export function MainTabContent() {
   }, [isDataReadyForCombinedExport, getCombinedDataForExport, tickerInput, toast, logDebug]);
 
   logDebug('MainTabContent', `Rendering. FSM State=${fsmState}, isPipelineActive=${isPipelineActive}, analysisTriggeredForTickerRef=${analysisTriggeredForTickerRef.current}`);
-  const activeTickerForChat = (analysisTriggeredForTickerRef.current && isPipelineActive) ? analysisTriggeredForTickerRef.current : tickerInput;
+  const activeTickerForChat = (analysisTriggeredForTickerRef.current && (isPipelineActive || isFullAnalysisTriggered)) ? analysisTriggeredForTickerRef.current : tickerInput;
 
-  const isFormDisabled = fsmState !== FsmState.IDLE;
+
+  const isFormDisabled = isPipelineActive;
   
-  const showAnalyzeStockSpinner = fsmState === FsmState.FETCHING_DATA && isAnalyzeStockPending;
-  const showAnalyzeTaSpinner = fsmState === FsmState.ANALYZING_TA && isAnalyzeTaPending;
-  const showKeyTakeawaysSpinner = fsmState === FsmState.GENERATING_KEY_TAKEAWAYS && isPerformAiAnalysisPending;
-  const showOptionsAnalysisSpinner = fsmState === FsmState.ANALYZING_OPTIONS && isPerformAiOptionsAnalysisPending;
-
-  const isPartialAnalysisButtonPending = showAnalyzeStockSpinner || showAnalyzeTaSpinner;
+  const isPartialAnalysisButtonPending = isPipelineActive && !isFullAnalysisTriggered;
   const isFullAnalysisButtonPending = isPipelineActive && isFullAnalysisTriggered;
 
 
@@ -556,8 +657,8 @@ export function MainTabContent() {
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <Chatbot
-            chatFormAction={chatFormAction}
-            isChatPending={isChatPending || (isFullAnalysisTriggered && fullAnalysisStatus === 'chatting')} 
+            chatFormAction={chatFormAction} // For interactive user chat
+            isChatPending={isChatPending} // Only for interactive user chat
             currentTicker={activeTickerForChat}
           />
           <MarketStatusDisplay />
