@@ -1,9 +1,10 @@
+
 /**
  * @fileOverview Zod schemas for the AI Chatbot.
  * Defines the input and output structures for the chatbot flow.
  */
 
-import {z} from 'zod';
+import {z} from 'zod'; // CRITICAL: Use direct 'zod' import
 
 export const ChatInputSchema = z.object({
   ticker: z.string().describe('The stock ticker symbol relevant to the chat context.'),
@@ -13,9 +14,13 @@ export const ChatInputSchema = z.object({
   aiKeyTakeawaysJson: z
     .string()
     .describe('A JSON string of AI-generated key takeaways (price action, trend, volatility, momentum, patterns with sentiment). This provides analytical context.'),
-  aiCalculatedTaJson: z
+  aiAnalyzedTaJson: z // Renamed from aiCalculatedTaJson
     .string()
-    .describe('A JSON string of AI-calculated technical analysis (e.g., pivot points). This provides technical context.'),
+    .describe('A JSON string of AI-analyzed technical analysis (e.g., pivot points). This provides technical context.'),
+  aiOptionsAnalysisJson: z // New field
+    .string()
+    .optional()
+    .describe('An optional JSON string of AI-analyzed options chain data (e.g., call/put walls). This provides options context.'),
   chatHistory: z.array(z.object({
       role: z.enum(['user', 'model']),
       content: z.string(),
@@ -34,6 +39,7 @@ export type ChatOutput = z.infer<typeof ChatOutputSchema>;
 export const exampleChatPrompts: {title: string; prompt: string}[] = [
     { title: "Current Price?", prompt: "What is the current price of {TICKER}?" },
     { title: "Explain Pivot Points", prompt: "Can you explain the pivot points for {TICKER}?" },
+    { title: "Options Walls?", prompt: "What are the significant call and put walls for {TICKER} based on your options analysis?"}, // New example
     { title: "Summarize Analysis", prompt: "Give me a quick summary of your analysis for {TICKER}." },
     { title: "Recent Trend?", prompt: "What's the recent trend for {TICKER} according to your takeaways?" },
 ];

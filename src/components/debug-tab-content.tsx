@@ -53,8 +53,10 @@ export function DebugTabContent() {
     stockSnapshotJson,
     standardTasJson,
     optionsChainJson,
-    aiCalculatedTaRequestJson,
-    aiCalculatedTaJson,
+    aiAnalyzedTaRequestJson, // Renamed
+    aiAnalyzedTaJson,        // Renamed
+    aiOptionsAnalysisRequestJson, // New
+    aiOptionsAnalysisJson,        // New
     aiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson,
     chatbotRequestJson,
@@ -73,14 +75,12 @@ export function DebugTabContent() {
           toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
           logDebug('DebugTabContent', `Successfully copied ${title} JSON to clipboard.`);
         } else {
-          // This case might be rare if copyToClipboard primarily throws errors for failures
           toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON. The copy operation returned false.` });
           logDebug('DebugTabContent', `Failed to copy ${title} JSON to clipboard. copyToClipboard returned false.`);
         }
       })
       .catch(err => {
         const errorMessage = (err as Error).message || 'Unknown error';
-        // Keep the console.error for developer visibility in browser dev tools
         console.error(`[DebugTabContent] Error copying ${title} JSON to clipboard:`, err);
         toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON: ${errorMessage}` });
         logDebug('DebugTabContent', `Error caught while trying to copy ${title} JSON to clipboard:`, errorMessage, err);
@@ -94,8 +94,10 @@ export function DebugTabContent() {
     { title: "Stock Snapshot JSON", data: stockSnapshotJson },
     { title: "Standard Technical Indicators JSON", data: standardTasJson },
     { title: "Options Chain JSON", data: optionsChainJson },
-    { title: "AI Calculated TA Request JSON", data: aiCalculatedTaRequestJson },
-    { title: "AI Calculated TA JSON", data: aiCalculatedTaJson },
+    { title: "AI Analyzed TA Request JSON", data: aiAnalyzedTaRequestJson }, // Renamed
+    { title: "AI Analyzed TA JSON", data: aiAnalyzedTaJson },               // Renamed
+    { title: "AI Options Analysis Request JSON", data: aiOptionsAnalysisRequestJson }, // New
+    { title: "AI Options Analysis JSON", data: aiOptionsAnalysisJson },               // New
     { title: "AI Key Takeaways Request JSON", data: aiKeyTakeawaysRequestJson },
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
     { title: "Chatbot Request JSON", data: chatbotRequestJson },

@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.3 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.4 OPERATING MANUAL**
 
-*   **Document Version:** 1.19 (Task 8.8.3 - Updated TA Data & Display)
+*   **Document Version:** 1.20 (Task 8.8.4 - AI Options Analysis & Renaming)
 *   **Date:** 2025-06-12 (Date of last significant structure update, versioning SOP added now)
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.3.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.4.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -18,7 +18,7 @@
 5.  **No Unsolicited Code:** The AI Agent **MUST NOT** generate code or XML changes for tasks or fixes not explicitly scoped and approved by the user.
 
 ### **0.2. Adherence to This Document**
-*   **Single Source of Truth:** This document (`README.md`) in its entirety, including all sections on features, technology stack, phased plans, and specific guidelines, is the **absolute and single source of truth** for the StockSage project. The application version (e.g., v2.x.y.z) will be updated dynamically in this document and in the UI.
+*   **Single Source of Truth:** This document (`README.md`) in its entirety, including all sections on features, technology stack, phased plans, and specific guidelines, is the **absolute and single source of truth** for the StockSage project. The application version (e.g., `v2.x.y.z`) will be updated dynamically in this document and in the UI.
 *   **Clarification Required:** If any ambiguity exists in this document or in user requests, the AI Agent **MUST** ask for clarification before proceeding with scoping or implementation.
 
 ### **0.3. Phased Implementation & UI-First Strategy**
@@ -49,14 +49,14 @@
     2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
-*   **Example:** If the current phase is 8, current task is 8, and this is the 3rd iteration/commit for this task, the version will be `v2.8.8.3`.
+*   **Example:** If the current phase is 8, current task is 8, and this is the 4th iteration/commit for this task, the version will be `v2.8.8.4`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.3)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.4)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.3`).
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.4`).
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling**
@@ -69,7 +69,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Defer backend integrations until the UI structure is stable.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-## **2. High-Level Goals (Current Version v2.8.8.3)**
+## **2. High-Level Goals (Current Version v2.8.8.4)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
@@ -82,11 +82,11 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console.
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.8.8.3)**
+## **3. Core Application Features (StockSage v2.8.8.4)**
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
-*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.3`).
+*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.4`).
 *   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
 *   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features.
@@ -97,25 +97,27 @@ The primary strategy for this implementation is **UI-First Development**. This m
     1.  **Key Metrics Display:** Ticker, Price, Day's Change % (formatted, sentiment-colored).
     2.  **Stock Snapshot Details Display:** Detailed price/volume, sentiment colors for changes.
     3.  **Standard Technical Indicators Display:** Formatted multi-window RSI (7,10,14), MACD (value/signal/histogram), VWAP (day/minute), multi-window EMA (5,10,20,50,200), multi-window SMA (5,10,20,50,200) with sentiment colors for RSI (14) and MACD histogram.
-    4.  **AI-Calculated Technical Analysis Display:** Formatted Pivot Points (PP, S1-S3, R1-R3) with sentiment color for PP row.
+    4.  **AI Analyzed Technical Analysis Display:** (Formerly "AI-Calculated TA") Formatted Pivot Points (PP, S1-S3, R1-R3) with sentiment color for PP row.
     5.  **Options Chain Table Display:** Formatted table (Calls/Strike/Puts), ATM highlighting, dynamic header. Columns: Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
-    6.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
-    7.  **AI Chatbot Interface:** Chat UI, example prompts, history export/copy. Context from Debug Tab JSONs.
-    8.  **Market Status Display:** Relevant market/exchange status (excluding Crypto/FX).
+    6.  **AI Analyzed Options Chain Display (NEW):** Expandable card initially showing AI-identified Call and Put "Walls" based on Open Interest analysis. (min 1, max 3 per side).
+    7.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
+    8.  **AI Chatbot Interface:** Chat UI, example prompts, history export/copy. Context from Debug Tab JSONs (including new AI Options Analysis).
+    9.  **Market Status Display:** Relevant market/exchange status (excluding Crypto/FX).
 *   **Data Export Controls:**
-    *   "Export/Copy All Data to JSON" (Snapshot, Standard TAs, AI TA, Options, Market Status).
-    *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV).
+    *   "Export/Copy All Data to JSON" (Snapshot, Standard TAs, AI Analyzed TA, AI Options Analysis, Options, Market Status).
+    *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV), AI Options Analysis (JSON).
 
 ### **3.3. "Debug" Tab Features**
-*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs (new structure), Options Chain, AI TA Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response.
+*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs (new structure), Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response (NEW), AI Key Takeaways Request/Response, Chatbot Request/Response.
 *   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
 *   **Client Debug Log Settings:** Controls for the client-side debug console log categories.
 
 ### **3.4. Backend Functionality**
 *   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):** Market Status, Ticker Snapshot (current/prev day, minute bar), Standard TAs (multi-window RSI, EMA, SMA; MACD; VWAP day/minute), Options Chain Snapshot (nearest Friday, +/-10-11 strikes, descending sort by strike).
-*   **AI-Calculated Technical Analysis (Genkit Flow):** Classic Daily Pivot Points.
-*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of new TA structure.
-*   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis, aware of new TA structure.
+*   **AI Analyzed Technical Analysis (Genkit Flow):** Classic Daily Pivot Points.
+*   **AI Analyzed Options Chain (Genkit Flow - NEW):** Identification of Call/Put Walls (min 1, max 3 per side) based on Open Interest.
+*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of new TA structure and AI Options Analysis.
+*   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis, aware of new TA structure and AI Options Analysis.
 *   **Data Formatting:** Numerical data (max 2 decimal places for display), monetary values ("$" prefix).
 
 ## **4. Technology Stack (Mandatory)**
@@ -186,10 +188,10 @@ This section documents critical issues encountered during development and their 
     4.  **Effect of `@genkit-ai/next` Removal:** The `@genkit-ai/next` package, while causing `async_hooks` issues, likely provided implicit Webpack configurations or shims that previously (and perhaps imperfectly) prevented or mitigated the bundling of these deep server-side dependencies. Its removal (a necessary fix for `async_hooks`) unmasked this latent bundling problem.
     5.  **`enableOpenTelemetry: false` vs. Bundling:** The `enableOpenTelemetry: false` flag in `src/ai/genkit.ts` correctly prevents OpenTelemetry *runtime* initialization but **does not** stop Webpack from *attempting to bundle* the imported code if it's part of an import chain originating from client-side code.
 *   **Resolution (Commit `fc96d65a`):**
-    *   The Zod import in all relevant schema files (`src/ai/schemas/ai-calculated-ta-schemas.ts`, `src/ai/schemas/chat-schemas.ts`, `src/ai/schemas/stock-analysis-schemas.ts`) was changed from `import {z} from 'genkit';` to **`import {z} from 'zod';`**.
+    *   The Zod import in all relevant schema files (`src/ai/schemas/ai-analyzed-ta-schemas.ts` (renamed), `src/ai/schemas/chat-schemas.ts`, `src/ai/schemas/stock-analysis-schemas.ts`, and new `src/ai/schemas/ai-options-analysis-schemas.ts`) was changed from `import {z} from 'genkit';` to **`import {z} from 'zod';`**.
     *   This critical change decouples the schema definitions from the main `genkit` server-side package, allowing Webpack to correctly tree-shake the client bundle and exclude Node.js-specific modules and OpenTelemetry server components.
 *   **Lesson Learned & Critical Guideline for AI Agent:**
-    *   **To prevent client-side bundling of server-only Genkit code, any schema files (`src/ai/schemas/*.ts`) that are, or whose types are, consumed (directly or indirectly) by client-side components MUST always import `zod` directly using `import {z} from 'zod';`.**
+    *   **To prevent client-side bundling of server-only Genkit code, any schema files (`src/ai/schemas/*.ts`) that are, or whose types are, consumed (directly or indirectly) by client-side components MUST always import `zod` directly using `import {z} from 'zod';`**.
     *   **DO NOT use `import {z} from 'genkit';` in such schema files.** This is a primary cause of Webpack attempting to bundle server-side Node.js modules and OpenTelemetry components into the client, leading to "Module not found" errors.
     *   The removal of `@genkit-ai/next` was essential for `async_hooks` stability, but it requires stricter adherence to separating client-safe imports.
     *   The AI Agent **MUST** verify this Zod import pattern for any *new* schema files it creates or modifies that are intended for client-side type consumption. Failure to do so risks reintroducing critical build failures.
@@ -219,7 +221,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.3.)*
+*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.4.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -265,8 +267,10 @@ This section documents critical issues encountered during development and their 
 *   **Task 8.7.1: Add Enhanced Client Execution Guard to `genkit.ts`:** - Status: **COMPLETE** (Part of Commit: `69bcf1a6`)
 *   **Task 8.8.0: Final Audit & Minor Log Refinement:** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
 *   **Task 8.8.1: Final Proactive Audit (Post Task 8.8.0):** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
-*   **Task 8.8.2: Implement Dynamic Version Display & SOP (Current version: v2.8.8.2):** - Status: **COMPLETE** (Commit: `07817f2a`)
-*   **Task 8.8.3: Update TA Data & Display (Multi-Window, VWAP Minute) (Current version: v2.8.8.3):** - Status: **COMPLETE** (Commit: `b222bbfd`)
+*   **Task 8.8.2: Implement Dynamic Version Display & SOP (Version: v2.8.8.2):** - Status: **COMPLETE** (Commit: `07817f2a`)
+*   **Task 8.8.3: Update TA Data & Display (Multi-Window, VWAP Minute) (Version: v2.8.8.3):** - Status: **COMPLETE** (Commit: `b222bbfd`)
+*   **Task 8.8.4: AI Analyzed Options Chain (Call/Put Walls) & TA Renaming (Current version: v2.8.8.4):** - Status: **IN PROGRESS (Current Task - Commit pending)**
+
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
@@ -274,10 +278,9 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.16    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Tasks 8.7.0 & 8.7.1 (Proactive Guards & Cleanup) complete.** Minor cleanup in `analyze-stock-server-action.ts` (Task 8.7.0). Added enhanced client-side execution guard to `src/ai/genkit.ts` (Task 8.7.1) to aid future debugging of bundling issues. Updated Sec 4.1.6.2 to note this guard. Marked Tasks 8.7.0 & 8.7.1 complete. Updated commit log for `69bcf1a6`. |
-| 1.17    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Tasks 8.8.0 & 8.8.1 (Final Audit & Log Refinement) complete.** Minor log refinement in `MarketStatusDisplay.tsx` (Task 8.8.0). Final audit (Task 8.8.1) found no further changes needed. Updated Sec 5 to mark Phase 8 Core COMPLETE. Project v2.1.0 core complete and audited. Updated commit log for `d1a5e67f`. |
 | 1.18    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.2 (Implement Dynamic Version Display & SOP) complete.** Updated UI to display `v2.8.8.2`. Added Section 0.6 defining the `2.x.y.z` dynamic versioning SOP. Updated various sections to reflect current version `v2.8.8.2`. Phase 8 Core Features now marked complete, project status updated to reflect new versioning. Updated commit log for `07817f2a`. |
-| **1.19**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.8.3 (Update TA Data & Display) complete.** Application version `v2.8.8.3`. Updated `src/services/data-sources/types.ts` for new TA structures. Updated `polygon-adapter.ts` to fetch multi-window RSI, EMA, SMA, and minute VWAP. Updated `standard-ta-display.tsx` to render new TA data. Updated AI prompt in `analyze-stock-data.ts` to understand new TA JSON. Updated header to display `v2.8.8.3`. Updated relevant README sections. Commit `b222bbfd`. |
+| 1.19    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.3 (Update TA Data & Display) complete.** Application version `v2.8.8.3`. Updated `src/services/data-sources/types.ts` for new TA structures. Updated `polygon-adapter.ts` to fetch multi-window RSI, EMA, SMA, and minute VWAP. Updated `standard-ta-display.tsx` to render new TA data. Updated AI prompt in `analyze-stock-data.ts` to understand new TA JSON. Updated header to display `v2.8.8.3`. Updated relevant README sections. Commit `b222bbfd`. |
+| **1.20**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.8.4 (AI Options Analysis & TA Renaming) in progress.** Application version `v2.8.8.4`. Renamed "AI-Calculated TA" to "AI Analyzed TA" throughout codebase & docs. Added new "AI Analyzed Options Chain" feature: new UI card, Genkit flow for Call/Put Walls, server action, context updates, debug logs. Prompts for Key Takeaways and Chatbot updated. Header displays `v2.8.8.4`. Relevant README sections updated. Commit: `YOUR_NEXT_COMMIT_HASH`. |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -290,44 +293,6 @@ This section tracks the commit history of the StockSage application, with versio
 **Tag:** `Phase-0_Task-0.6` ([v0.0.6])
 **Subject:** `feat: Complete Phase 0 - Project Setup & Core Layout`
 ... (Previous commit logs remain)
-
----
-**Tag:** `Phase-8_Task-8.5_Build-Fix` - Commit Hash: `fc96d65a`
-**Subject:** `fix(build): Resolve critical build failures by isolating Zod imports (Task 8.5)`
-**Details:**
-This commit addresses critical "Module not found" build errors for Node.js built-ins and OpenTelemetry components.
-**Root Cause:** Client-side schema files (`src/ai/schemas/*.ts`) importing `z` from `genkit`'s main package, exposed after `@genkit-ai/next` removal.
-**Solution:** Changed Zod imports in schema files to `import {z} from 'zod';` directly, preventing Webpack from bundling server-side Genkit machinery into the client.
-This resolves a major pain point and restores build stability.
-
----
-**Tag:** `Phase-8_Task-8.6_Build-Fix` - Commit Hash: `8d199845`
-**Subject:** `fix(build): Resolve "use server" export error by removing directive from genkit.ts`
-**Details:**
-This commit addresses the persistent Next.js build error: "A 'use server' file can only export async functions, found object."
-**Root Cause Analysis:** The error was caused by the `src/ai/genkit.ts` file having the `'use server';` directive at the top. This directive instructs Next.js to treat all exports from that file as Server Actions, which must be async functions. However, `src/ai/genkit.ts` exports the `ai` constant, which is an initialized Genkit instance (an object), not an async function.
-**Solution Implemented:** The `'use server';` directive was removed from `src/ai/genkit.ts`. This allows `src/ai/genkit.ts` to function as a standard server-side module. Other server-side modules (like Genkit flows) can then import and use this `ai` instance without conflict.
-This change resolves the build error.
-
----
-**Tag:** `Phase-8_Task-8.7.1_Debug-Enhancements` - Commit Hash: `69bcf1a6`
-**Subject:** `feat(debug): Enhance server-only module guards and minor action cleanup`
-**Details:**
-This commit combines the outcomes of Task 8.7.0 and Task 8.7.1.
-**Task 8.7.0:** Removed `polygonAdapterDebugMessages` handling from `src/actions/analyze-stock-server-action.ts` for consistency, as the adapter no longer populates this specific field.
-**Task 8.7.1:** Added an enhanced client-side execution guard to `src/ai/genkit.ts`. If this server-only module is mistakenly executed in a client environment, it will now throw an error in development (and log critically in production), aiding in rapid diagnosis of bundling issues. This reinforces lessons from previous build problems.
-
----
-**Tag:** `Phase-8_Task-8.8.1_Final-Audit-Minor-Log-Fix` - Commit Hash: `d1a5e67f`
-**Subject:** `fix(debug): Refine market status display log and conclude final audit (Tasks 8.8.0, 8.8.1)`
-**Details:**
-This commit includes a minor refinement from Task 8.8.0 and marks the completion of the final audit in Task 8.8.1, thereby concluding Phase 8 core feature development.
-**Task 8.8.0:** Log Message Refinement
-- File: `src/components/market-status-display.tsx`
-- Change: Modified the `logDebug` call to provide a more specific message if an error state is due to an explicit `data.error` field in parsed JSON, improving debug clarity.
-**Task 8.8.1:** Final Proactive Audit
-- A comprehensive audit found no further code changes were needed beyond the Task 8.8.0 refinement.
-With this commit, Phase 8: Final Styling, Cleanup, Documentation & Stability for core features is considered complete.
 
 ---
 **App Version:** `v2.8.8.2` (Reflected dynamic versioning implementation)
@@ -343,7 +308,7 @@ This commit implements the new `2.x.y.z` dynamic application versioning scheme.
 This change provides clearer tracking of application iterations.
 
 ---
-**App Version:** `v2.8.8.3` (Reflects current task for TA data enhancements)
+**App Version:** `v2.8.8.3` (Reflects TA data enhancements)
 **Tag:** `Phase-8_Task-8.8.3_TA-Enhancements` - Commit Hash: `b222bbfd`
 **Subject:** `feat(data): Enhance TA data with multi-window indicators and new structure (v2.8.8.3)`
 **Details:**
@@ -361,6 +326,32 @@ This commit implements Task v2.8.8.3, significantly enhancing the Standard Techn
 - **Versioning:** UI header and `README.md` updated to `v2.8.8.3`.
 
 ---
+**App Version:** `v2.8.8.4` (Reflects AI Options Analysis and TA renaming)
+**Tag:** `Phase-8_Task-8.8.4_Options-AI-TA-Rename` - Commit Hash: `YOUR_NEXT_COMMIT_HASH`
+**Subject:** `feat(ai,ui): Add AI Options Wall Analysis, rename AI TA components, update version to v2.8.8.4`
+**Details:**
+This commit implements Task v2.8.8.4.
+- **Renaming:** "AI-Calculated Technical Analysis" has been renamed to "AI Analyzed Technical Analysis" throughout the codebase. This includes:
+    - Component: `AiCalculatedTaDisplay.tsx` -> `AiAnalyzedTaDisplay.tsx`.
+    - Schemas: `ai-calculated-ta-schemas.ts` -> `ai-analyzed-ta-schemas.ts` (and internal types like `AnalyzeTaInput/OutputSchema`).
+    - Actions: `calculate-ai-ta-action.ts` -> `analyze-ta-action.ts` (and internal types/functions).
+    - Flows: `calculate-ai-ta-flow.ts` -> `analyze-ta-flow.ts` (and internal types/functions).
+    - Context variables: `aiCalculatedTaJson` -> `aiAnalyzedTaJson`, etc.
+    - UI text and descriptions.
+- **New Feature: AI Analyzed Options Chain:**
+    - Added a new "AI Analyzed Options Chain" card to the Main Tab.
+    - Implemented a new Genkit flow (`src/ai/flows/analyze-options-chain-flow.ts`) with a prompt to detect Call and Put "Walls" based on Open Interest (OI >= 1.5x avg OI & >= 2x adjacent OI; min 1, max 3 walls per side).
+    - Created corresponding Zod schemas (`src/ai/schemas/ai-options-analysis-schemas.ts`) for input and output.
+    - Added a new server action (`src/actions/perform-ai-options-analysis-action.ts`) to orchestrate this flow.
+    - Updated `StockAnalysisContext` to store `aiOptionsAnalysisRequestJson` and `aiOptionsAnalysisJson`.
+    - Integrated the new action into the "Full AI Analysis" sequence in `MainTabContent.tsx`.
+    - The `AiOptionsAnalysisDisplay.tsx` component uses an Accordion for displaying results (initially Call/Put Walls), designed for future expandability.
+    - Added export/copy functionality for AI Options Analysis JSON.
+    - Updated `DebugTabContent.tsx` to display the new JSON fields.
+    - Added new log source IDs for relevant components/actions/flows.
+- **Chatbot Context:** The Chatbot prompt and input schema (`chat-schemas.ts`, `chat-flow.ts`) now include the `aiOptionsAnalysisJson` for richer contextual responses.
+- **Versioning:** UI header and `README.md` updated to `v2.8.8.4`. `README.md` sections updated to reflect new feature and renaming.
+
+---
 
 *(Future commit logs will follow)*
-

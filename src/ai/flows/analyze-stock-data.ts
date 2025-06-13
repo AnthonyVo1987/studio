@@ -30,7 +30,7 @@ const prompt = ai.definePrompt({
   output: {schema: StockAnalysisOutputSchema},
   model: DEFAULT_ANALYSIS_MODEL_ID,
   prompt: `You are an expert financial analyst tasked with providing key takeaways about a stock.
-You will be given the stock ticker, a snapshot of its current and previous day data, standard technical indicators, AI-calculated technical analysis (like pivot points), and current market status.
+You will be given the stock ticker, a snapshot of its current and previous day data, standard technical indicators, AI-analyzed technical analysis (like pivot points), and current market status.
 
 The standard technical indicators JSON ({{{standardTasJson}}}) will have the following structure:
 - "RSI": An object with keys like "7", "10", "14" representing RSI values for those periods. e.g., {"7": 50.0, "14": 55.0}. The 14-period RSI is standard for overbought (>70) / oversold (<30) conditions.
@@ -59,7 +59,7 @@ Contextual Data:
 Ticker: {{{ticker}}}
 Stock Snapshot (current & prev day data, incl. minute VWAP in 'min' field): {{{stockSnapshotJson}}}
 Standard Technical Indicators (RSI, MACD, VWAP, EMA, SMA with multiple windows): {{{standardTasJson}}}
-AI-Calculated Technical Analysis (Pivot Points): {{{aiCalculatedTaJson}}}
+AI Analyzed Technical Analysis (Pivot Points): {{{aiAnalyzedTaJson}}}  // Renamed from aiCalculatedTaJson
 Market Status: {{{marketStatusJson}}}
 
 Provide your analysis as a JSON object strictly conforming to the StockAnalysisOutputSchema.

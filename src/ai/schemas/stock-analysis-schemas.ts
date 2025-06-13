@@ -4,7 +4,7 @@
  * Defines the input and output structures for the stock analysis flow.
  */
 
-import {z} from 'zod';
+import {z} from 'zod'; // CRITICAL: Use direct 'zod' import
 
 export const StockAnalysisInputSchema = z.object({
   ticker: z.string().describe('The ticker symbol of the stock being analyzed.'),
@@ -14,9 +14,9 @@ export const StockAnalysisInputSchema = z.object({
   standardTasJson: z
     .string()
     .describe('A JSON string containing standard technical indicators (RSI, SMA, EMA, MACD, VWAP).'),
-  aiCalculatedTaJson: z
+  aiAnalyzedTaJson: z // Renamed from aiCalculatedTaJson
     .string()
-    .describe('A JSON string containing AI-calculated technical analysis (e.g., pivot points).'),
+    .describe('A JSON string containing AI-analyzed technical analysis (e.g., pivot points).'),
   marketStatusJson: z
     .string()
     .describe('A JSON string containing current market status information.'),

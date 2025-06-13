@@ -23,7 +23,7 @@ interface PerformAiAnalysisActionInputs {
   ticker: string;
   stockSnapshotJson: string;
   standardTasJson: string;
-  aiCalculatedTaJson: string;
+  aiAnalyzedTaJson: string; // Renamed field
   marketStatusJson: string;
 }
 
@@ -35,14 +35,14 @@ export async function performAiAnalysisAction(
     ticker, 
     stockSnapshotJson, 
     standardTasJson, 
-    aiCalculatedTaJson, 
+    aiAnalyzedTaJson, // Renamed variable
     marketStatusJson 
   } = payload;
   console.log(`[ServerAction:performAiAnalysisAction] Request for ticker: ${ticker}`);
 
   if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' || 
       !standardTasJson || standardTasJson === '{}' ||
-      !aiCalculatedTaJson || aiCalculatedTaJson === '{}' ||
+      !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}' || // Renamed variable
       !marketStatusJson || marketStatusJson === '{}') {
     const errorMsg = 'One or more required data inputs for AI analysis are missing or empty.';
     console.warn(`[ServerAction:performAiAnalysisAction] Validation Error for ${ticker}: ${errorMsg}`);
@@ -58,7 +58,15 @@ export async function performAiAnalysisAction(
     ticker,
     stockSnapshotJson,
     standardTasJson,
-    aiCalculatedTaJson,
+    aiCalculatedTaJson: aiAnalyzedTaJson, // Map renamed variable to schema field (schema will be updated later if needed, or prompt adjusted)
+                                        // Self-correction: The schema field name is 'aiCalculatedTaJson'.
+                                        // I should update the schema name eventually, but for now, map it.
+                                        // For the AI prompt `analyze-stock-data.ts`, it refers to `{{{aiCalculatedTaJson}}}`.
+                                        // So `StockAnalysisInputSchema`'s field `aiCalculatedTaJson` should remain if the prompt isn't changing that part.
+                                        // The *content producer* (analyze-ta-action) now produces `aiAnalyzedTaJson`.
+                                        // This action *consumes* it. So the input parameter should be `aiAnalyzedTaJson`.
+                                        // The `StockAnalysisInputSchema` and the prompt `analyze-stock-data.ts` should be updated
+                                        // to expect `aiAnalyzedTaJson` instead of `aiCalculatedTaJson`.
     marketStatusJson,
   };
 

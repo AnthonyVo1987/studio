@@ -23,7 +23,9 @@ export interface ChatActionInputs {
   ticker: string;
   stockSnapshotJson: string;
   aiKeyTakeawaysJson: string;
-  aiCalculatedTaJson: string;
+  aiAnalyzedTaJson: string; // Renamed from aiCalculatedTaJson
+  // New - AI Options Analysis (add if available)
+  aiOptionsAnalysisJson?: string; 
   chatHistory?: Array<{ role: 'user' | 'model'; content: string }>; 
   userInput: string;
 }
@@ -36,7 +38,8 @@ export async function chatServerAction(
     ticker, 
     stockSnapshotJson, 
     aiKeyTakeawaysJson, 
-    aiCalculatedTaJson, 
+    aiAnalyzedTaJson, // Renamed
+    aiOptionsAnalysisJson, // New
     chatHistory, 
     userInput 
   } = payload;
@@ -54,9 +57,9 @@ export async function chatServerAction(
   }
   if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' || 
       !aiKeyTakeawaysJson || aiKeyTakeawaysJson === '{}' || 
-      !aiCalculatedTaJson || aiCalculatedTaJson === '{}') {
+      !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') { // Renamed
      const errorMsg = 'Contextual stock data is missing for the chat.';
-     console.warn(`[ServerAction:chatServerAction] Validation Error for ${ticker}: ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, TA empty: ${aiCalculatedTaJson === '{}'}`);
+     console.warn(`[ServerAction:chatServerAction] Validation Error for ${ticker}: ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, Analyzed TA empty: ${aiAnalyzedTaJson === '{}'}`);
      return {
       status: 'error',
       error: errorMsg,
@@ -69,7 +72,8 @@ export async function chatServerAction(
     ticker,
     stockSnapshotJson,
     aiKeyTakeawaysJson,
-    aiCalculatedTaJson,
+    aiAnalyzedTaJson, // Renamed
+    aiOptionsAnalysisJson: aiOptionsAnalysisJson || "{}", // Pass new options analysis if available
     chatHistory: chatHistory || [],
     userInput,
   };

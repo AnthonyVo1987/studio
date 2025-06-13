@@ -35,7 +35,10 @@ Politely decline any requests for information outside of the provided context (e
 You will be provided with the following contextual information for the stock: {{ticker}}
 1.  **Stock Snapshot JSON:** {{{stockSnapshotJson}}} (Contains current and previous day prices, volume, etc.)
 2.  **AI Key Takeaways JSON:** {{{aiKeyTakeawaysJson}}} (Contains AI-generated analysis on price action, trend, volatility, momentum, and patterns, along with sentiment.)
-3.  **AI Calculated TA JSON:** {{{aiCalculatedTaJson}}} (Contains AI-calculated technical indicators like pivot points.)
+3.  **AI Analyzed TA JSON:** {{{aiAnalyzedTaJson}}} (Contains AI-analyzed technical analysis like pivot points.) <!-- Renamed -->
+{{#if aiOptionsAnalysisJson}}
+4.  **AI Options Analysis JSON:** {{{aiOptionsAnalysisJson}}} (Contains AI-identified call/put walls from options data. If empty or "{}", no significant walls were identified or data was unavailable.)
+{{/if}}
 
 {{#if chatHistory.length}}
 Conversation History:
