@@ -11,7 +11,7 @@ export interface StockDataFetchResult {
   optionsChainJson: string;
   polygonApiRequestLogJson: string; // Will now store input to getFullStockData
   polygonApiResponseLogJson: string; // Will now store summary of getFullStockData output
-  polygonAdapterDebugMessages?: string[]; // For granular logs from adapter
+  // polygonAdapterDebugMessages?: string[]; // Removed as adapter no longer provides this
 }
 
 export interface AnalyzeStockServerActionState {
@@ -88,7 +88,7 @@ export async function fetchStockDataAction(
         optionsChainJson,
         polygonApiRequestLogJson,
         polygonApiResponseLogJson,
-        polygonAdapterDebugMessages: adapterOutput.polygonAdapterDebugMessages || [],
+        // polygonAdapterDebugMessages: adapterOutput.polygonAdapterDebugMessages || [], // Removed
       },
       message: `Data for ${ticker.toUpperCase()} fetched successfully.`,
       error: null,
