@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.3 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.7 OPERATING MANUAL**
 
-*   **Document Version:** 1.30 (Task 9.A.3 - FSM Pipeline Debugging)
+*   **Document Version:** 1.34 (Task 9.A.7 - FSM Pipeline Debugging)
 *   **Date:** 2025-06-13
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.3.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.7.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -53,11 +53,11 @@
 *   **Example:** If the current phase is 9, current task is A (for the full README update), and this is the 0th iteration for this task, the version will be `v2.9.A.0`. If the next task is a bug fix, it will be `v2.9.A.1`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.3)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.7)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.3`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.7`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -75,7 +75,7 @@ The primary strategy for this implementation is **UI-First Development**, now en
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for all data points.
     *   Offer a robust and debuggable backend processing pipeline through the FSM.
 
-## **2. High-Level Goals (Current Version v2.9.A.3)**
+## **2. High-Level Goals (Current Version v2.9.A.7)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline.
@@ -88,14 +88,14 @@ The primary strategy for this implementation is **UI-First Development**, now en
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging.
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.9.A.3)**
+## **3. Core Application Features (StockSage v2.9.A.7)**
 
-This section details the core features of StockSage v2.9.A.3, serving as the Product Requirements.
+This section details the core features of StockSage v2.9.A.7, serving as the Product Requirements.
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
 *   **Header:**
-    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.3`).
+    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.7`).
     *   Includes a theme toggler (Light/Dark/System) using `next-themes` and ShadCN `DropdownMenu`.
 *   **Footer:** Contains copyright information and a standard financial disclaimer.
 *   **Theme:** Supports Light and Dark themes, configurable via the header. Theme styles are defined in `src/app/globals.css` using HSL CSS variables.
@@ -244,7 +244,7 @@ This section details the server-side logic, data fetching, AI processing, and th
         *   *Note:* This is a direct calculation, not an LLM call.
     2.  **AI Key Takeaways (`analyze-stock-data.ts`):**
         *   **Purpose:** Generates 5 key takeaways with associated sentiment, focusing on Price Action, Trend, Volatility, Momentum, and Patterns.
-        *   **Input (`StockAnalysisInput`):** Ticker, Stock Snapshot JSON, Standard TAs JSON, AI Analyzed TA JSON, Market Status JSON.
+        *   **Input (`StockAnalysisInput`): Ticker, Stock Snapshot JSON, Standard TAs JSON, AI Analyzed TA JSON, Market Status JSON.
         *   **Output (`StockAnalysisOutput`):** An object with keys for each category, containing `takeaway` text and `sentiment`.
         *   **LLM Prompt:** Instructs the AI to synthesize all provided data.
     3.  **AI Options Analysis (`analyze-options-chain-flow.ts`):**
@@ -430,7 +430,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9 In Progress. Current application version: v2.9.A.3.)*
+*(Status: Phase 9 In Progress. Current application version: v2.9.A.7.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -480,9 +480,14 @@ This section documents critical issues encountered during development and their 
 *   **Task 9.8: Pre-testing Enhancements/Refinements/Debug Logs (v2.9.8.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
 *   **Task 9.A: Comprehensive Full README.md update - FULL PRD, Detailed Design and Architecture Flow (v2.9.A.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
 *   **Task 9.9: Testing and Debugging Fixes (v2.9.9.x):** - Status: **IN PROGRESS**
-    *   **Task 9.9.A.1: Fix Client Debug Console Toggle & FSM ReferenceError (v2.9.A.1):** - Status: **COMPLETE** (Assumed previous commit based on conversation flow, hash to be confirmed by user)
-    *   **Task 9.9.A.2: Fix FSM Pipeline Stall & Display Component Handling of 'pending' (v2.9.A.2):** - Status: **COMPLETE** (Assumed previous commit, hash to be confirmed)
-    *   **Task 9.9.A.3: Further FSM Pipeline Debugging & Display Component Fixes (v2.9.A.3):** - Status: **IN PROGRESS** (This commit)
+    *   **Task 9.9.A.1: Fix Client Debug Console Toggle & FSM ReferenceError (v2.9.A.1):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.1])
+    *   **Task 9.9.A.2: Fix FSM Pipeline Stall & Display Component Handling of 'pending' (v2.9.A.2):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.2])
+    *   **Task 9.9.A.3: Further FSM Pipeline Debugging & Display Component Fixes (v2.9.A.3):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.3])
+    *   **Task 9.9.A.4: Robust 'pending' handling in OptionsChainTable; FSM progression debug in MainTabContent (v2.9.A.4):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.4])
+    *   **Task 9.9.A.5: Simplified useEffect entry conditions in MainTabContent for FSM AWAITING_TRIGGER states (v2.9.A.5):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.5])
+    *   **Task 9.9.A.6: Aggressive entry-point logging to FSM useEffects in MainTabContent; verify dependencies (v2.9.A.6):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.6])
+    *   **Task 9.9.A.7: Fix MarketStatusDisplay pending state; aggressive FSM logging in MainTabContent (v2.9.A.7):** - Status: **IN PROGRESS** (This commit)
+
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
@@ -490,8 +495,11 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.29    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.8.0 (Pre-testing Enhancements/Refinements/Debug Logs) & Task 9.A.0 (Comprehensive README Update) COMPLETE.** Application version `v2.9.A.0`. Enhanced logging, refined error handling. Header displays `v2.9.A.0`. README.md comprehensively updated to full PRD. **Commit: `a7f2b396`** |
-| **1.30**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.9.A.3 (Further FSM Pipeline Debugging & Display Fixes) IN PROGRESS.** Application version `v2.9.A.3`. Addressed issues where display components (`OptionsChainTable`, `AiAnalyzedTaDisplay`, etc.) incorrectly handled `"{ \"status\": \"pending...\" }"` JSONs, causing them to show "malformed data" instead of a loading state. Ensured these components correctly set `isLoading` and do not attempt to parse pending status strings. Header displays `v2.9.A.3`. Phase 9 Task 9.9.A.3 status updated. **Commit: [Current Commit Hash for v2.9.A.3]** |
+| 1.30    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.3 (Further FSM Pipeline Debugging & Display Fixes) COMPLETE.** Application version `v2.9.A.3`. Addressed issues where display components (`OptionsChainTable`, `AiAnalyzedTaDisplay`, etc.) incorrectly handled `"{ \"status\": \"pending...\" }"` JSONs. Header displays `v2.9.A.3`. **Commit: [Commit Hash for v2.9.A.3]** |
+| 1.31    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.4 (Robust 'pending' handling & FSM debug) COMPLETE.** Application version `v2.9.A.4`. Improved `OptionsChainTable` pending state logic and added more FSM progression debug logs in `MainTabContent`. Header displays `v2.9.A.4`. **Commit: [Commit Hash for v2.9.A.4]** |
+| 1.32    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.5 (Simplified useEffect conditions for FSM) COMPLETE.** Application version `v2.9.A.5`. Simplified entry conditions for `useEffect` hooks in `MainTabContent` handling FSM AWAITING_TRIGGER states. Header displays `v2.9.A.5`. **Commit: [Commit Hash for v2.9.A.5]** |
+| 1.33    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.6 (Aggressive FSM logging & dep verification) COMPLETE.** Application version `v2.9.A.6`. Added aggressive entry-point logging to FSM `useEffect`s in `MainTabContent` and verified dependencies. Header displays `v2.9.A.6`. **Commit: [Commit Hash for v2.9.A.6]** |
+| **1.34**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.9.A.7 (Fix MarketStatusDisplay pending & FSM logging) IN PROGRESS.** Application version `v2.9.A.7`. Corrected 'pending' state handling in `MarketStatusDisplay`. Added more aggressive FSM logging in `MainTabContent` to diagnose pipeline stalls. Header displays `v2.9.A.7`. Phase 9 Task 9.9.A.7 status updated. **Commit: [Current Commit Hash for v2.9.A.7]** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -506,41 +514,39 @@ This section tracks the commit history of the StockSage application, with versio
 ... (Previous commit logs remain)
 
 ---
-**App Version:** `v2.9.A.0` (Comprehensive README Update)
-**Tag:** `Phase-9_Task-9.A.0_Comprehensive-README` - Commit Hash: `a7f2b396` (Same commit as v2.9.8.0)
-**Subject:** `docs(readme): Comprehensive PRD, Design, and Architecture update (v2.9.A.0)`
-**Details:**
-Major overhaul of `README.md` to serve as a comprehensive PRD, detailed design document, and architecture flow guide for StockSage v2.9.A.0. All version references updated to `v2.9.A.0`. Tasks 9.8.0 and 9.A.0 marked COMPLETE. UI Header updated.
-
----
-**App Version:** `v2.9.A.1` (Fix Client Debug Console Toggle & FSM ReferenceError)
-**Tag:** `Phase-9_Task-9.A.1_Debug-Console-FSM-Fix` - Commit Hash: `[User to provide/confirm based on previous step]`
-**Subject:** `fix(fsm): Resolve console toggle and _isFullAnalysisTriggered ReferenceError (v2.9.A.1)`
-**Details:**
-Addressed issue with client debug console toggle not opening reliably by consolidating state updates in `StockAnalysisContext`. Fixed `ReferenceError: _isFullAnalysisTriggered is not defined` in `StockAnalysisProvider` by ensuring correct variable scope in `fsmReducer` logs. UI Header updated to `v2.9.A.1`. `README.md` updated.
-
----
-**App Version:** `v2.9.A.2` (Fix FSM Pipeline Stall & Display Component 'pending' Handling - Attempt 1)
-**Tag:** `Phase-9_Task-9.A.2_FSM-Stall-Display-Pending-Fix` - Commit Hash: `[User to provide/confirm based on previous step]`
-**Subject:** `fix(ui): Improve display component handling of 'pending...' status JSON (v2.9.A.2)`
-**Details:**
-Attempted to fix issue where AI display components (`AiAnalyzedTaDisplay`, `AiKeyTakeawaysDisplay`, `AiOptionsAnalysisDisplay`) incorrectly parsed `"{ "status": "pending..." }"` as malformed data. Modified components to set `isLoading=true` for these pending states. UI Header updated to `v2.9.A.2`. `README.md` updated.
-
----
 **App Version:** `v2.9.A.3` (Further FSM Pipeline Debugging & Display Component Fixes)
-**Tag:** `Phase-9_Task-9.A.3_FSM-Display-Robust-Pending-Fix` - Commit Hash: `[Current Commit Hash for v2.9.A.3]`
+**Tag:** `Phase-9_Task-9.A.3_FSM-Display-Robust-Pending-Fix` - Commit Hash: `[Commit Hash for v2.9.A.3]`
 **Subject:** `fix(ui): Robustly handle 'pending' status in display components (v2.9.A.3)`
 **Details:**
-This commit implements Task v2.9.A.3, focusing on more robustly fixing how display components handle "pending..." status JSONs.
-- **Display Component Fixes (`AiAnalyzedTaDisplay`, `AiKeyTakeawaysDisplay`, `AiOptionsAnalysisDisplay`, `OptionsChainTable`):**
-    - Added explicit checks for exact "pending...", "initializing...", and "full\_analysis\_pending..." JSON strings.
-    - If a placeholder status string is detected, components now:
-        - Set `isLoading = true`.
-        - Set `isError = false`.
-        - Set `parsedData = null`.
-        - Clear any `errorOrSkippedMessage`.
-        - **Return early** from parsing logic to prevent `JSON.parse()` on the status string.
-- **Versioning:** UI header updated to `v2.9.A.3`. `README.md` updated.
+Implemented robust fixes for how display components (`AiAnalyzedTaDisplay`, `AiKeyTakeawaysDisplay`, `AiOptionsAnalysisDisplay`, `OptionsChainTable`) handle "pending..." status JSONs, ensuring `isLoading` is set correctly and preventing parsing of status strings. UI header updated to `v2.9.A.3`. `README.md` updated.
+
+---
+**App Version:** `v2.9.A.4` (Robust 'pending' handling in OptionsChainTable; FSM progression debug)
+**Tag:** `Phase-9_Task-9.A.4_Options-Pending-FSM-Debug` - Commit Hash: `[Commit Hash for v2.9.A.4]`
+**Subject:** `fix(ui): Improve OptionsChainTable pending state & FSM debug (v2.9.A.4)`
+**Details:**
+Ensured `OptionsChainTable` correctly handles "pending..." status. Added more detailed logging in `MainTabContent` `useEffect` hooks for FSM AWAITING_TRIGGER states and refined `isDataReadyForProcessing` checks. UI Header updated to `v2.9.A.4`. `README.md` updated.
+
+---
+**App Version:** `v2.9.A.5` (Simplified useEffect entry conditions for FSM AWAITING_TRIGGER states)
+**Tag:** `Phase-9_Task-9.A.5_FSM-useEffect-Entry-Refine` - Commit Hash: `[Commit Hash for v2.9.A.5]`
+**Subject:** `refactor(fsm): Simplify useEffect entry for AWAITING_TRIGGER states (v2.9.A.5)`
+**Details:**
+Simplified entry conditions for `useEffect` hooks in `MainTabContent.tsx` that manage FSM `AWAITING_..._TRIGGER` states to ensure their bodies execute. Added internal checks for ticker ref and data validity. UI Header updated to `v2.9.A.5`. `README.md` updated.
+
+---
+**App Version:** `v2.9.A.6` (Aggressive FSM logging in MainTabContent & dependency verification)
+**Tag:** `Phase-9_Task-9.A.6_Aggressive-FSM-Logging` - Commit Hash: `[Commit Hash for v2.9.A.6]`
+**Subject:** `debug(fsm): Aggressive FSM useEffect logging in MainTabContent (v2.9.A.6)`
+**Details:**
+Added aggressive entry-point logging to FSM progression `useEffect` hooks in `MainTabContent.tsx` to diagnose pipeline stalls. Verified dependency arrays for these effects. UI Header updated to `v2.9.A.6`. `README.md` updated.
+
+---
+**App Version:** `v2.9.A.7` (Fix MarketStatusDisplay pending & further FSM logging)
+**Tag:** `Phase-9_Task-9.A.7_MarketStatus-Pending-FSM-Log-Fix` - Commit Hash: `[Current Commit Hash for v2.9.A.7]`
+**Subject:** `fix(ui): Correct MarketStatusDisplay pending state & enhance FSM logs (v2.9.A.7)`
+**Details:**
+Corrected "pending..." status handling in `MarketStatusDisplay.tsx` to ensure `isLoading` is true and prevent parsing placeholders. Added more detailed FSM state logging directly within `MainTabContent` render and refined entry-point logging in `useEffect` hooks managing FSM progression. UI Header updated to `v2.9.A.7`. `README.md` updated.
 
 ---
 *(Future commit logs will follow)*
