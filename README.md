@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.2 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.3 OPERATING MANUAL**
 
-*   **Document Version:** 1.18 (Task 8.8.2 - Dynamic Versioning SOP Implemented)
+*   **Document Version:** 1.19 (Task 8.8.3 - Updated TA Data & Display)
 *   **Date:** 2025-06-12 (Date of last significant structure update, versioning SOP added now)
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.2.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.3.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -49,14 +49,14 @@
     2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
-*   **Example:** If the current phase is 8, current task is 8, and this is the 2nd iteration/commit for this task, the version will be `v2.8.8.2`.
+*   **Example:** If the current phase is 8, current task is 8, and this is the 3rd iteration/commit for this task, the version will be `v2.8.8.3`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.2)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.3)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.2`).
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.3`).
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling**
@@ -69,7 +69,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Defer backend integrations until the UI structure is stable.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-## **2. High-Level Goals (Current Version v2.8.8.2)**
+## **2. High-Level Goals (Current Version v2.8.8.3)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
@@ -82,11 +82,11 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console.
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.8.8.2)**
+## **3. Core Application Features (StockSage v2.8.8.3)**
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
-*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.2`).
+*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.3`).
 *   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
 *   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features.
@@ -96,7 +96,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Display Card Order & Content:**
     1.  **Key Metrics Display:** Ticker, Price, Day's Change % (formatted, sentiment-colored).
     2.  **Stock Snapshot Details Display:** Detailed price/volume, sentiment colors for changes.
-    3.  **Standard Technical Indicators Display:** Formatted RSI, EMA, SMA, MACD, VWAP with sentiment colors.
+    3.  **Standard Technical Indicators Display:** Formatted multi-window RSI (7,10,14), MACD (value/signal/histogram), VWAP (day/minute), multi-window EMA (5,10,20,50,200), multi-window SMA (5,10,20,50,200) with sentiment colors for RSI (14) and MACD histogram.
     4.  **AI-Calculated Technical Analysis Display:** Formatted Pivot Points (PP, S1-S3, R1-R3) with sentiment color for PP row.
     5.  **Options Chain Table Display:** Formatted table (Calls/Strike/Puts), ATM highlighting, dynamic header. Columns: Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
     6.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
@@ -107,15 +107,15 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV).
 
 ### **3.3. "Debug" Tab Features**
-*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI TA Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response.
+*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs (new structure), Options Chain, AI TA Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response.
 *   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
 *   **Client Debug Log Settings:** Controls for the client-side debug console log categories.
 
 ### **3.4. Backend Functionality**
-*   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):** Market Status, Ticker Snapshot (current/prev day), Standard TAs, Options Chain Snapshot (nearest Friday, +/-10-11 strikes, descending sort by strike).
+*   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):** Market Status, Ticker Snapshot (current/prev day, minute bar), Standard TAs (multi-window RSI, EMA, SMA; MACD; VWAP day/minute), Options Chain Snapshot (nearest Friday, +/-10-11 strikes, descending sort by strike).
 *   **AI-Calculated Technical Analysis (Genkit Flow):** Classic Daily Pivot Points.
-*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment.
-*   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis.
+*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of new TA structure.
+*   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis, aware of new TA structure.
 *   **Data Formatting:** Numerical data (max 2 decimal places for display), monetary values ("$" prefix).
 
 ## **4. Technology Stack (Mandatory)**
@@ -193,7 +193,7 @@ This section documents critical issues encountered during development and their 
     *   **DO NOT use `import {z} from 'genkit';` in such schema files.** This is a primary cause of Webpack attempting to bundle server-side Node.js modules and OpenTelemetry components into the client, leading to "Module not found" errors.
     *   The removal of `@genkit-ai/next` was essential for `async_hooks` stability, but it requires stricter adherence to separating client-safe imports.
     *   The AI Agent **MUST** verify this Zod import pattern for any *new* schema files it creates or modifies that are intended for client-side type consumption. Failure to do so risks reintroducing critical build failures.
-    *   **Reinforcement (Commit `69bcf1a6`):** A client-side execution guard has been added to `src/ai/genkit.ts`. If this server-only module is ever executed in a client environment (e.g., due to a new problematic import chain), it will throw an error in development and log a critical error in production, aiding in rapid diagnosis.
+    *   **Reinforcement (Commit `69bcf1a6`):** An enhanced client-side execution guard has been added to `src/ai/genkit.ts`. If this server-only module is ever executed in a client environment (e.g., due to a new problematic import chain), it will throw an error in development and log a critical error in production, aiding in rapid diagnosis.
 
 ##### **4.1.6.3. Incorrect `'use server';` Directive on Non-Action Modules (e.g., `genkit.ts`) - RESOLVED**
 *   **Context (Post-Mortem of Commit `8d199845`):** After resolving the schema import issues, the project faced a persistent build error: "A 'use server' file can only export async functions, found object."
@@ -219,7 +219,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.2.)*
+*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.3.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -266,6 +266,7 @@ This section documents critical issues encountered during development and their 
 *   **Task 8.8.0: Final Audit & Minor Log Refinement:** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
 *   **Task 8.8.1: Final Proactive Audit (Post Task 8.8.0):** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
 *   **Task 8.8.2: Implement Dynamic Version Display & SOP (Current version: v2.8.8.2):** - Status: **COMPLETE** (Commit: `07817f2a`)
+*   **Task 8.8.3: Update TA Data & Display (Multi-Window, VWAP Minute) (Current version: v2.8.8.3):** - Status: **(Current Task - Commit pending)**
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
@@ -273,11 +274,10 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.14    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.5 (Resolve Critical Build Failures & Confirm Stability) complete.** Updated Zod imports in schema files. Integrated detailed post-mortem of build issues and resolution into Sec 4.1.6 (specifically 4.1.6.2). Marked Task 8.5 complete. Updated commit log for `fc96d65a`. Phase 8 core tasks complete. Enhanced AI guidelines in Sec 4.1.6.2 regarding Zod imports. |
-| 1.15    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.6 (Resolve 'use server' export error) complete.** Removed `'use server';` directive from `src/ai/genkit.ts` as it exports an object, not async functions. Updated Sec 4.1.6.3 to document this lesson. Marked Task 8.6 complete. Updated commit log for `8d199845`.                                       |
 | 1.16    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Tasks 8.7.0 & 8.7.1 (Proactive Guards & Cleanup) complete.** Minor cleanup in `analyze-stock-server-action.ts` (Task 8.7.0). Added enhanced client-side execution guard to `src/ai/genkit.ts` (Task 8.7.1) to aid future debugging of bundling issues. Updated Sec 4.1.6.2 to note this guard. Marked Tasks 8.7.0 & 8.7.1 complete. Updated commit log for `69bcf1a6`. |
 | 1.17    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Tasks 8.8.0 & 8.8.1 (Final Audit & Log Refinement) complete.** Minor log refinement in `MarketStatusDisplay.tsx` (Task 8.8.0). Final audit (Task 8.8.1) found no further changes needed. Updated Sec 5 to mark Phase 8 Core COMPLETE. Project v2.1.0 core complete and audited. Updated commit log for `d1a5e67f`. |
-| **1.18**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.8.2 (Implement Dynamic Version Display & SOP) complete.** Updated UI to display `v2.8.8.2`. Added Section 0.6 defining the `2.x.y.z` dynamic versioning SOP. Updated various sections to reflect current version `v2.8.8.2`. Phase 8 Core Features now marked complete, project status updated to reflect new versioning. Updated commit log for `07817f2a`. |
+| 1.18    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.2 (Implement Dynamic Version Display & SOP) complete.** Updated UI to display `v2.8.8.2`. Added Section 0.6 defining the `2.x.y.z` dynamic versioning SOP. Updated various sections to reflect current version `v2.8.8.2`. Phase 8 Core Features now marked complete, project status updated to reflect new versioning. Updated commit log for `07817f2a`. |
+| **1.19**| **2025-06-12**| Firebase Studio (AI Prototyper) | **Task 8.8.3 (Update TA Data & Display) initiated.** Application version `v2.8.8.3`. Updated `src/services/data-sources/types.ts` for new TA structures. Updated `polygon-adapter.ts` to fetch multi-window RSI, EMA, SMA, and minute VWAP. Updated `standard-ta-display.tsx` to render new TA data. Updated AI prompt in `analyze-stock-data.ts` to understand new TA JSON. Updated header to display `v2.8.8.3`. Updated relevant README sections. |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -330,7 +330,7 @@ This commit includes a minor refinement from Task 8.8.0 and marks the completion
 With this commit, Phase 8: Final Styling, Cleanup, Documentation & Stability for core features is considered complete.
 
 ---
-**App Version:** `v2.8.8.2` (Reflects current task for dynamic versioning implementation)
+**App Version:** `v2.8.8.2` (Reflected dynamic versioning implementation)
 **Tag:** `Phase-8_Task-8.8.2_Versioning-SOP` - Commit Hash: `07817f2a`
 **Subject:** `feat(app): Implement dynamic version display (v2.8.8.2) and SOP`
 **Details:**
@@ -343,6 +343,23 @@ This commit implements the new `2.x.y.z` dynamic application versioning scheme.
 This change provides clearer tracking of application iterations.
 
 ---
+**App Version:** `v2.8.8.3` (Reflects current task for TA data enhancements)
+**Tag:** `Phase-8_Task-8.8.3_TA-Enhancements` - Commit Hash: **YOUR_NEXT_COMMIT_HASH**
+**Subject:** `feat(data): Enhance TA data with multi-window indicators and new structure`
+**Details:**
+This commit implements Task v2.8.8.3, significantly enhancing the Standard Technical Analysis data.
+- **Data Types (`src/services/data-sources/types.ts`):** Updated `TechnicalIndicatorsData` to support multi-window values for RSI, EMA, SMA (e.g., `RSI: {"7": val, "14": val}`) and a dedicated structure for VWAP (`{day: val, minute: val}`).
+- **Data Fetching (`polygon-adapter.ts`):**
+    - Modified adapter to fetch RSI for 7, 10, 14-day windows.
+    - Modified adapter to fetch EMA for 5, 10, 20, 50, 200-day windows.
+    - Modified adapter to fetch SMA for 5, 10, 20, 50, 200-day windows.
+    - VWAP now includes 'day' (from daily aggregate) and 'minute' (from minute aggregate in snapshot).
+- **UI Display (`standard-ta-display.tsx`):**
+    - Rewrote rendering logic to display the new multi-window TA data in the order: RSI, MACD, VWAP, EMA, SMA.
+    - Sentiment coloring applied to RSI (14-day) and MACD histogram.
+- **AI Prompt (`analyze-stock-data.ts`):** Updated prompt to inform the LLM about the new `standardTasJson` structure.
+- **Versioning:** UI header and `README.md` updated to `v2.8.8.3`.
+
+---
 
 *(Future commit logs will follow)*
-

@@ -32,11 +32,19 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert financial analyst tasked with providing key takeaways about a stock.
 You will be given the stock ticker, a snapshot of its current and previous day data, standard technical indicators, AI-calculated technical analysis (like pivot points), and current market status.
 
+The standard technical indicators JSON ({{{standardTasJson}}}) will have the following structure:
+- "RSI": An object with keys like "7", "10", "14" representing RSI values for those periods. e.g., {"7": 50.0, "14": 55.0}. The 14-period RSI is standard for overbought (>70) / oversold (<30) conditions.
+- "MACD": An object with "value", "signal", and "histogram" keys. e.g., {"value": 0.5, "signal": 0.4, "histogram": 0.1}. A positive histogram is generally bullish; negative is bearish.
+- "VWAP": An object with "day" and "minute" keys for Volume Weighted Average Price. e.g., {"day": 150.00, "minute": 150.05}.
+- "EMA": An object with keys for different Exponential Moving Average periods ("5", "10", "20", "50", "200"). e.g., {"20": 148.00, "50": 145.00}.
+- "SMA": An object with keys for different Simple Moving Average periods ("5", "10", "20", "50", "200"). e.g., {"50": 146.00, "200": 130.00}.
+If a specific indicator or window was not available, it might be missing from the JSON or have a null value.
+
 Analyze all the provided data comprehensively. Your goal is to generate 5 distinct key takeaways, each with a concise statement and an associated sentiment. The categories for these takeaways are:
-1.  **Price Action:** Observations about the stock's recent price movements, support/resistance interactions, etc.
-2.  **Trend:** The prevailing direction (or lack thereof) of the stock's price over a relevant period.
+1.  **Price Action:** Observations about the stock's recent price movements, support/resistance interactions with MAs or pivot points, etc.
+2.  **Trend:** The prevailing direction (or lack thereof) of the stock's price over a relevant period, considering MAs.
 3.  **Volatility:** The degree of variation of the stock's trading price series over time.
-4.  **Momentum:** The speed or rate of price changes for the stock.
+4.  **Momentum:** The speed or rate of price changes for the stock, considering RSI and MACD.
 5.  **Patterns:** Any significant chart patterns observed or noteworthy absence of clear patterns.
 
 For each takeaway:
@@ -49,8 +57,8 @@ Formatting instructions:
 
 Contextual Data:
 Ticker: {{{ticker}}}
-Stock Snapshot (current & prev day data): {{{stockSnapshotJson}}}
-Standard Technical Indicators (RSI, SMA, EMA, MACD, VWAP): {{{standardTasJson}}}
+Stock Snapshot (current & prev day data, incl. minute VWAP in 'min' field): {{{stockSnapshotJson}}}
+Standard Technical Indicators (RSI, MACD, VWAP, EMA, SMA with multiple windows): {{{standardTasJson}}}
 AI-Calculated Technical Analysis (Pivot Points): {{{aiCalculatedTaJson}}}
 Market Status: {{{marketStatusJson}}}
 

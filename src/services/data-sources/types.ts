@@ -28,6 +28,7 @@ export interface StockSnapshotData {
   ticker?: string | null;
   day?: StockPriceData | null;
   prevDay?: StockPriceData | null;
+  min?: StockPriceData | null; // For minute VWAP
   todaysChange?: number | null;
   todaysChangePerc?: number | null;
   updated?: number | null;
@@ -35,18 +36,31 @@ export interface StockSnapshotData {
   [key: string]: any;
 }
 
-export interface TechnicalIndicatorValue {
+// New specific types for TA indicators
+export type MultiWindowIndicatorValues = Record<string, number | null | undefined>;
+
+export interface MACDValue {
   value?: number | null;
-  [key: string]: any;
+  signal?: number | null;
+  histogram?: number | null;
 }
+
+export interface VWAPValue {
+  day?: number | null;
+  minute?: number | null;
+}
+
 export interface TechnicalIndicatorsData {
-  RSI?: TechnicalIndicatorValue | null;
-  EMA?: TechnicalIndicatorValue | null;
-  SMA?: TechnicalIndicatorValue | null;
-  MACD?: TechnicalIndicatorValue & { signal?: number | null; histogram?: number | null } | null;
-  VWAP?: TechnicalIndicatorValue | null;
-  [key: string]: any;
+  RSI?: MultiWindowIndicatorValues | null;
+  MACD?: MACDValue | null;
+  VWAP?: VWAPValue | null;
+  EMA?: MultiWindowIndicatorValues | null;
+  SMA?: MultiWindowIndicatorValues | null;
+  error?: string; // Keep error field for partial failures
+  rawErrorDetails?: any; // Keep for detailed errors
+  [key: string]: any; // Allow other properties if needed, though aim for defined ones
 }
+
 
 export interface StreamlinedOptionContract {
   strike_price: number;
@@ -93,11 +107,10 @@ export interface StockDataPackage {
   ticker: string;
   marketStatus?: MarketStatusData | { error?: string; rawErrorDetails?: any };
   stockSnapshot?: StockSnapshotData | { error?: string; rawErrorDetails?: any };
-  technicalIndicators?: TechnicalIndicatorsData | { error?: string; rawErrorDetails?: any };
+  technicalIndicators?: TechnicalIndicatorsData; // Updated type here
   optionsChain?: OptionsChainData | { error?: string; rawErrorDetails?: any };
   error?: string;
   rawOverallError?: any;
-  // Remove polygonAdapterDebugMessages
   [key: string]: any;
 }
 
@@ -105,5 +118,4 @@ export interface AdapterOutput {
   stockData: StockDataPackage;
   rawRequestParams?: any;
   rawResponseSummary?: any;
-  // Remove polygonAdapterDebugMessages
 }
