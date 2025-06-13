@@ -26,6 +26,7 @@ export const logSourceIds = [
   'AnalyzeStockDataFlow',
   'ChatFlow',
   'AnalyzeOptionsChainFlow', // New
+  'FSM_PIPELINE', // New FSM log source
   // Add new source identifiers here
 ] as const;
 
@@ -38,24 +39,25 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   StockSnapshotDetailsDisplay: false,
   StandardTaDisplay: false,
   MarketStatusDisplay: false,
-  AiAnalyzedTaDisplay: false, // Renamed
+  AiAnalyzedTaDisplay: false, 
   AiKeyTakeawaysDisplay: false,
   OptionsChainTable: false,
-  AiOptionsAnalysisDisplay: false, // New
+  AiOptionsAnalysisDisplay: false, 
   DebugTabContent: false,
   MainTabContent: false,
   StockAnalysisContext: false,
   NATIVE_CONSOLE: false,
   Chatbot: false,
   DebugConsole: true, 
-  AnalyzeTaAction: false, // Renamed
+  AnalyzeTaAction: false, 
   PerformAiAnalysisAction: false,
-  PerformAiOptionsAnalysisAction: false, // New
+  PerformAiOptionsAnalysisAction: false, 
   ChatServerAction: false,
-  AnalyzeTaFlow: false, // Renamed
+  AnalyzeTaFlow: false, 
   AnalyzeStockDataFlow: false,
   ChatFlow: false,
-  AnalyzeOptionsChainFlow: false, // New
+  AnalyzeOptionsChainFlow: false, 
+  FSM_PIPELINE: true, // Default FSM logs to ON during development
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -63,26 +65,28 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   StockSnapshotDetailsDisplay: 'Stock Snapshot Details Display',
   StandardTaDisplay: 'Standard TA Display',
   MarketStatusDisplay: 'Market Status Display',
-  AiAnalyzedTaDisplay: 'AI Analyzed TA Display', // Renamed
+  AiAnalyzedTaDisplay: 'AI Analyzed TA Display', 
   AiKeyTakeawaysDisplay: 'AI Key Takeaways Display',
   OptionsChainTable: 'Options Chain Table',
-  AiOptionsAnalysisDisplay: 'AI Options Analysis Display', // New
+  AiOptionsAnalysisDisplay: 'AI Options Analysis Display', 
   DebugTabContent: 'Debug Tab Content',
   MainTabContent: 'Main Tab Content (Logic)',
   StockAnalysisContext: 'Stock Analysis Context (Internals)',
   NATIVE_CONSOLE: 'Native Console Logs (General)',
   Chatbot: 'Chatbot UI',
   DebugConsole: 'Debug Console UI/Internals',
-  AnalyzeTaAction: 'Analyze TA Action (Server)', // Renamed
+  AnalyzeTaAction: 'Analyze TA Action (Server)', 
   PerformAiAnalysisAction: 'Perform AI Key Takeaways Action (Server)',
-  PerformAiOptionsAnalysisAction: 'Perform AI Options Analysis Action (Server)', // New
+  PerformAiOptionsAnalysisAction: 'Perform AI Options Analysis Action (Server)', 
   ChatServerAction: 'Chat Server Action',
-  AnalyzeTaFlow: 'Analyze TA Flow (Genkit)', // Renamed
+  AnalyzeTaFlow: 'Analyze TA Flow (Genkit)', 
   AnalyzeStockDataFlow: 'Analyze Stock Data (Key Takeaways) Flow (Genkit)',
   ChatFlow: 'Chat Flow (Genkit)',
-  AnalyzeOptionsChainFlow: 'Analyze Options Chain Flow (Genkit)', // New
+  AnalyzeOptionsChainFlow: 'Analyze Options Chain Flow (Genkit)', 
+  FSM_PIPELINE: 'FSM Pipeline Events',
 };
 
 // For DebugConsole.tsx filter UI
 export const logTypes = ['debug', 'info', 'log', 'warn', 'error'] as const;
 export type LogType = typeof logTypes[number];
+

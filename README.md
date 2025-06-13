@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.5 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.1.0 OPERATING MANUAL**
 
-*   **Document Version:** 1.21 (Task 8.8.5 - Debug Console Default Settings)
+*   **Document Version:** 1.22 (Task 9.1.0 - FSM Core Setup)
 *   **Date:** 2025-06-13 (Date of last significant structure update, versioning SOP added now)
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.5.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.1.0.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -49,14 +49,14 @@
     2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
-*   **Example:** If the current phase is 8, current task is 8, and this is the 4th iteration/commit for this task, the version will be `v2.8.8.4`. (If this task were 8.8.5, version would be v2.8.8.5)
+*   **Example:** If the current phase is 9, current task is 1, and this is the 0th iteration/commit for this task, the version will be `v2.9.1.0`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.5)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.1.0)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.5`).
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.1.0`).
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling**
@@ -69,7 +69,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Defer backend integrations until the UI structure is stable.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-## **2. High-Level Goals (Current Version v2.8.8.5)**
+## **2. High-Level Goals (Current Version v2.9.1.0)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
@@ -77,16 +77,18 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Modern Architecture:** Implement using Next.js App Router, Server Components by default, and TypeScript.
 *   **Best Practices:** Adhere to industry best practices for React, Next.js, Tailwind CSS, and Genkit development.
 *   **AI Agent Guidelines Adherence:** Strictly follow the operational rules and phased plan detailed in this document, especially Section 0.
-*   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers.
+*   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers. **Phase 9 aims to significantly improve this via FSM re-architecture.**
 *   **User Experience:** Deliver a high-quality, responsive, and accessible user interface.
-*   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console (with improved default settings).
+*   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console. **Phase 9 FSM will add dedicated pipeline logging.**
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.8.8.5)**
+## **3. Core Application Features (StockSage v2.9.1.0)**
+
+*(No changes to core features for this task. Focus is on architectural refactoring of the pipeline.)*
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
-*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.5`).
+*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.9.1.0`).
 *   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
 *   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features. When enabled, all individual log sources default to ON.
@@ -108,7 +110,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Specific exports: Key Takeaways (Text, JSON, CSV), Options Chain (CSV), AI Options Analysis (JSON).
 
 ### **3.3. "Debug" Tab Features**
-*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response.
+*   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response. **(Future: FSM Log display)**
 *   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
 *   **Client Debug Log Settings:** Controls for the client-side debug console log categories, including "Enable All Sources" and "Disable All Sources" buttons.
 
@@ -116,7 +118,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):** Market Status, Ticker Snapshot (current/prev day, minute bar), Standard TAs (multi-window RSI, EMA, SMA; MACD; VWAP day/minute), Options Chain Snapshot (nearest Friday, +/-10-11 strikes, descending sort by strike).
 *   **AI Analyzed Technical Analysis (Genkit Flow):** Classic Daily Pivot Points.
 *   **AI Analyzed Options Chain (Genkit Flow):** Identification of Call/Put Walls and OI Clusters (min 1/max 3 walls per side; min 0/max 3 clusters per side) based on Open Interest.
-*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of AI Analyzed TA, but NOT YET of AI Options Analysis.
+*   **AI Key Takeaways (Genkit Flow):** 5 takeaways with sentiment, aware of AI Analyzed TA, and AI Options Analysis.
 *   **AI Chatbot (Genkit Flow):** Contextual chat, Markdown, emojis, aware of AI Analyzed TA and AI Options Analysis.
 *   **Data Formatting:** Numerical data (max 2 decimal places for display), monetary values ("$" prefix).
 
@@ -130,7 +132,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **AI Integration:** Genkit (latest stable **v1.x series**)
 *   **AI Model Provider:** Google AI (using `@genkit-ai/googleai`)
 *   **Default AI Model:** `googleai/gemini-2.5-flash-preview-05-20`
-*   **State Management:** React Context API, `useActionState` for server actions.
+*   **State Management:** React Context API, `useActionState` for server actions. **Phase 9 will introduce `useReducer` for FSM pipeline state management within the context.**
 *   **Data Fetching (External API):** **Polygon.io REST Client (`@polygon.io/client-js` version `^7.3.2` or latest compatible stable)**.
 *   **Deployment Target (Initial):** Firebase App Hosting
 *   **Build Tooling:** Next.js CLI (Turbopack enabled by default: `next dev --turbopack`).
@@ -165,6 +167,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
 #### **4.1.5. State Management**
 *   React Context API (`StockAnalysisProvider`) for global state (Debug Tab JSONs).
 *   `useActionState` for server actions.
+*   **Phase 9 Addition:** `useReducer` within `StockAnalysisProvider` for managing the FSM state of the analysis pipeline.
 
 #### **4.1.6. Known Pain Points & Lessons Learned (CRITICAL REMINDERS)**
 
@@ -214,14 +217,14 @@ This section documents critical issues encountered during development and their 
 
 ##### **4.1.6.4. General Genkit v1.x Syntax & Data Flow**
 *   **Genkit v1.x Syntax:** Strict adherence to the v1.x syntax (e.g., `response.text`, `response.output`, non-awaited `ai.generateStream`, `await response`) is crucial.
-*   **Data Flow:** Maintain the established data flow: Raw data from sources -> "Debug" Tab JSONs (held in `StockAnalysisContext` state) -> "Main" Tab components read and format from this state. This decouples UI from direct data fetching/processing logic.
+*   **Data Flow:** Maintain the established data flow: Raw data from sources -> "Debug" Tab JSONs (held in `StockAnalysisContext` state) -> "Main" Tab components read and format from this state. **Phase 9 will refactor how this state is managed and updated via an FSM.**
 
 ##### **4.1.6.5. Client-Side Debug Console (`DebugConsole.tsx`)**
-*   The `DebugConsole.tsx` component with its advanced filtering, search, and export features is now stable and the primary tool for client-side debugging. Ensure `logDebug` calls are used appropriately to populate it.
+*   The `DebugConsole.tsx` component with its advanced filtering, search, and export features is now stable and the primary tool for client-side debugging. Ensure `logDebug` calls are used appropriately to populate it. Default source toggles now ON.
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.5.)*
+*(Status: Phase 8 Complete. Starting Phase 9. Current application version: v2.9.1.0.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -256,21 +259,20 @@ This section documents critical issues encountered during development and their 
 *   (Tasks 7.1 - 7.2)
 
 ---
-**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **COMPLETE** (ongoing minor enhancements per task)
-*   **Task 8.1: UI & Styling Review (Sentiment Colors Refactor):** - Status: **COMPLETE** (Commit: `b6bc90e8`)
-*   **Task 8.2: Update `README.md` to AI Operating Manual:** - Status: **COMPLETE** (Commit: `b6bc90e8`)
-*   **Task 8.3: Prepare Firebase Deployment Config:** - Status: **PENDING** (Deferred)
-*   **Task 8.4: Final Code Review & Cleanup:** - Status: **COMPLETE** (Commit: `bef12d70`)
-*   **Task 8.5: Resolve Critical Build Failures & Confirm Stability (Zod Imports):** - Status: **COMPLETE** (Commit: `fc96d65a`)
-*   **Task 8.6: Resolve Critical Build Failures & Confirm Stability ('use server' on `genkit.ts`):** - Status: **COMPLETE** (Commit: `8d199845`)
-*   **Task 8.7.0: Deep Dive Audit (Post v8.6.0) & Minor Cleanup:** - Status: **COMPLETE** (Part of Commit: `69bcf1a6`)
-*   **Task 8.7.1: Add Enhanced Client Execution Guard to `genkit.ts`:** - Status: **COMPLETE** (Part of Commit: `69bcf1a6`)
-*   **Task 8.8.0: Final Audit & Minor Log Refinement:** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
-*   **Task 8.8.1: Final Proactive Audit (Post Task 8.8.0):** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
-*   **Task 8.8.2: Implement Dynamic Version Display & SOP (Version: v2.8.8.2):** - Status: **COMPLETE** (Commit: `07817f2a`)
-*   **Task 8.8.3: Update TA Data & Display (Multi-Window, VWAP Minute) (Version: v2.8.8.3):** - Status: **COMPLETE** (Commit: `b222bbfd`)
-*   **Task 8.8.4: AI Analyzed Options Chain (Call/Put Walls & OI Clusters) & TA Renaming (Version: v2.8.8.4 - WIP):** - Status: **COMPLETE (Marked as WIP Commit `26e51654`)**
-*   **Task 8.8.5: Default Debug Console Settings (Current version: v2.8.8.5):** - Status: **COMPLETE**
+**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **COMPLETE**
+*   (Tasks 8.1 - 8.8.5)
+
+---
+**Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **IN PROGRESS**
+*   **Task 9.1: FSM Core Setup & Initial State Integration (v2.9.1.0):** - Status: **IN PROGRESS**
+    *   **Sub-Task 9.1.0:** Define FSM types (states, events) in `stock-analysis-context.tsx`. Implement `useReducer` for basic FSM state (`IDLE`, `INITIALIZING_ANALYSIS`, temporary next state). Modify `MainTabContent.tsx` to dispatch `START_PARTIAL_ANALYSIS` / `START_FULL_ANALYSIS` events. FSM handles placeholder setting and chat clear. Add `FSM_PIPELINE` log source. Update versioning.
+*   **Task 9.2: Integrate Data Fetching into FSM:** - Status: **PENDING**
+*   **Task 9.3: Integrate AI Analyzed TA into FSM:** - Status: **PENDING**
+*   **Task 9.4: Integrate AI Key Takeaways into FSM:** - Status: **PENDING**
+*   **Task 9.5: Integrate AI Options Analysis into FSM:** - Status: **PENDING**
+*   **Task 9.6: Integrate Chat Summary (Full Analysis) into FSM:** - Status: **PENDING**
+*   **Task 9.7: FSM Finalization & Error Handling Polish:** - Status: **PENDING**
+*   **Task 9.8: Update README.md for Phase 9 Completion:** - Status: **PENDING**
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
@@ -279,9 +281,8 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.19    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.3 (Update TA Data & Display) complete.** Application version `v2.8.8.3`. Updated `src/services/data-sources/types.ts` for new TA structures. Updated `polygon-adapter.ts` to fetch multi-window RSI, EMA, SMA, and minute VWAP. Updated `standard-ta-display.tsx` to render new TA data. Updated AI prompt in `analyze-stock-data.ts` to understand new TA JSON. Updated header to display `v2.8.8.3`. Updated relevant README sections. Commit `b222bbfd`. |
-| 1.20    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 8.8.4 (AI Options Analysis & TA Renaming) marked complete for commit `26e51654` (WIP).** Application version `v2.8.8.4`. Renamed "AI-Calculated TA" to "AI Analyzed TA" throughout codebase & docs. Added new "AI Analyzed Options Chain" feature: new UI card, Genkit flow for Call/Put Walls & OI Clusters, server action, context updates, debug logs. Prompts for Key Takeaways and Chatbot updated. Header displays `v2.8.8.4`. Relevant README sections updated. **Commit: `26e51654` (WIP).** |
-| **1.21**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 8.8.5 (Default Debug Console Settings) COMPLETE.** Application version `v2.8.8.5`. When main debug console switch is enabled, all individual log sources default to ON. Added "Enable All Sources" and "Disable All Sources" buttons to Debug Settings card. Updated header to `v2.8.8.5`. Relevant README sections updated. **Commit: `155968be`** |
+| 1.21    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 8.8.5 (Default Debug Console Settings) COMPLETE.** Application version `v2.8.8.5`. When main debug console switch is enabled, all individual log sources default to ON. Added "Enable All Sources" and "Disable All Sources" buttons to Debug Settings card. Updated header to `v2.8.8.5`. Relevant README sections updated. **Commit: `155968be`** |
+| **1.22**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.1.0 (FSM Core Setup & Initial State Integration) IN PROGRESS.** Application version `v2.9.1.0`. Initiated Phase 9 for FSM re-architecture. Defined FSM types (FsmState, FsmEvent) and initial reducer logic for `IDLE` & `INITIALIZING_ANALYSIS` states in `StockAnalysisContext`. `MainTabContent` updated to dispatch `START_PARTIAL_ANALYSIS` & `START_FULL_ANALYSIS` events. FSM now handles placeholder setting and chat history clearing. Added `FSM_PIPELINE` log source. Header displays `v2.9.1.0`. README sections updated to reflect Phase 9 and new version. **Commit: TBD** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -294,57 +295,6 @@ This section tracks the commit history of the StockSage application, with versio
 **Tag:** `Phase-0_Task-0.6` ([v0.0.6])
 **Subject:** `feat: Complete Phase 0 - Project Setup & Core Layout`
 ... (Previous commit logs remain)
-
----
-**App Version:** `v2.8.8.2` (Reflected dynamic versioning implementation)
-**Tag:** `Phase-8_Task-8.8.2_Versioning-SOP` - Commit Hash: `07817f2a`
-**Subject:** `feat(app): Implement dynamic version display (v2.8.8.2) and SOP`
-**Details:**
-This commit implements the new `2.x.y.z` dynamic application versioning scheme.
-- Updated `src/components/layout/header.tsx` to display the current version `v2.8.8.2`.
-- Updated `README.md`:
-    - Added Section 0.6 to define the dynamic versioning SOP for the AI Agent.
-    - Updated various sections (title, preamble, goals, features, phase plan status) to reflect the current version `v2.8.8.2`.
-    - Updated README changelog to version 1.18.
-This change provides clearer tracking of application iterations.
-
----
-**App Version:** `v2.8.8.3` (Reflects TA data enhancements)
-**Tag:** `Phase-8_Task-8.8.3_TA-Enhancements` - Commit Hash: `b222bbfd`
-**Subject:** `feat(data): Enhance TA data with multi-window indicators and new structure (v2.8.8.3)`
-**Details:**
-This commit implements Task v2.8.8.3, significantly enhancing the Standard Technical Analysis data.
-- **Data Types (`src/services/data-sources/types.ts`):** Updated `TechnicalIndicatorsData` to support multi-window values for RSI, EMA, SMA (e.g., `RSI: {"7": val, "14": val}`) and a dedicated structure for VWAP (`{day: val, minute: val}`).
-- **Data Fetching (`polygon-adapter.ts`):**
-    - Modified adapter to fetch RSI for 7, 10, 14-day windows.
-    - Modified adapter to fetch EMA for 5, 10, 20, 50, 200-day windows.
-    - Modified adapter to fetch SMA for 5, 10, 20, 50, 200-day windows.
-    - VWAP now includes 'day' (from daily aggregate) and 'minute' (from minute aggregate in snapshot).
-- **UI Display (`standard-ta-display.tsx`):**
-    - Rewrote rendering logic to display the new multi-window TA data in the order: RSI, MACD, VWAP, EMA, SMA.
-    - Sentiment coloring applied to RSI (14-day) and MACD histogram.
-- **AI Prompt (`analyze-stock-data.ts`):** Updated prompt to inform the LLM about the new `standardTasJson` structure.
-- **Versioning:** UI header and `README.md` updated to `v2.8.8.3`.
-
----
-**App Version:** `v2.8.8.4` (Reflects AI Options Analysis and TA renaming - WIP)
-**Tag:** `Phase-8_Task-8.8.4_Options-AI-TA-Rename_WIP` - Commit Hash: `26e51654`
-**Subject:** `feat(ai,ui): Add AI Options Wall & Cluster Analysis, rename AI TA components, update version to v2.8.8.4 (WIP)`
-**Details:**
-This commit implements Task v2.8.8.4 and is **Work-In-Progress**. Further testing and fixes are expected.
-- **Renaming:** "AI-Calculated Technical Analysis" has been renamed to "AI Analyzed Technical Analysis" throughout the codebase. This includes components, schemas, actions, flows, context variables, UI text, and descriptions.
-- **New Feature: AI Analyzed Options Chain:**
-    - Added a new "AI Analyzed Options Chain" card to the Main Tab, using an Accordion for displaying results (Walls and OI Clusters).
-    - Implemented a new Genkit flow (`src/ai/flows/analyze-options-chain-flow.ts`) with a prompt to detect Call/Put "Walls" and "OI Clusters".
-    - Created corresponding Zod schemas (`src/ai/schemas/ai-options-analysis-schemas.ts`).
-    - Added a new server action (`src/actions/perform-ai-options-analysis-action.ts`).
-    - Updated `StockAnalysisContext` and `MainTabContent` to integrate the new feature into the "Full AI Analysis" pipeline (Data -> AI TA -> Key Takeaways -> Options Analysis -> Chat).
-    * Updated `DebugTabContent.tsx` to display the new JSON fields.
-    * Added new log source IDs.
-- **Chatbot Context:** The Chatbot prompt and input schema now include `aiOptionsAnalysisJson`.
-- **Pipeline Refactor:** The AI analysis pipeline in `MainTabContent.tsx` has been refactored for more granular, sequential execution of AI steps.
-- **Versioning:** UI header and `README.md` updated to `v2.8.8.4`. `README.md` sections updated.
-- **NOTE:** This feature is currently under active development and testing. The AI Options Analysis results and overall pipeline stability are still being verified.
 
 ---
 **App Version:** `v2.8.8.5` (Reflects Debug Console Default Setting Enhancements)
@@ -363,6 +313,26 @@ This commit implements Task v2.8.8.5, improving the usability of the client-side
     - Added "Enable All Sources" button, which calls `enableAllLogSources`.
     - Added "Disable All Sources (Except Console Itself)" button, which calls `disableAllLogSources`.
 - **Versioning:** UI header and `README.md` updated to `v2.8.8.5`.
+
+---
+**App Version:** `v2.9.1.0` (FSM Core Setup)
+**Tag:** `Phase-9_Task-9.1.0_FSM-Core-Setup` - Commit Hash: **TBD**
+**Subject:** `feat(arch): Initialize FSM for analysis pipeline and integrate initial states (v2.9.1.0)`
+**Details:**
+This commit implements Task v2.9.1.0, starting Phase 9 by laying the groundwork for a Finite State Machine (FSM) to manage the analysis pipeline.
+- **FSM Core (`stock-analysis-context.tsx`):**
+    - Defined `FsmState` enum (`IDLE`, `INITIALIZING_ANALYSIS`, `AWAITING_DATA_FETCH_TRIGGER`).
+    - Defined `FsmEvent` types (`START_PARTIAL_ANALYSIS`, `START_FULL_ANALYSIS`, `INITIALIZATION_COMPLETE`).
+    - Implemented an `fsmReducer` to handle transitions between these initial states.
+    - Integrated `useReducer` to manage `fsmState` and expose `dispatchFsmEvent`.
+    - Logic for setting placeholders and clearing chat history moved into the FSM reducer logic triggered by `START_PARTIAL/FULL_ANALYSIS` events.
+    - `isFullAnalysisTriggered` flag in context now set based on FSM event.
+- **UI Integration (`main-tab-content.tsx`):**
+    - "Analyze Stock" and "AI Full Stock Analysis" buttons now dispatch `START_PARTIAL_ANALYSIS` and `START_FULL_ANALYSIS` FSM events, respectively.
+    - Initial `useEffect` added to react to `fsmState` (specifically `INITIALIZING_ANALYSIS` to dispatch `INITIALIZATION_COMPLETE`).
+- **Logging (`debug-log-types.ts`):**
+    - Added new `FSM_PIPELINE` log source.
+- **Versioning:** UI header and `README.md` updated to `v2.9.1.0`. Phase 9 introduced in README.
 
 ---
 *(Future commit logs will follow)*

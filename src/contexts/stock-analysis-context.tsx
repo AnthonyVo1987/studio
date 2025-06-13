@@ -2,18 +2,33 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useReducer } from 'react';
 import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer'; 
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
+
+// FSM States
+export enum FsmState {
+  IDLE = 'IDLE',
+  INITIALIZING_ANALYSIS = 'INITIALIZING_ANALYSIS',
+  AWAITING_DATA_FETCH_TRIGGER = 'AWAITING_DATA_FETCH_TRIGGER', // Temp state
+  // Future states: FETCHING_DATA, DATA_FETCH_SUCCEEDED, DATA_FETCH_FAILED, etc.
+}
+
+// FSM Event Types
+export type FsmEvent =
+  | { type: 'START_PARTIAL_ANALYSIS'; payload: { ticker: string } }
+  | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
+  | { type: 'INITIALIZATION_COMPLETE' };
+  // Future events: DATA_FETCH_SUCCESS, DATA_FETCH_FAILURE, etc.
 
 export type FullAnalysisStatus =
   | 'idle'
   | 'pending'
   | 'fetchingData'
   | 'analyzingTa'
-  | 'generatingTakeaways' // New status for clarity
+  | 'generatingTakeaways' 
   | 'analyzingOptions'
   | 'chatting'
   | 'success'
@@ -49,13 +64,15 @@ interface StockAnalysisState {
   chatbotRequestJson: string;
   chatbotResponseJson: string;
 
-  fullAnalysisStatus: FullAnalysisStatus;
-  isFullAnalysisTriggered: boolean;
+  fullAnalysisStatus: FullAnalysisStatus; // Will be gradually replaced by FSM
+  isFullAnalysisTriggered: boolean; // Role to be re-evaluated with FSM
   chatHistory: ChatMessage[];
 
   isClientDebugConsoleEnabled: boolean;
   isClientDebugConsoleOpen: boolean;
   logSourceConfig: LogSourceConfig;
+
+  fsmState: FsmState; // New FSM state
 }
 
 interface StockAnalysisContextType extends StockAnalysisState {
@@ -86,6 +103,8 @@ interface StockAnalysisContextType extends StockAnalysisState {
   enableAllLogSources: () => void;
   disableAllLogSources: () => void;
   logDebug: (source: LogSourceId, ...messages: any[]) => void;
+
+  dispatchFsmEvent: React.Dispatch<FsmEvent>; // New FSM event dispatcher
 }
 
 const initialJsonPlaceholder = '{ "status": "initializing..." }';
@@ -111,6 +130,7 @@ const defaultState: StockAnalysisState = {
   isClientDebugConsoleEnabled: false,
   isClientDebugConsoleOpen: false,
   logSourceConfig: defaultLogSourceConfig,
+  fsmState: FsmState.IDLE, // Initial FSM state
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -174,15 +194,91 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setIsFullAnalysisTriggered, logDebug]);
 
   const setChatHistory = useCallback((history: ChatMessage[]) => _setChatHistory(history), [_setChatHistory]);
-  const clearChatHistory = useCallback(() => {
+  const clearChatHistoryInternal = useCallback(() => {
     _setChatHistory([]);
-    logDebug('StockAnalysisContext', 'Chat history cleared');
+    logDebug('StockAnalysisContext', 'Chat history cleared (internal)');
   }, [_setChatHistory, logDebug]);
   
   const addChatMessage = useCallback((message: ChatMessage) => {
     _setChatHistory(prev => [...prev, message]);
     logDebug('StockAnalysisContext', `Added chat message from ${message.role}:`, message.content.substring(0, 50));
   }, [_setChatHistory, logDebug]);
+
+  const setAllPlaceholdersInternal = useCallback((currentTicker: string, forFullAnalysis: boolean) => {
+    const pendingPlaceholder = `{ "status": "pending..." }`;
+    const fullAnalysisPendingPlaceholder = `{ "status": "full_analysis_pending..." }`;
+    const initializingPlaceholder = `{ "status": "initializing..." }`;
+    const placeholderToUse = forFullAnalysis ? fullAnalysisPendingPlaceholder : pendingPlaceholder;
+    const requestLogPlaceholder = forFullAnalysis
+        ? `{ "status": "full_analysis_pending...", "input": {"ticker": "${currentTicker}"} }`
+        : `{ "status": "pending...", "input": {"ticker": "${currentTicker}"} }`;
+
+    setMarketStatusJson(placeholderToUse);
+    setStockSnapshotJson(placeholderToUse);
+    setStandardTasJson(placeholderToUse);
+    setOptionsChainJson(placeholderToUse);
+    setPolygonApiRequestLogJson(requestLogPlaceholder);
+    setPolygonApiResponseLogJson(placeholderToUse);
+
+    setAiAnalyzedTaRequestJson(placeholderToUse);
+    setAiAnalyzedTaJson(placeholderToUse);
+    setAiKeyTakeawaysRequestJson(placeholderToUse);
+    setAiKeyTakeawaysJson(placeholderToUse);
+    setAiOptionsAnalysisRequestJson(placeholderToUse);
+    setAiOptionsAnalysisJson(placeholderToUse);
+    
+    setChatbotRequestJson(initializingPlaceholder);
+    setChatbotResponseJson(initializingPlaceholder);
+    logDebug('StockAnalysisContext', `Set all placeholders for ${currentTicker}. Full analysis: ${forFullAnalysis}`);
+  }, [
+    setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson,
+    setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
+    setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson,
+    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
+    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
+    setChatbotRequestJson, setChatbotResponseJson, logDebug
+  ]);
+
+  const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
+    logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event:`, event);
+    switch (state) {
+      case FsmState.IDLE:
+        if (event.type === 'START_PARTIAL_ANALYSIS' || event.type === 'START_FULL_ANALYSIS') {
+          logDebug('FSM_PIPELINE', `Transition: IDLE -> INITIALIZING_ANALYSIS on ${event.type}`);
+          setIsFullAnalysisTriggered(event.type === 'START_FULL_ANALYSIS'); // Set based on event
+          setAllPlaceholdersInternal(event.payload.ticker, event.type === 'START_FULL_ANALYSIS');
+          clearChatHistoryInternal();
+          // Side effect to auto-dispatch INITIALIZATION_COMPLETE
+          // This needs to be handled carefully, often in a useEffect listening to fsmState changes
+          // For now, we'll assume it's handled by an effect in the context or component
+          return FsmState.INITIALIZING_ANALYSIS;
+        }
+        return state;
+      case FsmState.INITIALIZING_ANALYSIS:
+        if (event.type === 'INITIALIZATION_COMPLETE') {
+          logDebug('FSM_PIPELINE', `Transition: INITIALIZING_ANALYSIS -> AWAITING_DATA_FETCH_TRIGGER on INITIALIZATION_COMPLETE`);
+          return FsmState.AWAITING_DATA_FETCH_TRIGGER;
+        }
+        return state;
+      // Future states will be handled here
+      default:
+        logDebug('FSM_PIPELINE', `Unhandled state in FSM reducer: ${state}`);
+        return state;
+    }
+  };
+
+  const [fsmState, dispatchFsmEvent] = useReducer(fsmReducer, defaultState.fsmState);
+
+  // Effect to handle actions upon entering INITIALIZING_ANALYSIS
+  useEffect(() => {
+    if (fsmState === FsmState.INITIALIZING_ANALYSIS) {
+      logDebug('FSM_PIPELINE', 'Effect: Entered INITIALIZING_ANALYSIS. Dispatching INITIALIZATION_COMPLETE.');
+      // Note: Placeholders and chat clear are now handled within the reducer case for START_ANALYSIS events for immediate effect.
+      // This effect is just to move to the next state after initialization actions are done.
+      dispatchFsmEvent({ type: 'INITIALIZATION_COMPLETE' });
+    }
+  }, [fsmState, logDebug]);
+
 
   const enableAllLogSources = useCallback(() => {
     logDebug('StockAnalysisContext', 'Enabling all log sources.');
@@ -316,7 +412,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     fullAnalysisStatus, setFullAnalysisStatus,
     isFullAnalysisTriggered, setIsFullAnalysisTriggered,
     chatHistory, setChatHistory,
-    clearChatHistory, addChatMessage,
+    clearChatHistory: clearChatHistoryInternal, addChatMessage,
     
     isClientDebugConsoleEnabled, isClientDebugConsoleOpen,
     logSourceConfig,
@@ -324,6 +420,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setLogSourceEnabled, 
     enableAllLogSources, disableAllLogSources,
     logDebug,
+    fsmState, dispatchFsmEvent,
   };
 
   return (
@@ -340,3 +437,4 @@ export function useStockAnalysis() {
   }
   return context;
 }
+

@@ -26,7 +26,7 @@ import { performAiAnalysisAction, type PerformAiAnalysisActionState } from "@/ac
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState } from "@/actions/perform-ai-options-analysis-action";
 import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action";
 
-import { useStockAnalysis, type FullAnalysisStatus, type ChatMessage } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, type FullAnalysisStatus, type ChatMessage, FsmState } from "@/contexts/stock-analysis-context"; // Added FsmState
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap } from "lucide-react";
 
@@ -82,14 +82,18 @@ export function MainTabContent() {
     setChatbotRequestJson,
     setChatbotResponseJson,
     addChatMessage,
-    clearChatHistory,
+    // clearChatHistory is now handled by FSM dispatch in context
 
-    // Full analysis tracking
+    // Full analysis tracking (will be deprecated by FSM)
     fullAnalysisStatus,
     setFullAnalysisStatus,
     isFullAnalysisTriggered,
     setIsFullAnalysisTriggered,
     logDebug,
+
+    // FSM
+    fsmState,
+    dispatchFsmEvent,
   } = useStockAnalysis();
 
   const [analyzeStockState, analyzeStockFormAction, isAnalyzeStockPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(
@@ -117,37 +121,12 @@ export function MainTabContent() {
     initialChatActionState
   );
 
+  // TODO: Refactor isAnyActionPending to be driven by FSM state
   const isAnySubActionPending = isAnalyzeStockPending || isAnalyzeTaPending || isPerformAiAnalysisPending || isPerformAiOptionsAnalysisPending || isChatPending;
-  const isAnyActionPending = isAnySubActionPending || (isFullAnalysisTriggered && fullAnalysisStatus !== 'idle' && fullAnalysisStatus !== 'success' && fullAnalysisStatus !== 'error');
+  const isAnyActionPending = isAnySubActionPending || (fsmState !== FsmState.IDLE && fsmState !== FsmState.AWAITING_DATA_FETCH_TRIGGER /* Add other final states here */);
   
 
-  const setAllPlaceholders = useCallback((currentTicker: string, forFullAnalysis: boolean) => {
-    const pendingPlaceholder = `{ "status": "pending..." }`;
-    const fullAnalysisPendingPlaceholder = `{ "status": "full_analysis_pending..." }`;
-    const initializingPlaceholder = `{ "status": "initializing..." }`;
-    const placeholderToUse = forFullAnalysis ? fullAnalysisPendingPlaceholder : pendingPlaceholder;
-    const requestLogPlaceholder = forFullAnalysis
-        ? `{ "status": "full_analysis_pending...", "input": {"ticker": "${currentTicker}"} }`
-        : `{ "status": "pending...", "input": {"ticker": "${currentTicker}"} }`;
-
-    setMarketStatusJson(placeholderToUse);
-    setStockSnapshotJson(placeholderToUse);
-    setStandardTasJson(placeholderToUse);
-    setOptionsChainJson(placeholderToUse);
-    setPolygonApiRequestLogJson(requestLogPlaceholder);
-    setPolygonApiResponseLogJson(placeholderToUse);
-
-    setAiAnalyzedTaRequestJson(placeholderToUse);
-    setAiAnalyzedTaJson(placeholderToUse);
-    setAiKeyTakeawaysRequestJson(placeholderToUse);
-    setAiKeyTakeawaysJson(placeholderToUse);
-    setAiOptionsAnalysisRequestJson(placeholderToUse);
-    setAiOptionsAnalysisJson(placeholderToUse);
-    
-    setChatbotRequestJson(initializingPlaceholder);
-    setChatbotResponseJson(initializingPlaceholder);
-  }, [setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson, setPolygonApiRequestLogJson, setPolygonApiResponseLogJson, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, setChatbotRequestJson, setChatbotResponseJson]);
-
+  // This function will be replaced by FSM actions in subsequent tasks
   const handleGenericError = useCallback((step: string, message: string | null | undefined, currentTicker: string) => {
     logDebug('MainTabContent:handleGenericError', `Error during ${step} for ${currentTicker}: ${message}`);
     toast({ variant: "destructive", title: `${step} Error`, description: message || "An unknown error occurred." });
@@ -173,56 +152,85 @@ export function MainTabContent() {
         setJsonForError(setAiOptionsAnalysisRequestJson, contextAiOptionsAnalysisRequestJson.includes("pending")); setJsonForError(setAiOptionsAnalysisJson, true);
     }
       
-    setFullAnalysisStatus('error');
+    // TODO: Transition FSM to an error state
+    setFullAnalysisStatus('error'); // Temporary, will be FSM driven
     if (analysisTriggeredForTickerRef.current === currentTicker) {
         analysisTriggeredForTickerRef.current = null;
     }
-  }, [logDebug, toast, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, contextAiAnalyzedTaRequestJson, contextAiKeyTakeawaysRequestJson, contextAiOptionsAnalysisRequestJson, setFullAnalysisStatus]);
+  }, [
+      logDebug, toast, 
+      setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson, 
+      setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, 
+      setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, 
+      contextAiAnalyzedTaRequestJson, contextAiKeyTakeawaysRequestJson, contextAiOptionsAnalysisRequestJson, 
+      setFullAnalysisStatus // Temp
+    ]);
   
 
-  // Step 1: Initial Data Fetch
-  const initiateAnalysisSequence = useCallback((currentTickerToAnalyze: string, isFullMode: boolean) => {
-    analysisTriggeredForTickerRef.current = currentTickerToAnalyze;
-    toast({ title: "Fetching Stock Data...", description: `Requesting data for ${currentTickerToAnalyze.toUpperCase()}.` });
-    logDebug('MainTabContent:initiateAnalysisSequence', `Sequence for ${currentTickerToAnalyze}, FullMode: ${isFullMode}`);
-    
-    setAllPlaceholders(currentTickerToAnalyze, isFullMode);
-    clearChatHistory(); 
-    
-    if (isFullMode) {
-        setIsFullAnalysisTriggered(true);
-        setFullAnalysisStatus('fetchingData');
-    } else {
-        setIsFullAnalysisTriggered(false); 
-        setFullAnalysisStatus('fetchingData'); 
-    }
-
-    startTransition(() => {
-      analyzeStockFormAction({ ticker: currentTickerToAnalyze });
-    });
-  }, [toast, logDebug, setAllPlaceholders, clearChatHistory, setIsFullAnalysisTriggered, setFullAnalysisStatus, analyzeStockFormAction]);
-
+  // Step 1: Initial User Action (Buttons)
   const handleAnalyzeStockButtonSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     logDebug('MainTabContent', 'Analyze Stock button clicked.');
-    if (isAnyActionPending) {
-      toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" });
+    if (fsmState !== FsmState.IDLE) {
+      toast({ title: "Process Busy", description: "An analysis sequence is already running or initializing.", variant: "default" });
       return;
     }
-    initiateAnalysisSequence(tickerInput, false);
-  }, [isAnyActionPending, toast, tickerInput, initiateAnalysisSequence, logDebug]);
+    analysisTriggeredForTickerRef.current = tickerInput; // Keep for now, FSM will manage ticker context
+    dispatchFsmEvent({ type: 'START_PARTIAL_ANALYSIS', payload: { ticker: tickerInput } });
+    // The FSM reducer and effects in context will now handle placeholders and chat clear.
+  }, [fsmState, toast, tickerInput, dispatchFsmEvent, logDebug]);
 
   const handleAiFullAnalysisSubmit = useCallback(() => {
     logDebug('MainTabContent', 'AI Full Stock Analysis button clicked.');
-    if (isAnyActionPending) {
-      toast({ title: "Process Busy", description: "Another analysis process is currently running.", variant: "default" });
+    if (fsmState !== FsmState.IDLE) {
+      toast({ title: "Process Busy", description: "Another analysis process is currently running or initializing.", variant: "default" });
       return;
     }
-    initiateAnalysisSequence(tickerInput, true);
-  }, [isAnyActionPending, toast, tickerInput, initiateAnalysisSequence, logDebug]);
+    analysisTriggeredForTickerRef.current = tickerInput; // Keep for now
+    dispatchFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
+  }, [fsmState, toast, tickerInput, dispatchFsmEvent, logDebug]);
 
+
+  // Effect for FSM state changes (to trigger server actions, etc.)
+  // This will be expanded in subsequent tasks
+  useEffect(() => {
+    logDebug('FSM_PIPELINE', `MainTabContent: FSM state changed to ${fsmState}. Current analysis ticker: ${analysisTriggeredForTickerRef.current}`);
+
+    if (fsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER && analysisTriggeredForTickerRef.current) {
+      // This is where the data fetch action would be triggered in the next task (v2.9.2.x)
+      // For now, we can log or set a temporary status.
+      // If it was a partial analysis, we might transition to a PARTIAL_COMPLETE_PENDING_DATA state or similar.
+      // If full, it would proceed to data fetch.
+      // Example:
+      // setFullAnalysisStatus('fetchingData'); // This still uses the old status for now
+      // startTransition(() => analyzeStockFormAction({ ticker: analysisTriggeredForTickerRef.current! }));
+      logDebug('FSM_PIPELINE', `FSM is in AWAITING_DATA_FETCH_TRIGGER. Data fetch for ${analysisTriggeredForTickerRef.current} would be triggered here in next task.`);
+      // For this task, we don't proceed further into the pipeline.
+      // We could transition back to IDLE or to a temporary "INITIALIZED" state.
+      // Let's keep it in AWAITING_DATA_FETCH_TRIGGER to signify this task's boundary.
+      // Or, if this was meant to be the end for partial, the FSM should reflect that.
+      // The FSM in context sets isFullAnalysisTriggered based on START_PARTIAL/FULL event.
+      if (!isFullAnalysisTriggered) { // Check the flag set by the FSM event
+         logDebug('FSM_PIPELINE', `Partial analysis initialization complete. Pipeline will stop here for v2.9.1.0.`);
+         // In a real scenario, might go to a 'PARTIAL_ANALYSIS_READY_FOR_DATA_FETCH' or similar
+         // For now, this state signifies the end of THIS task's FSM integration.
+      } else {
+         logDebug('FSM_PIPELINE', `Full analysis initialization complete. Data fetch trigger would follow in next task.`);
+      }
+    }
+    // Add more conditions for other FSM states as they are integrated
+  }, [fsmState, dispatchFsmEvent, logDebug, analyzeStockFormAction, isFullAnalysisTriggered]);
+
+
+  // --- Start of existing useEffects (to be refactored into FSM-driven effects) ---
   // Effect for analyzeStockState (Data Fetch) -> Step 2: AI Analyzed TA
   useEffect(() => {
+    // This useEffect will be refactored in Task v2.9.2.x
+    // For now, ensure it doesn't conflict with initial FSM states
+    if (fsmState === FsmState.IDLE || fsmState === FsmState.INITIALIZING_ANALYSIS || fsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER) {
+        return; 
+    }
+
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
     if (!currentAnalysisTicker || analyzeStockState.status === 'idle' || (fullAnalysisStatus !== 'fetchingData' && !isAnalyzeStockPending)) {
       return;
@@ -267,11 +275,17 @@ export function MainTabContent() {
       setAiAnalyzedTaJson, 
       analyzeTaFormAction, 
       toast, 
-      handleGenericError
+      handleGenericError,
+      fsmState // Added to prevent running during FSM init
     ]);
 
   // Effect for analyzeTaState (AI TA) -> Step 3: AI Key Takeaways
   useEffect(() => {
+    // This useEffect will be refactored in Task v2.9.3.x
+     if (fsmState === FsmState.IDLE || fsmState === FsmState.INITIALIZING_ANALYSIS || fsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER) {
+        return; 
+    }
+
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
     if (!currentAnalysisTicker || analyzeTaState.status === 'idle' || (fullAnalysisStatus !== 'analyzingTa' && !isAnalyzeTaPending)) {
       return;
@@ -298,7 +312,7 @@ export function MainTabContent() {
       } else { 
         logDebug('MainTabContent:useEffect[analyzeTaState]', "AI TA success (partial analysis), ending sequence for", currentAnalysisTicker);
         setFullAnalysisStatus('success'); 
-        if (analysisTriggeredForTickerRef.current === currentAnalysisTicker) {
+        if (analysisTriggeredForTickerRef.current === currentAnalysisTicker) { // Check ref before clearing
             analysisTriggeredForTickerRef.current = null;
         }
       }
@@ -321,6 +335,9 @@ export function MainTabContent() {
         }));
       } else {
         handleGenericError("AI TA", analyzeTaState.error, currentAnalysisTicker); 
+         if (analysisTriggeredForTickerRef.current === currentAnalysisTicker) { // Check ref before clearing for partial error
+            analysisTriggeredForTickerRef.current = null;
+        }
       }
     }
   }, [
@@ -339,11 +356,17 @@ export function MainTabContent() {
       setAiKeyTakeawaysJson, 
       performAiAnalysisFormAction, 
       toast, 
-      handleGenericError
+      handleGenericError,
+      fsmState // Added
     ]);
   
   // Effect for performAiAnalysisState (Key Takeaways) -> Step 4: AI Options Analysis
   useEffect(() => {
+    // This useEffect will be refactored in Task v2.9.4.x
+     if (fsmState === FsmState.IDLE || fsmState === FsmState.INITIALIZING_ANALYSIS || fsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER) {
+        return; 
+    }
+
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
     if (!currentAnalysisTicker || !isFullAnalysisTriggered || performAiAnalysisState.status === 'idle' || (fullAnalysisStatus !== 'generatingTakeaways' && !isPerformAiAnalysisPending)) {
       return;
@@ -394,11 +417,16 @@ export function MainTabContent() {
       setAiOptionsAnalysisJson, 
       performAiOptionsAnalysisFormAction, 
       toast, 
-      handleGenericError 
+      handleGenericError, // Assuming handleGenericError doesn't clear ref for full analysis yet
+      fsmState // Added
     ]);
 
   // Effect for performAiOptionsAnalysisState (Options Analysis) -> Step 5: Chatbot Summary
   useEffect(() => {
+    // This useEffect will be refactored in Task v2.9.5.x
+     if (fsmState === FsmState.IDLE || fsmState === FsmState.INITIALIZING_ANALYSIS || fsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER) {
+        return; 
+    }
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
     if (!currentAnalysisTicker || !isFullAnalysisTriggered || performAiOptionsAnalysisState.status === 'idle' || (fullAnalysisStatus !== 'analyzingOptions' && !isPerformAiOptionsAnalysisPending)) {
       return;
@@ -455,11 +483,17 @@ export function MainTabContent() {
       addChatMessage, 
       chatFormAction, 
       toast, 
-      handleGenericError
+      handleGenericError, // Assuming handleGenericError doesn't clear ref for full analysis yet
+      fsmState // Added
     ]); 
   
   // Effect for chatActionState (final step of full analysis or user-initiated chat)
   useEffect(() => {
+    // This useEffect will be refactored in Task v2.9.6.x
+     if (fsmState === FsmState.IDLE || fsmState === FsmState.INITIALIZING_ANALYSIS || fsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER) {
+        return; 
+    }
+
     const currentAnalysisTicker = analysisTriggeredForTickerRef.current;
     if (chatActionState.status === 'idle' && (!currentAnalysisTicker || !isFullAnalysisTriggered || fullAnalysisStatus !== 'chatting')) {
         return;
@@ -509,8 +543,11 @@ export function MainTabContent() {
       setChatbotResponseJson, 
       setFullAnalysisStatus, 
       setIsFullAnalysisTriggered, 
-      logDebug
+      logDebug,
+      fsmState // Added
     ]);
+
+ // --- End of existing useEffects ---
 
 
   const getCombinedDataForExport = useCallback(() => {
@@ -583,8 +620,8 @@ export function MainTabContent() {
     }
   }, [isDataReadyForCombinedExport, getCombinedDataForExport, tickerInput, toast, logDebug]);
 
-  logDebug('MainTabContent', `Rendering. isAnyActionPending=${isAnyActionPending}, fullAnalysisStatus=${fullAnalysisStatus}, analysisTriggeredForTickerRef=${analysisTriggeredForTickerRef.current}`);
-  const activeTickerForChat = (analysisTriggeredForTickerRef.current && (isFullAnalysisTriggered || (fullAnalysisStatus !== 'idle' && fullAnalysisStatus !== 'success' && fullAnalysisStatus !== 'error'))) ? analysisTriggeredForTickerRef.current : tickerInput;
+  logDebug('MainTabContent', `Rendering. FSM State=${fsmState}, isAnyActionPending=${isAnyActionPending}, Legacy FullAnalysisStatus=${fullAnalysisStatus}, analysisTriggeredForTickerRef=${analysisTriggeredForTickerRef.current}`);
+  const activeTickerForChat = (analysisTriggeredForTickerRef.current && (fsmState !== FsmState.IDLE)) ? analysisTriggeredForTickerRef.current : tickerInput;
 
 
   return (
@@ -592,7 +629,7 @@ export function MainTabContent() {
       <CardHeader>
         <CardTitle>Stock Analysis</CardTitle>
         <CardDescription>
-          Enter a stock ticker and select a data source to begin your analysis.
+          Enter a stock ticker and select a data source to begin your analysis. Current FSM State: {fsmState}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -605,13 +642,13 @@ export function MainTabContent() {
                 value={tickerInput}
                 onChange={(e) => setTickerInput(e.target.value.toUpperCase())}
                 placeholder="e.g., AAPL, MSFT"
-                disabled={isAnyActionPending}
+                disabled={fsmState !== FsmState.IDLE}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataSource">Data Source</Label>
               <Select defaultValue="polygon" disabled>
-                <SelectTrigger id="dataSource" disabled={isAnyActionPending}>
+                <SelectTrigger id="dataSource" disabled={fsmState !== FsmState.IDLE}>
                   <SelectValue placeholder="Select data source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -622,14 +659,12 @@ export function MainTabContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button type="submit" className="w-full sm:w-auto" disabled={isAnyActionPending}>
-              { (isAnalyzeStockPending || 
-                (fullAnalysisStatus === 'analyzingTa' && !isFullAnalysisTriggered && isAnalyzeTaPending)
-              ) && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
+            <Button type="submit" className="w-full sm:w-auto" disabled={fsmState !== FsmState.IDLE || isAnalyzeStockPending /* Temp: still use isAnalyzeStockPending for this button's spinner */}>
+              { (isAnalyzeStockPending && fsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER) && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
               Analyze Stock
             </Button>
-            <Button onClick={handleAiFullAnalysisSubmit} type="button" variant="outline" className="w-full sm:w-auto" disabled={isAnyActionPending}>
-               {isFullAnalysisTriggered && fullAnalysisStatus !== 'idle' && fullAnalysisStatus !== 'success' && fullAnalysisStatus !== 'error' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleAiFullAnalysisSubmit} type="button" variant="outline" className="w-full sm:w-auto" disabled={fsmState !== FsmState.IDLE || isAnyActionPending /* Temp: use isAnyActionPending for full analysis spinner */}>
+               {(fsmState !== FsmState.IDLE && isFullAnalysisTriggered && isAnyActionPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Zap className="mr-2 h-4 w-4" /> AI Full Stock Analysis
             </Button>
           </div>
@@ -641,10 +676,10 @@ export function MainTabContent() {
             <h3 className="text-lg font-medium">Combined Data Export</h3>
             <CardDescription>Exports Snapshot, Standard TAs, AI Analyzed TA, AI Key Takeaways, AI Options Analysis, Options Chain, and Market Status.</CardDescription>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Button onClick={handleExportAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isDataReadyForCombinedExport || isAnyActionPending}>
+                <Button onClick={handleExportAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isDataReadyForCombinedExport || (fsmState !== FsmState.IDLE && fsmState !== FsmState.AWAITING_DATA_FETCH_TRIGGER /* adjust final states */) }>
                     <Download className="mr-2 h-4 w-4" /> Export All to JSON
                 </Button>
-                <Button onClick={handleCopyAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isDataReadyForCombinedExport || isAnyActionPending}>
+                <Button onClick={handleCopyAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isDataReadyForCombinedExport || (fsmState !== FsmState.IDLE && fsmState !== FsmState.AWAITING_DATA_FETCH_TRIGGER /* adjust final states */)}>
                     <Copy className="mr-2 h-4 w-4" /> Copy All to JSON
                 </Button>
             </div>
