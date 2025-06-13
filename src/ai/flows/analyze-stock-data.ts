@@ -59,7 +59,7 @@ Contextual Data:
 Ticker: {{{ticker}}}
 Stock Snapshot (current & prev day data, incl. minute VWAP in 'min' field): {{{stockSnapshotJson}}}
 Standard Technical Indicators (RSI, MACD, VWAP, EMA, SMA with multiple windows): {{{standardTasJson}}}
-AI Analyzed Technical Analysis (Pivot Points): {{{aiAnalyzedTaJson}}}  // Renamed from aiCalculatedTaJson
+AI Analyzed Technical Analysis (Pivot Points): {{{aiAnalyzedTaJson}}}
 Market Status: {{{marketStatusJson}}}
 
 Provide your analysis as a JSON object strictly conforming to the StockAnalysisOutputSchema.
@@ -88,3 +88,4 @@ const analyzeStockDataFlow = ai.defineFlow(
     return output;
   }
 );
+

@@ -14,7 +14,7 @@ export const StockAnalysisInputSchema = z.object({
   standardTasJson: z
     .string()
     .describe('A JSON string containing standard technical indicators (RSI, SMA, EMA, MACD, VWAP).'),
-  aiAnalyzedTaJson: z // Renamed from aiCalculatedTaJson
+  aiAnalyzedTaJson: z // Correctly renamed from aiCalculatedTaJson
     .string()
     .describe('A JSON string containing AI-analyzed technical analysis (e.g., pivot points).'),
   marketStatusJson: z
@@ -40,3 +40,4 @@ export const StockAnalysisOutputSchema = z.object({
   patterns: TakeawayDetailSchema.describe('Key takeaway regarding observed chart patterns or lack thereof.'),
 });
 export type StockAnalysisOutput = z.infer<typeof StockAnalysisOutputSchema>;
+
