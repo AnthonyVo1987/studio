@@ -280,8 +280,9 @@ This section documents critical issues encountered during development and their 
     *   **Sub-Task 9.6.0:** Added `GenerateFullAnalysisSummaryInputSchema` and `GenerateFullAnalysisSummaryOutputSchema` in `src/ai/schemas/chat-summary-schemas.ts`. Implemented `generate-full-analysis-summary-flow.ts` Genkit flow and `generate-chat-summary-action.ts` server action. Extended FSM in `stock-analysis-context.tsx` with states (`GENERATING_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCEEDED`, `CHAT_SUMMARY_FAILED`, `FULL_ANALYSIS_COMPLETE`) and events (`TRIGGER_CHAT_SUMMARY`, `CHAT_SUMMARY_SUCCESS`, `CHAT_SUMMARY_FAILURE`). FSM reducer now populates `chatbotRequestJson` and `chatbotResponseJson` (with summary), and initializes `chatHistory` with the AI-generated summary. `MainTabContent.tsx` triggers `generateChatSummaryAction` via FSM. Header displays `v2.9.6.0`.
 *   **Task 9.7: FSM Finalization & Error Handling Polish (v2.9.7.0):** - Status: **COMPLETE** (Commit: `9b4c790e`)
     *   **Sub-Task 9.7.0:** Reviewed and polished toast notifications in `MainTabContent.tsx` for clarity and consistency, ensuring they derive messages from server action states where appropriate. Verified FSM reducer logic for skipped state propagation (both request and data JSONs) and terminal state resets (`isFullAnalysisTriggered`). Confirmed UI button/input disabled states and loading indicators accurately reflect `isPipelineActive`. Ensured display components handle "pending," "error," and "skipped" states robustly. Header updated to `v2.9.7.0`.
-*   **Task 9.8: Update README.md for Phase 9 Completion:** - Status: **PENDING**
-
+*   **Task 9.8: Pre-testing Enhancements/Refinements/Debug Logs (v2.9.8.0):** - Status: **PENDING**
+*   **Task 9.9: Testing and Debugging Fixes (v2.9.9.0):** - Status: **PENDING**
+*   **Task 9.A: Comprehensive Full README.md update - FULL PRD, Detailed Design and Architecture Flow (v2.9.A.0):** - Status: **PENDING**
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
@@ -378,8 +379,4 @@ This commit implements Task v2.9.7.0, focusing on refining the FSM pipeline's er
 ---
 *(Future commit logs will follow)*
 
-
-
-
-    
     
