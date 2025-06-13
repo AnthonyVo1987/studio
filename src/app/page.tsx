@@ -18,12 +18,15 @@ function PageContent() {
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
+    // enableAllLogSources, // No longer need to call this directly here
+    logDebug,
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
-    setClientDebugConsoleEnabled(checked);
-    setClientDebugConsoleOpen(checked);
-    // The clearGlobalLogBuffer() is called within setClientDebugConsoleEnabled(false)
+    logDebug('StockAnalysisContext', `Main debug console switch toggled: ${checked}`);
+    // The setClientDebugConsoleEnabled in the context will now handle enabling all log sources
+    setClientDebugConsoleEnabled(checked); 
+    setClientDebugConsoleOpen(checked); 
   };
 
   return (
@@ -41,7 +44,7 @@ function PageContent() {
             checked={isClientDebugConsoleEnabled && isClientDebugConsoleOpen}
             onCheckedChange={handleDebugConsoleToggle}
           />
-          <Label htmlFor="enable-debug-console">Enable & Show Client Debug Console</Label>
+          <Label htmlFor="enable-debug-console">Enable & Show Client Debug Console (All Logs On by Default)</Label>
         </div>
         <Tabs defaultValue="main" className="w-full">
           <TabsList className="grid w-full grid-cols-2">

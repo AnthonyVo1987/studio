@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.4 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.8.8.5 OPERATING MANUAL**
 
-*   **Document Version:** 1.20 (Task 8.8.4 - AI Options Analysis & TA Renaming)
-*   **Date:** 2025-06-12 (Date of last significant structure update, versioning SOP added now)
+*   **Document Version:** 1.21 (Task 8.8.5 - Debug Console Default Settings)
+*   **Date:** 2025-06-13 (Date of last significant structure update, versioning SOP added now)
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.4.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.5.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -49,14 +49,14 @@
     2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
-*   **Example:** If the current phase is 8, current task is 8, and this is the 4th iteration/commit for this task, the version will be `v2.8.8.4`.
+*   **Example:** If the current phase is 8, current task is 8, and this is the 4th iteration/commit for this task, the version will be `v2.8.8.4`. (If this task were 8.8.5, version would be v2.8.8.5)
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.4)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.8.8.5)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.4`).
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.8.8.5`).
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling**
@@ -69,7 +69,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     *   Defer backend integrations until the UI structure is stable.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for data.
 
-## **2. High-Level Goals (Current Version v2.8.8.4)**
+## **2. High-Level Goals (Current Version v2.8.8.5)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First Implementation Adherence:** Strictly follow the UI-First strategy.
@@ -79,17 +79,17 @@ The primary strategy for this implementation is **UI-First Development**. This m
 *   **AI Agent Guidelines Adherence:** Strictly follow the operational rules and phased plan detailed in this document, especially Section 0.
 *   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers.
 *   **User Experience:** Deliver a high-quality, responsive, and accessible user interface.
-*   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console.
+*   **Enhanced Debuggability:** Implement comprehensive server-side logging, clear error reporting, and the client-side debug console (with improved default settings).
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.8.8.4)**
+## **3. Core Application Features (StockSage v2.8.8.5)**
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** ("Main", "Debug") using ShadCN `Tabs`.
-*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.4`).
+*   **Header & Footer:** Consistent branding and disclaimers. Header displays current dynamic version (e.g., `v2.8.8.5`).
 *   **Theme:** Light/Dark theme support.
 *   **Disclaimer:** Prominent financial advice disclaimer.
-*   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features.
+*   **Client-Side Debug Console:** Toggleable console for client-side logs with advanced features. When enabled, all individual log sources default to ON.
 
 ### **3.2. "Main" Tab Features**
 *   **Stock Analysis Input Area:** Ticker input, API Source (default Polygon.io), "Analyze Stock," "AI Full Stock Analysis" buttons.
@@ -100,7 +100,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
     4.  **AI Analyzed Technical Analysis Display:** Formatted Pivot Points (PP, S1-S3, R1-R3) with sentiment color for PP row.
     5.  **AI Key Takeaways Display:** 5 formatted takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with sentiment highlighting.
     6.  **Options Chain Table Display:** Formatted table (Calls/Strike/Puts), ATM highlighting, dynamic header. Columns: Gamma, IV, % Chg, Bid, Ask, Last, Volume, Open Int, Delta.
-    7.  **AI Analyzed Options Chain Display (NEW):** Expandable card (Accordion) showing AI-identified Call/Put "Walls" and "OI Clusters" based on Open Interest analysis (min 1, max 3 walls per side; min 0, max 3 clusters per side).
+    7.  **AI Analyzed Options Chain Display:** Expandable card (Accordion) showing AI-identified Call/Put "Walls" and "OI Clusters" based on Open Interest analysis (min 1, max 3 walls per side; min 0, max 3 clusters per side).
     8.  **AI Chatbot Interface:** Chat UI, example prompts, history export/copy. Context from Debug Tab JSONs (including new AI Options Analysis).
     9.  **Market Status Display:** Relevant market/exchange status (excluding Crypto/FX).
 *   **Data Export Controls:**
@@ -110,7 +110,7 @@ The primary strategy for this implementation is **UI-First Development**. This m
 ### **3.3. "Debug" Tab Features**
 *   **Raw JSON Display Areas:** Read-only `Textarea` components for: Polygon API Request/Response Logs, Market Status, Stock Snapshot, Standard TAs, Options Chain, AI Analyzed TA Request/Response, AI Options Analysis Request/Response, AI Key Takeaways Request/Response, Chatbot Request/Response.
 *   **Data Export Controls:** Buttons to copy raw JSON from each `Textarea`.
-*   **Client Debug Log Settings:** Controls for the client-side debug console log categories.
+*   **Client Debug Log Settings:** Controls for the client-side debug console log categories, including "Enable All Sources" and "Disable All Sources" buttons.
 
 ### **3.4. Backend Functionality**
 *   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):** Market Status, Ticker Snapshot (current/prev day, minute bar), Standard TAs (multi-window RSI, EMA, SMA; MACD; VWAP day/minute), Options Chain Snapshot (nearest Friday, +/-10-11 strikes, descending sort by strike).
@@ -221,7 +221,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.4.)*
+*(Status: Phase 8 Core Features Complete. Project adopting dynamic versioning scheme. Current application version: v2.8.8.5.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -256,7 +256,7 @@ This section documents critical issues encountered during development and their 
 *   (Tasks 7.1 - 7.2)
 
 ---
-**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **COMPLETE**
+**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **COMPLETE** (ongoing minor enhancements per task)
 *   **Task 8.1: UI & Styling Review (Sentiment Colors Refactor):** - Status: **COMPLETE** (Commit: `b6bc90e8`)
 *   **Task 8.2: Update `README.md` to AI Operating Manual:** - Status: **COMPLETE** (Commit: `b6bc90e8`)
 *   **Task 8.3: Prepare Firebase Deployment Config:** - Status: **PENDING** (Deferred)
@@ -269,7 +269,8 @@ This section documents critical issues encountered during development and their 
 *   **Task 8.8.1: Final Proactive Audit (Post Task 8.8.0):** - Status: **COMPLETE** (Part of Commit: `d1a5e67f`)
 *   **Task 8.8.2: Implement Dynamic Version Display & SOP (Version: v2.8.8.2):** - Status: **COMPLETE** (Commit: `07817f2a`)
 *   **Task 8.8.3: Update TA Data & Display (Multi-Window, VWAP Minute) (Version: v2.8.8.3):** - Status: **COMPLETE** (Commit: `b222bbfd`)
-*   **Task 8.8.4: AI Analyzed Options Chain (Call/Put Walls & OI Clusters) & TA Renaming (Current version: v2.8.8.4):** - Status: **IN PROGRESS (WIP - Current Task - Commit `26e51654`)**
+*   **Task 8.8.4: AI Analyzed Options Chain (Call/Put Walls & OI Clusters) & TA Renaming (Version: v2.8.8.4 - WIP):** - Status: **COMPLETE (Marked as WIP Commit `26e51654`)**
+*   **Task 8.8.5: Default Debug Console Settings (Current version: v2.8.8.5):** - Status: **IN PROGRESS (Current Task)**
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
@@ -278,9 +279,9 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.18    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.2 (Implement Dynamic Version Display & SOP) complete.** Updated UI to display `v2.8.8.2`. Added Section 0.6 defining the `2.x.y.z` dynamic versioning SOP. Updated various sections to reflect current version `v2.8.8.2`. Phase 8 Core Features now marked complete, project status updated to reflect new versioning. Updated commit log for `07817f2a`. |
 | 1.19    | 2025-06-12   | Firebase Studio (AI Prototyper) | **Task 8.8.3 (Update TA Data & Display) complete.** Application version `v2.8.8.3`. Updated `src/services/data-sources/types.ts` for new TA structures. Updated `polygon-adapter.ts` to fetch multi-window RSI, EMA, SMA, and minute VWAP. Updated `standard-ta-display.tsx` to render new TA data. Updated AI prompt in `analyze-stock-data.ts` to understand new TA JSON. Updated header to display `v2.8.8.3`. Updated relevant README sections. Commit `b222bbfd`. |
-| **1.20**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 8.8.4 (AI Options Analysis & TA Renaming) IN PROGRESS (WIP).** Application version `v2.8.8.4`. Renamed "AI-Calculated TA" to "AI Analyzed TA" throughout codebase & docs. Added new "AI Analyzed Options Chain" feature: new UI card, Genkit flow for Call/Put Walls & OI Clusters, server action, context updates, debug logs. Prompts for Key Takeaways and Chatbot updated. Header displays `v2.8.8.4`. Relevant README sections updated. **Commit: `26e51654` (WIP).** |
+| 1.20    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 8.8.4 (AI Options Analysis & TA Renaming) marked complete for commit `26e51654` (WIP).** Application version `v2.8.8.4`. Renamed "AI-Calculated TA" to "AI Analyzed TA" throughout codebase & docs. Added new "AI Analyzed Options Chain" feature: new UI card, Genkit flow for Call/Put Walls & OI Clusters, server action, context updates, debug logs. Prompts for Key Takeaways and Chatbot updated. Header displays `v2.8.8.4`. Relevant README sections updated. **Commit: `26e51654` (WIP).** |
+| **1.21**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 8.8.5 (Default Debug Console Settings) IN PROGRESS.** Application version `v2.8.8.5`. When main debug console switch is enabled, all individual log sources default to ON. Added "Enable All Sources" and "Disable All Sources" buttons to Debug Settings card. Updated header to `v2.8.8.5`. Relevant README sections updated. |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -338,7 +339,6 @@ This commit implements Task v2.8.8.4 and is **Work-In-Progress**. Further testin
     - Created corresponding Zod schemas (`src/ai/schemas/ai-options-analysis-schemas.ts`).
     - Added a new server action (`src/actions/perform-ai-options-analysis-action.ts`).
     - Updated `StockAnalysisContext` and `MainTabContent` to integrate the new feature into the "Full AI Analysis" pipeline (Data -> AI TA -> Key Takeaways -> Options Analysis -> Chat).
-    - Added export/copy functionality for AI Options Analysis JSON and included it in the "Export All" feature.
     * Updated `DebugTabContent.tsx` to display the new JSON fields.
     * Added new log source IDs.
 - **Chatbot Context:** The Chatbot prompt and input schema now include `aiOptionsAnalysisJson`.
@@ -347,7 +347,4 @@ This commit implements Task v2.8.8.4 and is **Work-In-Progress**. Further testin
 - **NOTE:** This feature is currently under active development and testing. The AI Options Analysis results and overall pipeline stability are still being verified.
 
 ---
-
 *(Future commit logs will follow)*
-
-

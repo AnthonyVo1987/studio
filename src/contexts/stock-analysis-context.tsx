@@ -3,17 +3,17 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { type LogSourceId, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
+import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer'; 
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
 export type FullAnalysisStatus =
   | 'idle'
-  | 'pending' // General pending state for the whole sequence initiation
-  | 'fetchingData' // Or rely on isAnalyzeStockPending
+  | 'pending'
+  | 'fetchingData'
   | 'analyzingTa'
-  | 'generatingTakeaways' // New distinct status
+  | 'generatingTakeaways'
   | 'analyzingOptions'
   | 'chatting'
   | 'success'
@@ -83,6 +83,8 @@ interface StockAnalysisContextType extends StockAnalysisState {
   setClientDebugConsoleEnabled: (enabled: boolean) => void;
   setClientDebugConsoleOpen: (open: boolean) => void;
   setLogSourceEnabled: (source: LogSourceId, enabled: boolean) => void;
+  enableAllLogSources: () => void;
+  disableAllLogSources: () => void;
   logDebug: (source: LogSourceId, ...messages: any[]) => void;
 }
 
@@ -182,14 +184,35 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', `Added chat message from ${message.role}:`, message.content.substring(0, 50));
   }, [_setChatHistory, logDebug]);
 
+  const enableAllLogSources = useCallback(() => {
+    logDebug('StockAnalysisContext', 'Enabling all log sources.');
+    const newConfig: LogSourceConfig = { ...defaultLogSourceConfig }; // Start with defaults
+    logSourceIds.forEach(id => { newConfig[id] = true; });
+    newConfig.DebugConsole = true; // Ensure DebugConsole itself remains enabled for its own logs
+    _setLogSourceConfig(newConfig);
+  }, [_setLogSourceConfig, logDebug]);
+
+  const disableAllLogSources = useCallback(() => {
+    logDebug('StockAnalysisContext', 'Disabling all log sources (except DebugConsole itself).');
+    const newConfig: LogSourceConfig = { ...defaultLogSourceConfig }; // Start with defaults
+    logSourceIds.forEach(id => { newConfig[id] = false; });
+    newConfig.DebugConsole = true; // Keep DebugConsole enabled
+    _setLogSourceConfig(newConfig);
+  }, [_setLogSourceConfig, logDebug]);
+
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
     _setClientDebugConsoleEnabled(enabled);
-    if (!enabled) {
+    logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled set to: ${enabled}`);
+    if (enabled) {
+      enableAllLogSources(); 
+    } else {
       _setClientDebugConsoleOpen(false);
       clearGlobalLogBuffer(); 
+      // Optionally reset individual log source configs to default or keep them as user last set.
+      // For now, let's keep them as user might re-enable console and expect previous settings.
+      // If requirement is to reset all to false (except DebugConsole), then call disableAllLogSources() here too.
     }
-     logDebug('StockAnalysisContext', `ClientDebugConsoleEnabled set to: ${enabled}`);
-  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
+  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
     if (isClientDebugConsoleEnabled || !open) { 
@@ -199,8 +222,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
-    _setLogSourceConfig(prevConfig => ({ ...prevConfig, [source]: enabled }));
-     logDebug('StockAnalysisContext', `Log source '${source}' set to: ${enabled}`);
+    _setLogSourceConfig(prevConfig => {
+        const newConfig = { ...prevConfig, [source]: enabled };
+        if (source === 'DebugConsole' && !enabled) { // Prevent disabling DebugConsole itself via this method
+            logDebug('StockAnalysisContext', 'Attempted to disable DebugConsole source via setLogSourceEnabled, overriding to keep it true.');
+            newConfig.DebugConsole = true;
+        }
+        logDebug('StockAnalysisContext', `Log source '${source}' set to: ${newConfig[source]}`);
+        return newConfig;
+    });
   }, [_setLogSourceConfig, logDebug]);
 
   useEffect(() => {
@@ -292,7 +322,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isClientDebugConsoleEnabled, isClientDebugConsoleOpen,
     logSourceConfig,
     setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
-    setLogSourceEnabled, logDebug,
+    setLogSourceEnabled, 
+    enableAllLogSources, disableAllLogSources,
+    logDebug,
   };
 
   return (
