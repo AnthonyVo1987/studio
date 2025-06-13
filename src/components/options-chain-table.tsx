@@ -125,10 +125,11 @@ export function OptionsChainTable() {
   let currentPriceForATM: number | null = null;
 
   if (!optionsChainJson || optionsChainJson === '{}') {
-    isLoading = false;
-    isError = true;
+    isLoading = false; 
+    isError = false; 
+    parsedData = null;
     errorOrSkippedMessage = "No options chain data available.";
-    logDebug(componentName, "optionsChainJson is empty or null.");
+    logDebug(componentName, "optionsChainJson is empty or null. Displaying 'No data'.");
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(optionsChainJson.trim())) {
     isLoading = true;
     isError = false;
@@ -138,15 +139,17 @@ export function OptionsChainTable() {
   } else if (optionsChainJson.includes('"status": "error"') || optionsChainJson.includes('"error":')) {
     isLoading = false;
     isError = true;
+    parsedData = null;
     errorOrSkippedMessage = "Error loading options data.";
      try {
         const statusObj = JSON.parse(optionsChainJson);
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading options data.";
-     } catch(e) { /* no-op */ }
+     } catch(e) { /* no-op, keep default error */ }
     logDebug(componentName, "optionsChainJson indicates an error state.", errorOrSkippedMessage);
   } else if (optionsChainJson.includes('"status": "skipped"')) {
     isLoading = false;
     isError = true;
+    parsedData = null;
     try {
         const statusObj = JSON.parse(optionsChainJson);
         errorOrSkippedMessage = statusObj.message || "Options data loading was skipped.";
@@ -167,6 +170,7 @@ export function OptionsChainTable() {
         logDebug(componentName, "Parsed optionsChainJson is missing contracts array or contains error/status field. Data:", data);
         isLoading = false;
         isError = true;
+        parsedData = null;
         errorOrSkippedMessage = "Options data is malformed or incomplete.";
       }
     } catch (e) {
@@ -174,6 +178,7 @@ export function OptionsChainTable() {
       logDebug(componentName, "Error during optionsChainJson parsing.", e);
       isLoading = false;
       isError = true;
+      parsedData = null;
       errorOrSkippedMessage = "Failed to parse options data.";
     }
   }
@@ -349,3 +354,4 @@ export function OptionsChainTable() {
     </Card>
   );
 }
+

@@ -121,9 +121,10 @@ export function AiKeyTakeawaysDisplay() {
   
   if (!jsonString || jsonString === '{}') {
     isLoading = false;
-    isError = true; 
+    isError = false; // Not an error, just no data yet
+    parsedTakeawaysData = null;
     errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
-    logDebug(componentName, "aiKeyTakeawaysJson is empty or null.");
+    logDebug(componentName, "aiKeyTakeawaysJson is empty or null. Displaying 'No data'.");
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(jsonString.trim())) {
     isLoading = true;
     isError = false;
@@ -138,8 +139,8 @@ export function AiKeyTakeawaysDisplay() {
       const statusObj = JSON.parse(jsonString);
       if (statusObj.status === "skipped") {
         errorOrSkippedMessage = statusObj.message || "AI Key Takeaways were skipped.";
-      } else {
-        errorOrSkippedMessage = statusObj.message || "Error loading AI Key Takeaways.";
+      } else { // error
+        errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Key Takeaways.";
       }
       logDebug(componentName, `JSON indicates status: ${statusObj.status}, message: ${errorOrSkippedMessage}`);
     } catch (e) {
@@ -147,6 +148,7 @@ export function AiKeyTakeawaysDisplay() {
       logDebug(componentName, "Failed to parse error/skipped status JSON for AI Key Takeaways.", e);
     }
   } else {
+    // Attempt to parse actual data
     isLoading = false;
     isError = false;
     try {
@@ -176,7 +178,7 @@ export function AiKeyTakeawaysDisplay() {
     }
   }
 
-  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
+  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
 
   const isDataReadyForExport = !isLoading && !isError && parsedTakeawaysData && Object.keys(parsedTakeawaysData).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
@@ -301,10 +303,11 @@ export function AiKeyTakeawaysDisplay() {
           ))
         ) : (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             No AI Key Takeaways data to display.
+             {errorOrSkippedMessage || "No AI Key Takeaways data to display."}
            </div>
         )}
       </CardContent>
     </Card>
   );
 }
+

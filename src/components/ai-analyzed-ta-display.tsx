@@ -42,7 +42,7 @@ export function AiAnalyzedTaDisplay() {
   const componentName = 'AiAnalyzedTaDisplay';
 
   logDebug(componentName, "aiAnalyzedTaJson (start):", aiAnalyzedTaJson ? aiAnalyzedTaJson.substring(0,100) : "null");
-  logDebug(componentName, "stockSnapshotJson (start):", stockSnapshotJson ? stockSnapshotJson.substring(0,100) : "null");
+  // logDebug(componentName, "stockSnapshotJson (start):", stockSnapshotJson ? stockSnapshotJson.substring(0,100) : "null"); // Redundant if logged elsewhere
 
   let isLoading = false;
   let isError = false;
@@ -51,10 +51,11 @@ export function AiAnalyzedTaDisplay() {
   let currentPrice: number | null = null;
 
   if (!aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') {
-    isLoading = false;
-    isError = true; 
+    isLoading = false; 
+    isError = false; // Not an error, just no data yet or legitimately empty
+    parsedTaData = null;
     errorOrSkippedMessage = "No AI Analyzed TA data. Ensure stock data was fetched and AI TA processed.";
-    logDebug(componentName, "aiAnalyzedTaJson is empty or null.");
+    logDebug(componentName, "aiAnalyzedTaJson is empty or null. Displaying 'No data'.");
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(aiAnalyzedTaJson.trim())) {
     isLoading = true;
     isError = false;
@@ -69,8 +70,8 @@ export function AiAnalyzedTaDisplay() {
       const statusObj = JSON.parse(aiAnalyzedTaJson);
       if (statusObj.status === "skipped") {
         errorOrSkippedMessage = statusObj.message || "AI Analyzed TA was skipped.";
-      } else {
-        errorOrSkippedMessage = statusObj.message || "Error loading AI Analyzed TA.";
+      } else { // error
+        errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Analyzed TA.";
       }
       logDebug(componentName, `JSON indicates status: ${statusObj.status}, message: ${errorOrSkippedMessage}`);
     } catch (e) {
@@ -78,11 +79,13 @@ export function AiAnalyzedTaDisplay() {
       logDebug(componentName, "Failed to parse error/skipped status JSON for AI Analyzed TA.", e);
     }
   } else {
+    // Attempt to parse actual data
     isLoading = false;
     isError = false;
     try {
       const data = JSON.parse(aiAnalyzedTaJson) as AnalyzeTaOutput;
-      if (data && typeof data === 'object' && data.pivotPoint !== undefined) {
+      // Basic validation for expected data structure
+      if (data && typeof data === 'object' && data.pivotPoint !== undefined && data.support1 !== undefined) {
         parsedTaData = data;
         logDebug(componentName, "Successfully parsed aiAnalyzedTaJson data.", data);
       } else {
@@ -99,9 +102,13 @@ export function AiAnalyzedTaDisplay() {
     }
   }
 
+  // Get current price for sentiment coloring, only if TA data is successfully parsed
   if (!isLoading && !isError && parsedTaData && stockSnapshotJson && stockSnapshotJson !== '{}') {
       try {
-        if (!stockSnapshotJson.includes('"status":') && !stockSnapshotJson.includes('"error":')) {
+        // Check if stockSnapshotJson itself is not a status/error string
+        if (!PENDING_STATUS_JSON_VARIANTS.includes(stockSnapshotJson.trim()) && 
+            !stockSnapshotJson.includes('"status":') && 
+            !stockSnapshotJson.includes('"error":')) {
             const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
             if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
                 currentPrice = snapshot.currentPrice;
@@ -109,13 +116,15 @@ export function AiAnalyzedTaDisplay() {
             } else {
                 logDebug(componentName, "Current price not found in valid stockSnapshotJson.");
             }
+        } else {
+             logDebug(componentName, "stockSnapshotJson is a status/error string, cannot get current price.");
         }
       } catch (e) {
         logDebug(componentName, "Failed to parse stockSnapshotJson for current price:", e);
       }
   }
 
-  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
+  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedTaData exists=${!!parsedTaData}, currentPrice=${currentPrice}`);
 
   return (
     <Card>
@@ -173,7 +182,7 @@ export function AiAnalyzedTaDisplay() {
             ) : ( 
                  <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                        AI Analyzed TA data is unavailable.
+                        {errorOrSkippedMessage || "AI Analyzed TA data is unavailable."}
                     </TableCell>
                 </TableRow>
             )}
@@ -183,3 +192,4 @@ export function AiAnalyzedTaDisplay() {
     </Card>
   );
 }
+

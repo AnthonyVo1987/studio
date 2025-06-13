@@ -46,9 +46,10 @@ export function AiOptionsAnalysisDisplay() {
 
   if (!aiOptionsAnalysisJson || aiOptionsAnalysisJson === '{}') {
     isLoading = false;
-    isError = true; 
+    isError = false; // Not an error, just no data yet
+    parsedAnalysisData = null;
     errorOrSkippedMessage = "No AI Options Analysis data. Ensure options chain was processed by AI.";
-    logDebug(componentName, "aiOptionsAnalysisJson is empty or null.");
+    logDebug(componentName, "aiOptionsAnalysisJson is empty or null. Displaying 'No data'.");
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(aiOptionsAnalysisJson.trim())) {
     isLoading = true;
     isError = false;
@@ -63,7 +64,7 @@ export function AiOptionsAnalysisDisplay() {
       const statusObj = JSON.parse(aiOptionsAnalysisJson);
       if (statusObj.status === "skipped") {
         errorOrSkippedMessage = statusObj.message || "AI Options Analysis was skipped.";
-      } else { 
+      } else { // error or direct error field
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Options Analysis.";
       }
       logDebug(componentName, `JSON indicates status/error: ${statusObj.status || 'direct_error'}, message: ${errorOrSkippedMessage}`);
@@ -72,10 +73,12 @@ export function AiOptionsAnalysisDisplay() {
       logDebug(componentName, "Failed to parse error/skipped status JSON for AI Options Analysis.", e);
     }
   } else {
+    // Attempt to parse actual data
     isLoading = false;
     isError = false;
     try {
       const data = JSON.parse(aiOptionsAnalysisJson) as AiOptionsAnalysisOutput;
+      // Basic validation for expected data structure
       if (data && typeof data === 'object' && data.callWalls !== undefined && data.putWalls !== undefined) { 
         parsedAnalysisData = data;
         logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data.", data);
@@ -183,7 +186,7 @@ export function AiOptionsAnalysisDisplay() {
     );
   };
 
-  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedDataExists=${!!parsedAnalysisData}`);
+  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedAnalysisData}`);
 
   return (
     <Card>
@@ -255,10 +258,11 @@ export function AiOptionsAnalysisDisplay() {
           </>
         ) : (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             No AI Options Analysis data to display.
+             {errorOrSkippedMessage || "No AI Options Analysis data to display."}
            </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
