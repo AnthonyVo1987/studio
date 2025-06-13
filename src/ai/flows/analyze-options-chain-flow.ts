@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview An AI agent that analyzes options chain data to identify significant
- * features like Call and Put Walls.
+ * features like Call/Put Walls and OI Clusters.
  *
  * - analyzeOptionsChain - Function to trigger the options analysis flow.
  * - AiOptionsAnalysisInput (from schemas) - Input type.
@@ -17,7 +17,7 @@ import {
   type AiOptionsAnalysisOutput,
 } from '@/ai/schemas/ai-options-analysis-schemas';
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
-import type { OptionsChainData, OptionsTableRow } from '@/services/data-sources/types';
+import type { OptionsChainData } from '@/services/data-sources/types';
 
 export async function analyzeOptionsChain(
   input: AiOptionsAnalysisInput
@@ -31,41 +31,41 @@ const analyzeOptionsChainPrompt = ai.definePrompt({
   input: {schema: AiOptionsAnalysisInputSchema},
   output: {schema: AiOptionsAnalysisOutputSchema},
   model: DEFAULT_ANALYSIS_MODEL_ID,
-  prompt: `You are an expert options market analyst. Your task is to identify significant Call and Put "Walls" from the provided options chain data for the stock: {{{ticker}}}.
-The current underlying price is \${{{currentUnderlyingPrice}}}.
+  prompt: `You are an expert options market analyst. Your task is to identify significant Call and Put "Walls" and "OI Clusters" from the provided options chain data for the stock: {{{ticker}}}.
+The current underlying price is \${{{currentUnderlyingPrice}}}. This price is provided for context (e.g., to understand the general price level and relation of strikes to it), your primary analysis should focus on Open Interest (OI).
 
 The options chain data is provided as a JSON string: {{{optionsChainJson}}}
 This JSON string represents an 'OptionsChainData' object with a 'contracts' array. Each element in 'contracts' is an 'OptionsTableRow' having 'strike', 'call' (StreamlinedOptionContract), and 'put' (StreamlinedOptionContract) properties.
 Focus on the 'open_interest' (OI) field within the 'call' and 'put' contract objects.
 
+Definitions:
+-   **Wall:** A single strike level with unusually high OI that might act as support or resistance.
+-   **OI Cluster:** A group of 2 or more *adjacent* strikes where each strike in the group has notably high OI, suggesting a broader area of interest.
+
+Analysis Steps:
+1.  Parse the \`optionsChainJson\` to access the list of contracts. If parsing fails or data is insufficient (e.g., very few strikes or contracts), note this in \`analysisSummary\` and return empty arrays for walls and clusters.
+2.  Separate Call OI and Put OI data per strike. Calculate the average OI for all calls with OI > 0 and for all puts with OI > 0 separately. If no calls/puts have OI, skip average calculation for that type.
+
 Wall Detection Algorithm:
-A "Wall" is a strike level with unusually high Open Interest (OI) that might act as support or resistance.
-1.  Parse the \`optionsChainJson\` to access the list of contracts. If parsing fails or data is insufficient (e.g., very few strikes or contracts), note this in \`analysisSummary\` and return empty arrays for walls.
-2.  Separate Call OI and Put OI data per strike.
-3.  For Calls:
-    a.  Calculate the average OI across all strikes that have call contracts with OI > 0. If no calls have OI, this step is skipped for calls.
-    b.  Iterate through each strike with a call contract. A call strike is a potential Call Wall if its OI meets BOTH conditions:
-        i.  Call OI at this strike ≥ 1.5 × average Call OI (if average OI is calculable and > 0).
-        ii. Call OI at this strike ≥ 2 × OI of the immediately preceding call strike (if one exists and has OI > 0) AND Call OI at this strike ≥ 2 × OI of the immediately succeeding call strike (if one exists and has OI > 0).
-            - If only one adjacent strike exists (e.g., at the edge of the chain), only that side's 2x condition needs to be met.
-            - If a strike has no valid adjacent strikes with OI for comparison, this sub-condition might be relaxed or weighted less, but the 1.5x average OI condition remains crucial.
-4.  For Puts:
-    a.  Calculate the average OI across all strikes that have put contracts with OI > 0. If no puts have OI, this step is skipped for puts.
-    b.  Iterate through each strike with a put contract. A put strike is a potential Put Wall if its OI meets BOTH conditions:
-        i.  Put OI at this strike ≥ 1.5 × average Put OI (if average OI is calculable and > 0).
-        ii. Put OI at this strike ≥ 2 × OI of the immediately preceding put strike (if one exists and has OI > 0) AND Put OI at this strike ≥ 2 × OI of the immediately succeeding put strike (if one exists and has OI > 0). (Apply same edge case logic as for calls).
-5.  Output Requirements:
-    a.  Identify AT LEAST 1 Call Wall and AT LEAST 1 Put Wall if the data supports it according to the criteria.
-    b.  If multiple strikes qualify as walls for calls or puts, select UP TO 3 of the most significant ones for each type (typically those with the highest OI that meet the criteria).
-    c.  Populate the \`callWalls\` and \`putWalls\` arrays in the output. Each element should include \`strike\`, \`openInterest\`, and \`type\`.
-    d.  If, after applying the criteria, you cannot identify at least one call wall or at least one put wall (e.g., due to low overall OI, flat OI distribution, or insufficient data), clearly state this in the \`analysisSummary\` field. For instance: "No significant call walls identified meeting the criteria. Put OI is generally low." or "Insufficient options data to reliably identify walls." In such cases, the respective wall arrays can be empty. The primary goal is robust identification; do not force walls if criteria are not met.
+A strike is a potential Wall if its OI meets BOTH conditions:
+    a.  OI at this strike ≥ 1.5 × average OI for its type (if average OI is calculable and > 0).
+    b.  OI at this strike ≥ 2 × OI of the immediately preceding strike of the same type (if one exists and has OI > 0) AND OI at this strike ≥ 2 × OI of the immediately succeeding strike of the same type (if one exists and has OI > 0).
+        - If only one adjacent strike exists (e.g., at the edge of the chain), only that side's 2x condition needs to be met.
+        - If a strike has no valid adjacent strikes with OI for comparison, this sub-condition might be relaxed if the 1.5x average OI condition is strongly met.
 
-Example of a small part of optionsChainJson.contracts array element:
-\`{ "strike": 150, "call": { "open_interest": 1200, ... }, "put": { "open_interest": 800, ... } }\`
+OI Cluster Detection Algorithm:
+An OI Cluster consists of 2 or more *adjacent* strikes (of the same type, call or put) where:
+    a.  Each strike within the cluster has an OI that is "notably high" (e.g., significantly above the average OI for its type, or at least above a reasonable baseline if average is very low).
+    b.  The cluster represents a contiguous block of such strikes.
+    c.  Calculate total OI and average OI for the identified cluster.
 
-Strictly adhere to the output schema. Provide the \`callWalls\` and \`putWalls\` arrays. Ensure openInterest values are numbers.
+Output Requirements:
+-   **Walls:** Identify AT LEAST 1 Call Wall and AT LEAST 1 Put Wall if data supports. Select UP TO 3 most significant walls per type (highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
+-   **Clusters:** Identify UP TO 3 Call OI Clusters and UP TO 3 Put OI Clusters. Populate \`callClusters\` and \`putClusters\` arrays. Each element: \`{strikes: number[], totalOI: number, averageOI: number, type: 'call'|'put'}\`. These arrays can be empty or omitted if no significant clusters are found.
+-   **analysisSummary:** If no significant walls or clusters are identified for a type (e.g., "No significant call walls or clusters identified. Put OI is generally low.") or if data is insufficient, state this clearly.
+
+Strictly adhere to the output schema. Ensure numerical values. Do not force walls/clusters if criteria are not met.
 If you encounter issues parsing or the data is clearly insufficient (e.g., less than 5 strikes with OI for both calls and puts), note this in analysisSummary.
-Focus only on identifying walls. Do not include analysis of OI clusters in this output.
 `,
   config: {
     safetySettings: [
@@ -84,22 +84,20 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     outputSchema: AiOptionsAnalysisOutputSchema,
   },
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
-    // Basic validation of optionsChainJson before sending to LLM
+    let parsedOptionsData: OptionsChainData | null = null;
     try {
-      const optionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
-      if (!optionsData.contracts || optionsData.contracts.length < 5) { // Arbitrary small number for "insufficient"
-        console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient. Contracts length:', optionsData.contracts?.length);
-        return {
-          callWalls: [],
-          putWalls: [],
-          analysisSummary: 'Warning: Options chain data appears insufficient (e.g., too few contracts/strikes) for reliable wall detection by AI. Proceeding with analysis, but results may be limited.'
-        };
+      parsedOptionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
+      if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { // Adjusted minimum for better cluster potential
+        console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient. Contracts length:', parsedOptionsData.contracts?.length);
+        // Allow flow to proceed; AI can determine insufficiency and note in summary
       }
     } catch (e) {
       console.error('[AIFlow:analyzeOptionsChainFlow] Failed to parse optionsChainJson in pre-check:', e);
       return {
         callWalls: [],
         putWalls: [],
+        callClusters: [],
+        putClusters: [],
         analysisSummary: 'Error: Failed to parse input optionsChainJson. Cannot perform AI options analysis.'
       };
     }
@@ -110,14 +108,18 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       return {
         callWalls: [],
         putWalls: [],
+        callClusters: [],
+        putClusters: [],
         analysisSummary: 'AI analysis flow did not return an output. Please check Genkit logs.'
       };
     }
-    // Ensure min 0 / max 3 constraint even if LLM doesn't perfectly adhere
-    output.callWalls = output.callWalls.slice(0, 3);
-    output.putWalls = output.putWalls.slice(0, 3);
     
-    console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete. Call Walls:', output.callWalls.length, 'Put Walls:', output.putWalls.length);
+    output.callWalls = output.callWalls?.slice(0, 3) || [];
+    output.putWalls = output.putWalls?.slice(0, 3) || [];
+    output.callClusters = output.callClusters?.slice(0, 3) || [];
+    output.putClusters = output.putClusters?.slice(0, 3) || [];
+    
+    console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete. Call Walls:', output.callWalls.length, 'Put Walls:', output.putWalls.length, 'Call Clusters:', output.callClusters.length, 'Put Clusters:', output.putClusters.length);
     return output;
   }
 );

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas";
+import type { AiOptionsAnalysisOutput, WallDetail, ClusterDetail } from "@/ai/schemas/ai-options-analysis-schemas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
@@ -42,7 +42,7 @@ export function AiOptionsAnalysisDisplay() {
      aiOptionsAnalysisJson.includes('"status": "full_analysis_pending..."')))) {
     isLoading = true;
   } else if (typeof aiOptionsAnalysisJson === 'string' && aiOptionsAnalysisJson !== '{}') {
-    if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"status": "skipped"') || aiOptionsAnalysisJson.includes('"error":')) { // Check for top-level error string in JSON
+    if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"status": "skipped"') || aiOptionsAnalysisJson.includes('"error":')) {
       isError = true;
        try {
         const tempError = JSON.parse(aiOptionsAnalysisJson);
@@ -56,7 +56,6 @@ export function AiOptionsAnalysisDisplay() {
       try {
         const data = JSON.parse(aiOptionsAnalysisJson) as AiOptionsAnalysisOutput;
         if (data && typeof data === 'object' && data.callWalls !== undefined && data.putWalls !== undefined) {
-            // Even if walls are empty, it's a valid analysis if analysisSummary is present
             parsedAnalysisData = data;
         } else {
           isError = true;
@@ -70,7 +69,12 @@ export function AiOptionsAnalysisDisplay() {
   }
 
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
-  const isDataReadyForExport = !isLoading && !isError && parsedAnalysisData && (parsedAnalysisData.callWalls.length > 0 || parsedAnalysisData.putWalls.length > 0 || !!parsedAnalysisData.analysisSummary);
+  const isDataReadyForExport = !isLoading && !isError && parsedAnalysisData && 
+    ( (parsedAnalysisData.callWalls && parsedAnalysisData.callWalls.length > 0) || 
+      (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0) || 
+      (parsedAnalysisData.callClusters && parsedAnalysisData.callClusters.length > 0) ||
+      (parsedAnalysisData.putClusters && parsedAnalysisData.putClusters.length > 0) ||
+      !!parsedAnalysisData.analysisSummary);
 
   const handleExport = () => {
     logDebug('AiOptionsAnalysisDisplay:handleExport', `Attempting to export options analysis as JSON for ${currentTicker}`);
@@ -104,8 +108,8 @@ export function AiOptionsAnalysisDisplay() {
     }
   };
   
-  const renderWallTable = (walls: WallDetail[], type: 'Call' | 'Put') => {
-    if (walls.length === 0) {
+  const renderWallTable = (walls: WallDetail[] | undefined, type: 'Call' | 'Put') => {
+    if (!walls || walls.length === 0) {
       return <p className="text-sm text-muted-foreground p-2">No significant {type.toLowerCase()} walls identified.</p>;
     }
     return (
@@ -128,6 +132,33 @@ export function AiOptionsAnalysisDisplay() {
     );
   };
 
+  const renderClusterTable = (clusters: ClusterDetail[] | undefined, type: 'Call' | 'Put') => {
+    if (!clusters || clusters.length === 0) {
+      return <p className="text-sm text-muted-foreground p-2">No significant {type.toLowerCase()} OI clusters identified.</p>;
+    }
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Strikes</TableHead>
+            <TableHead className="text-right">Total OI</TableHead>
+            <TableHead className="text-right">Avg OI / Strike</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {clusters.map((cluster, index) => (
+            <TableRow key={`${type}-cluster-${index}`}>
+              <TableCell>{cluster.strikes.map(s => formatCurrency(s, "$", "", true)).join(', ')}</TableCell>
+              <TableCell className="text-right">{formatCompactNumber(cluster.totalOI, "N/A")}</TableCell>
+              <TableCell className="text-right">{formatCompactNumber(cluster.averageOI, "N/A")}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  };
+
+
   logDebug('AiOptionsAnalysisDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, parsedDataExists=${!!parsedAnalysisData}`);
 
   return (
@@ -135,7 +166,7 @@ export function AiOptionsAnalysisDisplay() {
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
           <CardTitle>AI Analyzed Options Chain</CardTitle>
-          <CardDescription>Key levels identified from options data analysis. Further analyses can be added.</CardDescription>
+          <CardDescription>Key levels (Walls & OI Clusters) identified from options data analysis.</CardDescription>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleCopy} disabled={!isDataReadyForExport}>
@@ -158,7 +189,13 @@ export function AiOptionsAnalysisDisplay() {
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              AI Options Analysis data not available or an error occurred.
            </div>
-        ) : !parsedAnalysisData || (!parsedAnalysisData.callWalls.length && !parsedAnalysisData.putWalls.length && !parsedAnalysisData.analysisSummary) ? (
+        ) : !parsedAnalysisData || (
+            (!parsedAnalysisData.callWalls || parsedAnalysisData.callWalls.length === 0) &&
+            (!parsedAnalysisData.putWalls || parsedAnalysisData.putWalls.length === 0) &&
+            (!parsedAnalysisData.callClusters || parsedAnalysisData.callClusters.length === 0) &&
+            (!parsedAnalysisData.putClusters || parsedAnalysisData.putClusters.length === 0) &&
+            !parsedAnalysisData.analysisSummary
+        ) ? (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              No AI Options Analysis data to display. Ensure options chain was successfully processed by AI.
            </div>
@@ -169,17 +206,29 @@ export function AiOptionsAnalysisDisplay() {
                 <strong>AI Note:</strong> {parsedAnalysisData.analysisSummary}
               </p>
             )}
-            <Accordion type="multiple" defaultValue={["call-walls", "put-walls"]} className="w-full">
+            <Accordion type="multiple" defaultValue={["call-walls", "put-walls", "call-clusters", "put-clusters"]} className="w-full">
               <AccordionItem value="call-walls">
-                <AccordionTrigger className="text-md font-semibold">Identified Call Walls ({parsedAnalysisData.callWalls.length})</AccordionTrigger>
+                <AccordionTrigger className="text-md font-semibold">Identified Call Walls ({parsedAnalysisData.callWalls?.length || 0})</AccordionTrigger>
                 <AccordionContent>
                   {renderWallTable(parsedAnalysisData.callWalls, 'Call')}
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="put-walls">
-                <AccordionTrigger className="text-md font-semibold">Identified Put Walls ({parsedAnalysisData.putWalls.length})</AccordionTrigger>
+                <AccordionTrigger className="text-md font-semibold">Identified Put Walls ({parsedAnalysisData.putWalls?.length || 0})</AccordionTrigger>
                 <AccordionContent>
                   {renderWallTable(parsedAnalysisData.putWalls, 'Put')}
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="call-clusters">
+                <AccordionTrigger className="text-md font-semibold">Identified Call OI Clusters ({parsedAnalysisData.callClusters?.length || 0})</AccordionTrigger>
+                <AccordionContent>
+                  {renderClusterTable(parsedAnalysisData.callClusters, 'Call')}
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="put-clusters">
+                <AccordionTrigger className="text-md font-semibold">Identified Put OI Clusters ({parsedAnalysisData.putClusters?.length || 0})</AccordionTrigger>
+                <AccordionContent>
+                  {renderClusterTable(parsedAnalysisData.putClusters, 'Put')}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
