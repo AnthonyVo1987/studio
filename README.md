@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.K OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.Q OPERATING MANUAL**
 
-*   **Document Version:** 1.39 (Task 9.A.K - FSM Reducer Fix & Ticker Ref Reset)
+*   **Document Version:** 1.42 (Task 9.A.Q - Adapter Stale Data Fix Attempt)
 *   **Date:** 2025-06-14 
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.K.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.Q.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -53,11 +53,11 @@
 *   **Example:** If the current phase is 9, current task is A (for the full README update), and this is the 0th iteration for this task, the version will be `v2.9.A.0`. If the next task is a bug fix, it will be `v2.9.A.1`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.K)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.Q)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.K`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.Q`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -75,7 +75,7 @@ The primary strategy for this implementation is **UI-First Development**, now en
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for all data points.
     *   Offer a robust and debuggable backend processing pipeline through the FSM.
 
-## **2. High-Level Goals (Current Version v2.9.A.K)**
+## **2. High-Level Goals (Current Version v2.9.A.Q)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline.
@@ -88,14 +88,14 @@ The primary strategy for this implementation is **UI-First Development**, now en
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging.
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.9.A.K)**
+## **3. Core Application Features (StockSage v2.9.A.Q)**
 
-This section details the core features of StockSage v2.9.A.K, serving as the Product Requirements.
+This section details the core features of StockSage v2.9.A.Q, serving as the Product Requirements.
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
 *   **Header:**
-    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.K`).
+    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.Q`).
     *   Includes a theme toggler (Light/Dark/System) using `next-themes` and ShadCN `DropdownMenu`.
 *   **Footer:** Contains copyright information and a standard financial disclaimer.
 *   **Theme:** Supports Light and Dark themes, configurable via the header. Theme styles are defined in `src/app/globals.css` using HSL CSS variables.
@@ -435,7 +435,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9 In Progress. Current application version: v2.9.A.K.)*
+*(Status: Phase 9 In Progress. Current application version: v2.9.A.Q.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -485,26 +485,30 @@ This section documents critical issues encountered during development and their 
 *   **Task 9.8: Pre-testing Enhancements/Refinements/Debug Logs (v2.9.8.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
 *   **Task 9.A: Comprehensive Full README.md update - FULL PRD, Detailed Design and Architecture Flow (v2.9.A.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
 *   **Task 9.9: Testing and Debugging Fixes (v2.9.9.x -> v2.9.A.x):** - Status: **IN PROGRESS**
-    *   **Task 9.9.A.1: Fix Client Debug Console Toggle & FSM ReferenceError (v2.9.A.1):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.1]`)
-    *   **Task 9.9.A.2: Fix FSM Pipeline Stall & Display Component Handling of 'pending' (v2.9.A.2):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.2]`)
-    *   **Task 9.9.A.3: Further FSM Pipeline Debugging & Display Component Fixes (v2.9.A.3):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.3]`)
-    *   **Task 9.9.A.4: Robust 'pending' handling in OptionsChainTable; FSM progression debug in MainTabContent (v2.9.A.4):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.4]`)
-    *   **Task 9.9.A.5: Simplified useEffect entry conditions in MainTabContent for FSM AWAITING_TRIGGER states (v2.9.A.5):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.5]`)
-    *   **Task 9.9.A.6: Aggressive entry-point logging to FSM useEffects in MainTabContent; verify dependencies (v2.9.A.6):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.6]`)
-    *   **Task 9.9.A.7: Fix MarketStatusDisplay pending state; aggressive FSM logging in MainTabContent (v2.9.A.7):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.7]`)
-    *   **Task 9.9.A.8: Simplified useEffect dependency arrays for FSM AWAITING_TRIGGER states in MainTabContent (v2.9.A.8):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.8]`)
-    *   **Task 9.9.A.9: Refactor FSM to decouple chained state transitions via explicit 'PROCEED_TO_*_SETUP' events (v2.9.A.9):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.9]`)
-    *   **Task 9.9.A.A: Strict useEffect deps for AWAITING_..._TRIGGER states in MainTabContent (v2.9.A.A):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.A]`)
-    *   **Task 9.9.A.B: Refine full analysis path in MainTabContent useEffects (v2.9.A.B):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.B]`)
-    *   **Task 9.9.A.C: Fix footer hydration error; verify full analysis path logic (v2.9.A.C):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.C]`) 
-    *   **Task 9.9.A.D: Fix footer hydration error again (v2.9.A.D):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.D]`)
-    *   **Task 9.9.A.E: Add ticker consistency checks before AI server actions in MainTabContent (v2.9.A.E):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.E]`)
-    *   **Task 9.9.A.F: Refine ticker consistency logic in MainTabContent AI action useEffects to 'return early' and wait for context update (v2.9.A.F):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.F]`)
-    *   **Task 9.9.A.G: Change "Analyze Stock" button scope; adjust FSM for new partial/full definitions (v2.9.A.G):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.G]`)
-    *   **Task 9.9.A.H: Fix hydration error in date-utils (v2.9.A.H):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.H]`)
-    *   **Task 9.9.A.J: Robustly ensure data consistency for AI actions in MainTabContent (v2.9.A.J):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.J]`)
-    *   **Task 9.9.A.K: Correct FSM reducer logic to ensure state transitions from '*_SUCCEEDED' to 'AWAITING_*_TRIGGER' states; reset ticker ref on IDLE. (v2.9.A.K):** Status: **COMPLETE (Commit: 38de9431)** (This commit)
-
+    *   **Task 9.9.A.1: Fix Client Debug Console Toggle & FSM ReferenceError (v2.9.A.1):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.2: Fix FSM Pipeline Stall & Display Component Handling of 'pending' (v2.9.A.2):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.3: Further FSM Pipeline Debugging & Display Component Fixes (v2.9.A.3):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.4: Robust 'pending' handling in OptionsChainTable; FSM progression debug in MainTabContent (v2.9.A.4):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.5: Simplified useEffect entry conditions in MainTabContent for FSM AWAITING_TRIGGER states (v2.9.A.5):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.6: Aggressive entry-point logging to FSM useEffects in MainTabContent; verify dependencies (v2.9.A.6):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.7: Fix MarketStatusDisplay pending state; aggressive FSM logging in MainTabContent (v2.9.A.7):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.8: Simplified useEffect dependency arrays for FSM AWAITING_TRIGGER states in MainTabContent (v2.9.A.8):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.9: Refactor FSM to decouple chained state transitions via explicit 'PROCEED_TO_*_SETUP' events (v2.9.A.9):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.A: Strict useEffect deps for AWAITING_..._TRIGGER states in MainTabContent (v2.9.A.A):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.B: Refine full analysis path in MainTabContent useEffects (v2.9.A.B):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.C: Fix footer hydration error; verify full analysis path logic (v2.9.A.C):** - Status: **COMPLETE** 
+    *   **Task 9.9.A.D: Fix footer hydration error again (v2.9.A.D):** Status: **COMPLETE** 
+    *   **Task 9.9.A.E: Add ticker consistency checks before AI server actions in MainTabContent (v2.9.A.E):** Status: **COMPLETE** 
+    *   **Task 9.9.A.F: Refine ticker consistency logic in MainTabContent AI action useEffects to 'return early' and wait for context update (v2.9.A.F):** Status: **COMPLETE** 
+    *   **Task 9.9.A.G: Change "Analyze Stock" button scope; adjust FSM for new partial/full definitions (v2.9.A.G):** Status: **COMPLETE** 
+    *   **Task 9.9.A.H: Fix hydration error in date-utils (v2.9.A.H):** Status: **COMPLETE** 
+    *   **Task 9.9.A.J: Robustly ensure data consistency for AI actions in MainTabContent (v2.9.A.J):** Status: **COMPLETE** 
+    *   **Task 9.9.A.K: Correct FSM reducer logic to ensure state transitions from '*_SUCCEEDED' to 'AWAITING_*_TRIGGER' states; reset ticker ref on IDLE. (v2.9.A.K):** Status: **COMPLETE** 
+    *   **Task 9.9.A.L: Reinforce setAllPlaceholdersInternal and MainTabContent useEffect data consistency checks (v2.9.A.L):** Status: **COMPLETE**
+    *   **Task 9.9.A.M: Refined MainTabContent useEffects for data consistency and FSM progression (v2.9.A.M):** Status: **COMPLETE**
+    *   **Task 9.9.A.N: Further refinement of placeholder resets and MainTabContent useEffects for data readiness (v2.9.A.N):** Status: **COMPLETE**
+    *   **Task 9.9.A.P: Stale data fix - Introduce `activeAnalysisTicker` in MainTabContent, validate action state ticker before FSM dispatch (v2.9.A.P):** Status: **COMPLETE (Commit: [Prev. Hash for v2.9.A.P])**
+    *   **Task 9.9.A.Q: Polygon Adapter stale data investigation - Ensure fresh client per call; enhanced logging (v2.9.A.Q):** Status: **IN PROGRESS (This task)**
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
@@ -512,8 +516,8 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.38    | 2025-06-14   | Firebase Studio (AI Prototyper) | **Task 9.9.A.J (Robust data consistency for AI actions) COMPLETE.** Application version `v2.9.A.J`. Refined `useEffect` hooks in MainTabContent for AI actions to ensure data consistency with the active ticker, returning early to await context updates. Header displays `v2.9.A.J`. **Commit: [Prev. Hash for v2.9.A.J]** |
-| **1.39**| **2025-06-14**| Firebase Studio (AI Prototyper) | **Task 9.9.A.K (Correct FSM reducer transitions & reset ticker ref) COMPLETE.** Application version `v2.9.A.K`. Updated FSM reducer logic in StockAnalysisContext to ensure proper state transitions to `AWAITING_*_TRIGGER` states and set pending placeholders. Reset `analysisTriggeredForTickerRef` in MainTabContent on IDLE. Header displays `v2.9.A.K`. Phase 9 Task 9.9.A.K status updated. **Commit: 38de9431** |
+| 1.41    | 2025-06-14   | Firebase Studio (AI Prototyper) | **Task 9.9.A.P (Stale data in action state fix) COMPLETE.** Application version `v2.9.A.P`. `MainTabContent` uses `activeAnalysisTicker` for actions; validates `analyzeStockState` ticker before FSM dispatch. Header displays `v2.9.A.P`. Phase 9 Task 9.9.A.P status updated. **Commit: [Prev. Hash for v2.9.A.P]** |
+| **1.42**| **2025-06-14**| Firebase Studio (AI Prototyper) | **Task 9.9.A.Q (Adapter Stale Data Fix Attempt) IN PROGRESS.** Application version `v2.9.A.Q`. Enhanced logging in Polygon adapter and server action. Verified new adapter instance per call. Header displays `v2.9.A.Q`. Phase 9 Task 9.9.A.Q status updated. **Commit: [Current Commit Hash]** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -528,18 +532,18 @@ This section tracks the commit history of the StockSage application, with versio
 ... (Previous commit logs remain)
 
 ---
-**App Version:** `v2.9.A.J` (Robust data consistency for AI actions in MainTabContent)
-**Tag:** `Phase-9_Task-9.A.J_FSM-Data-Consistency-Retry` - Commit Hash: `[Prev. Hash for v2.9.A.J]`
-**Subject:** `fix(fsm): Enhance AI action data consistency checks in MainTabContent (v2.9.A.J)`
+**App Version:** `v2.9.A.P` (Fix stale data in action state)
+**Tag:** `Phase-9_Task-9.A.P_Action-Stale-Data-Fix` - Commit Hash: `[Prev. Hash for v2.9.A.P]`
+**Subject:** `fix(fsm): Validate action state ticker before FSM dispatch (v2.9.A.P)`
 **Details:**
-Refined `useEffect` hooks in `MainTabContent.tsx` for AI server actions. On ticker data inconsistency, effects now return early, relying on dependencies to re-evaluate when context data (like `stockSnapshotJson`) updates to match the active analysis ticker. This aims to allow the pipeline to "wait" for consistent data rather than failing immediately. UI Header updated to `v2.9.A.J`. `README.md` updated.
+`MainTabContent` now uses a local `activeAnalysisTicker` state to ensure `analyzeStockFormAction` is called with the correct, current ticker. The `useEffect` processing `analyzeStockState` now rigorously validates the ticker within `stockSnapshotJson` from the action result against `analysisTriggeredForTickerRef.current` before dispatching `FETCH_DATA_SUCCESS`. If stale, it dispatches `STALE_DATA_FROM_ACTION`. This prevents stale data from the server action polluting the FSM. `setAllPlaceholdersInternal` rigor maintained. Volatility prompt maintained. UI Header updated to `v2.9.A.P`. `README.md` updated.
 
 ---
-**App Version:** `v2.9.A.K` (FSM Reducer Fix & Ticker Ref Reset)
-**Tag:** `Phase-9_Task-9.A.K_FSM-Reducer-Fix-TickerRef` - Commit Hash: `38de9431`
-**Subject:** `fix(fsm): Ensure reducer transitions to AWAITING states; reset ticker ref (v2.9.A.K)`
+**App Version:** `v2.9.A.Q` (Adapter Stale Data Fix Attempt)
+**Tag:** `Phase-9_Task-9.A.Q_Adapter-Stale-Data-Fix` - Commit Hash: `[Current Commit Hash]`
+**Subject:** `fix(adapter): Ensure fresh Polygon client per call; enhanced logging (v2.9.A.Q)`
 **Details:**
-Corrected FSM reducer logic in `StockAnalysisContext.tsx`: ensured that `INITIATE_..._SEQUENCE` events, when handled within `*_SUCCEEDED` states, correctly set pending placeholders for the upcoming AI step AND explicitly return the new `AWAITING_..._TRIGGER` state. This fixes the FSM stall after data fetching. Reset `analysisTriggeredForTickerRef.current` in `MainTabContent.tsx` when FSM becomes IDLE. UI Header updated to `v2.9.A.K`. `README.md` updated.
+Modified `polygon-adapter.ts` to ensure a new `PolygonAdapter` (and thus `restClient`) instance is explicitly created for each `getFullStockData` call, passing the target ticker to the constructor for logging and potential internal use. Added verbose logging in the adapter and `analyze-stock-server-action.ts` to trace ticker propagation and API call parameters. Maintained data validation in `MainTabContent`. UI Header updated to `v2.9.A.Q`. `README.md` updated.
 
 ---
 *(Future commit logs will follow)*
