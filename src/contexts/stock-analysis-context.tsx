@@ -22,6 +22,7 @@ export enum FsmState {
   FETCHING_DATA = 'FETCHING_DATA',
   DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED', 
   DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
+  STALE_DATA_FROM_ACTION_ERROR = 'STALE_DATA_FROM_ACTION_ERROR', // New error state
   
   AWAITING_AI_TA_TRIGGER = 'AWAITING_AI_TA_TRIGGER',
   ANALYZING_TA = 'ANALYZING_TA',
@@ -55,6 +56,13 @@ interface FetchDataFailurePayload {
   message?: string | null;
   polygonApiRequestLogJson?: string; 
   polygonApiResponseLogJson?: string;
+}
+interface StaleDataFromActionPayload {
+  error: string;
+  message: string;
+  expectedTicker: string;
+  foundTickerInSnapshot?: string;
+  actionStateData?: any;
 }
 interface AiTaSuccessPayload extends AnalyzeTaResult {}
 interface AiTaFailurePayload {
@@ -90,7 +98,8 @@ export type FsmEvent =
   | { type: 'TRIGGER_DATA_FETCH' }
   | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
   | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
-  
+  | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload } // New event
+
   | { type: 'INITIATE_AI_TA_SEQUENCE' } 
   | { type: 'TRIGGER_AI_TA' }
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
@@ -189,7 +198,7 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
-const pendingJson = '{ "status": "pending..." }'; 
+const pendingJson = '{ "status": "pending..." }'; // Generic pending state for ALL resettable JSONs
 const createSkippedJson = (reasonKey: string, message?: string) => 
   `{ "status": "skipped_due_to_${reasonKey}_failure", "message": "${message || `Skipped due to ${reasonKey} failure.`}" }`;
 
@@ -276,15 +285,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', `Added chat message from ${message.role}:`, message.content.substring(0, 50));
   }, [_setChatHistory, logDebug]);
 
-  const setAllPlaceholdersInternal = useCallback((currentTicker: string, isFullAnalysis: boolean) => {
-    logDebug('StockAnalysisContext', `setAllPlaceholdersInternal called for ticker: ${currentTicker}, isFull: ${isFullAnalysis}. Setting ALL data to generic pending: '${pendingJson}'`);
+  const setAllPlaceholdersInternal = useCallback((currentTickerForLogOnly: string, isFullAnalysis: boolean) => {
+    logDebug('StockAnalysisContext:setAllPlaceholdersInternal', `Resetting ALL context JSONs to generic PENDING ('${pendingJson}') for new analysis of ${currentTickerForLogOnly}. isFull: ${isFullAnalysis}`);
     
     _setPolygonApiRequestLogJson(pendingJson);
     _setPolygonApiResponseLogJson(pendingJson);
     _setMarketStatusJson(pendingJson);
-    _setStockSnapshotJson(pendingJson);
-    _setStandardTasJson(pendingJson);
-    _setOptionsChainJson(pendingJson);
+    _setStockSnapshotJson(pendingJson); 
+    _setStandardTasJson(pendingJson);   
+    _setOptionsChainJson(pendingJson);  
 
     _setAiAnalyzedTaRequestJson(pendingJson);
     _setAiAnalyzedTaJson(pendingJson);
@@ -319,7 +328,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.IDLE:
         if (event.type === 'START_ANALYZE_STOCK' || event.type === 'START_FULL_ANALYSIS') {
           const isFull = event.type === 'START_FULL_ANALYSIS';
-          setAllPlaceholdersInternal(event.payload.ticker, isFull); // Call this first
+          setAllPlaceholdersInternal(event.payload.ticker, isFull); 
           _setIsFullAnalysisTriggeredInternalState(isFull); 
           if (isFull) clearChatHistoryInternal(); 
           logDebug('FSM_PIPELINE', `Reducer: ${event.type} received. isFullAnalysisTriggered set to: ${isFull}. Transitioning to INITIALIZING_ANALYSIS.`);
@@ -375,19 +384,40 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           logDebug('FSM_PIPELINE', `Reducer: FETCH_DATA_FAILURE. Error: ${errorMsg}. Transitioning to DATA_FETCH_FAILED.`);
           return FsmState.DATA_FETCH_FAILED;
         }
+         if (event.type === 'STALE_DATA_FROM_ACTION') { // Handle new error event
+          const { error, message, expectedTicker, foundTickerInSnapshot } = event.payload;
+          logDebug('FSM_PIPELINE', `Reducer: STALE_DATA_FROM_ACTION detected. Expected: ${expectedTicker}, Found: ${foundTickerInSnapshot}. Error: ${error}. Msg: ${message}`);
+          // Set all relevant data to error/skipped states
+          const staleErrorJson = errorJsonWithDetails(message, `Expected ${expectedTicker}, got ${foundTickerInSnapshot || 'unknown'} from action state.`);
+          contextSetters.setMarketStatusJson(staleErrorJson);
+          contextSetters.setStockSnapshotJson(staleErrorJson);
+          contextSetters.setStandardTasJson(staleErrorJson);
+          contextSetters.setOptionsChainJson(staleErrorJson);
+          // Skip subsequent AI steps
+          const skippedDueToStale = createSkippedJson("stale_action_data", message);
+          contextSetters.setAiAnalyzedTaRequestJson(skippedDueToStale); contextSetters.setAiAnalyzedTaJson(skippedDueToStale);
+          contextSetters.setAiKeyTakeawaysRequestJson(skippedDueToStale); contextSetters.setAiKeyTakeawaysJson(skippedDueToStale);
+          contextSetters.setAiOptionsAnalysisRequestJson(skippedDueToStale); contextSetters.setAiOptionsAnalysisJson(skippedDueToStale);
+          if (currentIsFullAnalysisTriggered) {
+            contextSetters.setChatbotRequestJson(skippedDueToStale); contextSetters.setChatbotResponseJson(skippedDueToStale);
+          }
+          return FsmState.STALE_DATA_FROM_ACTION_ERROR;
+        }
         return state;
       
       case FsmState.DATA_FETCH_SUCCEEDED:
         if (event.type === 'INITIATE_AI_TA_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders.`);
+            logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders to '${pendingJson}'.`);
             contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
             contextSetters.setAiAnalyzedTaJson(pendingJson);
+            logDebug('FSM_PIPELINE', 'Reducer: Correctly returning AWAITING_AI_TA_TRIGGER from DATA_FETCH_SUCCEEDED');
             return FsmState.AWAITING_AI_TA_TRIGGER;
         }
         return state;
       case FsmState.DATA_FETCH_FAILED:
+      case FsmState.STALE_DATA_FROM_ACTION_ERROR: // New error state handling
         if (event.type === 'PROCEED_TO_IDLE') { 
-            logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_FAILED -> IDLE on PROCEED_TO_IDLE.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} -> IDLE on PROCEED_TO_IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false);
             return FsmState.IDLE;
         }
@@ -398,7 +428,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           logDebug('FSM_PIPELINE', `Reducer: TRIGGER_AI_TA. Transitioning to ANALYZING_TA.`);
           return FsmState.ANALYZING_TA;
         }
-        // This failure event is dispatched from MainTabContent if consistency checks fail in AWAITING_AI_TA_TRIGGER
         if (event.type === 'AI_TA_FAILURE') { 
             const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA failed (consistency check in AWAITING)';
             const taErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
@@ -439,7 +468,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.AI_TA_SUCCEEDED:
       case FsmState.AI_TA_FAILED: 
         if (event.type === 'INITIATE_KEY_TAKEAWAYS_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_KEY_TAKEAWAYS_SEQUENCE. Setting Key Takeaways placeholders.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_KEY_TAKEAWAYS_SEQUENCE. Setting Key Takeaways placeholders to '${pendingJson}'.`);
             contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
             contextSetters.setAiKeyTakeawaysJson(pendingJson);
             return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
@@ -489,7 +518,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.KEY_TAKEAWAYS_SUCCEEDED:
       case FsmState.KEY_TAKEAWAYS_FAILED:
         if (event.type === 'INITIATE_OPTIONS_ANALYSIS_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_OPTIONS_ANALYSIS_SEQUENCE. Setting Options Analysis placeholders.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_OPTIONS_ANALYSIS_SEQUENCE. Setting Options Analysis placeholders to '${pendingJson}'.`);
             contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
             contextSetters.setAiOptionsAnalysisJson(pendingJson);
             return FsmState.AWAITING_OPTIONS_ANALYSIS_TRIGGER;
@@ -537,7 +566,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.OPTIONS_ANALYSIS_SUCCEEDED:
       case FsmState.OPTIONS_ANALYSIS_FAILED:
         if (event.type === 'INITIATE_CHAT_SUMMARY_SEQUENCE' && currentIsFullAnalysisTriggered) { 
-            logDebug('FSM_PIPELINE', `Reducer: ${state} (Full Analysis) got INITIATE_CHAT_SUMMARY_SEQUENCE. Setting Chat Summary placeholders.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} (Full Analysis) got INITIATE_CHAT_SUMMARY_SEQUENCE. Setting Chat Summary placeholders to '${pendingJson}'.`);
             contextSetters.setChatbotRequestJson(pendingJson);
             contextSetters.setChatbotResponseJson(pendingJson);
             return FsmState.AWAITING_CHAT_SUMMARY_TRIGGER;
