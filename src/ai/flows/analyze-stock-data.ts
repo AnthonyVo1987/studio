@@ -99,8 +99,7 @@ const analyzeStockDataFlow = ai.defineFlow(
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
     for (const category of categories) {
         if (!output[category] || !output[category].takeaway) {
-            // Using console.debug to avoid spamming if this becomes frequent.
-            console.debug('[AIFlow:analyzeStockDataFlow]', `Output for category '${category}' was missing or empty. Providing default error message.`);
+            console.warn('[AIFlow:analyzeStockDataFlow]', `Output for category '${category}' was missing or empty for ticker ${input.ticker}. Providing default error message.`);
             output[category] = { takeaway: `AI analysis for ${category} was incomplete or not provided.`, sentiment: "neutral" };
         }
     }

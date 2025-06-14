@@ -189,7 +189,7 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
-const pendingJson = '{ "status": "pending..." }'; // Generic pending placeholder
+const pendingJson = '{ "status": "pending..." }'; 
 const createSkippedJson = (reasonKey: string, message?: string) => 
   `{ "status": "skipped_due_to_${reasonKey}_failure", "message": "${message || `Skipped due to ${reasonKey} failure.`}" }`;
 
@@ -285,6 +285,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setStockSnapshotJson(pendingJson);
     _setStandardTasJson(pendingJson);
     _setOptionsChainJson(pendingJson);
+
     _setAiAnalyzedTaRequestJson(pendingJson);
     _setAiAnalyzedTaJson(pendingJson);
     _setAiKeyTakeawaysRequestJson(pendingJson);
@@ -318,8 +319,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.IDLE:
         if (event.type === 'START_ANALYZE_STOCK' || event.type === 'START_FULL_ANALYSIS') {
           const isFull = event.type === 'START_FULL_ANALYSIS';
+          setAllPlaceholdersInternal(event.payload.ticker, isFull); // Call this first
           _setIsFullAnalysisTriggeredInternalState(isFull); 
-          setAllPlaceholdersInternal(event.payload.ticker, isFull); // This now resets all data to generic pending
           if (isFull) clearChatHistoryInternal(); 
           logDebug('FSM_PIPELINE', `Reducer: ${event.type} received. isFullAnalysisTriggered set to: ${isFull}. Transitioning to INITIALIZING_ANALYSIS.`);
           return FsmState.INITIALIZING_ANALYSIS;
@@ -338,8 +339,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.AWAITING_DATA_FETCH_TRIGGER:
         if (event.type === 'TRIGGER_DATA_FETCH') {
-          contextSetters.setPolygonApiRequestLogJson(`{ "status": "fetching_data..." }`); 
-          contextSetters.setPolygonApiResponseLogJson(`{ "status": "fetching_data..." }`); 
           logDebug('FSM_PIPELINE', `Reducer: TRIGGER_DATA_FETCH. Transitioning to FETCHING_DATA.`);
           return FsmState.FETCHING_DATA;
         }
@@ -360,11 +359,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           const errorMsg = event.payload.message || 'Data fetch failed';
           const errorDetails = event.payload.error || 'Unknown data fetch error';
           const dataFetchErrorJson = errorJsonWithDetails(errorMsg, errorDetails);
-          [contextSetters.setMarketStatusJson, contextSetters.setStockSnapshotJson, contextSetters.setStandardTasJson, contextSetters.setOptionsChainJson].forEach(s => s(dataFetchErrorJson));
+          contextSetters.setMarketStatusJson(dataFetchErrorJson);
+          contextSetters.setStockSnapshotJson(dataFetchErrorJson);
+          contextSetters.setStandardTasJson(dataFetchErrorJson);
+          contextSetters.setOptionsChainJson(dataFetchErrorJson);
           contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson || dataFetchErrorJson);
           contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson || dataFetchErrorJson);
           const skippedJson = createSkippedJson("data_fetch", errorMsg);
-          [contextSetters.setAiAnalyzedTaRequestJson, contextSetters.setAiAnalyzedTaJson, contextSetters.setAiKeyTakeawaysRequestJson, contextSetters.setAiKeyTakeawaysJson, contextSetters.setAiOptionsAnalysisRequestJson, contextSetters.setAiOptionsAnalysisJson, contextSetters.setChatbotRequestJson, contextSetters.setChatbotResponseJson].forEach(s => s(skippedJson));
+          contextSetters.setAiAnalyzedTaRequestJson(skippedJson); contextSetters.setAiAnalyzedTaJson(skippedJson);
+          contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
+          contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
+          if (currentIsFullAnalysisTriggered) {
+            contextSetters.setChatbotRequestJson(skippedJson); contextSetters.setChatbotResponseJson(skippedJson);
+          }
           logDebug('FSM_PIPELINE', `Reducer: FETCH_DATA_FAILURE. Error: ${errorMsg}. Transitioning to DATA_FETCH_FAILED.`);
           return FsmState.DATA_FETCH_FAILED;
         }
@@ -375,7 +382,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders.`);
             contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
             contextSetters.setAiAnalyzedTaJson(pendingJson);
-            logDebug('FSM_PIPELINE', `Reducer: Correctly returning AWAITING_AI_TA_TRIGGER from DATA_FETCH_SUCCEEDED`);
             return FsmState.AWAITING_AI_TA_TRIGGER;
         }
         return state;
@@ -392,12 +398,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           logDebug('FSM_PIPELINE', `Reducer: TRIGGER_AI_TA. Transitioning to ANALYZING_TA.`);
           return FsmState.ANALYZING_TA;
         }
+        // This failure event is dispatched from MainTabContent if consistency checks fail in AWAITING_AI_TA_TRIGGER
         if (event.type === 'AI_TA_FAILURE') { 
-            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA failed (pre-check in AWAITING)';
+            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA failed (consistency check in AWAITING)';
             const taErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiAnalyzedTaRequestJson(errorPayload.aiAnalyzedTaRequestJson || taErrorJson); contextSetters.setAiAnalyzedTaJson(taErrorJson);
-            const skippedJson = createSkippedJson("ai_ta_prereq", errorMsg);
-            [ contextSetters.setAiKeyTakeawaysRequestJson, contextSetters.setAiKeyTakeawaysJson, contextSetters.setAiOptionsAnalysisRequestJson, contextSetters.setAiOptionsAnalysisJson, contextSetters.setChatbotRequestJson, contextSetters.setChatbotResponseJson ].forEach(s => s(skippedJson));
+            const skippedJson = createSkippedJson("ai_ta_consistency", errorMsg);
+            contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
+            contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
+            if (currentIsFullAnalysisTriggered) {
+              contextSetters.setChatbotRequestJson(skippedJson); contextSetters.setChatbotResponseJson(skippedJson);
+            }
             logDebug('FSM_PIPELINE', `Reducer: AI_TA_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
             return FsmState.AI_TA_FAILED;
         }
@@ -415,7 +426,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           const taErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiAnalyzedTaRequestJson(errorPayload.aiAnalyzedTaRequestJson || taErrorJson); contextSetters.setAiAnalyzedTaJson(taErrorJson);
           const skippedJson = createSkippedJson("ai_ta", errorMsg);
-          [ contextSetters.setAiKeyTakeawaysRequestJson, contextSetters.setAiKeyTakeawaysJson, contextSetters.setAiOptionsAnalysisRequestJson, contextSetters.setAiOptionsAnalysisJson, contextSetters.setChatbotRequestJson, contextSetters.setChatbotResponseJson ].forEach(s => s(skippedJson));
+          contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
+          contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
+          if (currentIsFullAnalysisTriggered) {
+            contextSetters.setChatbotRequestJson(skippedJson); contextSetters.setChatbotResponseJson(skippedJson);
+          }
           logDebug('FSM_PIPELINE', `Reducer: AI_TA_FAILURE. Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
           return FsmState.AI_TA_FAILED;
         }
@@ -427,13 +442,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_KEY_TAKEAWAYS_SEQUENCE. Setting Key Takeaways placeholders.`);
             contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
             contextSetters.setAiKeyTakeawaysJson(pendingJson);
-            logDebug('FSM_PIPELINE', `Reducer: Correctly returning AWAITING_KEY_TAKEAWAYS_TRIGGER from ${state}`);
             return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
-        }
-        // Handle case where "Analyze Stock" button (partial analysis) might end after AI TA if definition changes
-        if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE' && !currentIsFullAnalysisTriggered) { 
-             logDebug('FSM_PIPELINE', `Reducer: ${state} handling PROCEED_TO_ANALYZE_STOCK_COMPLETE (partial flow). Transitioning to ANALYZE_STOCK_COMPLETE.`);
-             return FsmState.ANALYZE_STOCK_COMPLETE;
         }
         return state;
 
@@ -443,11 +452,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           return FsmState.GENERATING_KEY_TAKEAWAYS;
         }
         if (event.type === 'KEY_TAKEAWAYS_FAILURE') { 
-            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Key Takeaways failed (pre-check)';
+            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Key Takeaways failed (consistency check)';
             const ktErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiKeyTakeawaysRequestJson(errorPayload.aiKeyTakeawaysRequestJson || ktErrorJson); contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
-            const skippedJson = createSkippedJson("key_takeaways_prereq", errorMsg);
-            [ contextSetters.setAiOptionsAnalysisRequestJson, contextSetters.setAiOptionsAnalysisJson, contextSetters.setChatbotRequestJson, contextSetters.setChatbotResponseJson ].forEach(s => s(skippedJson));
+            const skippedJson = createSkippedJson("key_takeaways_consistency", errorMsg);
+            contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
+             if (currentIsFullAnalysisTriggered) {
+              contextSetters.setChatbotRequestJson(skippedJson); contextSetters.setChatbotResponseJson(skippedJson);
+            }
             logDebug('FSM_PIPELINE', `Reducer: KEY_TAKEAWAYS_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to KEY_TAKEAWAYS_FAILED.`);
             return FsmState.KEY_TAKEAWAYS_FAILED;
         }
@@ -465,7 +477,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           const ktErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiKeyTakeawaysRequestJson(errorPayload.aiKeyTakeawaysRequestJson || ktErrorJson); contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
           const skippedJson = createSkippedJson("key_takeaways", errorMsg);
-          [ contextSetters.setAiOptionsAnalysisRequestJson, contextSetters.setAiOptionsAnalysisJson, contextSetters.setChatbotRequestJson, contextSetters.setChatbotResponseJson ].forEach(s => s(skippedJson));
+          contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
+           if (currentIsFullAnalysisTriggered) {
+            contextSetters.setChatbotRequestJson(skippedJson); contextSetters.setChatbotResponseJson(skippedJson);
+          }
           logDebug('FSM_PIPELINE', `Reducer: KEY_TAKEAWAYS_FAILURE. Error: ${errorMsg}. Transitioning to KEY_TAKEAWAYS_FAILED.`);
           return FsmState.KEY_TAKEAWAYS_FAILED;
         }
@@ -477,12 +492,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_OPTIONS_ANALYSIS_SEQUENCE. Setting Options Analysis placeholders.`);
             contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
             contextSetters.setAiOptionsAnalysisJson(pendingJson);
-            logDebug('FSM_PIPELINE', `Reducer: Correctly returning AWAITING_OPTIONS_ANALYSIS_TRIGGER from ${state}`);
             return FsmState.AWAITING_OPTIONS_ANALYSIS_TRIGGER;
-        }
-         if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE' && !currentIsFullAnalysisTriggered) { 
-             logDebug('FSM_PIPELINE', `Reducer: ${state} handling PROCEED_TO_ANALYZE_STOCK_COMPLETE (partial flow). Transitioning to ANALYZE_STOCK_COMPLETE.`);
-             return FsmState.ANALYZE_STOCK_COMPLETE;
         }
         return state;
         
@@ -492,11 +502,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           return FsmState.ANALYZING_OPTIONS;
         }
          if (event.type === 'OPTIONS_ANALYSIS_FAILURE') { 
-            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Options Analysis failed (pre-check)';
+            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Options Analysis failed (consistency check)';
             const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson); contextSetters.setAiOptionsAnalysisJson(optErrorJson);
-            const skippedJson = createSkippedJson("options_analysis_prereq", errorMsg);
-            [ contextSetters.setChatbotRequestJson, contextSetters.setChatbotResponseJson ].forEach(s => s(skippedJson));
+            const skippedJson = createSkippedJson("options_analysis_consistency", errorMsg);
+            if (currentIsFullAnalysisTriggered) {
+              contextSetters.setChatbotRequestJson(skippedJson); contextSetters.setChatbotResponseJson(skippedJson);
+            }
             logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to OPTIONS_ANALYSIS_FAILED.`);
             return FsmState.OPTIONS_ANALYSIS_FAILED;
         }
@@ -514,7 +526,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson); contextSetters.setAiOptionsAnalysisJson(optErrorJson);
           const skippedJson = createSkippedJson("options_analysis", errorMsg);
-          [ contextSetters.setChatbotRequestJson, contextSetters.setChatbotResponseJson ].forEach(s => s(skippedJson));
+           if (currentIsFullAnalysisTriggered) {
+            contextSetters.setChatbotRequestJson(skippedJson); contextSetters.setChatbotResponseJson(skippedJson);
+          }
            logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_FAILURE. Error: ${errorMsg}. Transitioning to OPTIONS_ANALYSIS_FAILED.`);
           return FsmState.OPTIONS_ANALYSIS_FAILED;
         }
@@ -526,7 +540,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             logDebug('FSM_PIPELINE', `Reducer: ${state} (Full Analysis) got INITIATE_CHAT_SUMMARY_SEQUENCE. Setting Chat Summary placeholders.`);
             contextSetters.setChatbotRequestJson(pendingJson);
             contextSetters.setChatbotResponseJson(pendingJson);
-            logDebug('FSM_PIPELINE', `Reducer: Correctly returning AWAITING_CHAT_SUMMARY_TRIGGER from ${state}`);
             return FsmState.AWAITING_CHAT_SUMMARY_TRIGGER;
         }
         if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE' && !currentIsFullAnalysisTriggered) { 
@@ -541,7 +554,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           return FsmState.GENERATING_CHAT_SUMMARY;
         }
         if (event.type === 'CHAT_SUMMARY_FAILURE') { 
-            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Chat Summary failed (pre-check)';
+            const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Chat Summary failed (consistency check)';
             const chatErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setChatbotRequestJson(errorPayload.requestJson || chatErrorJson); contextSetters.setChatbotResponseJson(chatErrorJson);
             logDebug('FSM_PIPELINE', `Reducer: CHAT_SUMMARY_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to CHAT_SUMMARY_FAILED.`);
