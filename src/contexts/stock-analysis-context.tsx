@@ -189,7 +189,7 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
-const pendingJson = '{ "status": "pending..." }'; // Generic pending state
+const pendingJson = '{ "status": "pending..." }';
 const createSkippedJson = (reasonKey: string, message?: string) => 
   `{ "status": "skipped_due_to_${reasonKey}_failure", "message": "${message || `Skipped due to ${reasonKey} failure.`}" }`;
 
@@ -277,8 +277,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setChatHistory, logDebug]);
 
   const setAllPlaceholdersInternal = useCallback((currentTicker: string, isFullAnalysis: boolean) => {
-    logDebug('StockAnalysisContext', `setAllPlaceholdersInternal called for ticker: ${currentTicker}, isFull: ${isFullAnalysis}. Setting all data to generic pending.`);
+    logDebug('StockAnalysisContext', `setAllPlaceholdersInternal called for ticker: ${currentTicker}, isFull: ${isFullAnalysis}. Setting ALL data to generic pending.`);
     
+    // Reset primary data JSONs
     _setMarketStatusJson(pendingJson);
     _setStockSnapshotJson(pendingJson);
     _setStandardTasJson(pendingJson);
@@ -286,6 +287,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setPolygonApiRequestLogJson(`{ "status": "pending_request_for_ticker", "ticker": "${currentTicker}" }`);
     _setPolygonApiResponseLogJson(pendingJson);
 
+    // Reset AI result JSONs
     _setAiAnalyzedTaRequestJson(pendingJson);
     _setAiAnalyzedTaJson(pendingJson);
     _setAiKeyTakeawaysRequestJson(pendingJson);
@@ -293,17 +295,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setAiOptionsAnalysisRequestJson(pendingJson);
     _setAiOptionsAnalysisJson(pendingJson);
     
-    _setChatbotRequestJson(pendingJson); // Set to generic pending, will be overwritten if full analysis
-    _setChatbotResponseJson(pendingJson); // Set to generic pending
+    // Reset Chatbot JSONs
+    _setChatbotRequestJson(pendingJson); 
+    _setChatbotResponseJson(pendingJson);
 
     if (!isFullAnalysis) {
-        // If not a full analysis, explicitly mark chat summary as not applicable after placeholders are set.
-        // This ensures it doesn't stay in a generic "pending" state if it was already from a previous full run.
+        // If not a full analysis (i.e., "Analyze Stock" button), explicitly mark chat summary as not applicable.
         const notApplicableJson = `{ "status": "not_applicable_for_this_analysis_type" }`;
         _setChatbotRequestJson(notApplicableJson);
         _setChatbotResponseJson(notApplicableJson);
+         logDebug('StockAnalysisContext', `Partial analysis selected. Chat summary fields set to not_applicable.`);
     }
-  }, [logDebug]); 
+  }, [logDebug]); // Dependencies for setters are managed by useCallback
 
   const contextSetters: StockAnalysisContextSetters = {
     setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
@@ -387,6 +390,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             contextSetters.setAiAnalyzedTaJson(pendingJson);
             return FsmState.AWAITING_AI_TA_TRIGGER;
         }
+        logDebug('FSM_PIPELINE', `Reducer: In DATA_FETCH_SUCCEEDED, unhandled event: ${event.type}. Staying in DATA_FETCH_SUCCEEDED.`);
         return state;
       case FsmState.DATA_FETCH_FAILED:
         if (event.type === 'PROCEED_TO_IDLE') { 
