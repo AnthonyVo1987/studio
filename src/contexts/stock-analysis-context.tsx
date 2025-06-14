@@ -43,8 +43,8 @@ export enum FsmState {
   CHAT_SUMMARY_SUCCEEDED = 'CHAT_SUMMARY_SUCCEEDED',             
   CHAT_SUMMARY_FAILED = 'CHAT_SUMMARY_FAILED',                   
   
-  ANALYZE_STOCK_COMPLETE = 'ANALYZE_STOCK_COMPLETE', // For "Analyze Stock" button flow
-  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE', // For "AI Full Stock Analysis" button flow
+  ANALYZE_STOCK_COMPLETE = 'ANALYZE_STOCK_COMPLETE', 
+  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE',
 }
 
 
@@ -83,7 +83,7 @@ interface GenerateChatSummaryFailurePayload {
 
 
 export type FsmEvent =
-  | { type: 'START_ANALYZE_STOCK'; payload: { ticker: string } }  // New: Replaces START_PARTIAL_ANALYSIS
+  | { type: 'START_ANALYZE_STOCK'; payload: { ticker: string } }
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }    
   | { type: 'INITIALIZATION_COMPLETE' } 
 
@@ -111,7 +111,7 @@ export type FsmEvent =
   | { type: 'CHAT_SUMMARY_SUCCESS'; payload: GenerateChatSummarySuccessPayload }
   | { type: 'CHAT_SUMMARY_FAILURE'; payload: GenerateChatSummaryFailurePayload }
   
-  | { type: 'PROCEED_TO_ANALYZE_STOCK_COMPLETE' } // New: Replaces PROCEED_TO_PARTIAL_COMPLETE
+  | { type: 'PROCEED_TO_ANALYZE_STOCK_COMPLETE' }
   | { type: 'PROCEED_TO_FULL_COMPLETE' }    
   | { type: 'PROCEED_TO_IDLE' }             
   | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage };
@@ -310,7 +310,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   };
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
-    const currentIsFullAnalysisTriggered = _isFullAnalysisTriggeredInternalState; // Capture for this reducer pass
+    const currentIsFullAnalysisTriggered = _isFullAnalysisTriggeredInternalState; 
     logDebug('FSM_PIPELINE', `Reducer: Current state: ${state}, Event Type: ${event.type}, isFullAnalysisTriggered: ${currentIsFullAnalysisTriggered}, Event Payload (preview):`, 
         Object.entries(event).reduce((acc, [key, value]) => {
           if (key === 'payload' && typeof value === 'object' && value !== null) {
@@ -385,14 +385,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       
       case FsmState.DATA_FETCH_SUCCEEDED:
         if (event.type === 'INITIATE_AI_TA_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders. Correctly returning AWAITING_AI_TA_TRIGGER.`);
+            logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_SUCCEEDED got INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders. Transitioning to AWAITING_AI_TA_TRIGGER.`);
             contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
             contextSetters.setAiAnalyzedTaJson(pendingJson);
             return FsmState.AWAITING_AI_TA_TRIGGER;
         }
         return state;
       case FsmState.DATA_FETCH_FAILED:
-        if (event.type === 'PROCEED_TO_IDLE') { // Or similar event from MainTabContent
+        if (event.type === 'PROCEED_TO_IDLE') { 
             logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_FAILED -> IDLE on PROCEED_TO_IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false);
             return FsmState.IDLE;
@@ -436,12 +436,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.AI_TA_SUCCEEDED:
       case FsmState.AI_TA_FAILED:
         if (event.type === 'INITIATE_KEY_TAKEAWAYS_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: ${state} handling INITIATE_KEY_TAKEAWAYS_SEQUENCE. Setting KT placeholders. Correctly returning AWAITING_KEY_TAKEAWAYS_TRIGGER.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_KEY_TAKEAWAYS_SEQUENCE. Setting Key Takeaways placeholders. Transitioning to AWAITING_KEY_TAKEAWAYS_TRIGGER.`);
             contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
             contextSetters.setAiKeyTakeawaysJson(pendingJson);
             return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
         }
-        if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { // For non-full analysis path completion
+        if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { 
             logDebug('FSM_PIPELINE', `Reducer: ${state} handling PROCEED_TO_ANALYZE_STOCK_COMPLETE. Transitioning to ANALYZE_STOCK_COMPLETE.`);
             return FsmState.ANALYZE_STOCK_COMPLETE;
         }
@@ -484,13 +484,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.KEY_TAKEAWAYS_SUCCEEDED:
       case FsmState.KEY_TAKEAWAYS_FAILED:
         if (event.type === 'INITIATE_OPTIONS_ANALYSIS_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: ${state} handling INITIATE_OPTIONS_ANALYSIS_SEQUENCE. Setting Options placeholders. Correctly returning AWAITING_OPTIONS_ANALYSIS_TRIGGER.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_OPTIONS_ANALYSIS_SEQUENCE. Setting Options Analysis placeholders. Transitioning to AWAITING_OPTIONS_ANALYSIS_TRIGGER.`);
             contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
             contextSetters.setAiOptionsAnalysisJson(pendingJson);
             return FsmState.AWAITING_OPTIONS_ANALYSIS_TRIGGER;
         }
-         if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { // Should only happen if it's NOT a full analysis path
-            logDebug('FSM_PIPELINE', `Reducer: ${state} handling PROCEED_TO_ANALYZE_STOCK_COMPLETE (after KT, non-full). Transitioning to ANALYZE_STOCK_COMPLETE.`);
+         if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { 
+            logDebug('FSM_PIPELINE', `Reducer: ${state} handling PROCEED_TO_ANALYZE_STOCK_COMPLETE. Transitioning to ANALYZE_STOCK_COMPLETE.`);
             return FsmState.ANALYZE_STOCK_COMPLETE;
         }
         return state;
@@ -531,14 +531,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.OPTIONS_ANALYSIS_SUCCEEDED:
       case FsmState.OPTIONS_ANALYSIS_FAILED:
-        if (event.type === 'INITIATE_CHAT_SUMMARY_SEQUENCE') { // Only for full analysis
-            logDebug('FSM_PIPELINE', `Reducer: ${state} handling INITIATE_CHAT_SUMMARY_SEQUENCE. Setting Chat Summary placeholders. Correctly returning AWAITING_CHAT_SUMMARY_TRIGGER.`);
+        if (event.type === 'INITIATE_CHAT_SUMMARY_SEQUENCE') { 
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_CHAT_SUMMARY_SEQUENCE. Setting Chat Summary placeholders. Transitioning to AWAITING_CHAT_SUMMARY_TRIGGER.`);
             contextSetters.setChatbotRequestJson(pendingJson);
             contextSetters.setChatbotResponseJson(pendingJson);
             return FsmState.AWAITING_CHAT_SUMMARY_TRIGGER;
         }
-        if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { // For "Analyze Stock" (not full) path completion
-            logDebug('FSM_PIPELINE', `Reducer: ${state} handling PROCEED_TO_ANALYZE_STOCK_COMPLETE (after Options, non-full). Transitioning to ANALYZE_STOCK_COMPLETE.`);
+        if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { 
+            logDebug('FSM_PIPELINE', `Reducer: ${state} handling PROCEED_TO_ANALYZE_STOCK_COMPLETE. Transitioning to ANALYZE_STOCK_COMPLETE.`);
             return FsmState.ANALYZE_STOCK_COMPLETE;
         }
         return state;
@@ -766,3 +766,4 @@ export function useStockAnalysis() {
   }
   return context;
 }
+
