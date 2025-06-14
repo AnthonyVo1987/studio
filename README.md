@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.7 OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.K OPERATING MANUAL**
 
-*   **Document Version:** 1.34 (Task 9.A.7 - FSM Pipeline Debugging)
-*   **Date:** 2025-06-13
+*   **Document Version:** 1.39 (Task 9.A.K - FSM Reducer Fix & Ticker Ref Reset)
+*   **Date:** 2025-06-14 
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.7.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.K.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -53,11 +53,11 @@
 *   **Example:** If the current phase is 9, current task is A (for the full README update), and this is the 0th iteration for this task, the version will be `v2.9.A.0`. If the next task is a bug fix, it will be `v2.9.A.1`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.7)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.K)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.7`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.K`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -75,7 +75,7 @@ The primary strategy for this implementation is **UI-First Development**, now en
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for all data points.
     *   Offer a robust and debuggable backend processing pipeline through the FSM.
 
-## **2. High-Level Goals (Current Version v2.9.A.7)**
+## **2. High-Level Goals (Current Version v2.9.A.K)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline.
@@ -88,14 +88,14 @@ The primary strategy for this implementation is **UI-First Development**, now en
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging.
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.9.A.7)**
+## **3. Core Application Features (StockSage v2.9.A.K)**
 
-This section details the core features of StockSage v2.9.A.7, serving as the Product Requirements.
+This section details the core features of StockSage v2.9.A.K, serving as the Product Requirements.
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
 *   **Header:**
-    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.7`).
+    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.K`).
     *   Includes a theme toggler (Light/Dark/System) using `next-themes` and ShadCN `DropdownMenu`.
 *   **Footer:** Contains copyright information and a standard financial disclaimer.
 *   **Theme:** Supports Light and Dark themes, configurable via the header. Theme styles are defined in `src/app/globals.css` using HSL CSS variables.
@@ -119,15 +119,15 @@ The "Main" tab is the primary user interface for stock analysis.
 *   **Stock Analysis Input Area:**
     *   **Ticker Input:** A text field (`Input`) for users to enter a stock ticker symbol (e.g., "NVDA"). Default: "NVDA".
     *   **Data Source Selector:** A `Select` component, currently defaulted and disabled to "Polygon.io" as it's the only integrated source.
-    *   **"Analyze Stock" Button:** Initiates a "partial analysis," which includes:
+    *   **"Analyze Stock" Button (v2.9.A.G+ Behavior):** Initiates an "extended partial analysis," which includes:
         1.  Fetching all data from Polygon.io (Market Status, Stock Snapshot, Standard TAs, Options Chain).
         2.  Calculating AI Analyzed Technical Analysis (Pivot Points).
-        *   This triggers the FSM `START_PARTIAL_ANALYSIS` event.
-    *   **"AI Full Stock Analysis" Button:** Initiates a "full analysis," which includes all steps of partial analysis, plus:
-        1.  Generating AI Key Takeaways.
-        2.  Performing AI Options Analysis.
-        3.  Generating an AI Chat Summary (which becomes the first message in the Chatbot).
-        *   This triggers the FSM `START_FULL_ANALYSIS` event.
+        3.  Generating AI Key Takeaways.
+        4.  Performing AI Options Analysis.
+        *   This triggers the FSM `START_PARTIAL_ANALYSIS` event (the naming is now a bit of a misnomer for its extended scope but kept for FSM consistency; `isFullAnalysisTriggered` will be `false`).
+    *   **"AI Full Stock Analysis" Button:** Initiates a "full analysis," which includes all steps of the new "Analyze Stock" button, plus:
+        1.  Generating an AI Chat Summary (which becomes the first message in the Chatbot).
+        *   This triggers the FSM `START_FULL_ANALYSIS` event (`isFullAnalysisTriggered` will be `true`).
     *   Buttons show loading spinners and are disabled while an analysis pipeline is active (`isPipelineActive` state).
 
 *   **Display Card Order & Content:**
@@ -267,49 +267,54 @@ This section details the server-side logic, data fetching, AI processing, and th
     The analysis pipeline is orchestrated by a Finite State Machine (FSM) implemented with `useReducer` in `StockAnalysisContext`.
 
     1.  **Initiation:**
-        *   User clicks "Analyze Stock" (Partial Analysis) or "AI Full Stock Analysis" (Full Analysis) in `MainTabContent.tsx`.
+        *   User clicks "Analyze Stock" or "AI Full Stock Analysis" in `MainTabContent.tsx`.
         *   The corresponding FSM event (`START_PARTIAL_ANALYSIS` or `START_FULL_ANALYSIS`) is dispatched.
     2.  **Initialization (`INITIALIZING_ANALYSIS` state):**
         *   The FSM reducer sets `isFullAnalysisTriggered` based on the event.
-        *   All relevant data JSONs in `StockAnalysisContext` are set to placeholder "pending" or "full\_analysis\_pending..." statuses.
-        *   Chat history is cleared.
+        *   All relevant data JSONs in `StockAnalysisContext` are set to placeholder "pending" or "initializing..." statuses.
+        *   Chat history is cleared (only for full analysis).
         *   FSM transitions to `AWAITING_DATA_FETCH_TRIGGER`.
     3.  **Data Fetching (`AWAITING_DATA_FETCH_TRIGGER` -> `FETCHING_DATA` -> `DATA_FETCH_SUCCEEDED`/`FAILED`):**
         *   `MainTabContent` observes `AWAITING_DATA_FETCH_TRIGGER` and dispatches `TRIGGER_DATA_FETCH`.
         *   Reducer transitions to `FETCHING_DATA`, sets Polygon log JSONs to "fetching...".
-        *   `MainTabContent` observes `FETCHING_DATA` and calls `analyzeStockFormAction` (which wraps `fetchStockDataAction`).
-        *   `fetchStockDataAction` calls the Polygon adapter.
+        *   `MainTabContent` observes `FETCHING_DATA` and calls `analyzeStockFormAction`.
         *   Upon action completion, `MainTabContent` dispatches `FETCH_DATA_SUCCESS` (with data) or `FETCH_DATA_FAILURE` (with error) to the FSM.
-        *   Reducer updates context JSONs (`marketStatusJson`, `stockSnapshotJson`, etc.) with fetched data or error/skipped states.
-    4.  **AI Analyzed TA (`AWAITING_AI_TA_TRIGGER` -> `ANALYZING_TA` -> `AI_TA_SUCCEEDED`/`FAILED`):**
-        *   If data fetch succeeded, FSM moves to `AWAITING_AI_TA_TRIGGER`.
-        *   `MainTabContent` dispatches `TRIGGER_AI_TA` (if snapshot data is valid).
-        *   Reducer transitions to `ANALYZING_TA`, sets AI TA JSONs to "pending...".
-        *   `MainTabContent` calls `analyzeTaFormAction`.
+        *   Reducer updates context JSONs with fetched data or error/skipped states.
+    4.  **Post Data Fetch Logic (`DATA_FETCH_SUCCEEDED` -> `INITIATE_AI_TA_SEQUENCE` in `MainTabContent`):**
+        *   `MainTabContent` observes `DATA_FETCH_SUCCEEDED` and dispatches `INITIATE_AI_TA_SEQUENCE`.
+        *   Reducer handles `INITIATE_AI_TA_SEQUENCE`, sets AI TA placeholders to "pending...", transitions to `AWAITING_AI_TA_TRIGGER`.
+    5.  **AI Analyzed TA (`AWAITING_AI_TA_TRIGGER` -> `ANALYZING_TA` -> `AI_TA_SUCCEEDED`/`FAILED`):**
+        *   `MainTabContent` observes `AWAITING_AI_TA_TRIGGER`, checks data, dispatches `TRIGGER_AI_TA`.
+        *   Reducer transitions to `ANALYZING_TA`.
+        *   `MainTabContent` observes `ANALYZING_TA`, calls `analyzeTaFormAction`.
         *   Upon action completion, FSM event `AI_TA_SUCCESS` or `AI_TA_FAILURE` is dispatched.
         *   Reducer updates `aiAnalyzedTaJson` and `aiAnalyzedTaRequestJson`.
-    5.  **Partial vs. Full Analysis Branching:**
-        *   **If Partial Analysis & AI TA Succeeded:** FSM transitions to `PARTIAL_ANALYSIS_COMPLETE`, then to `IDLE`. `isFullAnalysisTriggered` is reset.
-        *   **If Partial Analysis & AI TA Failed (or Data Fetch Failed):** FSM transitions to `IDLE`. `isFullAnalysisTriggered` is reset.
-        *   **If Full Analysis:** FSM proceeds to `AWAITING_KEY_TAKEAWAYS_TRIGGER` regardless of AI TA success/failure (failures are propagated).
-    6.  **AI Key Takeaways (Full Analysis Only - `AWAITING_KEY_TAKEAWAYS_TRIGGER` -> ... `KEY_TAKEAWAYS_SUCCEEDED`/`FAILED`):**
-        *   Logic mirrors AI TA: Trigger event, pending JSONs, call `performAiAnalysisAction`, FSM event, update context.
-    7.  **AI Options Analysis (Full Analysis Only - `AWAITING_OPTIONS_ANALYSIS_TRIGGER` -> ... `OPTIONS_ANALYSIS_SUCCEEDED`/`FAILED`):**
-        *   Logic mirrors AI TA: Trigger event, pending JSONs, call `performAiOptionsAnalysisAction`, FSM event, update context.
-    8.  **AI Chat Summary (Full Analysis Only - `AWAITING_CHAT_SUMMARY_TRIGGER` -> ... `CHAT_SUMMARY_SUCCEEDED`/`FAILED`):**
-        *   Logic mirrors AI TA: Trigger event, pending JSONs, call `generateChatSummaryAction`, FSM event.
-        *   On `CHAT_SUMMARY_SUCCESS`, reducer updates `chatbotRequestJson`, `chatbotResponseJson` (with summary), and *initializes* `chatHistory` with the AI-generated summary.
-    9.  **Completion (Full Analysis):**
-        *   After chat summary (success or fail), FSM transitions to `FULL_ANALYSIS_COMPLETE`.
-        *   Then, FSM transitions to `IDLE`. `isFullAnalysisTriggered` is reset.
-    *   **Error/Skipped State Handling:** If any step fails, the FSM reducer sets subsequent, dependent steps' JSONs in context to a "skipped\_due\_to\_[previous\_step]\_failure" status. This is reflected in the Debug tab and handled by display components.
+    6.  **Post AI TA Logic (`AI_TA_SUCCEEDED`/`FAILED` -> `INITIATE_KEY_TAKEAWAYS_SEQUENCE` in `MainTabContent`):**
+        *   `MainTabContent` observes `AI_TA_SUCCEEDED` or `AI_TA_FAILED`.
+        *   It dispatches `INITIATE_KEY_TAKEAWAYS_SEQUENCE`.
+        *   Reducer handles this, sets Key Takeaways placeholders to "pending...", transitions to `AWAITING_KEY_TAKEAWAYS_TRIGGER`.
+    7.  **AI Key Takeaways (`AWAITING_KEY_TAKEAWAYS_TRIGGER` -> ... `KEY_TAKEAWAYS_SUCCEEDED`/`FAILED`):**
+        *   Logic mirrors AI TA: `MainTabContent` dispatches `TRIGGER_KEY_TAKEAWAYS`, reducer transitions, `MainTabContent` calls action, FSM event, reducer updates context.
+    8.  **Post Key Takeaways Logic (`KEY_TAKEAWAYS_SUCCEEDED`/`FAILED` -> `INITIATE_OPTIONS_ANALYSIS_SEQUENCE` in `MainTabContent`):**
+        *   Logic mirrors Post AI TA: `MainTabContent` dispatches, reducer handles and transitions to `AWAITING_OPTIONS_ANALYSIS_TRIGGER`.
+    9.  **AI Options Analysis (`AWAITING_OPTIONS_ANALYSIS_TRIGGER` -> ... `OPTIONS_ANALYSIS_SUCCEEDED`/`FAILED`):**
+        *   Logic mirrors AI TA.
+    10. **Post Options Analysis Logic & Branching (`OPTIONS_ANALYSIS_SUCCEEDED`/`FAILED`):**
+        *   `MainTabContent` observes `OPTIONS_ANALYSIS_SUCCEEDED` or `FAILED`.
+        *   **If `isFullAnalysisTriggered` is true:** Dispatches `INITIATE_CHAT_SUMMARY_SEQUENCE`. Reducer handles this, sets Chat Summary placeholders, transitions to `AWAITING_CHAT_SUMMARY_TRIGGER`.
+        *   **If `isFullAnalysisTriggered` is false (i.e., "Analyze Stock" button):** Dispatches `PROCEED_TO_ANALYZE_STOCK_COMPLETE`. Reducer transitions to `ANALYZE_STOCK_COMPLETE`, then `IDLE`.
+    11. **AI Chat Summary (Full Analysis Only - `AWAITING_CHAT_SUMMARY_TRIGGER` -> ... `CHAT_SUMMARY_SUCCEEDED`/`FAILED`):**
+        *   Logic mirrors AI TA. On success, reducer initializes `chatHistory`.
+    12. **Completion (Full Analysis):**
+        *   After chat summary (success or fail), FSM transitions to `FULL_ANALYSIS_COMPLETE`, then `IDLE`.
+    *   **Error/Skipped State Handling:** If any step fails, the FSM reducer sets subsequent, dependent steps' JSONs in context to a "skipped\_due\_to\_[previous\_step]\_failure" status.
 
 *   **Data Formatting:**
-    *   Numerical data for display is generally formatted to two decimal places (e.g., prices, indicator values).
-    *   Monetary values are prefixed with "$" (e.g., `$150.25`).
-    *   Options strike prices are formatted as currency but without decimals if whole numbers (e.g., `$150`, `$152.50`).
+    *   Numerical data for display is generally formatted to two decimal places.
+    *   Monetary values are prefixed with "$".
+    *   Options strike prices are formatted as currency but without decimals if whole numbers.
     *   Percentages are displayed with a "%" sign.
-    *   Large numbers (like volume) are compacted (e.g., "1.2M").
+    *   Large numbers (like volume) are compacted.
     *   These formatting utilities are in `src/lib/number-utils.ts`.
 
 ## **4. Technology Stack (Mandatory)**
@@ -430,7 +435,7 @@ This section documents critical issues encountered during development and their 
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9 In Progress. Current application version: v2.9.A.7.)*
+*(Status: Phase 9 In Progress. Current application version: v2.9.A.K.)*
 
 ---
 **Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
@@ -479,14 +484,26 @@ This section documents critical issues encountered during development and their 
 *   **Task 9.7: FSM Finalization & Error Handling Polish (v2.9.7.0):** - Status: **COMPLETE** (Commit: `9b4c790e`)
 *   **Task 9.8: Pre-testing Enhancements/Refinements/Debug Logs (v2.9.8.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
 *   **Task 9.A: Comprehensive Full README.md update - FULL PRD, Detailed Design and Architecture Flow (v2.9.A.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
-*   **Task 9.9: Testing and Debugging Fixes (v2.9.9.x):** - Status: **IN PROGRESS**
-    *   **Task 9.9.A.1: Fix Client Debug Console Toggle & FSM ReferenceError (v2.9.A.1):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.1])
-    *   **Task 9.9.A.2: Fix FSM Pipeline Stall & Display Component Handling of 'pending' (v2.9.A.2):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.2])
-    *   **Task 9.9.A.3: Further FSM Pipeline Debugging & Display Component Fixes (v2.9.A.3):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.3])
-    *   **Task 9.9.A.4: Robust 'pending' handling in OptionsChainTable; FSM progression debug in MainTabContent (v2.9.A.4):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.4])
-    *   **Task 9.9.A.5: Simplified useEffect entry conditions in MainTabContent for FSM AWAITING_TRIGGER states (v2.9.A.5):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.5])
-    *   **Task 9.9.A.6: Aggressive entry-point logging to FSM useEffects in MainTabContent; verify dependencies (v2.9.A.6):** - Status: **COMPLETE** (Commit: [Previous Commit Hash for v2.9.A.6])
-    *   **Task 9.9.A.7: Fix MarketStatusDisplay pending state; aggressive FSM logging in MainTabContent (v2.9.A.7):** - Status: **IN PROGRESS** (This commit)
+*   **Task 9.9: Testing and Debugging Fixes (v2.9.9.x -> v2.9.A.x):** - Status: **IN PROGRESS**
+    *   **Task 9.9.A.1: Fix Client Debug Console Toggle & FSM ReferenceError (v2.9.A.1):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.1]`)
+    *   **Task 9.9.A.2: Fix FSM Pipeline Stall & Display Component Handling of 'pending' (v2.9.A.2):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.2]`)
+    *   **Task 9.9.A.3: Further FSM Pipeline Debugging & Display Component Fixes (v2.9.A.3):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.3]`)
+    *   **Task 9.9.A.4: Robust 'pending' handling in OptionsChainTable; FSM progression debug in MainTabContent (v2.9.A.4):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.4]`)
+    *   **Task 9.9.A.5: Simplified useEffect entry conditions in MainTabContent for FSM AWAITING_TRIGGER states (v2.9.A.5):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.5]`)
+    *   **Task 9.9.A.6: Aggressive entry-point logging to FSM useEffects in MainTabContent; verify dependencies (v2.9.A.6):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.6]`)
+    *   **Task 9.9.A.7: Fix MarketStatusDisplay pending state; aggressive FSM logging in MainTabContent (v2.9.A.7):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.7]`)
+    *   **Task 9.9.A.8: Simplified useEffect dependency arrays for FSM AWAITING_TRIGGER states in MainTabContent (v2.9.A.8):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.8]`)
+    *   **Task 9.9.A.9: Refactor FSM to decouple chained state transitions via explicit 'PROCEED_TO_*_SETUP' events (v2.9.A.9):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.9]`)
+    *   **Task 9.9.A.A: Strict useEffect deps for AWAITING_..._TRIGGER states in MainTabContent (v2.9.A.A):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.A]`)
+    *   **Task 9.9.A.B: Refine full analysis path in MainTabContent useEffects (v2.9.A.B):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.B]`)
+    *   **Task 9.9.A.C: Fix footer hydration error; verify full analysis path logic (v2.9.A.C):** - Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.C]`) 
+    *   **Task 9.9.A.D: Fix footer hydration error again (v2.9.A.D):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.D]`)
+    *   **Task 9.9.A.E: Add ticker consistency checks before AI server actions in MainTabContent (v2.9.A.E):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.E]`)
+    *   **Task 9.9.A.F: Refine ticker consistency logic in MainTabContent AI action useEffects to 'return early' and wait for context update (v2.9.A.F):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.F]`)
+    *   **Task 9.9.A.G: Change "Analyze Stock" button scope; adjust FSM for new partial/full definitions (v2.9.A.G):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.G]`)
+    *   **Task 9.9.A.H: Fix hydration error in date-utils (v2.9.A.H):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.H]`)
+    *   **Task 9.9.A.J: Robustly ensure data consistency for AI actions in MainTabContent (v2.9.A.J):** Status: **COMPLETE** (Commit: `[Prev. Hash for v2.9.A.J]`)
+    *   **Task 9.9.A.K: Correct FSM reducer logic to ensure state transitions from '*_SUCCEEDED' to 'AWAITING_*_TRIGGER' states; reset ticker ref on IDLE. (v2.9.A.K):** Status: **COMPLETE (Commit: 38de9431)** (This commit)
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
@@ -495,11 +512,8 @@ This section documents critical issues encountered during development and their 
 | :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
 | ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.30    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.3 (Further FSM Pipeline Debugging & Display Fixes) COMPLETE.** Application version `v2.9.A.3`. Addressed issues where display components (`OptionsChainTable`, `AiAnalyzedTaDisplay`, etc.) incorrectly handled `"{ \"status\": \"pending...\" }"` JSONs. Header displays `v2.9.A.3`. **Commit: [Commit Hash for v2.9.A.3]** |
-| 1.31    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.4 (Robust 'pending' handling & FSM debug) COMPLETE.** Application version `v2.9.A.4`. Improved `OptionsChainTable` pending state logic and added more FSM progression debug logs in `MainTabContent`. Header displays `v2.9.A.4`. **Commit: [Commit Hash for v2.9.A.4]** |
-| 1.32    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.5 (Simplified useEffect conditions for FSM) COMPLETE.** Application version `v2.9.A.5`. Simplified entry conditions for `useEffect` hooks in `MainTabContent` handling FSM AWAITING_TRIGGER states. Header displays `v2.9.A.5`. **Commit: [Commit Hash for v2.9.A.5]** |
-| 1.33    | 2025-06-13   | Firebase Studio (AI Prototyper) | **Task 9.9.A.6 (Aggressive FSM logging & dep verification) COMPLETE.** Application version `v2.9.A.6`. Added aggressive entry-point logging to FSM `useEffect`s in `MainTabContent` and verified dependencies. Header displays `v2.9.A.6`. **Commit: [Commit Hash for v2.9.A.6]** |
-| **1.34**| **2025-06-13**| Firebase Studio (AI Prototyper) | **Task 9.9.A.7 (Fix MarketStatusDisplay pending & FSM logging) IN PROGRESS.** Application version `v2.9.A.7`. Corrected 'pending' state handling in `MarketStatusDisplay`. Added more aggressive FSM logging in `MainTabContent` to diagnose pipeline stalls. Header displays `v2.9.A.7`. Phase 9 Task 9.9.A.7 status updated. **Commit: [Current Commit Hash for v2.9.A.7]** |
+| 1.38    | 2025-06-14   | Firebase Studio (AI Prototyper) | **Task 9.9.A.J (Robust data consistency for AI actions) COMPLETE.** Application version `v2.9.A.J`. Refined `useEffect` hooks in MainTabContent for AI actions to ensure data consistency with the active ticker, returning early to await context updates. Header displays `v2.9.A.J`. **Commit: [Prev. Hash for v2.9.A.J]** |
+| **1.39**| **2025-06-14**| Firebase Studio (AI Prototyper) | **Task 9.9.A.K (Correct FSM reducer transitions & reset ticker ref) COMPLETE.** Application version `v2.9.A.K`. Updated FSM reducer logic in StockAnalysisContext to ensure proper state transitions to `AWAITING_*_TRIGGER` states and set pending placeholders. Reset `analysisTriggeredForTickerRef` in MainTabContent on IDLE. Header displays `v2.9.A.K`. Phase 9 Task 9.9.A.K status updated. **Commit: 38de9431** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -514,39 +528,19 @@ This section tracks the commit history of the StockSage application, with versio
 ... (Previous commit logs remain)
 
 ---
-**App Version:** `v2.9.A.3` (Further FSM Pipeline Debugging & Display Component Fixes)
-**Tag:** `Phase-9_Task-9.A.3_FSM-Display-Robust-Pending-Fix` - Commit Hash: `[Commit Hash for v2.9.A.3]`
-**Subject:** `fix(ui): Robustly handle 'pending' status in display components (v2.9.A.3)`
+**App Version:** `v2.9.A.J` (Robust data consistency for AI actions in MainTabContent)
+**Tag:** `Phase-9_Task-9.A.J_FSM-Data-Consistency-Retry` - Commit Hash: `[Prev. Hash for v2.9.A.J]`
+**Subject:** `fix(fsm): Enhance AI action data consistency checks in MainTabContent (v2.9.A.J)`
 **Details:**
-Implemented robust fixes for how display components (`AiAnalyzedTaDisplay`, `AiKeyTakeawaysDisplay`, `AiOptionsAnalysisDisplay`, `OptionsChainTable`) handle "pending..." status JSONs, ensuring `isLoading` is set correctly and preventing parsing of status strings. UI header updated to `v2.9.A.3`. `README.md` updated.
+Refined `useEffect` hooks in `MainTabContent.tsx` for AI server actions. On ticker data inconsistency, effects now return early, relying on dependencies to re-evaluate when context data (like `stockSnapshotJson`) updates to match the active analysis ticker. This aims to allow the pipeline to "wait" for consistent data rather than failing immediately. UI Header updated to `v2.9.A.J`. `README.md` updated.
 
 ---
-**App Version:** `v2.9.A.4` (Robust 'pending' handling in OptionsChainTable; FSM progression debug)
-**Tag:** `Phase-9_Task-9.A.4_Options-Pending-FSM-Debug` - Commit Hash: `[Commit Hash for v2.9.A.4]`
-**Subject:** `fix(ui): Improve OptionsChainTable pending state & FSM debug (v2.9.A.4)`
+**App Version:** `v2.9.A.K` (FSM Reducer Fix & Ticker Ref Reset)
+**Tag:** `Phase-9_Task-9.A.K_FSM-Reducer-Fix-TickerRef` - Commit Hash: `38de9431`
+**Subject:** `fix(fsm): Ensure reducer transitions to AWAITING states; reset ticker ref (v2.9.A.K)`
 **Details:**
-Ensured `OptionsChainTable` correctly handles "pending..." status. Added more detailed logging in `MainTabContent` `useEffect` hooks for FSM AWAITING_TRIGGER states and refined `isDataReadyForProcessing` checks. UI Header updated to `v2.9.A.4`. `README.md` updated.
-
----
-**App Version:** `v2.9.A.5` (Simplified useEffect entry conditions for FSM AWAITING_TRIGGER states)
-**Tag:** `Phase-9_Task-9.A.5_FSM-useEffect-Entry-Refine` - Commit Hash: `[Commit Hash for v2.9.A.5]`
-**Subject:** `refactor(fsm): Simplify useEffect entry for AWAITING_TRIGGER states (v2.9.A.5)`
-**Details:**
-Simplified entry conditions for `useEffect` hooks in `MainTabContent.tsx` that manage FSM `AWAITING_..._TRIGGER` states to ensure their bodies execute. Added internal checks for ticker ref and data validity. UI Header updated to `v2.9.A.5`. `README.md` updated.
-
----
-**App Version:** `v2.9.A.6` (Aggressive FSM logging in MainTabContent & dependency verification)
-**Tag:** `Phase-9_Task-9.A.6_Aggressive-FSM-Logging` - Commit Hash: `[Commit Hash for v2.9.A.6]`
-**Subject:** `debug(fsm): Aggressive FSM useEffect logging in MainTabContent (v2.9.A.6)`
-**Details:**
-Added aggressive entry-point logging to FSM progression `useEffect` hooks in `MainTabContent.tsx` to diagnose pipeline stalls. Verified dependency arrays for these effects. UI Header updated to `v2.9.A.6`. `README.md` updated.
-
----
-**App Version:** `v2.9.A.7` (Fix MarketStatusDisplay pending & further FSM logging)
-**Tag:** `Phase-9_Task-9.A.7_MarketStatus-Pending-FSM-Log-Fix` - Commit Hash: `[Current Commit Hash for v2.9.A.7]`
-**Subject:** `fix(ui): Correct MarketStatusDisplay pending state & enhance FSM logs (v2.9.A.7)`
-**Details:**
-Corrected "pending..." status handling in `MarketStatusDisplay.tsx` to ensure `isLoading` is true and prevent parsing placeholders. Added more detailed FSM state logging directly within `MainTabContent` render and refined entry-point logging in `useEffect` hooks managing FSM progression. UI Header updated to `v2.9.A.7`. `README.md` updated.
+Corrected FSM reducer logic in `StockAnalysisContext.tsx`: ensured that `INITIATE_..._SEQUENCE` events, when handled within `*_SUCCEEDED` states, correctly set pending placeholders for the upcoming AI step AND explicitly return the new `AWAITING_..._TRIGGER` state. This fixes the FSM stall after data fetching. Reset `analysisTriggeredForTickerRef.current` in `MainTabContent.tsx` when FSM becomes IDLE. UI Header updated to `v2.9.A.K`. `README.md` updated.
 
 ---
 *(Future commit logs will follow)*
+
