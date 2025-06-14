@@ -44,7 +44,7 @@ If a specific indicator or window was not available, it might be missing from th
 Analyze all the provided data comprehensively. Your goal is to generate 5 distinct key takeaways, each with a concise statement and an associated sentiment. The categories for these takeaways are:
 1.  **Price Action:** Observations about the stock's recent price movements, support/resistance interactions with MAs or pivot points, etc.
 2.  **Trend:** The prevailing direction (or lack thereof) of the stock's price over a relevant period, considering MAs.
-3.  **Volatility:** The degree of variation of the stock's trading price series over time.
+3.  **Volatility:** The degree of variation of the stock's trading price series over time. For Volatility, describe the stock's recent price variation characteristics (e.g., daily range, percentage change significance). If volatility is typical or low, state that and provide context.
 4.  **Momentum:** The speed or rate of price changes for the stock, considering RSI and MACD.
 5.  **Patterns:** Any significant chart patterns observed or noteworthy absence of clear patterns.
 
