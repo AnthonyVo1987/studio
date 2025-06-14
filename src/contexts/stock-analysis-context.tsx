@@ -279,15 +279,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setAllPlaceholdersInternal = useCallback((currentTicker: string, isFullAnalysis: boolean) => {
     logDebug('StockAnalysisContext', `setAllPlaceholdersInternal called for ticker: ${currentTicker}, isFull: ${isFullAnalysis}. Setting ALL data to generic pending.`);
     
-    // Reset primary data JSONs
+    // Reset ALL primary data JSONs to generic pending
     _setMarketStatusJson(pendingJson);
     _setStockSnapshotJson(pendingJson);
     _setStandardTasJson(pendingJson);
     _setOptionsChainJson(pendingJson);
-    _setPolygonApiRequestLogJson(`{ "status": "pending_request_for_ticker", "ticker": "${currentTicker}" }`);
+    _setPolygonApiRequestLogJson(pendingJson); // Keep this generic pending
     _setPolygonApiResponseLogJson(pendingJson);
 
-    // Reset AI result JSONs
+    // Reset ALL AI result JSONs to generic pending
     _setAiAnalyzedTaRequestJson(pendingJson);
     _setAiAnalyzedTaJson(pendingJson);
     _setAiKeyTakeawaysRequestJson(pendingJson);
@@ -295,17 +295,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setAiOptionsAnalysisRequestJson(pendingJson);
     _setAiOptionsAnalysisJson(pendingJson);
     
-    // Reset Chatbot JSONs
+    // Reset Chatbot JSONs to generic pending
     _setChatbotRequestJson(pendingJson); 
     _setChatbotResponseJson(pendingJson);
 
-    if (!isFullAnalysis) {
-        // If not a full analysis (i.e., "Analyze Stock" button), explicitly mark chat summary as not applicable.
-        const notApplicableJson = `{ "status": "not_applicable_for_this_analysis_type" }`;
-        _setChatbotRequestJson(notApplicableJson);
-        _setChatbotResponseJson(notApplicableJson);
-         logDebug('StockAnalysisContext', `Partial analysis selected. Chat summary fields set to not_applicable.`);
-    }
+    // No specific ticker info in placeholders anymore.
+    // The `analysisTriggeredForTickerRef` in MainTabContent is the source of truth for the current ticker.
   }, [logDebug]); // Dependencies for setters are managed by useCallback
 
   const contextSetters: StockAnalysisContextSetters = {
@@ -350,9 +345,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.AWAITING_DATA_FETCH_TRIGGER:
         if (event.type === 'TRIGGER_DATA_FETCH') {
-          const fetchingLogPlaceholder = `{ "status": "fetching_data..." }`;
-          contextSetters.setPolygonApiRequestLogJson(fetchingLogPlaceholder); 
-          contextSetters.setPolygonApiResponseLogJson(fetchingLogPlaceholder); 
+          // Placeholders for polygon logs specifically
+          contextSetters.setPolygonApiRequestLogJson(`{ "status": "fetching_data..." }`); 
+          contextSetters.setPolygonApiResponseLogJson(`{ "status": "fetching_data..." }`); 
           logDebug('FSM_PIPELINE', `Reducer: TRIGGER_DATA_FETCH. Transitioning to FETCHING_DATA.`);
           return FsmState.FETCHING_DATA;
         }
@@ -385,12 +380,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       
       case FsmState.DATA_FETCH_SUCCEEDED:
         if (event.type === 'INITIATE_AI_TA_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders. Transitioning to AWAITING_AI_TA_TRIGGER.`);
+            logDebug('FSM_PIPELINE', `Reducer: DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders.`);
             contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
             contextSetters.setAiAnalyzedTaJson(pendingJson);
+            logDebug('FSM_PIPELINE', `Reducer: Transitioning to AWAITING_AI_TA_TRIGGER.`);
             return FsmState.AWAITING_AI_TA_TRIGGER;
         }
-        logDebug('FSM_PIPELINE', `Reducer: In DATA_FETCH_SUCCEEDED, unhandled event: ${event.type}. Staying in DATA_FETCH_SUCCEEDED.`);
         return state;
       case FsmState.DATA_FETCH_FAILED:
         if (event.type === 'PROCEED_TO_IDLE') { 
@@ -437,9 +432,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.AI_TA_SUCCEEDED:
       case FsmState.AI_TA_FAILED: 
         if (event.type === 'INITIATE_KEY_TAKEAWAYS_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_KEY_TAKEAWAYS_SEQUENCE. Setting Key Takeaways placeholders. Transitioning to AWAITING_KEY_TAKEAWAYS_TRIGGER.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_KEY_TAKEAWAYS_SEQUENCE. Setting Key Takeaways placeholders.`);
             contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
             contextSetters.setAiKeyTakeawaysJson(pendingJson);
+            logDebug('FSM_PIPELINE', `Reducer: Transitioning to AWAITING_KEY_TAKEAWAYS_TRIGGER.`);
             return FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER;
         }
         if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { 
@@ -485,9 +481,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.KEY_TAKEAWAYS_SUCCEEDED:
       case FsmState.KEY_TAKEAWAYS_FAILED:
         if (event.type === 'INITIATE_OPTIONS_ANALYSIS_SEQUENCE') {
-            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_OPTIONS_ANALYSIS_SEQUENCE. Setting Options Analysis placeholders. Transitioning to AWAITING_OPTIONS_ANALYSIS_TRIGGER.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_OPTIONS_ANALYSIS_SEQUENCE. Setting Options Analysis placeholders.`);
             contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
             contextSetters.setAiOptionsAnalysisJson(pendingJson);
+            logDebug('FSM_PIPELINE', `Reducer: Transitioning to AWAITING_OPTIONS_ANALYSIS_TRIGGER.`);
             return FsmState.AWAITING_OPTIONS_ANALYSIS_TRIGGER;
         }
          if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { 
@@ -533,9 +530,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.OPTIONS_ANALYSIS_SUCCEEDED:
       case FsmState.OPTIONS_ANALYSIS_FAILED:
         if (event.type === 'INITIATE_CHAT_SUMMARY_SEQUENCE') { 
-            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_CHAT_SUMMARY_SEQUENCE. Setting Chat Summary placeholders. Transitioning to AWAITING_CHAT_SUMMARY_TRIGGER.`);
+            logDebug('FSM_PIPELINE', `Reducer: ${state} got INITIATE_CHAT_SUMMARY_SEQUENCE. Setting Chat Summary placeholders.`);
             contextSetters.setChatbotRequestJson(pendingJson);
             contextSetters.setChatbotResponseJson(pendingJson);
+            logDebug('FSM_PIPELINE', `Reducer: Transitioning to AWAITING_CHAT_SUMMARY_TRIGGER.`);
             return FsmState.AWAITING_CHAT_SUMMARY_TRIGGER;
         }
         if (event.type === 'PROCEED_TO_ANALYZE_STOCK_COMPLETE') { 
