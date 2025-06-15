@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.Q OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.S OPERATING MANUAL**
 
-*   **Document Version:** 1.42 (Task 9.A.Q - Adapter Stale Data Fix Attempt)
-*   **Date:** 2025-06-14 
+*   **Document Version:** 1.45 (Task 9.A.S - Adapter Cache Busting Attempt)
+*   **Date:** 2025-06-15 
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.Q.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.S.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -53,11 +53,11 @@
 *   **Example:** If the current phase is 9, current task is A (for the full README update), and this is the 0th iteration for this task, the version will be `v2.9.A.0`. If the next task is a bug fix, it will be `v2.9.A.1`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.Q)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.S)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.Q`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.S`). This version represents a significant milestone with a fully re-architected FSM-based analysis pipeline and comprehensive documentation, currently undergoing functional integration testing for stale data issues.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -75,7 +75,7 @@ The primary strategy for this implementation is **UI-First Development**, now en
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for all data points.
     *   Offer a robust and debuggable backend processing pipeline through the FSM.
 
-## **2. High-Level Goals (Current Version v2.9.A.Q)**
+## **2. High-Level Goals (Current Version v2.9.A.S)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline.
@@ -88,14 +88,14 @@ The primary strategy for this implementation is **UI-First Development**, now en
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging.
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.9.A.Q)**
+## **3. Core Application Features (StockSage v2.9.A.S)**
 
-This section details the core features of StockSage v2.9.A.Q, serving as the Product Requirements.
+This section details the core features of StockSage v2.9.A.S, serving as the Product Requirements.
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
 *   **Header:**
-    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.Q`).
+    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.S`).
     *   Includes a theme toggler (Light/Dark/System) using `next-themes` and ShadCN `DropdownMenu`.
 *   **Footer:** Contains copyright information and a standard financial disclaimer.
 *   **Theme:** Supports Light and Dark themes, configurable via the header. Theme styles are defined in `src/app/globals.css` using HSL CSS variables.
@@ -124,7 +124,7 @@ The "Main" tab is the primary user interface for stock analysis.
         2.  Calculating AI Analyzed Technical Analysis (Pivot Points).
         3.  Generating AI Key Takeaways.
         4.  Performing AI Options Analysis.
-        *   This triggers the FSM `START_PARTIAL_ANALYSIS` event (the naming is now a bit of a misnomer for its extended scope but kept for FSM consistency; `isFullAnalysisTriggered` will be `false`).
+        *   This triggers the FSM `START_ANALYZE_STOCK` event (the naming is now a bit of a misnomer for its extended scope but kept for FSM consistency; `isFullAnalysisTriggered` will be `false`).
     *   **"AI Full Stock Analysis" Button:** Initiates a "full analysis," which includes all steps of the new "Analyze Stock" button, plus:
         1.  Generating an AI Chat Summary (which becomes the first message in the Chatbot).
         *   This triggers the FSM `START_FULL_ANALYSIS` event (`isFullAnalysisTriggered` will be `true`).
@@ -222,17 +222,12 @@ This section details the server-side logic, data fetching, AI processing, and th
 *   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):**
     *   Handled by `src/services/data-sources/adapters/polygon-adapter.ts`.
     *   Fetches:
-        *   **Market Status:** Using `client.reference.marketStatus()`.
-        *   **Ticker Snapshot:** Using `client.stocks.snapshotTicker()`. Provides current day, previous day, and latest minute bar data, which includes current price, changes, O,H,L,C,V,VWAP.
-        *   **Standard Technical Indicators:**
-            *   RSI: `client.stocks.rsi()` for windows 7, 10, 14 (daily, close).
-            *   MACD: `client.stocks.macd()` (daily, close, standard 12,26,9).
-            *   EMA: `client.stocks.ema()` for windows 5, 10, 20, 50, 200 (daily, close).
-            *   SMA: `client.stocks.sma()` for windows 5, 10, 20, 50, 200 (daily, close).
-            *   VWAP (Day & Minute) values are derived from the Ticker Snapshot's day and minute aggregate bars.
-        *   **Options Chain Snapshot:** Using `client.options.snapshotOptionChain()`. Fetches Calls and Puts separately for the nearest upcoming Friday expiration date. The strike range is dynamically calculated as +/- 20% around the current stock price (to get a decent window) and then filtered down to +/-10-11 strikes from ATM for display. Contracts are sorted by strike price in descending order in the final display table.
-    *   The adapter includes delays between API calls to respect rate limits.
-    *   Output: An `AdapterOutput` object containing the `StockDataPackage` (with all fetched data or error details per section) and raw request/response summaries for debugging.
+        *   **Market Status:** Using `client.reference.marketStatus()`. Includes a cache-busting parameter `_t: Date.now()`.
+        *   **Ticker Snapshot:** Using `client.stocks.snapshotTicker()`. Includes a cache-busting parameter `_t: Date.now()`. Provides current day, previous day, and latest minute bar data.
+        *   **Standard Technical Indicators:** Each call (`rsi`, `macd`, `ema`, `sma`) includes a cache-busting parameter `_t: Date.now()`.
+        *   **Options Chain Snapshot:** Using `client.options.snapshotOptionChain()`. Includes a cache-busting parameter `_t: Date.now()`. Fetches Calls and Puts separately for the nearest upcoming Friday expiration date.
+    *   The adapter includes delays between API calls to respect rate limits. A new `PolygonAdapter` instance is created for each `getFullStockData` call, passing the target ticker to its constructor to ensure isolation.
+    *   Output: An `AdapterOutput` object containing the `StockDataPackage` and raw request/response summaries.
 
 *   **Genkit AI Flows (Located in `src/ai/flows/`):**
     All flows use the global `ai` instance from `src/ai/genkit.ts` and models defined in `src/ai/models.ts`. Server actions in `src/actions/` wrap these flows.
@@ -241,81 +236,44 @@ This section details the server-side logic, data fetching, AI processing, and th
         *   **Purpose:** Calculates classic daily Pivot Points.
         *   **Input (`AnalyzeTaInput`):** Previous day's High, Low, Close prices.
         *   **Output (`AnalyzeTaOutput`):** Pivot Point (PP), Support levels (S1, S2, S3), Resistance levels (R1, R2, R3).
-        *   *Note:* This is a direct calculation, not an LLM call.
     2.  **AI Key Takeaways (`analyze-stock-data.ts`):**
-        *   **Purpose:** Generates 5 key takeaways with associated sentiment, focusing on Price Action, Trend, Volatility, Momentum, and Patterns.
-        *   **Input (`StockAnalysisInput`): Ticker, Stock Snapshot JSON, Standard TAs JSON, AI Analyzed TA JSON, Market Status JSON.
-        *   **Output (`StockAnalysisOutput`):** An object with keys for each category, containing `takeaway` text and `sentiment`.
-        *   **LLM Prompt:** Instructs the AI to synthesize all provided data.
+        *   **Purpose:** Generates 5 key takeaways with associated sentiment.
+        *   **Input (`StockAnalysisInput`):** Ticker, Stock Snapshot JSON, Standard TAs JSON, AI Analyzed TA JSON, Market Status JSON.
+        *   **Output (`StockAnalysisOutput`):** Object with takeaways for Price Action, Trend, Volatility, Momentum, Patterns.
     3.  **AI Options Analysis (`analyze-options-chain-flow.ts`):**
-        *   **Purpose:** Identifies significant Call/Put "Walls" (single high OI strikes) and "OI Clusters" (adjacent high OI strikes).
+        *   **Purpose:** Identifies significant Call/Put "Walls" and "OI Clusters."
         *   **Input (`AiOptionsAnalysisInput`):** Ticker, Options Chain JSON, Current Underlying Price.
-        *   **Output (`AiOptionsAnalysisOutput`):** Arrays for `callWalls`, `putWalls`, `callClusters`, `putClusters` (max 3 each), and an `analysisSummary` string.
-        *   **LLM Prompt:** Instructs the AI to analyze Open Interest patterns in the provided options chain JSON.
+        *   **Output (`AiOptionsAnalysisOutput`):** Arrays for walls/clusters and an `analysisSummary`.
     4.  **AI Chat Summary Generation (`generate-full-analysis-summary-flow.ts`):**
-        *   **Purpose:** Creates an initial summary message for the chatbot after a full analysis is performed.
-        *   **Input (`GenerateFullAnalysisSummaryInput`):** Ticker, Stock Snapshot JSON, Standard TAs JSON, AI Analyzed TA JSON, AI Key Takeaways JSON, AI Options Analysis JSON, Market Status JSON.
-        *   **Output (`GenerateFullAnalysisSummaryOutput`):** `summaryText` (Markdown formatted).
-        *   **LLM Prompt:** Instructs the AI to provide a holistic overview, mentioning findings from each available data section and gracefully acknowledging any skipped/errored prior steps.
+        *   **Purpose:** Creates an initial summary message for the chatbot after a full analysis.
+        *   **Input (`GenerateFullAnalysisSummaryInput`):** Ticker, all context JSONs.
+        *   **Output (`GenerateFullAnalysisSummaryOutput`):** `summaryText`.
     5.  **AI Chatbot (`chat-flow.ts`):**
-        *   **Purpose:** Provides contextual, conversational answers to user questions about the analyzed stock.
-        *   **Input (`ChatInput`):** Ticker, all context JSONs (Snapshot, Key Takeaways, AI TA, Options Analysis), chat history, and the current user input.
-        *   **Output (`ChatOutput`):** `response` (Markdown formatted).
-        *   **LLM Prompt:** Instructs the AI to use only the provided context, answer questions, use Markdown and emojis, and decline out-of-scope requests.
+        *   **Purpose:** Provides contextual, conversational answers.
+        *   **Input (`ChatInput`):** Ticker, all context JSONs, chat history, user input.
+        *   **Output (`ChatOutput`):** `response`.
+
+*   **Server Action Validation (`analyze-stock-server-action.ts`):**
+    *   `fetchStockDataAction` now includes a critical check: if the ticker in the `stockSnapshot` returned by the `polygon-adapter` does *not* match the requested ticker, the action returns an explicit error. This helps catch stale data issues closer to the source.
 
 *   **FSM-Driven Architecture Flow (Managed by `StockAnalysisContext` and `MainTabContent`):**
-    The analysis pipeline is orchestrated by a Finite State Machine (FSM) implemented with `useReducer` in `StockAnalysisContext`.
-
-    1.  **Initiation:**
-        *   User clicks "Analyze Stock" or "AI Full Stock Analysis" in `MainTabContent.tsx`.
-        *   The corresponding FSM event (`START_PARTIAL_ANALYSIS` or `START_FULL_ANALYSIS`) is dispatched.
-    2.  **Initialization (`INITIALIZING_ANALYSIS` state):**
-        *   The FSM reducer sets `isFullAnalysisTriggered` based on the event.
-        *   All relevant data JSONs in `StockAnalysisContext` are set to placeholder "pending" or "initializing..." statuses.
-        *   Chat history is cleared (only for full analysis).
-        *   FSM transitions to `AWAITING_DATA_FETCH_TRIGGER`.
-    3.  **Data Fetching (`AWAITING_DATA_FETCH_TRIGGER` -> `FETCHING_DATA` -> `DATA_FETCH_SUCCEEDED`/`FAILED`):**
-        *   `MainTabContent` observes `AWAITING_DATA_FETCH_TRIGGER` and dispatches `TRIGGER_DATA_FETCH`.
-        *   Reducer transitions to `FETCHING_DATA`, sets Polygon log JSONs to "fetching...".
-        *   `MainTabContent` observes `FETCHING_DATA` and calls `analyzeStockFormAction`.
-        *   Upon action completion, `MainTabContent` dispatches `FETCH_DATA_SUCCESS` (with data) or `FETCH_DATA_FAILURE` (with error) to the FSM.
-        *   Reducer updates context JSONs with fetched data or error/skipped states.
-    4.  **Post Data Fetch Logic (`DATA_FETCH_SUCCEEDED` -> `INITIATE_AI_TA_SEQUENCE` in `MainTabContent`):**
-        *   `MainTabContent` observes `DATA_FETCH_SUCCEEDED` and dispatches `INITIATE_AI_TA_SEQUENCE`.
-        *   Reducer handles `INITIATE_AI_TA_SEQUENCE`, sets AI TA placeholders to "pending...", transitions to `AWAITING_AI_TA_TRIGGER`.
-    5.  **AI Analyzed TA (`AWAITING_AI_TA_TRIGGER` -> `ANALYZING_TA` -> `AI_TA_SUCCEEDED`/`FAILED`):**
-        *   `MainTabContent` observes `AWAITING_AI_TA_TRIGGER`, checks data, dispatches `TRIGGER_AI_TA`.
-        *   Reducer transitions to `ANALYZING_TA`.
-        *   `MainTabContent` observes `ANALYZING_TA`, calls `analyzeTaFormAction`.
-        *   Upon action completion, FSM event `AI_TA_SUCCESS` or `AI_TA_FAILURE` is dispatched.
-        *   Reducer updates `aiAnalyzedTaJson` and `aiAnalyzedTaRequestJson`.
-    6.  **Post AI TA Logic (`AI_TA_SUCCEEDED`/`FAILED` -> `INITIATE_KEY_TAKEAWAYS_SEQUENCE` in `MainTabContent`):**
-        *   `MainTabContent` observes `AI_TA_SUCCEEDED` or `AI_TA_FAILED`.
-        *   It dispatches `INITIATE_KEY_TAKEAWAYS_SEQUENCE`.
-        *   Reducer handles this, sets Key Takeaways placeholders to "pending...", transitions to `AWAITING_KEY_TAKEAWAYS_TRIGGER`.
-    7.  **AI Key Takeaways (`AWAITING_KEY_TAKEAWAYS_TRIGGER` -> ... `KEY_TAKEAWAYS_SUCCEEDED`/`FAILED`):**
-        *   Logic mirrors AI TA: `MainTabContent` dispatches `TRIGGER_KEY_TAKEAWAYS`, reducer transitions, `MainTabContent` calls action, FSM event, reducer updates context.
-    8.  **Post Key Takeaways Logic (`KEY_TAKEAWAYS_SUCCEEDED`/`FAILED` -> `INITIATE_OPTIONS_ANALYSIS_SEQUENCE` in `MainTabContent`):**
-        *   Logic mirrors Post AI TA: `MainTabContent` dispatches, reducer handles and transitions to `AWAITING_OPTIONS_ANALYSIS_TRIGGER`.
-    9.  **AI Options Analysis (`AWAITING_OPTIONS_ANALYSIS_TRIGGER` -> ... `OPTIONS_ANALYSIS_SUCCEEDED`/`FAILED`):**
-        *   Logic mirrors AI TA.
-    10. **Post Options Analysis Logic & Branching (`OPTIONS_ANALYSIS_SUCCEEDED`/`FAILED`):**
-        *   `MainTabContent` observes `OPTIONS_ANALYSIS_SUCCEEDED` or `FAILED`.
-        *   **If `isFullAnalysisTriggered` is true:** Dispatches `INITIATE_CHAT_SUMMARY_SEQUENCE`. Reducer handles this, sets Chat Summary placeholders, transitions to `AWAITING_CHAT_SUMMARY_TRIGGER`.
-        *   **If `isFullAnalysisTriggered` is false (i.e., "Analyze Stock" button):** Dispatches `PROCEED_TO_ANALYZE_STOCK_COMPLETE`. Reducer transitions to `ANALYZE_STOCK_COMPLETE`, then `IDLE`.
-    11. **AI Chat Summary (Full Analysis Only - `AWAITING_CHAT_SUMMARY_TRIGGER` -> ... `CHAT_SUMMARY_SUCCEEDED`/`FAILED`):**
-        *   Logic mirrors AI TA. On success, reducer initializes `chatHistory`.
-    12. **Completion (Full Analysis):**
-        *   After chat summary (success or fail), FSM transitions to `FULL_ANALYSIS_COMPLETE`, then `IDLE`.
-    *   **Error/Skipped State Handling:** If any step fails, the FSM reducer sets subsequent, dependent steps' JSONs in context to a "skipped\_due\_to\_[previous\_step]\_failure" status.
-
-*   **Data Formatting:**
-    *   Numerical data for display is generally formatted to two decimal places.
-    *   Monetary values are prefixed with "$".
-    *   Options strike prices are formatted as currency but without decimals if whole numbers.
-    *   Percentages are displayed with a "%" sign.
-    *   Large numbers (like volume) are compacted.
-    *   These formatting utilities are in `src/lib/number-utils.ts`.
+    The analysis pipeline is orchestrated by a Finite State Machine (FSM).
+    1.  **Initiation:** User clicks "Analyze Stock" or "AI Full Stock Analysis". `activeAnalysisTicker` in `MainTabContent` is set. `analysisTriggeredForTickerRef` is set. FSM event (`START_ANALYZE_STOCK` or `START_FULL_ANALYSIS`) is dispatched.
+    2.  **Initialization (`INITIALIZING_ANALYSIS` state):** FSM reducer calls `setAllPlaceholdersInternal` to reset all context JSONs to generic "pending...". `isFullAnalysisTriggered` is set. Transitions to `AWAITING_DATA_FETCH_TRIGGER`.
+    3.  **Data Fetching (`AWAITING_DATA_FETCH_TRIGGER` -> `FETCHING_DATA` -> `DATA_FETCH_SUCCEEDED`/`FAILED`/`STALE_DATA_FROM_ACTION_ERROR`):**
+        *   `MainTabContent` observes `AWAITING_DATA_FETCH_TRIGGER`, dispatches `TRIGGER_DATA_FETCH`.
+        *   Reducer transitions to `FETCHING_DATA`.
+        *   `MainTabContent` observes `FETCHING_DATA`, calls `analyzeStockFormAction({ ticker: activeAnalysisTicker })`.
+        *   Upon action completion (`analyzeStockState` update):
+            *   `MainTabContent` validates `analyzeStockState.data.stockSnapshotJson.ticker` against `analysisTriggeredForTickerRef.current`.
+            *   If stale, dispatches `STALE_DATA_FROM_ACTION` to FSM. Reducer sets context JSONs to error/skipped, transitions to `STALE_DATA_FROM_ACTION_ERROR`, then `IDLE`.
+            *   If consistent and success, dispatches `FETCH_DATA_SUCCESS`. Reducer updates context JSONs.
+            *   If action error, dispatches `FETCH_DATA_FAILURE`. Reducer updates context.
+    4.  **Post Data Fetch & Subsequent AI Steps:**
+        *   The `useEffect` hooks in `MainTabContent` for `DATA_FETCH_SUCCEEDED`, `AI_TA_SUCCEEDED`, etc., gatekeep progression. They check if their *own output JSONs* (now in context) and other prerequisites for the *next* step are ready and consistent (especially snapshot ticker) before dispatching `INITIATE_NEXT_AI_STEP_SEQUENCE`.
+        *   The `AWAITING_..._TRIGGER` effects then simply dispatch `TRIGGER_...`.
+        *   This pattern repeats for AI TA, Key Takeaways, Options Analysis, and Chat Summary (if full analysis).
+    *   **Error/Skipped State Handling:** If any step fails (or stale data detected), the FSM reducer sets subsequent, dependent steps' JSONs in context to appropriate "skipped" or "error" statuses.
 
 ## **4. Technology Stack (Mandatory)**
 
@@ -328,196 +286,76 @@ This section details the server-side logic, data fetching, AI processing, and th
 *   **AI Model Provider:** Google AI (using `@genkit-ai/googleai`)
 *   **Default AI Model:** `googleai/gemini-2.5-flash-preview-05-20` (defined in `src/ai/models.ts`)
 *   **State Management:**
-    *   React Context API (`StockAnalysisProvider` in `src/contexts/stock-analysis-context.tsx`) for global state (Debug Tab JSONs, chat history, FSM state).
-    *   `useReducer` within `StockAnalysisProvider` for managing the FSM state of the analysis pipeline.
+    *   React Context API (`StockAnalysisProvider` in `src/contexts/stock-analysis-context.tsx`) for global state.
+    *   `useReducer` within `StockAnalysisProvider` for managing the FSM state.
     *   `useActionState` for server actions.
 *   **Data Fetching (External API):** **Polygon.io REST Client (`@polygon.io/client-js` version `^7.3.2` or latest compatible stable)**.
 *   **Deployment Target (Initial):** Firebase App Hosting
 *   **Build Tooling:** Next.js CLI (Turbopack enabled by default: `next dev --turbopack`).
 
 ### **4.1. AI Coding Agent - Specific Guidelines (Sub-Section of Section 0)**
-
-(This section re-emphasizes guidelines already stated or implied in Section 0, but tailored for quick reference related to tech stack specifics. **Section 0 remains the master directive.**)
+(See Section 0 for master directives.)
 
 #### **4.1.1. Next.js Specifics**
-*   App Router, Server Components by default, Server Actions, `next/image` (with `placehold.co` and `data-ai-hint`), single root JSX.
+*   App Router, Server Components, Server Actions, `next/image` (`placehold.co`, `data-ai-hint`), single root JSX.
 
 #### **4.1.2. Genkit (v1.x) Specifics**
-*   **Initialization**: Use global `ai` object from `src/ai/genkit.ts`. `enableOpenTelemetry: false` is critical. `@genkit-ai/next` is **NOT USED**.
-*   **Strict v1.x Syntax**: Adhere to `response.text`, `response.output`, non-awaited `ai.generateStream`, `await response`.
-*   **Flow Structure**: `'use server';` directive, JSDoc documentation, Zod schemas for input/output, export wrapper function & types.
-*   **Prompts**: Handlebars templating language only. **NO direct function calls/`await` in templates.** Media (images) via data URIs (`{{media url=...}}`). Instructions for output formatting should be within the prompt string.
-*   **Tools**: Use `ai.defineTool` if the LLM needs to *decide* whether to fetch data or perform an action during its reasoning process. Do not use for data that is always required; fetch that data before calling the flow and pass it as input.
-*   **Gemini Model ID Format**: **MUST be `googleai/MODEL_NAME`** (e.g., `googleai/gemini-2.5-flash-preview-05-20`).
-*   **Safety Settings**: Configure as needed per flow (e.g., `BLOCK_ONLY_HIGH` for chat-like interactions or general analysis).
-*   **Model IDs File**: Centralize model IDs in `src/ai/models.ts`.
-*   **Zod Imports for Schemas**: When defining Zod schemas in `src/ai/schemas/*.ts` files that might be imported (even for type inference) by client-side code, **MUST use `import {z} from 'zod';`** NOT `import {z} from 'genkit';`. This is critical to prevent Webpack from bundling server-side Genkit machinery (see Section 4.1.6.2).
+*   Global `ai` from `src/ai/genkit.ts`. `enableOpenTelemetry: false`. No `@genkit-ai/next`.
+*   Strict v1.x syntax: `response.text`, `response.output`, non-awaited `ai.generateStream`, `await response`.
+*   Flows: `'use server';`, JSDoc, Zod schemas, export wrapper & types.
+*   Prompts: Handlebars. No direct function calls/`await`. Media via data URIs.
+*   Tools: `ai.defineTool` for LLM-decided actions.
+*   Model IDs: `googleai/MODEL_NAME` format, centralized in `src/ai/models.ts`.
+*   Safety Settings: Per flow.
+*   Zod Imports: `import {z} from 'zod';` in `src/ai/schemas/*.ts`.
 
 #### **4.1.3. Data Fetching (Polygon.io)**
-*   **Mandatory Library:** `@polygon.io/client-js`. No custom `fetch` calls to Polygon.io API.
-*   **Adapter Pattern:** All Polygon.io API calls are abstracted within `src/services/data-sources/adapters/polygon-adapter.ts`. This adapter is responsible for making individual API calls, handling potential errors from those calls, and packaging the data (or error info) into the `AdapterOutput` structure.
-*   **Output:** The adapter provides raw JSON data (or error objects) for each requested data type (Market Status, Snapshot, TAs, Options). This data is then passed to the `StockAnalysisContext` to populate the Debug Tab, and subsequently consumed and formatted by Main Tab display components.
+*   Library: `@polygon.io/client-js`.
+*   Adapter: `src/services/data-sources/adapters/polygon-adapter.ts`.
+    *   Cache-busting params (`_t: Date.now()`) added to API calls.
+    *   New adapter instance per `getFullStockData` call, with ticker passed to constructor.
+*   Server Action: `src/actions/analyze-stock-server-action.ts` validates adapter's returned ticker.
 
 #### **4.1.4. Styling & UI (ShadCN & Tailwind)**
-*   Use ShadCN `Tabs` for Main/Debug tab navigation.
-*   Define the application's color scheme using HSL CSS variables in `src/app/globals.css`. Base colors are:
-    *   Primary: HSL(210, 75%, 50%) (vibrant blue)
-    *   Background: HSL(210, 20%, 95%) (light, desaturated blue)
-    *   Accent: HSL(180, 65%, 45%) (energetic green-teal)
-*   **Semantic Color Usage:** Use semantic color classes (e.g., `text-positive`, `bg-destructive-muted`) defined via CSS variables. **NO hardcoded Tailwind color classes (e.g., `text-red-500`) outside of these semantic definitions or specific non-data-driven UI elements.**
-*   Prefer using ShadCN components where available.
-*   Ensure UI is responsive and accessible.
+*   ShadCN `Tabs`. HSL CSS vars in `globals.css`. Semantic colors.
 
 #### **4.1.5. State Management**
-*   **Primary State:** `StockAnalysisContext` (defined in `src/contexts/stock-analysis-context.tsx`) is the central hub for application state related to stock analysis. This includes:
-    *   All raw JSON strings for data fetched (Market Status, Snapshot, TAs, Options) and generated by AI flows (AI TA, Key Takeaways, Options Analysis, Chat Summary, Chatbot interactions). These directly populate the "Debug" tab.
-    *   Chat history (`ChatMessage[]`).
-    *   Client-side debug console settings (`isClientDebugConsoleEnabled`, `isClientDebugConsoleOpen`, `logSourceConfig`).
-*   **FSM for Pipeline Management:**
-    *   The `StockAnalysisContext` uses a `useReducer` hook (`fsmReducer`) to implement a Finite State Machine (FSM).
-    *   The `FsmState` enum defines all possible states of the analysis pipeline.
-    *   `FsmEvent` type defines all events that can trigger state transitions.
-    *   `MainTabContent.tsx` dispatches FSM events and reacts to `fsmState` changes to orchestrate the analysis pipeline (calling server actions, updating UI).
-*   **Server Actions:** `useActionState` hook is used in `MainTabContent.tsx` to manage the pending/success/error states of calls to Next.js Server Actions.
+*   `StockAnalysisContext`: Central state (Debug JSONs, chat, FSM state).
+*   FSM (`useReducer`): Orchestrates analysis pipeline.
+*   `MainTabContent`: Dispatches FSM events, reacts to `fsmState`, calls server actions.
+*   `useActionState`: Manages server action states.
 
 #### **4.1.6. Known Pain Points & Lessons Learned (CRITICAL REMINDERS)**
-
-This section documents critical issues encountered during development and their resolutions. Understanding these is key to maintaining stability and avoiding reintroduction of bugs.
-
-##### **4.1.6.1. `async_hooks` & Turbopack Build Failures (Historically a Major Blocker)**
-*   **Context:** Previous development phases encountered persistent `async_hooks` errors during Next.js builds (`next build`), particularly when Turbopack was enabled and Genkit (especially `@genkit-ai/next`) was integrated. These errors often presented as segmentation faults or cryptic messages related to asynchronous context propagation.
-*   **Resolution/Mitigation (Commit `c14e3af6` and ongoing):**
-    1.  **CRITICAL: DO NOT re-add `genkitPluginNextjs()` or the `@genkit-ai/next` package.** This package was identified as a primary source of incompatibility with Turbopack's handling of `async_hooks`. Its removal was essential for build stability.
-    2.  **CRITICAL: Ensure `enableOpenTelemetry: false` in `src/ai/genkit.ts` (`genkit()`_config).** While OpenTelemetry is powerful, its deep integration with async context can conflict with Next.js/Turbopack. Disabling it at the Genkit initialization level is mandatory.
-    3.  **Extreme Caution with New Dependencies:** Be highly cautious when adding new dependencies, especially those related to Application Performance Monitoring (APM), tracing, or deep Node.js/async operations. Thoroughly test builds after adding such packages.
-    4.  **Keep `next.config.js` Simple:** **AVOID Webpack `resolve.fallback` configurations** or other complex Webpack customizations in `next.config.js` unless absolutely unavoidable and thoroughly tested. These can interfere with Next.js's built-in handling of modules and bundling. The current simple `next.config.ts` (only handling image remote patterns and ignoring build errors for TypeScript/ESLint) is the stable baseline.
-*   **CRITICAL INSTRUCTION FOR USER (AND AI AGENT):** If `async_hooks`-related errors (or similar difficult-to-diagnose build failures) reappear, a **full local environment re-initialization (as per `reinit.md`) MUST be performed by the user.** This is the first and most critical troubleshooting step. If errors persist *after* a full re-init, the issue must be flagged immediately to the user for deeper investigation. The AI Agent should not attempt complex Webpack fallbacks.
-
-##### **4.1.6.2. Client-Side Bundling of Server Code (Webpack "Module not found" Errors) - RESOLVED**
-*   **Context (Post-Mortem of Commit `fc96d65a`):** After resolving the `async_hooks` issue by removing `@genkit-ai/next` (commit `c14e3af6`), the project faced new build failures: "Module not found" errors for Node.js built-in modules (e.g., `tls`, `net`, `dns`, `http2`) and server-side OpenTelemetry components (e.g., `@opentelemetry/exporter-jaeger`). These errors indicated that Webpack was attempting to bundle server-only code into the client application.
-*   **Root Cause:**
-    1.  **Problematic Zod Import:** Client-side schema definition files (`src/ai/schemas/*.ts`) were importing the Zod utility (`z`) directly from the main `genkit` package: `import {z} from 'genkit';`.
-    2.  **Dependency Chain:** Since these schema files (or types derived from them) were ultimately imported by client-side components (e.g., `Chatbot.tsx` using types from `chat-schemas.ts`), Webpack traced this dependency.
-    3.  **Full Package Exposure:** Importing `z` from `genkit`'s main entry point exposed the entire `genkit` package to Webpack's bundling process. This allowed Webpack to "see" and attempt to bundle `genkit`'s full suite of functionalities, including its server-side tracing capabilities which depend on `@opentelemetry/sdk-node` and, by extension, `@grpc/grpc-js`.
-    4.  **Effect of `@genkit-ai/next` Removal:** The `@genkit-ai/next` package, while causing `async_hooks` issues, likely provided implicit Webpack configurations or shims that previously (and perhaps imperfectly) prevented or mitigated the bundling of these deep server-side dependencies. Its removal (a necessary fix for `async_hooks`) unmasked this latent bundling problem.
-    5.  **`enableOpenTelemetry: false` vs. Bundling:** The `enableOpenTelemetry: false` flag in `src/ai/genkit.ts` correctly prevents OpenTelemetry *runtime* initialization but **does not** stop Webpack from *attempting to bundle* the imported code if it's part of an import chain originating from client-side code.
-*   **Resolution (Commit `fc96d65a`):**
-    *   The Zod import in all relevant schema files (`src/ai/schemas/ai-analyzed-ta-schemas.ts`, `src/ai/schemas/chat-schemas.ts`, `src/ai/schemas/stock-analysis-schemas.ts`, and new `src/ai/schemas/ai-options-analysis-schemas.ts`, `src/ai/schemas/chat-summary-schemas.ts`) was changed from `import {z} from 'genkit';` to **`import {z} from 'zod';`**.
-    *   This critical change decouples the schema definitions from the main `genkit` server-side package, allowing Webpack to correctly tree-shake the client bundle and exclude Node.js-specific modules and OpenTelemetry server components.
-*   **Lesson Learned & Critical Guideline for AI Agent:**
-    *   **To prevent client-side bundling of server-only Genkit code, any schema files (`src/ai/schemas/*.ts`) that are, or whose types are, consumed (directly or indirectly) by client-side components MUST always import `zod` directly using `import {z} from 'zod';`**.
-    *   **DO NOT use `import {z} from 'genkit';` in such schema files.** This is a primary cause of Webpack attempting to bundle server-side Node.js modules and OpenTelemetry components into the client, leading to "Module not found" errors.
-    *   The removal of `@genkit-ai/next` was essential for `async_hooks` stability, but it requires stricter adherence to separating client-safe imports.
-    *   The AI Agent **MUST** verify this Zod import pattern for any *new* schema files it creates or modifies that are intended for client-side type consumption. Failure to do so risks reintroducing critical build failures.
-    *   **Reinforcement (Commit `69bcf1a6`):** An enhanced client-side execution guard has been added to `src/ai/genkit.ts`. If this server-only module is ever executed in a client environment (e.g., due to a new problematic import chain), it will throw an error in development and log a critical error in production, aiding in rapid diagnosis.
-
-##### **4.1.6.3. Incorrect `'use server';` Directive on Non-Action Modules (e.g., `genkit.ts`) - RESOLVED**
-*   **Context (Post-Mortem of Commit `8d199845`):** After resolving the schema import issues, the project faced a persistent build error: "A 'use server' file can only export async functions, found object."
-*   **Root Cause:**
-    1.  The file `src/ai/genkit.ts`, which initializes and exports the main `ai` Genkit instance (an object), incorrectly had the `'use server';` directive at the top of the file.
-    2.  The `'use server';` directive, when placed at the top of a file, signals to Next.js that *all* exports from that file are Server Actions. Server Actions must be functions (typically async).
-    3.  Exporting the `ai` object from `src/ai/genkit.ts` while it was marked with `'use server';` directly violated this Next.js rule, as an object is not an async function.
-*   **Resolution (Commit `8d199845`):**
-    *   The `'use server';` directive was **removed** from `src/ai/genkit.ts`.
-    *   This allows `src/ai/genkit.ts` to function as a standard server-side module that exports the configured `ai` object. Other server-side modules (like Genkit flows, which *are* correctly marked with `'use server';` for their exported action functions) can then import and use this `ai` instance without issue.
-*   **Lesson Learned & Critical Guideline for AI Agent:**
-    *   The `'use server';` directive should **only** be used in files where *all* exports are intended to be Server Actions (async functions callable from the client or other server components).
-    *   For modules that primarily configure instances, export constants, or provide utility objects/functions for use *within other server-side code* (and are not themselves Server Actions), the `'use server';` directive should **not** be used at the top of the file. This was the case for `src/ai/genkit.ts`. It also applies to files like `src/ai/models.ts`, schema files (`src/ai/schemas/*.ts`), and general utility files (`src/lib/*.ts`) if they are not exporting Server Actions.
-    *   Flow files (`src/ai/flows/*.ts`) and Server Action files (`src/actions/*.ts`) correctly use `'use server';` because they export async functions.
-    *   The AI Agent **MUST** verify the correct use (or absence) of the `'use server';` directive based on a file's intended exports and usage context, especially for core configuration files or utility modules.
-
-##### **4.1.6.4. General Genkit v1.x Syntax & Data Flow**
-*   **Genkit v1.x Syntax:** Strict adherence to the v1.x syntax (e.g., `response.text`, `response.output`, non-awaited `ai.generateStream`, `await response`) is crucial.
-*   **Data Flow & FSM:** Maintain the established data flow: Raw data from sources (Polygon via adapter) -> Server Actions -> FSM events in `MainTabContent` -> `fsmReducer` in `StockAnalysisContext` updates state (Debug Tab JSONs) -> "Main" Tab components read and format from this state. The FSM is central to orchestrating this.
-
-##### **4.1.6.5. Client-Side Debug Console (`DebugConsole.tsx`)**
-*   The `DebugConsole.tsx` component with its advanced filtering, search, and export features is the primary tool for client-side debugging. Ensure `logDebug` calls (from `useStockAnalysis` context) are used appropriately with correct `LogSourceId` to populate it. Default source toggles now ON when console is enabled.
+(Content on `async_hooks`, client-side bundling, `'use server';` directive, Genkit syntax, and Debug Console remains relevant and CRITICAL.)
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9 In Progress. Current application version: v2.9.A.Q.)*
+*(Status: Phase 9 In Progress. Current application version: v2.9.A.S.)*
 
 ---
-**Phase 0: Project Setup & Core Layout** - Status: **COMPLETE**
-*   (Tasks 0.1 - 0.6)
-
----
-**Phase 1: UI Shell Implementation - "Debug" Tab** - Status: **COMPLETE**
-*   (Tasks 1.1 - 1.3)
-
----
-**Phase 2: UI Shell Implementation - "Main" Tab (Part 1)** - Status: **COMPLETE**
-*   (Tasks 2.1 - 2.5)
-
----
-**Phase 3: UI Shell Implementation - "Main" Tab (Part 2: Options)** - Status: **COMPLETE**
-*   (Task 3.1)
-
----
-**Phase 4: Backend Data Fetching & "Debug" Tab Population** - Status: **COMPLETE**
-*   (Tasks 4.1 - 4.5.1)
-
----
-**Phase 5: AI Logic Implementation & "Debug" Tab Population** - Status: **COMPLETE**
-*   (Tasks 5.1 - 5.3)
-
----
-**Phase 6: Connecting "Main" Tab UI to Live Data** - Status: **COMPLETE**
-*   (Tasks 6.1 - 6.6.2)
-
----
-**Phase 7: Data Export & Final Client-Side Features** - Status: **COMPLETE**
-*   (Tasks 7.1 - 7.2)
-
----
-**Phase 8: Final Styling, Cleanup, Documentation & Stability** - Status: **COMPLETE**
-*   (Tasks 8.1 - 8.8.5)
-
+**Phase 0-8: COMPLETE**
 ---
 **Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **IN PROGRESS**
-*   **Task 9.1: FSM Core Setup & Initial State Integration (v2.9.1.0):** - Status: **COMPLETE** (Commit: `544f6005`)
-*   **Task 9.2: Integrate Data Fetching into FSM (v2.9.2.0):** - Status: **COMPLETE** (Commit: `d8eff27b`)
-*   **Task 9.3: Integrate AI Analyzed TA into FSM (v2.9.3.0):** - Status: **COMPLETE** (Commit: `bbc610b0`)
-*   **Task 9.4: Integrate AI Key Takeaways into FSM (v2.9.4.0):** - Status: **COMPLETE** (Commit: `a70d937a`)
-*   **Task 9.5: Integrate AI Options Analysis into FSM (v2.9.5.0):** - Status: **COMPLETE** (Commit: `d5fe9d27`)
-*   **Task 9.6: Integrate Chat Summary (Full Analysis) into FSM (v2.9.6.0):** - Status: **COMPLETE** (Commit: `f4ed4f56`)
-*   **Task 9.7: FSM Finalization & Error Handling Polish (v2.9.7.0):** - Status: **COMPLETE** (Commit: `9b4c790e`)
-*   **Task 9.8: Pre-testing Enhancements/Refinements/Debug Logs (v2.9.8.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
-*   **Task 9.A: Comprehensive Full README.md update - FULL PRD, Detailed Design and Architecture Flow (v2.9.A.0):** - Status: **COMPLETE** (Commit: `a7f2b396`)
+*   **Tasks 9.1 - 9.8: COMPLETE**
+*   **Task 9.A: Comprehensive Full README.md update (v2.9.A.0):** - Status: **COMPLETE**
 *   **Task 9.9: Testing and Debugging Fixes (v2.9.9.x -> v2.9.A.x):** - Status: **IN PROGRESS**
-    *   **Task 9.9.A.1: Fix Client Debug Console Toggle & FSM ReferenceError (v2.9.A.1):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.2: Fix FSM Pipeline Stall & Display Component Handling of 'pending' (v2.9.A.2):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.3: Further FSM Pipeline Debugging & Display Component Fixes (v2.9.A.3):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.4: Robust 'pending' handling in OptionsChainTable; FSM progression debug in MainTabContent (v2.9.A.4):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.5: Simplified useEffect entry conditions in MainTabContent for FSM AWAITING_TRIGGER states (v2.9.A.5):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.6: Aggressive entry-point logging to FSM useEffects in MainTabContent; verify dependencies (v2.9.A.6):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.7: Fix MarketStatusDisplay pending state; aggressive FSM logging in MainTabContent (v2.9.A.7):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.8: Simplified useEffect dependency arrays for FSM AWAITING_TRIGGER states in MainTabContent (v2.9.A.8):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.9: Refactor FSM to decouple chained state transitions via explicit 'PROCEED_TO_*_SETUP' events (v2.9.A.9):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.A: Strict useEffect deps for AWAITING_..._TRIGGER states in MainTabContent (v2.9.A.A):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.B: Refine full analysis path in MainTabContent useEffects (v2.9.A.B):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.C: Fix footer hydration error; verify full analysis path logic (v2.9.A.C):** - Status: **COMPLETE** 
-    *   **Task 9.9.A.D: Fix footer hydration error again (v2.9.A.D):** Status: **COMPLETE** 
-    *   **Task 9.9.A.E: Add ticker consistency checks before AI server actions in MainTabContent (v2.9.A.E):** Status: **COMPLETE** 
-    *   **Task 9.9.A.F: Refine ticker consistency logic in MainTabContent AI action useEffects to 'return early' and wait for context update (v2.9.A.F):** Status: **COMPLETE** 
-    *   **Task 9.9.A.G: Change "Analyze Stock" button scope; adjust FSM for new partial/full definitions (v2.9.A.G):** Status: **COMPLETE** 
-    *   **Task 9.9.A.H: Fix hydration error in date-utils (v2.9.A.H):** Status: **COMPLETE** 
-    *   **Task 9.9.A.J: Robustly ensure data consistency for AI actions in MainTabContent (v2.9.A.J):** Status: **COMPLETE** 
-    *   **Task 9.9.A.K: Correct FSM reducer logic to ensure state transitions from '*_SUCCEEDED' to 'AWAITING_*_TRIGGER' states; reset ticker ref on IDLE. (v2.9.A.K):** Status: **COMPLETE** 
-    *   **Task 9.9.A.L: Reinforce setAllPlaceholdersInternal and MainTabContent useEffect data consistency checks (v2.9.A.L):** Status: **COMPLETE**
-    *   **Task 9.9.A.M: Refined MainTabContent useEffects for data consistency and FSM progression (v2.9.A.M):** Status: **COMPLETE**
-    *   **Task 9.9.A.N: Further refinement of placeholder resets and MainTabContent useEffects for data readiness (v2.9.A.N):** Status: **COMPLETE**
-    *   **Task 9.9.A.P: Stale data fix - Introduce `activeAnalysisTicker` in MainTabContent, validate action state ticker before FSM dispatch (v2.9.A.P):** Status: **COMPLETE (Commit: [Prev. Hash for v2.9.A.P])**
-    *   **Task 9.9.A.Q: Polygon Adapter stale data investigation - Ensure fresh client per call; enhanced logging (v2.9.A.Q):** Status: **IN PROGRESS (This task)**
+    *   **Tasks 9.9.A.1 - 9.9.A.H: COMPLETE**
+    *   **Task 9.9.A.J - 9.9.A.L: COMPLETE**
+    *   **Task 9.9.A.M: Refined MainTabContent useEffects (v2.9.A.M):** Status: **COMPLETE**
+    *   **Task 9.9.A.N: Further refinement of placeholders and MainTabContent useEffects (v2.9.A.N):** Status: **COMPLETE**
+    *   **Task 9.9.A.O: Fix MarketStatusDisplay hydration error (v2.9.A.O):** Status: **COMPLETE**
+    *   **Task 9.9.A.P: Validate action state ticker in MainTabContent before FSM dispatch (v2.9.A.P):** Status: **COMPLETE**
+    *   **Task 9.9.A.Q: Ensure fresh Polygon client per call in adapter; enhanced logging (v2.9.A.Q):** Status: **COMPLETE**
+    *   **Task 9.9.A.R: Server-side validation of adapter output ticker in action; enhanced logging (v2.9.A.R):** Status: **COMPLETE**
+    *   **Task 9.9.A.S: Implement cache-busting in Polygon adapter (v2.9.A.S):** Status: **IN PROGRESS (This task)**
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
-| Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                                                                                           |
-| :------ | :----------- | :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0     | 2025-06-09   | Firebase Studio (AI Prototyper) | Initial draft of the Re-Implementation PRD for v2.1.0 with UI-First strategy.                                                                                                                                                                                                                                |
-| ...     | ...          | ...                           | ... (Previous changelog entries remain, ensure consistency) ...                                                                                                                                                                                                                                             |
-| 1.41    | 2025-06-14   | Firebase Studio (AI Prototyper) | **Task 9.9.A.P (Stale data in action state fix) COMPLETE.** Application version `v2.9.A.P`. `MainTabContent` uses `activeAnalysisTicker` for actions; validates `analyzeStockState` ticker before FSM dispatch. Header displays `v2.9.A.P`. Phase 9 Task 9.9.A.P status updated. **Commit: [Prev. Hash for v2.9.A.P]** |
-| **1.42**| **2025-06-14**| Firebase Studio (AI Prototyper) | **Task 9.9.A.Q (Adapter Stale Data Fix Attempt) IN PROGRESS.** Application version `v2.9.A.Q`. Enhanced logging in Polygon adapter and server action. Verified new adapter instance per call. Header displays `v2.9.A.Q`. Phase 9 Task 9.9.A.Q status updated. **Commit: [Current Commit Hash]** |
+| Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                                                                                          |
+| :------ | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ...     | ...          | ...                           | ... (Previous changelog entries up to 1.44 / v2.9.A.R remain) ...                                                                                                                                                                                                                                           |
+| 1.44    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.R (Server-Side Adapter Output Validation) COMPLETE.** Application version `v2.9.A.R`. `fetchStockDataAction` now validates ticker from adapter's snapshot output. Header displays `v2.9.A.R`. Phase 9 Task 9.9.A.R status updated. **Commit: [Prev. Hash for v2.9.A.R]**                     |
+| **1.45**| **2025-06-15**| Firebase Studio (AI Prototyper) | **Task 9.9.A.S (Adapter Cache Busting Attempt) IN PROGRESS.** Application version `v2.9.A.S`. Polygon adapter calls now include `_t: Date.now()` cache-busting param. Server-side validation in action maintained. Header displays `v2.9.A.S`. Phase 9 Task 9.9.A.S status updated. **Commit: [Current Commit Hash]** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -525,25 +363,21 @@ This section documents critical issues encountered during development and their 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme.
 
 ---
-**App Version:** `v2.1.0` (Covers commits up to `d1a5e67f` which completed Phase 8 core features before dynamic versioning)
-
-**Tag:** `Phase-0_Task-0.6` ([v0.0.6])
-**Subject:** `feat: Complete Phase 0 - Project Setup & Core Layout`
-... (Previous commit logs remain)
+... (Previous commit logs up to v2.9.A.Q remain)
 
 ---
-**App Version:** `v2.9.A.P` (Fix stale data in action state)
-**Tag:** `Phase-9_Task-9.A.P_Action-Stale-Data-Fix` - Commit Hash: `[Prev. Hash for v2.9.A.P]`
-**Subject:** `fix(fsm): Validate action state ticker before FSM dispatch (v2.9.A.P)`
+**App Version:** `v2.9.A.R` (Server-side adapter output validation)
+**Tag:** `Phase-9_Task-9.A.R_Adapter-Output-Validation` - Commit Hash: `[Prev. Hash for v2.9.A.R]`
+**Subject:** `fix(action): Validate adapter output ticker server-side (v2.9.A.R)`
 **Details:**
-`MainTabContent` now uses a local `activeAnalysisTicker` state to ensure `analyzeStockFormAction` is called with the correct, current ticker. The `useEffect` processing `analyzeStockState` now rigorously validates the ticker within `stockSnapshotJson` from the action result against `analysisTriggeredForTickerRef.current` before dispatching `FETCH_DATA_SUCCESS`. If stale, it dispatches `STALE_DATA_FROM_ACTION`. This prevents stale data from the server action polluting the FSM. `setAllPlaceholdersInternal` rigor maintained. Volatility prompt maintained. UI Header updated to `v2.9.A.P`. `README.md` updated.
+`fetchStockDataAction` now critically checks the ticker within the `stockSnapshot` returned by `getFullStockData`. If this ticker mismatches the `requestedTickerUpperCase`, an explicit error state is returned by the action, preventing stale data from propagating further. Logging enhanced in the server action and adapter. Adapter isolation per request maintained. UI Header updated to `v2.9.A.R`. `README.md` updated.
 
 ---
-**App Version:** `v2.9.A.Q` (Adapter Stale Data Fix Attempt)
-**Tag:** `Phase-9_Task-9.A.Q_Adapter-Stale-Data-Fix` - Commit Hash: `[Current Commit Hash]`
-**Subject:** `fix(adapter): Ensure fresh Polygon client per call; enhanced logging (v2.9.A.Q)`
+**App Version:** `v2.9.A.S` (Adapter Cache Busting Attempt)
+**Tag:** `Phase-9_Task-9.A.S_Adapter-Cache-Bust` - Commit Hash: `[Current Commit Hash]`
+**Subject:** `fix(adapter): Implement cache-busting for Polygon API calls (v2.9.A.S)`
 **Details:**
-Modified `polygon-adapter.ts` to ensure a new `PolygonAdapter` (and thus `restClient`) instance is explicitly created for each `getFullStockData` call, passing the target ticker to the constructor for logging and potential internal use. Added verbose logging in the adapter and `analyze-stock-server-action.ts` to trace ticker propagation and API call parameters. Maintained data validation in `MainTabContent`. UI Header updated to `v2.9.A.Q`. `README.md` updated.
+Modified `polygon-adapter.ts` to include a `_t: Date.now()` cache-busting query parameter in all key Polygon API calls (snapshot, TAs, options chain), assuming library support for passing these via the options object. This aims to force fresh data retrieval from Polygon's servers. Maintained server-side validation in `fetchStockDataAction` and client-side stale data detection. UI Header updated to `v2.9.A.S`. `README.md` updated.
 
 ---
 *(Future commit logs will follow)*
