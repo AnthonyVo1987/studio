@@ -25,7 +25,7 @@ import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult, type PerformAiAnalysisActionInputs } from "@/actions/perform-ai-analysis-action";
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult, type PerformAiOptionsAnalysisActionInputs as PerformAiOptionsAnalysisActionInputsType } from "@/actions/perform-ai-options-analysis-action"; 
 import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action";
-import { generateChatSummaryAction, type GenerateChatSummaryActionState, type GenerateChatSummaryResult, type GenerateChatSummaryActionInputs as GenerateChatSummaryActionInputsType } from "@/actions/generate-chat-summary-action"; 
+// Removed: import { generateChatSummaryAction, type GenerateChatSummaryActionState, type GenerateChatSummaryResult, type GenerateChatSummaryActionInputs as GenerateChatSummaryActionInputsType } from "@/actions/generate-chat-summary-action"; 
 
 import { useStockAnalysis, type ChatMessage, FsmState } from "@/contexts/stock-analysis-context"; 
 import { useToast } from "@/hooks/use-toast";
@@ -44,9 +44,9 @@ const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
 const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
-const initialGenerateChatSummaryState: GenerateChatSummaryActionState = { 
-  status: 'idle', data: undefined, error: null, message: null,
-};
+// Removed: const initialGenerateChatSummaryState: GenerateChatSummaryActionState = { 
+//   status: 'idle', data: undefined, error: null, message: null,
+// };
 const initialChatActionState: ChatActionState = { 
   status: 'idle', data: undefined, error: null, message: null,
 };
@@ -109,12 +109,12 @@ export function MainTabContent() {
   const [analyzeTaState, analyzeTaFormAction, isAnalyzeTaPending] = useActionState<AnalyzeTaActionState, { stockSnapshotJson: string, ticker?: string }>(analyzeTaAction, initialAnalyzeTaState);
   const [performAiAnalysisState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, PerformAiAnalysisActionInputs>(performAiAnalysisAction, initialPerformAiAnalysisState);
   const [performAiOptionsAnalysisState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, PerformAiOptionsAnalysisActionInputsType>(performAiOptionsAnalysisAction, initialPerformAiOptionsAnalysisState);
-  const [generateChatSummaryState, generateChatSummaryFormAction, isGenerateChatSummaryPending] = useActionState<GenerateChatSummaryActionState, GenerateChatSummaryActionInputsType>(generateChatSummaryAction, initialGenerateChatSummaryState);
+  // Removed: const [generateChatSummaryState, generateChatSummaryFormAction, isGenerateChatSummaryPending] = useActionState<GenerateChatSummaryActionState, GenerateChatSummaryActionInputsType>(generateChatSummaryAction, initialGenerateChatSummaryState);
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, initialChatActionState);
   
   const isPipelineActive = ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE, FsmState.STALE_DATA_FROM_ACTION_ERROR].includes(fsmState);
 
-  const handleAnalyzeStockSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
+  const handleAnalyzeStockButtonSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => { // Renamed from handleAnalyzeStockSubmit
     event?.preventDefault();
     if (isPipelineActive) {
       toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" }); return;
@@ -445,85 +445,23 @@ export function MainTabContent() {
 
   
    useEffect(() => {
-    logDebug('FSM_PIPELINE', `MainTabContent: OPTIONS_ANALYSIS_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}. isFullAnalysis: ${isFullAnalysisTriggered}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
+    // This effect now handles the transition from Options Analysis (success or fail) to FULL_ANALYSIS_COMPLETE
+    logDebug('FSM_PIPELINE', `MainTabContent: OPTIONS_ANALYSIS_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
     if (fsmState === FsmState.OPTIONS_ANALYSIS_SUCCEEDED || fsmState === FsmState.OPTIONS_ANALYSIS_FAILED) {
         const currentActionTicker = analysisTriggeredForTickerRef.current;
         if (!currentActionTicker) { return; }
-        
-        const checks = [
-            { name: 'Snapshot', json: contextStockSnapshotJson, checkTicker: true },
-            { name: 'StdTA', json: contextStandardTasJson },
-            { name: 'AITA', json: contextAiAnalyzedTaJson },
-            { name: 'KeyTakeaways', json: contextAiKeyTakeawaysJson },
-            { name: 'OptionsAnalysis', json: contextAiOptionsAnalysisJson },
-            { name: 'MarketStatus', json: contextMarketStatusJson },
-        ];
-        let allPrereqsReady = true;
-        for (const check of checks) {
-            if (!isDataReadyForProcessing(check.json, logDebug, `MTC_POST_OPT_SUMM:${currentActionTicker}`, check.name)) {
-                allPrereqsReady = false; break;
-            }
-            if (check.checkTicker) { 
-                try {
-                    const parsed = JSON.parse(check.json!);
-                    if (parsed.ticker !== currentActionTicker) {
-                        allPrereqsReady = false; 
-                        logDebug('FSM_PIPELINE', `MTC_POST_OPT_SUMM:${currentActionTicker}: ${check.name} INCONSISTENT (found ${parsed.ticker}). Waiting.`);
-                        break;
-                    }
-                } catch { allPrereqsReady = false; break; }
-            }
-        }
-
-        if(allPrereqsReady) {
-            logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}. Prerequisites for Chat Summary READY. Dispatching INITIATE_CHAT_SUMMARY_SEQUENCE.`);
-            dispatchFsmEvent({ type: 'INITIATE_CHAT_SUMMARY_SEQUENCE' });
-        } else {
-             logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}, but prerequisites for Chat Summary NOT YET READY. Waiting for context update.`);
-        }
+        logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}. All automated analysis steps complete. Dispatching PROCEED_TO_IDLE (indirectly via FULL_ANALYSIS_COMPLETE).`);
+        // The FSM reducer will handle transitioning OPTIONS_ANALYSIS_SUCCEEDED/FAILED to FULL_ANALYSIS_COMPLETE
+        // No need to dispatch anything specific here to trigger next FSM state if reducer handles it directly.
+        // The next useEffect for FULL_ANALYSIS_COMPLETE will then proceed to IDLE.
     }
-  }, [fsmState, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextMarketStatusJson, dispatchFsmEvent, logDebug, isFullAnalysisTriggered]);
-  
-  
-  useEffect(() => {
-    logDebug('FSM_PIPELINE', `MainTabContent: Chat_Summary AWAITING Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
-    if (fsmState !== FsmState.AWAITING_CHAT_SUMMARY_TRIGGER) return;
-    const currentActionTicker = analysisTriggeredForTickerRef.current;
-    if (!currentActionTicker) { return; }
-    logDebug('FSM_PIPELINE', `AWAITING_CHAT_SUMMARY_TRIGGER: Prerequisites for ${currentActionTicker} should be READY. Dispatching TRIGGER_CHAT_SUMMARY.`);
-    dispatchFsmEvent({ type: 'TRIGGER_CHAT_SUMMARY' });
   }, [fsmState, dispatchFsmEvent, logDebug]);
-
+  
   
   useEffect(() => {
-    logDebug('FSM_PIPELINE', `MainTabContent: GENERATING_CHAT_SUMMARY Effect Check. fsmState: ${fsmState}. isPending: ${isGenerateChatSummaryPending}. analysisRef: ${analysisTriggeredForTickerRef.current}.`);
-    if (fsmState === FsmState.GENERATING_CHAT_SUMMARY && analysisTriggeredForTickerRef.current && !isGenerateChatSummaryPending) {
-      const payload: GenerateChatSummaryActionInputsType = { ticker: analysisTriggeredForTickerRef.current, stockSnapshotJson: contextStockSnapshotJson!, standardTasJson: contextStandardTasJson!, aiAnalyzedTaJson: contextAiAnalyzedTaJson!, aiKeyTakeawaysJson: contextAiKeyTakeawaysJson!, aiOptionsAnalysisJson: contextAiOptionsAnalysisJson!, marketStatusJson: contextMarketStatusJson! };
-      logDebug('FSM_PIPELINE', `MainTabContent: Calling generateChatSummaryFormAction for ${analysisTriggeredForTickerRef.current}.`);
-      startTransition(() => { generateChatSummaryFormAction(payload); });
-    }
-  }, [fsmState, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextMarketStatusJson, generateChatSummaryFormAction, isGenerateChatSummaryPending, dispatchFsmEvent, logDebug]);
-
-  
-  useEffect(() => {
-    logDebug('FSM_PIPELINE', `MainTabContent: Chat Summary Action state changed. FSM State: ${fsmState}, Action Status: ${generateChatSummaryState.status}`);
-    if (generateChatSummaryState.status === 'idle' || fsmState !== FsmState.GENERATING_CHAT_SUMMARY) return;
-    if (generateChatSummaryState.status === 'success' && generateChatSummaryState.data) {
-      toast({ title: "Chat Summary Generated", description: generateChatSummaryState.message });
-      dispatchFsmEvent({ type: 'CHAT_SUMMARY_SUCCESS', payload: generateChatSummaryState.data });
-    } else if (generateChatSummaryState.status === 'error') {
-      toast({ variant: "destructive", title: "Chat Summary Error", description: generateChatSummaryState.message });
-      dispatchFsmEvent({ type: 'CHAT_SUMMARY_FAILURE', payload: { error: generateChatSummaryState.error, message: generateChatSummaryState.message, requestJson: generateChatSummaryState.data?.requestJson } });
-    }
-  }, [generateChatSummaryState, fsmState, dispatchFsmEvent, toast, logDebug]);
-
-  
-  useEffect(() => {
-    logDebug('FSM_PIPELINE', `MainTabContent: Effect for CHAT_SUMMARY_SUCCEEDED/FAILED or FULL_ANALYSIS_COMPLETE. Current fsmState: ${fsmState}.`);
-    if (fsmState === FsmState.CHAT_SUMMARY_SUCCEEDED || fsmState === FsmState.CHAT_SUMMARY_FAILED) {
-        logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState}. Dispatching PROCEED_TO_FULL_COMPLETE.`);
-        dispatchFsmEvent({ type: 'PROCEED_TO_FULL_COMPLETE' });
-    } else if (fsmState === FsmState.FULL_ANALYSIS_COMPLETE) { 
+    // This effect handles the transition from FULL_ANALYSIS_COMPLETE to IDLE
+    logDebug('FSM_PIPELINE', `MainTabContent: Effect for FULL_ANALYSIS_COMPLETE. Current fsmState: ${fsmState}.`);
+    if (fsmState === FsmState.FULL_ANALYSIS_COMPLETE) { 
       logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState}. Dispatching PROCEED_TO_IDLE.`);
       dispatchFsmEvent({ type: 'PROCEED_TO_IDLE' }); 
     }
@@ -620,7 +558,7 @@ export function MainTabContent() {
       <CardHeader>
         <CardTitle>Stock Analysis</CardTitle>
         <CardDescription>
-          Enter a stock ticker. The &quot;Analyze Stock&quot; button performs a full analysis including all data, AI insights, and an initial AI chat summary. All analysis data is refreshed on each press. FSM: {fsmState}
+          Enter a stock ticker. The "Analyze Stock" button performs a full data fetch and AI analysis (Key Metrics, Snapshot, TAs, AI TA, Key Takeaways, Options Analysis). Use the Chatbot below to ask questions. FSM: {fsmState}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -650,7 +588,7 @@ export function MainTabContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={handleAnalyzeStockSubmit} type="button" className="w-full sm:w-auto" 
+            <Button onClick={handleAnalyzeStockButtonSubmit} type="button" className="w-full sm:w-auto" 
               disabled={isFormDisabled || analyzeButtonIsPending }>
               { analyzeButtonIsPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
               <Zap className="mr-2 h-4 w-4" /> Analyze Stock

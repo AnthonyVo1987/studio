@@ -53,10 +53,10 @@ export function DebugTabContent() {
     stockSnapshotJson,
     standardTasJson,
     optionsChainJson,
-    aiAnalyzedTaRequestJson, // Renamed
-    aiAnalyzedTaJson,        // Renamed
-    aiOptionsAnalysisRequestJson, // New
-    aiOptionsAnalysisJson,        // New
+    aiAnalyzedTaRequestJson, 
+    aiAnalyzedTaJson,        
+    aiOptionsAnalysisRequestJson, 
+    aiOptionsAnalysisJson,        
     aiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson,
     chatbotRequestJson,
@@ -94,14 +94,14 @@ export function DebugTabContent() {
     { title: "Stock Snapshot JSON", data: stockSnapshotJson },
     { title: "Standard Technical Indicators JSON", data: standardTasJson },
     { title: "Options Chain JSON", data: optionsChainJson },
-    { title: "AI Analyzed TA Request JSON", data: aiAnalyzedTaRequestJson }, // Renamed
-    { title: "AI Analyzed TA JSON", data: aiAnalyzedTaJson },               // Renamed
-    { title: "AI Options Analysis Request JSON", data: aiOptionsAnalysisRequestJson }, // New
-    { title: "AI Options Analysis JSON", data: aiOptionsAnalysisJson },               // New
+    { title: "AI Analyzed TA Request JSON", data: aiAnalyzedTaRequestJson }, 
+    { title: "AI Analyzed TA JSON", data: aiAnalyzedTaJson },               
+    { title: "AI Options Analysis Request JSON", data: aiOptionsAnalysisRequestJson }, 
+    { title: "AI Options Analysis JSON", data: aiOptionsAnalysisJson },               
     { title: "AI Key Takeaways Request JSON", data: aiKeyTakeawaysRequestJson },
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
-    { title: "Chatbot Request JSON", data: chatbotRequestJson },
-    { title: "Chatbot Response JSON", data: chatbotResponseJson },
+    { title: "Chatbot Request JSON", data: chatbotRequestJson, description: "Chatbot Request JSON (includes interactive chat requests)." },
+    { title: "Chatbot Response JSON", data: chatbotResponseJson, description: "Chatbot Response JSON (includes interactive chat responses)." },
   ];
 
   return (
