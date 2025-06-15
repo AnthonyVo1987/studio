@@ -96,7 +96,7 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson,
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson,
-    isFullAnalysisTriggered,
+    isFullAnalysisTriggered, // This will now always be true when an analysis is active
     logDebug,
     fsmState,
     dispatchFsmEvent,
@@ -112,28 +112,19 @@ export function MainTabContent() {
   const [generateChatSummaryState, generateChatSummaryFormAction, isGenerateChatSummaryPending] = useActionState<GenerateChatSummaryActionState, GenerateChatSummaryActionInputsType>(generateChatSummaryAction, initialGenerateChatSummaryState);
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, initialChatActionState);
   
-  const isPipelineActive = ![FsmState.IDLE, FsmState.ANALYZE_STOCK_COMPLETE, FsmState.FULL_ANALYSIS_COMPLETE, FsmState.STALE_DATA_FROM_ACTION_ERROR].includes(fsmState);
+  const isPipelineActive = ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE, FsmState.STALE_DATA_FROM_ACTION_ERROR].includes(fsmState); // ANALYZE_STOCK_COMPLETE removed
 
-  const handleAnalyzeStockButtonSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
+  const handleAnalyzeStockSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (isPipelineActive) {
       toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" }); return;
     }
     analysisTriggeredForTickerRef.current = tickerInput; 
     setActiveAnalysisTicker(tickerInput);
-    logDebug('MainTabContent', `"${FsmState.START_ANALYZE_STOCK}" button clicked for ${tickerInput}. Current FSM State: ${fsmState}`);
-    dispatchFsmEvent({ type: 'START_ANALYZE_STOCK', payload: { ticker: tickerInput } });
-  }, [isPipelineActive, toast, tickerInput, dispatchFsmEvent, logDebug, fsmState]);
-
-  const handleAiFullAnalysisSubmit = useCallback(() => {
-    if (isPipelineActive) {
-      toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" }); return;
-    }
-    analysisTriggeredForTickerRef.current = tickerInput;
-    setActiveAnalysisTicker(tickerInput);
-    logDebug('MainTabContent', `"${FsmState.START_FULL_ANALYSIS}" button clicked for ${tickerInput}. Current FSM State: ${fsmState}`);
+    logDebug('MainTabContent', `"Analyze Stock" (now full analysis) button clicked for ${tickerInput}. Current FSM State: ${fsmState}`);
     dispatchFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
   }, [isPipelineActive, toast, tickerInput, dispatchFsmEvent, logDebug, fsmState]);
+
 
   useEffect(() => {
     if (fsmState === FsmState.IDLE || fsmState === FsmState.STALE_DATA_FROM_ACTION_ERROR) {
@@ -141,7 +132,6 @@ export function MainTabContent() {
       analysisTriggeredForTickerRef.current = null;
       setActiveAnalysisTicker(null);
       if(fsmState === FsmState.STALE_DATA_FROM_ACTION_ERROR) {
-        // Ensure we go truly IDLE after a stale data error that might have been set by the reducer
         dispatchFsmEvent({ type: 'PROCEED_TO_IDLE'});
       }
     }
@@ -162,7 +152,6 @@ export function MainTabContent() {
   }, [fsmState, dispatchFsmEvent, logDebug]);
 
   useEffect(() => {
-    // This effect triggers the actual server action call for data fetching
     if (fsmState === FsmState.FETCHING_DATA && activeAnalysisTicker && !isAnalyzeStockPending) {
       const payload = { ticker: activeAnalysisTicker };
       logDebug('FSM_PIPELINE', `MainTabContent: FSM in FETCHING_DATA for ${activeAnalysisTicker}. Calling analyzeStockFormAction.`);
@@ -209,7 +198,7 @@ export function MainTabContent() {
             message: errorMsg, 
             expectedTicker: currentExpectedTicker || "UnknownExpected",
             foundTickerInSnapshot: actionDataTicker,
-            actionStateData: analyzeStockState.data // Log the problematic data
+            actionStateData: analyzeStockState.data 
           }
         });
       }
@@ -290,7 +279,6 @@ export function MainTabContent() {
     logDebug('FSM_PIPELINE', `MainTabContent: ANALYZING_TA Effect Check. fsmState: ${fsmState}. isPending: ${isAnalyzeTaPending}. analysisRef: ${analysisTriggeredForTickerRef.current}.`);
     if (fsmState === FsmState.ANALYZING_TA && analysisTriggeredForTickerRef.current && !isAnalyzeTaPending) {
       const currentActionTicker = analysisTriggeredForTickerRef.current;
-      // Assuming contextStockSnapshotJson is validated by AWAITING_AI_TA_TRIGGER effect before this
       const payload = { stockSnapshotJson: contextStockSnapshotJson!, ticker: currentActionTicker };
       logDebug('FSM_PIPELINE', `MainTabContent: Calling analyzeTaFormAction for ${currentActionTicker}.`);
       startTransition(() => { analyzeTaFormAction(payload); });
@@ -320,7 +308,7 @@ export function MainTabContent() {
     logDebug('FSM_PIPELINE', `MainTabContent: AI_TA_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
     if (fsmState === FsmState.AI_TA_SUCCEEDED || fsmState === FsmState.AI_TA_FAILED) {
       const currentActionTicker = analysisTriggeredForTickerRef.current;
-      if (!currentActionTicker) { /* Should not happen */ return; }
+      if (!currentActionTicker) { return; }
 
       const checks = [
         { name: 'Snapshot', json: contextStockSnapshotJson, checkTicker: true },
@@ -359,8 +347,7 @@ export function MainTabContent() {
     logDebug('FSM_PIPELINE', `MainTabContent: Key_Takeaways AWAITING Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
     if (fsmState !== FsmState.AWAITING_KEY_TAKEAWAYS_TRIGGER) return;
     const currentActionTicker = analysisTriggeredForTickerRef.current;
-    if (!currentActionTicker) { /* ... dispatch failure ... */ return; }
-    // Prerequisites were checked by AI_TA_SUCCEEDED/FAILED effect before INITIATE_KEY_TAKEAWAYS_SEQUENCE was dispatched.
+    if (!currentActionTicker) { return; }
     logDebug('FSM_PIPELINE', `AWAITING_KEY_TAKEAWAYS_TRIGGER: Prerequisites for ${currentActionTicker} should be READY. Dispatching TRIGGER_KEY_TAKEAWAYS.`);
     dispatchFsmEvent({ type: 'TRIGGER_KEY_TAKEAWAYS' });
   }, [fsmState, dispatchFsmEvent, logDebug]);
@@ -392,7 +379,7 @@ export function MainTabContent() {
     logDebug('FSM_PIPELINE', `MainTabContent: KEY_TAKEAWAYS_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
     if (fsmState === FsmState.KEY_TAKEAWAYS_SUCCEEDED || fsmState === FsmState.KEY_TAKEAWAYS_FAILED) {
         const currentActionTicker = analysisTriggeredForTickerRef.current;
-        if (!currentActionTicker) { /* Should not happen */ return; }
+        if (!currentActionTicker) { return; }
 
         const checks = [
           { name: 'Snapshot', json: contextStockSnapshotJson, checkTicker: true },
@@ -403,7 +390,7 @@ export function MainTabContent() {
           if (!isDataReadyForProcessing(check.json, logDebug, `MTC_POST_KT:${currentActionTicker}`, check.name)) {
               allPrereqsReady = false; break;
           }
-          if (check.checkTicker) { // Snapshot consistency
+          if (check.checkTicker) { 
               try {
                   const parsed = JSON.parse(check.json!);
                   if (parsed.ticker !== currentActionTicker) {
@@ -429,8 +416,7 @@ export function MainTabContent() {
     logDebug('FSM_PIPELINE', `MainTabContent: Options_Analysis AWAITING Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
     if (fsmState !== FsmState.AWAITING_OPTIONS_ANALYSIS_TRIGGER) return;
     const currentActionTicker = analysisTriggeredForTickerRef.current;
-    if (!currentActionTicker) { /* ... dispatch failure ... */ return; }
-    // Prerequisites checked by KEY_TAKEAWAYS_SUCCEEDED/FAILED effect
+    if (!currentActionTicker) { return; }
     logDebug('FSM_PIPELINE', `AWAITING_OPTIONS_ANALYSIS_TRIGGER: Prerequisites for ${currentActionTicker} should be READY. Dispatching TRIGGER_OPTIONS_ANALYSIS.`);
     dispatchFsmEvent({ type: 'TRIGGER_OPTIONS_ANALYSIS' });
   }, [fsmState, dispatchFsmEvent, logDebug]);
@@ -460,10 +446,10 @@ export function MainTabContent() {
   
    useEffect(() => {
     logDebug('FSM_PIPELINE', `MainTabContent: OPTIONS_ANALYSIS_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}. isFullAnalysis: ${isFullAnalysisTriggered}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
+    // This effect now always proceeds to chat summary sequence initiation because the button implies full analysis.
     if (fsmState === FsmState.OPTIONS_ANALYSIS_SUCCEEDED || fsmState === FsmState.OPTIONS_ANALYSIS_FAILED) {
-      if (isFullAnalysisTriggered) {
         const currentActionTicker = analysisTriggeredForTickerRef.current;
-        if (!currentActionTicker) { /* Should not happen */ return; }
+        if (!currentActionTicker) { return; }
         
         const checks = [
             { name: 'Snapshot', json: contextStockSnapshotJson, checkTicker: true },
@@ -478,7 +464,7 @@ export function MainTabContent() {
             if (!isDataReadyForProcessing(check.json, logDebug, `MTC_POST_OPT_SUMM:${currentActionTicker}`, check.name)) {
                 allPrereqsReady = false; break;
             }
-            if (check.checkTicker) { // Snapshot consistency
+            if (check.checkTicker) { 
                 try {
                     const parsed = JSON.parse(check.json!);
                     if (parsed.ticker !== currentActionTicker) {
@@ -491,25 +477,20 @@ export function MainTabContent() {
         }
 
         if(allPrereqsReady) {
-            logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker} (Full Analysis). Prerequisites for Chat Summary READY. Dispatching INITIATE_CHAT_SUMMARY_SEQUENCE.`);
+            logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}. Prerequisites for Chat Summary READY. Dispatching INITIATE_CHAT_SUMMARY_SEQUENCE.`);
             dispatchFsmEvent({ type: 'INITIATE_CHAT_SUMMARY_SEQUENCE' });
         } else {
-             logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker} (Full Analysis), but prerequisites for Chat Summary NOT YET READY. Waiting for context update.`);
+             logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}, but prerequisites for Chat Summary NOT YET READY. Waiting for context update.`);
         }
-      } else { // Partial Analysis
-        logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${analysisTriggeredForTickerRef.current} (Partial Analysis). Dispatching PROCEED_TO_ANALYZE_STOCK_COMPLETE.`);
-        dispatchFsmEvent({ type: 'PROCEED_TO_ANALYZE_STOCK_COMPLETE' });
-      }
     }
-  }, [fsmState, isFullAnalysisTriggered, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextMarketStatusJson, dispatchFsmEvent, logDebug]);
+  }, [fsmState, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextMarketStatusJson, dispatchFsmEvent, logDebug]);
   
   
   useEffect(() => {
     logDebug('FSM_PIPELINE', `MainTabContent: Chat_Summary AWAITING Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
     if (fsmState !== FsmState.AWAITING_CHAT_SUMMARY_TRIGGER) return;
     const currentActionTicker = analysisTriggeredForTickerRef.current;
-    if (!currentActionTicker) { /* ... dispatch failure ... */ return; }
-    // Prerequisites checked by OPTIONS_ANALYSIS_SUCCEEDED/FAILED effect
+    if (!currentActionTicker) { return; }
     logDebug('FSM_PIPELINE', `AWAITING_CHAT_SUMMARY_TRIGGER: Prerequisites for ${currentActionTicker} should be READY. Dispatching TRIGGER_CHAT_SUMMARY.`);
     dispatchFsmEvent({ type: 'TRIGGER_CHAT_SUMMARY' });
   }, [fsmState, dispatchFsmEvent, logDebug]);
@@ -539,11 +520,11 @@ export function MainTabContent() {
 
   
   useEffect(() => {
-    logDebug('FSM_PIPELINE', `MainTabContent: Effect for CHAT_SUMMARY_SUCCEEDED/FAILED or ANALYZE_STOCK_COMPLETE. Current fsmState: ${fsmState}.`);
+    logDebug('FSM_PIPELINE', `MainTabContent: Effect for CHAT_SUMMARY_SUCCEEDED/FAILED or FULL_ANALYSIS_COMPLETE. Current fsmState: ${fsmState}.`);
     if (fsmState === FsmState.CHAT_SUMMARY_SUCCEEDED || fsmState === FsmState.CHAT_SUMMARY_FAILED) {
         logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState}. Dispatching PROCEED_TO_FULL_COMPLETE.`);
         dispatchFsmEvent({ type: 'PROCEED_TO_FULL_COMPLETE' });
-    } else if (fsmState === FsmState.ANALYZE_STOCK_COMPLETE || fsmState === FsmState.FULL_ANALYSIS_COMPLETE) {
+    } else if (fsmState === FsmState.FULL_ANALYSIS_COMPLETE) { // ANALYZE_STOCK_COMPLETE removed
       logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState}. Dispatching PROCEED_TO_IDLE.`);
       dispatchFsmEvent({ type: 'PROCEED_TO_IDLE' }); 
     }
@@ -551,8 +532,8 @@ export function MainTabContent() {
 
   
   useEffect(() => {
-    if (chatActionState.status === 'idle' || ![FsmState.IDLE, FsmState.ANALYZE_STOCK_COMPLETE, FsmState.FULL_ANALYSIS_COMPLETE].includes(fsmState) ) { 
-      if (chatActionState.status !== 'idle' && ![FsmState.IDLE, FsmState.ANALYZE_STOCK_COMPLETE, FsmState.FULL_ANALYSIS_COMPLETE].includes(fsmState)) {
+    if (chatActionState.status === 'idle' || ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE].includes(fsmState) ) { 
+      if (chatActionState.status !== 'idle' && ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE].includes(fsmState)) {
         logDebug('MainTabContent:chatActionState', `Ignoring chat action state change because FSM is active (${fsmState}). Chat action: ${chatActionState.status}`);
       }
       return; 
@@ -633,15 +614,14 @@ export function MainTabContent() {
 
   const currentTickerForChatDisplay = activeAnalysisTicker || tickerInput;
   const isFormDisabled = isPipelineActive;
-  const isAnalyzeStockButtonPending = isPipelineActive && !isFullAnalysisTriggered; 
-  const isFullAnalysisButtonPending = isPipelineActive && isFullAnalysisTriggered;
+  const analyzeButtonIsPending = isPipelineActive; // Since there's only one analysis button now
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock Analysis</CardTitle>
         <CardDescription>
-          Enter a stock ticker. &quot;Analyze Stock&quot; provides data, AI TA, Key Takeaways, and Options Analysis. &quot;AI Full Stock Analysis&quot; adds a chat summary. FSM: {fsmState}
+          Enter a stock ticker. The &quot;Analyze Stock&quot; button performs a full analysis including all data, AI insights, and an initial AI chat summary. All analysis data is refreshed on each press. FSM: {fsmState}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -671,15 +651,10 @@ export function MainTabContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={handleAnalyzeStockButtonSubmit} type="button" className="w-full sm:w-auto" 
-              disabled={isFormDisabled || isAnalyzeStockButtonPending || isFullAnalysisButtonPending }>
-              { isAnalyzeStockButtonPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
-              Analyze Stock
-            </Button>
-            <Button onClick={handleAiFullAnalysisSubmit} type="button" variant="outline" className="w-full sm:w-auto" 
-              disabled={isFormDisabled || isFullAnalysisButtonPending }>
-               { isFullAnalysisButtonPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
-              <Zap className="mr-2 h-4 w-4" /> AI Full Stock Analysis
+            <Button onClick={handleAnalyzeStockSubmit} type="button" className="w-full sm:w-auto" 
+              disabled={isFormDisabled || analyzeButtonIsPending }>
+              { analyzeButtonIsPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
+              <Zap className="mr-2 h-4 w-4" /> Analyze Stock
             </Button>
           </div>
         </form>
