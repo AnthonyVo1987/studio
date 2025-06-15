@@ -48,9 +48,9 @@
     1.  Determine the correct `2.x.y.z` version based on the current Phase, Task, and the new iteration/sub-task being implemented.
     2.  Update the version string displayed in the application UI, specifically in `src/components/layout/header.tsx`.
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
-    4.  Ensure the `README.md` Changelog (Section 6) and Project Implementation Commit Log (Section 7) are updated to reflect the new version and changes.
-    5.  **README.md Update Timing:** All updates to this `README.md` document (including versioning, changelogs, and phased plan status) as described above **SHALL ONLY** be performed during an explicit 'COMMIT' stage, after the user has confirmed the code changes for that task version are ready to be finalized.
-*   **Example:** If the current phase is 9, current task is B, and this is the 3rd iteration for this task, the version will be `v2.9.B.3`. If the next task is a bug fix on top of this, it will be `v2.9.B.4`.
+    4.  Ensure the `CHANGELOG.md` file is updated to reflect the new version and changes. This file now contains the detailed history for this document and the Project Implementation Commit Log.
+    5.  **README.md & CHANGELOG.md Update Timing:** All updates to `README.md` (versioning, phased plan status) and `CHANGELOG.md` (commit log) as described above **SHALL ONLY** be performed during an explicit 'COMMIT' stage, after the user has confirmed the code changes for that task version are ready to be finalized.
+*   **Example:** If the current phase is 9, current task is C, and this is the 0th iteration for this task, the version will be `v2.9.C.0`. If the next task is a bug fix on top of this, it will be `v2.9.C.1`.
 
 ---
 ## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.B.3)**
@@ -86,7 +86,7 @@ The primary strategy for this implementation is **UI-First Development**, manage
 *   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers, significantly improved by the Phase 9 FSM re-architecture.
 *   **User Experience:** Deliver a high-quality, responsive, and accessible user interface with clear feedback on processing states.
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging. **(CRITICAL: Client Debug Console remains NON-FUNCTIONAL in v2.9.B.3).**
-*   **Dynamic Versioning:** Maintain and display the application version `2.9.B.3` as per SOP (Section 0.6).
+*   **Dynamic Versioning:** Maintain and display the application version `v2.9.B.3` as per SOP (Section 0.6).
 *   **Critical Issue Resolution:** Prioritize fixing the outstanding UI loop (now FSM pipeline completion confirmed, but button states might need review) and client console logging issues.
 
 ### **2.1. Known Issues / Current Status (v2.9.B.3)**
@@ -336,52 +336,10 @@ This section details the server-side logic, data fetching, AI processing, and th
     *   **Task 9.9.B.2: Further Debug Stuck UI - FSM Reducer Hardening (v2.9.B.2):** Status: **COMPLETE**
     *   **Task 9.9.B.3: Fix Stuck UI Loop - Event-Driven FSM Transition (v2.9.B.3):** Status: **COMPLETE**
 
-## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
+## **6. Changelog and Commit Log**
 
-| Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                                                                                          |
-| :------ | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ...     | ...          | ...                           | ... (Previous changelog entries up to 1.47 / v2.9.A.Z remain) ...                                                                                                                                                                                                                                         |
-| 1.47    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.Z (Attempt to Fix Stuck UI & Broken Logs) - ISSUES PERSIST.** Application version `v2.9.A.Z`. Attempted fixes for UI loop and broken console logs. README updated with current app state, known issues, and commit details. UI Header displays `v2.9.A.Z`. Phase 9 Task 9.9.A.Z status: IN PROGRESS. **Commit: 2c7498c4** |
-| 1.48    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.B.3 (Fix Stuck UI Loop - Event-Driven FSM Transition) COMPLETE.** App version `v2.9.B.3`. Implemented explicit event-driven FSM transitions for `AI_TA_SUCCEEDED`/`FAILED` to `FULL_ANALYSIS_COMPLETE`. Updated README (version, tasks, commit). UI Header displays `v2.9.B.3`. Phase 9 Task 9.9.B.3 COMPLETE. **Commit: 6b456a93** |
-
-## **7. Project Implementation Commit Log (StockSage App Version)**
-
-This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme.
+The detailed changelog for this document (README.md) and the application's commit log are now maintained in a separate `CHANGELOG.md` file in the project root. This provides a cleaner separation of concerns and keeps this PRD focused on requirements and operational guidelines.
+Please refer to `CHANGELOG.md` for all version history and commit details.
 
 ---
-... (Previous commit logs up to v2.9.A.Z remain)
----
-**App Version:** `v2.9.A.Z` (Attempt to Fix Stuck UI & Broken Logs - ISSUES PERSIST)
-**Tag:** `Phase-9_Task-9.A.Z_AttemptFixUI-Logs` - Commit Hash: `2c7498c4`
-**Subject:** `fix(app): Attempt to resolve stuck UI and broken console logs (v2.9.A.Z)`
-**Details:**
-This commit includes changes intended to address two critical issues:
-1. Stuck UI after 'Analyze Stock': Ensured FSM transitions correctly from AI_TA_SUCCEEDED/FAILED to FULL_ANALYSIS_COMPLETE and then to IDLE. Added robust logging in MainTabContent's useEffect for PROCEED_TO_IDLE dispatch. (Note: This issue remained unresolved post-commit.)
-2. Broken Client Console Logs: Re-verified and ensured simplified dependency array for console interception useEffect in StockAnalysisContext. Added extensive diagnostic logging. (Note: This issue also remained unresolved post-commit.)
-UI Header updated to `v2.9.A.Z`. `README.md` updated.
----
-**App Version:** `v2.9.B.0` (Fix SSR ReferenceError for context functions)
-**Tag:** `Phase-9_Task-9.B.0_FixContextFuncSSR` - Commit Hash: `[Hash for v2.9.B.0]`
-**Subject:** `fix(ssr): Define context log source functions plainly to resolve ReferenceError (v2.9.B.0)`
-**Details:**
-Addressed SSR ReferenceError for `disableAllLogSources` by changing it and `enableAllLogSources` to plain functions in `StockAnalysisContext`. UI Header updated to `v2.9.B.0`.
----
-**App Version:** `v2.9.B.1` (Fix Stuck UI Loop - FSM Reducer)
-**Tag:** `Phase-9_Task-9.B.1_FixFSMLoopReducer` - Commit Hash: `[Hash for v2.9.B.1]`
-**Subject:** `fix(fsm): Correct FSM transition to fix stuck UI (v2.9.B.1)`
-**Details:**
-Corrected the `fsmReducer` in `StockAnalysisContext` to ensure `AI_TA_SUCCEEDED` and `AI_TA_FAILED` states explicitly return `FsmState.FULL_ANALYSIS_COMPLETE`, aiming to fix the UI getting stuck. UI Header updated to `v2.9.B.1`.
----
-**App Version:** `v2.9.B.2` (Further Debug Stuck UI - FSM Reducer Hardening)
-**Tag:** `Phase-9_Task-9.B.2_DebugFSMLoopReducer` - Commit Hash: `[Hash for v2.9.B.2]`
-**Subject:** `feat(fsm): Add entry logging to reducer and simplify AI_TA terminal states for debug (v2.9.B.2)`
-**Details:**
-Added entry logging to `fsmReducer` and simplified `AI_TA_SUCCEEDED`/`FAILED` cases by removing internal logs to ensure direct transition to `FULL_ANALYSIS_COMPLETE`. UI Header updated to `v2.9.B.2`.
----
-**App Version:** `v2.9.B.3` (Fix Stuck UI Loop - Event-Driven FSM Transition)
-**Tag:** `Phase-9_Task-9.B.3_FixFSMLoopEventDriven` - Commit Hash: `6b456a93`
-**Subject:** `fix(fsm): Implement event-driven transition to FULL_ANALYSIS_COMPLETE (v2.9.B.3)`
-**Details:**
-Modified FSM to use an explicit `FINALIZE_AUTOMATED_PIPELINE` event dispatched from `MainTabContent` when `AI_TA_SUCCEEDED` or `AI_TA_FAILED`. The `fsmReducer` now handles this event to transition to `FULL_ANALYSIS_COMPLETE`. This resolves the stuck UI issue by ensuring the FSM correctly reaches an `IDLE` state. UI Header updated to `v2.9.B.3`.
----
-*(Future commit logs will follow)*
+*(The content previously in Section 6 and Section 7 has been moved to CHANGELOG.md)*
