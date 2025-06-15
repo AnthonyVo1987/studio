@@ -109,7 +109,7 @@ export function MainTabContent() {
   const isAutomatedPipelineActive = ![
       FsmState.IDLE, 
       FsmState.FULL_ANALYSIS_COMPLETE, 
-      FsmState.KEY_TAKEAWAYS_SUCCEEDED, // Technically FULL_ANALYSIS_COMPLETE covers these now
+      FsmState.KEY_TAKEAWAYS_SUCCEEDED, 
       FsmState.KEY_TAKEAWAYS_FAILED,
       FsmState.OPTIONS_ANALYSIS_SUCCEEDED,
       FsmState.OPTIONS_ANALYSIS_FAILED
@@ -295,16 +295,14 @@ export function MainTabContent() {
       dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: analyzeTaState.error, message: analyzeTaState.message, aiAnalyzedTaRequestJson: analyzeTaState.data?.aiAnalyzedTaRequestJson } });
     }
   }, [analyzeTaState, fsmState, dispatchFsmEvent, toast, logDebug]);
-
-  // This useEffect handles the transition from the end of the automated pipeline (AI_TA_SUCCEEDED/FAILED)
-  // to FULL_ANALYSIS_COMPLETE, which then triggers the transition to IDLE.
+  
   useEffect(() => {
-    logDebug('FSM_PIPELINE', 'Effect_PostAiTaTransition', `AI_TA_SUCCEEDED/FAILED Effect (now terminal for auto-pipeline). fsmState: ${fsmState}.`);
+    logDebug('FSM_PIPELINE', 'Effect_PostAiTaTransition', `AI_TA_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}.`);
     if (fsmState === FsmState.AI_TA_SUCCEEDED || fsmState === FsmState.AI_TA_FAILED) {
-        logDebug('FSM_PIPELINE', 'Info_AiTaTerminal', `State is ${fsmState}. Automated pipeline part concluded. FSM should transition to FULL_ANALYSIS_COMPLETE via reducer.`);
-        // The reducer now handles transitioning to FULL_ANALYSIS_COMPLETE from these states directly.
+        logDebug('FSM_PIPELINE', 'Dispatch_FinalizeAutoPipeline', `State is ${fsmState}. Automated pipeline part concluded. Dispatching FINALIZE_AUTOMATED_PIPELINE.`);
+        dispatchFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     }
-  }, [fsmState, logDebug]);
+  }, [fsmState, dispatchFsmEvent, logDebug]);
 
 
   useEffect(() => {
@@ -592,4 +590,3 @@ export function MainTabContent() {
     </Card>
   );
 }
-

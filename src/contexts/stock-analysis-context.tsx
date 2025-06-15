@@ -96,6 +96,8 @@ export type FsmEvent =
   | { type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS'; payload: { ticker: string } }
   | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: AiOptionsAnalysisSuccessPayload }
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload }
+  
+  | { type: 'FINALIZE_AUTOMATED_PIPELINE' } // New event
 
   | { type: 'PROCEED_TO_IDLE' }
   | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage };
@@ -337,7 +339,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === false) met. Calling _setClientDebugConsoleOpen(false).`);
         _setClientDebugConsoleOpen(false);
     }
-  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals]); // Removed enableAllLogSources from dependencies
+  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals]);
 
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
@@ -454,7 +456,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `TRIGGER_AI_TA. Transitioning to ANALYZING_TA.`);
           return FsmState.ANALYZING_TA;
         }
-        if (event.type === 'AI_TA_FAILURE') { // This might be triggered by consistency checks in MainTabContent
+        if (event.type === 'AI_TA_FAILURE') { 
             const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA failed (consistency check in AWAITING)';
             const taErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiAnalyzedTaRequestJson(errorPayload.aiAnalyzedTaRequestJson || taErrorJson); contextSetters.setAiAnalyzedTaJson(taErrorJson);
@@ -462,7 +464,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
             contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
             logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
-            return FsmState.AI_TA_FAILED; // Directly to AI_TA_FAILED
+            return FsmState.AI_TA_FAILED;
         }
         return state;
 
@@ -486,10 +488,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return state;
 
       case FsmState.AI_TA_SUCCEEDED:
-        return FsmState.FULL_ANALYSIS_COMPLETE;
+        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State is AI_TA_SUCCEEDED. Current event: ${event.type}`);
+        if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') {
+            contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event FINALIZE_AUTOMATED_PIPELINE received in AI_TA_SUCCEEDED state. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+            return FsmState.FULL_ANALYSIS_COMPLETE;
+        }
+        return state; 
 
       case FsmState.AI_TA_FAILED:
-        return FsmState.FULL_ANALYSIS_COMPLETE;
+        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State is AI_TA_FAILED. Current event: ${event.type}`);
+        if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') {
+            contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event FINALIZE_AUTOMATED_PIPELINE received in AI_TA_FAILED state. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+            return FsmState.FULL_ANALYSIS_COMPLETE;
+        }
+        return state; 
 
       case FsmState.GENERATING_KEY_TAKEAWAYS:
         if (event.type === 'KEY_TAKEAWAYS_SUCCESS') {
@@ -576,11 +588,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       ...args: any[]
     ) => {
       currentOriginalsForInterceptor[type](...args);
-      contextOriginals.debug(`[CONTEXT_INTERCEPT] Intercepted. Type: ${type}, Args[0]: ${args[0]}, Marker: ${args[0] === LOGDEBUG_MARKER}, _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
+      // contextOriginals.debug(`[CONTEXT_INTERCEPT] Intercepted. Type: ${type}, Args[0]: ${args[0]}, Marker: ${args[0] === LOGDEBUG_MARKER}, _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
       
       queueMicrotask(() => {
         if (!_isClientDebugConsoleEnabled) {
-          contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Discarding (console disabled). Type: ${type}`);
+          // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Discarding (console disabled). Type: ${type}`);
           return;
         }
 
@@ -592,19 +604,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           source = args[1] as LogSourceId;
           messagesForBuffer = args.slice(3);
           logTypeForBuffer = 'debug';
-          contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug detected. Source: ${source}. _logSourceConfig[${source}]: ${_logSourceConfig[source]}`);
+          // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug detected. Source: ${source}. _logSourceConfig[${source}]: ${_logSourceConfig[source]}`);
           if (!_logSourceConfig[source]) {
-            contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug for ${source} is DISABLED by config. Discarding.`);
+            // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug for ${source} is DISABLED by config. Discarding.`);
             return;
           }
         } else {
-          contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Native console log. _logSourceConfig.NATIVE_CONSOLE: ${_logSourceConfig['NATIVE_CONSOLE']}`);
+          // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Native console log. _logSourceConfig.NATIVE_CONSOLE: ${_logSourceConfig['NATIVE_CONSOLE']}`);
           if (!_logSourceConfig['NATIVE_CONSOLE']) {
-            contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] NATIVE_CONSOLE source is DISABLED by config. Discarding.`);
+            // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] NATIVE_CONSOLE source is DISABLED by config. Discarding.`);
             return;
           }
         }
-        contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Adding to globalLogBuffer: Type: ${logTypeForBuffer}, Source: ${source}, Messages:`, messagesForBuffer);
+        // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Adding to globalLogBuffer: Type: ${logTypeForBuffer}, Source: ${source}, Messages:`, messagesForBuffer);
         addEntryToGlobalLogBuffer({ type: logTypeForBuffer, messages: messagesForBuffer, source });
       });
     };
