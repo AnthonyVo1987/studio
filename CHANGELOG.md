@@ -1,6 +1,8 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.1 (Task v2.9.B.9):** 2025-06-15 - Firebase Studio (AI Prototyper)
+    *   Updated `README.md` (to v1.49) with new AI operational rules (XML output, token efficiency, immediate coding post-approval).
 *   **Version 1.0 (Task v2.9.B.4):** 2025-06-15 - Firebase Studio (AI Prototyper)
     *   Created `CHANGELOG.md` to decouple detailed changelogs from `README.md`.
     *   Migrated "StockSage Application Commit Log" from `README.md`.
@@ -11,6 +13,42 @@
 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
+---
+**App Version:** `v2.9.B.9` (Correct Default Log Source Configuration)
+**Tag:** `Phase-9_Task-9.B.9_CorrectDefaultLogConfig` - Commit Hash: `c4637481`
+**Subject:** `fix(debug): Correct default log source config & update AI rules (v2.9.B.9)`
+**Details:**
+Corrected `defaultLogSourceConfig` in `src/lib/debug-log-types.ts` to ensure all log sources (except `OptionsChainTable`) are set to `true` by default when the client debug console is active. This provides a better initial debugging experience. Updated README.md (v1.49) to include new AI operational rules regarding XML output and interaction efficiency. UI Header updated to `v2.9.B.9`.
+---
+**App Version:** `v2.9.B.8` (Enhance Debug Console Defaults & FSM State Display)
+**Tag:** `Phase-9_Task-9.B.8_EnhanceDebugConsole` - Commit Hash: `(previous_commit_hash_for_B8)`
+**Subject:** `feat(debug): Enhance console defaults, display Prev/Curr/Target FSM states (v2.9.B.8)`
+**Details:**
+Enabled client debug console by default, increased max log entries to 1000. `OptionsChainTable` log source now defaults to OFF when console is enabled. Added Previous, Current, and Target FSM state display to the debug console banner for easier FSM debugging. UI Header updated to `v2.9.B.8`.
+---
+**App Version:** `v2.9.B.7` (Fix On-Demand AI Button Availability)
+**Tag:** `Phase-9_Task-9.B.7_FixOnDemandButtonAvailability` - Commit Hash: `(previous_commit_hash_for_B7)`
+**Subject:** `fix(ui): Preserve activeAnalysisTicker to enable on-demand AI buttons (v2.9.B.7)`
+**Details:**
+Modified `MainTabContent.tsx` to stop resetting `activeAnalysisTicker` to `null` when the FSM transitions to `IDLE`. This ensures that the `activeAnalysisTicker` (for which data has been loaded) persists, allowing the "Generate AI Key Takeaways" and "Generate AI Options Analysis" buttons to become enabled after the main "Analyze Stock" pipeline completes. UI Header updated to `v2.9.B.7`.
+---
+**App Version:** `v2.9.B.6` (Fix Chatbot Issues)
+**Tag:** `Phase-9_Task-9.B.6_FixChatIssues` - Commit Hash: `(previous_commit_hash_for_B6)`
+**Subject:** `fix(chat): Prevent duplicate messages & wrap action in startTransition (v2.9.B.6)`
+**Details:**
+Wrapped `chatFormAction` call in `Chatbot.tsx` in `React.startTransition` to resolve `useActionState` warning. Refined `useEffect` for `chatActionState` in `MainTabContent.tsx` by adjusting dependencies and adding a check against the last message in `contextChatHistoryRef.current` to prevent duplicate message dispatches to the FSM. UI Header updated to `v2.9.B.6`.
+---
+**App Version:** `v2.9.B.5` (Safer Error Serialization in Polygon Adapter)
+**Tag:** `Phase-9_Task-9.B.5_SaferErrorSerialization` - Commit Hash: `(previous_commit_hash_for_B5)`
+**Subject:** `fix(server): Implement safer error serialization in Polygon adapter (v2.9.B.5)`
+**Details:**
+Modified `getFullStockData` in `src/services/data-sources/adapters/polygon-adapter.ts` to serialize caught errors into plain objects with specific, known-safe properties (`name`, `message`, limited `stack`, `code`) for `rawErrorDetails` and `rawOverallError`. This prevents issues with complex error objects causing client-side deserialization failures in server action responses. UI Header updated to `v2.9.B.5`.
+---
+**App Version:** `v2.9.B.4` (Decouple Changelogs to CHANGELOG.md)
+**Tag:** `Phase-9_Task-9.B.4_DecoupleChangelogs` - Commit Hash: `(user_provided_hash_for_B4_or_placeholder)`
+**Subject:** `docs(changelog): Decouple changelogs into new CHANGELOG.md (v2.9.B.4)`
+**Details:**
+Created `CHANGELOG.md` and migrated detailed PRD/Operating Manual changelog and application commit log from `README.md`. `README.md` (v1.48) now refers to `CHANGELOG.md` for this information.
 ---
 **App Version:** `v2.9.B.3` (Fix Stuck UI Loop - Event-Driven FSM Transition)
 **Tag:** `Phase-9_Task-9.B.3_FixFSMLoopEventDriven` - Commit Hash: `6b456a93`
