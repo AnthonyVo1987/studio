@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -37,7 +38,7 @@ export enum FsmState {
   OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED', 
   OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
   
-  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE', // This state indicates all automated steps are done.
+  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE', 
 }
 
 
@@ -77,7 +78,7 @@ interface AiOptionsAnalysisFailurePayload {
 
 
 export type FsmEvent =
-  | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } } // Single entry point for full analysis
+  | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } } 
   | { type: 'INITIALIZATION_COMPLETE' } 
 
   | { type: 'TRIGGER_DATA_FETCH' }
@@ -230,7 +231,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
 
   const logDebug = useCallback((source: LogSourceId, ...messages: any[]) => {
-    console.debug(LOGDEBUG_MARKER, source, ...messages);
+    // Use a more direct way to call original console if available, to avoid loops during interception setup
+    const originals = (console as any).__stockSageOriginals || browserConsole;
+    originals.debug(LOGDEBUG_MARKER, source, ...messages);
   }, []);
 
   const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
@@ -253,14 +256,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setChatbotRequestJson = useCallback((json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson (Interactive)', json), [_setChatbotRequestJson, setAndLogJson]);
   const setChatbotResponseJson = useCallback((json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson (Interactive)', json), [_setChatbotResponseJson, setAndLogJson]);
   
+  // MODIFIED: Define setLogSourceEnabled as a plain function for SSR diagnostic
+  const setLogSourceEnabled = (source: LogSourceId, enabled: boolean) => {
+    _setLogSourceConfig(prevConfig => {
+      const newConfig = { ...prevConfig, [source]: enabled };
+      // Use the logDebug function (which should be stable due to its own useCallback with empty deps)
+      logDebug('StockAnalysisContext', `Log source '${source}' ${enabled ? 'ENABLED' : 'DISABLED'}.`);
+      return newConfig;
+    });
+  };
+
   const addChatMessage = useCallback((message: ChatMessage) => { 
     _setChatHistory(prev => [...prev, message]);
     logDebug('StockAnalysisContext', `Added interactive chat message from ${message.role}:`, message.content.substring(0, 50));
-  }, [_setChatHistory, logDebug]);
-
-  const clearChatHistoryInternal = useCallback(() => {
-    _setChatHistory([]);
-    logDebug('StockAnalysisContext', 'Chat history CLEARED INTERNALLY (e.g., by FSM reset for new full analysis).');
   }, [_setChatHistory, logDebug]);
 
   const clearChatHistory = useCallback(() => { 
@@ -285,11 +293,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setAiOptionsAnalysisRequestJson(pendingJson);
     _setAiOptionsAnalysisJson(pendingJson);
     
-    _setChatbotRequestJson(pendingJson); // For potential summary request
-    _setChatbotResponseJson(pendingJson); // For potential summary response
-
-    // IMPORTANT: Do NOT clear _setChatHistory([]) here to preserve chat history across analyses
-    // Do NOT clear globalLogEntries here
+    _setChatbotRequestJson(pendingJson); 
+    _setChatbotResponseJson(pendingJson); 
 
   }, [logDebug]); 
 
@@ -313,7 +318,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.IDLE:
         if (event.type === 'START_FULL_ANALYSIS') { 
           setAllPlaceholdersInternal(event.payload.ticker, true); 
-          // DO NOT CLEAR CHAT HISTORY HERE: clearChatHistoryInternal(); 
           _setIsFullAnalysisTriggeredInternalState(true); 
           logDebug('FSM_PIPELINE', `Reducer: START_FULL_ANALYSIS received for ${event.payload.ticker}. isFullAnalysisTriggered set to true. CHAT HISTORY IS PRESERVED. Transitioning to INITIALIZING_ANALYSIS.`);
           return FsmState.INITIALIZING_ANALYSIS;
@@ -498,8 +502,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Options Analysis failed (consistency check)';
             const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson); contextSetters.setAiOptionsAnalysisJson(optErrorJson);
-            logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to OPTIONS_ANALYSIS_FAILED.`);
-            return FsmState.OPTIONS_ANALYSIS_FAILED;
+            logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+            return FsmState.FULL_ANALYSIS_COMPLETE;
         }
         return state;
 
@@ -507,21 +511,21 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') {
           contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
           contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
-          logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_SUCCESS. Transitioning to OPTIONS_ANALYSIS_SUCCEEDED.`);
-          return FsmState.OPTIONS_ANALYSIS_SUCCEEDED;
+          logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_SUCCESS. Transitioning directly to FULL_ANALYSIS_COMPLETE.`);
+          return FsmState.FULL_ANALYSIS_COMPLETE;
         }
         if (event.type === 'OPTIONS_ANALYSIS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Options Analysis failed';
           const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson); contextSetters.setAiOptionsAnalysisJson(optErrorJson);
-           logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_FAILURE. Error: ${errorMsg}. Transitioning to OPTIONS_ANALYSIS_FAILED.`);
-          return FsmState.OPTIONS_ANALYSIS_FAILED;
+           logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_FAILURE. Error: ${errorMsg}. Transitioning directly to FULL_ANALYSIS_COMPLETE.`);
+          return FsmState.FULL_ANALYSIS_COMPLETE;
         }
         return state;
 
-      case FsmState.OPTIONS_ANALYSIS_SUCCEEDED:
-      case FsmState.OPTIONS_ANALYSIS_FAILED:
-        logDebug('FSM_PIPELINE', `Reducer: ${state}. Automated analysis pipeline complete. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+      case FsmState.OPTIONS_ANALYSIS_SUCCEEDED: // Should not be a resting state anymore
+      case FsmState.OPTIONS_ANALYSIS_FAILED:   // Should not be a resting state anymore
+        logDebug('FSM_PIPELINE', `Reducer: In deprecated resting state ${state}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
         return FsmState.FULL_ANALYSIS_COMPLETE;
       
       case FsmState.FULL_ANALYSIS_COMPLETE: 
@@ -589,18 +593,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug('StockAnalysisContext', 'Attempted to open console while it is disabled. Opening action will be ignored.');
     }
   }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
-
-  const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
-    _setLogSourceConfig(prevConfig => {
-        const newConfig = { ...prevConfig, [source]: enabled };
-        if (source === 'DebugConsole' && !enabled) {
-            logDebug('StockAnalysisContext', 'Attempted to disable DebugConsole source via setLogSourceEnabled, overriding to keep it true.');
-            newConfig.DebugConsole = true;
-        }
-        logDebug('StockAnalysisContext', `Log source '${source}' set to: ${newConfig[source]}`);
-        return newConfig;
-    });
-  }, [_setLogSourceConfig, logDebug]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -691,7 +683,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isClientDebugConsoleEnabled: _isClientDebugConsoleEnabled, isClientDebugConsoleOpen: _isClientDebugConsoleOpen,
     logSourceConfig: _logSourceConfig,
     setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
-    setLogSourceEnabled, 
+    setLogSourceEnabled, // Providing the modified version
     enableAllLogSources, disableAllLogSources,
     logDebug,
     fsmState, dispatchFsmEvent,
@@ -711,3 +703,4 @@ export function useStockAnalysis() {
   }
   return context;
 }
+
