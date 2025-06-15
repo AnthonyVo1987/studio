@@ -521,7 +521,7 @@ export function MainTabContent() {
       <CardHeader>
         <CardTitle>Stock Analysis Input</CardTitle>
         <CardDescription>
-          Enter ticker for Data Fetch & AI TA (Pivots). Then, manually trigger Key Takeaways or Options Analysis. FSM: {fsmState}
+          Enter ticker for Data Fetch & AI TA (Pivots). Then, manually trigger Key Takeaways or Options Analysis.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -616,4 +616,3 @@ export function MainTabContent() {
     </Card>
   );
 }
-    

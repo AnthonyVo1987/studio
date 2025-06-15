@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Defines types and identifiers for debug logging sources.
  */
@@ -41,7 +42,7 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   MarketStatusDisplay: false,
   AiAnalyzedTaDisplay: false, 
   AiKeyTakeawaysDisplay: false,
-  OptionsChainTable: false,
+  OptionsChainTable: false, // Disabled by default as per v2.9.B.8
   AiOptionsAnalysisDisplay: false, 
   DebugTabContent: false,
   MainTabContent: false,
@@ -58,8 +59,6 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   ChatFlow: false,
   AnalyzeOptionsChainFlow: false, 
   FSM_PIPELINE: true, 
-  // GenerateChatSummaryAction: false, // Removed
-  // GenerateFullAnalysisSummaryFlow: false, // Removed
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -86,8 +85,6 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   ChatFlow: 'Chat Flow (Genkit)',
   AnalyzeOptionsChainFlow: 'Analyze Options Chain Flow (Genkit)', 
   FSM_PIPELINE: 'FSM Pipeline Events',
-  // GenerateChatSummaryAction: 'Generate Chat Summary Action (Server)', // Removed
-  // GenerateFullAnalysisSummaryFlow: 'Generate Full Analysis Summary Flow (Genkit)', // Removed
 };
 
 // For DebugConsole.tsx filter UI

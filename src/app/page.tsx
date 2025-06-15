@@ -8,7 +8,7 @@ import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
-import { StockAnalysisProvider, useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { StockAnalysisProvider, useStockAnalysis, FsmState } from "@/contexts/stock-analysis-context";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
 
@@ -18,13 +18,17 @@ function PageContent() {
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
     logDebug,
+    fsmState, // Current FSM state
+    previousFsmState,
+    targetFsmDisplayState,
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
     logDebug('MainTabContent', `Main debug console switch toggled by user to: ${checked}`);
+    // This will now primarily control visibility if enabled is true by default,
+    // or enable/disable if that's still the desired core behavior.
+    // The logic in setClientDebugConsoleEnabled in context handles opening/closing.
     setClientDebugConsoleEnabled(checked);
-    // The logic to open/close the console panel is now fully handled 
-    // within the setClientDebugConsoleEnabled callback in the context.
   };
 
   return (
@@ -42,7 +46,14 @@ function PageContent() {
             checked={isClientDebugConsoleEnabled} 
             onCheckedChange={handleDebugConsoleToggle}
           />
-          <Label htmlFor="enable-debug-console">Enable & Show Client Debug Console (All Logs On by Default)</Label>
+          <Label htmlFor="enable-debug-console" className="flex-shrink-0">Enable & Show Client Debug Console</Label>
+          <div className="ml-auto text-xs text-muted-foreground text-right flex-grow space-x-2">
+            <span>Prev: <span className="font-semibold">{previousFsmState || 'N/A'}</span></span>
+            <span>|</span>
+            <span>Current: <span className="font-semibold">{fsmState}</span></span>
+            <span>|</span>
+            <span>Target: <span className="font-semibold">{targetFsmDisplayState || 'N/A'}</span></span>
+          </div>
         </div>
         <Tabs defaultValue="main" className="w-full">
           <TabsList className="grid w-full grid-cols-2">

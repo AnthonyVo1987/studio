@@ -2,7 +2,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState, useCallback, useEffect, useReducer } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef } from 'react';
 import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer';
 import type { StockDataFetchResult } from '@/actions/analyze-stock-server-action';
@@ -37,6 +37,12 @@ export enum FsmState {
   OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
 
   FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE',
+}
+
+// FSM History State
+export interface FsmHistoryState {
+  previous: FsmState | null;
+  current: FsmState;
 }
 
 
@@ -97,7 +103,7 @@ export type FsmEvent =
   | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: AiOptionsAnalysisSuccessPayload }
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload }
   
-  | { type: 'FINALIZE_AUTOMATED_PIPELINE' } // New event
+  | { type: 'FINALIZE_AUTOMATED_PIPELINE' }
 
   | { type: 'PROCEED_TO_IDLE' }
   | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage };
@@ -140,7 +146,9 @@ interface StockAnalysisState {
   isClientDebugConsoleOpen: boolean;
   logSourceConfig: LogSourceConfig;
 
-  fsmState: FsmState;
+  fsmState: FsmState; // Current FSM state derived from fsmHistory
+  previousFsmState: FsmState | null; // Previous FSM state derived from fsmHistory
+  targetFsmDisplayState: FsmState | null; // For UI display of intended next state
 }
 
 interface StockAnalysisContextSetters {
@@ -171,7 +179,7 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
   disableAllLogSources: () => void;
   logDebug: (source: LogSourceId, category: string, ...messages: any[]) => void;
 
-  dispatchFsmEvent: React.Dispatch<FsmEvent>;
+  dispatchFsmEvent: (event: FsmEvent) => void; // Wrapped dispatch
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -179,6 +187,10 @@ const pendingJson = '{ "status": "pending..." }';
 const createSkippedJson = (reasonKey: string, message?: string) =>
   `{ "status": "skipped_due_to_${reasonKey}_failure", "message": "${message || `Skipped due to ${reasonKey} failure.`}" }`;
 
+const initialFsmHistory: FsmHistoryState = {
+  current: FsmState.IDLE,
+  previous: null,
+};
 
 const defaultState: StockAnalysisState = {
   polygonApiRequestLogJson: initialJsonPlaceholder,
@@ -197,10 +209,12 @@ const defaultState: StockAnalysisState = {
   chatbotResponseJson: initialJsonPlaceholder,
   isFullAnalysisTriggered: false,
   chatHistory: [],
-  isClientDebugConsoleEnabled: false,
-  isClientDebugConsoleOpen: false,
+  isClientDebugConsoleEnabled: true, // Default to enabled
+  isClientDebugConsoleOpen: true,   // Default to open
   logSourceConfig: defaultLogSourceConfig,
-  fsmState: FsmState.IDLE,
+  fsmState: initialFsmHistory.current,
+  previousFsmState: initialFsmHistory.previous,
+  targetFsmDisplayState: null,
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -239,6 +253,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
   const [_isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
+  const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<FsmState | null>(null);
+
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
@@ -263,6 +279,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setAiKeyTakeawaysJson = useCallback((json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json), [_setAiKeyTakeawaysJson, setAndLogJson]);
   const setChatbotRequestJson = useCallback((json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson (Interactive)', json), [_setChatbotRequestJson, setAndLogJson]);
   const setChatbotResponseJson = useCallback((json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson (Interactive)', json), [_setChatbotResponseJson, setAndLogJson]);
+
+  const contextSetters: StockAnalysisContextSetters = {
+    setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
+    setMarketStatusJson, setStockSnapshotJson, setStandardTasJson,
+    setOptionsChainJson, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson,
+    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
+    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
+    setChatbotRequestJson, setChatbotResponseJson,
+  };
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
     _setLogSourceConfig(prevConfig => {
@@ -300,33 +325,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setChatbotResponseJson(pendingJson);
   }, [logDebug]);
 
-  const contextSetters: StockAnalysisContextSetters = {
-    setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
-    setMarketStatusJson, setStockSnapshotJson, setStandardTasJson,
-    setOptionsChainJson, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson,
-    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
-    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
-    setChatbotRequestJson, setChatbotResponseJson,
-  };
-
-  const enableAllLogSources = () => {
+  const enableAllLogSources = useCallback(() => {
     contextOriginals.debug('[CONTEXT_ENABLE_ALL_SOURCES] Called.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
     logSourceIds.forEach(id => { newConfig[id] = true; });
-    newConfig.DebugConsole = true;
+    newConfig.DebugConsole = true; // Ensure DebugConsole itself is always on when enabling all
     contextOriginals.debug('[CONTEXT_ENABLE_ALL_SOURCES] newConfig prepared:', JSON.stringify(newConfig));
     _setLogSourceConfig(newConfig);
-  };
+  }, [contextOriginals]);
 
-  const disableAllLogSources = () => {
+  const disableAllLogSources = useCallback(() => {
     contextOriginals.debug('[CONTEXT_DISABLE_ALL_SOURCES] Called.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
     logSourceIds.forEach(id => {
-      newConfig[id] = id === 'DebugConsole';
+      newConfig[id] = id === 'DebugConsole'; // Keep DebugConsole on, disable others
     });
     contextOriginals.debug('[CONTEXT_DISABLE_ALL_SOURCES] newConfig prepared:', JSON.stringify(newConfig));
     _setLogSourceConfig(newConfig);
-  };
+  }, [contextOriginals]);
+
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
     contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Called with: ${enabled}. Current _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
@@ -334,61 +351,64 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     if (enabled) {
         contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === true) met. Calling enableAllLogSources and _setClientDebugConsoleOpen(true).`);
         enableAllLogSources();
+        // Explicitly set OptionsChainTable to false after enabling all, as per v2.9.B.8 requirement
+        _setLogSourceConfig(prevConfig => ({ ...prevConfig, OptionsChainTable: false }));
+        logDebug('StockAnalysisContext', 'LogConfig', `OptionsChainTable log source explicitly DISABLED after enabling all.`);
         _setClientDebugConsoleOpen(true);
     } else {
         contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === false) met. Calling _setClientDebugConsoleOpen(false).`);
         _setClientDebugConsoleOpen(false);
     }
-  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals]);
+  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals, enableAllLogSources, logDebug]);
 
 
-  const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
-    contextOriginals.debug('[CONTEXT_FSM_REDUCER_ENTRY]', `Processing event: ${event.type} on current state: ${state}`);
-    contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event: ${event.type}, Current State: ${state}, Payload (keys):`,
+  const fsmReducer = (currentHistory: FsmHistoryState, event: FsmEvent): FsmHistoryState => {
+    const currentActualState = currentHistory.current;
+    contextOriginals.debug('[CONTEXT_FSM_REDUCER_ENTRY]', `Processing event: ${event.type} on current state: ${currentActualState}`);
+    contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event: ${event.type}, Current Actual State: ${currentActualState}, Payload (keys):`,
         event.type !== 'ADD_CHAT_MESSAGE' && 'payload' in event ? Object.keys(event.payload || {}).join(', ') : (event.type === 'ADD_CHAT_MESSAGE' ? 'ChatMessage' : 'NoPayload'));
 
     const errorJsonWithDetails = (message: string, details: string | null | undefined) =>
       `{ "status": "error", "message": "${message.replace(/"/g, '\\"')}", "details": "${(details || '').replace(/"/g, '\\"')}" }`;
+    
+    let nextCurrentState: FsmState = currentActualState;
 
-    switch (state) {
+    switch (currentActualState) {
       case FsmState.IDLE:
         if (event.type === 'START_FULL_ANALYSIS') {
           setAllPlaceholdersInternal(event.payload.ticker, true);
           _setIsFullAnalysisTriggeredInternalState(true);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `START_FULL_ANALYSIS for ${event.payload.ticker}. isFullAnalysisTriggered true. Transitioning to INITIALIZING_ANALYSIS.`);
-          return FsmState.INITIALIZING_ANALYSIS;
-        }
-        if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
+          nextCurrentState = FsmState.INITIALIZING_ANALYSIS;
+        } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Key Takeaways for ${event.payload.ticker}. Setting placeholders.`);
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
           contextSetters.setAiKeyTakeawaysJson(pendingJson);
-          return FsmState.GENERATING_KEY_TAKEAWAYS;
-        }
-        if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
+          nextCurrentState = FsmState.GENERATING_KEY_TAKEAWAYS;
+        } else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
           logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Options Analysis for ${event.payload.ticker}. Setting placeholders.`);
           contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
           contextSetters.setAiOptionsAnalysisJson(pendingJson);
-          return FsmState.ANALYZING_OPTIONS;
-        }
-        if (event.type === 'ADD_CHAT_MESSAGE' && 'payload' in event) {
+          nextCurrentState = FsmState.ANALYZING_OPTIONS;
+        } else if (event.type === 'ADD_CHAT_MESSAGE' && 'payload' in event) {
           const uniqueMessageSuffix = Math.random().toString(36).substring(2, 9);
           addChatMessage({...event.payload, id: `${event.payload.id}_${uniqueMessageSuffix}` });
         }
-        return state;
+        break;
 
       case FsmState.INITIALIZING_ANALYSIS:
         if (event.type === 'INITIALIZATION_COMPLETE') {
             logDebug('StockAnalysisContext', 'FSM_TRANSITION', `INITIALIZATION_COMPLETE. Transitioning to AWAITING_DATA_FETCH_TRIGGER.`);
-            return FsmState.AWAITING_DATA_FETCH_TRIGGER;
+            nextCurrentState = FsmState.AWAITING_DATA_FETCH_TRIGGER;
         }
-        return state;
+        break;
 
       case FsmState.AWAITING_DATA_FETCH_TRIGGER:
         if (event.type === 'TRIGGER_DATA_FETCH') {
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `TRIGGER_DATA_FETCH. Transitioning to FETCHING_DATA.`);
-          return FsmState.FETCHING_DATA;
+          nextCurrentState = FsmState.FETCHING_DATA;
         }
-        return state;
+        break;
 
       case FsmState.FETCHING_DATA:
         if (event.type === 'FETCH_DATA_SUCCESS') {
@@ -399,9 +419,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson);
           contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `FETCH_DATA_SUCCESS. Transitioning to DATA_FETCH_SUCCEEDED.`);
-          return FsmState.DATA_FETCH_SUCCEEDED;
-        }
-        if (event.type === 'FETCH_DATA_FAILURE') {
+          nextCurrentState = FsmState.DATA_FETCH_SUCCEEDED;
+        } else if (event.type === 'FETCH_DATA_FAILURE') {
           const errorMsg = event.payload.message || 'Data fetch failed';
           const errorDetails = event.payload.error || 'Unknown data fetch error';
           const dataFetchErrorJson = errorJsonWithDetails(errorMsg, errorDetails);
@@ -416,9 +435,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
           contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `FETCH_DATA_FAILURE. Error: ${errorMsg}. Transitioning to DATA_FETCH_FAILED.`);
-          return FsmState.DATA_FETCH_FAILED;
-        }
-         if (event.type === 'STALE_DATA_FROM_ACTION') {
+          nextCurrentState = FsmState.DATA_FETCH_FAILED;
+        } else if (event.type === 'STALE_DATA_FROM_ACTION') {
           const { error, message, expectedTicker, foundTickerInSnapshot } = event.payload;
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `STALE_DATA_FROM_ACTION. Expected: ${expectedTicker}, Found: ${foundTickerInSnapshot}. Error: ${error}. Msg: ${message}. Transitioning to STALE_DATA_FROM_ACTION_ERROR.`);
           const staleErrorJson = errorJsonWithDetails(message, `Expected ${expectedTicker}, got ${foundTickerInSnapshot || 'unknown'} from action state.`);
@@ -430,33 +448,32 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setAiAnalyzedTaRequestJson(skippedDueToStale); contextSetters.setAiAnalyzedTaJson(skippedDueToStale);
           contextSetters.setAiKeyTakeawaysRequestJson(skippedDueToStale); contextSetters.setAiKeyTakeawaysJson(skippedDueToStale);
           contextSetters.setAiOptionsAnalysisRequestJson(skippedDueToStale); contextSetters.setAiOptionsAnalysisJson(skippedDueToStale);
-          return FsmState.STALE_DATA_FROM_ACTION_ERROR;
+          nextCurrentState = FsmState.STALE_DATA_FROM_ACTION_ERROR;
         }
-        return state;
+        break;
 
       case FsmState.DATA_FETCH_SUCCEEDED:
         if (event.type === 'INITIATE_AI_TA_SEQUENCE') {
             logDebug('StockAnalysisContext', 'FSM_TRANSITION', `DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders. Transitioning to AWAITING_AI_TA_TRIGGER.`);
             contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
             contextSetters.setAiAnalyzedTaJson(pendingJson);
-            return FsmState.AWAITING_AI_TA_TRIGGER;
+            nextCurrentState = FsmState.AWAITING_AI_TA_TRIGGER;
         }
-        return state;
+        break;
       case FsmState.DATA_FETCH_FAILED:
       case FsmState.STALE_DATA_FROM_ACTION_ERROR:
         if (event.type === 'PROCEED_TO_IDLE') {
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${state} -> IDLE on PROCEED_TO_IDLE. Resetting isFullAnalysisTriggered.`);
+            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${currentActualState} -> IDLE on PROCEED_TO_IDLE. Resetting isFullAnalysisTriggered.`);
             _setIsFullAnalysisTriggeredInternalState(false);
-            return FsmState.IDLE;
+            nextCurrentState = FsmState.IDLE;
         }
-        return state;
+        break;
 
       case FsmState.AWAITING_AI_TA_TRIGGER:
         if (event.type === 'TRIGGER_AI_TA') {
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `TRIGGER_AI_TA. Transitioning to ANALYZING_TA.`);
-          return FsmState.ANALYZING_TA;
-        }
-        if (event.type === 'AI_TA_FAILURE') { 
+          nextCurrentState = FsmState.ANALYZING_TA;
+        } else if (event.type === 'AI_TA_FAILURE') { 
             const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA failed (consistency check in AWAITING)';
             const taErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiAnalyzedTaRequestJson(errorPayload.aiAnalyzedTaRequestJson || taErrorJson); contextSetters.setAiAnalyzedTaJson(taErrorJson);
@@ -464,18 +481,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
             contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
             logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
-            return FsmState.AI_TA_FAILED;
+            nextCurrentState = FsmState.AI_TA_FAILED;
         }
-        return state;
+        break;
 
       case FsmState.ANALYZING_TA:
         if (event.type === 'AI_TA_SUCCESS') {
           contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson);
           contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_SUCCESS. Transitioning to AI_TA_SUCCEEDED.`);
-          return FsmState.AI_TA_SUCCEEDED;
-        }
-        if (event.type === 'AI_TA_FAILURE') {
+          nextCurrentState = FsmState.AI_TA_SUCCEEDED;
+        } else if (event.type === 'AI_TA_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA analysis failed';
           const taErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiAnalyzedTaRequestJson(errorPayload.aiAnalyzedTaRequestJson || taErrorJson); contextSetters.setAiAnalyzedTaJson(taErrorJson);
@@ -483,90 +499,153 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
           contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_FAILURE. Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
-          return FsmState.AI_TA_FAILED;
+          nextCurrentState = FsmState.AI_TA_FAILED;
         }
-        return state;
+        break;
 
       case FsmState.AI_TA_SUCCEEDED:
-        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State is AI_TA_SUCCEEDED. Current event: ${event.type}`);
-        if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') {
-            contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event FINALIZE_AUTOMATED_PIPELINE received in AI_TA_SUCCEEDED state. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-            return FsmState.FULL_ANALYSIS_COMPLETE;
-        }
-        return state; 
-
       case FsmState.AI_TA_FAILED:
-        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State is AI_TA_FAILED. Current event: ${event.type}`);
+        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State is ${currentActualState}. Current event: ${event.type}`);
         if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') {
-            contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event FINALIZE_AUTOMATED_PIPELINE received in AI_TA_FAILED state. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-            return FsmState.FULL_ANALYSIS_COMPLETE;
+            contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event FINALIZE_AUTOMATED_PIPELINE received in ${currentActualState} state. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+            nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
-        return state; 
+        break; 
 
       case FsmState.GENERATING_KEY_TAKEAWAYS:
         if (event.type === 'KEY_TAKEAWAYS_SUCCESS') {
           contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
           contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `KEY_TAKEAWAYS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          return FsmState.FULL_ANALYSIS_COMPLETE;
-        }
-        if (event.type === 'KEY_TAKEAWAYS_FAILURE') {
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
+        } else if (event.type === 'KEY_TAKEAWAYS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Key Takeaways generation failed';
           const ktErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiKeyTakeawaysRequestJson(errorPayload.aiKeyTakeawaysRequestJson || ktErrorJson);
           contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `KEY_TAKEAWAYS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          return FsmState.FULL_ANALYSIS_COMPLETE;
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
-        return state;
+        break;
 
       case FsmState.ANALYZING_OPTIONS:
         if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') {
           contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
           contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `OPTIONS_ANALYSIS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          return FsmState.FULL_ANALYSIS_COMPLETE;
-        }
-        if (event.type === 'OPTIONS_ANALYSIS_FAILURE') {
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
+        } else if (event.type === 'OPTIONS_ANALYSIS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Options Analysis failed';
           const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson);
           contextSetters.setAiOptionsAnalysisJson(optErrorJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `OPTIONS_ANALYSIS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          return FsmState.FULL_ANALYSIS_COMPLETE;
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
-        return state;
+        break;
 
       case FsmState.FULL_ANALYSIS_COMPLETE:
         if (event.type === 'PROCEED_TO_IDLE') {
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${state} handling PROCEED_TO_IDLE. Resetting isFullAnalysisTriggered. Transitioning to IDLE.`);
+            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${currentActualState} handling PROCEED_TO_IDLE. Resetting isFullAnalysisTriggered. Transitioning to IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false);
-            return FsmState.IDLE;
-        }
-        if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
+            nextCurrentState = FsmState.IDLE;
+        } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Key Takeaways for ${event.payload.ticker} from FULL_ANALYSIS_COMPLETE. Setting placeholders.`);
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
           contextSetters.setAiKeyTakeawaysJson(pendingJson);
-          return FsmState.GENERATING_KEY_TAKEAWAYS;
-        }
-        if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
+          nextCurrentState = FsmState.GENERATING_KEY_TAKEAWAYS;
+        } else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
           logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Options Analysis for ${event.payload.ticker} from FULL_ANALYSIS_COMPLETE. Setting placeholders.`);
           contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
           contextSetters.setAiOptionsAnalysisJson(pendingJson);
-          return FsmState.ANALYZING_OPTIONS;
-        }
-        if (event.type === 'ADD_CHAT_MESSAGE' && 'payload' in event) {
+          nextCurrentState = FsmState.ANALYZING_OPTIONS;
+        } else if (event.type === 'ADD_CHAT_MESSAGE' && 'payload' in event) {
           const uniqueMessageSuffix = Math.random().toString(36).substring(2, 9);
           addChatMessage({...event.payload, id: `${event.payload.id}_${uniqueMessageSuffix}` });
         }
-        return state;
+        break;
       default:
-        logDebug('StockAnalysisContext', 'FSM_UnhandledState', `Unhandled state in FSM reducer: ${state} for event ${event.type}`);
-        return state;
+        logDebug('StockAnalysisContext', 'FSM_UnhandledState', `Unhandled state in FSM reducer: ${currentActualState} for event ${event.type}`);
+        break;
     }
+    return { current: nextCurrentState, previous: currentActualState };
   };
 
-  const [fsmState, dispatchFsmEvent] = useReducer(fsmReducer, defaultState.fsmState);
+  const [fsmHistory, _dispatchFsmEventActual] = useReducer(fsmReducer, initialFsmHistory);
+  const fsmHistoryRef = useRef<FsmHistoryState>(fsmHistory);
+
+  useEffect(() => {
+    fsmHistoryRef.current = fsmHistory;
+  }, [fsmHistory]);
+
+  const dispatchFsmEvent = useCallback((event: FsmEvent) => {
+    const currentActualState = fsmHistoryRef.current.current;
+    let determinedTarget: FsmState | null = null;
+
+    switch (currentActualState) {
+        case FsmState.IDLE:
+            if (event.type === 'START_FULL_ANALYSIS') determinedTarget = FsmState.INITIALIZING_ANALYSIS;
+            else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = FsmState.GENERATING_KEY_TAKEAWAYS;
+            else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = FsmState.ANALYZING_OPTIONS;
+            break;
+        case FsmState.INITIALIZING_ANALYSIS:
+            if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = FsmState.AWAITING_DATA_FETCH_TRIGGER;
+            break;
+        case FsmState.AWAITING_DATA_FETCH_TRIGGER:
+            if (event.type === 'TRIGGER_DATA_FETCH') determinedTarget = FsmState.FETCHING_DATA;
+            break;
+        case FsmState.FETCHING_DATA:
+            if (event.type === 'FETCH_DATA_SUCCESS') determinedTarget = FsmState.DATA_FETCH_SUCCEEDED;
+            else if (event.type === 'FETCH_DATA_FAILURE') determinedTarget = FsmState.DATA_FETCH_FAILED;
+            else if (event.type === 'STALE_DATA_FROM_ACTION') determinedTarget = FsmState.STALE_DATA_FROM_ACTION_ERROR;
+            break;
+        case FsmState.DATA_FETCH_SUCCEEDED:
+            if (event.type === 'INITIATE_AI_TA_SEQUENCE') determinedTarget = FsmState.AWAITING_AI_TA_TRIGGER;
+            break;
+        case FsmState.AWAITING_AI_TA_TRIGGER:
+            if (event.type === 'TRIGGER_AI_TA') determinedTarget = FsmState.ANALYZING_TA;
+            else if (event.type === 'AI_TA_FAILURE') determinedTarget = FsmState.AI_TA_FAILED; // Direct failure from consistency
+            break;
+        case FsmState.ANALYZING_TA:
+            if (event.type === 'AI_TA_SUCCESS') determinedTarget = FsmState.AI_TA_SUCCEEDED;
+            else if (event.type === 'AI_TA_FAILURE') determinedTarget = FsmState.AI_TA_FAILED;
+            break;
+        case FsmState.AI_TA_SUCCEEDED:
+        case FsmState.AI_TA_FAILED:
+            if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') determinedTarget = FsmState.FULL_ANALYSIS_COMPLETE;
+            break;
+        case FsmState.GENERATING_KEY_TAKEAWAYS:
+            if (event.type === 'KEY_TAKEAWAYS_SUCCESS' || event.type === 'KEY_TAKEAWAYS_FAILURE') determinedTarget = FsmState.FULL_ANALYSIS_COMPLETE;
+            break;
+        case FsmState.ANALYZING_OPTIONS:
+            if (event.type === 'OPTIONS_ANALYSIS_SUCCESS' || event.type === 'OPTIONS_ANALYSIS_FAILURE') determinedTarget = FsmState.FULL_ANALYSIS_COMPLETE;
+            break;
+        case FsmState.FULL_ANALYSIS_COMPLETE:
+            if (event.type === 'PROCEED_TO_IDLE') determinedTarget = FsmState.IDLE;
+            else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = FsmState.GENERATING_KEY_TAKEAWAYS;
+            else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = FsmState.ANALYZING_OPTIONS;
+            break;
+        // DATA_FETCH_FAILED and STALE_DATA_FROM_ACTION_ERROR have PROCEED_TO_IDLE as their target event
+        case FsmState.DATA_FETCH_FAILED:
+        case FsmState.STALE_DATA_FROM_ACTION_ERROR:
+            if (event.type === 'PROCEED_TO_IDLE') determinedTarget = FsmState.IDLE;
+            break;
+    }
+
+    if (determinedTarget) {
+        logDebug('StockAnalysisContext', 'FSM_TARGET', `Event ${event.type} from ${currentActualState} targeting ${determinedTarget}.`);
+        _setTargetFsmDisplayState(determinedTarget);
+    }
+    _dispatchFsmEventActual(event);
+  }, [_dispatchFsmEventActual, _setTargetFsmDisplayState, logDebug]);
+
+  useEffect(() => {
+    // When the actual current FSM state changes (meaning a transition has completed),
+    // clear the target display state.
+    logDebug('StockAnalysisContext', 'FSM_TARGET_CLEAR', `Current FSM state changed to ${fsmHistory.current}. Clearing target display state.`);
+    _setTargetFsmDisplayState(null);
+  }, [fsmHistory.current, logDebug]);
+
 
   useEffect(() => {
       contextOriginals.debug(`[CONTEXT_EFFECT_MONITOR_STATES] States changed: _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}, _logSourceConfig.NATIVE_CONSOLE: ${_logSourceConfig.NATIVE_CONSOLE}, _logSourceConfig.StockAnalysisContext: ${_logSourceConfig.StockAnalysisContext}, _logSourceConfig.DebugConsole: ${_logSourceConfig.DebugConsole}`);
@@ -588,11 +667,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       ...args: any[]
     ) => {
       currentOriginalsForInterceptor[type](...args);
-      // contextOriginals.debug(`[CONTEXT_INTERCEPT] Intercepted. Type: ${type}, Args[0]: ${args[0]}, Marker: ${args[0] === LOGDEBUG_MARKER}, _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
       
       queueMicrotask(() => {
         if (!_isClientDebugConsoleEnabled) {
-          // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Discarding (console disabled). Type: ${type}`);
           return;
         }
 
@@ -604,30 +681,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           source = args[1] as LogSourceId;
           messagesForBuffer = args.slice(3);
           logTypeForBuffer = 'debug';
-          // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug detected. Source: ${source}. _logSourceConfig[${source}]: ${_logSourceConfig[source]}`);
           if (!_logSourceConfig[source]) {
-            // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug for ${source} is DISABLED by config. Discarding.`);
             return;
           }
         } else {
-          // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Native console log. _logSourceConfig.NATIVE_CONSOLE: ${_logSourceConfig['NATIVE_CONSOLE']}`);
           if (!_logSourceConfig['NATIVE_CONSOLE']) {
-            // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] NATIVE_CONSOLE source is DISABLED by config. Discarding.`);
             return;
           }
         }
-        // contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Adding to globalLogBuffer: Type: ${logTypeForBuffer}, Source: ${source}, Messages:`, messagesForBuffer);
         addEntryToGlobalLogBuffer({ type: logTypeForBuffer, messages: messagesForBuffer, source });
       });
     };
 
     if (_isClientDebugConsoleEnabled) {
       contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] APPLYING interceptors.');
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] Intercepting console.log...'); console.log = (...args) => interceptAndProcessLog('log', ...args);
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] Intercepting console.warn...'); console.warn = (...args) => interceptAndProcessLog('warn', ...args);
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] Intercepting console.error...'); console.error = (...args) => interceptAndProcessLog('error', ...args);
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] Intercepting console.info...'); console.info = (...args) => interceptAndProcessLog('info', ...args);
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] Intercepting console.debug...'); console.debug = (...args) => interceptAndProcessLog('debug', ...args);
+      console.log = (...args) => interceptAndProcessLog('log', ...args);
+      console.warn = (...args) => interceptAndProcessLog('warn', ...args);
+      console.error = (...args) => interceptAndProcessLog('error', ...args);
+      console.info = (...args) => interceptAndProcessLog('info', ...args);
+      console.debug = (...args) => interceptAndProcessLog('debug', ...args);
       logDebug('StockAnalysisContext', 'EFFECT_DEBUG_INTERCEPT_ACTIVE', 'Console interception is NOW ACTIVE for UI buffer (call via intercepted console.debug).');
     } else {
       contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] _isClientDebugConsoleEnabled is FALSE. Attempting to RESTORE original console methods.');
@@ -688,7 +760,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     enableAllLogSources,
     disableAllLogSources,
     logDebug,
-    fsmState, dispatchFsmEvent,
+    fsmState: fsmHistory.current, 
+    previousFsmState: fsmHistory.previous,
+    targetFsmDisplayState: _targetFsmDisplayState,
+    dispatchFsmEvent,
   };
 
   return (
