@@ -1,10 +1,10 @@
 
-# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.V OPERATING MANUAL**
+# **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.Z OPERATING MANUAL**
 
-*   **Document Version:** 1.46 (Task 9.A.V - Decouple Chat Summary, Enhance Volatility Prompt)
+*   **Document Version:** 1.47 (Task 9.A.Z - Commit Attempted Fixes for UI/Log Issues)
 *   **Date:** 2025-06-15 
 *   **Author:** Firebase Studio (AI Prototyper)
-*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.V.**
+*   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.Z.**
 
 ## **0. CRITICAL: AI AGENT DEVELOPMENT PROCESS & RULES OF ENGAGEMENT**
 
@@ -53,11 +53,11 @@
 *   **Example:** If the current phase is 9, current task is A (for the full README update), and this is the 0th iteration for this task, the version will be `v2.9.A.0`. If the next task is a bug fix, it will be `v2.9.A.1`.
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.V)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.A.Z)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.V`). This version focuses on simplifying the analysis pipeline trigger and enhancing AI output quality.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.Z`). This version focuses on simplifying the analysis pipeline trigger and enhancing AI output quality.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -75,7 +75,7 @@ The primary strategy for this implementation is **UI-First Development**, manage
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for all data points.
     *   Offer a robust and debuggable backend processing pipeline through the FSM.
 
-## **2. High-Level Goals (Current Version v2.9.A.V)**
+## **2. High-Level Goals (Current Version v2.9.A.Z)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline.
@@ -88,14 +88,21 @@ The primary strategy for this implementation is **UI-First Development**, manage
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging.
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
 
-## **3. Core Application Features (StockSage v2.9.A.V)**
+### **2.1. Known Issues / Current Status (v2.9.A.Z)**
+**WARNING:** This version (v2.9.A.Z) has critical outstanding issues that significantly impact usability and debuggability:
+1.  **Stuck UI / Infinite Loop:** After the "Analyze Stock" button is pressed and the initial automated pipeline (Data Fetch + AI TA) completes (FSM reaches `AI_TA_SUCCEEDED`), the UI often remains in a loading state. The FSM does not consistently transition to `IDLE`, preventing further analysis or interaction with UI elements like the manual AI trigger buttons.
+2.  **Broken Client Debug Console Logs:** The custom client debug console is not capturing or displaying application-specific logs (from `logDebug` or intercepted native `console.*` calls). Only browser/Next.js "Fast Refresh" messages are visible. This severely hinders client-side debugging.
 
-This section details the core features of StockSage v2.9.A.V, serving as the Product Requirements.
+These issues persist despite recent fix attempts and require further investigation in subsequent tasks.
+
+## **3. Core Application Features (StockSage v2.9.A.Z)**
+
+This section details the core features of StockSage v2.9.A.Z, serving as the Product Requirements.
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
 *   **Header:**
-    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.V`).
+    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.A.Z`).
     *   Includes a theme toggler (Light/Dark/System) using `next-themes` and ShadCN `DropdownMenu`.
 *   **Footer:** Contains copyright information and a standard financial disclaimer.
 *   **Theme:** Supports Light and Dark themes, configurable via the header. Theme styles are defined in `src/app/globals.css` using HSL CSS variables.
@@ -103,8 +110,8 @@ This section details the core features of StockSage v2.9.A.V, serving as the Pro
 *   **Client-Side Debug Console:**
     *   Toggleable via a Switch on the main page (`src/app/page.tsx`).
     *   When enabled, it appears as a fixed panel at the bottom of the screen (`src/components/debug-console.tsx`).
-    *   Displays client-side logs captured via a global log buffer and `console.*` interception.
-    *   Features:
+    *   Displays client-side logs captured via a global log buffer and `console.*` interception. **(CURRENTLY BROKEN in v2.9.A.Z)**
+    *   Features (intended):
         *   Search functionality for log messages.
         *   Filtering by log type (DEBUG, INFO, WARN, ERROR, LOG) and log source (component/module name).
         *   Controls to "Select All" / "Clear All" for type and source filters.
@@ -119,13 +126,19 @@ The "Main" tab is the primary user interface for stock analysis.
 *   **Stock Analysis Input Area:**
     *   **Ticker Input:** A text field (`Input`) for users to enter a stock ticker symbol (e.g., "NVDA"). Default: "NVDA".
     *   **Data Source Selector:** A `Select` component, currently defaulted and disabled to "Polygon.io" as it's the only integrated source.
-    *   **"Analyze Stock" Button (v2.9.A.V+ Behavior):** Initiates a "full analysis," which includes:
+    *   **"Analyze Stock" Button (v2.9.A.Y+ Behavior):** Initiates an automated analysis pipeline which includes:
         1.  Fetching all data from Polygon.io (Market Status, Stock Snapshot, Standard TAs, Options Chain).
         2.  Calculating AI Analyzed Technical Analysis (Pivot Points).
-        3.  Generating AI Key Takeaways.
-        4.  Performing AI Options Analysis.
-        *   This triggers the FSM `START_FULL_ANALYSIS` event. Each press wipes all previous analysis-related JSON data (market status, snapshot, TAs, options, all AI results) and starts the pipeline fresh. AI Chat History and Client Debug Console logs are explicitly preserved.
-    *   Button shows loading spinners and is disabled while an analysis pipeline is active (`isPipelineActive` state).
+        *   This triggers the FSM `START_FULL_ANALYSIS` event. Each press wipes all previous analysis-related JSON data (market status, snapshot, TAs, options, all AI results *except manually triggered ones for the current session*) and starts the automated pipeline fresh. AI Chat History and Client Debug Console logs are explicitly preserved.
+        *   Button shows loading spinners and is disabled while an analysis pipeline is active (`isPipelineActive` state). **(CURRENTLY GETS STUCK in v2.9.A.Z)**
+    *   **New "Generate AI Key Takeaways" Button (v2.9.A.Y+ Behavior):**
+        *   Manually triggers AI Key Takeaways generation.
+        *   Enabled only when the main automated pipeline (`Analyze Stock`) is complete (FSM is `IDLE` or `FULL_ANALYSIS_COMPLETE`) AND prerequisite data (Snapshot, Standard TAs, AI Analyzed TA, Market Status) are valid and available in context.
+        *   Disabled if its own AI process (`isPerformAiAnalysisPending`) is active.
+    *   **New "Generate AI Options Analysis" Button (v2.9.A.Y+ Behavior):**
+        *   Manually triggers AI Options Analysis.
+        *   Enabled only when the main automated pipeline is complete AND prerequisite data (Snapshot, Options Chain) are valid and available in context.
+        *   Disabled if its own AI process (`isPerformAiOptionsAnalysisPending`) is active.
 
 *   **Display Card Order & Content:**
     All display cards render data reactively from the `StockAnalysisContext`. They show loading skeletons or "N/A" / error messages if data is pending, unavailable, or an error occurred.
@@ -147,7 +160,7 @@ The "Main" tab is the primary user interface for stock analysis.
     4.  **AI Analyzed Technical Analysis Display (`src/components/ai-analyzed-ta-display.tsx`):**
         *   Displays: Daily Pivot Points (PP, S1, S2, S3, R1, R2, R3) calculated based on the previous day's High, Low, and Close (HLC).
         *   Formatting: Numerical values to two decimal places. The Pivot Point (PP) row is sentiment-colored based on whether the current stock price is above (green) or below (red) it.
-    5.  **AI Key Takeaways Display (`src/components/ai-key-takeaways-display.tsx`):**
+    5.  **AI Key Takeaways Display (`src/components/ai-key-takeaways-display.tsx`):** (Populated by manual button press)
         *   Displays: Five AI-generated key takeaways, each with a category label, a sentiment badge, and the takeaway text.
         *   Categories: Price Action, Trend, Volatility, Momentum, Patterns. The "Volatility" takeaway is prompted to be descriptive.
         *   Formatting: Sentiment badges and text are colored semantically (e.g., bullish is green, bearish is red, neutral/moderate is yellow/orange).
@@ -160,7 +173,7 @@ The "Main" tab is the primary user interface for stock analysis.
         *   Formatting: Numerical values formatted appropriately (currency, percentage, compact numbers, two decimals). The ATM strike row is highlighted.
         *   Header: Dynamically shows Ticker and Expiration Date.
         *   Export/Copy: Buttons to Export or Copy the displayed options chain as CSV.
-    7.  **AI Analyzed Options Chain Display (`src/components/ai-options-analysis-display.tsx`):**
+    7.  **AI Analyzed Options Chain Display (`src/components/ai-options-analysis-display.tsx`):** (Populated by manual button press)
         *   Displays: An expandable card (ShadCN `Accordion`) showing AI-identified Call/Put "Walls" and "OI Clusters."
         *   Content:
             *   **Walls:** Tables for Call Walls and Put Walls, showing Strike and Open Interest. Max 3 walls per side.
@@ -175,14 +188,14 @@ The "Main" tab is the primary user interface for stock analysis.
             *   Scrollable chat history area displaying user and model (AI) messages. AI Chat History is preserved across "Analyze Stock" button presses.
             *   Example prompts (buttons) that pre-fill the input field (e.g., "What is the current price of {TICKER}?").
             *   Controls to Clear Chat History (with confirmation dialog), Copy Chat (JSON), and Export Chat (JSON).
-        *   Context: The chatbot uses all available data from the `StockAnalysisContext` (Snapshot, TAs, AI TA, Key Takeaways, AI Options Analysis, Market Status) and the ongoing chat history to answer questions.
-        *   Initial Message: No automatic initial summary message is generated after analysis. Chat is purely user-initiated.
+        *   Context: The chatbot uses all available data from the `StockAnalysisContext` (Snapshot, TAs, AI TA, *manually generated* Key Takeaways & Options Analysis, Market Status) and the ongoing chat history to answer questions.
+        *   Initial Message: No automatic initial summary message is generated. Chat is purely user-initiated.
         *   Formatting: AI responses use Markdown for better readability (bolding, lists, emojis). Numerical values are formatted to two decimal places, monetary values prefixed with "$".
     9.  **Market Status Display (`src/components/market-status-display.tsx`):**
         *   Displays: A table showing the status of relevant markets (e.g., "NYSE: Open", "NASDAQ: Closed"), server time (ET), and if early/late hours trading is active. Excludes Crypto/FX markets.
 
 *   **Combined Data Export Controls:**
-    *   "Export All to JSON" Button: Downloads a single JSON file containing: Stock Snapshot, Standard TAs, AI Analyzed TA, AI Key Takeaways, AI Options Analysis, Options Chain, and Market Status.
+    *   "Export All to JSON" Button: Downloads a single JSON file containing: Stock Snapshot, Standard TAs, AI Analyzed TA, *manually generated* AI Key Takeaways, *manually generated* AI Options Analysis, Options Chain, and Market Status.
     *   "Copy All to JSON" Button: Copies the same combined data to the clipboard.
     *   These buttons are disabled if not all prerequisite data is available or if an analysis pipeline is active.
 
@@ -192,8 +205,8 @@ The "Debug" tab provides developers and advanced users with raw data views and c
 *   **Raw JSON Display Areas:**
     *   Read-only `Textarea` components, each with a "Copy JSON" button.
     *   Areas for:
-        *   Polygon Adapter Input JSON (parameters sent to the main Polygon fetching function).
-        *   Polygon Adapter Output Summary JSON (summary of data fetched or errors from the adapter).
+        *   Polygon Adapter Input JSON.
+        *   Polygon Adapter Output Summary JSON.
         *   Market Status JSON.
         *   Stock Snapshot JSON.
         *   Standard Technical Indicators JSON.
@@ -204,12 +217,11 @@ The "Debug" tab provides developers and advanced users with raw data views and c
         *   AI Options Analysis JSON.
         *   AI Key Takeaways Request JSON.
         *   AI Key Takeaways JSON.
-        *   Chatbot Request JSON (includes interactive chat requests only).
-        *   Chatbot Response JSON (includes interactive chat responses only).
-        *   *Note:* The FSM Pipeline logs are primarily viewed via the Client Debug Console panel itself, not a dedicated Textarea here, for real-time updates.
+        *   Chatbot Request JSON (interactive chat only).
+        *   Chatbot Response JSON (interactive chat only).
 *   **Client Debug Log Source Settings (`src/components/debug-settings-card.tsx`):**
     *   A card allowing users to toggle individual client-side log sources ON/OFF.
-    *   Sources correspond to `LogSourceId` from `src/lib/debug-log-types.ts` (e.g., "KeyMetricsDisplay", "StockAnalysisContext", "FSM\_PIPELINE").
+    *   Sources correspond to `LogSourceId` from `src/lib/debug-log-types.ts`.
     *   Includes "Enable All Log Sources" and "Disable All Sources (Except Console Itself)" buttons.
     *   These settings control which logs appear in the pop-up Client Debug Console.
 
@@ -217,57 +229,26 @@ The "Debug" tab provides developers and advanced users with raw data views and c
 This section details the server-side logic, data fetching, AI processing, and the overall FSM-driven architecture.
 
 *   **Data Retrieval (Polygon.io via `@polygon.io/client-js`):**
-    *   Handled by `src/services/data-sources/adapters/polygon-adapter.ts`.
-    *   Fetches:
-        *   **Market Status:** Using `client.reference.marketStatus()`. Includes a cache-busting parameter `_t: Date.now()`.
-        *   **Ticker Snapshot:** Using `client.stocks.snapshotTicker()`. Includes a cache-busting parameter `_t: Date.now()`. Provides current day, previous day, and latest minute bar data.
-        *   **Standard Technical Indicators:** Each call (`rsi`, `macd`, `ema`, `sma`) includes a cache-busting parameter `_t: Date.now()`.
-        *   **Options Chain Snapshot:** Using `client.options.snapshotOptionChain()`. Includes a cache-busting parameter `_t: Date.now()`. Fetches Calls and Puts separately for the nearest upcoming Friday expiration date.
-    *   The adapter includes delays between API calls to respect rate limits. A new `PolygonAdapter` instance is created for each `getFullStockData` call, passing the target ticker to its constructor to ensure isolation.
-    *   Output: An `AdapterOutput` object containing the `StockDataPackage` and raw request/response summaries.
+    *   Handled by `src/services/data-sources/adapters/polygon-adapter.ts`. (No changes here for v2.9.A.Z)
 
-*   **Genkit AI Flows (Located in `src/ai/flows/`):**
-    All flows use the global `ai` instance from `src/ai/genkit.ts` and models defined in `src/ai/models.ts`. Server actions in `src/actions/` wrap these flows.
+*   **Genkit AI Flows (Located in `src/ai/flows/`):** (No changes to flow logic for v2.9.A.Z, but their invocation changes)
+    1.  **AI Analyzed Technical Analysis (`analyze-ta-flow.ts`):** (Part of automated pipeline)
+    2.  **AI Key Takeaways (`analyze-stock-data.ts`):** (Manually triggered)
+    3.  **AI Options Analysis (`analyze-options-chain-flow.ts`):** (Manually triggered)
+    4.  **AI Chatbot (`chat-flow.ts`):** (User-initiated)
 
-    1.  **AI Analyzed Technical Analysis (`analyze-ta-flow.ts`):**
-        *   **Purpose:** Calculates classic daily Pivot Points.
-        *   **Input (`AnalyzeTaInput`):** Previous day's High, Low, Close prices.
-        *   **Output (`AnalyzeTaOutput`):** Pivot Point (PP), Support levels (S1, S2, S3), Resistance levels (R1, R2, R3).
-    2.  **AI Key Takeaways (`analyze-stock-data.ts`):**
-        *   **Purpose:** Generates 5 key takeaways with associated sentiment. Volatility takeaway prompt enhanced for descriptiveness.
-        *   **Input (`StockAnalysisInput`):** Ticker, Stock Snapshot JSON, Standard TAs JSON, AI Analyzed TA JSON, Market Status JSON.
-        *   **Output (`StockAnalysisOutput`):** Object with takeaways for Price Action, Trend, Volatility, Momentum, Patterns.
-    3.  **AI Options Analysis (`analyze-options-chain-flow.ts`):**
-        *   **Purpose:** Identifies significant Call/Put "Walls" and "OI Clusters."
-        *   **Input (`AiOptionsAnalysisInput`):** Ticker, Options Chain JSON, Current Underlying Price.
-        *   **Output (`AiOptionsAnalysisOutput`):** Arrays for walls/clusters and an `analysisSummary`.
-    4.  **AI Chatbot (`chat-flow.ts`):**
-        *   **Purpose:** Provides contextual, conversational answers based on user input.
-        *   **Input (`ChatInput`):** Ticker, all context JSONs, chat history, user input.
-        *   **Output (`ChatOutput`):** `response`.
+*   **Server Action Validation (`analyze-stock-server-action.ts`):** (No changes here for v2.9.A.Z)
 
-*   **Server Action Validation (`analyze-stock-server-action.ts`):**
-    *   `fetchStockDataAction` maintains a critical check: if the ticker in the `stockSnapshot` returned by the `polygon-adapter` does *not* match the requested ticker, the action returns an explicit error. This helps catch stale data issues closer to the source.
-
-*   **FSM-Driven Architecture Flow (Managed by `StockAnalysisContext` and `MainTabContent`):**
+*   **FSM-Driven Architecture Flow (Managed by `StockAnalysisContext` and `MainTabContent` - as of v2.9.A.Y design, but with known issues in v2.9.A.Z):**
     The analysis pipeline is orchestrated by a Finite State Machine (FSM).
-    1.  **Initiation:** User clicks "Analyze Stock". `activeAnalysisTicker` in `MainTabContent` is set. `analysisTriggeredForTickerRef` is set. FSM event (`START_FULL_ANALYSIS`) is dispatched. Chat history is *preserved*. All analysis-related JSONs in context are *wiped* to "pending...".
-    2.  **Initialization (`INITIALIZING_ANALYSIS` state):** FSM reducer calls `setAllPlaceholdersInternal`. `isFullAnalysisTriggered` is set. Transitions to `AWAITING_DATA_FETCH_TRIGGER`.
-    3.  **Data Fetching (`AWAITING_DATA_FETCH_TRIGGER` -> `FETCHING_DATA` -> `DATA_FETCH_SUCCEEDED`/`FAILED`/`STALE_DATA_FROM_ACTION_ERROR`):**
-        *   `MainTabContent` observes `AWAITING_DATA_FETCH_TRIGGER`, dispatches `TRIGGER_DATA_FETCH`.
-        *   Reducer transitions to `FETCHING_DATA`.
-        *   `MainTabContent` observes `FETCHING_DATA`, calls `analyzeStockFormAction({ ticker: activeAnalysisTicker })`.
-        *   Upon action completion (`analyzeStockState` update):
-            *   `MainTabContent` validates `analyzeStockState.data.stockSnapshotJson.ticker` against `analysisTriggeredForTickerRef.current`.
-            *   If stale, dispatches `STALE_DATA_FROM_ACTION` to FSM. Reducer sets context JSONs to error/skipped, transitions to `STALE_DATA_FROM_ACTION_ERROR`, then `IDLE`.
-            *   If consistent and success, dispatches `FETCH_DATA_SUCCESS`. Reducer updates context JSONs.
-            *   If action error, dispatches `FETCH_DATA_FAILURE`. Reducer updates context.
-    4.  **Post Data Fetch & Subsequent AI Steps:**
-        *   The `useEffect` hooks in `MainTabContent` for `DATA_FETCH_SUCCEEDED`, `AI_TA_SUCCEEDED`, etc., gatekeep progression. They check if their *own output JSONs* (now in context) and other prerequisites for the *next* step are ready and consistent (especially snapshot ticker) before dispatching `INITIATE_NEXT_AI_STEP_SEQUENCE`.
-        *   The `AWAITING_..._TRIGGER` effects then simply dispatch `TRIGGER_...`.
-        *   This pattern repeats for AI TA, Key Takeaways, and Options Analysis.
-    5.  **Pipeline End:** After `OPTIONS_ANALYSIS_SUCCEEDED` or `OPTIONS_ANALYSIS_FAILED`, the FSM transitions to `FULL_ANALYSIS_COMPLETE`, then to `IDLE`. No automatic chat summary is generated.
-    *   **Error/Skipped State Handling:** If any step fails (or stale data detected), the FSM reducer sets subsequent, dependent steps' JSONs in context to appropriate "skipped" or "error" statuses.
+    1.  **Initiation (Automated Part):** User clicks "Analyze Stock". FSM event (`START_FULL_ANALYSIS`) is dispatched.
+    2.  **Data Fetching & AI TA:** FSM progresses through fetching data and then calculating AI Analyzed TA.
+    3.  **Automated Pipeline End:** After `AI_TA_SUCCEEDED` or `AI_TA_FAILED`, FSM transitions to `FULL_ANALYSIS_COMPLETE`.
+    4.  **Return to Idle:** From `FULL_ANALYSIS_COMPLETE`, `MainTabContent` should detect this and dispatch `PROCEED_TO_IDLE`, which should reset the FSM to `IDLE`, re-enabling buttons. **(THIS STEP IS CURRENTLY FAILING in v2.9.A.Z)**
+    5.  **Manual AI Triggers:**
+        *   User clicks "Generate AI Key Takeaways". `MainTabContent` dispatches `TRIGGER_MANUAL_KEY_TAKEAWAYS`. FSM moves to `GENERATING_KEY_TAKEAWAYS`. After success/failure, FSM returns to `FULL_ANALYSIS_COMPLETE` (then `IDLE`).
+        *   User clicks "Generate AI Options Analysis". `MainTabContent` dispatches `TRIGGER_MANUAL_OPTIONS_ANALYSIS`. FSM moves to `ANALYZING_OPTIONS`. After success/failure, FSM returns to `FULL_ANALYSIS_COMPLETE` (then `IDLE`).
+    *   **Error/Skipped State Handling:** If any step fails, subsequent dependent steps' JSONs are set to appropriate "skipped" or "error" statuses.
 
 ## **4. Technology Stack (Mandatory)**
 
@@ -324,7 +305,7 @@ This section details the server-side logic, data fetching, AI processing, and th
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9 In Progress. Current application version: v2.9.A.V.)*
+*(Status: Phase 9 In Progress. Current application version: v2.9.A.Z.)*
 
 ---
 **Phase 0-8: COMPLETE**
@@ -344,7 +325,11 @@ This section details the server-side logic, data fetching, AI processing, and th
     *   **Task 9.9.A.S: Implement cache-busting in Polygon adapter (v2.9.A.S):** Status: **COMPLETE**
     *   **Task 9.9.A.T: Simplify analysis trigger, preserve chat/logs, wipe data JSONs (v2.9.A.T):** Status: **COMPLETE**
     *   **Task 9.9.A.U: Fix Chatbot Duplicate Key Error (v2.9.A.U):** Status: **COMPLETE**
-    *   **Task 9.9.A.V: Decouple Chat Summary & Enhance Volatility Prompt (v2.9.A.V):** Status: **COMPLETE** (This task)
+    *   **Task 9.9.A.V: Decouple Chat Summary & Enhance Volatility Prompt (v2.9.A.V):** Status: **COMPLETE**
+    *   **Task 9.9.A.W: Fix Analyze Stock Button Stuck Loading (v2.9.A.W):** Status: **COMPLETE**
+    *   **Task 9.9.A.X: Stabilize Client Console Logging (v2.9.A.X):** Status: **COMPLETE**
+    *   **Task 9.9.A.Y: Rework AI Analysis Pipeline & Add Manual Triggers (v2.9.A.Y):** Status: **COMPLETE**
+    *   **Task 9.9.A.Z: Attempt to Fix Stuck UI & Broken Logs (v2.9.A.Z):** - Status: **IN PROGRESS (Attempted Fixes, Issues Persist)**
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
@@ -352,8 +337,9 @@ This section details the server-side logic, data fetching, AI processing, and th
 | Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                                                                                          |
 | :------ | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ...     | ...          | ...                           | ... (Previous changelog entries up to 1.45 / v2.9.A.U remain) ...                                                                                                                                                                                                                                           |
-| 1.45    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.U (Fix Chatbot Duplicate Key Error) COMPLETE.** Application version `v2.9.A.U`. Enhanced uniqueness of IDs for AI-generated summary messages in `StockAnalysisContext` to prevent React key collisions. Header displays `v2.9.A.U`. Phase 9 Task 9.9.A.U status updated. **Commit: [Prev. Hash for v2.9.A.U]** |
-| **1.46**| **2025-06-15**| Firebase Studio (AI Prototyper) | **Task 9.9.A.V (Decouple Chat Summary & Enhance Volatility Prompt) COMPLETE.** Application version `v2.9.A.V`. README updated to reflect features of v2.9.A.V: automatic chat summary removed from main pipeline; volatility prompt enhanced. UI Header displays `v2.9.A.V`. Phase 9 Task 9.9.A.V status updated. **Commit: 731cd246** |
+| 1.45    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.U (Fix Chatbot Duplicate Key Error) COMPLETE.** Application version `v2.9.A.U`. Enhanced uniqueness of IDs for AI-generated summary messages in `StockAnalysisContext` to prevent React key collisions. Header displays `v2.9.A.U`. Phase 9 Task 9.9.A.U status updated. **Commit: [Hash for v2.9.A.U]** |
+| 1.46    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.V (Decouple Chat Summary & Enhance Volatility Prompt) COMPLETE.** Application version `v2.9.A.V`. README updated to reflect features of v2.9.A.V: automatic chat summary removed from main pipeline; volatility prompt enhanced. UI Header displays `v2.9.A.V`. Phase 9 Task 9.9.A.V status updated. **Commit: 731cd246** |
+| **1.47**| **2025-06-15**| Firebase Studio (AI Prototyper) | **Task 9.9.A.Z (Attempt to Fix Stuck UI & Broken Logs) - ISSUES PERSIST.** Application version `v2.9.A.Z`. Attempted fixes for UI loop and broken console logs in v2.9.A.W, v2.9.A.X, v2.9.A.Y (pipeline rework), and v2.9.A.Z. README updated with current app state, known issues, and commit details. UI Header displays `v2.9.A.Z`. Phase 9 Task 9.9.A.Z status: IN PROGRESS. **Commit: 2c7498c4** |
 
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
@@ -361,21 +347,7 @@ This section details the server-side logic, data fetching, AI processing, and th
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme.
 
 ---
-... (Previous commit logs up to v2.9.A.S remain)
-
----
-**App Version:** `v2.9.A.T` (Simplify analysis trigger, preserve chat/logs, wipe data JSONs)
-**Tag:** `Phase-9_Task-9.A.T_SimplifyAnalysisTrigger-WipeData` - Commit Hash: `[Prev. Hash for v2.9.A.T]`
-**Subject:** `feat(analysis): Simplify analysis trigger, preserve chat/logs (v2.9.A.T)`
-**Details:**
-Removed 'AI Full Stock Analysis' button. 'Analyze Stock' button now always triggers a full analysis pipeline. On every press, all data JSONs (snapshot, TAs, options, AI results, API logs, initial chatbot summary request/response) are wiped by resetting them to a 'pending...' state. AI Chat History and Client Debug Console logs are explicitly preserved across these analyses. Removed redundant FSM event `START_ANALYZE_STOCK`. UI Header updated to `v2.9.A.T`. `README.md` updated.
-
----
-**App Version:** `v2.9.A.U` (Fix Chatbot Duplicate Key Error)
-**Tag:** `Phase-9_Task-9.A.U_FixChatbotDuplicateKey` - Commit Hash: `[Prev. Hash for v2.9.A.U]`
-**Subject:** `fix(chat): Ensure unique keys for AI summary messages (v2.9.A.U)`
-**Details:**
-Enhanced uniqueness of IDs for AI-generated summary messages in `StockAnalysisContext` by appending a random suffix to the timestamp. This prevents React key collisions if multiple summaries are generated rapidly. UI Header updated to `v2.9.A.U`. `README.md` updated.
+... (Previous commit logs up to v2.9.A.U remain)
 
 ---
 **App Version:** `v2.9.A.V` (Decouple Chat Summary & Enhance Volatility Prompt)
@@ -383,8 +355,38 @@ Enhanced uniqueness of IDs for AI-generated summary messages in `StockAnalysisCo
 **Subject:** `feat(analysis): Decouple auto chat summary, enhance volatility prompt (v2.9.A.V)`
 **Details:**
 Modified "Analyze Stock" button to trigger full pipeline up to AI Options Analysis only; automatic AI chat summary generation removed. Chatbot is now purely for user-initiated questions. Volatility prompt in `analyze-stock-data.ts` enhanced for more descriptive output. Removed `generate-full-analysis-summary-flow.ts`, `generate-chat-summary-action.ts`, `chat-summary-schemas.ts` (manual user deletion). Updated FSM in `StockAnalysisContext`, `MainTabContent`, and `debug-log-types.ts`. UI Header updated to `v2.9.A.V`. `README.md` updated to reflect changes.
+
+---
+**App Version:** `v2.9.A.W` (Fix Analyze Stock Button Stuck Loading)
+**Tag:** `Phase-9_Task-9.A.W_FixAnalyzeButtonStuck` - Commit Hash: `[Hash for v2.9.A.W]`
+**Subject:** `fix(fsm): Ensure FSM transitions to IDLE after options analysis (v2.9.A.W)`
+**Details:**
+Modified FSM in StockAnalysisContext: 'ANALYZING_OPTIONS' state, upon success or failure of 'OPTIONS_ANALYSIS_*' events, now transitions directly to 'FULL_ANALYSIS_COMPLETE'. This allows existing UI logic to correctly proceed to 'IDLE', re-enabling the "Analyze Stock" button. UI Header updated to v2.9.A.W.
+
+---
+**App Version:** `v2.9.A.X` (Stabilize Client Console Logging)
+**Tag:** `Phase-9_Task-9.A.X_StabilizeClientLogging` - Commit Hash: `[Hash for v2.9.A.X]`
+**Subject:** `fix(logging): Stabilize client console log interception (v2.9.A.X)`
+**Details:**
+Modified the dependency array of the console interception useEffect in StockAnalysisContext to [_isClientDebugConsoleEnabled, logDebug] to make it less prone to re-running and improve reliability of log capture. Added diagnostic logs. UI Header updated to v2.9.A.X.
+
+---
+**App Version:** `v2.9.A.Y` (Rework AI Analysis Pipeline & Add Manual Triggers)
+**Tag:** `Phase-9_Task-9.A.Y_ReworkPipeline-ManualTriggers` - Commit Hash: `[Hash for v2.9.A.Y]`
+**Subject:** `refactor(analysis): Shorten auto pipeline, add manual AI triggers (v2.9.A.Y)`
+**Details:**
+Refactored the stock analysis pipeline: "Analyze Stock" button now concludes after AI Analyzed Technical Analysis. Introduced separate buttons for "Generate AI Key Takeaways" and "Generate AI Options Analysis," enabled when prerequisites are met. Updated FSM in StockAnalysisContext and UI logic in MainTabContent to support this new flow. UI Header updated to v2.9.A.Y.
+
+---
+**App Version:** `v2.9.A.Z` (Attempt to Fix Stuck UI & Broken Logs - ISSUES PERSIST)
+**Tag:** `Phase-9_Task-9.A.Z_AttemptFixUI-Logs` - Commit Hash: `2c7498c4`
+**Subject:** `fix(app): Attempt to resolve stuck UI and broken console logs (v2.9.A.Z)`
+**Details:**
+This commit includes changes intended to address two critical issues:
+1. Stuck UI after 'Analyze Stock': Ensured FSM transitions correctly from AI_TA_SUCCEEDED/FAILED to FULL_ANALYSIS_COMPLETE and then to IDLE. Added robust logging in MainTabContent's useEffect for PROCEED_TO_IDLE dispatch. (Note: This issue remains unresolved post-commit.)
+2. Broken Client Console Logs: Re-verified and ensured simplified dependency array for console interception useEffect in StockAnalysisContext. Added extensive diagnostic logging. (Note: This issue also remains unresolved post-commit.)
+UI Header updated to v2.9.A.Z. README.md updated.
 ---
 *(Future commit logs will follow)*
-
 
     
