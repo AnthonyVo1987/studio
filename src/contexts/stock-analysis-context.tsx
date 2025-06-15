@@ -337,10 +337,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === false) met. Calling _setClientDebugConsoleOpen(false).`);
         _setClientDebugConsoleOpen(false);
     }
-  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals]);
+  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals]); // Removed enableAllLogSources from dependencies
 
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
+    contextOriginals.debug('[CONTEXT_FSM_REDUCER_ENTRY]', `Processing event: ${event.type} on current state: ${state}`);
     contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `Event: ${event.type}, Current State: ${state}, Payload (keys):`,
         event.type !== 'ADD_CHAT_MESSAGE' && 'payload' in event ? Object.keys(event.payload || {}).join(', ') : (event.type === 'ADD_CHAT_MESSAGE' ? 'ChatMessage' : 'NoPayload'));
 
@@ -453,7 +454,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `TRIGGER_AI_TA. Transitioning to ANALYZING_TA.`);
           return FsmState.ANALYZING_TA;
         }
-        if (event.type === 'AI_TA_FAILURE') {
+        if (event.type === 'AI_TA_FAILURE') { // This might be triggered by consistency checks in MainTabContent
             const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA failed (consistency check in AWAITING)';
             const taErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiAnalyzedTaRequestJson(errorPayload.aiAnalyzedTaRequestJson || taErrorJson); contextSetters.setAiAnalyzedTaJson(taErrorJson);
@@ -461,7 +462,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
             contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
             logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
-            return FsmState.AI_TA_FAILED;
+            return FsmState.AI_TA_FAILED; // Directly to AI_TA_FAILED
         }
         return state;
 
@@ -485,11 +486,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return state;
 
       case FsmState.AI_TA_SUCCEEDED:
-        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State: AI_TA_SUCCEEDED. Transitioning to FULL_ANALYSIS_COMPLETE.`);
         return FsmState.FULL_ANALYSIS_COMPLETE;
 
       case FsmState.AI_TA_FAILED:
-        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State: AI_TA_FAILED. Transitioning to FULL_ANALYSIS_COMPLETE.`);
         return FsmState.FULL_ANALYSIS_COMPLETE;
 
       case FsmState.GENERATING_KEY_TAKEAWAYS:
