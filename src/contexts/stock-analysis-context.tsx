@@ -239,7 +239,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
-    console.debug(LOGDEBUG_MARKER, source, category, ...messages);
+      console.debug(LOGDEBUG_MARKER, source, category, ...messages);
   }, []);
 
   const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
@@ -307,7 +307,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setChatbotRequestJson, setChatbotResponseJson,
   };
 
-  // --- Start of functions potentially causing SSR ReferenceError ---
   const enableAllLogSources = () => {
     contextOriginals.debug('[CONTEXT_ENABLE_ALL_SOURCES] Called.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
@@ -326,21 +325,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     contextOriginals.debug('[CONTEXT_DISABLE_ALL_SOURCES] newConfig prepared:', JSON.stringify(newConfig));
     _setLogSourceConfig(newConfig);
   };
-  // --- End of functions potentially causing SSR ReferenceError ---
-
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
     contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Called with: ${enabled}. Current _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
     _setClientDebugConsoleEnabled(enabled);
     if (enabled) {
         contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === true) met. Calling enableAllLogSources and _setClientDebugConsoleOpen(true).`);
-        enableAllLogSources(); // Calls the plain function
+        enableAllLogSources();
         _setClientDebugConsoleOpen(true);
     } else {
         contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === false) met. Calling _setClientDebugConsoleOpen(false).`);
         _setClientDebugConsoleOpen(false);
     }
-  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug, contextOriginals]); // Removed enableAllLogSources from deps as it's now a plain function
+  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals]);
 
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
@@ -488,8 +485,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return state;
 
       case FsmState.AI_TA_SUCCEEDED:
+        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State: AI_TA_SUCCEEDED. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+        return FsmState.FULL_ANALYSIS_COMPLETE;
+
       case FsmState.AI_TA_FAILED:
-        logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${state}: Automated pipeline part complete. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+        contextOriginals.debug('[CONTEXT_FSM_REDUCER]', `State: AI_TA_FAILED. Transitioning to FULL_ANALYSIS_COMPLETE.`);
         return FsmState.FULL_ANALYSIS_COMPLETE;
 
       case FsmState.GENERATING_KEY_TAKEAWAYS:
@@ -577,12 +577,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       ...args: any[]
     ) => {
       currentOriginalsForInterceptor[type](...args);
-
-      currentOriginalsForInterceptor.debug(`[CONTEXT_INTERCEPT_PROCESS] Intercepted: Type: ${type}, Args[0] (if any): ${args[0]}, Marker: ${args[0] === LOGDEBUG_MARKER}`);
-
+      contextOriginals.debug(`[CONTEXT_INTERCEPT] Intercepted. Type: ${type}, Args[0]: ${args[0]}, Marker: ${args[0] === LOGDEBUG_MARKER}, _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
+      
       queueMicrotask(() => {
         if (!_isClientDebugConsoleEnabled) {
-          currentOriginalsForInterceptor.debug(`[CONTEXT_INTERCEPT_PROCESS] Discarding (console disabled). Type: ${type}`);
+          contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Discarding (console disabled). Type: ${type}`);
           return;
         }
 
@@ -594,19 +593,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           source = args[1] as LogSourceId;
           messagesForBuffer = args.slice(3);
           logTypeForBuffer = 'debug';
-          currentOriginalsForInterceptor.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug detected. Source: ${source}. _logSourceConfig[${source}]: ${_logSourceConfig[source]}`);
+          contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug detected. Source: ${source}. _logSourceConfig[${source}]: ${_logSourceConfig[source]}`);
           if (!_logSourceConfig[source]) {
-            currentOriginalsForInterceptor.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug for ${source} is DISABLED by config. Discarding.`);
+            contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] logDebug for ${source} is DISABLED by config. Discarding.`);
             return;
           }
         } else {
-          currentOriginalsForInterceptor.debug(`[CONTEXT_INTERCEPT_PROCESS] Native console log. _logSourceConfig.NATIVE_CONSOLE: ${_logSourceConfig['NATIVE_CONSOLE']}`);
+          contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Native console log. _logSourceConfig.NATIVE_CONSOLE: ${_logSourceConfig['NATIVE_CONSOLE']}`);
           if (!_logSourceConfig['NATIVE_CONSOLE']) {
-            currentOriginalsForInterceptor.debug(`[CONTEXT_INTERCEPT_PROCESS] NATIVE_CONSOLE source is DISABLED by config. Discarding.`);
+            contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] NATIVE_CONSOLE source is DISABLED by config. Discarding.`);
             return;
           }
         }
-        currentOriginalsForInterceptor.debug(`[CONTEXT_INTERCEPT_PROCESS] Adding to globalLogBuffer: Type: ${logTypeForBuffer}, Source: ${source}, Messages:`, messagesForBuffer);
+        contextOriginals.debug(`[CONTEXT_INTERCEPT_PROCESS] Adding to globalLogBuffer: Type: ${logTypeForBuffer}, Source: ${source}, Messages:`, messagesForBuffer);
         addEntryToGlobalLogBuffer({ type: logTypeForBuffer, messages: messagesForBuffer, source });
       });
     };
