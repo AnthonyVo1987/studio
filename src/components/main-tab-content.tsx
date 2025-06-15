@@ -18,6 +18,7 @@ import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-displ
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
 import { Chatbot } from "@/components/chatbot";
+import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context"; // Import the new provider
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from "@/actions/analyze-stock-server-action";
@@ -97,6 +98,7 @@ export function MainTabContent() {
     fsmState,
     dispatchFsmEvent,
     chatHistory: contextChatHistory, 
+    addChatMessage: addChatMessageToGlobalContext, // Get addChatMessage from StockAnalysisContext
   } = useStockAnalysis();
 
   const contextChatHistoryRef = useRef<ChatMessage[]>([]);
@@ -605,11 +607,22 @@ export function MainTabContent() {
           <AiKeyTakeawaysDisplay /> 
           <AiOptionsAnalysisDisplay />
           <OptionsChainTable />
-          <Chatbot
-            chatFormAction={chatFormAction} 
-            isChatPending={isChatPending} 
-            currentTicker={currentTickerForChatDisplay}
-          />
+          <ChatbotFsmProvider
+            chatFormAction={chatFormAction}
+            addChatMessageToGlobalContext={addChatMessageToGlobalContext}
+            currentTicker={activeAnalysisTicker || tickerInput}
+            stockSnapshotJson={contextStockSnapshotJson || '{}'}
+            aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'}
+            aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'}
+            aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'}
+            currentGlobalChatHistory={contextChatHistory}
+            logDebug={logDebug}
+          >
+            <Chatbot
+              isChatPending={isChatPending} 
+              currentTickerForDisplay={currentTickerForChatDisplay}
+            />
+          </ChatbotFsmProvider>
           <MarketStatusDisplay />
         </div>
       </CardContent>

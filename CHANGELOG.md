@@ -1,6 +1,8 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.50 (Task v2.9.C.0):** 2025-06-15 - Firebase Studio (AI Prototyper)
+    *   Updated `README.md` (to v1.50) with version `v2.9.C.0` after Chatbot FSM pilot. Added new Task 9.C.0 to Phased Plan.
 *   **Version 1.1 (Task v2.9.B.9):** 2025-06-15 - Firebase Studio (AI Prototyper)
     *   Updated `README.md` (to v1.49) with new AI operational rules (XML output, token efficiency, immediate coding post-approval).
 *   **Version 1.0 (Task v2.9.B.4):** 2025-06-15 - Firebase Studio (AI Prototyper)
@@ -13,6 +15,12 @@
 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
+---
+**App Version:** `v2.9.C.0` (Pilot Chatbot FSM Refactor)
+**Tag:** `Phase-9_Task-9.C.0_PilotChatbotFSM` - Commit Hash: `user_hash_placeholder`
+**Subject:** `feat(chatbot): Pilot FSM for Chatbot UI state management (v2.9.C.0)`
+**Details:**
+Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component. This refactor encapsulates Chatbot's internal UI logic (input handling, submission state) within its own FSM, improving modularity and predictability. `Chatbot.tsx` now uses this context, while `MainTabContent.tsx` wraps it with the new provider and passes necessary callbacks and props. Server action invocation for chat and global chat history updates remain in their respective places but are now coordinated with the Chatbot FSM. Version updated in UI and documentation.
 ---
 **App Version:** `v2.9.B.9` (Correct Default Log Source Configuration)
 **Tag:** `Phase-9_Task-9.B.9_CorrectDefaultLogConfig` - Commit Hash: `c4637481`

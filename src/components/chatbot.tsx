@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, startTransition } from 'react'; // Added startTransition
+import React, { useEffect, useRef, useCallback } from 'react'; 
 import { useStockAnalysis, type ChatMessage } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,154 +26,90 @@ import {
 } from "@/components/ui/alert-dialog";
 import { copyToClipboard, downloadJson } from '@/lib/export-utils';
 import type { ChatActionInputs } from '@/actions/chat-server-action';
+import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context';
 
 interface ChatbotProps {
-  chatFormAction: (payload: ChatActionInputs) => void;
-  isChatPending: boolean;
-  currentTicker: string;
+  // chatFormAction is now managed by ChatbotFsmProvider
+  isChatPending: boolean; // Still needed to know when server action completes
+  currentTickerForDisplay: string; // For UI display
 }
 
-export function Chatbot({ chatFormAction, isChatPending, currentTicker }: ChatbotProps) {
+export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps) {
   const { 
-    chatHistory, 
-    addChatMessage, 
-    clearChatHistory,
-    stockSnapshotJson,
-    aiKeyTakeawaysJson,
-    aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
-    aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, 
+    chatHistory: globalChatHistory, 
+    clearChatHistory: clearGlobalChatHistory,
     logDebug,
   } = useStockAnalysis();
-  const [userInput, setUserInput] = useState('');
+  
+  const { 
+    fsmState: chatbotFsmState, 
+    userInput: fsmUserInput, 
+    dispatchChatbotFsmEvent 
+  } = useChatbotFsm();
+
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  const isContextJsonReady = useCallback((jsonString: string | null | undefined): boolean => {
-    return !!jsonString && 
-           jsonString !== '{}' && 
-           !jsonString.includes('"status":') && 
-           !jsonString.includes('"error":');
-  }, []);
-
-  const currentContextReady = useCallback(() => {
-    const ready = isContextJsonReady(stockSnapshotJson) && 
-           isContextJsonReady(aiKeyTakeawaysJson) && 
-           isContextJsonReady(contextAiAnalyzedTaJson) && 
-           isContextJsonReady(contextAiOptionsAnalysisJson);
-    logDebug('Chatbot:currentContextReady', `Snapshot: ${isContextJsonReady(stockSnapshotJson)}, Takeaways: ${isContextJsonReady(aiKeyTakeawaysJson)}, AI TA: ${isContextJsonReady(contextAiAnalyzedTaJson)}, Options: ${isContextJsonReady(contextAiOptionsAnalysisJson)}. Overall: ${ready}`);
-    return ready;
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, isContextJsonReady, logDebug]);
-
-
-  useEffect(() => {
-    logDebug('Chatbot', 'Props update / initial render:', { currentTicker, isChatPending });
-  }, [currentTicker, isChatPending, logDebug]);
   
+  logDebug('Chatbot', 'Render', `ChatbotFSM State: ${chatbotFsmState}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
-  }, [chatHistory]);
+  }, [globalChatHistory]);
 
+  // Effect to transition Chatbot FSM back to IDLE when the server action (isChatPending) concludes
   useEffect(() => {
-    const snapshotReady = isContextJsonReady(stockSnapshotJson);
-    const takeawaysReady = isContextJsonReady(aiKeyTakeawaysJson);
-    const taReady = isContextJsonReady(contextAiAnalyzedTaJson);
-    const optionsReady = isContextJsonReady(contextAiOptionsAnalysisJson);
-    logDebug('Chatbot', 'Context readiness check in dedicated effect:', { 
-      isOverallReady: snapshotReady && takeawaysReady && taReady && optionsReady, 
-      snapshotJsonValid: snapshotReady,
-      takeawaysJsonValid: takeawaysReady,
-      aiTaJsonValid: taReady,
-      aiOptionsJsonValid: optionsReady,
-    });
-  }, [stockSnapshotJson, aiKeyTakeawaysJson, contextAiAnalyzedTaJson, contextAiOptionsAnalysisJson, logDebug, isContextJsonReady]);
-
-
-  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
-    const contextIsReady = currentContextReady();
-    if (!userInput.trim() || isChatPending || !contextIsReady) {
-        if(!contextIsReady) {
-            toast({ variant: 'destructive', title: 'Context Not Ready', description: 'Please analyze a stock first for full chat context.' });
-        }
-        logDebug('Chatbot', 'Submit prevented:', {userInputEmpty: !userInput.trim(), isChatPending, contextNotReady: !contextIsReady });
-        return;
+    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && !isChatPending) {
+      logDebug('Chatbot', 'EffectOnIsChatPending', `isChatPending became false while FSM was SUBMITTING_MESSAGE. Dispatching SUBMISSION_CONCLUDED.`);
+      dispatchChatbotFsmEvent({ type: 'SUBMISSION_CONCLUDED' });
     }
+  }, [isChatPending, chatbotFsmState, dispatchChatbotFsmEvent, logDebug]);
 
-    const userMessage: ChatMessage = { id: Date.now().toString() + '_user', role: 'user', content: userInput.trim() };
-    addChatMessage(userMessage); 
 
-    logDebug('Chatbot', `Submitting chat message for ${currentTicker}: "${userInput.trim()}"`);
-
-    const chatPayload: ChatActionInputs = {
-      ticker: currentTicker,
-      stockSnapshotJson,
-      aiKeyTakeawaysJson,
-      aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
-      aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, 
-      chatHistory: [...chatHistory, userMessage], 
-      userInput: userInput.trim(),
-    };
-    logDebug('Chatbot', 'Calling chatFormAction with payload:', {
-        ticker: chatPayload.ticker,
-        userInput: chatPayload.userInput,
-        chatHistoryLength: chatPayload.chatHistory.length,
-        snapshotJsonProvided: !!chatPayload.stockSnapshotJson,
-        takeawaysJsonProvided: !!chatPayload.aiKeyTakeawaysJson,
-        aiTaJsonProvided: !!chatPayload.aiAnalyzedTaJson,
-        optionsAnalysisJsonProvided: !!chatPayload.aiOptionsAnalysisJson,
-    });
-    
-    startTransition(() => { // Wrap the action call
-        chatFormAction(chatPayload);
-    });
-    setUserInput('');
+  const handleFormSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    logDebug('Chatbot', 'handleFormSubmit', `Submit requested. FSM State: ${chatbotFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+    if (!fsmUserInput.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) {
+      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty or already submitting.');
+      return;
+    }
+    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   };
 
   const handleExamplePromptClick = (promptTemplate: string) => {
-    const contextIsReady = currentContextReady();
-    if (!contextIsReady) {
-        toast({ variant: 'destructive', title: 'Context Not Ready', description: 'Analyze a stock before using example prompts.' });
-        logDebug('Chatbot', 'Example prompt click prevented: context not ready.');
-        return;
-    }
-    const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTicker || 'this stock');
-    setUserInput(filledPrompt);
-    logDebug('Chatbot', 'Example prompt clicked:', { title: promptTemplate, filledPrompt });
+    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) return;
+    const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
+    dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
+    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}"`);
   };
 
   const handleCopyChat = async () => {
-    if (chatHistory.length === 0) {
-        logDebug('Chatbot', 'Copy chat: No history to copy.');
+    if (globalChatHistory.length === 0) {
+        logDebug('Chatbot', 'CopyChat', 'No history to copy.');
         return;
     }
-    const success = await copyToClipboard(JSON.stringify(chatHistory, null, 2));
-    if (success) {
-      toast({ title: 'Chat Copied', description: 'Chat history copied to clipboard as JSON.' });
-      logDebug('Chatbot', 'Chat history copied to clipboard successfully.');
-    } else {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy chat history.' });
-      logDebug('Chatbot', 'Failed to copy chat history to clipboard.');
-    }
+    const success = await copyToClipboard(JSON.stringify(globalChatHistory, null, 2));
+    toast({ title: success ? 'Chat Copied' : 'Copy Failed', description: success ? 'Chat history copied as JSON.' : 'Could not copy chat history.'});
+    logDebug('Chatbot', 'CopyChat', success ? 'Success.' : 'Failed.');
   };
 
   const handleExportChat = () => {
-    if (chatHistory.length === 0) {
-        logDebug('Chatbot', 'Export chat: No history to export.');
+    if (globalChatHistory.length === 0) {
+        logDebug('Chatbot', 'ExportChat', 'No history to export.');
         return;
     }
     try {
-      downloadJson(chatHistory, `${currentTicker || 'stocksage'}_chat_history.json`);
+      downloadJson(globalChatHistory, `${currentTickerForDisplay || 'stocksage'}_chat_history.json`);
       toast({ title: 'Chat Exported', description: 'Chat history downloaded as JSON.' });
-      logDebug('Chatbot', 'Chat history exported as JSON successfully.');
+      logDebug('Chatbot', 'ExportChat', 'Success.');
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export chat history.' });
-      logDebug('Chatbot', 'Error exporting chat history:', error);
+      logDebug('Chatbot', 'ExportChat', 'Error:', error);
     }
   };
   
-  const contextReady = currentContextReady();
+  const isProcessing = chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isChatPending;
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -184,13 +120,13 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
             StockSage AI Chat
           </CardTitle>
           <CardDescription className="text-xs mt-1">
-            Ask questions about {currentTicker || "the analyzed stock"}. Chat history is session-based.
+            Ask questions about {currentTickerForDisplay || "the analyzed stock"}. Chat history is session-based.
           </CardDescription>
         </div>
         <div className="flex items-center gap-1">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" title="Clear Chat History" disabled={chatHistory.length === 0}>
+                    <Button variant="ghost" size="icon" title="Clear Chat History" disabled={globalChatHistory.length === 0}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 </AlertDialogTrigger>
@@ -203,14 +139,14 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { clearChatHistory(); toast({title: "Chat Cleared"}); }}>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={() => { clearGlobalChatHistory(); toast({title: "Chat Cleared"}); }}>Continue</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-          <Button variant="ghost" size="icon" onClick={handleCopyChat} title="Copy Chat (JSON)" disabled={chatHistory.length === 0}>
+          <Button variant="ghost" size="icon" onClick={handleCopyChat} title="Copy Chat (JSON)" disabled={globalChatHistory.length === 0}>
             <Copy className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleExportChat} title="Export Chat (JSON)" disabled={chatHistory.length === 0}>
+          <Button variant="ghost" size="icon" onClick={handleExportChat} title="Export Chat (JSON)" disabled={globalChatHistory.length === 0}>
             <Download className="h-4 w-4" />
           </Button>
         </div>
@@ -218,14 +154,14 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
       <CardContent className="flex-grow flex flex-col p-4 space-y-4 overflow-hidden">
         <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
           <div className="space-y-4">
-            {chatHistory.length === 0 && (
+            {globalChatHistory.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
                 No messages yet. Try an example prompt or ask a question!
               </div>
             )}
-            {chatHistory.map((msg) => (
+            {globalChatHistory.map((msg) => (
               <div
-                key={msg.id}
+                key={msg.id} // Ensure unique keys
                 className={cn(
                   "flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words",
                   msg.role === 'user'
@@ -238,7 +174,7 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
                 </ReactMarkdown>
               </div>
             ))}
-            {isChatPending && chatHistory.length > 0 && chatHistory[chatHistory.length-1].role === 'user' && (
+            {isProcessing && globalChatHistory.length > 0 && globalChatHistory[globalChatHistory.length-1].role === 'user' && (
                  <div className={cn("flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm", "bg-muted")}>
                     <div className="flex items-center space-x-2">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -249,12 +185,6 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
           </div>
         </ScrollArea>
         
-        {!contextReady && (
-          <div className="p-3 mb-2 text-center text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-700/20 border border-orange-200 dark:border-orange-600/50 rounded-md">
-            Chat context is not fully loaded. Please analyze a stock first for the best experience.
-          </div>
-        )}
-
         <div className="flex flex-wrap gap-2 mb-2">
           {exampleChatPrompts.map((p, index) => (
             <Button
@@ -262,26 +192,26 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
               variant="outline"
               size="sm"
               onClick={() => handleExamplePromptClick(p.prompt)}
-              disabled={isChatPending || !contextReady}
+              disabled={isProcessing}
               className="text-xs px-2 py-1 h-auto"
             >
               <HelpCircle className="mr-1.5 h-3 w-3" />
-              {p.title.replace(/{TICKER}/g, currentTicker || 'Stock')}
+              {p.title.replace(/{TICKER}/g, currentTickerForDisplay || 'Stock')}
             </Button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2 pt-2 border-t">
+        <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 pt-2 border-t">
           <Input
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder={contextReady ? `Ask about ${currentTicker || 'the stock'}...` : "Analyze a stock to enable chat..."}
-            disabled={isChatPending || !contextReady}
+            value={fsmUserInput}
+            onChange={(e) => dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: e.target.value })}
+            placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`}
+            disabled={isProcessing}
             className="flex-grow"
-            onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) handleSubmit(e as any);}}
+            onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) handleFormSubmit(e as any);}}
           />
-          <Button type="submit" disabled={isChatPending || !userInput.trim() || !contextReady}>
-            {isChatPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          <Button type="submit" disabled={isProcessing || !fsmUserInput.trim()}>
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
         </form>
@@ -289,6 +219,3 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
     </Card>
   );
 }
-
-
-    
