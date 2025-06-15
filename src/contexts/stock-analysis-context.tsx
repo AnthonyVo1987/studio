@@ -28,15 +28,15 @@ export enum FsmState {
   AI_TA_SUCCEEDED = 'AI_TA_SUCCEEDED', 
   AI_TA_FAILED = 'AI_TA_FAILED',
   
-  // These states are now primarily for manually triggered actions
-  GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
+  GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS', // For manual trigger
   KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED', 
   KEY_TAKEAWAYS_FAILED = 'KEY_TAKEAWAYS_FAILED',
 
-  ANALYZING_OPTIONS = 'ANALYZING_OPTIONS',
-  // OPTIONS_ANALYSIS_SUCCEEDED / FAILED are effectively folded into FULL_ANALYSIS_COMPLETE now for flow
+  ANALYZING_OPTIONS = 'ANALYZING_OPTIONS', // For manual trigger
+  OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED',
+  OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
   
-  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE', // Signifies initial auto pipeline done, or manual step done
+  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE', // Signifies initial auto pipeline (Data+TA) done, OR a manual step done
 }
 
 
@@ -89,7 +89,6 @@ export type FsmEvent =
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
   | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
 
-  // Manual Triggers
   | { type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS'; payload: { ticker: string } }
   | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: AiKeyTakeawaysSuccessPayload }
   | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: AiKeyTakeawaysFailurePayload }
@@ -228,7 +227,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
-    (console as any).__stockSageOriginals?.debug?.(LOGDEBUG_MARKER, source, category, ...messages);
+    const originals = (console as any).__stockSageOriginals || browserConsole;
+    originals.debug?.(LOGDEBUG_MARKER, source, category, ...messages);
   }, []);
   
   const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
@@ -301,7 +301,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   };
 
   const fsmReducer = (state: FsmState, event: FsmEvent): FsmState => {
-    logDebug('FSM_PIPELINE', 'ReducerEvent', `Current state: ${state}, Event Type: ${event.type}, isFullAnalysisTriggered (internal): ${_isFullAnalysisTriggeredInternalState}, Event Payload (keys):`, 
+    const originals = (console as any).__stockSageOriginals || browserConsole;
+    originals.debug('[FSM_REDUCER]', `Event: ${event.type}, Current State: ${state}, Payload (keys):`, 
         event.type !== 'ADD_CHAT_MESSAGE' ? Object.keys(event.payload || {}).join(', ') : 'ChatMessage');
     
     const errorJsonWithDetails = (message: string, details: string | null | undefined) => 
@@ -444,26 +445,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         return state;
 
-      case FsmState.AI_TA_SUCCEEDED:
-      case FsmState.AI_TA_FAILED: 
-        // Automated pipeline portion now ends here.
-        logDebug('FSM_PIPELINE', 'Transition', `${state}: Automated pipeline part complete. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+      case FsmState.AI_TA_SUCCEEDED: // End of automated pipeline
+      case FsmState.AI_TA_FAILED:   // End of automated pipeline
+        logDebug('FSM_PIPELINE', 'Transition', `${state}: Automated pipeline part (Data Fetch + AI TA) complete. Transitioning to FULL_ANALYSIS_COMPLETE.`);
         return FsmState.FULL_ANALYSIS_COMPLETE;
 
       case FsmState.GENERATING_KEY_TAKEAWAYS: // Manually triggered
         if (event.type === 'KEY_TAKEAWAYS_SUCCESS') {
           contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
           contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
-          logDebug('FSM_PIPELINE', 'Transition', `KEY_TAKEAWAYS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          return FsmState.FULL_ANALYSIS_COMPLETE; // Or KEY_TAKEAWAYS_SUCCEEDED then to FULL_ANALYSIS_COMPLETE
+          logDebug('FSM_PIPELINE', 'Transition', `KEY_TAKEAWAYS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE (to then go IDLE).`);
+          return FsmState.FULL_ANALYSIS_COMPLETE; 
         }
         if (event.type === 'KEY_TAKEAWAYS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Key Takeaways generation failed';
           const ktErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiKeyTakeawaysRequestJson(errorPayload.aiKeyTakeawaysRequestJson || ktErrorJson);
           contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
-          logDebug('FSM_PIPELINE', 'Transition', `KEY_TAKEAWAYS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          return FsmState.FULL_ANALYSIS_COMPLETE; // Or KEY_TAKEAWAYS_FAILED then to FULL_ANALYSIS_COMPLETE
+          logDebug('FSM_PIPELINE', 'Transition', `KEY_TAKEAWAYS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE (to then go IDLE).`);
+          return FsmState.FULL_ANALYSIS_COMPLETE; 
         }
         return state;
         
@@ -471,7 +471,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') {
           contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
           contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
-          logDebug('FSM_PIPELINE', 'Transition', `OPTIONS_ANALYSIS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
+          logDebug('FSM_PIPELINE', 'Transition', `OPTIONS_ANALYSIS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE (to then go IDLE).`);
           return FsmState.FULL_ANALYSIS_COMPLETE;
         }
         if (event.type === 'OPTIONS_ANALYSIS_FAILURE') {
@@ -479,18 +479,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson);
           contextSetters.setAiOptionsAnalysisJson(optErrorJson);
-          logDebug('FSM_PIPELINE', 'Transition', `OPTIONS_ANALYSIS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+          logDebug('FSM_PIPELINE', 'Transition', `OPTIONS_ANALYSIS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE (to then go IDLE).`);
           return FsmState.FULL_ANALYSIS_COMPLETE;
         }
         return state;
       
-      case FsmState.FULL_ANALYSIS_COMPLETE: // Means auto pipeline OR a manual step finished
+      case FsmState.FULL_ANALYSIS_COMPLETE: // Signifies auto pipeline done, or a manual step done
         if (event.type === 'PROCEED_TO_IDLE') {
             logDebug('FSM_PIPELINE', 'Transition', `${state} handling PROCEED_TO_IDLE. Resetting isFullAnalysisTriggered. Transitioning to IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false); 
             return FsmState.IDLE;
         }
-        // Allow manual triggers from here as well
         if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           logDebug('FSM_PIPELINE','Transition', `Manually triggering Key Takeaways for ${event.payload.ticker} from FULL_ANALYSIS_COMPLETE. Setting placeholders.`);
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
@@ -541,17 +540,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setLogSourceConfig, logDebug]);
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
-    logDebug('StockAnalysisContext', 'DebugConsoleToggle', `ClientDebugConsoleEnabled will be set to: ${enabled}.`);
-    _setClientDebugConsoleEnabled(enabled);
+    const originals = (console as any).__stockSageOriginals || browserConsole;
+    originals.debug('[setClientDebugConsoleEnabled]', `Called with: ${enabled}. Current _isClientDebugConsoleEnabled before this call: ${_isClientDebugConsoleEnabled}`);
+    
+    _setClientDebugConsoleEnabled(enabled); // Update state
+    
     if (enabled) {
-      logDebug('StockAnalysisContext', 'DebugConsoleToggle', `ClientDebugConsoleEnabled is true, calling enableAllLogSources and opening console.`);
-      enableAllLogSources();
-      _setClientDebugConsoleOpen(true); 
+      originals.debug('[setClientDebugConsoleEnabled]', 'Condition (enabled === true) met. Calling enableAllLogSources and _setClientDebugConsoleOpen(true).');
+      enableAllLogSources(); // This updates _logSourceConfig
+      _setClientDebugConsoleOpen(true);
     } else {
-      logDebug('StockAnalysisContext', 'DebugConsoleToggle', `ClientDebugConsoleEnabled is false, ensuring console is closed. Log buffer is NOT cleared automatically.`);
+      originals.debug('[setClientDebugConsoleEnabled]', 'Condition (enabled === false) met. Calling _setClientDebugConsoleOpen(false).');
       _setClientDebugConsoleOpen(false);
     }
-  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
+  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug, _isClientDebugConsoleEnabled]);
 
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
@@ -564,12 +566,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const effectRunId = Date.now(); // Unique ID for this run of the effect
+    const originals = (console as any).__stockSageOriginals || browserConsole;
+    originals.debug(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception useEffect: RUNNING. _isClientDebugConsoleEnabled =', _isClientDebugConsoleEnabled);
 
+    if (typeof window === 'undefined') {
+      originals.debug(`[EFFECT_SSR ${effectRunId}]`, 'Console Interception useEffect: Skipping on server.');
+      return;
+    }
+    
     let currentOriginals = (console as any).__stockSageOriginals;
     if (!currentOriginals) {
+      originals.debug(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception useEffect: Initializing __stockSageOriginals.');
       currentOriginals = { ...browserConsole };
       (console as any).__stockSageOriginals = currentOriginals;
+    } else {
+      originals.debug(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception useEffect: __stockSageOriginals already exists.');
     }
     
     const interceptAndProcessLog = (
@@ -584,12 +596,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         let source: LogSourceId = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
         let logTypeForBuffer = type;
-        let categoryForLogDebug = 'Generic';
 
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
           source = args[1] as LogSourceId;
-          categoryForLogDebug = args[2] as string; // Extract category
-          messagesForBuffer = args.slice(3); // Messages start after marker, source, and category
+          messagesForBuffer = args.slice(3); 
           logTypeForBuffer = 'debug'; 
           
           if (!_logSourceConfig[source]) {
@@ -600,33 +610,37 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             return; 
           }
         }
-        // For simplicity, the category from logDebug isn't directly stored in GlobalLogEntry,
-        // but it was used for the original console.debug. We could add it if needed.
         addEntryToGlobalLogBuffer({ type: logTypeForBuffer, messages: messagesForBuffer, source });
       });
     };
     
     if (_isClientDebugConsoleEnabled) { 
+      originals.debug(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception: APPLYING interceptors.');
       console.log = (...args) => interceptAndProcessLog('log', ...args);
       console.warn = (...args) => interceptAndProcessLog('warn', ...args);
       console.error = (...args) => interceptAndProcessLog('error', ...args);
       console.info = (...args) => interceptAndProcessLog('info', ...args);
       console.debug = (...args) => interceptAndProcessLog('debug', ...args);
-      logDebug('StockAnalysisContext','ConsoleInterceptor', 'Console interception is NOW ACTIVE for UI buffer.');
+      logDebug('StockAnalysisContext','EFFECT_DEBUG', 'Console interception is NOW ACTIVE for UI buffer.');
     } else {
+      originals.debug(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception: _isClientDebugConsoleEnabled is false. ATTEMPTING TO RESTORE original console methods.');
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
-        (console as any).__stockSageOriginals.debug?.('[StockAnalysisContext]', 'ConsoleInterceptor', 'Console interception for UI buffer is NOW INACTIVE, originals restored.');
+        originals.debug(`[EFFECT_CSR ${effectRunId}]`, 'Console interception for UI buffer is NOW INACTIVE, originals restored.');
+      } else {
+         originals.warn(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception: _isClientDebugConsoleEnabled is false, but no __stockSageOriginals found to restore. This is unexpected.');
       }
     }
 
     return () => { 
+      originals.debug(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception useEffect: CLEANUP. Restoring originals.');
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
-        (console as any).__stockSageOriginals.debug?.('[StockAnalysisContext]', 'ConsoleInterceptor', 'Console interception DEACTIVATED on cleanup, originals restored.');
+      } else {
+        originals.warn(`[EFFECT_CSR ${effectRunId}]`, 'Console Interception Cleanup: No __stockSageOriginals found to restore during cleanup.');
       }
     };
-  }, [_isClientDebugConsoleEnabled, logDebug]); 
+  }, [_isClientDebugConsoleEnabled, logDebug]); // CRITICAL: Dependency array changed in v2.9.A.X
 
   const contextValue: StockAnalysisContextType = {
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson,
