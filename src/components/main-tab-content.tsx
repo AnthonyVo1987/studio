@@ -74,7 +74,7 @@ function isDataReadyForProcessing(jsonString: string | null | undefined, logDebu
     }
   } catch(e) {
     logDebugFn?.(callContext, `Data is not a known status/error JSON, but failed to parse. Treating as not ready. Value: '${jsonString.trim().substring(0,100)}...'`);
-    return false; // If it's not parsable and not a known pending string, it's not ready data.
+    return false; 
   }
   logDebugFn?.(callContext, `Data IS ready (passed checks). Value: '${jsonString.trim().substring(0,100)}...'`);
   return true;
@@ -96,7 +96,7 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson,
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson,
-    isFullAnalysisTriggered, // This will now always be true when an analysis is active
+    isFullAnalysisTriggered, 
     logDebug,
     fsmState,
     dispatchFsmEvent,
@@ -112,7 +112,7 @@ export function MainTabContent() {
   const [generateChatSummaryState, generateChatSummaryFormAction, isGenerateChatSummaryPending] = useActionState<GenerateChatSummaryActionState, GenerateChatSummaryActionInputsType>(generateChatSummaryAction, initialGenerateChatSummaryState);
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, initialChatActionState);
   
-  const isPipelineActive = ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE, FsmState.STALE_DATA_FROM_ACTION_ERROR].includes(fsmState); // ANALYZE_STOCK_COMPLETE removed
+  const isPipelineActive = ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE, FsmState.STALE_DATA_FROM_ACTION_ERROR].includes(fsmState);
 
   const handleAnalyzeStockSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
@@ -121,7 +121,7 @@ export function MainTabContent() {
     }
     analysisTriggeredForTickerRef.current = tickerInput; 
     setActiveAnalysisTicker(tickerInput);
-    logDebug('MainTabContent', `"Analyze Stock" (now full analysis) button clicked for ${tickerInput}. Current FSM State: ${fsmState}`);
+    logDebug('MainTabContent', `"Analyze Stock" button clicked for ${tickerInput}. This triggers a FULL analysis. Current FSM State: ${fsmState}`);
     dispatchFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
   }, [isPipelineActive, toast, tickerInput, dispatchFsmEvent, logDebug, fsmState]);
 
@@ -446,7 +446,6 @@ export function MainTabContent() {
   
    useEffect(() => {
     logDebug('FSM_PIPELINE', `MainTabContent: OPTIONS_ANALYSIS_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}. isFullAnalysis: ${isFullAnalysisTriggered}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
-    // This effect now always proceeds to chat summary sequence initiation because the button implies full analysis.
     if (fsmState === FsmState.OPTIONS_ANALYSIS_SUCCEEDED || fsmState === FsmState.OPTIONS_ANALYSIS_FAILED) {
         const currentActionTicker = analysisTriggeredForTickerRef.current;
         if (!currentActionTicker) { return; }
@@ -483,7 +482,7 @@ export function MainTabContent() {
              logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}, but prerequisites for Chat Summary NOT YET READY. Waiting for context update.`);
         }
     }
-  }, [fsmState, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextMarketStatusJson, dispatchFsmEvent, logDebug]);
+  }, [fsmState, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextMarketStatusJson, dispatchFsmEvent, logDebug, isFullAnalysisTriggered]);
   
   
   useEffect(() => {
@@ -524,7 +523,7 @@ export function MainTabContent() {
     if (fsmState === FsmState.CHAT_SUMMARY_SUCCEEDED || fsmState === FsmState.CHAT_SUMMARY_FAILED) {
         logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState}. Dispatching PROCEED_TO_FULL_COMPLETE.`);
         dispatchFsmEvent({ type: 'PROCEED_TO_FULL_COMPLETE' });
-    } else if (fsmState === FsmState.FULL_ANALYSIS_COMPLETE) { // ANALYZE_STOCK_COMPLETE removed
+    } else if (fsmState === FsmState.FULL_ANALYSIS_COMPLETE) { 
       logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState}. Dispatching PROCEED_TO_IDLE.`);
       dispatchFsmEvent({ type: 'PROCEED_TO_IDLE' }); 
     }
@@ -614,7 +613,7 @@ export function MainTabContent() {
 
   const currentTickerForChatDisplay = activeAnalysisTicker || tickerInput;
   const isFormDisabled = isPipelineActive;
-  const analyzeButtonIsPending = isPipelineActive; // Since there's only one analysis button now
+  const analyzeButtonIsPending = isPipelineActive; 
 
   return (
     <Card>
@@ -696,4 +695,3 @@ export function MainTabContent() {
   );
 }
     
-
