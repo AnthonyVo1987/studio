@@ -1,7 +1,7 @@
 
 # **MANDATORY AI DEVELOPMENT PROTOCOL & STOCKAGE v2.9.A.Z OPERATING MANUAL**
 
-*   **Document Version:** 1.47 (Task 9.A.Z - Commit Attempted Fixes for UI/Log Issues)
+*   **Document Version:** 1.48 (Task 9.A.Z - Document Current State for Handover)
 *   **Date:** 2025-06-15 
 *   **Author:** Firebase Studio (AI Prototyper)
 *   **Status:** Official Project Blueprint & AI Operational Mandate. **Phase 9 In Progress. Current application version: v2.9.A.Z.**
@@ -57,7 +57,7 @@
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.Z`). This version focuses on simplifying the analysis pipeline trigger and enhancing AI output quality.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.A.Z`). This version focuses on simplifying the analysis pipeline trigger and enhancing AI output quality, but is currently impacted by critical stability issues.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -85,8 +85,9 @@ The primary strategy for this implementation is **UI-First Development**, manage
 *   **AI Agent Guidelines Adherence:** Strictly follow the operational rules and phased plan detailed in this document, especially Section 0.
 *   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers, significantly improved by the Phase 9 FSM re-architecture.
 *   **User Experience:** Deliver a high-quality, responsive, and accessible user interface with clear feedback on processing states.
-*   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging.
+*   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging. **(CRITICAL: Client Debug Console currently NON-FUNCTIONAL).**
 *   **Dynamic Versioning:** Maintain and display the application version `2.x.y.z` as per SOP (Section 0.6).
+*   **Critical Issue Resolution:** Prioritize fixing the outstanding UI loop and client console logging issues.
 
 ### **2.1. Known Issues / Current Status (v2.9.A.Z)**
 **WARNING:** This version (v2.9.A.Z) has critical outstanding issues that significantly impact usability and debuggability:
@@ -97,7 +98,7 @@ These issues persist despite recent fix attempts and require further investigati
 
 ## **3. Core Application Features (StockSage v2.9.A.Z)**
 
-This section details the core features of StockSage v2.9.A.Z, serving as the Product Requirements.
+This section details the core features of StockSage v2.9.A.Z, serving as the Product Requirements. *(Note: Some features are currently impacted by the known issues described in Section 2.1).*
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
@@ -130,15 +131,15 @@ The "Main" tab is the primary user interface for stock analysis.
         1.  Fetching all data from Polygon.io (Market Status, Stock Snapshot, Standard TAs, Options Chain).
         2.  Calculating AI Analyzed Technical Analysis (Pivot Points).
         *   This triggers the FSM `START_FULL_ANALYSIS` event. Each press wipes all previous analysis-related JSON data (market status, snapshot, TAs, options, all AI results *except manually triggered ones for the current session*) and starts the automated pipeline fresh. AI Chat History and Client Debug Console logs are explicitly preserved.
-        *   Button shows loading spinners and is disabled while an analysis pipeline is active (`isPipelineActive` state). **(CURRENTLY GETS STUCK in v2.9.A.Z)**
+        *   Button shows loading spinners and is disabled while an analysis pipeline is active (`isAutomatedPipelineActive` state from FSM). **(CURRENTLY GETS STUCK in loading state in v2.9.A.Z due to FSM not transitioning to IDLE)**
     *   **New "Generate AI Key Takeaways" Button (v2.9.A.Y+ Behavior):**
         *   Manually triggers AI Key Takeaways generation.
         *   Enabled only when the main automated pipeline (`Analyze Stock`) is complete (FSM is `IDLE` or `FULL_ANALYSIS_COMPLETE`) AND prerequisite data (Snapshot, Standard TAs, AI Analyzed TA, Market Status) are valid and available in context.
-        *   Disabled if its own AI process (`isPerformAiAnalysisPending`) is active.
+        *   Disabled if its own AI process (`isPerformAiAnalysisPending`) is active or if the main pipeline is active.
     *   **New "Generate AI Options Analysis" Button (v2.9.A.Y+ Behavior):**
         *   Manually triggers AI Options Analysis.
         *   Enabled only when the main automated pipeline is complete AND prerequisite data (Snapshot, Options Chain) are valid and available in context.
-        *   Disabled if its own AI process (`isPerformAiOptionsAnalysisPending`) is active.
+        *   Disabled if its own AI process (`isPerformAiOptionsAnalysisPending`) is active or if the main pipeline is active.
 
 *   **Display Card Order & Content:**
     All display cards render data reactively from the `StockAnalysisContext`. They show loading skeletons or "N/A" / error messages if data is pending, unavailable, or an error occurred.
@@ -223,7 +224,7 @@ The "Debug" tab provides developers and advanced users with raw data views and c
     *   A card allowing users to toggle individual client-side log sources ON/OFF.
     *   Sources correspond to `LogSourceId` from `src/lib/debug-log-types.ts`.
     *   Includes "Enable All Log Sources" and "Disable All Sources (Except Console Itself)" buttons.
-    *   These settings control which logs appear in the pop-up Client Debug Console.
+    *   These settings control which logs appear in the pop-up Client Debug Console. **(CONSOLE CURRENTLY BROKEN in v2.9.A.Z)**
 
 ### **3.4. Backend Functionality & Architecture Flow**
 This section details the server-side logic, data fetching, AI processing, and the overall FSM-driven architecture.
@@ -242,9 +243,9 @@ This section details the server-side logic, data fetching, AI processing, and th
 *   **FSM-Driven Architecture Flow (Managed by `StockAnalysisContext` and `MainTabContent` - as of v2.9.A.Y design, but with known issues in v2.9.A.Z):**
     The analysis pipeline is orchestrated by a Finite State Machine (FSM).
     1.  **Initiation (Automated Part):** User clicks "Analyze Stock". FSM event (`START_FULL_ANALYSIS`) is dispatched.
-    2.  **Data Fetching & AI TA:** FSM progresses through fetching data and then calculating AI Analyzed TA.
+    2.  **Data Fetching & AI TA:** FSM progresses through fetching data (Polygon.io: Market Status, Stock Snapshot, Standard TAs, Options Chain) and then calculating AI Analyzed TA (Pivot Points).
     3.  **Automated Pipeline End:** After `AI_TA_SUCCEEDED` or `AI_TA_FAILED`, FSM transitions to `FULL_ANALYSIS_COMPLETE`.
-    4.  **Return to Idle:** From `FULL_ANALYSIS_COMPLETE`, `MainTabContent` should detect this and dispatch `PROCEED_TO_IDLE`, which should reset the FSM to `IDLE`, re-enabling buttons. **(THIS STEP IS CURRENTLY FAILING in v2.9.A.Z)**
+    4.  **Return to Idle:** From `FULL_ANALYSIS_COMPLETE`, `MainTabContent` should detect this and dispatch `PROCEED_TO_IDLE`, which should reset the FSM to `IDLE`, re-enabling buttons. **(THIS STEP IS CURRENTLY FAILING in v2.9.A.Z, causing UI to get stuck)**
     5.  **Manual AI Triggers:**
         *   User clicks "Generate AI Key Takeaways". `MainTabContent` dispatches `TRIGGER_MANUAL_KEY_TAKEAWAYS`. FSM moves to `GENERATING_KEY_TAKEAWAYS`. After success/failure, FSM returns to `FULL_ANALYSIS_COMPLETE` (then `IDLE`).
         *   User clicks "Generate AI Options Analysis". `MainTabContent` dispatches `TRIGGER_MANUAL_OPTIONS_ANALYSIS`. FSM moves to `ANALYZING_OPTIONS`. After success/failure, FSM returns to `FULL_ANALYSIS_COMPLETE` (then `IDLE`).
@@ -301,7 +302,7 @@ This section details the server-side logic, data fetching, AI processing, and th
 *   `useActionState`: Manages server action states.
 
 #### **4.1.6. Known Pain Points & Lessons Learned (CRITICAL REMINDERS)**
-(Content on `async_hooks`, client-side bundling, `'use server';` directive, Genkit syntax, and Debug Console remains relevant and CRITICAL.)
+(Content on `async_hooks`, client-side bundling, `'use server';` directive, Genkit syntax, and Debug Console remains relevant and CRITICAL. **The Debug Console is currently broken.**)
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
@@ -329,53 +330,30 @@ This section details the server-side logic, data fetching, AI processing, and th
     *   **Task 9.9.A.W: Fix Analyze Stock Button Stuck Loading (v2.9.A.W):** Status: **COMPLETE**
     *   **Task 9.9.A.X: Stabilize Client Console Logging (v2.9.A.X):** Status: **COMPLETE**
     *   **Task 9.9.A.Y: Rework AI Analysis Pipeline & Add Manual Triggers (v2.9.A.Y):** Status: **COMPLETE**
-    *   **Task 9.9.A.Z: Attempt to Fix Stuck UI & Broken Logs (v2.9.A.Z):** - Status: **IN PROGRESS (Attempted Fixes, Issues Persist)**
+    *   **Task 9.9.A.Z: Attempt to Fix Stuck UI & Broken Logs (v2.9.A.Z):** - Status: **IN PROGRESS (Attempted Fixes, Critical Issues Persist - UI Loop, Console Logs Broken)**
 
 
 ## **6. Changelog (This Re-Implementation PRD & Operating Manual)**
 
 | Version | Date         | Author                        | Summary of Changes                                                                                                                                                                                                                                                                                          |
 | :------ | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ...     | ...          | ...                           | ... (Previous changelog entries up to 1.45 / v2.9.A.U remain) ...                                                                                                                                                                                                                                           |
-| 1.45    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.U (Fix Chatbot Duplicate Key Error) COMPLETE.** Application version `v2.9.A.U`. Enhanced uniqueness of IDs for AI-generated summary messages in `StockAnalysisContext` to prevent React key collisions. Header displays `v2.9.A.U`. Phase 9 Task 9.9.A.U status updated. **Commit: [Hash for v2.9.A.U]** |
-| 1.46    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.V (Decouple Chat Summary & Enhance Volatility Prompt) COMPLETE.** Application version `v2.9.A.V`. README updated to reflect features of v2.9.A.V: automatic chat summary removed from main pipeline; volatility prompt enhanced. UI Header displays `v2.9.A.V`. Phase 9 Task 9.9.A.V status updated. **Commit: 731cd246** |
-| **1.47**| **2025-06-15**| Firebase Studio (AI Prototyper) | **Task 9.9.A.Z (Attempt to Fix Stuck UI & Broken Logs) - ISSUES PERSIST.** Application version `v2.9.A.Z`. Attempted fixes for UI loop and broken console logs in v2.9.A.W, v2.9.A.X, v2.9.A.Y (pipeline rework), and v2.9.A.Z. README updated with current app state, known issues, and commit details. UI Header displays `v2.9.A.Z`. Phase 9 Task 9.9.A.Z status: IN PROGRESS. **Commit: 2c7498c4** |
-
+| ...     | ...          | ...                           | ... (Previous changelog entries up to 1.46 / v2.9.A.Y remain) ...                                                                                                                                                                                                                                           |
+| 1.46    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.Y (Rework AI Analysis Pipeline & Add Manual Triggers) COMPLETE.** Application version `v2.9.A.Y`. Automated pipeline shortened. Manual trigger buttons for Key Takeaways & Options Analysis added. FSM & UI updated. Header displays `v2.9.A.Y`. Phase 9 Task 9.9.A.Y status updated. **Commit: [Hash for v2.9.A.Y]** |
+| 1.47    | 2025-06-15   | Firebase Studio (AI Prototyper) | **Task 9.9.A.Z (Attempt to Fix Stuck UI & Broken Logs) - ISSUES PERSIST.** Application version `v2.9.A.Z`. Attempted fixes for UI loop and broken console logs. README updated with current app state, known issues, and commit details. UI Header displays `v2.9.A.Z`. Phase 9 Task 9.9.A.Z status: IN PROGRESS. **Commit: 2c7498c4** |
 
 ## **7. Project Implementation Commit Log (StockSage App Version)**
 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme.
 
 ---
-... (Previous commit logs up to v2.9.A.U remain)
-
----
-**App Version:** `v2.9.A.V` (Decouple Chat Summary & Enhance Volatility Prompt)
-**Tag:** `Phase-9_Task-9.A.V_DecoupleChatSummary-VolatilityPrompt` - Commit Hash: `731cd246`
-**Subject:** `feat(analysis): Decouple auto chat summary, enhance volatility prompt (v2.9.A.V)`
-**Details:**
-Modified "Analyze Stock" button to trigger full pipeline up to AI Options Analysis only; automatic AI chat summary generation removed. Chatbot is now purely for user-initiated questions. Volatility prompt in `analyze-stock-data.ts` enhanced for more descriptive output. Removed `generate-full-analysis-summary-flow.ts`, `generate-chat-summary-action.ts`, `chat-summary-schemas.ts` (manual user deletion). Updated FSM in `StockAnalysisContext`, `MainTabContent`, and `debug-log-types.ts`. UI Header updated to `v2.9.A.V`. `README.md` updated to reflect changes.
-
----
-**App Version:** `v2.9.A.W` (Fix Analyze Stock Button Stuck Loading)
-**Tag:** `Phase-9_Task-9.A.W_FixAnalyzeButtonStuck` - Commit Hash: `[Hash for v2.9.A.W]`
-**Subject:** `fix(fsm): Ensure FSM transitions to IDLE after options analysis (v2.9.A.W)`
-**Details:**
-Modified FSM in StockAnalysisContext: 'ANALYZING_OPTIONS' state, upon success or failure of 'OPTIONS_ANALYSIS_*' events, now transitions directly to 'FULL_ANALYSIS_COMPLETE'. This allows existing UI logic to correctly proceed to 'IDLE', re-enabling the "Analyze Stock" button. UI Header updated to v2.9.A.W.
-
----
-**App Version:** `v2.9.A.X` (Stabilize Client Console Logging)
-**Tag:** `Phase-9_Task-9.A.X_StabilizeClientLogging` - Commit Hash: `[Hash for v2.9.A.X]`
-**Subject:** `fix(logging): Stabilize client console log interception (v2.9.A.X)`
-**Details:**
-Modified the dependency array of the console interception useEffect in StockAnalysisContext to [_isClientDebugConsoleEnabled, logDebug] to make it less prone to re-running and improve reliability of log capture. Added diagnostic logs. UI Header updated to v2.9.A.X.
+... (Previous commit logs up to v2.9.A.Y remain)
 
 ---
 **App Version:** `v2.9.A.Y` (Rework AI Analysis Pipeline & Add Manual Triggers)
 **Tag:** `Phase-9_Task-9.A.Y_ReworkPipeline-ManualTriggers` - Commit Hash: `[Hash for v2.9.A.Y]`
 **Subject:** `refactor(analysis): Shorten auto pipeline, add manual AI triggers (v2.9.A.Y)`
 **Details:**
-Refactored the stock analysis pipeline: "Analyze Stock" button now concludes after AI Analyzed Technical Analysis. Introduced separate buttons for "Generate AI Key Takeaways" and "Generate AI Options Analysis," enabled when prerequisites are met. Updated FSM in StockAnalysisContext and UI logic in MainTabContent to support this new flow. UI Header updated to v2.9.A.Y.
+Refactored the stock analysis pipeline: "Analyze Stock" button now concludes after AI Analyzed Technical Analysis. Introduced separate buttons for "Generate AI Key Takeaways" and "Generate AI Options Analysis," enabled when prerequisites are met. Updated FSM in StockAnalysisContext and UI logic in MainTabContent to support this new flow. UI Header updated to `v2.9.A.Y`.
 
 ---
 **App Version:** `v2.9.A.Z` (Attempt to Fix Stuck UI & Broken Logs - ISSUES PERSIST)
@@ -385,8 +363,7 @@ Refactored the stock analysis pipeline: "Analyze Stock" button now concludes aft
 This commit includes changes intended to address two critical issues:
 1. Stuck UI after 'Analyze Stock': Ensured FSM transitions correctly from AI_TA_SUCCEEDED/FAILED to FULL_ANALYSIS_COMPLETE and then to IDLE. Added robust logging in MainTabContent's useEffect for PROCEED_TO_IDLE dispatch. (Note: This issue remains unresolved post-commit.)
 2. Broken Client Console Logs: Re-verified and ensured simplified dependency array for console interception useEffect in StockAnalysisContext. Added extensive diagnostic logging. (Note: This issue also remains unresolved post-commit.)
-UI Header updated to v2.9.A.Z. README.md updated.
+UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Future commit logs will follow)*
 
-    
