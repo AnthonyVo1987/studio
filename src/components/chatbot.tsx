@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, startTransition } from 'react'; // Added startTransition
 import { useStockAnalysis, type ChatMessage } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -125,7 +125,9 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
         optionsAnalysisJsonProvided: !!chatPayload.aiOptionsAnalysisJson,
     });
     
-    chatFormAction(chatPayload);
+    startTransition(() => { // Wrap the action call
+        chatFormAction(chatPayload);
+    });
     setUserInput('');
   };
 
@@ -288,3 +290,5 @@ export function Chatbot({ chatFormAction, isChatPending, currentTicker }: Chatbo
   );
 }
 
+
+    
