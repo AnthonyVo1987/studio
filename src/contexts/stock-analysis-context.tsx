@@ -35,8 +35,8 @@ export enum FsmState {
 
   AWAITING_OPTIONS_ANALYSIS_TRIGGER = 'AWAITING_OPTIONS_ANALYSIS_TRIGGER',
   ANALYZING_OPTIONS = 'ANALYZING_OPTIONS',
-  OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED', 
-  OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
+  // OPTIONS_ANALYSIS_SUCCEEDED, // No longer a resting state
+  // OPTIONS_ANALYSIS_FAILED,   // No longer a resting state
   
   FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE', 
 }
@@ -231,7 +231,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
 
   const logDebug = useCallback((source: LogSourceId, ...messages: any[]) => {
-    // Use a more direct way to call original console if available, to avoid loops during interception setup
     const originals = (console as any).__stockSageOriginals || browserConsole;
     originals.debug(LOGDEBUG_MARKER, source, ...messages);
   }, []);
@@ -256,15 +255,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setChatbotRequestJson = useCallback((json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson (Interactive)', json), [_setChatbotRequestJson, setAndLogJson]);
   const setChatbotResponseJson = useCallback((json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson (Interactive)', json), [_setChatbotResponseJson, setAndLogJson]);
   
-  // MODIFIED: Define setLogSourceEnabled as a plain function for SSR diagnostic
-  const setLogSourceEnabled = (source: LogSourceId, enabled: boolean) => {
+  const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
     _setLogSourceConfig(prevConfig => {
       const newConfig = { ...prevConfig, [source]: enabled };
-      // Use the logDebug function (which should be stable due to its own useCallback with empty deps)
       logDebug('StockAnalysisContext', `Log source '${source}' ${enabled ? 'ENABLED' : 'DISABLED'}.`);
       return newConfig;
     });
-  };
+  }, [_setLogSourceConfig, logDebug]);
 
   const addChatMessage = useCallback((message: ChatMessage) => { 
     _setChatHistory(prev => [...prev, message]);
@@ -503,7 +500,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
             contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson); contextSetters.setAiOptionsAnalysisJson(optErrorJson);
             logDebug('FSM_PIPELINE', `Reducer: OPTIONS_ANALYSIS_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-            return FsmState.FULL_ANALYSIS_COMPLETE;
+            return FsmState.FULL_ANALYSIS_COMPLETE; 
         }
         return state;
 
@@ -522,11 +519,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           return FsmState.FULL_ANALYSIS_COMPLETE;
         }
         return state;
-
-      case FsmState.OPTIONS_ANALYSIS_SUCCEEDED: // Should not be a resting state anymore
-      case FsmState.OPTIONS_ANALYSIS_FAILED:   // Should not be a resting state anymore
-        logDebug('FSM_PIPELINE', `Reducer: In deprecated resting state ${state}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-        return FsmState.FULL_ANALYSIS_COMPLETE;
       
       case FsmState.FULL_ANALYSIS_COMPLETE: 
         if (event.type === 'PROCEED_TO_IDLE') {
@@ -607,13 +599,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       type: 'log' | 'warn' | 'error' | 'info' | 'debug',
       ...args: any[]
     ) => {
-      if (args.length > 0 && args[0] === LOGDEBUG_MARKER && args[1] === 'StockAnalysisContext' && args[2] === 'Console Interceptor Native Call') {
-        currentOriginals[type](...args.slice(3)); 
-        return;
-      }
-      
+      // Immediately call original console method to ensure it's not lost
       currentOriginals[type](...args); 
 
+      // Queue the custom processing to avoid interfering with console's own async behavior
       queueMicrotask(() => {
         if (!_isClientDebugConsoleEnabled) return; 
 
@@ -621,14 +610,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         let messagesForBuffer = args;
         let logTypeForBuffer = type;
 
+        // Check for our custom logDebug marker
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
           source = args[1] as LogSourceId;
           messagesForBuffer = args.slice(2);
-          logTypeForBuffer = 'debug'; 
+          logTypeForBuffer = 'debug'; // Our logDebug always maps to 'debug' type for buffer
+          
+          // If the source is not explicitly enabled in config, bail out
           if (!_logSourceConfig[source]) {
             return; 
           }
         } else {
+          // For native console calls, check if NATIVE_CONSOLE source is enabled
           if (!_logSourceConfig['NATIVE_CONSOLE']) {
             return; 
           }
@@ -643,21 +636,21 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       console.error = (...args) => interceptAndProcessLog('error', ...args);
       console.info = (...args) => interceptAndProcessLog('info', ...args);
       console.debug = (...args) => interceptAndProcessLog('debug', ...args);
-      logDebug('StockAnalysisContext', 'Console Interceptor Native Call', 'Console interception active (for UI buffer).');
+      logDebug('StockAnalysisContext', 'Console interception is NOW ACTIVE for UI buffer.');
     } else {
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
-         currentOriginals.debug('[StockAnalysisContext]', 'Console Interceptor Native Call', 'Console interception for UI buffer disabled, originals restored.');
+        (console as any).__stockSageOriginals.debug?.('[StockAnalysisContext]', 'Console interception for UI buffer is NOW INACTIVE, originals restored.');
       }
     }
 
-    return () => {
+    return () => { // Cleanup
       if ((console as any).__stockSageOriginals) {
         Object.assign(console, (console as any).__stockSageOriginals);
-        currentOriginals.debug('[StockAnalysisContext]', 'Console Interceptor Native Call', 'Console interception disabled on cleanup, originals restored.');
+        (console as any).__stockSageOriginals.debug?.('[StockAnalysisContext]', 'Console interception DEACTIVATED on cleanup, originals restored.');
       }
     };
-  }, [_isClientDebugConsoleEnabled, _logSourceConfig, logDebug]); 
+  }, [_isClientDebugConsoleEnabled, logDebug]); // MODIFIED: Removed _logSourceConfig from dependencies
 
   const contextValue: StockAnalysisContextType = {
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson,
@@ -683,7 +676,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isClientDebugConsoleEnabled: _isClientDebugConsoleEnabled, isClientDebugConsoleOpen: _isClientDebugConsoleOpen,
     logSourceConfig: _logSourceConfig,
     setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
-    setLogSourceEnabled, // Providing the modified version
+    setLogSourceEnabled, 
     enableAllLogSources, disableAllLogSources,
     logDebug,
     fsmState, dispatchFsmEvent,
@@ -703,4 +696,3 @@ export function useStockAnalysis() {
   }
   return context;
 }
-
