@@ -49,37 +49,35 @@ export async function fetchStockDataAction(
   try {
     console.log(`${actionLogPrefix} Calling getFullStockData for ${requestedTickerUpperCase}.`);
     const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase);
-    const adapterTicker = adapterOutput.stockData.ticker; // This should be uppercased from adapter
-    const rawResponseSummaryTicker = adapterOutput.rawResponseSummary?.responseTicker; // From adapter's summary
-
-    console.log(`${actionLogPrefix} getFullStockData returned. Requested: ${requestedTickerUpperCase}, AdapterOutputStockDataTicker: ${adapterTicker}, AdapterRawResponseSummaryTicker: ${rawResponseSummaryTicker}. Adapter reported error in stockData: ${adapterOutput.stockData.error || 'none'}. Snapshot ticker from adapter's snapshot data: ${adapterOutput.stockData.stockSnapshot?.ticker}`);
     
-    if (adapterTicker && adapterTicker !== requestedTickerUpperCase) {
-        const staleDataErrorMsg = `CRITICAL STALE DATA FROM ADAPTER (stockData.ticker): Adapter returned data for ${adapterTicker} when ${requestedTickerUpperCase} was requested.`;
-        console.error(`${actionLogPrefix} ${staleDataErrorMsg}`);
-        // Fall through to the next check for snapshot ticker, but this is already a red flag.
-    }
-    if (rawResponseSummaryTicker && rawResponseSummaryTicker !== requestedTickerUpperCase) {
-         const staleDataErrorMsg = `CRITICAL STALE DATA FROM ADAPTER (rawResponseSummary.responseTicker): Adapter summary indicates data for ${rawResponseSummaryTicker} when ${requestedTickerUpperCase} was requested.`;
-        console.error(`${actionLogPrefix} ${staleDataErrorMsg}`);
-    }
+    // Enhanced logging for adapter output
+    const adapterStockDataTicker = adapterOutput.stockData.ticker;
+    const adapterSnapshotTicker = adapterOutput.stockData.stockSnapshot?.ticker;
+    const adapterRawResponseSummaryTicker = adapterOutput.rawResponseSummary?.responseTicker;
+    const adapterRawRequestSummaryTicker = adapterOutput.rawResponseSummary?.requestedTicker; // This should match requestedTickerUpperCase if adapter got it right
 
-
-    // Critical Check: Ensure the data returned by the adapter is for the requested ticker, specifically from stockSnapshot
-    if (adapterOutput.stockData.stockSnapshot?.ticker && adapterOutput.stockData.stockSnapshot.ticker !== requestedTickerUpperCase) {
-        const staleDataErrorMsg = `CRITICAL STALE DATA (Snapshot): Adapter returned snapshot data for ${adapterOutput.stockData.stockSnapshot.ticker} when ${requestedTickerUpperCase} was requested.`;
+    console.log(`${actionLogPrefix} getFullStockData returned. Requested: ${requestedTickerUpperCase}, AdapterStockDataPkgTicker: ${adapterStockDataTicker}, AdapterSnapshotTicker: ${adapterSnapshotTicker}, AdapterRawRespSummaryTicker: ${adapterRawResponseSummaryTicker}, AdapterRawReqSummaryTicker(from adapter): ${adapterRawRequestSummaryTicker}`);
+    
+    // Critical Check: Ensure the data returned by the adapter, specifically from stockSnapshot, is for the requested ticker.
+    // This is the most reliable source of truth for the ticker the data pertains to from Polygon.
+    if (adapterSnapshotTicker && adapterSnapshotTicker !== requestedTickerUpperCase) {
+        const staleDataErrorMsg = `CRITICAL STALE DATA (Snapshot): Adapter returned snapshot data for ${adapterSnapshotTicker} when ${requestedTickerUpperCase} was requested.`;
         console.error(`${actionLogPrefix} ${staleDataErrorMsg}`);
+        const errorJson = JSON.stringify({ error: staleDataErrorMsg, details: `Expected ${requestedTickerUpperCase}, adapter provided snapshot for ${adapterSnapshotTicker}. Adapter output for snapshot: ${JSON.stringify(adapterOutput.stockData.stockSnapshot)}` }, null, 2);
+        const requestLogJsonOnError = JSON.stringify(adapterOutput.rawRequestParams || { error: "Request params missing during stale data error" }, null, 2);
+        const responseLogJsonOnError = JSON.stringify(adapterOutput.rawResponseSummary || { error: "Response summary missing during stale data error" }, null, 2);
+        
         return {
             status: 'error',
             error: staleDataErrorMsg,
-            message: `Stale data detected from data source. Expected ${requestedTickerUpperCase}, but received snapshot for ${adapterOutput.stockData.stockSnapshot.ticker}.`,
+            message: `Stale data detected from data source. Expected ${requestedTickerUpperCase}, but received snapshot for ${adapterSnapshotTicker}.`,
             data: { 
-                marketStatusJson: JSON.stringify({ error: staleDataErrorMsg, details: adapterOutput.stockData.marketStatus }, null, 2),
-                stockSnapshotJson: JSON.stringify({ error: staleDataErrorMsg, details: adapterOutput.stockData.stockSnapshot }, null, 2),
-                standardTasJson: JSON.stringify({ error: staleDataErrorMsg, details: adapterOutput.stockData.technicalIndicators }, null, 2),
-                optionsChainJson: JSON.stringify({ error: staleDataErrorMsg, details: adapterOutput.stockData.optionsChain }, null, 2),
-                polygonApiRequestLogJson: JSON.stringify(adapterOutput.rawRequestParams || { error: "Request params missing" }, null, 2),
-                polygonApiResponseLogJson: JSON.stringify(adapterOutput.rawResponseSummary || { error: "Response summary missing" }, null, 2),
+                marketStatusJson: errorJson,
+                stockSnapshotJson: errorJson,
+                standardTasJson: errorJson,
+                optionsChainJson: errorJson,
+                polygonApiRequestLogJson: requestLogJsonOnError,
+                polygonApiResponseLogJson: responseLogJsonOnError,
             }
         };
     }
@@ -121,7 +119,8 @@ export async function fetchStockDataAction(
     const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams);
     const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary);
 
-    console.log(`${actionLogPrefix} Successfully fetched and processed data for ${requestedTickerUpperCase}. Snapshot Ticker from output: ${adapterOutput.stockData.stockSnapshot?.ticker}`);
+    // Final log to confirm the ticker in the successfully processed snapshotJson
+    console.log(`${actionLogPrefix} Successfully processed data. Ticker in final stockSnapshotJson being returned to client: ${adapterOutput.stockData.stockSnapshot?.ticker} (Expected: ${requestedTickerUpperCase})`);
     return {
       status: 'success',
       data: {
@@ -136,7 +135,7 @@ export async function fetchStockDataAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CRITICAL Error for ${requestedTickerUpperCase}:`, error);
+    console.error(`${actionLogPrefix} CRITICAL Unhandled Error in fetchStockDataAction for ${requestedTickerUpperCase}:`, error);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during data fetching.',
@@ -145,3 +144,4 @@ export async function fetchStockDataAction(
     };
   }
 }
+

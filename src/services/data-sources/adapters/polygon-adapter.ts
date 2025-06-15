@@ -26,26 +26,23 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 class PolygonAdapter {
   private client: IRestClient;
-  private currentTickerForClient: string | null = null;
+  private readonly currentTickerForClient: string; // Made readonly and non-null
 
   constructor(apiKey?: string, tickerForThisInstance?: string) {
     const keyToUse = apiKey || process.env.POLYGON_API_KEY;
-    this.currentTickerForClient = tickerForThisInstance || null;
-    const logPrefix = `[PolygonAdapter.constructor TickerForInstance: ${this.currentTickerForClient || 'NOT_SET'}]`;
+    this.currentTickerForClient = (tickerForThisInstance || "UNKNOWN_TICKER_AT_CONSTRUCTION").toUpperCase();
+    const logPrefix = `[PolygonAdapter.constructor InstanceFor: ${this.currentTickerForClient}]`;
 
-    if (!keyToUse || keyToUse.trim() === "") {
-      const errorMessage = `${logPrefix} Polygon API key is MISSING or EMPTY. Adapter cannot be initialized.`;
+    if (!keyToUse || keyToUse.trim() === "" || keyToUse === "INVALID_KEY_ADAPTER_INIT_FAILURE_CONSTRUCTOR") {
+      const errorMessage = `${logPrefix} Polygon API key is MISSING, EMPTY, or previously marked INVALID. Adapter cannot be properly initialized.`;
       console.error(errorMessage);
-      // Initialize with a clearly invalid key to ensure it fails if used.
-      this.client = restClient("INVALID_KEY_ADAPTER_INIT_FAILURE_CONSTRUCTOR");
+      this.client = restClient("INVALID_KEY_ADAPTER_INIT_FAILURE_CONSTRUCTOR"); // Ensure it uses an invalid key
+      // No need to throw an error here, as getFullStockData will fail if this client is used.
       return;
     }
-
+    
+    console.log(`${logPrefix} Initializing with API key.`);
     this.client = restClient(keyToUse);
-    console.log(`${logPrefix} Initialized with API key.`);
-    // Optional: A benign test call to verify API key could be placed here if needed,
-    // but it adds an API call on every adapter instantiation.
-    // For now, assume key is valid if provided.
   }
 
   private mapToStockPriceData(
@@ -66,38 +63,36 @@ class PolygonAdapter {
   }
 
   async getFullStockData(ticker: string): Promise<AdapterOutput> {
-    const instanceLogPrefix = `[PolygonAdapter.getFullStockData AdapterInstanceFor: ${this.currentTickerForClient || 'NOT_SET'}]`;
-    const callLogPrefix = `${instanceLogPrefix}[RequestedTicker: ${ticker}]`;
+    const requestedTickerMethodArg = ticker.toUpperCase();
+    const logPrefix = `[PolygonAdapter.getFullStockData InstanceFor: ${this.currentTickerForClient}][Requested: ${requestedTickerMethodArg}]`;
+    
+    console.log(`${logPrefix} Method START. Verifying internal ticker consistency.`);
 
-    console.log(`${callLogPrefix} Operation START.`);
-
-    if (this.currentTickerForClient && this.currentTickerForClient !== ticker.toUpperCase()) {
-        const criticalErrorMsg = `${callLogPrefix} CRITICAL MISMATCH: Adapter instance was for ${this.currentTickerForClient} but was called to fetch data for ${ticker.toUpperCase()}. This indicates a major issue in how adapter instances are managed or used. Aborting fetch.`;
+    if (this.currentTickerForClient !== requestedTickerMethodArg) {
+        const criticalErrorMsg = `${logPrefix} CRITICAL MISMATCH: Adapter instance was constructed for ${this.currentTickerForClient} but method called with ${requestedTickerMethodArg}. Aborting fetch. This indicates an issue in how adapter instances are created or used.`;
         console.error(criticalErrorMsg);
         return {
-            stockData: { ticker, error: criticalErrorMsg, rawOverallError: { message: criticalErrorMsg } },
-            rawRequestParams: { requestedTicker: ticker, adapterInstanceFor: this.currentTickerForClient },
-            rawResponseSummary: { error: criticalErrorMsg, requestedTicker: ticker, adapterInstanceFor: this.currentTickerForClient },
+            stockData: { ticker: requestedTickerMethodArg, error: criticalErrorMsg, rawOverallError: { message: criticalErrorMsg } },
+            rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient },
+            rawResponseSummary: { error: criticalErrorMsg, requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient },
         };
     }
     
-    const tickerUpperCase = ticker.toUpperCase(); // Use consistent casing for API calls & comparisons
-
     const stockDataPackage: StockDataPackage = {
-      ticker: tickerUpperCase, // Store the uppercased ticker
+      ticker: this.currentTickerForClient, // Use the validated instance ticker
     };
     let currentStockPrice: number | undefined;
     const apiCallDelay = 150; 
 
-    console.log(`${callLogPrefix} Starting data fetch operations for ${tickerUpperCase}.`);
+    console.log(`${logPrefix} Starting data fetch operations for ${this.currentTickerForClient}.`);
 
     try {
       // 1. Fetch Market Status
       try {
-        console.log(`${callLogPrefix} Fetching market status. Delay: ${apiCallDelay}ms`);
+        console.log(`${logPrefix} Fetching market status (generic call). Delay: ${apiCallDelay}ms`);
         await delay(apiCallDelay);
         const marketStatusResponse = await this.client.reference.marketStatus();
-        console.log(`${callLogPrefix} Market status fetched successfully.`);
+        console.log(`${logPrefix} Market status fetched successfully.`);
         stockDataPackage.marketStatus = {
           market: marketStatusResponse.market === 'extended-hours' ? 'Extended Hours' : marketStatusResponse.market,
           earlyHours: marketStatusResponse.earlyHours || false,
@@ -107,24 +102,24 @@ class PolygonAdapter {
           currencies: marketStatusResponse.currencies || {},
         } as MarketStatusData;
       } catch (error: any) {
-        const errorMessage = `Failed to fetch market status for ${tickerUpperCase}. Polygon client error: ${error.message || String(error)}`;
-        console.error(`${callLogPrefix} Error fetching market status:`, error);
+        const errorMessage = `Failed to fetch market status for ${this.currentTickerForClient}. Polygon client error: ${error.message || String(error)}`;
+        console.error(`${logPrefix} Error fetching market status:`, error);
         stockDataPackage.marketStatus = { error: errorMessage, rawErrorDetails: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request'))) } as any;
       }
 
       // 2. Fetch Ticker Snapshot
       try {
-        console.log(`${callLogPrefix} Fetching snapshot for ${tickerUpperCase}. Delay: ${apiCallDelay}ms`);
+        console.log(`${logPrefix} Fetching snapshot for ${this.currentTickerForClient}. Delay: ${apiCallDelay}ms`);
         await delay(apiCallDelay);
-        const snapshotResponse = await this.client.stocks.snapshotTicker(tickerUpperCase);
+        const snapshotResponse = await this.client.stocks.snapshotTicker(this.currentTickerForClient);
         
-        if (snapshotResponse.ticker && snapshotResponse.ticker.ticker === tickerUpperCase) {
-          console.log(`${callLogPrefix} Snapshot for ${tickerUpperCase} fetched successfully. Ticker in response: ${snapshotResponse.ticker.ticker}`);
+        if (snapshotResponse.ticker && snapshotResponse.ticker.ticker === this.currentTickerForClient) {
+          console.log(`${logPrefix} Snapshot for ${this.currentTickerForClient} fetched successfully. Ticker in response: ${snapshotResponse.ticker.ticker}`);
           const { day, prevDay, min, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
           currentStockPrice = roundNumber(lastTrade?.p ?? day?.c ?? prevDay?.c, 2);
 
           stockDataPackage.stockSnapshot = {
-            ticker: snapshotResponse.ticker.ticker, // Ensure this is the correct ticker
+            ticker: snapshotResponse.ticker.ticker,
             day: this.mapToStockPriceData(day, day?.t || updated),
             prevDay: this.mapToStockPriceData(prevDay, prevDay?.t),
             min: this.mapToStockPriceData(min, min?.t || updated), 
@@ -134,9 +129,9 @@ class PolygonAdapter {
             currentPrice: currentStockPrice,
           } as StockSnapshotData;
         } else {
-            const errMsg = `Snapshot response for ${tickerUpperCase} did not contain matching ticker data or was malformed. Expected: ${tickerUpperCase}, Got in response: ${snapshotResponse.ticker?.ticker}`;
-            console.error(`${callLogPrefix} ${errMsg}`);
-            throw new Error(errMsg); // This will be caught by the outer catch for snapshot
+            const errMsg = `Snapshot response for ${this.currentTickerForClient} did not contain matching ticker data or was malformed. Expected: ${this.currentTickerForClient}, Got in response: ${snapshotResponse.ticker?.ticker}`;
+            console.error(`${logPrefix} ${errMsg}. Response:`, snapshotResponse);
+            throw new Error(errMsg); 
         }
       } catch (error: any) {
         let detailedErrorMessage = `Polygon client error: ${error.message || String(error)}`;
@@ -145,38 +140,36 @@ class PolygonAdapter {
         const polygonError = error as any;
         if (polygonError.request_id) rawErrorDetails.requestId = polygonError.request_id;
         if (polygonError.status) rawErrorDetails.status = polygonError.status;
-        const errorMessage = `Failed to fetch snapshot for ${tickerUpperCase}. ${detailedErrorMessage}`;
-        console.error(`${callLogPrefix} Error fetching stock snapshot:`, error);
-        stockDataPackage.stockSnapshot = { error: errorMessage, rawErrorDetails: rawErrorDetails, ticker: tickerUpperCase } as any; // Ensure ticker is set on error object
+        const errorMessage = `Failed to fetch snapshot for ${this.currentTickerForClient}. ${detailedErrorMessage}`;
+        console.error(`${logPrefix} Error fetching stock snapshot:`, error);
+        stockDataPackage.stockSnapshot = { error: errorMessage, rawErrorDetails: rawErrorDetails, ticker: this.currentTickerForClient } as any;
       }
 
       // 3. Fetch Standard Technical Indicators
       const technicalIndicators: TechnicalIndicatorsData = {};
       let taErrorOccurred = false;
       let taErrorMessages: string[] = [];
-      console.log(`${callLogPrefix} Fetching technical indicators for ${tickerUpperCase}.`);
+      console.log(`${logPrefix} Fetching technical indicators for ${this.currentTickerForClient}.`);
 
       try {
-        // RSI
         technicalIndicators.RSI = {};
         const rsiWindows = [7, 10, 14];
         for (const window of rsiWindows) {
           try {
-            console.log(`${callLogPrefix} Fetching RSI(${window}) for ${tickerUpperCase}. Delay: ${apiCallDelay}ms`);
+            console.log(`${logPrefix} Fetching RSI(${window}) for ${this.currentTickerForClient}. Delay: ${apiCallDelay}ms`);
             await delay(apiCallDelay);
-            const rsiRes = await this.client.stocks.rsi(tickerUpperCase, { timespan: 'day', window, series_type: 'close', limit: 1 });
+            const rsiRes = await this.client.stocks.rsi(this.currentTickerForClient, { timespan: 'day', window, series_type: 'close', limit: 1 });
             if (rsiRes.results?.values?.[0]?.value) {
               (technicalIndicators.RSI as MultiWindowIndicatorValues)[String(window)] = roundNumber(rsiRes.results.values[0].value, 2);
-              console.log(`${callLogPrefix} RSI(${window}) for ${tickerUpperCase} fetched: ${rsiRes.results.values[0].value}`);
-            } else { console.warn(`${callLogPrefix} No RSI(${window}) data for ${tickerUpperCase}`); }
-          } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`RSI(${window}): ${e.message}`); console.error(`${callLogPrefix} Error fetching RSI(${window}) for ${tickerUpperCase}:`, e.message); }
+              console.log(`${logPrefix} RSI(${window}) for ${this.currentTickerForClient} fetched: ${rsiRes.results.values[0].value}`);
+            } else { console.warn(`${logPrefix} No RSI(${window}) data for ${this.currentTickerForClient}. Response:`, rsiRes); }
+          } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`RSI(${window}): ${e.message}`); console.error(`${logPrefix} Error fetching RSI(${window}) for ${this.currentTickerForClient}:`, e.message); }
         }
 
-        // MACD
         try {
-            console.log(`${callLogPrefix} Fetching MACD for ${tickerUpperCase}. Delay: ${apiCallDelay}ms`);
+            console.log(`${logPrefix} Fetching MACD for ${this.currentTickerForClient}. Delay: ${apiCallDelay}ms`);
             await delay(apiCallDelay);
-            const macdRes = await this.client.stocks.macd(tickerUpperCase, { timespan: 'day', series_type: 'close', limit: 1 });
+            const macdRes = await this.client.stocks.macd(this.currentTickerForClient, { timespan: 'day', series_type: 'close', limit: 1 });
             if (macdRes.results?.values?.[0]) {
               const macdValue = macdRes.results.values[0];
               technicalIndicators.MACD = {
@@ -184,63 +177,54 @@ class PolygonAdapter {
                 signal: roundNumber(macdValue.signal, 4),
                 histogram: roundNumber(macdValue.histogram, 4)
               };
-              console.log(`${callLogPrefix} MACD for ${tickerUpperCase} fetched: V=${macdValue.value},S=${macdValue.signal},H=${macdValue.histogram}`);
-            } else { console.warn(`${callLogPrefix} No MACD data for ${tickerUpperCase}`); }
-        } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`MACD: ${e.message}`); console.error(`${callLogPrefix} Error fetching MACD for ${tickerUpperCase}:`, e.message); }
+              console.log(`${logPrefix} MACD for ${this.currentTickerForClient} fetched: V=${macdValue.value},S=${macdValue.signal},H=${macdValue.histogram}`);
+            } else { console.warn(`${logPrefix} No MACD data for ${this.currentTickerForClient}. Response:`, macdRes); }
+        } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`MACD: ${e.message}`); console.error(`${logPrefix} Error fetching MACD for ${this.currentTickerForClient}:`, e.message); }
 
-
-        // VWAP
         technicalIndicators.VWAP = {};
         if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.day?.vw !== undefined) {
           (technicalIndicators.VWAP as VWAPValue).day = roundNumber(stockDataPackage.stockSnapshot.day.vw, 4);
-          console.log(`${callLogPrefix} VWAP (Day) for ${tickerUpperCase} from snapshot: ${stockDataPackage.stockSnapshot.day.vw}`);
         }
         if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.min?.vw !== undefined) {
             (technicalIndicators.VWAP as VWAPValue).minute = roundNumber(stockDataPackage.stockSnapshot.min.vw, 4);
-            console.log(`${callLogPrefix} VWAP (Minute) for ${tickerUpperCase} from snapshot: ${stockDataPackage.stockSnapshot.min.vw}`);
         }
 
-
-        // EMA
         technicalIndicators.EMA = {};
         const emaWindows = [5, 10, 20, 50, 200];
         for (const window of emaWindows) {
           try {
-            console.log(`${callLogPrefix} Fetching EMA(${window}) for ${tickerUpperCase}. Delay: ${apiCallDelay}ms`);
+            console.log(`${logPrefix} Fetching EMA(${window}) for ${this.currentTickerForClient}. Delay: ${apiCallDelay}ms`);
             await delay(apiCallDelay);
-            const emaRes = await this.client.stocks.ema(tickerUpperCase, { timespan: 'day', window, series_type: 'close', limit: 1 });
+            const emaRes = await this.client.stocks.ema(this.currentTickerForClient, { timespan: 'day', window, series_type: 'close', limit: 1 });
             if (emaRes.results?.values?.[0]?.value) {
               (technicalIndicators.EMA as MultiWindowIndicatorValues)[String(window)] = roundNumber(emaRes.results.values[0].value, 2);
-              console.log(`${callLogPrefix} EMA(${window}) for ${tickerUpperCase} fetched: ${emaRes.results.values[0].value}`);
-            } else { console.warn(`${callLogPrefix} No EMA(${window}) data for ${tickerUpperCase}`); }
-          } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`EMA(${window}): ${e.message}`); console.error(`${callLogPrefix} Error fetching EMA(${window}) for ${tickerUpperCase}:`, e.message); }
+            } else { console.warn(`${logPrefix} No EMA(${window}) data for ${this.currentTickerForClient}. Response:`, emaRes); }
+          } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`EMA(${window}): ${e.message}`); console.error(`${logPrefix} Error fetching EMA(${window}) for ${this.currentTickerForClient}:`, e.message); }
         }
 
-        // SMA
         technicalIndicators.SMA = {};
         const smaWindows = [5, 10, 20, 50, 200];
         for (const window of smaWindows) {
           try {
-            console.log(`${callLogPrefix} Fetching SMA(${window}) for ${tickerUpperCase}. Delay: ${apiCallDelay}ms`);
+            console.log(`${logPrefix} Fetching SMA(${window}) for ${this.currentTickerForClient}. Delay: ${apiCallDelay}ms`);
             await delay(apiCallDelay);
-            const smaRes = await this.client.stocks.sma(tickerUpperCase, { timespan: 'day', window, series_type: 'close', limit: 1 });
+            const smaRes = await this.client.stocks.sma(this.currentTickerForClient, { timespan: 'day', window, series_type: 'close', limit: 1 });
             if (smaRes.results?.values?.[0]?.value) {
               (technicalIndicators.SMA as MultiWindowIndicatorValues)[String(window)] = roundNumber(smaRes.results.values[0].value, 2);
-              console.log(`${callLogPrefix} SMA(${window}) for ${tickerUpperCase} fetched: ${smaRes.results.values[0].value}`);
-            } else { console.warn(`${callLogPrefix} No SMA(${window}) data for ${tickerUpperCase}`); }
-          } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`SMA(${window}): ${e.message}`); console.error(`${callLogPrefix} Error fetching SMA(${window}) for ${tickerUpperCase}:`, e.message); }
+            } else { console.warn(`${logPrefix} No SMA(${window}) data for ${this.currentTickerForClient}. Response:`, smaRes); }
+          } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`SMA(${window}): ${e.message}`); console.error(`${logPrefix} Error fetching SMA(${window}) for ${this.currentTickerForClient}:`, e.message); }
         }
         
         if (taErrorOccurred) {
-            const combinedErrorMsg = `One or more TAs failed for ${tickerUpperCase}: ${taErrorMessages.join('; ')}`;
-            console.error(`${callLogPrefix} TA Errors: ${combinedErrorMsg}`);
+            const combinedErrorMsg = `One or more TAs failed for ${this.currentTickerForClient}: ${taErrorMessages.join('; ')}`;
+            console.error(`${logPrefix} TA Errors: ${combinedErrorMsg}`);
             technicalIndicators.error = combinedErrorMsg;
         }
         stockDataPackage.technicalIndicators = technicalIndicators;
 
       } catch (error: any) { 
-          const errorMessage = `General error fetching TAs for ${tickerUpperCase}: ${error.message || String(error)}`;
-          console.error(`${callLogPrefix} General TA Error:`, error);
+          const errorMessage = `General error fetching TAs for ${this.currentTickerForClient}: ${error.message || String(error)}`;
+          console.error(`${logPrefix} General TA Error:`, error);
           technicalIndicators.error = errorMessage;
           technicalIndicators.rawErrorDetails = JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request')));
           stockDataPackage.technicalIndicators = technicalIndicators;
@@ -250,7 +234,6 @@ class PolygonAdapter {
       try {
         if (currentStockPrice !== undefined && currentStockPrice !== null) {
           const expirationDate = calculateNextFridayExpiration();
-          console.log(`${callLogPrefix} Fetching options chain for ${tickerUpperCase}, expiration ${expirationDate}. Current price: ${currentStockPrice}. Delay: ${apiCallDelay}ms`);
           const strikePriceWindowPercentage = 0.20; 
           const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
           const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
@@ -261,19 +244,17 @@ class PolygonAdapter {
             limit: 250, 
           };
 
-          console.log(`${callLogPrefix} Fetching CALLS for ${tickerUpperCase}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms`);
+          console.log(`${logPrefix} Fetching CALLS for ${this.currentTickerForClient}, expiration ${expirationDate}. Current price for strike window: ${currentStockPrice}. Delay: ${apiCallDelay}ms`);
           await delay(apiCallDelay);
-          const callsSnapshot = await this.client.options.snapshotOptionChain(tickerUpperCase, {
+          const callsSnapshot = await this.client.options.snapshotOptionChain(this.currentTickerForClient, {
             ...commonOptionsParams, contract_type: 'call',
           });
-          console.log(`${callLogPrefix} CALLS for ${tickerUpperCase} fetched. Results count: ${callsSnapshot.results?.length || 0}`);
           
-          console.log(`${callLogPrefix} Fetching PUTS for ${tickerUpperCase}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms`);
+          console.log(`${logPrefix} Fetching PUTS for ${this.currentTickerForClient}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms`);
           await delay(apiCallDelay);
-          const putsSnapshot = await this.client.options.snapshotOptionChain(tickerUpperCase, {
+          const putsSnapshot = await this.client.options.snapshotOptionChain(this.currentTickerForClient, {
             ...commonOptionsParams, contract_type: 'put',
           });
-          console.log(`${callLogPrefix} PUTS for ${tickerUpperCase} fetched. Results count: ${putsSnapshot.results?.length || 0}`);
 
           const allStrikes = new Set<number>();
           const callDataByStrike = new Map<number, any>();
@@ -303,7 +284,6 @@ class PolygonAdapter {
           const endIndex = Math.min(sortedStrikes.length, closestStrikeIndex + 11); 
           const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a); 
           const optionsTableRows: OptionsTableRow[] = [];
-          console.log(`${callLogPrefix} Processing ${finalStrikesToProcess.length} strikes for options table for ${tickerUpperCase}.`);
 
           for (const strike of finalStrikesToProcess) {
             const callContractData = callDataByStrike.get(strike);
@@ -325,48 +305,47 @@ class PolygonAdapter {
             optionsTableRows.push({ strike: strike, call: mapContractData(callContractData, 'call'), put: mapContractData(putContractData, 'put') });
           }
           stockDataPackage.optionsChain = {
-            ticker: tickerUpperCase, expiration_date: expirationDate, contracts: optionsTableRows, underlying_price: roundNumber(currentStockPrice, 2),
+            ticker: this.currentTickerForClient, expiration_date: expirationDate, contracts: optionsTableRows, underlying_price: roundNumber(currentStockPrice, 2),
           };
-          console.log(`${callLogPrefix} Options chain for ${tickerUpperCase} processed. Number of rows: ${optionsTableRows.length}.`);
         } else {
-            const errMsg = `Current stock price not available for options chain fetching for ${tickerUpperCase}.`;
-            console.warn(`${callLogPrefix} ${errMsg}`);
-            stockDataPackage.optionsChain = { error: errMsg, ticker: tickerUpperCase } as any; // Ensure ticker is set
+            const errMsg = `Current stock price not available for options chain fetching for ${this.currentTickerForClient}. Snapshot data: ${JSON.stringify(stockDataPackage.stockSnapshot).substring(0,200)}`;
+            console.warn(`${logPrefix} ${errMsg}`);
+            stockDataPackage.optionsChain = { error: errMsg, ticker: this.currentTickerForClient } as any;
         }
       } catch (error: any) {
-        const errorMessage = `Failed to fetch options chain for ${tickerUpperCase}. Polygon client error: ${error.message || String(error)}`;
-        console.error(`${callLogPrefix} Error fetching options chain:`, error);
-        stockDataPackage.optionsChain = { error: errorMessage, rawErrorDetails: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request'))), ticker: tickerUpperCase } as any; // Ensure ticker is set
+        const errorMessage = `Failed to fetch options chain for ${this.currentTickerForClient}. Polygon client error: ${error.message || String(error)}`;
+        console.error(`${logPrefix} Error fetching options chain:`, error);
+        stockDataPackage.optionsChain = { error: errorMessage, rawErrorDetails: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request'))), ticker: this.currentTickerForClient } as any;
       }
 
-      console.log(`${callLogPrefix} All data fetching operations for ${tickerUpperCase} complete.`);
+      console.log(`${logPrefix} All data fetching operations for ${this.currentTickerForClient} complete.`);
       return {
         stockData: stockDataPackage,
-        rawRequestParams: { requestedTicker: ticker, adapterInstanceFor: this.currentTickerForClient }, 
+        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient }, 
         rawResponseSummary: {
-          requestedTicker: ticker, // Log the originally requested ticker
+          requestedTicker: requestedTickerMethodArg, 
           adapterInstanceFor: this.currentTickerForClient,
-          responseTicker: stockDataPackage.ticker, // This is the ticker from the fetched data package
+          responseTicker: stockDataPackage.ticker, 
           marketStatusLoaded: !!stockDataPackage.marketStatus && !stockDataPackage.marketStatus.error,
-          snapshotLoaded: !!stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.ticker === tickerUpperCase,
+          snapshotLoaded: !!stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.ticker === this.currentTickerForClient,
           tasLoaded: !!stockDataPackage.technicalIndicators && !stockDataPackage.technicalIndicators.error,
-          optionsLoaded: !!stockDataPackage.optionsChain && !stockDataPackage.optionsChain.error && stockDataPackage.optionsChain.ticker === tickerUpperCase,
+          optionsLoaded: !!stockDataPackage.optionsChain && !stockDataPackage.optionsChain.error && stockDataPackage.optionsChain.ticker === this.currentTickerForClient,
           error: stockDataPackage.error
         },
       };
 
     } catch (error: any) {
-      const overallErrorMessage = `Overall failure in fetching data for ${tickerUpperCase}. Some data might be missing or incomplete. Original error: ${error.message || String(error)}`;
-      console.error(`${callLogPrefix} An unexpected error occurred:`, error);
+      const overallErrorMessage = `Overall failure in fetching data for ${this.currentTickerForClient}. Some data might be missing or incomplete. Original error: ${error.message || String(error)}`;
+      console.error(`${logPrefix} An unexpected error occurred:`, error);
       return {
         stockData: {
           ...stockDataPackage, 
-          ticker: tickerUpperCase, // Ensure ticker is set even on overall failure
+          ticker: this.currentTickerForClient, 
           error: overallErrorMessage,
           rawOverallError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error).filter(prop => prop !== 'config' && prop !== 'request')))
         } as StockDataPackage,
-        rawRequestParams: { requestedTicker: ticker, adapterInstanceFor: this.currentTickerForClient },
-        rawResponseSummary: { error: overallErrorMessage, requestedTicker: ticker, adapterInstanceFor: this.currentTickerForClient, responseTicker: tickerUpperCase },
+        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient },
+        rawResponseSummary: { error: overallErrorMessage, requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, responseTicker: this.currentTickerForClient },
       };
     }
   }
@@ -374,8 +353,10 @@ class PolygonAdapter {
 
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const apiKeyFromEnv = process.env.POLYGON_API_KEY;
-  const logPrefix = `[adapter.getFullStockData GlobalExport Ticker: ${ticker}]`;
+  const uppercasedTicker = ticker.toUpperCase();
+  const logPrefix = `[adapter.getFullStockData GlobalExport ForTicker: ${uppercasedTicker}]`;
   console.log(`${logPrefix} Creating NEW PolygonAdapter instance.`);
-  const adapter = new PolygonAdapter(apiKeyFromEnv, ticker.toUpperCase()); // Pass uppercased ticker to constructor
-  return adapter.getFullStockData(ticker.toUpperCase()); // Call method with uppercased ticker
+  const adapter = new PolygonAdapter(apiKeyFromEnv, uppercasedTicker); 
+  return adapter.getFullStockData(uppercasedTicker); 
 }
+
