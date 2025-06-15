@@ -37,7 +37,7 @@ export enum FsmState {
   OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED', 
   OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
   
-  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE',
+  FULL_ANALYSIS_COMPLETE = 'FULL_ANALYSIS_COMPLETE', // This state indicates all automated steps are done.
 }
 
 
@@ -77,7 +77,7 @@ interface AiOptionsAnalysisFailurePayload {
 
 
 export type FsmEvent =
-  | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }    
+  | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } } // Single entry point for full analysis
   | { type: 'INITIALIZATION_COMPLETE' } 
 
   | { type: 'TRIGGER_DATA_FETCH' }
@@ -258,15 +258,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', `Added interactive chat message from ${message.role}:`, message.content.substring(0, 50));
   }, [_setChatHistory, logDebug]);
 
+  const clearChatHistoryInternal = useCallback(() => {
+    _setChatHistory([]);
+    logDebug('StockAnalysisContext', 'Chat history CLEARED INTERNALLY (e.g., by FSM reset for new full analysis).');
+  }, [_setChatHistory, logDebug]);
+
   const clearChatHistory = useCallback(() => { 
     _setChatHistory([]);
-    // Remove the auto-generated summary as well, if any.
-    // This is handled by setAllPlaceholdersInternal NOT resetting chat history.
     logDebug('StockAnalysisContext', 'Interactive chat history CLEARED by user action.');
   }, [_setChatHistory, logDebug]);
 
-  const setAllPlaceholdersInternal = useCallback((currentTickerForLogOnly: string) => {
-    logDebug('StockAnalysisContext:setAllPlaceholdersInternal', `Resetting analysis-related context JSONs to generic PENDING for new analysis of ${currentTickerForLogOnly}. CHAT HISTORY AND DEBUG LOGS ARE PRESERVED.`);
+  const setAllPlaceholdersInternal = useCallback((currentTickerForLogOnly: string, isFullAnalysis: boolean) => {
+    logDebug('StockAnalysisContext:setAllPlaceholdersInternal', `Resetting analysis-related context JSONs to generic PENDING for new analysis of ${currentTickerForLogOnly}. Full analysis mode: ${isFullAnalysis}. CHAT HISTORY AND DEBUG LOGS ARE PRESERVED.`);
     
     _setPolygonApiRequestLogJson(pendingJson);
     _setPolygonApiResponseLogJson(pendingJson);
@@ -281,11 +284,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setAiKeyTakeawaysJson(pendingJson);
     _setAiOptionsAnalysisRequestJson(pendingJson);
     _setAiOptionsAnalysisJson(pendingJson);
-    // For interactive chat, request/response JSONs reflect individual exchanges, not the summary.
-    // It is okay to set these to pending, as a new "Analyze Stock" clears prior context for Chatbot component.
-    // The actual chatHistory array is preserved.
-    _setChatbotRequestJson(pendingJson); 
-    _setChatbotResponseJson(pendingJson); 
+    
+    _setChatbotRequestJson(pendingJson); // For potential summary request
+    _setChatbotResponseJson(pendingJson); // For potential summary response
+
+    // IMPORTANT: Do NOT clear _setChatHistory([]) here to preserve chat history across analyses
+    // Do NOT clear globalLogEntries here
+
   }, [logDebug]); 
 
   const contextSetters: StockAnalysisContextSetters = {
@@ -307,9 +312,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     switch (state) {
       case FsmState.IDLE:
         if (event.type === 'START_FULL_ANALYSIS') { 
-          setAllPlaceholdersInternal(event.payload.ticker); 
+          setAllPlaceholdersInternal(event.payload.ticker, true); 
+          // DO NOT CLEAR CHAT HISTORY HERE: clearChatHistoryInternal(); 
           _setIsFullAnalysisTriggeredInternalState(true); 
-          logDebug('FSM_PIPELINE', `Reducer: ${event.type} received. isFullAnalysisTriggered set to: true. CHAT HISTORY IS PRESERVED. Transitioning to INITIALIZING_ANALYSIS.`);
+          logDebug('FSM_PIPELINE', `Reducer: START_FULL_ANALYSIS received for ${event.payload.ticker}. isFullAnalysisTriggered set to true. CHAT HISTORY IS PRESERVED. Transitioning to INITIALIZING_ANALYSIS.`);
           return FsmState.INITIALIZING_ANALYSIS;
         }
         if (event.type === 'ADD_CHAT_MESSAGE' && 'payload' in event) { 
@@ -515,7 +521,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.OPTIONS_ANALYSIS_SUCCEEDED:
       case FsmState.OPTIONS_ANALYSIS_FAILED:
-        logDebug('FSM_PIPELINE', `Reducer: ${state}. Full analysis automated steps complete (no chat summary). Transitioning to FULL_ANALYSIS_COMPLETE.`);
+        logDebug('FSM_PIPELINE', `Reducer: ${state}. Automated analysis pipeline complete. Transitioning to FULL_ANALYSIS_COMPLETE.`);
         return FsmState.FULL_ANALYSIS_COMPLETE;
       
       case FsmState.FULL_ANALYSIS_COMPLETE: 
@@ -705,4 +711,3 @@ export function useStockAnalysis() {
   }
   return context;
 }
-

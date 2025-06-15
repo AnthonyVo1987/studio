@@ -26,7 +26,8 @@ export const logSourceIds = [
   'ChatFlow',
   'AnalyzeOptionsChainFlow', 
   'FSM_PIPELINE', 
-  // Add new source identifiers here
+  // Removed: 'GenerateChatSummaryAction', 
+  // Removed: 'GenerateFullAnalysisSummaryFlow',
 ] as const;
 
 export type LogSourceId = typeof logSourceIds[number];
@@ -57,6 +58,8 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   ChatFlow: false,
   AnalyzeOptionsChainFlow: false, 
   FSM_PIPELINE: true, 
+  // GenerateChatSummaryAction: false, // Removed
+  // GenerateFullAnalysisSummaryFlow: false, // Removed
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -83,9 +86,10 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   ChatFlow: 'Chat Flow (Genkit)',
   AnalyzeOptionsChainFlow: 'Analyze Options Chain Flow (Genkit)', 
   FSM_PIPELINE: 'FSM Pipeline Events',
+  // GenerateChatSummaryAction: 'Generate Chat Summary Action (Server)', // Removed
+  // GenerateFullAnalysisSummaryFlow: 'Generate Full Analysis Summary Flow (Genkit)', // Removed
 };
 
 // For DebugConsole.tsx filter UI
 export const logTypes = ['debug', 'info', 'log', 'warn', 'error'] as const;
 export type LogType = typeof logTypes[number];
-

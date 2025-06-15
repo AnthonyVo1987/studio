@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { FormEvent } from 'react';
@@ -91,14 +92,14 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson,
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson,
-    isFullAnalysisTriggered, 
+    // isFullAnalysisTriggered is managed internally by FSM now, no direct usage here.
     logDebug,
     fsmState,
     dispatchFsmEvent,
-    // Removed: addSummaryChatMessageToHistory - direct addChatMessage will be used for user messages if needed.
+    addChatMessage, // Use addChatMessage directly for user messages if needed later for chat features
   } = useStockAnalysis();
   
-  logDebug('FSM_PIPELINE', `MainTabContent RENDER: fsmState=${fsmState}, analysisTriggeredForTickerRef=${analysisTriggeredForTickerRef.current}, activeAnalysisTicker=${activeAnalysisTicker}, isFullAnalysisTriggered=${isFullAnalysisTriggered}`);
+  logDebug('FSM_PIPELINE', `MainTabContent RENDER: fsmState=${fsmState}, analysisTriggeredForTickerRef=${analysisTriggeredForTickerRef.current}, activeAnalysisTicker=${activeAnalysisTicker}`);
 
   const [analyzeStockState, analyzeStockFormAction, isAnalyzeStockPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(fetchStockDataAction, initialStockDataFetchState);
   const [analyzeTaState, analyzeTaFormAction, isAnalyzeTaPending] = useActionState<AnalyzeTaActionState, { stockSnapshotJson: string, ticker?: string }>(analyzeTaAction, initialAnalyzeTaState);
@@ -108,14 +109,15 @@ export function MainTabContent() {
   
   const isPipelineActive = ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE, FsmState.STALE_DATA_FROM_ACTION_ERROR].includes(fsmState);
 
-  const handleAnalyzeStockSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
+  // Single handler for the "Analyze Stock" button, always triggers a full analysis
+  const handleAnalyzeStockButtonSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (isPipelineActive) {
       toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" }); return;
     }
     analysisTriggeredForTickerRef.current = tickerInput; 
     setActiveAnalysisTicker(tickerInput);
-    logDebug('MainTabContent', `"Analyze Stock" button clicked for ${tickerInput}. This triggers a FULL analysis (no automatic chat summary). Current FSM State: ${fsmState}`);
+    logDebug('MainTabContent', `"Analyze Stock" button clicked for ${tickerInput}. This triggers a FULL analysis including data, all AI insights. FSM State: ${fsmState}`);
     dispatchFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
   }, [isPipelineActive, toast, tickerInput, dispatchFsmEvent, logDebug, fsmState]);
 
@@ -307,7 +309,7 @@ export function MainTabContent() {
       const checks = [
         { name: 'Snapshot', json: contextStockSnapshotJson, checkTicker: true },
         { name: 'StdTA', json: contextStandardTasJson },
-        { name: 'AITAResult', json: contextAiAnalyzedTaJson },
+        { name: 'AITAResult', json: contextAiAnalyzedTaJson }, // This is the output of the current step
         { name: 'MarketStatus', json: contextMarketStatusJson },
       ];
       let allPrereqsReady = true;
@@ -315,7 +317,7 @@ export function MainTabContent() {
         if (!isDataReadyForProcessing(check.json, logDebug, `MTC_POST_AITA:${currentActionTicker}`, check.name)) {
             allPrereqsReady = false; break;
         }
-        if (check.checkTicker) {
+        if (check.checkTicker) { 
             try {
                 const parsed = JSON.parse(check.json!);
                 if (parsed.ticker !== currentActionTicker) {
@@ -443,10 +445,11 @@ export function MainTabContent() {
     if (fsmState === FsmState.OPTIONS_ANALYSIS_SUCCEEDED || fsmState === FsmState.OPTIONS_ANALYSIS_FAILED) {
         const currentActionTicker = analysisTriggeredForTickerRef.current;
         if (!currentActionTicker) { return; }
-        logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}. Full analysis steps complete (no chat summary). Transitioning to FULL_ANALYSIS_COMPLETE which will then go to IDLE.`);
-        // FSM reducer will handle OPTIONS_ANALYSIS_SUCCEEDED/FAILED -> FULL_ANALYSIS_COMPLETE
+        // No longer initiating chat summary. This is the end of automated steps.
+        logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}. Automated analysis steps are complete. FSM will transition to FULL_ANALYSIS_COMPLETE next.`);
+        // The FSM reducer now directly transitions from OPTIONS_ANALYSIS_SUCCEEDED/FAILED to FULL_ANALYSIS_COMPLETE.
     }
-  }, [fsmState, dispatchFsmEvent, logDebug, isFullAnalysisTriggered]);
+  }, [fsmState, dispatchFsmEvent, logDebug]);
   
   
   useEffect(() => {
@@ -581,7 +584,7 @@ export function MainTabContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={handleAnalyzeStockSubmit} type="button" className="w-full sm:w-auto" 
+            <Button onClick={handleAnalyzeStockButtonSubmit} type="button" className="w-full sm:w-auto" 
               disabled={isFormDisabled || analyzeButtonIsPending }>
               { analyzeButtonIsPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
               <Zap className="mr-2 h-4 w-4" /> Analyze Stock
@@ -625,4 +628,3 @@ export function MainTabContent() {
     </Card>
   );
 }
-    
