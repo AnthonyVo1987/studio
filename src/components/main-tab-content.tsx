@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { FormEvent } from 'react';
@@ -25,7 +24,6 @@ import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult, type PerformAiAnalysisActionInputs } from "@/actions/perform-ai-analysis-action";
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult, type PerformAiOptionsAnalysisActionInputs as PerformAiOptionsAnalysisActionInputsType } from "@/actions/perform-ai-options-analysis-action"; 
 import { chatServerAction, type ChatActionState, type ChatActionInputs } from "@/actions/chat-server-action";
-// Removed: import { generateChatSummaryAction, type GenerateChatSummaryActionState, type GenerateChatSummaryResult, type GenerateChatSummaryActionInputs as GenerateChatSummaryActionInputsType } from "@/actions/generate-chat-summary-action"; 
 
 import { useStockAnalysis, type ChatMessage, FsmState } from "@/contexts/stock-analysis-context"; 
 import { useToast } from "@/hooks/use-toast";
@@ -44,9 +42,6 @@ const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
 const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
-// Removed: const initialGenerateChatSummaryState: GenerateChatSummaryActionState = { 
-//   status: 'idle', data: undefined, error: null, message: null,
-// };
 const initialChatActionState: ChatActionState = { 
   status: 'idle', data: undefined, error: null, message: null,
 };
@@ -100,7 +95,7 @@ export function MainTabContent() {
     logDebug,
     fsmState,
     dispatchFsmEvent,
-    chatHistory, 
+    // Removed: addSummaryChatMessageToHistory - direct addChatMessage will be used for user messages if needed.
   } = useStockAnalysis();
   
   logDebug('FSM_PIPELINE', `MainTabContent RENDER: fsmState=${fsmState}, analysisTriggeredForTickerRef=${analysisTriggeredForTickerRef.current}, activeAnalysisTicker=${activeAnalysisTicker}, isFullAnalysisTriggered=${isFullAnalysisTriggered}`);
@@ -108,20 +103,19 @@ export function MainTabContent() {
   const [analyzeStockState, analyzeStockFormAction, isAnalyzeStockPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(fetchStockDataAction, initialStockDataFetchState);
   const [analyzeTaState, analyzeTaFormAction, isAnalyzeTaPending] = useActionState<AnalyzeTaActionState, { stockSnapshotJson: string, ticker?: string }>(analyzeTaAction, initialAnalyzeTaState);
   const [performAiAnalysisState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, PerformAiAnalysisActionInputs>(performAiAnalysisAction, initialPerformAiAnalysisState);
-  const [performAiOptionsAnalysisState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, PerformAiOptionsAnalysisActionInputsType>(performAiOptionsAnalysisAction, initialPerformAiOptionsAnalysisState);
-  // Removed: const [generateChatSummaryState, generateChatSummaryFormAction, isGenerateChatSummaryPending] = useActionState<GenerateChatSummaryActionState, GenerateChatSummaryActionInputsType>(generateChatSummaryAction, initialGenerateChatSummaryState);
+  const [performAiOptionsAnalysisState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, PerformAiOptionsAnalysisActionInputsType>(performAiOptionsAnalysisAction, initialPerformAiOptionsAnalysisState); 
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, initialChatActionState);
   
   const isPipelineActive = ![FsmState.IDLE, FsmState.FULL_ANALYSIS_COMPLETE, FsmState.STALE_DATA_FROM_ACTION_ERROR].includes(fsmState);
 
-  const handleAnalyzeStockButtonSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => { // Renamed from handleAnalyzeStockSubmit
+  const handleAnalyzeStockSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (isPipelineActive) {
       toast({ title: "Process Busy", description: "An analysis sequence is already running.", variant: "default" }); return;
     }
     analysisTriggeredForTickerRef.current = tickerInput; 
     setActiveAnalysisTicker(tickerInput);
-    logDebug('MainTabContent', `"Analyze Stock" button clicked for ${tickerInput}. This triggers a FULL analysis. Current FSM State: ${fsmState}`);
+    logDebug('MainTabContent', `"Analyze Stock" button clicked for ${tickerInput}. This triggers a FULL analysis (no automatic chat summary). Current FSM State: ${fsmState}`);
     dispatchFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
   }, [isPipelineActive, toast, tickerInput, dispatchFsmEvent, logDebug, fsmState]);
 
@@ -445,21 +439,17 @@ export function MainTabContent() {
 
   
    useEffect(() => {
-    // This effect now handles the transition from Options Analysis (success or fail) to FULL_ANALYSIS_COMPLETE
     logDebug('FSM_PIPELINE', `MainTabContent: OPTIONS_ANALYSIS_SUCCEEDED/FAILED Effect. fsmState: ${fsmState}. analysisRef: ${analysisTriggeredForTickerRef.current}`);
     if (fsmState === FsmState.OPTIONS_ANALYSIS_SUCCEEDED || fsmState === FsmState.OPTIONS_ANALYSIS_FAILED) {
         const currentActionTicker = analysisTriggeredForTickerRef.current;
         if (!currentActionTicker) { return; }
-        logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}. All automated analysis steps complete. Dispatching PROCEED_TO_IDLE (indirectly via FULL_ANALYSIS_COMPLETE).`);
-        // The FSM reducer will handle transitioning OPTIONS_ANALYSIS_SUCCEEDED/FAILED to FULL_ANALYSIS_COMPLETE
-        // No need to dispatch anything specific here to trigger next FSM state if reducer handles it directly.
-        // The next useEffect for FULL_ANALYSIS_COMPLETE will then proceed to IDLE.
+        logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState} for ${currentActionTicker}. Full analysis steps complete (no chat summary). Transitioning to FULL_ANALYSIS_COMPLETE which will then go to IDLE.`);
+        // FSM reducer will handle OPTIONS_ANALYSIS_SUCCEEDED/FAILED -> FULL_ANALYSIS_COMPLETE
     }
-  }, [fsmState, dispatchFsmEvent, logDebug]);
+  }, [fsmState, dispatchFsmEvent, logDebug, isFullAnalysisTriggered]);
   
   
   useEffect(() => {
-    // This effect handles the transition from FULL_ANALYSIS_COMPLETE to IDLE
     logDebug('FSM_PIPELINE', `MainTabContent: Effect for FULL_ANALYSIS_COMPLETE. Current fsmState: ${fsmState}.`);
     if (fsmState === FsmState.FULL_ANALYSIS_COMPLETE) { 
       logDebug('FSM_PIPELINE', `MainTabContent: Detected ${fsmState}. Dispatching PROCEED_TO_IDLE.`);
@@ -479,15 +469,18 @@ export function MainTabContent() {
     if (chatActionState.status === 'success' && chatActionState.data?.chatbotResponseJson) {
         try {
             const responseObj = JSON.parse(chatActionState.data.chatbotResponseJson);
-            const modelMessage: ChatMessage = { id: Date.now().toString() + '_model', role: 'model', content: responseObj.response || "No response text." };
+            const uniqueSuffix = Math.random().toString(36).substring(2, 9);
+            const modelMessage: ChatMessage = { id: `model_${Date.now()}_${uniqueSuffix}`, role: 'model', content: responseObj.response || "No response text." };
             dispatchFsmEvent({type: 'ADD_CHAT_MESSAGE', payload: modelMessage }); 
         } catch (e) {
-            const errorMessage: ChatMessage = { id: Date.now().toString() + '_model_error', role: 'model', content: "Sorry, I had trouble formatting my response." };
+            const uniqueSuffix = Math.random().toString(36).substring(2, 9);
+            const errorMessage: ChatMessage = { id: `model_error_${Date.now()}_${uniqueSuffix}`, role: 'model', content: "Sorry, I had trouble formatting my response." };
             dispatchFsmEvent({type: 'ADD_CHAT_MESSAGE', payload: errorMessage }); 
         }
     } else if (chatActionState.status === 'error') {
         const errorMessageContent = chatActionState.message || "Sorry, an error occurred with the chat.";
-        const errorModelMessage: ChatMessage = { id: Date.now().toString() + '_model_error', role: 'model', content: errorMessageContent };
+        const uniqueSuffix = Math.random().toString(36).substring(2, 9);
+        const errorModelMessage: ChatMessage = { id: `model_error_${Date.now()}_${uniqueSuffix}`, role: 'model', content: errorMessageContent };
         dispatchFsmEvent({type: 'ADD_CHAT_MESSAGE', payload: errorModelMessage }); 
     }
   }, [chatActionState, dispatchFsmEvent, logDebug, fsmState]);
@@ -588,7 +581,7 @@ export function MainTabContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={handleAnalyzeStockButtonSubmit} type="button" className="w-full sm:w-auto" 
+            <Button onClick={handleAnalyzeStockSubmit} type="button" className="w-full sm:w-auto" 
               disabled={isFormDisabled || analyzeButtonIsPending }>
               { analyzeButtonIsPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
               <Zap className="mr-2 h-4 w-4" /> Analyze Stock

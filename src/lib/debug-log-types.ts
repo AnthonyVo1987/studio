@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Defines types and identifiers for debug logging sources.
  */
@@ -8,7 +7,7 @@ export const logSourceIds = [
   'StockSnapshotDetailsDisplay',
   'StandardTaDisplay',
   'MarketStatusDisplay',
-  'AiAnalyzedTaDisplay', // Renamed
+  'AiAnalyzedTaDisplay', 
   'AiKeyTakeawaysDisplay',
   'OptionsChainTable',
   'AiOptionsAnalysisDisplay', 
@@ -22,12 +21,10 @@ export const logSourceIds = [
   'PerformAiAnalysisAction',
   'PerformAiOptionsAnalysisAction', 
   'ChatServerAction',
-  // Removed: 'GenerateChatSummaryAction', 
   'AnalyzeTaFlow', 
   'AnalyzeStockDataFlow',
   'ChatFlow',
   'AnalyzeOptionsChainFlow', 
-  // Removed: 'GenerateFullAnalysisSummaryFlow', 
   'FSM_PIPELINE', 
   // Add new source identifiers here
 ] as const;
@@ -55,12 +52,10 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   PerformAiAnalysisAction: false,
   PerformAiOptionsAnalysisAction: false, 
   ChatServerAction: false,
-  // Removed: GenerateChatSummaryAction: false, 
   AnalyzeTaFlow: false, 
   AnalyzeStockDataFlow: false,
   ChatFlow: false,
   AnalyzeOptionsChainFlow: false, 
-  // Removed: GenerateFullAnalysisSummaryFlow: false, 
   FSM_PIPELINE: true, 
 };
 
@@ -83,12 +78,10 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   PerformAiAnalysisAction: 'Perform AI Key Takeaways Action (Server)',
   PerformAiOptionsAnalysisAction: 'Perform AI Options Analysis Action (Server)', 
   ChatServerAction: 'Chat Server Action',
-  // Removed: GenerateChatSummaryAction: 'Generate Chat Summary Action (Server)', 
   AnalyzeTaFlow: 'Analyze TA Flow (Genkit)', 
   AnalyzeStockDataFlow: 'Analyze Stock Data (Key Takeaways) Flow (Genkit)',
   ChatFlow: 'Chat Flow (Genkit)',
   AnalyzeOptionsChainFlow: 'Analyze Options Chain Flow (Genkit)', 
-  // Removed: GenerateFullAnalysisSummaryFlow: 'Generate Chat Summary Flow (Genkit)', 
   FSM_PIPELINE: 'FSM Pipeline Events',
 };
 

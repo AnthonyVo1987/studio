@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that generates key insights about a stock, emphasizing sentiment.
