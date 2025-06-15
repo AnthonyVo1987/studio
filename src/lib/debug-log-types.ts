@@ -27,8 +27,6 @@ export const logSourceIds = [
   'ChatFlow',
   'AnalyzeOptionsChainFlow', 
   'FSM_PIPELINE', 
-  // Removed: 'GenerateChatSummaryAction', 
-  // Removed: 'GenerateFullAnalysisSummaryFlow',
 ] as const;
 
 export type LogSourceId = typeof logSourceIds[number];
@@ -36,28 +34,28 @@ export type LogSourceId = typeof logSourceIds[number];
 export type LogSourceConfig = Record<LogSourceId, boolean>;
 
 export const defaultLogSourceConfig: LogSourceConfig = {
-  KeyMetricsDisplay: false,
-  StockSnapshotDetailsDisplay: false,
-  StandardTaDisplay: false,
-  MarketStatusDisplay: false,
-  AiAnalyzedTaDisplay: false, 
-  AiKeyTakeawaysDisplay: false,
-  OptionsChainTable: false, // Disabled by default as per v2.9.B.8
-  AiOptionsAnalysisDisplay: false, 
-  DebugTabContent: false,
-  MainTabContent: false,
-  StockAnalysisContext: false,
-  NATIVE_CONSOLE: false,
-  Chatbot: false,
+  KeyMetricsDisplay: true,
+  StockSnapshotDetailsDisplay: true,
+  StandardTaDisplay: true,
+  MarketStatusDisplay: true,
+  AiAnalyzedTaDisplay: true, 
+  AiKeyTakeawaysDisplay: true,
+  OptionsChainTable: false, // Explicitly disabled by default
+  AiOptionsAnalysisDisplay: true, 
+  DebugTabContent: true,
+  MainTabContent: true,
+  StockAnalysisContext: true,
+  NATIVE_CONSOLE: true,
+  Chatbot: true,
   DebugConsole: true, 
-  AnalyzeTaAction: false, 
-  PerformAiAnalysisAction: false,
-  PerformAiOptionsAnalysisAction: false, 
-  ChatServerAction: false,
-  AnalyzeTaFlow: false, 
-  AnalyzeStockDataFlow: false,
-  ChatFlow: false,
-  AnalyzeOptionsChainFlow: false, 
+  AnalyzeTaAction: true, 
+  PerformAiAnalysisAction: true,
+  PerformAiOptionsAnalysisAction: true, 
+  ChatServerAction: true,
+  AnalyzeTaFlow: true, 
+  AnalyzeStockDataFlow: true,
+  ChatFlow: true,
+  AnalyzeOptionsChainFlow: true, 
   FSM_PIPELINE: true, 
 };
 
@@ -90,3 +88,4 @@ export const logSourceLabels: Record<LogSourceId, string> = {
 // For DebugConsole.tsx filter UI
 export const logTypes = ['debug', 'info', 'log', 'warn', 'error'] as const;
 export type LogType = typeof logTypes[number];
+
