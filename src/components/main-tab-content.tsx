@@ -2,7 +2,7 @@
 "use client";
 
 import type { FormEvent } from 'react';
-import React, { useState, useActionState, useEffect, startTransition, useRef, useCallback } from "react";
+import React, { useState, useEffect, startTransition, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ import { useStockAnalysis, type ChatMessage, FsmState } from "@/contexts/stock-a
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig } from "lucide-react"; 
 import type { StockSnapshotData } from '@/services/data-sources/types';
+import { useActionState } from 'react';
 
 const initialStockDataFetchState: AnalyzeStockServerActionState = {
   status: 'idle', data: undefined, error: null, message: null,
@@ -135,9 +136,9 @@ export function MainTabContent() {
 
   useEffect(() => {
     if (fsmState === FsmState.IDLE || fsmState === FsmState.STALE_DATA_FROM_ACTION_ERROR) {
-        logDebug('FSM_PIPELINE', 'Effect_ResetRefsAndTicker', `FSM is ${fsmState}. Resetting analysisTriggeredForTickerRef from ${analysisTriggeredForTickerRef.current} and activeAnalysisTicker from ${activeAnalysisTicker} to null.`);
+        logDebug('FSM_PIPELINE', 'Effect_ResetTriggerRef', `FSM is ${fsmState}. Resetting analysisTriggeredForTickerRef from ${analysisTriggeredForTickerRef.current} to null. ActiveAnalysisTicker (${activeAnalysisTicker}) is preserved.`);
         analysisTriggeredForTickerRef.current = null;
-        setActiveAnalysisTicker(null); 
+        // setActiveAnalysisTicker(null); // Removed in v2.9.B.7 to keep manual buttons enabled
         if(fsmState === FsmState.STALE_DATA_FROM_ACTION_ERROR) {
             dispatchFsmEvent({ type: 'PROCEED_TO_IDLE'});
         }
@@ -615,6 +616,4 @@ export function MainTabContent() {
     </Card>
   );
 }
-
-
     
