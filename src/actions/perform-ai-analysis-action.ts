@@ -19,6 +19,13 @@ export interface PerformAiAnalysisActionState {
   message?: string | null;
 }
 
+export const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
+  status: 'idle',
+  data: undefined,
+  error: null,
+  message: null,
+};
+
 interface PerformAiAnalysisActionInputs {
   ticker: string;
   stockSnapshotJson: string;

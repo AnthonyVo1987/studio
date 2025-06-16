@@ -20,6 +20,13 @@ export interface AnalyzeTaActionState {
   message?: string | null;
 }
 
+export const initialAnalyzeTaState: AnalyzeTaActionState = {
+  status: 'idle',
+  data: undefined,
+  error: null,
+  message: null,
+};
+
 interface AnalyzeTaActionInputs { 
   stockSnapshotJson: string;
   ticker?: string; 
@@ -112,4 +119,3 @@ export async function analyzeTaAction(
     };
   }
 }
-
