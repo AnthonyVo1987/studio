@@ -25,14 +25,14 @@
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `CHANGELOG.md` file is updated to reflect the new version and changes. This file now contains the detailed history for this document and the Project Implementation Commit Log.
     5.  **README.md & CHANGELOG.md Update Timing:** All updates to `README.md` (versioning, phased plan status) and `CHANGELOG.md` (commit log) as described above **SHALL ONLY** be performed during an explicit 'COMMIT' stage, after the user has confirmed the code changes for that task version are ready to be finalized.
-*   **Example:** If the current phase is 9, current task is C, and this is the 18th iteration (I in hex) for this task, the version will be `v2.9.C.I`. If the next task is a bug fix on top of this, it will be `v2.9.C.J` (or `v2.9.D.0` if it's a new sub-phase task).
+*   **Example:** If the current phase is 9, current task is C, and this is the 16th iteration (P in hex) for this task, the version will be `v2.9.C.P`. If the next task is a bug fix on top of this, it will be `v2.9.C.Q` (or `v2.9.D.0` if it's a new sub-phase task).
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.C.I)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.C.P)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.C.I`). This version includes a critical fix for the AI Chat functionality.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.C.P`). This version includes fixes for AI Options Analysis display logic.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -51,7 +51,7 @@ The primary strategy for this implementation is **UI-First Development**, manage
     *   Offer a robust and debuggable backend processing pipeline through the FSMs.
     *   Ensure a predictable, traceable, and robust data pipeline.
 
-## **2. High-Level Goals (Current Version v2.9.C.I)**
+## **2. High-Level Goals (Current Version v2.9.C.P)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
 *   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline and local component FSMs.
@@ -62,31 +62,29 @@ The primary strategy for this implementation is **UI-First Development**, manage
 *   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers, significantly improved by the Phase 9 FSM re-architecture, local FSMs, and recent bug fixes.
 *   **User Experience:** Deliver a high-quality, responsive, and accessible user interface with clear feedback on processing states.
 *   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and a dedicated FSM State Debug Card showing Prev/Current/Target states for global and local FSMs.
-*   **Dynamic Versioning:** Maintain and display the application version `v2.9.C.I` as per SOP (Section 0.7).
-*   **Stability and Reliability:** Ensure application stability through rigorous bug fixing (including the critical AI Chat fix in this version) and robust error handling.
+*   **Dynamic Versioning:** Maintain and display the application version `v2.9.C.P` as per SOP (Section 0.7).
+*   **Stability and Reliability:** Ensure application stability through rigorous bug fixing (including the AI Options Display fix in this version) and robust error handling.
 
-### **2.1. Known Issues / Current Status (v2.9.C.I)**
-The application is currently very stable following a series of bug fixes and feature enhancements, including the resolution of the AI Chat functionality in this version.
-1.  **UI Button States (Largely Resolved):** Fixes in previous versions have addressed issues with the "Analyze Stock" and on-demand AI buttons.
-2.  **Client Debug Console & FSM State Debug Card (Enhanced & Stable):**
-    *   The Client Debug Console is enabled by default, has improved filtering, log capacity, default source settings.
-    *   The FSM State Debug Card correctly displays Prev/Current/Target states for the global FSM and all local FSMs.
-3.  **Server Action Error Handling (Improved):** Fixes for server action error serialization and number formatting TypeErrors have improved stability.
-4.  **AI Chat Functionality (Restored in v2.9.C.I):** A critical bug preventing AI Chat interaction (via typing or prompt buttons) has been resolved by correctly initializing `useActionState` and its result handling in `MainTabContent.tsx`.
-5.  **AI Options Analysis (Simplified & Stable in v2.9.C.G):** Functionality was simplified to focus on Call/Put walls, and a crash was fixed.
-6.  **Options Chain Table (Restored in v2.9.C.G):** Visibility issues resolved. Enhanced with JSON export/copy in v2.9.C.H.
-7.  **Export/Copy Logic (Refined in v2.9.C.H):** Combined data export is now more dynamic, and buttons are disabled during analysis.
+### **2.1. Known Issues / Current Status (v2.9.C.P)**
+The application is currently very stable following a series of bug fixes and feature enhancements.
+1.  **AI Options Analysis (Ongoing Refinement):**
+    *   **Display Logic (v2.9.C.P):** The display logic in `AiOptionsAnalysisDisplay.tsx` has been significantly improved to correctly show "No significant walls identified by AI" when the AI flow returns empty (but valid) wall data. It also more clearly distinguishes between error states and unavailable data.
+    *   **Wall Identification (Work In Progress):** The AI flow (`analyze-options-chain-flow.ts`) itself may still not identify walls as consistently or robustly as desired in all market conditions or for all tickers. Sometimes, it returns empty walls even when some significant Open Interest might be present. This requires further refinement of the AI prompt and potentially the flow's internal logic.
+2.  **UI Button States (Largely Resolved):** Fixes in previous versions have addressed issues with the "Analyze Stock" and on-demand AI buttons.
+3.  **Client Debug Console & FSM State Debug Card (Enhanced & Stable):** Functionality is robust.
+4.  **Server Action Error Handling (Improved):** Previous fixes for error serialization and number formatting have improved stability.
+5.  **AI Chat Functionality (Restored & Refined):** Chat interaction and prompt handling are stable.
 
-Overall, the application is in a significantly improved and stable state.
+Overall, the application is in a good state, with ongoing work focused on the AI options analysis flow's ability to consistently identify significant option walls.
 
-## **3. Core Application Features (StockSage v2.9.C.I)**
+## **3. Core Application Features (StockSage v2.9.C.P)**
 
-This section details the core features of StockSage v2.9.C.I, serving as the Product Requirements.
+This section details the core features of StockSage v2.9.C.P, serving as the Product Requirements.
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
 *   **Header:**
-    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.C.I`).
+    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.C.P`).
     *   Includes a theme toggler (Light/Dark/System).
     *   **Displays the Global FSM's Previous, Current, and Target states** in the top-right area.
 *   **Footer:** Contains copyright information and a standard financial disclaimer.
@@ -127,8 +125,8 @@ The "Main" tab is the primary user interface for stock analysis.
     4.  AI Analyzed Technical Analysis Display (Pivot Points)
     5.  AI Key Takeaways Display
     6.  Options Chain Table Display (Now with JSON Export/Copy)
-    7.  AI Analyzed Options Chain Display (Simplified to Call/Put Walls only)
-    8.  AI Chatbot Interface (Functionality restored in v2.9.C.I; prompt buttons submit directly)
+    7.  AI Analyzed Options Chain Display (Up to 3 Call/Put Walls)
+    8.  AI Chatbot Interface (Word wrap and prompt formatting improved)
     9.  Market Status Display
 
 *   **Combined Data Export Controls:**
@@ -147,12 +145,12 @@ The "Main" tab is the primary user interface for stock analysis.
     *   `ChatbotFsmContext.tsx`: Manages Chatbot UI interactions (input, submission). Its display state is reported to `StockAnalysisContext`.
     *   `DebugConsoleFsmContext.tsx`: Manages UI states for the debug console's menus (filter, copy, export). Its display state is reported to `StockAnalysisContext`.
 *   **Data Retrieval:** `src/services/data-sources/adapters/polygon-adapter.ts`.
-*   **Genkit AI Flows:** `analyze-ta-flow.ts`, `analyze-stock-data.ts`, `analyze-options-chain-flow.ts` (simplified), `chat-flow.ts`.
-*   **Server Actions:** `analyze-stock-server-action.ts`, `analyze-ta-action.ts`, `perform-ai-analysis-action.ts`, `perform-ai-options-analysis-action.ts` (handles simplified output), `chat-server-action.ts` (hookup fixed in v2.9.C.I).
+*   **Genkit AI Flows:** `analyze-ta-flow.ts`, `analyze-stock-data.ts`, `analyze-options-chain-flow.ts` (robustness improved), `chat-flow.ts` (prompt formatting improved).
+*   **Server Actions:** `analyze-stock-server-action.ts`, `analyze-ta-action.ts`, `perform-ai-analysis-action.ts`, `perform-ai-options-analysis-action.ts` (error handling improved), `chat-server-action.ts`.
 *   **Number Utilities (`src/lib/number-utils.ts`):** `formatNumber` robust against TypeErrors.
 
 ## **4. Technology Stack (Mandatory)**
-(Same as v2.9.C.G - No changes to core stack)
+(Same as v2.9.C.L - No changes to core stack)
 
 *   **Frontend Framework:** Next.js (latest stable v14.x or v15.x, **App Router mandatory**)
 *   **Language:** TypeScript
@@ -192,16 +190,16 @@ The "Main" tab is the primary user interface for stock analysis.
 *   `MainTabContent`: Internal local FSM for UI logic. Reports its display state to `StockAnalysisContext`. Also manages the `useActionState` hook for `chatServerAction`.
 
 #### **4.1.6. Known Pain Points & Lessons Learned (CRITICAL REMINDERS)**
-(Content on `async_hooks`, client-side bundling, `'use server';` directive, Genkit syntax remains relevant. Correct `useActionState` initialization and effect handling for server actions is a key lesson from v2.9.C.I. Context provider nesting and stable state setters remain important.)
+(Content on `async_hooks`, client-side bundling, `'use server';` directive, Genkit syntax remains relevant. Correct `useActionState` initialization and effect handling for server actions is a key lesson. Context provider nesting and stable state setters remain important. Robust error handling in flows and server actions, especially ensuring consistent error JSON structures, is crucial, as seen with the AI Options analysis.)
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9, Task 9.C.I Complete. Current application version: v2.9.C.I.)*
+*(Status: Phase 9, Task 9.C.P Complete. Current application version: v2.9.C.P.)*
 
 ---
 **Phase 0-8: COMPLETE**
 ---
-**Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **COMPLETE**
+**Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **ONGOING** (Focus on AI Options Analysis robustness)
 *   **Tasks 9.1 - 9.8: COMPLETE**
 *   **Task 9.A: Comprehensive Full README.md update (v2.9.A.0):** - Status: **COMPLETE**
 *   **Task 9.9: Testing and Debugging Fixes (v2.9.9.x -> v2.9.A.x -> v2.9.B.x):** - Status: **COMPLETE**
@@ -222,6 +220,11 @@ The "Main" tab is the primary user interface for stock analysis.
 *   **Task 9.C.G: BUG FIX - AI Options Analysis Crash & Simplification, Restore Options Chain Table Visibility (v2.9.C.G):** Status: **COMPLETE**
 *   **Task 9.C.H: BUG/FEAT - AI Chat Prompt Fix, Dynamic Combined Export, Options Table JSON Export (v2.9.C.H):** Status: **COMPLETE**
 *   **Task 9.C.I: BUG FIX - AI Chat Broken (useActionState), Refine Chat UX & Export Logic (v2.9.C.I):** Status: **COMPLETE**
+*   **Task 9.C.J: DEPLOY - Firebase App Hosting (v2.9.C.J):** Status: **COMPLETE** (Hypothetical deployment task)
+*   **Task 9.C.K: BUG/FEAT - Refine AI Takeaways, Chat Prompt Details, and UI (v2.9.C.K):** Status: **COMPLETE**
+*   **Task 9.C.L: BUG FIX - Refine AI Displays, Chat Formatting & Options Analysis (v2.9.C.L):** Status: **COMPLETE**
+*   **Task 9.C.M: BUG FIX - AI Analyzed Options Chain Broken (Attempt 3 - Flow/Action Robustness) (v2.9.C.M):** Status: **COMPLETE**
+*   **Task 9.C.P: BUG FIX - AI Analyzed Options Chain Display Logic (Attempt 4 - Rendering) (v2.9.C.P):** Status: **COMPLETE**
 
 ## **6. Changelog and Commit Log**
 
@@ -229,4 +232,3 @@ The detailed changelog for this document (README.md) and the application's commi
 Please refer to `CHANGELOG.md` for all version history and commit details.
 
 ---
-```

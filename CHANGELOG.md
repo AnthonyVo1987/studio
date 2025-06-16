@@ -16,6 +16,94 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.C.P` (Fix AI Options Display Logic)
+**Tag:** `Phase-9_Task-9.C.P_FixOptionsDisplayLogic` - Commit Hash: `79e7cf4c`
+**Subject:** `fix(options): Refactor AI Options Display logic & intermediate save (v2.9.C.P)`
+**Details:**
+This version addresses an issue in the AI Options Analysis display where it incorrectly showed "AI Options Analysis data not available" even when the AI flow successfully returned an empty set of walls (i.e., no significant walls were identified). The primary focus was to improve the robustness of the display component's rendering logic.
+
+Key changes included in v2.9.C.P:
+- **`src/components/ai-options-analysis-display.tsx`:**
+    - The conditional rendering logic within the component was refactored to more clearly distinguish between various states:
+        - **Loading:** Skeletons are displayed.
+        - **Error:** A specific error message (from the server/flow or due to parsing issues) is shown.
+        - **Successfully Parsed Data:**
+            - If `parsedSuccessfullyData` exists and contains actual call or put walls, the accordion and tables are rendered.
+            - If `parsedSuccessfullyData` is valid but both `callWalls` and `putWalls` are empty arrays (indicating the AI found no significant walls according to its criteria), a message "No significant walls identified by AI." is now correctly displayed.
+        - **Initial/Unavailable:** If `aiOptionsAnalysisJson` is null, genuinely empty (`{}`), or represents an initial state before any relevant analysis, a message like "AI Options Analysis data not available" is displayed.
+    - This ensures the UI accurately reflects the outcome of the AI options analysis, including valid "no walls found" scenarios.
+- **Known Issue (Work In Progress):** The AI Options Analysis flow itself may still not be identifying walls as consistently or robustly as desired in all market conditions or for all tickers. This will be addressed in future iterations.
+- Application version updated to `v2.9.C.P` in `src/components/layout/header.tsx`.
+- `README.md` and `CHANGELOG.md` updated to reflect the new version and completed task.
+---
+**App Version:** `v2.9.C.N` (Fix AI Options Flow/Action Robustness)
+**Tag:** `Phase-9_Task-9.C.N_FixOptionsFlowActionRobustness` - Commit Hash: `(previous_commit_for_C.N)`
+**Subject:** `fix(options): Improve AI Options flow & server action error handling (v2.9.C.N)`
+**Details:**
+This version addresses ongoing issues with the AI Analyzed Options Chain, focusing on improving the robustness of the AI flow and server action error handling.
+- **`src/ai/flows/analyze-options-chain-flow.ts`:**
+    - Implemented a more robust `try...catch` block around the `analyzeOptionsChainPrompt(input)` call. On prompt failure, it now logs the error comprehensively and returns a well-formed empty result (`{ callWalls: [], putWalls: [] }`).
+    - The pre-check for insufficient input data (e.g., too few contracts) remains.
+    - The post-prompt check for valid output structure also remains, ensuring an empty valid structure if the AI's output is malformed.
+- **`src/actions/perform-ai-options-analysis-action.ts`:**
+    - Simplified the error message construction in the main `catch (error: any)` block. The `detailMsg` for `baseErrorReturn` is now a more generic user-friendly message, reducing the risk of complex error objects breaking JSON stringification for the client.
+- Application version updated to `v2.9.C.N`.
+---
+**App Version:** `v2.9.C.M` (Fix AI Options Flow and Schema)
+**Tag:** `Phase-9_Task-9.C.M_FixOptionsFlowSchema` - Commit Hash: `(previous_commit_for_C.M)`
+**Subject:** `fix(options): Revert to 3 walls in AI Options Analysis, improve flow robustness (v2.9.C.M)`
+**Details:**
+This version reverts the AI Options Analysis to allow for up to 3 Call/Put walls (from 1 in v2.9.C.L) and improves flow robustness.
+- **`src/ai/schemas/ai-options-analysis-schemas.ts`:** `AiOptionsAnalysisOutputSchema` updated to set `max(3)` for `callWalls` and `putWalls`.
+- **`src/ai/flows/analyze-options-chain-flow.ts`:**
+    - Prompt (`analyzeOptionsChainPrompt`) updated to request "AT MOST 3" significant walls per type, ordered by significance.
+    - Added a pre-check in `analyzeOptionsChainFlow` to return empty walls if `input.optionsChainJson` is unparsable or contains insufficient contracts (less than 3), avoiding an unnecessary LLM call.
+    - The flow now returns up to 3 walls per type as provided by the AI, conforming to the updated schema.
+- Application version updated to `v2.9.C.M`.
+---
+**App Version:** `v2.9.C.L` (Refine AI Displays, Chat Formatting & Options Analysis)
+**Tag:** `Phase-9_Task-9.C.L_RefineAIDisplaysChatOptions` - Commit Hash: `(previous_commit_for_C.L)`
+**Subject:** `fix(ui,ai): Improve AI Takeaways Volatility display, Chat formatting, and limit Options Walls (v2.9.C.L)`
+**Details:**
+This version addresses several UI display and AI generation issues:
+- **AI Key Takeaways Volatility Display (`src/components/ai-key-takeaways-display.tsx`):**
+    - Changed text color for "moderate" volatility sentiment to `text-foreground` to ensure readability on light card backgrounds.
+- **AI Chat Word Wrap (`src/components/chatbot.tsx`):**
+    - Changed `w-max` to `w-full` on the chat message container div for better word wrapping.
+- **AI Chat Message Formatting (`src/ai/flows/chat-flow.ts`):**
+    - Updated `stockChatBotPrompt` to explicitly request bullet points and better line spacing in Markdown.
+- **AI Analyzed Options Chain (`src/ai/schemas/ai-options-analysis-schemas.ts`, `src/ai/flows/analyze-options-chain-flow.ts`):**
+    - Schema updated to `max(1)` for `callWalls` and `putWalls`.
+    - Prompt updated to request the "SINGLE MOST" significant wall per type.
+    - Flow logic updated to slice output to ensure only one wall per type is returned.
+- Application version updated to `v2.9.C.L`.
+---
+**App Version:** `v2.9.C.K` (BUG/FEAT - Refine AI Takeaways, Chat Prompt Details, and UI)
+**Tag:** `Phase-9_Task-9.C.K_RefineTakeawaysChatUI` - Commit Hash: `(previous_commit_for_C.K)`
+**Subject:** `fix(ai,ui): Improve AI Takeaways Volatility, Chat Prompts, and Chat UI (v2.9.C.K)`
+**Details:**
+- **AI Key Takeaways - Volatility (`src/ai/flows/analyze-stock-data.ts`):**
+    - Added a programmatic check in `analyzeStockDataFlow`. If `output.volatility.takeaway` is empty or too short (less than 5 words), it's set to a default placeholder.
+- **AI Chat - Word Wrapping (`src/components/chatbot.tsx`):**
+    - Added `break-words` class to the chat message `div` for better text wrapping.
+- **AI Chat - Example Prompts (`src/ai/schemas/chat-schemas.ts`):**
+    - Enhanced "Stock Trader's Takeaways" to ask for entry/exit points.
+    - Enhanced "Options Trader's Takeaways" to ask for example option trade ideas.
+    - Reinforced "Additional 3 Holistic Takeaways" to request three full, distinct takeaways.
+- Application version updated to `v2.9.C.K`.
+---
+**App Version:** `v2.9.C.J` (Deploy to Firebase App Hosting)
+**Tag:** `Phase-9_Task-9.C.J_DeployToFirebase` - Commit Hash: `(previous_commit_for_C.J)`
+**Subject:** `deploy(hosting): Prepare for and document Firebase App Hosting deployment (v2.9.C.J)`
+**Details:**
+This version represents a checkpoint for deployment to Firebase App Hosting. Key activities included:
+- Final verification of all prior fixes and features up to v2.9.C.I.
+- Ensured `.env` is correctly configured (though empty for commit, real values would be in Firebase).
+- Updated `apphosting.yaml` with any necessary configurations (though it remained default for this phase).
+- Added notes to `README.md` regarding deployment considerations and environment variables.
+- Application version updated to `v2.9.C.J` in `src/components/layout/header.tsx`.
+- `README.md` and `CHANGELOG.md` updated to reflect this deployment task and version.
+---
 **App Version:** `v2.9.C.I` (Fix Broken AI Chat Functionality)
 **Tag:** `Phase-9_Task-9.C.I_FixBrokenAiChat` - Commit Hash: `fb9041c0`
 **Subject:** `fix(chat): Resolve broken AI Chat by correcting useActionState and handling (v2.9.C.I)`
@@ -187,7 +275,7 @@ Modified `MainTabContent.tsx` to stop resetting `activeAnalysisTicker` to `null`
 Wrapped `chatFormAction` call in `Chatbot.tsx` in `React.startTransition` to resolve `useActionState` warning. Refined `useEffect` for `chatActionState` in `MainTabContent.tsx` by adjusting dependencies and adding a check against the last message in `contextChatHistoryRef.current` to prevent duplicate message dispatches to the FSM. UI Header updated to `v2.9.B.6`.
 ---
 **App Version:** `v2.9.B.5` (Safer Error Serialization in Polygon Adapter)
-**Tag:** `Phase-9_Task-9.B.5_SaferErrorSerialization` - Commit Hash: `(previous_commit_hash_for_B5)`
+**Tag:** `Phase-9_Task-9.B.5_SaferErrorSerialization` - Commit Hash: `(previous_commit_for_B5)`
 **Subject:** `fix(server): Implement safer error serialization in Polygon adapter (v2.9.B.5)`
 **Details:**
 Modified `getFullStockData` in `src/services/data-sources/adapters/polygon-adapter.ts` to serialize caught errors into plain objects with specific, known-safe properties (`name`, `message`, limited `stack`, `code`) for `rawErrorDetails` and `rawOverallError`. This prevents issues with complex error objects causing client-side deserialization failures in server action responses. UI Header updated to `v2.9.B.5`.
@@ -233,4 +321,3 @@ UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
 
-```
