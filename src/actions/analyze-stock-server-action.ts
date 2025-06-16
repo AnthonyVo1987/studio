@@ -20,6 +20,14 @@ export interface AnalyzeStockServerActionState {
   message?: string | null;
 }
 
+// Definition remains, but NOT exported
+const initialStockDataFetchResult: AnalyzeStockServerActionState = {
+  status: 'idle',
+  data: undefined,
+  error: null,
+  message: null,
+};
+
 interface FetchStockDataActionInputs {
   ticker: string;
   dataSource?: string;
@@ -50,16 +58,13 @@ export async function fetchStockDataAction(
     console.log(`${actionLogPrefix} Calling getFullStockData for ${requestedTickerUpperCase}.`);
     const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase);
     
-    // Enhanced logging for adapter output
     const adapterStockDataTicker = adapterOutput.stockData.ticker;
     const adapterSnapshotTicker = adapterOutput.stockData.stockSnapshot?.ticker;
     const adapterRawResponseSummaryTicker = adapterOutput.rawResponseSummary?.responseTicker;
-    const adapterRawRequestSummaryTicker = adapterOutput.rawResponseSummary?.requestedTicker; // This should match requestedTickerUpperCase if adapter got it right
+    const adapterRawRequestSummaryTicker = adapterOutput.rawResponseSummary?.requestedTicker; 
 
     console.log(`${actionLogPrefix} getFullStockData returned. Requested: ${requestedTickerUpperCase}, AdapterStockDataPkgTicker: ${adapterStockDataTicker}, AdapterSnapshotTicker: ${adapterSnapshotTicker}, AdapterRawRespSummaryTicker: ${adapterRawResponseSummaryTicker}, AdapterRawReqSummaryTicker(from adapter): ${adapterRawRequestSummaryTicker}`);
     
-    // Critical Check: Ensure the data returned by the adapter, specifically from stockSnapshot, is for the requested ticker.
-    // This is the most reliable source of truth for the ticker the data pertains to from Polygon.
     if (adapterSnapshotTicker && adapterSnapshotTicker !== requestedTickerUpperCase) {
         const staleDataErrorMsg = `CRITICAL STALE DATA (Snapshot): Adapter returned snapshot data for ${adapterSnapshotTicker} when ${requestedTickerUpperCase} was requested.`;
         console.error(`${actionLogPrefix} ${staleDataErrorMsg}`);
@@ -119,7 +124,6 @@ export async function fetchStockDataAction(
     const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams);
     const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary);
 
-    // Final log to confirm the ticker in the successfully processed snapshotJson
     console.log(`${actionLogPrefix} Successfully processed data. Ticker in final stockSnapshotJson being returned to client: ${adapterOutput.stockData.stockSnapshot?.ticker} (Expected: ${requestedTickerUpperCase})`);
     return {
       status: 'success',
@@ -144,4 +148,3 @@ export async function fetchStockDataAction(
     };
   }
 }
-

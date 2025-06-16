@@ -5,10 +5,10 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, startTransition } from 'react';
 import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer';
-import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult, initialStockDataFetchResult } from '@/actions/analyze-stock-server-action';
-import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult, initialAnalyzeTaState } from '@/actions/analyze-ta-action';
-import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult, initialPerformAiAnalysisState } from '@/actions/perform-ai-analysis-action';
-import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult, initialPerformAiOptionsAnalysisState } from '@/actions/perform-ai-options-analysis-action';
+import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
+import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
+import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
+import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
 import { useActionState } from 'react';
 
 
@@ -193,6 +193,21 @@ const initialFsmHistory: FsmHistoryState = {
   current: FsmState.IDLE,
   previous: null,
 };
+
+// Define initial states for useActionState directly in this client component
+const localInitialStockDataFetchResult: AnalyzeStockServerActionState = {
+  status: 'idle', data: undefined, error: null, message: null,
+};
+const localInitialAnalyzeTaState: AnalyzeTaActionState = {
+  status: 'idle', data: undefined, error: null, message: null,
+};
+const localInitialPerformAiAnalysisState: PerformAiAnalysisActionState = {
+  status: 'idle', data: undefined, error: null, message: null,
+};
+const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = {
+  status: 'idle', data: undefined, error: null, message: null,
+};
+
 
 const defaultState: StockAnalysisState = {
   polygonApiRequestLogJson: initialJsonPlaceholder,
@@ -747,19 +762,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   // Server Action states
   const [fetchDataActionState, fetchStockDataFormAction, isFetchDataPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(
     fetchStockDataAction,
-    initialStockDataFetchResult
+    localInitialStockDataFetchResult
   );
   const [analyzeTaActionState, analyzeTaFormAction, isAnalyzeTaPending] = useActionState<AnalyzeTaActionState, { stockSnapshotJson: string, ticker?: string }>(
     analyzeTaAction,
-    initialAnalyzeTaState
+    localInitialAnalyzeTaState
   );
   const [performAiAnalysisActionState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, { ticker: string, stockSnapshotJson: string, standardTasJson: string, aiAnalyzedTaJson: string, marketStatusJson: string }>(
     performAiAnalysisAction,
-    initialPerformAiAnalysisState
+    localInitialPerformAiAnalysisState
   );
   const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string }>(
     performAiOptionsAnalysisAction,
-    initialPerformAiOptionsAnalysisState
+    localInitialPerformAiOptionsAnalysisState
   );
   
   // Effect for Global FSM Pipeline Orchestration
@@ -970,4 +985,3 @@ export function useStockAnalysis() {
   }
   return context;
 }
-

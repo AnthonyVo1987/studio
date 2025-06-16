@@ -19,7 +19,8 @@ export interface PerformAiAnalysisActionState {
   message?: string | null;
 }
 
-export const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
+// Definition remains, but NOT exported
+const initialPerformAiAnalysisState: PerformAiAnalysisActionState = {
   status: 'idle',
   data: undefined,
   error: null,
@@ -109,4 +110,3 @@ export async function performAiAnalysisAction(
     };
   }
 }
-

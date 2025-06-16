@@ -20,7 +20,8 @@ export interface AnalyzeTaActionState {
   message?: string | null;
 }
 
-export const initialAnalyzeTaState: AnalyzeTaActionState = {
+// Definition remains, but NOT exported
+const initialAnalyzeTaState: AnalyzeTaActionState = {
   status: 'idle',
   data: undefined,
   error: null,

@@ -20,7 +20,8 @@ export interface PerformAiOptionsAnalysisActionState {
   message?: string | null;
 }
 
-export const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = {
+// Definition remains, but NOT exported
+const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = {
   status: 'idle',
   data: undefined,
   error: null,
