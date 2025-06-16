@@ -18,6 +18,7 @@ import {
   DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
 import { useStockAnalysis } from '@/contexts/stock-analysis-context';
+import { useDebugConsoleFsm, DebugConsoleFsmMenuState } from '@/contexts/debug-console-fsm-context';
 import { globalLogEntries, clearGlobalLogBuffer, type GlobalLogEntry } from '@/lib/global-log-buffer';
 import { downloadJson, copyToClipboard, downloadTxt } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
@@ -28,16 +29,15 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
-const MAX_DISPLAYED_LOGS = 1000; // Increased from 200
+const MAX_DISPLAYED_LOGS = 1000;
 
 function formatLogMessage(messages: any[]): string {
-  const seen = new Set(); 
+  const seen = new Set();
   return messages
     .map((msg) => {
       if (typeof msg === 'string') return msg;
       if (typeof msg === 'object' && msg !== null) {
         try {
-          // Reset 'seen' for each top-level message part to handle multiple objects correctly
           seen.clear();
           return JSON.stringify(msg, (key, value) => {
             if (typeof value === 'object' && value !== null) {
@@ -62,7 +62,6 @@ const getSourceLabel = (source?: LogSourceId): string => {
   return `${logSourceLabels[source] || source}`;
 };
 
-// Helper function to escape CSV fields
 const escapeCsvField = (field: any): string => {
   if (field === null || field === undefined) {
     return '';
@@ -74,10 +73,9 @@ const escapeCsvField = (field: any): string => {
   return stringField;
 };
 
-// Helper function to generate TXT content from logs
 const generateLogsTxt = (logs: GlobalLogEntry[]): string => {
   return logs.map(log => {
-    const timestamp = `[${new Date(log.timestamp).toISOString()}]`; // Full ISO for precision in TXT
+    const timestamp = `[${new Date(log.timestamp).toISOString()}]`;
     const type = `[${log.type.toUpperCase()}]`;
     const source = log.source ? `[${getSourceLabel(log.source)}]` : '[UNKNOWN_SOURCE]';
     const message = formatLogMessage(log.messages);
@@ -85,11 +83,10 @@ const generateLogsTxt = (logs: GlobalLogEntry[]): string => {
   }).join('\n');
 };
 
-// Helper function to generate CSV content from logs
 const generateLogsCsv = (logs: GlobalLogEntry[]): string => {
   const headers = "Timestamp,Type,Source,Message\n";
   const rows = logs.map(log => {
-    const timestamp = log.timestamp; // ISO string for CSV
+    const timestamp = log.timestamp;
     const type = log.type;
     const source = log.source ? getSourceLabel(log.source) : '';
     const message = formatLogMessage(log.messages);
@@ -104,18 +101,21 @@ export function DebugConsole() {
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
-    logDebug, 
+    logDebug: stockAnalysisLogDebug, // Renamed to avoid conflict
   } = useStockAnalysis();
+
+  const {
+    uiMenuState,
+    activeFilters,
+    searchTerm,
+    dispatchDebugConsoleFsmEvent,
+  } = useDebugConsoleFsm();
+
   const { toast } = useToast();
   const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
-  const [activeFilters, setActiveFilters] = useState<{ types: Set<LogType>; sources: Set<LogSourceId> }>({
-    types: new Set(),
-    sources: new Set(),
-  });
-  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const processLogs = useCallback(() => {
-    let logsToProcess = [...globalLogEntries]; 
+    let logsToProcess = [...globalLogEntries];
     const currentSearchTerm = searchTerm.toLowerCase();
 
     if (activeFilters.types.size > 0) {
@@ -124,26 +124,26 @@ export function DebugConsole() {
     if (activeFilters.sources.size > 0) {
       logsToProcess = logsToProcess.filter(log => log.source && activeFilters.sources.has(log.source));
     }
-    
+
     if (currentSearchTerm) {
-      logsToProcess = logsToProcess.filter(log => 
+      logsToProcess = logsToProcess.filter(log =>
         formatLogMessage(log.messages).toLowerCase().includes(currentSearchTerm)
       );
-      logDebug('DebugConsole', `Search: "${currentSearchTerm}" matched ${logsToProcess.length} logs after type/source filters.`);
+      stockAnalysisLogDebug('DebugConsole', `Search: "${currentSearchTerm}" matched ${logsToProcess.length} logs after type/source filters.`);
     }
-    
+
     return logsToProcess.slice(Math.max(0, logsToProcess.length - MAX_DISPLAYED_LOGS));
-  }, [activeFilters, searchTerm, logDebug]);
+  }, [activeFilters, searchTerm, stockAnalysisLogDebug]);
 
 
   const fetchAndUpdateLogs = useCallback(() => {
     if (!isClientDebugConsoleOpen || !isClientDebugConsoleEnabled) return;
 
     const newLogs = processLogs();
-    if (newLogs.length !== displayedLogs.length || 
+    if (newLogs.length !== displayedLogs.length ||
         (newLogs.length > 0 && displayedLogs.length > 0 && newLogs[newLogs.length -1].id !== displayedLogs[displayedLogs.length-1]?.id) ||
         (newLogs.length > 0 && displayedLogs.length === 0) ||
-        (newLogs.length === 0 && displayedLogs.length > 0) 
+        (newLogs.length === 0 && displayedLogs.length > 0)
        ) {
        setDisplayedLogs(newLogs);
     }
@@ -152,7 +152,7 @@ export function DebugConsole() {
 
   useEffect(() => {
     if (isClientDebugConsoleOpen && isClientDebugConsoleEnabled) {
-      fetchAndUpdateLogs(); 
+      fetchAndUpdateLogs();
       const intervalId = setInterval(fetchAndUpdateLogs, POLLING_INTERVAL_MS);
       return () => clearInterval(intervalId);
     }
@@ -164,155 +164,90 @@ export function DebugConsole() {
 
   const handleClearLogs = () => {
     clearGlobalLogBuffer();
-    setDisplayedLogs([]); 
-    setSearchTerm('');
+    setDisplayedLogs([]);
+    dispatchDebugConsoleFsmEvent({ type: 'CLEAR_SEARCH_TERM' });
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
-    logDebug('DebugConsole', 'Client debug logs cleared by user. Search term also cleared.');
+    stockAnalysisLogDebug('DebugConsole', 'Client debug logs cleared by user. Search term also cleared.');
   };
 
   const handleCopyJson = async () => {
-    logDebug('DebugConsole', 'Copying logs as JSON.');
+    stockAnalysisLogDebug('DebugConsole', 'Copying logs as JSON.');
     if (displayedLogs.length === 0) {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
     }
-    if (await copyToClipboard(JSON.stringify(displayedLogs, null, 2))) { 
+    if (await copyToClipboard(JSON.stringify(displayedLogs, null, 2))) {
       toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as JSON.' });
-      logDebug('DebugConsole', `Displayed client logs copied as JSON. Count: ${displayedLogs.length}`);
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as JSON.' });
-      logDebug('DebugConsole', 'Failed to copy client logs as JSON.');
     }
   };
 
   const handleCopyTxt = async () => {
-    logDebug('DebugConsole', 'Copying logs as TXT.');
-    if (displayedLogs.length === 0) {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
-    }
+    stockAnalysisLogDebug('DebugConsole', 'Copying logs as TXT.');
+    if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const txtData = generateLogsTxt(displayedLogs);
     if (await copyToClipboard(txtData)) {
       toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as TXT.' });
-      logDebug('DebugConsole', `Displayed client logs copied as TXT. Count: ${displayedLogs.length}`);
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as TXT.' });
-      logDebug('DebugConsole', 'Failed to copy client logs as TXT.');
     }
   };
-  
+
   const handleCopyCsv = async () => {
-    logDebug('DebugConsole', 'Copying logs as CSV.');
-    if (displayedLogs.length === 0) {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
-    }
+    stockAnalysisLogDebug('DebugConsole', 'Copying logs as CSV.');
+    if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const csvData = generateLogsCsv(displayedLogs);
     if (await copyToClipboard(csvData)) {
       toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as CSV.' });
-      logDebug('DebugConsole', `Displayed client logs copied as CSV. Count: ${displayedLogs.length}`);
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as CSV.' });
-      logDebug('DebugConsole', 'Failed to copy client logs as CSV.');
     }
   };
 
   const handleExportJson = () => {
-    logDebug('DebugConsole', 'Exporting logs as JSON.');
-    if (displayedLogs.length === 0) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' });
-      return;
-    }
+    stockAnalysisLogDebug('DebugConsole', 'Exporting logs as JSON.');
+    if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      downloadJson(displayedLogs, 'stocksage_client_logs.json'); 
+      downloadJson(displayedLogs, 'stocksage_client_logs.json');
       toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as JSON.' });
-      logDebug('DebugConsole', `Displayed client logs exported as JSON. Count: ${displayedLogs.length}`);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as JSON.' });
-      logDebug('DebugConsole', 'Error exporting client logs as JSON:', error);
     }
   };
 
   const handleExportTxt = () => {
-    logDebug('DebugConsole', 'Exporting logs as TXT.');
-    if (displayedLogs.length === 0) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' });
-      return;
-    }
+    stockAnalysisLogDebug('DebugConsole', 'Exporting logs as TXT.');
+    if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const txtData = generateLogsTxt(displayedLogs);
       downloadTxt(txtData, 'stocksage_client_logs.txt');
       toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as TXT.' });
-      logDebug('DebugConsole', `Displayed client logs exported as TXT. Count: ${displayedLogs.length}`);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as TXT.' });
-      logDebug('DebugConsole', 'Error exporting client logs as TXT:', error);
     }
   };
 
   const handleExportCsv = () => {
-    logDebug('DebugConsole', 'Exporting logs as CSV.');
-    if (displayedLogs.length === 0) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' });
-      return;
-    }
+    stockAnalysisLogDebug('DebugConsole', 'Exporting logs as CSV.');
+    if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const csvData = generateLogsCsv(displayedLogs);
-      downloadTxt(csvData, 'stocksage_client_logs.csv'); 
+      downloadTxt(csvData, 'stocksage_client_logs.csv');
       toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as CSV.' });
-      logDebug('DebugConsole', `Displayed client logs exported as CSV. Count: ${displayedLogs.length}`);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as CSV.' });
-      logDebug('DebugConsole', 'Error exporting client logs as CSV:', error);
     }
-  };
-
-
-  const toggleFilterType = (type: LogType) => {
-    setActiveFilters(prev => {
-      const newTypes = new Set(prev.types);
-      if (newTypes.has(type)) newTypes.delete(type);
-      else newTypes.add(type);
-      logDebug('DebugConsole', 'Log type filter changed:', { type, active: newTypes.has(type), newTypes: Array.from(newTypes) });
-      return { ...prev, types: newTypes };
-    });
-  };
-
-  const toggleFilterSource = (source: LogSourceId) => {
-    setActiveFilters(prev => {
-      const newSources = new Set(prev.sources);
-      if (newSources.has(source)) newSources.delete(source);
-      else newSources.add(source);
-      logDebug('DebugConsole', 'Log source filter changed:', { source, active: newSources.has(source), newSources: Array.from(newSources) });
-      return { ...prev, sources: newSources };
-    });
-  };
-
-  const setAllFilterTypes = (select: boolean) => {
-    setActiveFilters(prev => {
-      const newTypes = select ? new Set(logTypes) : new Set<LogType>();
-      logDebug('DebugConsole', `Set all log type filters to ${select}:`, Array.from(newTypes));
-      return { ...prev, types: newTypes };
-    });
-  };
-
-  const setAllFilterSources = (select: boolean) => {
-    setActiveFilters(prev => {
-      const newSources = select ? new Set(logSourceIds) : new Set<LogSourceId>();
-      logDebug('DebugConsole', `Set all log source filters to ${select}:`, Array.from(newSources));
-      return { ...prev, sources: newSources };
-    });
   };
 
   const handleSearchTermChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newSearchTerm = event.target.value;
-    setSearchTerm(newSearchTerm);
-    logDebug('DebugConsole', 'Search term changed:', newSearchTerm);
+    dispatchDebugConsoleFsmEvent({ type: 'SEARCH_TERM_CHANGED', payload: event.target.value });
   };
 
   const clearSearchTerm = () => {
-    setSearchTerm('');
-    logDebug('DebugConsole', 'Search term cleared.');
+    dispatchDebugConsoleFsmEvent({ type: 'CLEAR_SEARCH_TERM' });
   };
 
-  const activeFilterCount = activeFilters.types.size + activeFilters.sources.size;
+  const activeFilterCountFromFsm = activeFilters.types.size + activeFilters.sources.size;
   const isUserInteractionDisabled = displayedLogs.length === 0;
 
   return (
@@ -354,13 +289,16 @@ export function DebugConsole() {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <DropdownMenu>
+            <DropdownMenu
+              open={uiMenuState === DebugConsoleFsmMenuState.FILTER_TYPE_MENU_OPEN || uiMenuState === DebugConsoleFsmMenuState.FILTER_SOURCE_MENU_OPEN}
+              onOpenChange={(isOpen) => dispatchDebugConsoleFsmEvent({ type: 'SET_MENU_OPEN_STATE', payload: { menu: 'filterType', isOpen } })}
+            >
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" title="Filter Logs" className="h-7 w-7">
                   <Filter className="h-4 w-4" />
-                  {activeFilterCount > 0 && (
+                  {activeFilterCountFromFsm > 0 && (
                     <span className="absolute -top-1 -right-1 text-xs bg-primary text-primary-foreground rounded-full h-4 w-4 flex items-center justify-center text-[10px]">
-                      {activeFilterCount}
+                      {activeFilterCountFromFsm}
                     </span>
                   )}
                 </Button>
@@ -368,16 +306,16 @@ export function DebugConsole() {
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel>Filter by Log Type</DropdownMenuLabel>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => setAllFilterTypes(true)}>Select All Types</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setAllFilterTypes(false)}>Clear All Types</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_TYPE_FILTERS', payload: { selectAll: true } })}>Select All Types</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_TYPE_FILTERS', payload: { selectAll: false } })}>Clear All Types</DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {logTypes.map(type => (
                   <DropdownMenuCheckboxItem
                     key={type}
                     checked={activeFilters.types.has(type)}
-                    onCheckedChange={() => toggleFilterType(type)}
-                    onSelect={(e) => e.preventDefault()} 
+                    onCheckedChange={(checked) => dispatchDebugConsoleFsmEvent({ type: 'UPDATE_TYPE_FILTER', payload: { type, checked } })}
+                    onSelect={(e) => e.preventDefault()}
                   >
                     {type.toUpperCase()}
                   </DropdownMenuCheckboxItem>
@@ -385,8 +323,8 @@ export function DebugConsole() {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Filter by Log Source</DropdownMenuLabel>
                  <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => setAllFilterSources(true)}>Select All Sources</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setAllFilterSources(false)}>Clear All Sources</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_SOURCE_FILTERS', payload: { selectAll: true } })}>Select All Sources</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_SOURCE_FILTERS', payload: { selectAll: false } })}>Clear All Sources</DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <ScrollArea className="h-[200px]">
@@ -394,8 +332,8 @@ export function DebugConsole() {
                     <DropdownMenuCheckboxItem
                       key={source}
                       checked={activeFilters.sources.has(source)}
-                      onCheckedChange={() => toggleFilterSource(source)}
-                      onSelect={(e) => e.preventDefault()} 
+                      onCheckedChange={(checked) => dispatchDebugConsoleFsmEvent({ type: 'UPDATE_SOURCE_FILTER', payload: { source, checked } })}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {logSourceLabels[source] || source}
                     </DropdownMenuCheckboxItem>
@@ -404,7 +342,10 @@ export function DebugConsole() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <DropdownMenu>
+            <DropdownMenu
+              open={uiMenuState === DebugConsoleFsmMenuState.COPY_MENU_OPEN}
+              onOpenChange={(isOpen) => dispatchDebugConsoleFsmEvent({ type: 'SET_MENU_OPEN_STATE', payload: { menu: 'copy', isOpen } })}
+            >
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" title="Copy Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
                         <ClipboardCopy className="h-4 w-4" />
@@ -416,8 +357,11 @@ export function DebugConsole() {
                     <DropdownMenuItem onClick={handleCopyCsv} disabled={isUserInteractionDisabled}>Copy as CSV</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
-            
-            <DropdownMenu>
+
+            <DropdownMenu
+              open={uiMenuState === DebugConsoleFsmMenuState.EXPORT_MENU_OPEN}
+              onOpenChange={(isOpen) => dispatchDebugConsoleFsmEvent({ type: 'SET_MENU_OPEN_STATE', payload: { menu: 'export', isOpen } })}
+            >
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" title="Export Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
                   <Download className="h-4 w-4" />

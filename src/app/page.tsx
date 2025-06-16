@@ -8,7 +8,8 @@ import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
-import { StockAnalysisProvider, useStockAnalysis, FsmState } from "@/contexts/stock-analysis-context";
+import { StockAnalysisProvider, useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { DebugConsoleFsmProvider } from "@/contexts/debug-console-fsm-context";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
 
@@ -18,16 +19,13 @@ function PageContent() {
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
     logDebug,
-    fsmState, // Current FSM state
+    fsmState,
     previousFsmState,
     targetFsmDisplayState,
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
     logDebug('MainTabContent', `Main debug console switch toggled by user to: ${checked}`);
-    // This will now primarily control visibility if enabled is true by default,
-    // or enable/disable if that's still the desired core behavior.
-    // The logic in setClientDebugConsoleEnabled in context handles opening/closing.
     setClientDebugConsoleEnabled(checked);
   };
 
@@ -43,7 +41,7 @@ function PageContent() {
         <div className="flex items-center space-x-2 mb-4 p-4 border rounded-md bg-card/50">
           <Switch
             id="enable-debug-console"
-            checked={isClientDebugConsoleEnabled} 
+            checked={isClientDebugConsoleEnabled}
             onCheckedChange={handleDebugConsoleToggle}
           />
           <Label htmlFor="enable-debug-console" className="flex-shrink-0">Enable & Show Client Debug Console</Label>
@@ -69,7 +67,9 @@ function PageContent() {
         </Tabs>
       </main>
       <Footer />
-      <DebugConsole />
+      <DebugConsoleFsmProvider logDebug={logDebug}>
+        <DebugConsole />
+      </DebugConsoleFsmProvider>
     </div>
   );
 }
