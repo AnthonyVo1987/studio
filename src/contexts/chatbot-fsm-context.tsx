@@ -3,7 +3,7 @@
 
 import type { ReactNode} from 'react';
 import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
-import type { ChatMessage, FsmDisplayTuple } from './stock-analysis-context'; // Added FsmDisplayTuple
+import type { ChatMessage, FsmDisplayTuple } from './stock-analysis-context'; 
 import type { ChatActionInputs } from '@/actions/chat-server-action';
 import { startTransition } from 'react';
 
@@ -26,9 +26,11 @@ interface ChatbotFsmManagedState {
   userInput: string;
 }
 
-interface ChatbotFsmContextType extends Omit<ChatbotFsmManagedState, 'previousFsmState'> {
+interface ChatbotFsmContextType {
+  fsmState: ChatbotFsmInternalState;
   previousChatbotFsmState: ChatbotFsmInternalState | null; 
   targetChatbotFsmDisplayState: ChatbotFsmInternalState | null;
+  userInput: string;
   dispatchChatbotFsmEvent: (event: ChatbotFsmEvent) => void;
 }
 
@@ -51,7 +53,7 @@ interface ChatbotFsmProviderProps {
   aiOptionsAnalysisJson?: string;
   currentGlobalChatHistory: ChatMessage[];
   logDebug: (source: string, category: string, ...messages: any[]) => void;
-  setChatbotFsmDisplayState: (displayTuple: FsmDisplayTuple) => void; // New prop
+  setChatbotFsmDisplayState: (display: FsmDisplayTuple | null) => void; // For reporting to global context
 }
 
 export function ChatbotFsmProvider({
@@ -65,7 +67,7 @@ export function ChatbotFsmProvider({
   aiOptionsAnalysisJson,
   currentGlobalChatHistory,
   logDebug,
-  setChatbotFsmDisplayState, // New prop
+  setChatbotFsmDisplayState,
 }: ChatbotFsmProviderProps) {
   const chatbotFsmReducer = (
     state: ChatbotFsmManagedState,
@@ -112,6 +114,14 @@ export function ChatbotFsmProvider({
   const [state, dispatch] = useReducer(chatbotFsmReducer, initialChatbotFsmState);
   const [targetChatbotFsmDisplayState, setTargetChatbotFsmDisplayState] = useState<ChatbotFsmInternalState | null>(null);
 
+  useEffect(() => {
+    setChatbotFsmDisplayState({
+      previous: state.previousFsmState,
+      current: state.fsmState,
+      target: targetChatbotFsmDisplayState,
+    });
+  }, [state.fsmState, state.previousFsmState, targetChatbotFsmDisplayState, setChatbotFsmDisplayState]);
+
   const dispatchChatbotFsmEventWithTarget = useCallback((event: ChatbotFsmEvent) => {
     let targetState: ChatbotFsmInternalState | null = null;
     const currentState = state.fsmState;
@@ -141,15 +151,6 @@ export function ChatbotFsmProvider({
       setTargetChatbotFsmDisplayState(null);
     }
   }, [state.fsmState, targetChatbotFsmDisplayState, logDebug]);
-
-  useEffect(() => {
-    setChatbotFsmDisplayState({
-      previous: state.previousFsmState,
-      current: state.fsmState,
-      target: targetChatbotFsmDisplayState,
-    });
-  }, [state.fsmState, state.previousFsmState, targetChatbotFsmDisplayState, setChatbotFsmDisplayState]);
-
 
   useEffect(() => {
     if (state.fsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && state.userInput.trim()) {
@@ -222,4 +223,3 @@ export function useChatbotFsm() {
   return context;
 }
 
-    

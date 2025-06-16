@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useReducer, useCallback, useState, useEffect } from 'react';
 import type { LogSourceId, LogType } from '@/lib/debug-log-types';
 import { logSourceIds as allLogSourceIds, logTypes as allLogTypes } from '@/lib/debug-log-types';
-import type { FsmDisplayTuple } from './stock-analysis-context'; // Added
+import type { FsmDisplayTuple } from './stock-analysis-context';
 
 
 // FSM States for DebugConsole UI
@@ -37,9 +37,15 @@ export type DebugConsoleFsmEvent =
   | { type: 'SEARCH_TERM_CHANGED'; payload: string }
   | { type: 'CLEAR_SEARCH_TERM' };
 
-interface DebugConsoleFsmContextType extends Omit<DebugConsoleFsmManagedState, 'previousUiMenuState'> {
+interface DebugConsoleFsmContextType {
+  uiMenuState: DebugConsoleFsmMenuState;
   previousUiMenuState: DebugConsoleFsmMenuState | null;
   targetUiMenuDisplayState: DebugConsoleFsmMenuState | null;
+  activeFilters: {
+    types: Set<LogType>;
+    sources: Set<LogSourceId>;
+  };
+  searchTerm: string;
   dispatchDebugConsoleFsmEvent: (event: DebugConsoleFsmEvent) => void;
 }
 
@@ -58,13 +64,13 @@ const DebugConsoleFsmContext = createContext<DebugConsoleFsmContextType | undefi
 interface DebugConsoleFsmProviderProps {
   children: ReactNode;
   logDebug: (source: string, category: string, ...messages: any[]) => void;
-  setDebugConsoleMenuFsmDisplayState: (displayTuple: FsmDisplayTuple) => void; // New Prop
+  setDebugConsoleMenuFsmDisplayState: (display: FsmDisplayTuple | null) => void; // For reporting
 }
 
 export function DebugConsoleFsmProvider({
   children,
   logDebug,
-  setDebugConsoleMenuFsmDisplayState, // New Prop
+  setDebugConsoleMenuFsmDisplayState,
 }: DebugConsoleFsmProviderProps) {
   const debugConsoleFsmReducer = (
     state: DebugConsoleFsmManagedState,
@@ -133,6 +139,15 @@ export function DebugConsoleFsmProvider({
   const [state, dispatch] = useReducer(debugConsoleFsmReducer, initialDebugConsoleFsmState);
   const [targetUiMenuDisplayState, setTargetUiMenuDisplayState] = useState<DebugConsoleFsmMenuState | null>(null);
 
+  useEffect(() => {
+    setDebugConsoleMenuFsmDisplayState({
+        previous: state.previousUiMenuState,
+        current: state.uiMenuState,
+        target: targetUiMenuDisplayState,
+    });
+  }, [state.uiMenuState, state.previousUiMenuState, targetUiMenuDisplayState, setDebugConsoleMenuFsmDisplayState]);
+
+
   const dispatchDebugConsoleFsmEventWithTarget = useCallback((event: DebugConsoleFsmEvent) => {
     let targetState: DebugConsoleFsmMenuState | null = state.uiMenuState; 
      if (event.type === 'SET_MENU_OPEN_STATE') {
@@ -161,14 +176,6 @@ export function DebugConsoleFsmProvider({
     }
   }, [state.uiMenuState, targetUiMenuDisplayState, logDebug]);
 
-  useEffect(() => {
-    setDebugConsoleMenuFsmDisplayState({
-      previous: state.previousUiMenuState,
-      current: state.uiMenuState,
-      target: targetUiMenuDisplayState,
-    });
-  }, [state.uiMenuState, state.previousUiMenuState, targetUiMenuDisplayState, setDebugConsoleMenuFsmDisplayState]);
-
 
   const contextValue: DebugConsoleFsmContextType = {
     uiMenuState: state.uiMenuState,
@@ -194,4 +201,3 @@ export function useDebugConsoleFsm() {
   return context;
 }
 
-    

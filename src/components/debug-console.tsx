@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -101,7 +100,7 @@ export function DebugConsole() {
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
-    logDebug: stockAnalysisLogDebug,
+    logDebug: stockAnalysisLogDebug, // Renamed to avoid conflict if DebugConsoleFsmContext provides its own logDebug
     isFsmDebugCardOpen,
     isFsmDebugCardEnabled,
   } = useStockAnalysis();
@@ -111,6 +110,7 @@ export function DebugConsole() {
     activeFilters,
     searchTerm,
     dispatchDebugConsoleFsmEvent,
+    // Removed: previousUiMenuState, targetUiMenuDisplayState (will get from FsmStateDebugCard if needed there)
   } = useDebugConsoleFsm();
 
   const { toast } = useToast();
@@ -251,9 +251,6 @@ export function DebugConsole() {
   const activeFilterCountFromFsm = activeFilters.types.size + activeFilters.sources.size;
   const isUserInteractionDisabled = displayedLogs.length === 0;
 
-  const translateY = isFsmDebugCardEnabled && isFsmDebugCardOpen ? `-${250 + 200}px` : '-250px';
-  // Adjusted translateY to place it below the FSM card if FSM card is open
-
   return (
     <Card
       className={cn(
@@ -261,7 +258,7 @@ export function DebugConsole() {
         'transition-all duration-300 ease-in-out'
       )}
       style={{ 
-        transform: `translateY(0px)`, // Debug console is always at the bottom now
+        transform: `translateY(0px)`, 
         height: `${CONSOLE_HEIGHT_PX}px` 
       }} 
     >
@@ -428,5 +425,3 @@ export function DebugConsole() {
     </Card>
   );
 }
-
-    

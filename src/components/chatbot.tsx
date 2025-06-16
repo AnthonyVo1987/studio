@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useCallback } from 'react';
@@ -36,19 +35,24 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
   const {
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
-    logDebug,
+    logDebug: globalLogDebug, // Use a distinct name if logDebug is also from ChatbotFsmContext
   } = useStockAnalysis();
 
   const {
     fsmState: chatbotFsmState,
     userInput: fsmUserInput,
-    dispatchChatbotFsmEvent
+    dispatchChatbotFsmEvent,
+    previousChatbotFsmState,
+    targetChatbotFsmDisplayState
   } = useChatbotFsm();
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  logDebug('Chatbot', 'Render', `ChatbotFSM State: ${chatbotFsmState}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+  // Use the logDebug from the ChatbotFsmContext if available, otherwise global
+  const logDebug = globalLogDebug; 
+
+  logDebug('Chatbot', 'Render', `ChatbotFSM State: Prev: ${previousChatbotFsmState || 'N/A'} | Curr: ${chatbotFsmState} | Target: ${targetChatbotFsmDisplayState || 'N/A'}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -216,5 +220,3 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
     </Card>
   );
 }
-
-    

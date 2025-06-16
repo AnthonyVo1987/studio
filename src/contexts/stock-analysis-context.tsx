@@ -53,9 +53,6 @@ export type FsmDisplayTuple = {
   target: string | null;
 };
 
-const initialFsmDisplayTuple: FsmDisplayTuple = { previous: 'N/A', current: 'N/A', target: 'N/A'};
-
-
 // FSM Event Types & Payloads
 interface FetchDataSuccessPayload extends StockDataFetchResult {}
 interface FetchDataFailurePayload {
@@ -156,15 +153,16 @@ interface StockAnalysisState {
   isClientDebugConsoleOpen: boolean;
   logSourceConfig: LogSourceConfig;
 
-  fsmState: FsmState; // Current FSM state derived from fsmHistory
-  previousFsmState: FsmState | null; // Previous FSM state derived from fsmHistory
-  targetFsmDisplayState: FsmState | null; // For UI display of intended next state
+  fsmState: FsmState; 
+  previousFsmState: FsmState | null; 
+  targetFsmDisplayState: FsmState | null; 
 
   isFsmDebugCardEnabled: boolean;
   isFsmDebugCardOpen: boolean;
-  mainTabFsmDisplay: FsmDisplayTuple;
-  chatbotFsmDisplay: FsmDisplayTuple;
-  debugConsoleMenuFsmDisplay: FsmDisplayTuple;
+  
+  mainTabFsmDisplay: FsmDisplayTuple | null;
+  chatbotFsmDisplay: FsmDisplayTuple | null;
+  debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
 }
 
 interface StockAnalysisContextSetters {
@@ -195,13 +193,14 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
   disableAllLogSources: () => void;
   logDebug: (source: LogSourceId, category: string, ...messages: any[]) => void;
 
-  dispatchFsmEvent: (event: FsmEvent) => void; // Wrapped dispatch
+  dispatchFsmEvent: (event: FsmEvent) => void; 
 
   setFsmDebugCardEnabled: (enabled: boolean) => void;
   setFsmDebugCardOpen: (open: boolean) => void;
-  setMainTabFsmDisplay: (display: FsmDisplayTuple) => void;
-  setChatbotFsmDisplay: (display: FsmDisplayTuple) => void;
-  setDebugConsoleMenuFsmDisplay: (display: FsmDisplayTuple) => void;
+
+  setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
+  setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
+  setDebugConsoleMenuFsmDisplay: (display: FsmDisplayTuple | null) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -213,8 +212,8 @@ const initialFsmHistory: FsmHistoryState = {
   current: FsmState.IDLE,
   previous: null,
 };
+const initialFsmDisplayTuple: FsmDisplayTuple = { previous: null, current: 'N/A', target: null };
 
-// Define initial states for useActionState directly in this client component
 const localInitialStockDataFetchResult: AnalyzeStockServerActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
@@ -300,9 +299,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const [_isFsmDebugCardEnabled, _setIsFsmDebugCardEnabled] = useState<boolean>(defaultState.isFsmDebugCardEnabled);
   const [_isFsmDebugCardOpen, _setIsFsmDebugCardOpen] = useState<boolean>(defaultState.isFsmDebugCardOpen);
-  const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple>(defaultState.mainTabFsmDisplay);
-  const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple>(defaultState.chatbotFsmDisplay);
-  const [_debugConsoleMenuFsmDisplay, _setDebugConsoleMenuFsmDisplay] = useState<FsmDisplayTuple>(defaultState.debugConsoleMenuFsmDisplay);
+
+  const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
+  const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
+  const [_debugConsoleMenuFsmDisplay, _setDebugConsoleMenuFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
 
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
@@ -420,6 +420,42 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _setIsFsmDebugCardOpen(false);
     }
   }, [logDebug]);
+
+  const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
+    _setMainTabFsmDisplay(prevDisplay => {
+      if (prevDisplay?.current === display?.current &&
+          prevDisplay?.previous === display?.previous &&
+          prevDisplay?.target === display?.target) {
+        return prevDisplay;
+      }
+      logDebug('StockAnalysisContext', 'FSM_DISPLAY_UPDATE', 'MainTabFsmDisplay updated.', display);
+      return display;
+    });
+  }, [_setMainTabFsmDisplay, logDebug]);
+
+  const setChatbotFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
+    _setChatbotFsmDisplay(prevDisplay => {
+      if (prevDisplay?.current === display?.current &&
+          prevDisplay?.previous === display?.previous &&
+          prevDisplay?.target === display?.target) {
+        return prevDisplay;
+      }
+      logDebug('StockAnalysisContext', 'FSM_DISPLAY_UPDATE', 'ChatbotFsmDisplay updated.', display);
+      return display;
+    });
+  }, [_setChatbotFsmDisplay, logDebug]);
+
+  const setDebugConsoleMenuFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
+    _setDebugConsoleMenuFsmDisplay(prevDisplay => {
+      if (prevDisplay?.current === display?.current &&
+          prevDisplay?.previous === display?.previous &&
+          prevDisplay?.target === display?.target) {
+        return prevDisplay;
+      }
+      logDebug('StockAnalysisContext', 'FSM_DISPLAY_UPDATE', 'DebugConsoleMenuFsmDisplay updated.', display);
+      return display;
+    });
+  }, [_setDebugConsoleMenuFsmDisplay, logDebug]);
 
 
   const fsmReducer = (currentHistory: FsmHistoryState, event: FsmEvent): FsmHistoryState => {
@@ -1009,9 +1045,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     dispatchFsmEvent,
     isFsmDebugCardEnabled: _isFsmDebugCardEnabled, setFsmDebugCardEnabled,
     isFsmDebugCardOpen: _isFsmDebugCardOpen, setFsmDebugCardOpen: _setIsFsmDebugCardOpen,
-    mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay: _setMainTabFsmDisplay,
-    chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay: _setChatbotFsmDisplay,
-    debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay: _setDebugConsoleMenuFsmDisplay,
+    mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
+    chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
+    debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay,
   };
 
   return (
@@ -1029,4 +1065,3 @@ export function useStockAnalysis() {
   return context;
 }
 
-    
