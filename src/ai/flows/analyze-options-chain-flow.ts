@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview An AI agent that analyzes options chain data to identify significant
- * features like Call/Put Walls and OI Clusters.
+ * features like Call/Put Walls.
  *
  * - analyzeOptionsChain - Function to trigger the options analysis flow.
  * - AiOptionsAnalysisInput (from schemas) - Input type.
@@ -29,9 +29,9 @@ export async function analyzeOptionsChain(
 const analyzeOptionsChainPrompt = ai.definePrompt({
   name: 'analyzeOptionsChainPrompt',
   input: {schema: AiOptionsAnalysisInputSchema},
-  output: {schema: AiOptionsAnalysisOutputSchema},
+  output: {schema: AiOptionsAnalysisOutputSchema}, // Ensure this uses the simplified schema
   model: DEFAULT_ANALYSIS_MODEL_ID,
-  prompt: `You are an expert options market analyst. Your task is to identify significant Call and Put "Walls" and "OI Clusters" from the provided options chain data for the stock: {{{ticker}}}.
+  prompt: `You are an expert options market analyst. Your task is to identify significant Call and Put "Walls" from the provided options chain data for the stock: {{{ticker}}}.
 The current underlying price is \${{{currentUnderlyingPrice}}}. This price is provided for context (e.g., to understand the general price level and relation of strikes to it), your primary analysis should focus on Open Interest (OI).
 
 The options chain data is provided as a JSON string: {{{optionsChainJson}}}
@@ -40,10 +40,9 @@ Focus on the 'open_interest' (OI) field within the 'call' and 'put' contract obj
 
 Definitions:
 -   **Wall:** A single strike level with unusually high OI that might act as support or resistance.
--   **OI Cluster:** A group of 2 or more *adjacent* strikes where each strike in the group has notably high OI, suggesting a broader area of interest.
 
 Analysis Steps:
-1.  Parse the \`optionsChainJson\` to access the list of contracts. If parsing fails or data is insufficient (e.g., very few strikes or contracts), note this in \`analysisSummary\` and return empty arrays for walls and clusters.
+1.  Parse the \`optionsChainJson\` to access the list of contracts. If parsing fails or data is insufficient (e.g., very few strikes or contracts), return empty arrays for walls.
 2.  Separate Call OI and Put OI data per strike. Calculate the average OI for all calls with OI > 0 and for all puts with OI > 0 separately. If no calls/puts have OI, skip average calculation for that type.
 
 Wall Detection Algorithm:
@@ -53,19 +52,12 @@ A strike is a potential Wall if its OI meets BOTH conditions:
         - If only one adjacent strike exists (e.g., at the edge of the chain), only that side's 2x condition needs to be met.
         - If a strike has no valid adjacent strikes with OI for comparison, this sub-condition might be relaxed if the 1.5x average OI condition is strongly met.
 
-OI Cluster Detection Algorithm:
-An OI Cluster consists of 2 or more *adjacent* strikes (of the same type, call or put) where:
-    a.  Each strike within the cluster has an OI that is "notably high" (e.g., significantly above the average OI for its type, or at least above a reasonable baseline if average is very low).
-    b.  The cluster represents a contiguous block of such strikes.
-    c.  Calculate total OI and average OI for the identified cluster.
-
 Output Requirements:
 -   **Walls:** Identify AT LEAST 1 Call Wall and AT LEAST 1 Put Wall if data supports. Select UP TO 3 most significant walls per type (highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
--   **Clusters:** Identify UP TO 3 Call OI Clusters and UP TO 3 Put OI Clusters. Populate \`callClusters\` and \`putClusters\` arrays. Each element: \`{strikes: number[], totalOI: number, averageOI: number, type: 'call'|'put'}\`. These arrays can be empty or omitted if no significant clusters are found.
--   **analysisSummary:** If no significant walls or clusters are identified for a type (e.g., "No significant call walls or clusters identified. Put OI is generally low.") or if data is insufficient, state this clearly.
+-   If no significant walls are identified for a type, return an empty array for that type.
 
-Strictly adhere to the output schema. Ensure numerical values. Do not force walls/clusters if criteria are not met.
-If you encounter issues parsing or the data is clearly insufficient (e.g., less than 5 strikes with OI for both calls and puts), note this in analysisSummary.
+Strictly adhere to the output schema (only callWalls and putWalls). Ensure numerical values. Do not force walls if criteria are not met.
+If you encounter issues parsing or the data is clearly insufficient (e.g., less than 5 strikes with OI for both calls and puts), return empty arrays.
 `,
   config: {
     safetySettings: [
@@ -81,7 +73,7 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   {
     name: 'analyzeOptionsChainFlow',
     inputSchema: AiOptionsAnalysisInputSchema,
-    outputSchema: AiOptionsAnalysisOutputSchema,
+    outputSchema: AiOptionsAnalysisOutputSchema, // Ensure this uses the simplified schema
   },
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
     let parsedOptionsData: OptionsChainData | null = null;
@@ -90,43 +82,30 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       console.log('[AIFlow:analyzeOptionsChainFlow] Parsed options chain JSON. Contracts count:', parsedOptionsData.contracts?.length);
       if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { 
         console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient. Contracts length:', parsedOptionsData.contracts?.length);
+        // Return empty arrays as per simplified schema
+        return { callWalls: [], putWalls: [] };
       }
     } catch (e) {
       console.error('[AIFlow:analyzeOptionsChainFlow] Failed to parse optionsChainJson in pre-check:', e);
-      return {
-        callWalls: [],
-        putWalls: [],
-        callClusters: [],
-        putClusters: [],
-        analysisSummary: 'Error: Failed to parse input optionsChainJson. Cannot perform AI options analysis.'
-      };
+      return { callWalls: [], putWalls: [] };
     }
 
     console.log('[AIFlow:analyzeOptionsChainFlow] Executing prompt for ticker:', input.ticker);
     const {output} = await analyzeOptionsChainPrompt(input);
 
-    if (!output) {
-      console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return an output for ticker:', input.ticker);
-      return {
-        callWalls: [],
-        putWalls: [],
-        callClusters: [],
-        putClusters: [],
-        analysisSummary: 'AI analysis flow did not return an output. Please check Genkit logs.'
-      };
+    if (!output || !output.callWalls || !output.putWalls) { // Check for simplified output structure
+      console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return a valid output for ticker:', input.ticker, 'Received output:', output);
+      return { callWalls: [], putWalls: [] }; // Return valid empty structure
     }
     
-    if (output.analysisSummary && output.analysisSummary.toLowerCase().includes('error:')) {
-        console.warn('[AIFlow:analyzeOptionsChainFlow] Flow returned an error in analysisSummary:', output.analysisSummary);
-    }
+    // Ensure arrays are not null/undefined and limit to max 3
+    const finalOutput: AiOptionsAnalysisOutput = {
+        callWalls: (output.callWalls || []).slice(0, 3),
+        putWalls: (output.putWalls || []).slice(0, 3),
+    };
     
-    output.callWalls = output.callWalls?.slice(0, 3) || [];
-    output.putWalls = output.putWalls?.slice(0, 3) || [];
-    output.callClusters = output.callClusters?.slice(0, 3) || [];
-    output.putClusters = output.putClusters?.slice(0, 3) || [];
-    
-    console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete for ticker:', input.ticker, 'Call Walls:', output.callWalls.length, 'Put Walls:', output.putWalls.length, 'Call Clusters:', output.callClusters.length, 'Put Clusters:', output.putClusters.length);
-    return output;
+    console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete for ticker:', input.ticker, 'Call Walls:', finalOutput.callWalls.length, 'Put Walls:', finalOutput.putWalls.length);
+    return finalOutput;
   }
 );
 

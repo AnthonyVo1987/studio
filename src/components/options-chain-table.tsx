@@ -128,7 +128,7 @@ export function OptionsChainTable() {
     isLoading = false; 
     isError = false; 
     parsedData = null;
-    errorOrSkippedMessage = "No options chain data available.";
+    errorOrSkippedMessage = "No options chain data. This data is fetched with 'Analyze Stock'.";
     logDebug(componentName, "optionsChainJson is empty or null. Displaying 'No data'.");
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(optionsChainJson.trim())) {
     isLoading = true;
@@ -140,21 +140,22 @@ export function OptionsChainTable() {
     isLoading = false;
     isError = true;
     parsedData = null;
-    errorOrSkippedMessage = "Error loading options data.";
-     try {
+    try {
         const statusObj = JSON.parse(optionsChainJson);
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading options data.";
-     } catch(e) { /* no-op, keep default error */ }
+    } catch(e) { 
+        errorOrSkippedMessage = "Error loading options data (malformed error JSON).";
+    }
     logDebug(componentName, "optionsChainJson indicates an error state.", errorOrSkippedMessage);
   } else if (optionsChainJson.includes('"status": "skipped"')) {
     isLoading = false;
-    isError = true;
+    isError = true; // Treat skipped as an error for display purposes in this table
     parsedData = null;
     try {
         const statusObj = JSON.parse(optionsChainJson);
         errorOrSkippedMessage = statusObj.message || "Options data loading was skipped.";
     } catch(e) {
-        errorOrSkippedMessage = "Options data loading was skipped.";
+        errorOrSkippedMessage = "Options data loading was skipped (malformed skipped JSON).";
     }
     logDebug(componentName, "optionsChainJson indicates a skipped state.", errorOrSkippedMessage);
   } else {
@@ -165,6 +166,7 @@ export function OptionsChainTable() {
         isLoading = false;
         isError = false;
         parsedData = data;
+        errorOrSkippedMessage = ""; // Clear any previous error
         logDebug(componentName, "Successfully parsed optionsChainJson.");
       } else {
         logDebug(componentName, "Parsed optionsChainJson is missing contracts array or contains error/status field. Data:", data);
@@ -318,7 +320,7 @@ export function OptionsChainTable() {
                   </TableCell></TableRow>
                 : !parsedData || contracts.length === 0
                     ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">
-                        No option contracts found for this expiration and strike range.
+                        {errorOrSkippedMessage || "No option contracts found for this expiration and strike range."}
                       </TableCell></TableRow>
                     : contracts.map((row: OptionsTableRow, index: number) => {
                         const isATMRow = row.strike !== null && row.strike !== undefined && atmStrikeValue !== null && row.strike === atmStrikeValue;
@@ -354,4 +356,3 @@ export function OptionsChainTable() {
     </Card>
   );
 }
-

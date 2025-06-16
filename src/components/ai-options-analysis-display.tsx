@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import type { AiOptionsAnalysisOutput, WallDetail, ClusterDetail } from "@/ai/schemas/ai-options-analysis-schemas";
+import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas"; // ClusterDetail removed
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
@@ -46,7 +46,7 @@ export function AiOptionsAnalysisDisplay() {
 
   if (!aiOptionsAnalysisJson || aiOptionsAnalysisJson === '{}') {
     isLoading = false;
-    isError = false; // Not an error, just no data yet
+    isError = false; 
     parsedAnalysisData = null;
     errorOrSkippedMessage = "No AI Options Analysis data. Ensure options chain was processed by AI.";
     logDebug(componentName, "aiOptionsAnalysisJson is empty or null. Displaying 'No data'.");
@@ -54,7 +54,7 @@ export function AiOptionsAnalysisDisplay() {
     isLoading = true;
     isError = false;
     parsedAnalysisData = null;
-    errorOrSkippedMessage = ""; // Clear any previous error message
+    errorOrSkippedMessage = ""; 
     logDebug(componentName, "aiOptionsAnalysisJson is in a defined pending/initializing state.");
   } else if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"status": "skipped"') || aiOptionsAnalysisJson.includes('"error":')) { 
     isLoading = false;
@@ -64,7 +64,7 @@ export function AiOptionsAnalysisDisplay() {
       const statusObj = JSON.parse(aiOptionsAnalysisJson);
       if (statusObj.status === "skipped") {
         errorOrSkippedMessage = statusObj.message || "AI Options Analysis was skipped.";
-      } else { // error or direct error field
+      } else { 
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Options Analysis.";
       }
       logDebug(componentName, `JSON indicates status/error: ${statusObj.status || 'direct_error'}, message: ${errorOrSkippedMessage}`);
@@ -73,20 +73,19 @@ export function AiOptionsAnalysisDisplay() {
       logDebug(componentName, "Failed to parse error/skipped status JSON for AI Options Analysis.", e);
     }
   } else {
-    // Attempt to parse actual data
     isLoading = false;
     isError = false;
     try {
       const data = JSON.parse(aiOptionsAnalysisJson) as AiOptionsAnalysisOutput;
-      // Basic validation for expected data structure
+      // Basic validation for simplified schema
       if (data && typeof data === 'object' && data.callWalls !== undefined && data.putWalls !== undefined) { 
         parsedAnalysisData = data;
-        logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data.", data);
+        logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data (simplified).", data);
       } else {
         isError = true;
-        errorOrSkippedMessage = "AI Options Analysis data is malformed or incomplete.";
+        errorOrSkippedMessage = "AI Options Analysis data is malformed or incomplete (simplified schema).";
         parsedAnalysisData = null;
-        logDebug(componentName, "Parsed aiOptionsAnalysisJson data is malformed or missing critical fields.", data);
+        logDebug(componentName, "Parsed aiOptionsAnalysisJson data is malformed or missing critical fields (simplified schema).", data);
       }
     } catch (e) {
       isError = true;
@@ -99,10 +98,7 @@ export function AiOptionsAnalysisDisplay() {
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
   const isDataReadyForExport = !isLoading && !isError && parsedAnalysisData && 
     ( (parsedAnalysisData.callWalls && parsedAnalysisData.callWalls.length > 0) || 
-      (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0) || 
-      (parsedAnalysisData.callClusters && parsedAnalysisData.callClusters.length > 0) ||
-      (parsedAnalysisData.putClusters && parsedAnalysisData.putClusters.length > 0) ||
-      !!parsedAnalysisData.analysisSummary);
+      (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0) );
 
   const handleExport = () => {
     logDebug(componentName, `Attempting to export options analysis as JSON for ${currentTicker}`);
@@ -160,31 +156,7 @@ export function AiOptionsAnalysisDisplay() {
     );
   };
 
-  const renderClusterTable = (clusters: ClusterDetail[] | undefined, type: 'Call' | 'Put') => {
-    if (!clusters || clusters.length === 0) {
-      return <p className="text-sm text-muted-foreground p-2">No significant {type.toLowerCase()} OI clusters identified.</p>;
-    }
-    return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Strikes</TableHead>
-            <TableHead className="text-right">Total OI</TableHead>
-            <TableHead className="text-right">Avg OI / Strike</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {clusters.map((cluster, index) => (
-            <TableRow key={`${type}-cluster-${index}`}>
-              <TableCell>{cluster.strikes.map(s => formatCurrency(s, "$", "", true)).join(', ')}</TableCell>
-              <TableCell className="text-right">{formatCompactNumber(cluster.totalOI, "N/A")}</TableCell>
-              <TableCell className="text-right">{formatCompactNumber(cluster.averageOI, "N/A")}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    );
-  };
+  // Removed renderClusterTable
 
   logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedAnalysisData}`);
 
@@ -193,7 +165,7 @@ export function AiOptionsAnalysisDisplay() {
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
           <CardTitle>AI Analyzed Options Chain</CardTitle>
-          <CardDescription>Key levels (Walls & OI Clusters) identified from options data analysis.</CardDescription>
+          <CardDescription>Key levels (Call & Put Walls) identified from options data analysis.</CardDescription>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleCopy} disabled={!isDataReadyForExport}>
@@ -218,18 +190,11 @@ export function AiOptionsAnalysisDisplay() {
            </div>
         ) : parsedAnalysisData && ( 
             (parsedAnalysisData.callWalls && parsedAnalysisData.callWalls.length > 0) || 
-            (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0) || 
-            (parsedAnalysisData.callClusters && parsedAnalysisData.callClusters.length > 0) ||
-            (parsedAnalysisData.putClusters && parsedAnalysisData.putClusters.length > 0) ||
-            !!parsedAnalysisData.analysisSummary
+            (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0)
         ) ? (
           <>
-            {parsedAnalysisData.analysisSummary && (
-              <p className="text-sm text-muted-foreground p-2 mb-3 border-l-4 border-primary/50 bg-primary/10 dark:bg-primary/20">
-                <strong>AI Note:</strong> {parsedAnalysisData.analysisSummary}
-              </p>
-            )}
-            <Accordion type="multiple" defaultValue={["call-walls", "put-walls", "call-clusters", "put-clusters"]} className="w-full">
+            {/* Removed analysisSummary display */}
+            <Accordion type="multiple" defaultValue={["call-walls", "put-walls"]} className="w-full">
               <AccordionItem value="call-walls">
                 <AccordionTrigger className="text-md font-semibold">Identified Call Walls ({parsedAnalysisData.callWalls?.length || 0})</AccordionTrigger>
                 <AccordionContent>
@@ -242,18 +207,7 @@ export function AiOptionsAnalysisDisplay() {
                   {renderWallTable(parsedAnalysisData.putWalls, 'Put')}
                 </AccordionContent>
               </AccordionItem>
-              <AccordionItem value="call-clusters">
-                <AccordionTrigger className="text-md font-semibold">Identified Call OI Clusters ({parsedAnalysisData.callClusters?.length || 0})</AccordionTrigger>
-                <AccordionContent>
-                  {renderClusterTable(parsedAnalysisData.callClusters, 'Call')}
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="put-clusters">
-                <AccordionTrigger className="text-md font-semibold">Identified Put OI Clusters ({parsedAnalysisData.putClusters?.length || 0})</AccordionTrigger>
-                <AccordionContent>
-                  {renderClusterTable(parsedAnalysisData.putClusters, 'Put')}
-                </AccordionContent>
-              </AccordionItem>
+              {/* Removed AccordionItems for call-clusters and put-clusters */}
             </Accordion>
           </>
         ) : (
@@ -265,4 +219,3 @@ export function AiOptionsAnalysisDisplay() {
     </Card>
   );
 }
-

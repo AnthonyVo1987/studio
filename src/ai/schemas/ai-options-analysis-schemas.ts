@@ -26,40 +26,20 @@ export const WallDetailSchema = z.object({
 });
 export type WallDetail = z.infer<typeof WallDetailSchema>;
 
-export const ClusterDetailSchema = z.object({
-  strikes: z.array(z.number()).describe('An array of 2 or more adjacent strike prices forming the cluster.'),
-  totalOI: z.number().describe('The total open interest across all strikes in this cluster.'),
-  averageOI: z.number().describe('The average open interest per strike within this cluster.'),
-  type: z.enum(['call', 'put']).describe('The type of option (call or put) forming the cluster.'),
-});
-export type ClusterDetail = z.infer<typeof ClusterDetailSchema>;
+// Removed ClusterDetailSchema and ClusterDetail type
 
 export const AiOptionsAnalysisOutputSchema = z.object({
   callWalls: z
     .array(WallDetailSchema)
     .min(0)
-    .max(3)
+    .max(3) // Ensure max 3
     .describe('An array of identified call walls, ordered by significance (e.g., highest OI first). Max 3. Can be empty if none meet criteria.'),
   putWalls: z
     .array(WallDetailSchema)
     .min(0)
-    .max(3)
+    .max(3) // Ensure max 3
     .describe('An array of identified put walls, ordered by significance. Max 3. Can be empty if none meet criteria.'),
-  callClusters: z
-    .array(ClusterDetailSchema)
-    .min(0)
-    .max(3)
-    .optional()
-    .describe('An array of identified call OI clusters, ordered by significance (e.g., highest total OI first). Max 3. Can be empty or undefined.'),
-  putClusters: z
-    .array(ClusterDetailSchema)
-    .min(0)
-    .max(3)
-    .optional()
-    .describe('An array of identified put OI clusters, ordered by significance. Max 3. Can be empty or undefined.'),
-  analysisSummary: z
-    .string()
-    .optional()
-    .describe("A brief summary if no significant walls/clusters were found or if there are particular conditions to note, e.g., 'No significant call or put walls identified based on the provided criteria.' or 'Low overall open interest, making wall detection less reliable.'")
+  // Removed callClusters, putClusters, and analysisSummary
 });
 export type AiOptionsAnalysisOutput = z.infer<typeof AiOptionsAnalysisOutputSchema>;
+

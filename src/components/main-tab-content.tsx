@@ -14,6 +14,7 @@ import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details
 import { MarketStatusDisplay } from "@/components/market-status-display";
 import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiAnalyzedTaDisplay } from "@/components/ai-analyzed-ta-display";
+import { OptionsChainTable } from "@/components/options-chain-table"; // Ensure this is imported
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot } from "@/components/chatbot";
@@ -538,7 +539,6 @@ export function MainTabContent({
         <CardTitle>Stock Analysis Input</CardTitle>
         <CardDescription>
           Enter ticker for Data Fetch & AI TA. Manual AI actions available after. 
-          {/* Removed local FSM display from here */}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -620,6 +620,7 @@ export function MainTabContent({
           <StandardTaDisplay />
           <AiAnalyzedTaDisplay />
           <AiKeyTakeawaysDisplay />
+          <OptionsChainTable /> {/* Ensure OptionsChainTable is rendered here */}
           <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider
             chatFormAction={chatFormAction as any}
@@ -631,7 +632,7 @@ export function MainTabContent({
             aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'}
             currentGlobalChatHistory={contextChatHistory}
             logDebug={logDebug}
-            setChatbotFsmDisplayState={setChatbotFsmDisplay} // Pass the setter from global context
+            setChatbotFsmDisplayState={setChatbotFsmDisplay} 
           >
             <Chatbot
               isChatPending={isChatPending}
@@ -644,4 +645,3 @@ export function MainTabContent({
     </Card>
   );
 }
-
