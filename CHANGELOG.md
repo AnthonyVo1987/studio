@@ -16,6 +16,25 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.C.9` (Consolidated Bug Fixes & Feature Enhancements)
+**Tag:** `Phase-9_Task-9.C.9_ConsolidatedFixesAndFeatures` - Commit Hash: `3684d4d6`
+**Subject:** `fix(fsm,ui): Consolidate fixes for FSMs, button states, exports & enhance debug (v2.9.C.9)`
+**Details:**
+This version encapsulates a series of critical bug fixes and feature enhancements made from v2.9.C.0 through v2.9.C.9, improving application stability, FSM behavior, and debuggability.
+
+Key changes included up to v2.9.C.9:
+-   **Chatbot FSM Pilot (v2.9.C.0):** Introduced a dedicated FSM for `Chatbot.tsx` UI state management.
+-   **Server Action Initial State Export Fixes (v2.9.C.1 - v2.9.C.5):**
+    -   Resolved multiple build/runtime errors caused by missing exports for `initialStockDataFetchResult`, `initialAnalyzeTaState`, `initialPerformAiAnalysisState`, and `initialPerformAiOptionsAnalysisState` from their respective server action files.
+    -   Corrected the approach by defining these initial states directly in the client-side `StockAnalysisContext.tsx` where `useActionState` is used, as server actions cannot export non-function values. This addressed the "A 'use server' file can only export async functions" error.
+-   **"Analyze Stock" Button Re-enable Fix (v2.9.C.6):** Modified the local FSM in `MainTabContent.tsx` to correctly transition to `INPUT_VALID` when the global FSM returns to `IDLE` after a full analysis, ensuring the button becomes active again.
+-   **On-Demand AI Button Availability Fix (v2.9.C.7):** Refined local FSM logic in `MainTabContent.tsx` to ensure `activeAnalysisTicker` is preserved correctly after a successful automated pipeline, allowing manual AI buttons ("Generate AI Key Takeaways", "Generate AI Options Analysis") to become enabled.
+-   **Granular FSM State Display Feature (v2.9.C.8):** Enhanced debuggability by adding "Previous", "Current", and "Target" state displays for all local FSMs (`MainTabContent`, `ChatbotFSMContext`, `DebugConsoleFSMContext`) in their respective UI components.
+-   **Number Formatting TypeError Fix (v2.9.C.9):** Refactored `formatNumber` in `src/lib/number-utils.ts` to prevent `TypeError` when handling potentially undefined inputs, resolving unexpected server response errors originating from server actions using these utilities.
+-   Application version updated incrementally in `src/components/layout/header.tsx` and relevant documentation throughout these changes.
+
+These consolidated changes result in a more robust, debuggable, and user-friendly application state.
+---
 **App Version:** `v2.9.C.0` (Pilot Chatbot FSM Refactor)
 **Tag:** `Phase-9_Task-9.C.0_PilotChatbotFSM` - Commit Hash: `a0c733ee`
 **Subject:** `feat(chatbot): Pilot FSM for Chatbot UI state management (v2.9.C.0)`

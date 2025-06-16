@@ -25,14 +25,14 @@
     3.  Update all relevant mentions of the application version within this `README.md` document (e.g., main title, section headers, Phased Implementation Plan status).
     4.  Ensure the `CHANGELOG.md` file is updated to reflect the new version and changes. This file now contains the detailed history for this document and the Project Implementation Commit Log.
     5.  **README.md & CHANGELOG.md Update Timing:** All updates to `README.md` (versioning, phased plan status) and `CHANGELOG.md` (commit log) as described above **SHALL ONLY** be performed during an explicit 'COMMIT' stage, after the user has confirmed the code changes for that task version are ready to be finalized.
-*   **Example:** If the current phase is 9, current task is C, and this is the 0th iteration for this task, the version will be `v2.9.C.0`. If the next task is a bug fix on top of this, it will be `v2.9.C.1`.
+*   **Example:** If the current phase is 9, current task is C, and this is the 9th iteration for this task, the version will be `v2.9.C.9`. If the next task is a bug fix on top of this, it will be `v2.9.C.10` (or `v2.9.D.0` if it's a new sub-phase task).
 
 ---
-## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.C.0)**
+## **1. Preamble: Purpose of this Document & Core Strategy (StockSage v2.9.C.9)**
 
 This document serves a dual purpose:
 
-1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.C.0`). This version pilots an FSM for the Chatbot component.
+1.  **Product Requirements Document (PRD):** It defines the features, functionality, and design for StockSage (current version `v2.9.C.9`). This version includes consolidated bug fixes for FSMs, button states, server action exports, a feature for granular FSM state display, and a fix for number formatting issues.
 2.  **AI Operating Manual:** It provides explicit instructions, guidelines, rules, and a **UI-First Phased Implementation Plan** for the AI Agent.
 
 **Core Implementation Strategy: UI-First Development with Data Decoupling & FSM Orchestration**
@@ -40,47 +40,49 @@ This document serves a dual purpose:
 The primary strategy for this implementation is **UI-First Development**, managed by a **Finite State Machine (FSM)** for the analysis pipeline. This means:
 *   **UI Shell Construction:** The AI Agent first constructs the User Interface (UI) shell, including all tabs, display areas, tables, and controls, initially populated with **static placeholder data** or as visually complete but non-interactive elements.
 *   **Data Decoupling ("Debug" Tab as Data Source):** A "Debug" tab displays raw JSON data for backend operations and data sources. The "Main" tab's user-friendly displays consume this raw JSON from the "Debug" tab.
-*   **FSM-Orchestrated Data Flow:** The `StockAnalysisContext` utilizes a `useReducer` hook to implement an FSM. This FSM manages the entire lifecycle of a stock analysis:
+*   **FSM-Orchestrated Data Flow:** The `StockAnalysisContext` utilizes a `useReducer` hook to implement a global FSM. This FSM manages the entire lifecycle of a stock analysis:
     *   It orchestrates the sequence of data fetching and AI analysis steps.
     *   It updates the application's global state (the JSONs in `StockAnalysisContext`, which populate the Debug tab) upon successful completion or failure of each step.
     *   It handles error propagation, marking subsequent steps as "skipped" if a prerequisite fails.
-    *   This ensures a predictable, traceable, and robust data pipeline.
+*   **Local FSMs for Component UI:** Specific components like the `Chatbot` (via `ChatbotFsmContext`), `DebugConsole` (via `DebugConsoleFsmContext`), and `MainTabContent` (internal local FSM) manage their own UI-specific states and interactions, providing modularity.
 *   **Mitigating Risks:** This approach is chosen to:
     *   Allow for rapid UI iteration and approval without immediate backend complexity.
     *   Provide a clear, verifiable intermediate state (the "Debug" tab JSONs) for all data points.
-    *   Offer a robust and debuggable backend processing pipeline through the FSM.
+    *   Offer a robust and debuggable backend processing pipeline through the FSMs.
+    *   Ensure a predictable, traceable, and robust data pipeline.
 
-## **2. High-Level Goals (Current Version v2.9.C.0)**
+## **2. High-Level Goals (Current Version v2.9.C.9)**
 
 *   **Functional Parity & Refinement:** Replicate and refine core features based on StockSage v1.2.14, enhanced with new UI/UX and capabilities outlined herein.
-*   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline. Pilot Chatbot FSM.
+*   **UI-First & FSM Adherence:** Strictly follow the UI-First strategy with the FSM-orchestrated data pipeline and local component FSMs.
 *   **Tabbed Interface:** Maintain the "Main" and "Debug" tab structure.
 *   **Modern Architecture:** Implement using Next.js App Router, Server Components by default, and TypeScript.
 *   **Best Practices:** Adhere to industry best practices for React, Next.js, Tailwind CSS, and Genkit development.
 *   **AI Agent Guidelines Adherence:** Strictly follow the operational rules and phased plan detailed in this document, especially Section 0.
-*   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers, significantly improved by the Phase 9 FSM re-architecture and Chatbot FSM pilot.
+*   **Modularity and Maintainability:** Create a well-organized codebase with reusable components and clearly defined service layers, significantly improved by the Phase 9 FSM re-architecture, local FSMs, and recent bug fixes.
 *   **User Experience:** Deliver a high-quality, responsive, and accessible user interface with clear feedback on processing states.
-*   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging.
-*   **Dynamic Versioning:** Maintain and display the application version `v2.9.C.0` as per SOP (Section 0.7).
-*   **Critical Issue Resolution:** Prioritize fixing any outstanding UI loop/button state issues and client console logging issues.
+*   **Enhanced Debuggability:** Implement comprehensive server-side logging, client-side debug console with filtering, clear error reporting via toasts, and detailed FSM pipeline logging (global and local FSM state displays).
+*   **Dynamic Versioning:** Maintain and display the application version `v2.9.C.9` as per SOP (Section 0.7).
+*   **Stability and Reliability:** Ensure application stability through rigorous bug fixing and robust error handling.
 
-### **2.1. Known Issues / Current Status (v2.9.C.0)**
-**WARNING:** This version (v2.9.C.0) focuses on a pilot FSM implementation for the Chatbot.
-1.  **UI Button States:** Logic for enabling/disabling the main "Analyze Stock" button and manual AI trigger buttons during FSM transitions and server action pendings needs ongoing verification.
-2.  **Client Debug Console Logs:** While the console itself is now enabled by default and has improved filtering, log capacity, and default source settings, the underlying capture mechanism needs to be robust.
-3.  **Server Action Error Handling:** Previous fixes for server action error serialization have improved stability.
-4.  **Chatbot FSM Pilot:** The new Chatbot FSM needs to be tested for regressions and correct state management.
+### **2.1. Known Issues / Current Status (v2.9.C.9)**
+The application is now significantly more stable and debuggable due to fixes in v2.9.C.0 - v2.9.C.9.
+1.  **UI Button States (Largely Resolved):** Fixes in v2.9.C.6 and v2.9.C.7 have addressed issues with the "Analyze Stock" and on-demand AI buttons. Ongoing verification during complex interactions is still prudent.
+2.  **Client Debug Console Logs (Enhanced):** The console is enabled by default, has improved filtering, log capacity, default source settings, and now displays Prev/Curr/Target states for the global FSM and local FSMs (Menu, MainTab, Chatbot), greatly enhancing debuggability.
+3.  **Server Action Error Handling (Improved):** Fixes for server action error serialization (v2.9.B.5) and number formatting TypeErrors (v2.9.C.9) have improved stability.
+4.  **Chatbot FSM (Stable):** The Chatbot FSM introduced in v2.9.C.0 is stable, and its state transitions are now visible in its header.
+5.  **Granular FSM State Display (Implemented):** Version v2.9.C.8 introduced Prev/Current/Target state displays for local FSMs, significantly aiding in debugging UI component logic.
 
-These issues are being iteratively addressed.
+Overall, the application is in a much healthier state. Further testing will focus on edge cases and complex interaction flows.
 
-## **3. Core Application Features (StockSage v2.9.C.0)**
+## **3. Core Application Features (StockSage v2.9.C.9)**
 
-This section details the core features of StockSage v2.9.C.0, serving as the Product Requirements.
+This section details the core features of StockSage v2.9.C.9, serving as the Product Requirements.
 
 ### **3.1. Global Application Structure**
 *   **Tabbed Interface:** Two primary tabs, "Main" and "Debug", managed by ShadCN `Tabs`.
 *   **Header:**
-    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.C.0`).
+    *   Displays "StockSage" branding and the current dynamic application version (e.g., `v2.9.C.9`).
     *   Includes a theme toggler (Light/Dark/System) using `next-themes` and ShadCN `DropdownMenu`.
 *   **Footer:** Contains copyright information and a standard financial disclaimer.
 *   **Theme:** Supports Light and Dark themes, configurable via the header. Theme styles are defined in `src/app/globals.css` using HSL CSS variables.
@@ -88,7 +90,9 @@ This section details the core features of StockSage v2.9.C.0, serving as the Pro
 *   **Client-Side Debug Console:**
     *   **Enabled by default**. Toggleable via a Switch on the main page (`src/app/page.tsx`) primarily controls visibility.
     *   Appears as a fixed panel at the bottom of the screen (`src/components/debug-console.tsx`). Height: 250px. Max logs: 1000.
-    *   Displays client-side logs captured via a global log buffer and `console.*` interception. FSM states (Prev, Current, Target) displayed in banner.
+    *   Displays client-side logs captured via a global log buffer and `console.*` interception.
+    *   **Global FSM states (Prev, Current, Target)** displayed in the main page FSM banner.
+    *   **Local FSM states (Prev, Current, Target) for the Debug Console's menu system** displayed in the console's own header.
     *   Features:
         *   Search functionality for log messages.
         *   Filtering by log type (DEBUG, INFO, WARN, ERROR, LOG) and log source (component/module name).
@@ -105,10 +109,11 @@ The "Main" tab is the primary user interface for stock analysis.
     *   **Ticker Input:** A text field (`Input`) for users to enter a stock ticker symbol (e.g., "NVDA"). Default: "NVDA".
     *   **Data Source Selector:** A `Select` component, currently defaulted and disabled to "Polygon.io".
     *   **"Analyze Stock" Button:** Initiates an automated analysis pipeline (Data Fetch + AI TA).
-        *   Triggers FSM `START_FULL_ANALYSIS`. Wipes previous analysis-related JSONs (preserving chat/logs).
-        *   Button shows loading spinners and is disabled while an analysis pipeline is active.
-    *   **"Generate AI Key Takeaways" Button:** Manually triggers AI Key Takeaways. Enabled when automated pipeline is complete, FSM is `IDLE` or `FULL_ANALYSIS_COMPLETE`, and prerequisite data is valid. `activeAnalysisTicker` must be set.
-    *   **"Generate AI Options Analysis" Button:** Manually triggers AI Options Analysis. Enabled when automated pipeline is complete, FSM is `IDLE` or `FULL_ANALYSIS_COMPLETE`, and prerequisite data is valid. `activeAnalysisTicker` must be set.
+        *   Triggers local FSM and subsequently global FSM `START_FULL_ANALYSIS`. Wipes previous analysis-related JSONs (preserving chat/logs).
+        *   Button shows loading spinners and is disabled while an analysis pipeline or relevant local FSM state is active. Button re-enables correctly after analysis.
+    *   **"Generate AI Key Takeaways" Button:** Manually triggers AI Key Takeaways. Enabled when automated pipeline is complete, local FSM is `MANUAL_ACTIONS_ENABLED`, and prerequisite data is valid. `activeAnalysisTicker` must be set and match current input.
+    *   **"Generate AI Options Analysis" Button:** Manually triggers AI Options Analysis. Enabled when automated pipeline is complete, local FSM is `MANUAL_ACTIONS_ENABLED`, and prerequisite data is valid. `activeAnalysisTicker` must be set and match current input.
+    *   **Local FSM State Display:** The header card for this section now displays Prev/Current/Target states for the `MainTabContent`'s internal FSM.
 
 *   **Display Card Order & Content:** (All react to `StockAnalysisContext`)
     1.  Key Metrics Display
@@ -118,27 +123,28 @@ The "Main" tab is the primary user interface for stock analysis.
     5.  AI Key Takeaways Display (Manual trigger)
     6.  Options Chain Table Display
     7.  AI Analyzed Options Chain Display (Manual trigger)
-    8.  AI Chatbot Interface (Now with internal FSM via `ChatbotFsmProvider`)
+    8.  AI Chatbot Interface (Now with internal FSM via `ChatbotFsmProvider` and its own Prev/Curr/Target FSM state display in its header)
     9.  Market Status Display
 
 *   **Combined Data Export Controls:** "Export All to JSON" and "Copy All to JSON" buttons.
 
 ### **3.3. "Debug" Tab Features (`src/components/debug-tab-content.tsx`)**
-(Log source controls reflect the new default for `OptionsChainTable` being off).
-
 *   **Raw JSON Display Areas:** For all major data points.
 *   **Client Debug Log Source Settings:** Allows toggling individual sources. `OptionsChainTable` will be initially unchecked.
 
 ### **3.4. Backend Functionality & Architecture Flow**
-(Largely FSM-driven by `StockAnalysisContext`. `Chatbot.tsx` now has its own FSM for UI interaction, managed by `ChatbotFsmContext`.)
-
-*   **Data Retrieval:** `src/services/data-sources/adapters/polygon-adapter.ts`.
+*   **Global FSM:** Orchestrated by `StockAnalysisContext` and its `useReducer` hook. Manages the overall pipeline (Data Fetch, AI TA). `MainTabContent` dispatches events to this global FSM.
+*   **Local FSMs:**
+    *   `MainTabContent.tsx`: Manages UI states related to input validation, automated pipeline triggering, and enabling manual AI actions. Its state (Prev/Curr/Target) is displayed in its header card.
+    *   `ChatbotFsmContext.tsx`: Manages Chatbot UI interactions (input, submission). Its state is displayed in the Chatbot header.
+    *   `DebugConsoleFsmContext.tsx`: Manages UI states for the debug console's menus (filter, copy, export). Its state is displayed in the Debug Console header.
+*   **Data Retrieval:** `src/services/data-sources/adapters/polygon-adapter.ts` (now with more robust error serialization and cache-busting).
 *   **Genkit AI Flows:** `analyze-ta-flow.ts`, `analyze-stock-data.ts`, `analyze-options-chain-flow.ts`, `chat-flow.ts`.
-*   **Server Actions:** `analyze-stock-server-action.ts`, etc.
-*   **FSM Architecture:** Main pipeline by `StockAnalysisContext` and `MainTabContent`. Chatbot UI by `ChatbotFsmContext`.
+*   **Server Actions:** `analyze-stock-server-action.ts`, `analyze-ta-action.ts`, `perform-ai-analysis-action.ts`, `perform-ai-options-analysis-action.ts`, `chat-server-action.ts`. Initial states for `useActionState` are now correctly defined client-side in `StockAnalysisContext`. Server action files only export async functions.
+*   **Number Utilities (`src/lib/number-utils.ts`):** `formatNumber` and its aliases made robust to prevent TypeErrors on undefined inputs.
 
 ## **4. Technology Stack (Mandatory)**
-(Same as v2.9.B.9)
+(Same as v2.9.C.0 - No changes to core stack)
 
 *   **Frontend Framework:** Next.js (latest stable v14.x or v15.x, **App Router mandatory**)
 *   **Language:** TypeScript
@@ -148,7 +154,7 @@ The "Main" tab is the primary user interface for stock analysis.
 *   **AI Integration:** Genkit (latest stable **v1.x series**)
 *   **AI Model Provider:** Google AI (using `@genkit-ai/googleai`)
 *   **Default AI Model:** `googleai/gemini-2.5-flash-preview-05-20` (defined in `src/ai/models.ts`)
-*   **State Management:** React Context API (`StockAnalysisProvider`, `ChatbotFsmProvider`), `useReducer` (FSMs), `useActionState`.
+*   **State Management:** React Context API (`StockAnalysisProvider`, `ChatbotFsmProvider`, `DebugConsoleFsmProvider`), `useReducer` (FSMs), `useActionState`.
 *   **Data Fetching (External API):** **Polygon.io REST Client (`@polygon.io/client-js` version `^7.3.2` or latest compatible stable)**.
 *   **Deployment Target (Initial):** Firebase App Hosting
 *   **Build Tooling:** Next.js CLI (Turbopack enabled by default: `next dev --turbopack`).
@@ -172,20 +178,22 @@ The "Main" tab is the primary user interface for stock analysis.
 *   ShadCN `Tabs`. HSL CSS vars. Semantic colors.
 
 #### **4.1.5. State Management**
-*   `StockAnalysisContext`: Central state for main data pipeline. Main FSM (`useReducer`). `MainTabContent` dispatches FSM events. `useActionState` for server actions.
-*   `ChatbotFsmContext`: New context for Chatbot UI FSM.
+*   `StockAnalysisContext`: Central state for main data pipeline. Main global FSM (`useReducer`). `MainTabContent` dispatches FSM events. `useActionState` for server actions (initial states defined client-side).
+*   `ChatbotFsmContext`: Context for Chatbot UI FSM.
+*   `DebugConsoleFsmContext`: Context for Debug Console menu UI FSM.
+*   `MainTabContent`: Internal local FSM for UI logic.
 
 #### **4.1.6. Known Pain Points & Lessons Learned (CRITICAL REMINDERS)**
-(Content on `async_hooks`, client-side bundling, `'use server';` directive, Genkit syntax remains relevant. Client Debug Console improvements and server error serialization are more stable.)
+(Content on `async_hooks`, client-side bundling, `'use server';` directive, Genkit syntax remains relevant. Client Debug Console improvements and server error serialization are more stable. Resolved "use server" export issues for initial states.)
 
 ## **5. Phased Implementation Plan (UI-First Strategy)**
 
-*(Status: Phase 9 In Progress. Current application version: v2.9.C.0.)*
+*(Status: Phase 9, Task 9.C.9 Complete. Current application version: v2.9.C.9.)*
 
 ---
 **Phase 0-8: COMPLETE**
 ---
-**Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **IN PROGRESS**
+**Phase 9: Pipeline & Architecture Enhancements (FSM Re-architecture)** - Status: **COMPLETE**
 *   **Tasks 9.1 - 9.8: COMPLETE**
 *   **Task 9.A: Comprehensive Full README.md update (v2.9.A.0):** - Status: **COMPLETE**
 *   **Task 9.9: Testing and Debugging Fixes (v2.9.9.x -> v2.9.A.x -> v2.9.B.x):** - Status: **COMPLETE**
@@ -216,6 +224,11 @@ The "Main" tab is the primary user interface for stock analysis.
     *   **Task 9.9.B.8: Enhance Debug Console Defaults & FSM State Display (v2.9.B.8):** Status: **COMPLETE**
     *   **Task 9.9.B.9: Correct Default Log Source Configuration (v2.9.B.9):** Status: **COMPLETE**
 *   **Task 9.C.0: Pilot Chatbot.tsx FSM Refactor (v2.9.C.0):** Status: **COMPLETE**
+*   **Task 9.C.1 - 9.C.5: Server Action Initial State Export Fixes (v2.9.C.1 - v2.9.C.5):** Status: **COMPLETE**
+*   **Task 9.C.6: "Analyze Stock" Button Re-enable Fix (v2.9.C.6):** Status: **COMPLETE**
+*   **Task 9.C.7: On-Demand AI Button Availability Fix (v2.9.C.7):** Status: **COMPLETE**
+*   **Task 9.C.8: Granular FSM State Display Feature (v2.9.C.8):** Status: **COMPLETE**
+*   **Task 9.C.9: Number Formatting TypeError Fix & Consolidation (v2.9.C.9):** Status: **COMPLETE**
 
 ## **6. Changelog and Commit Log**
 
