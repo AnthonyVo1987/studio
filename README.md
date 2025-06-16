@@ -223,3 +223,4 @@ The detailed changelog for this document (README.md) and the application's commi
 Please refer to `CHANGELOG.md` for all version history and commit details.
 
 ---
+

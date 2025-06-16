@@ -2,7 +2,7 @@
 
 ## Changelog (CHANGELOG.md)
 *   **Version 1.50 (Task v2.9.C.0):** 2025-06-15 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.50) with version `v2.9.C.0` after Chatbot FSM pilot. Added new Task 9.C.0 to Phased Plan.
+    *   Updated `README.md` (to v1.50) with version `v2.9.C.0` after Chatbot FSM pilot. Added new Task 9.C.0 to Phased Plan. Updated AI operational rules for XML output (Section 0.5).
 *   **Version 1.1 (Task v2.9.B.9):** 2025-06-15 - Firebase Studio (AI Prototyper)
     *   Updated `README.md` (to v1.49) with new AI operational rules (XML output, token efficiency, immediate coding post-approval).
 *   **Version 1.0 (Task v2.9.B.4):** 2025-06-15 - Firebase Studio (AI Prototyper)
@@ -17,10 +17,30 @@ This section tracks the commit history of the StockSage application, with versio
 
 ---
 **App Version:** `v2.9.C.0` (Pilot Chatbot FSM Refactor)
-**Tag:** `Phase-9_Task-9.C.0_PilotChatbotFSM` - Commit Hash: `user_hash_placeholder`
+**Tag:** `Phase-9_Task-9.C.0_PilotChatbotFSM` - Commit Hash: `a0c733ee`
 **Subject:** `feat(chatbot): Pilot FSM for Chatbot UI state management (v2.9.C.0)`
 **Details:**
-Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component. This refactor encapsulates Chatbot's internal UI logic (input handling, submission state) within its own FSM, improving modularity and predictability. `Chatbot.tsx` now uses this context, while `MainTabContent.tsx` wraps it with the new provider and passes necessary callbacks and props. Server action invocation for chat and global chat history updates remain in their respective places but are now coordinated with the Chatbot FSM. Version updated in UI and documentation.
+Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component. This refactor encapsulates Chatbot's internal UI logic (input handling, submission state) within its own FSM, improving modularity and predictability.
+
+Key changes included in v2.9.C.0:
+- Created `src/contexts/chatbot-fsm-context.tsx` defining:
+    - `ChatbotFsmInternalState` (IDLE, PROCESSING_USER_INPUT, SUBMITTING_MESSAGE).
+    - `ChatbotFsmEvent` (USER_INPUT_CHANGED, SUBMIT_MESSAGE_REQUESTED, SUBMISSION_CONCLUDED).
+    - `ChatbotFsmProvider` to manage and provide the FSM state and dispatch.
+    - `useChatbotFsm` hook.
+- Refactored `src/components/chatbot.tsx`:
+    - Now consumes `ChatbotFsmContext` via `useChatbotFsm`.
+    - Internal `userInput` state removed; FSM now manages `userInput`.
+    - `handleSubmit` (triggered by form submission or Enter key) now dispatches `SUBMIT_MESSAGE_REQUESTED` to the Chatbot FSM.
+    - An effect in `ChatbotFsmProvider` handles the actual server action call (`chatFormAction`) and global chat message addition when the FSM is in `SUBMITTING_MESSAGE`.
+    - `isChatPending` prop (from `MainTabContent`) is used by `ChatbotFsmProvider`'s effect to dispatch `SUBMISSION_CONCLUDED` to the Chatbot FSM when the server action completes.
+- Modified `src/components/main-tab-content.tsx`:
+    - Wraps the `<Chatbot />` component with `<ChatbotFsmProvider />`.
+    - Passes necessary props to `ChatbotFsmProvider`, including `chatFormAction`, `addChatMessageToGlobalContext`, relevant data JSONs, and `isChatPending`.
+- Updated application version to `v2.9.C.0` in `src/components/layout/header.tsx`.
+- Updated `README.md` and `CHANGELOG.md` to reflect the new version, completed task, new AI operational rules, and commit details.
+
+This pilot refactor improves the `Chatbot` component's state management, making it more robust and easier to maintain, while decoupling its UI logic from the main application FSM.
 ---
 **App Version:** `v2.9.B.9` (Correct Default Log Source Configuration)
 **Tag:** `Phase-9_Task-9.B.9_CorrectDefaultLogConfig` - Commit Hash: `c4637481`
@@ -92,3 +112,4 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
