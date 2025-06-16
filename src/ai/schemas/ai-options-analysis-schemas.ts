@@ -26,20 +26,19 @@ export const WallDetailSchema = z.object({
 });
 export type WallDetail = z.infer<typeof WallDetailSchema>;
 
-// Removed ClusterDetailSchema and ClusterDetail type
-
 export const AiOptionsAnalysisOutputSchema = z.object({
   callWalls: z
     .array(WallDetailSchema)
     .min(0)
-    .max(3) // Ensure max 3
-    .describe('An array of identified call walls, ordered by significance (e.g., highest OI first). Max 3. Can be empty if none meet criteria.'),
+    .max(1) // Ensure max 1
+    .describe('An array of identified call walls, ordered by significance (e.g., highest OI first). Max 1. Can be empty if none meet criteria.'),
   putWalls: z
     .array(WallDetailSchema)
     .min(0)
-    .max(3) // Ensure max 3
-    .describe('An array of identified put walls, ordered by significance. Max 3. Can be empty if none meet criteria.'),
-  // Removed callClusters, putClusters, and analysisSummary
+    .max(1) // Ensure max 1
+    .describe('An array of identified put walls, ordered by significance. Max 1. Can be empty if none meet criteria.'),
 });
 export type AiOptionsAnalysisOutput = z.infer<typeof AiOptionsAnalysisOutputSchema>;
 
+
+    

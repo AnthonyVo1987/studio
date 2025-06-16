@@ -40,9 +40,14 @@ const getSemanticBadgeClass = (sentiment?: string): string => {
   return "bg-muted text-muted-foreground border-border";
 };
 
-const getSemanticTextColorClass = (sentiment?: string): string => {
+const getSemanticTextColorClass = (sentiment?: string, categoryKey?: TakeawayCategory): string => {
     if (!sentiment) return 'text-muted-foreground';
     const s = sentiment.toLowerCase();
+
+    if (categoryKey === 'volatility' && s.includes('moderate')) {
+        return 'text-foreground'; // Override for volatility moderate to ensure visibility
+    }
+
     if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) return 'text-positive';
     if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) return 'text-destructive';
     if (s.includes('high') || s.includes('low') || s.includes('moderate')) return 'text-warning-foreground'; 
@@ -121,7 +126,7 @@ export function AiKeyTakeawaysDisplay() {
   
   if (!jsonString || jsonString === '{}') {
     isLoading = false;
-    isError = false; // Not an error, just no data yet
+    isError = false; 
     parsedTakeawaysData = null;
     errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
     logDebug(componentName, "aiKeyTakeawaysJson is empty or null. Displaying 'No data'.");
@@ -129,7 +134,7 @@ export function AiKeyTakeawaysDisplay() {
     isLoading = true;
     isError = false;
     parsedTakeawaysData = null;
-    errorOrSkippedMessage = ""; // Clear any previous error message
+    errorOrSkippedMessage = ""; 
     logDebug(componentName, "aiKeyTakeawaysJson is in a defined pending/initializing state.");
   } else if (jsonString.includes('"status": "error"') || jsonString.includes('"status": "skipped"')) {
     isLoading = false;
@@ -139,7 +144,7 @@ export function AiKeyTakeawaysDisplay() {
       const statusObj = JSON.parse(jsonString);
       if (statusObj.status === "skipped") {
         errorOrSkippedMessage = statusObj.message || "AI Key Takeaways were skipped.";
-      } else { // error
+      } else { 
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Key Takeaways.";
       }
       logDebug(componentName, `JSON indicates status: ${statusObj.status}, message: ${errorOrSkippedMessage}`);
@@ -148,7 +153,7 @@ export function AiKeyTakeawaysDisplay() {
       logDebug(componentName, "Failed to parse error/skipped status JSON for AI Key Takeaways.", e);
     }
   } else {
-    // Attempt to parse actual data
+    
     isLoading = false;
     isError = false;
     try {
@@ -160,7 +165,7 @@ export function AiKeyTakeawaysDisplay() {
             categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
             sentiment: data[key]?.sentiment || "neutral",
             text: data[key]?.takeaway || "No takeaway generated.",
-            textSentimentClass: getSemanticTextColorClass(data[key]?.sentiment),
+            textSentimentClass: getSemanticTextColorClass(data[key]?.sentiment, key),
             badgeSentimentClass: getSemanticBadgeClass(data[key]?.sentiment)
         }));
         logDebug(componentName, "Successfully parsed aiKeyTakeawaysJson data.", data);
@@ -311,3 +316,5 @@ export function AiKeyTakeawaysDisplay() {
   );
 }
 
+
+    

@@ -53,10 +53,11 @@ User's Current Input: {{{userInput}}}
 Based ONLY on the provided contextual information and conversation history (if any):
 - Answer the user's question comprehensively.
 - If the question cannot be answered from the provided context, state that clearly and politely. For example: "I don't have that specific information in my current dataset."
-- Format your responses using Markdown for readability (e.g., bolding, bullet points).
+- Format your responses using Markdown for readability. **Use bullet points (e.g., \`- Point 1\`, \`* Point 2\`) for lists or distinct pieces of information. Ensure adequate line spacing between paragraphs or distinct ideas for better visual separation.**
 - Use emojis where appropriate to maintain a friendly tone (e.g., 📈, 📉, 🤔, ✅).
 - Ensure numerical values are formatted to two decimal places.
 - Ensure monetary values are prefixed with "$".
+- Synthesize your answer using all provided data segments that are relevant to the user's query. If some data segments (like AI Options Analysis) are not provided or are empty, simply work with the information you do have.
 
 Model Response:
 `,
@@ -90,3 +91,5 @@ const chatFlow = ai.defineFlow(
   }
 );
 
+
+    

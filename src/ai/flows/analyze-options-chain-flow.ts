@@ -29,9 +29,9 @@ export async function analyzeOptionsChain(
 const analyzeOptionsChainPrompt = ai.definePrompt({
   name: 'analyzeOptionsChainPrompt',
   input: {schema: AiOptionsAnalysisInputSchema},
-  output: {schema: AiOptionsAnalysisOutputSchema}, // Ensure this uses the simplified schema
+  output: {schema: AiOptionsAnalysisOutputSchema}, 
   model: DEFAULT_ANALYSIS_MODEL_ID,
-  prompt: `You are an expert options market analyst. Your task is to identify significant Call and Put "Walls" from the provided options chain data for the stock: {{{ticker}}}.
+  prompt: `You are an expert options market analyst. Your task is to identify the MOST significant Call and Put "Walls" from the provided options chain data for the stock: {{{ticker}}}.
 The current underlying price is \${{{currentUnderlyingPrice}}}. This price is provided for context (e.g., to understand the general price level and relation of strikes to it), your primary analysis should focus on Open Interest (OI).
 
 The options chain data is provided as a JSON string: {{{optionsChainJson}}}
@@ -53,10 +53,10 @@ A strike is a potential Wall if its OI meets BOTH conditions:
         - If a strike has no valid adjacent strikes with OI for comparison, this sub-condition might be relaxed if the 1.5x average OI condition is strongly met.
 
 Output Requirements:
--   **Walls:** Identify AT LEAST 1 Call Wall and AT LEAST 1 Put Wall if data supports. Select UP TO 3 most significant walls per type (highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
--   If no significant walls are identified for a type, return an empty array for that type.
+-   **Walls:** Identify THE MOST significant Call Wall and THE MOST significant Put Wall if data supports. Select AT MOST 1 Call Wall and AT MOST 1 Put Wall (highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
+-   If no significant wall is identified for a type, return an empty array for that type.
 
-Strictly adhere to the output schema (only callWalls and putWalls). Ensure numerical values. Do not force walls if criteria are not met.
+Strictly adhere to the output schema (only callWalls and putWalls, each an array with AT MOST 1 element). Ensure numerical values. Do not force walls if criteria are not met.
 If you encounter issues parsing or the data is clearly insufficient (e.g., less than 5 strikes with OI for both calls and puts), return empty arrays.
 `,
   config: {
@@ -64,7 +64,7 @@ If you encounter issues parsing or the data is clearly insufficient (e.g., less 
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
     ],
   },
 });
@@ -73,7 +73,7 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   {
     name: 'analyzeOptionsChainFlow',
     inputSchema: AiOptionsAnalysisInputSchema,
-    outputSchema: AiOptionsAnalysisOutputSchema, // Ensure this uses the simplified schema
+    outputSchema: AiOptionsAnalysisOutputSchema, 
   },
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
     let parsedOptionsData: OptionsChainData | null = null;
@@ -82,7 +82,6 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       console.log('[AIFlow:analyzeOptionsChainFlow] Parsed options chain JSON. Contracts count:', parsedOptionsData.contracts?.length);
       if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { 
         console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient. Contracts length:', parsedOptionsData.contracts?.length);
-        // Return empty arrays as per simplified schema
         return { callWalls: [], putWalls: [] };
       }
     } catch (e) {
@@ -93,15 +92,14 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     console.log('[AIFlow:analyzeOptionsChainFlow] Executing prompt for ticker:', input.ticker);
     const {output} = await analyzeOptionsChainPrompt(input);
 
-    if (!output || !output.callWalls || !output.putWalls) { // Check for simplified output structure
+    if (!output || !output.callWalls || !output.putWalls) { 
       console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return a valid output for ticker:', input.ticker, 'Received output:', output);
-      return { callWalls: [], putWalls: [] }; // Return valid empty structure
+      return { callWalls: [], putWalls: [] }; 
     }
     
-    // Ensure arrays are not null/undefined and limit to max 3
     const finalOutput: AiOptionsAnalysisOutput = {
-        callWalls: (output.callWalls || []).slice(0, 3),
-        putWalls: (output.putWalls || []).slice(0, 3),
+        callWalls: (output.callWalls || []).slice(0, 1),
+        putWalls: (output.putWalls || []).slice(0, 1),
     };
     
     console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete for ticker:', input.ticker, 'Call Walls:', finalOutput.callWalls.length, 'Put Walls:', finalOutput.putWalls.length);
@@ -109,3 +107,5 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   }
 );
 
+
+    
