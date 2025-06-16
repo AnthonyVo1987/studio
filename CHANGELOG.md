@@ -16,6 +16,41 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.C.E` (Resolve FsmStateDebugCard ReferenceError)
+**Tag:** `Phase-9_Task-9.C.E_FixFsmCardRefError` - Commit Hash: `08df82c7`
+**Subject:** `fix(ui): Resolve ReferenceError for console states in FsmStateDebugCard (v2.9.C.E)`
+**Details:**
+This version addresses a `ReferenceError` in `FsmStateDebugCard.tsx` where `isClientDebugConsoleEnabled` and `isClientDebugConsoleOpen` were used without being destructured from the `useStockAnalysis()` hook. The fix ensures these values are correctly obtained from the context, allowing the FSM Debug Card to accurately calculate its position relative to the Client Debug Console. Application version updated to `v2.9.C.E`.
+---
+**App Version:** `v2.9.C.D` (Fix FSM Debug Card Context Provider Error)
+**Tag:** `Phase-9_Task-9.C.D_FixFsmCardContextProvider` - Commit Hash: `(previous_commit_for_C.D)`
+**Subject:** `fix(fsm): Resolve ChatbotFSM context error in FsmStateDebugCard & prevent update loops (v2.9.C.D)`
+**Details:**
+Addressed an error where `FsmStateDebugCard` attempted to use `useChatbotFsm` without being a descendant of `ChatbotFsmProvider`. The fix involved reverting to a model where local FSM contexts (`ChatbotFsmContext`, `DebugConsoleFsmContext`) report their display state tuples (Previous, Current, Target) to `StockAnalysisContext`. `FsmStateDebugCard` now consumes these display states from `StockAnalysisContext`. Setters in `StockAnalysisContext` for these display tuples were made more robust to prevent re-renders if the actual display data hasn't changed, mitigating potential "maximum update depth" errors. Application version updated to `v2.9.C.D`.
+---
+**App Version:** `v2.9.C.C` (Fix FSM Display Maximum Update Depth Error)
+**Tag:** `Phase-9_Task-9.C.C_FixFsmDisplayMaxUpdateDepth` - Commit Hash: `(previous_commit_for_C.C)`
+**Subject:** `fix(fsm): Refactor FSM state display to prevent maximum update depth error (v2.9.C.C)`
+**Details:**
+Refactored the FSM state display mechanism to prevent "Maximum update depth exceeded" errors. Removed centralized FSM display state variables (`mainTabFsmDisplay`, `chatbotFsmDisplay`, `debugConsoleMenuFsmDisplay`) from `StockAnalysisContext`. `ChatbotFsmContext` and `DebugConsoleFsmContext` now directly expose their FSM states (previous, current, target). `FsmStateDebugCard.tsx` was updated to consume these states directly from their respective contexts and receive Main Tab FSM state via props. This decentralization breaks update loops. Application version updated to `v2.9.C.C`.
+---
+**App Version:** `v2.9.C.B` (Fix Debug Console FSM Display Prop Error)
+**Tag:** `Phase-9_Task-9.C.B_FixDebugConsoleFsmProp` - Commit Hash: `(previous_commit_for_C.B)`
+**Subject:** `fix(fsm): Correctly pass setDebugConsoleMenuFsmDisplayState prop (v2.9.C.B)`
+**Details:**
+Resolved a `TypeError: setDebugConsoleMenuFsmDisplayState is not a function` by ensuring the `setDebugConsoleMenuFsmDisplay` function from `StockAnalysisContext` is correctly passed as the `setDebugConsoleMenuFsmDisplayState` prop to `DebugConsoleFsmProvider` in `page.tsx`. Application version updated to `v2.9.C.B`.
+---
+**App Version:** `v2.9.C.A` (Consolidated FSM Debug Card Feature)
+**Tag:** `Phase-9_Task-9.C.A_ConsolidatedFsmDebugCard` - Commit Hash: `(previous_commit_for_C.A)`
+**Subject:** `feat(debug): Implement consolidated FSM State Debug Card & relocate Global FSM display (v2.9.C.A)`
+**Details:**
+Implemented a new "FSM State Debug Card" to provide a centralized view of Previous, Current, and Target states for all major FSMs (Global App, Main Tab UI, Chatbot UI, Debug Console Menu UI).
+- Global FSM display (Prev/Curr/Target) relocated to the main application header.
+- Added a new toggle switch on the main page to show/hide the FSM State Debug Card (enabled by default).
+- The FSM State Debug Card appears above the Client Debug Console and includes "Copy JSON" and "Export JSON" functionality for all displayed FSM states.
+- Local FSM display details removed from individual component headers and now reported to `StockAnalysisContext` for consumption by the new debug card.
+- Application version updated to `v2.9.C.A`.
+---
 **App Version:** `v2.9.C.9` (Consolidated Bug Fixes & Feature Enhancements)
 **Tag:** `Phase-9_Task-9.C.9_ConsolidatedFixesAndFeatures` - Commit Hash: `3684d4d6`
 **Subject:** `fix(fsm,ui): Consolidate fixes for FSMs, button states, exports & enhance debug (v2.9.C.9)`
@@ -132,3 +167,4 @@ UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
 
+```
