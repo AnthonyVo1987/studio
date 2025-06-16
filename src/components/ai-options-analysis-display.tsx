@@ -41,74 +41,57 @@ export function AiOptionsAnalysisDisplay() {
 
   let isLoading = false;
   let isError = false;
-  let errorOrSkippedMessage = "AI Options Analysis data not available.";
-  let parsedAnalysisData: AiOptionsAnalysisOutput | null = null;
+  let errorMessageForDisplay: string | null = null; // Specific for errors or malformed
+  let parsedSuccessfullyData: AiOptionsAnalysisOutput | null = null;
 
-  if (!aiOptionsAnalysisJson || aiOptionsAnalysisJson === '{}') {
-    isLoading = false;
-    isError = false; 
-    parsedAnalysisData = null;
-    errorOrSkippedMessage = "No AI Options Analysis data. Ensure options chain was processed by AI.";
-    logDebug(componentName, "aiOptionsAnalysisJson is empty or null. Displaying 'No data'.");
+  if (!aiOptionsAnalysisJson) {
+    // Truly null or undefined, initial state likely before any data comes from context
+    errorMessageForDisplay = "AI Options Analysis data not available.";
+  } else if (aiOptionsAnalysisJson === '{}') {
+    errorMessageForDisplay = "No AI Options Analysis data. Ensure options chain was processed by AI.";
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(aiOptionsAnalysisJson.trim())) {
     isLoading = true;
-    isError = false;
-    parsedAnalysisData = null;
-    errorOrSkippedMessage = ""; 
-    logDebug(componentName, "aiOptionsAnalysisJson is in a defined pending/initializing state.");
-  } else if (aiOptionsAnalysisJson.includes('"status": "error"') || aiOptionsAnalysisJson.includes('"status": "skipped"') || aiOptionsAnalysisJson.includes('"error":')) { 
-    isLoading = false;
-    isError = true;
-    parsedAnalysisData = null;
-    try {
-      const statusObj = JSON.parse(aiOptionsAnalysisJson);
-      if (statusObj.status === "skipped") {
-        errorOrSkippedMessage = statusObj.message || "AI Options Analysis was skipped.";
-      } else if (statusObj.status === "error" || statusObj.error) { 
-        errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Options Analysis.";
-      } else {
-         errorOrSkippedMessage = "Malformed error/skipped JSON for AI Options Analysis.";
-      }
-      logDebug(componentName, `JSON indicates status/error: ${statusObj.status || statusObj.error || 'unknown_structure'}, message: ${errorOrSkippedMessage}`);
-    } catch (e) {
-      errorOrSkippedMessage = "Failed to parse status message from error/skipped JSON for AI Options Analysis.";
-      logDebug(componentName, "Failed to parse error/skipped status JSON for AI Options Analysis.", e);
-    }
   } else {
-    isLoading = false;
-    isError = false;
     try {
-      const data = JSON.parse(aiOptionsAnalysisJson) as AiOptionsAnalysisOutput;
-      if (data && typeof data === 'object' && Array.isArray(data.callWalls) && Array.isArray(data.putWalls)) { 
-        parsedAnalysisData = data;
-        logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data.", data);
+      const parsedJson = JSON.parse(aiOptionsAnalysisJson);
+      if (parsedJson.status === 'error' || parsedJson.error) {
+        isError = true;
+        errorMessageForDisplay = parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
+        logDebug(componentName, `JSON indicates status/error: ${parsedJson.status || parsedJson.error || 'unknown_structure'}, message: ${errorMessageForDisplay}`);
+      } else if (parsedJson.status === 'skipped') {
+        isError = true; // Treat skipped as a state where data isn't available for this display type
+        errorMessageForDisplay = parsedJson.message || "AI Options Analysis was skipped.";
+        logDebug(componentName, `JSON indicates status: skipped, message: ${errorMessageForDisplay}`);
+      } else if (typeof parsedJson === 'object' && parsedJson !== null && Array.isArray(parsedJson.callWalls) && Array.isArray(parsedJson.putWalls)) {
+        parsedSuccessfullyData = parsedJson as AiOptionsAnalysisOutput;
+        isError = false; // Clear error if parsing is successful
+        errorMessageForDisplay = null; // Clear error message
+        logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data.", parsedSuccessfullyData);
       } else {
         isError = true;
-        errorOrSkippedMessage = "AI Options Analysis data is malformed or incomplete.";
-        parsedAnalysisData = null;
-        logDebug(componentName, "Parsed aiOptionsAnalysisJson data is malformed or missing critical fields (callWalls/putWalls not arrays).", data);
+        errorMessageForDisplay = "AI Options Analysis data is malformed or incomplete.";
+        logDebug(componentName, "Parsed aiOptionsAnalysisJson data is malformed or missing critical fields.", parsedJson);
       }
     } catch (e) {
       isError = true;
-      errorOrSkippedMessage = "Failed to parse AI Options Analysis data.";
-      parsedAnalysisData = null;
-      logDebug(componentName, "Error parsing AI Options Analysis JSON.", e);
+      errorMessageForDisplay = "Failed to parse AI Options Analysis data.";
+      logDebug(componentName, "Error parsing AI Options Analysis JSON.", e, aiOptionsAnalysisJson);
     }
   }
 
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
-  const isDataReadyForExport = !isLoading && !isError && parsedAnalysisData && 
-    ( (parsedAnalysisData.callWalls && parsedAnalysisData.callWalls.length > 0) || 
-      (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0) );
+  const isDataReadyForExport = !isLoading && !isError && parsedSuccessfullyData &&
+    ( (parsedSuccessfullyData.callWalls && parsedSuccessfullyData.callWalls.length > 0) ||
+      (parsedSuccessfullyData.putWalls && parsedSuccessfullyData.putWalls.length > 0) );
 
   const handleExport = () => {
     logDebug(componentName, `Attempting to export options analysis as JSON for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedAnalysisData) {
-      toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available." });
+    if (!isDataReadyForExport || !parsedSuccessfullyData) {
+      toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available for export." });
       return;
     }
     try {
-      downloadJson(parsedAnalysisData, `${currentTicker}_ai_options_analysis.json`);
+      downloadJson(parsedSuccessfullyData, `${currentTicker}_ai_options_analysis.json`);
       toast({ title: "Exported as JSON", description: "AI options analysis downloaded." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Export Error", description: `Could not export options analysis: ${e.message}` });
@@ -117,12 +100,12 @@ export function AiOptionsAnalysisDisplay() {
 
   const handleCopy = async () => {
     logDebug(componentName, `Attempting to copy options analysis as JSON for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedAnalysisData) {
-      toast({ variant: "destructive", title: "Copy Failed", description: "AI options analysis data not available." });
+    if (!isDataReadyForExport || !parsedSuccessfullyData) {
+      toast({ variant: "destructive", title: "Copy Failed", description: "AI options analysis data not available for copy." });
       return;
     }
     try {
-      const success = await copyToClipboard(JSON.stringify(parsedAnalysisData, null, 2));
+      const success = await copyToClipboard(JSON.stringify(parsedSuccessfullyData, null, 2));
       if (success) {
         toast({ title: `Copied as JSON`, description: "AI options analysis copied to clipboard." });
       } else {
@@ -132,7 +115,7 @@ export function AiOptionsAnalysisDisplay() {
       toast({ variant: "destructive", title: "Copy Error", description: `Could not copy options analysis: ${e.message}` });
     }
   };
-  
+
   const renderWallTable = (walls: WallDetail[] | undefined, type: 'Call' | 'Put') => {
     if (!walls || walls.length === 0) {
       return <p className="text-sm text-muted-foreground p-2">No significant {type.toLowerCase()} walls identified.</p>;
@@ -157,7 +140,56 @@ export function AiOptionsAnalysisDisplay() {
     );
   };
 
-  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedAnalysisData}`);
+  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorMessageForDisplay='${errorMessageForDisplay}', parsedSuccessfullyData exists=${!!parsedSuccessfullyData}`);
+
+  let content;
+  if (isLoading) {
+    content = (
+      <div className="space-y-4 p-2">
+        <Skeleton className="h-8 w-1/3 mb-2" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-8 w-1/3 mb-2 mt-4" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  } else if (isError && errorMessageForDisplay) {
+    content = (
+      <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
+        {errorMessageForDisplay}
+      </div>
+    );
+  } else if (parsedSuccessfullyData) {
+    if (parsedSuccessfullyData.callWalls.length > 0 || parsedSuccessfullyData.putWalls.length > 0) {
+      content = (
+        <Accordion type="multiple" defaultValue={["call-walls", "put-walls"]} className="w-full">
+          <AccordionItem value="call-walls">
+            <AccordionTrigger className="text-md font-semibold">Identified Call Walls ({parsedSuccessfullyData.callWalls?.length || 0})</AccordionTrigger>
+            <AccordionContent>
+              {renderWallTable(parsedSuccessfullyData.callWalls, 'Call')}
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="put-walls">
+            <AccordionTrigger className="text-md font-semibold">Identified Put Walls ({parsedSuccessfullyData.putWalls?.length || 0})</AccordionTrigger>
+            <AccordionContent>
+              {renderWallTable(parsedSuccessfullyData.putWalls, 'Put')}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      );
+    } else { // Parsed successfully, but no walls
+      content = (
+        <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
+          No significant walls identified by AI.
+        </div>
+      );
+    }
+  } else { // Fallback for initial state or other unhandled states
+      content = (
+        <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
+          AI Options Analysis data not available.
+        </div>
+      );
+  }
 
   return (
     <Card>
@@ -176,44 +208,8 @@ export function AiOptionsAnalysisDisplay() {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="space-y-4 p-2">
-            <Skeleton className="h-8 w-1/3 mb-2" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-8 w-1/3 mb-2 mt-4" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : isError ? (
-           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             {errorOrSkippedMessage}
-           </div>
-        ) : parsedAnalysisData && 
-            ( (parsedAnalysisData.callWalls && parsedAnalysisData.callWalls.length > 0) || 
-              (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0) ) 
-        ? (
-          <>
-            <Accordion type="multiple" defaultValue={["call-walls", "put-walls"]} className="w-full">
-              <AccordionItem value="call-walls">
-                <AccordionTrigger className="text-md font-semibold">Identified Call Walls ({parsedAnalysisData.callWalls?.length || 0})</AccordionTrigger>
-                <AccordionContent>
-                  {renderWallTable(parsedAnalysisData.callWalls, 'Call')}
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="put-walls">
-                <AccordionTrigger className="text-md font-semibold">Identified Put Walls ({parsedAnalysisData.putWalls?.length || 0})</AccordionTrigger>
-                <AccordionContent>
-                  {renderWallTable(parsedAnalysisData.putWalls, 'Put')}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </>
-        ) : (
-           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             {errorOrSkippedMessage || "No AI Options Analysis data to display."}
-           </div>
-        )}
+        {content}
       </CardContent>
     </Card>
   );
 }
-
