@@ -16,6 +16,72 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.C.I` (Fix Broken AI Chat Functionality)
+**Tag:** `Phase-9_Task-9.C.I_FixBrokenAiChat` - Commit Hash: `fb9041c0`
+**Subject:** `fix(chat): Resolve broken AI Chat by correcting useActionState and handling (v2.9.C.I)`
+**Details:**
+This version addresses a critical bug where the AI Chat was completely non-functional (typing or pressing prompt buttons did nothing). The root cause was an incorrect initialization and handling of the `useActionState` hook in `MainTabContent.tsx` for the `chatServerAction`.
+
+Key changes included in v2.9.C.I:
+- **`src/components/main-tab-content.tsx`:**
+    - Corrected the initialization of `useActionState` for `chatServerAction`. It now correctly uses the server action function (`chatServerAction`) and a locally defined `initialLocalChatActionState` as arguments.
+    - Reinstated and refined the `useEffect` hook that listens to changes in `chatActionState`. This effect now properly:
+        - Handles `status: 'success'`: Parses `chatActionState.data.chatbotResponseJson`, creates a `ChatMessage` of role 'model', and adds it to the global chat history via `addChatMessageToGlobalContext`. It includes a check to prevent duplicate model responses.
+        - Handles `status: 'error'`: Logs the error and adds an appropriate error message to the chat history.
+        - Updates debug JSONs (`chatbotRequestJson`, `chatbotResponseJson`) in both success and error cases.
+    - Ensured `chatFormAction` (the dispatcher from `useActionState`) is correctly passed as a prop to `ChatbotFsmProvider`.
+    - Ensured `contextChatHistoryRef` is used within the `useEffect` for `chatActionState` to prevent duplicate message dispatches if the effect re-runs.
+- Application version updated to `v2.9.C.I` in `src/components/layout/header.tsx`.
+- `README.md` and `CHANGELOG.md` updated to reflect the new version and completed task.
+
+These changes restore the AI Chat functionality, allowing users to interact with the chatbot via text input and example prompt buttons.
+---
+**App Version:** `v2.9.C.H` (Chat/Export UX Fixes & Options Table JSON Export)
+**Tag:** `Phase-9_Task-9.C.H_ChatUX-ExportLogic-OptionsJSON` - Commit Hash: `(previous_commit_for_C.H)`
+**Subject:** `fix(chat,export): Improve Chat UX, refine export logic, add JSON export to Options Table (v2.9.C.H)`
+**Details:**
+This version addresses multiple UI/UX issues and adds new export functionality:
+- **AI Chat Prompt Button Enhancement (`src/components/chatbot.tsx`):**
+    - Clicking an example chat prompt button now immediately submits the prompt. The `handleExamplePromptClick` function was modified to dispatch `USER_INPUT_CHANGED` followed by `SUBMIT_MESSAGE_REQUESTED` to the `ChatbotFsmContext`, which then triggers the form submission logic via its internal effect.
+- **Dynamic Combined Data Export/Copy Logic (`src/components/main-tab-content.tsx`):**
+    - `getCombinedDataForExport` now dynamically includes `aiKeyTakeaways` and `aiOptionsAnalysis` JSONs only if their respective data is valid and available (checked using `isDataReadyForProcessing`). The base export always includes ticker, market status, stock snapshot, standard TAs, and AI analyzed TA.
+    - The "Export All to JSON" and "Copy All to JSON" buttons are now disabled if any core analysis pipeline (automated, manual key takeaways, manual options analysis) is active, preventing data inconsistencies during export/copy.
+    - `isAllDataReadyForCombinedExport` (now `isBaseDataReadyForCombinedExport`) was updated to only check the readiness of the base data components for enabling these buttons.
+- **Options Chain Table - JSON Export/Copy (`src/components/options-chain-table.tsx`):**
+    - Added "Export JSON" and "Copy JSON" buttons to the Options Chain Table card header.
+    - Implemented `handleExportOptionsJson` to download the full `parsedData` (options chain data) as a JSON file.
+    - Implemented `handleCopyOptionsJson` to copy the `parsedData` as a JSON string to the clipboard.
+    - These new buttons are disabled if the options chain data is not ready for export.
+- Application version updated to `v2.9.C.H` in `src/components/layout/header.tsx`.
+---
+**App Version:** `v2.9.C.G` (AI Options Analysis Fix & Simplification, Restore Options Table)
+**Tag:** `Phase-9_Task-9.C.G_FixSimplifyAiOptionsRestoreTable` - Commit Hash: `(previous_commit_for_C.G)`
+**Subject:** `fix(ai,ui): Simplify AI Options, fix crash & restore Options Table (v2.9.C.G)`
+**Details:**
+This version addresses a crash in AI Options Analysis, simplifies its output, and ensures the Options Chain Table is consistently rendered.
+- **AI Options Analysis Simplification:**
+    - **Schema (`src/ai/schemas/ai-options-analysis-schemas.ts`):** `AiOptionsAnalysisOutputSchema` modified to only include `callWalls` and `putWalls`. Removed `callClusters`, `putClusters`, and `analysisSummary`.
+    - **Flow (`src/ai/flows/analyze-options-chain-flow.ts`):**
+        - Prompt updated to only request Call/Put Walls (max 3 each). Removed instructions for clusters and summary.
+        - Flow now ensures output strictly conforms to the simplified schema, returning `{ callWalls: [], putWalls: [] }` on error or malformed AI response.
+        - Explicitly limits walls to max 3 per type.
+    - **Server Action (`src/actions/perform-ai-options-analysis-action.ts`):**
+        - Expects simplified output from the flow.
+        - `baseErrorReturn` updated to provide `{ callWalls: [], putWalls: [] }` in `aiOptionsAnalysisJson` on error.
+        - Treats non-conforming flow output as an error.
+    - **Display Component (`src/components/ai-options-analysis-display.tsx`):**
+        - UI updated to only display Call/Put Walls. Removed cluster and summary rendering.
+        - Export/Copy JSON now handles the simplified structure.
+- **Options Chain Table Visibility (`src/components/options-chain-table.tsx`):**
+    - Reviewed and ensured the component robustly renders its card shell and displays appropriate error/skipped messages if `optionsChainJson` indicates such states, preventing it from disappearing.
+- Application version updated to `v2.9.C.G`.
+---
+**App Version:** `v2.9.C.F` (Fix Header Parsing Error)
+**Tag:** `Phase-9_Task-9.C.F_FixHeaderParseError` - Commit Hash: `(previous_commit_for_C.F)`
+**Subject:** `fix(ui): Remove extraneous backtick from header.tsx (v2.9.C.F)`
+**Details:**
+Removed a stray triple backtick (```) from the end of `src/components/layout/header.tsx` that was causing a parsing error and preventing the application from rendering. Application version updated to `v2.9.C.F`.
+---
 **App Version:** `v2.9.C.E` (Resolve FsmStateDebugCard ReferenceError)
 **Tag:** `Phase-9_Task-9.C.E_FixFsmCardRefError` - Commit Hash: `08df82c7`
 **Subject:** `fix(ui): Resolve ReferenceError for console states in FsmStateDebugCard (v2.9.C.E)`
