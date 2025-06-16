@@ -84,18 +84,20 @@ const analyzeStockDataFlow = ai.defineFlow(
   async input => {
     console.log('[AIFlow:analyzeStockDataFlow] Executing for ticker:', input.ticker);
     const {output} = await prompt(input);
+
     if (!output) {
       console.error('[AIFlow:analyzeStockDataFlow] AI analysis flow did not return an output for ticker:', input.ticker);
       // Construct a valid default error output that matches the schema
       return {
         priceAction: { takeaway: "Error: AI analysis for price action failed.", sentiment: "neutral" },
         trend: { takeaway: "Error: AI analysis for trend failed.", sentiment: "neutral" },
-        volatility: { takeaway: "Error: AI analysis for volatility failed.", sentiment: "neutral" },
+        volatility: { takeaway: `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators if available or consider re-running the analysis.`, sentiment: "neutral" },
         momentum: { takeaway: "Error: AI analysis for momentum failed.", sentiment: "neutral" },
         patterns: { takeaway: "Error: AI analysis for patterns failed.", sentiment: "neutral" },
       };
     }
-     // Ensure all categories have some content, even if LLM omits one accidentally.
+
+    // Ensure all categories have some content, especially volatility.
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
     for (const category of categories) {
         if (!output[category] || !output[category].takeaway) {
@@ -103,6 +105,16 @@ const analyzeStockDataFlow = ai.defineFlow(
             output[category] = { takeaway: `AI analysis for ${category} was incomplete or not provided.`, sentiment: "neutral" };
         }
     }
+    
+    // Specifically check volatility takeaway length after initial population/check
+    if (output.volatility && (!output.volatility.takeaway || output.volatility.takeaway.trim().split(/\s+/).length < 5)) {
+        console.warn(`[AIFlow:analyzeStockDataFlow] Volatility takeaway for ${input.ticker} was too short. Setting default.`);
+        output.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators if available or consider re-running the analysis.`;
+        if (!output.volatility.sentiment) {
+             output.volatility.sentiment = "neutral"; // Ensure sentiment is set if takeaway was missing initially
+        }
+    }
+
     console.log('[AIFlow:analyzeStockDataFlow] Successfully executed for ticker:', input.ticker, 'Output keys:', Object.keys(output).join(', '));
     return output;
   }

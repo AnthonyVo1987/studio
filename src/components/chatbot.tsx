@@ -28,7 +28,7 @@ import { copyToClipboard, downloadJson } from '@/lib/export-utils';
 import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context';
 
 interface ChatbotProps {
-  isAnyAnalysisInProgress: boolean; // Changed from isChatPending
+  isAnyAnalysisInProgress: boolean;
   currentTickerForDisplay: string;
 }
 
@@ -60,8 +60,6 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
   }, [globalChatHistory]);
 
   useEffect(() => {
-    // If the overall analysis (including chat's own server action) is no longer pending,
-    // AND the chatbot FSM was in a submitting state, conclude the submission.
     if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && !isAnyAnalysisInProgress) {
       logDebug('Chatbot', 'EffectOnIsAnyAnalysisInProgress', `isAnyAnalysisInProgress became false while FSM was SUBMITTING_MESSAGE. Dispatching SUBMISSION_CONCLUDED.`);
       dispatchChatbotFsmEvent({ type: 'SUBMISSION_CONCLUDED' });
@@ -83,10 +81,11 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
     
     logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Dispatching USER_INPUT_CHANGED then SUBMIT_MESSAGE_REQUESTED.`);
-    
-    // Dispatch USER_INPUT_CHANGED first to update the context state
+        
     dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
-    // Then dispatch SUBMIT_MESSAGE_REQUESTED. The effect in ChatbotFsmProvider will use the updated userInput.
+    // This will be handled by the effect in ChatbotFsmProvider due to state change
+    // No need to directly call handleFormSubmit if FSM handles submission request on USER_INPUT_CHANGED when appropriate
+    // Forcing immediate submission by dispatching SUBMIT_MESSAGE_REQUESTED after input change
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   };
 
@@ -169,7 +168,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
               <div
                 key={msg.id}
                 className={cn(
-                  "flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words",
+                  "flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", // Added break-words
                   msg.role === 'user'
                     ? "ml-auto bg-primary text-primary-foreground"
                     : "bg-muted"
@@ -181,7 +180,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
               </div>
             ))}
             {isProcessing && globalChatHistory.length > 0 && globalChatHistory[globalChatHistory.length-1].role === 'user' && (
-                 <div className={cn("flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm", "bg-muted")}>
+                 <div className={cn("flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> {/* Added break-words */}
                     <div className="flex items-center space-x-2">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                         <span className="text-muted-foreground italic">StockSage is thinking...</span>
