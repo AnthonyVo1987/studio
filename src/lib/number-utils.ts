@@ -11,10 +11,10 @@
  * @returns {number | null | undefined} The rounded number or original value if not a number.
  */
 export function roundNumber(value: number | string | null | undefined, decimalPlaces: number = 2): number | null | undefined {
-  if (value === null || value === undefined) return undefined; // Return undefined for consistency with how missing values are often handled
+  if (value === null || value === undefined) return undefined;
   const num = typeof value === 'string' ? parseFloat(value) : value;
   if (typeof num !== 'number' || isNaN(num)) {
-    return undefined; 
+    return undefined;
   }
   const factor = Math.pow(10, decimalPlaces);
   return Math.round(num * factor) / factor;
@@ -35,11 +35,14 @@ export function formatNumber(
   decimalPlaces: number = 2,
   placeholder: string = "N/A"
 ): string {
-  const roundedValue = roundNumber(value, decimalPlaces);
-  if (roundedValue === undefined || roundedValue === null) { // Check for undefined explicitly due to roundNumber change
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (typeof num !== 'number' || isNaN(num)) {
     return placeholder;
   }
-  return roundedValue.toFixed(decimalPlaces);
+  // Now num is definitely a number
+  const factor = Math.pow(10, decimalPlaces);
+  const roundedNum = Math.round(num * factor) / factor;
+  return roundedNum.toFixed(decimalPlaces);
 }
 
 
@@ -87,21 +90,21 @@ export function formatCurrency(
 
   let formattedNumStr;
   if (isStrikePrice) {
-    if (num % 1 === 0) { 
+    if (num % 1 === 0) {
       formattedNumStr = num.toFixed(0);
-    } else { 
+    } else {
       const s = num.toString();
       const decimalPart = s.split('.')[1];
-      if (decimalPart && decimalPart.length === 1 && (decimalPart === '5' || decimalPart === '0')) { // Handle X.5 or X.0 correctly
+      if (decimalPart && decimalPart.length === 1 && (decimalPart === '5' || decimalPart === '0')) {
         formattedNumStr = num.toFixed(1);
       } else {
-        formattedNumStr = num.toFixed(2); 
+        formattedNumStr = num.toFixed(2);
       }
     }
   } else {
     formattedNumStr = num.toFixed(2);
   }
-  
+
   const parts = formattedNumStr.split('.');
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `${currencySymbol}${parts.join('.')}`;
@@ -136,7 +139,7 @@ export function formatPercentage(
   }
 
   const dp = decimalPlaces === undefined || decimalPlaces < 0 ? 0 : decimalPlaces;
-  
+
   if (dp === 0) {
     return `${Math.round(num)}%`;
   } else {
@@ -168,15 +171,15 @@ export function formatCompactNumber(
   const absValue = Math.abs(num);
   let formattedNum;
 
-  if (absValue < 1e3) { 
-    formattedNum = num.toFixed(0); 
-  } else if (absValue < 1e6) { 
+  if (absValue < 1e3) {
+    formattedNum = num.toFixed(0);
+  } else if (absValue < 1e6) {
     formattedNum = (num / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
-  } else if (absValue < 1e9) { 
+  } else if (absValue < 1e9) {
     formattedNum = (num / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
-  } else if (absValue < 1e12) { 
+  } else if (absValue < 1e12) {
     formattedNum = (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
-  } else { 
+  } else {
     formattedNum = (num / 1e12).toFixed(1).replace(/\.0$/, '') + 'T';
   }
   return formattedNum;
