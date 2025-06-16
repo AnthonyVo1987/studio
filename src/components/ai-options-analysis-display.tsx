@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas"; // ClusterDetail removed
+import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
@@ -64,10 +64,12 @@ export function AiOptionsAnalysisDisplay() {
       const statusObj = JSON.parse(aiOptionsAnalysisJson);
       if (statusObj.status === "skipped") {
         errorOrSkippedMessage = statusObj.message || "AI Options Analysis was skipped.";
-      } else { 
+      } else if (statusObj.status === "error" || statusObj.error) { 
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Options Analysis.";
+      } else {
+         errorOrSkippedMessage = "Malformed error/skipped JSON for AI Options Analysis.";
       }
-      logDebug(componentName, `JSON indicates status/error: ${statusObj.status || 'direct_error'}, message: ${errorOrSkippedMessage}`);
+      logDebug(componentName, `JSON indicates status/error: ${statusObj.status || statusObj.error || 'unknown_structure'}, message: ${errorOrSkippedMessage}`);
     } catch (e) {
       errorOrSkippedMessage = "Failed to parse status message from error/skipped JSON for AI Options Analysis.";
       logDebug(componentName, "Failed to parse error/skipped status JSON for AI Options Analysis.", e);
@@ -77,15 +79,14 @@ export function AiOptionsAnalysisDisplay() {
     isError = false;
     try {
       const data = JSON.parse(aiOptionsAnalysisJson) as AiOptionsAnalysisOutput;
-      // Basic validation for simplified schema
-      if (data && typeof data === 'object' && data.callWalls !== undefined && data.putWalls !== undefined) { 
+      if (data && typeof data === 'object' && Array.isArray(data.callWalls) && Array.isArray(data.putWalls)) { 
         parsedAnalysisData = data;
-        logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data (simplified).", data);
+        logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data.", data);
       } else {
         isError = true;
-        errorOrSkippedMessage = "AI Options Analysis data is malformed or incomplete (simplified schema).";
+        errorOrSkippedMessage = "AI Options Analysis data is malformed or incomplete.";
         parsedAnalysisData = null;
-        logDebug(componentName, "Parsed aiOptionsAnalysisJson data is malformed or missing critical fields (simplified schema).", data);
+        logDebug(componentName, "Parsed aiOptionsAnalysisJson data is malformed or missing critical fields (callWalls/putWalls not arrays).", data);
       }
     } catch (e) {
       isError = true;
@@ -156,8 +157,6 @@ export function AiOptionsAnalysisDisplay() {
     );
   };
 
-  // Removed renderClusterTable
-
   logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedAnalysisData}`);
 
   return (
@@ -165,7 +164,7 @@ export function AiOptionsAnalysisDisplay() {
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
           <CardTitle>AI Analyzed Options Chain</CardTitle>
-          <CardDescription>Key levels (Call & Put Walls) identified from options data analysis.</CardDescription>
+          <CardDescription>Key levels (Call & Put Walls, up to 3 each) identified from options data analysis.</CardDescription>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleCopy} disabled={!isDataReadyForExport}>
@@ -188,12 +187,11 @@ export function AiOptionsAnalysisDisplay() {
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              {errorOrSkippedMessage}
            </div>
-        ) : parsedAnalysisData && ( 
-            (parsedAnalysisData.callWalls && parsedAnalysisData.callWalls.length > 0) || 
-            (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0)
-        ) ? (
+        ) : parsedAnalysisData && 
+            ( (parsedAnalysisData.callWalls && parsedAnalysisData.callWalls.length > 0) || 
+              (parsedAnalysisData.putWalls && parsedAnalysisData.putWalls.length > 0) ) 
+        ? (
           <>
-            {/* Removed analysisSummary display */}
             <Accordion type="multiple" defaultValue={["call-walls", "put-walls"]} className="w-full">
               <AccordionItem value="call-walls">
                 <AccordionTrigger className="text-md font-semibold">Identified Call Walls ({parsedAnalysisData.callWalls?.length || 0})</AccordionTrigger>
@@ -207,7 +205,6 @@ export function AiOptionsAnalysisDisplay() {
                   {renderWallTable(parsedAnalysisData.putWalls, 'Put')}
                 </AccordionContent>
               </AccordionItem>
-              {/* Removed AccordionItems for call-clusters and put-clusters */}
             </Accordion>
           </>
         ) : (
@@ -219,3 +216,4 @@ export function AiOptionsAnalysisDisplay() {
     </Card>
   );
 }
+

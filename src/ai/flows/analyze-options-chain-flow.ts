@@ -53,10 +53,10 @@ A strike is a potential Wall if its OI meets BOTH conditions:
         - If a strike has no valid adjacent strikes with OI for comparison, this sub-condition might be relaxed if the 1.5x average OI condition is strongly met.
 
 Output Requirements:
--   **Walls:** Identify THE MOST significant Call Wall and THE MOST significant Put Wall if data supports. Select AT MOST 1 Call Wall and AT MOST 1 Put Wall (highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
+-   **Walls:** Identify the MOST significant Call Walls and Put Walls if data supports. Select AT MOST 3 Call Walls and AT MOST 3 Put Walls (ordered by significance, e.g., highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
 -   If no significant wall is identified for a type, return an empty array for that type.
 
-Strictly adhere to the output schema (only callWalls and putWalls, each an array with AT MOST 1 element). Ensure numerical values. Do not force walls if criteria are not met.
+Strictly adhere to the output schema (only callWalls and putWalls, each an array with AT MOST 3 elements). Ensure numerical values. Do not force walls if criteria are not met.
 If you encounter issues parsing or the data is clearly insufficient (e.g., less than 5 strikes with OI for both calls and puts), return empty arrays.
 `,
   config: {
@@ -80,13 +80,13 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     try {
       parsedOptionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
       console.log('[AIFlow:analyzeOptionsChainFlow] Parsed options chain JSON. Contracts count:', parsedOptionsData.contracts?.length);
-      if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { 
-        console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient. Contracts length:', parsedOptionsData.contracts?.length);
+      if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { // Pre-check for clearly insufficient data
+        console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient (less than 3 contracts). Returning empty walls. Contracts length:', parsedOptionsData.contracts?.length);
         return { callWalls: [], putWalls: [] };
       }
     } catch (e) {
       console.error('[AIFlow:analyzeOptionsChainFlow] Failed to parse optionsChainJson in pre-check:', e);
-      return { callWalls: [], putWalls: [] };
+      return { callWalls: [], putWalls: [] }; // Return valid empty structure on parse failure
     }
 
     console.log('[AIFlow:analyzeOptionsChainFlow] Executing prompt for ticker:', input.ticker);
@@ -94,12 +94,14 @@ const analyzeOptionsChainFlow = ai.defineFlow(
 
     if (!output || !output.callWalls || !output.putWalls) { 
       console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return a valid output for ticker:', input.ticker, 'Received output:', output);
-      return { callWalls: [], putWalls: [] }; 
+      return { callWalls: [], putWalls: [] }; // Return valid empty structure on AI error
     }
     
+    // Output directly conforms to schema (max 3 walls), no further slicing needed here.
+    // The display component will handle rendering up to 3.
     const finalOutput: AiOptionsAnalysisOutput = {
-        callWalls: (output.callWalls || []).slice(0, 1),
-        putWalls: (output.putWalls || []).slice(0, 1),
+        callWalls: (output.callWalls || []).slice(0, 3), // Ensure it respects max 3 even if AI gives more.
+        putWalls: (output.putWalls || []).slice(0, 3),   // Ensure it respects max 3.
     };
     
     console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete for ticker:', input.ticker, 'Call Walls:', finalOutput.callWalls.length, 'Put Walls:', finalOutput.putWalls.length);

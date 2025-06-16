@@ -48,14 +48,13 @@ export async function performAiOptionsAnalysisAction(
   let flowInput: AiOptionsAnalysisInput;
   let aiOptionsAnalysisRequestJson: string = JSON.stringify({ error: "Request preparation incomplete", ticker }, null, 2); // Default request JSON
 
-  // Simplified base error return for the new schema
   const baseErrorReturn = (errMsg: string, detailMsg?: string, reqJsonOverride?: string) => ({
     status: 'error' as 'error',
     error: errMsg,
     message: detailMsg || errMsg,
     data: {
       aiOptionsAnalysisRequestJson: reqJsonOverride || aiOptionsAnalysisRequestJson,
-      aiOptionsAnalysisJson: JSON.stringify({ callWalls: [], putWalls: [], error: errMsg }, null, 2), // Ensure valid empty structure + error
+      aiOptionsAnalysisJson: JSON.stringify({ status: 'error', error: errMsg, details: detailMsg, callWalls: [], putWalls: [] }, null, 2),
     },
   });
 
@@ -91,10 +90,10 @@ export async function performAiOptionsAnalysisAction(
 
     const flowOutput: AiOptionsAnalysisOutput = await analyzeOptionsChain(flowInput);
 
-    // Check if flowOutput is valid and conforms to the simplified schema
-    if (!flowOutput || !flowOutput.callWalls || !flowOutput.putWalls) {
-        const flowErrorMsg = 'AI options analysis flow returned invalid or incomplete data.';
-        console.error(`[ServerAction:performAiOptionsAnalysisAction] Flow for ${ticker} returned malformed output:`, flowOutput);
+    
+    if (!flowOutput || !Array.isArray(flowOutput.callWalls) || !Array.isArray(flowOutput.putWalls)) {
+        const flowErrorMsg = 'AI options analysis flow returned invalid or malformed data structure.';
+        console.error(`[ServerAction:performAiOptionsAnalysisAction] Flow for ${ticker} returned malformed output (not arrays or missing keys):`, flowOutput);
         return baseErrorReturn(flowErrorMsg, `AI options analysis for ${ticker} failed to produce valid wall data.`);
     }
     
@@ -113,6 +112,9 @@ export async function performAiOptionsAnalysisAction(
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred during AI options analysis.';
     console.error(`[ServerAction:performAiOptionsAnalysisAction] CRITICAL Error for ${ticker}:`, error);
-    return baseErrorReturn(errorMessage, `Failed to generate AI options analysis for ${ticker}.`);
+    // Capture details of the error if it's an object
+    const errorDetails = (typeof error === 'object' && error !== null) ? JSON.stringify(error) : String(error);
+    return baseErrorReturn(errorMessage, `Failed to generate AI options analysis for ${ticker}. Error: ${errorDetails}`);
   }
 }
+
