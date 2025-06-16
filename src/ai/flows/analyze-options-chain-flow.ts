@@ -32,28 +32,21 @@ const analyzeOptionsChainPrompt = ai.definePrompt({
   output: {schema: AiOptionsAnalysisOutputSchema}, 
   model: DEFAULT_ANALYSIS_MODEL_ID,
   prompt: `You are an expert options market analyst. Your task is to identify the MOST significant Call and Put "Walls" from the provided options chain data for the stock: {{{ticker}}}.
-The current underlying price is \${{{currentUnderlyingPrice}}}. This price is provided for context (e.g., to understand the general price level and relation of strikes to it), your primary analysis should focus on Open Interest (OI).
+The current underlying price is \${{{currentUnderlyingPrice}}}. This price is provided for context (e.g., to understand the general price level and relation of strikes to it).
 
 The options chain data is provided as a JSON string: {{{optionsChainJson}}}
 This JSON string represents an 'OptionsChainData' object with a 'contracts' array. Each element in 'contracts' is an 'OptionsTableRow' having 'strike', 'call' (StreamlinedOptionContract), and 'put' (StreamlinedOptionContract) properties.
 Focus on the 'open_interest' (OI) field within the 'call' and 'put' contract objects.
 
-Definitions:
--   **Wall:** A single strike level with unusually high OI that might act as support or resistance.
-
-Analysis Steps:
-1.  Parse the \`optionsChainJson\` to access the list of contracts. If parsing fails or data is insufficient (e.g., very few strikes or contracts), return empty arrays for walls.
-2.  Separate Call OI and Put OI data per strike. Calculate the average OI for all calls with OI > 0 and for all puts with OI > 0 separately. If no calls/puts have OI, skip average calculation for that type.
-
-Wall Detection Algorithm:
-A strike is a potential Wall if its OI meets BOTH conditions:
-    a.  OI at this strike ≥ 1.5 × average OI for its type (if average OI is calculable and > 0).
-    b.  OI at this strike ≥ 2 × OI of the immediately preceding strike of the same type (if one exists and has OI > 0) AND OI at this strike ≥ 2 × OI of the immediately succeeding strike of the same type (if one exists and has OI > 0).
-        - If only one adjacent strike exists (e.g., at the edge of the chain), only that side's 2x condition needs to be met.
-        - If a strike has no valid adjacent strikes with OI for comparison, this sub-condition might be relaxed if the 1.5x average OI condition is strongly met.
+Wall Detection Guidance:
+- A "Wall" is a strike price with exceptionally high Open Interest (OI) relative to its neighboring strikes or the general OI levels in the chain for that option type (call or put).
+- These levels often act as psychological or actual support/resistance.
+- Your primary task is to identify strikes where the OI stands out significantly.
+- Consider both the absolute OI value and its magnitude compared to surrounding strikes.
+- If the data is sparse or OI is generally low across the board, it's acceptable to find no significant walls.
 
 Output Requirements:
--   **Walls:** Identify the MOST significant Call Walls and Put Walls if data supports. Select AT MOST 3 Call Walls and AT MOST 3 Put Walls (ordered by significance, e.g., highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
+-   **Walls:** Identify the MOST significant Call Walls and Put Walls if data supports. Select AT MOST 3 Call Walls and AT MOST 3 Put Walls (ordered by significance, e.g., highest OI first). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
 -   If no significant wall is identified for a type, return an empty array for that type.
 
 Strictly adhere to the output schema (callWalls and putWalls, each an array with AT MOST 3 elements). Ensure numerical values. Do not force walls if criteria are not met.
@@ -112,3 +105,4 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     }
   }
 );
+
