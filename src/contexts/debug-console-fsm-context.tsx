@@ -2,20 +2,23 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback, useState, useEffect } from 'react';
 import type { LogSourceId, LogType } from '@/lib/debug-log-types';
+import { logSourceIds as allLogSourceIds, logTypes as allLogTypes } from '@/lib/debug-log-types';
+
 
 // FSM States for DebugConsole UI
 export enum DebugConsoleFsmMenuState {
   IDLE = 'IDLE', // All menus closed
   FILTER_TYPE_MENU_OPEN = 'FILTER_TYPE_MENU_OPEN',
-  FILTER_SOURCE_MENU_OPEN = 'FILTER_SOURCE_MENU_OPEN',
+  FILTER_SOURCE_MENU_OPEN = 'FILTER_SOURCE_MENU_OPEN', // Though combined, conceptual state
   COPY_MENU_OPEN = 'COPY_MENU_OPEN',
   EXPORT_MENU_OPEN = 'EXPORT_MENU_OPEN',
 }
 
 export interface DebugConsoleFsmManagedState {
   uiMenuState: DebugConsoleFsmMenuState;
+  previousUiMenuState: DebugConsoleFsmMenuState | null;
   activeFilters: {
     types: Set<LogType>;
     sources: Set<LogSourceId>;
@@ -33,12 +36,15 @@ export type DebugConsoleFsmEvent =
   | { type: 'SEARCH_TERM_CHANGED'; payload: string }
   | { type: 'CLEAR_SEARCH_TERM' };
 
-interface DebugConsoleFsmContextType extends DebugConsoleFsmManagedState {
+interface DebugConsoleFsmContextType extends Omit<DebugConsoleFsmManagedState, 'previousUiMenuState'> {
+  previousUiMenuState: DebugConsoleFsmMenuState | null;
+  targetUiMenuDisplayState: DebugConsoleFsmMenuState | null;
   dispatchDebugConsoleFsmEvent: (event: DebugConsoleFsmEvent) => void;
 }
 
 const initialDebugConsoleFsmState: DebugConsoleFsmManagedState = {
   uiMenuState: DebugConsoleFsmMenuState.IDLE,
+  previousUiMenuState: null,
   activeFilters: {
     types: new Set<LogType>(),
     sources: new Set<LogSourceId>(),
@@ -50,7 +56,7 @@ const DebugConsoleFsmContext = createContext<DebugConsoleFsmContextType | undefi
 
 interface DebugConsoleFsmProviderProps {
   children: ReactNode;
-  logDebug: (source: string, category: string, ...messages: any[]) => void; // From StockAnalysisContext
+  logDebug: (source: string, category: string, ...messages: any[]) => void;
 }
 
 export function DebugConsoleFsmProvider({
@@ -61,79 +67,111 @@ export function DebugConsoleFsmProvider({
     state: DebugConsoleFsmManagedState,
     event: DebugConsoleFsmEvent
   ): DebugConsoleFsmManagedState => {
-    logDebug('DebugConsoleFsmContext', 'ReducerEvent', `Event: ${event.type}, Current MenuState: ${state.uiMenuState}`);
+    const previousState = state.uiMenuState;
+    logDebug('DebugConsoleFsmContext', 'ReducerEvent', `Event: ${event.type}, Current MenuState: ${state.uiMenuState}, Prev MenuState: ${previousState}`);
+    let nextUiMenuState = state.uiMenuState;
+
     switch (event.type) {
       case 'SET_MENU_OPEN_STATE': {
         const { menu, isOpen } = event.payload;
-        if (!isOpen) { // If any menu is closed, go to IDLE
-          return { ...state, uiMenuState: DebugConsoleFsmMenuState.IDLE };
+        if (!isOpen) {
+          nextUiMenuState = DebugConsoleFsmMenuState.IDLE;
+        } else {
+          switch (menu) {
+            case 'filterType':
+            case 'filterSource': // Both handled by one dropdown now
+              nextUiMenuState = DebugConsoleFsmMenuState.FILTER_TYPE_MENU_OPEN; // Using one state for the combined filter menu
+              break;
+            case 'copy':
+              nextUiMenuState = DebugConsoleFsmMenuState.COPY_MENU_OPEN;
+              break;
+            case 'export':
+              nextUiMenuState = DebugConsoleFsmMenuState.EXPORT_MENU_OPEN;
+              break;
+          }
         }
-        switch (menu) {
-          case 'filterType':
-            return { ...state, uiMenuState: DebugConsoleFsmMenuState.FILTER_TYPE_MENU_OPEN };
-          case 'filterSource':
-            return { ...state, uiMenuState: DebugConsoleFsmMenuState.FILTER_SOURCE_MENU_OPEN };
-          case 'copy':
-            return { ...state, uiMenuState: DebugConsoleFsmMenuState.COPY_MENU_OPEN };
-          case 'export':
-            return { ...state, uiMenuState: DebugConsoleFsmMenuState.EXPORT_MENU_OPEN };
-          default:
-            return state;
-        }
+        return { ...state, uiMenuState: nextUiMenuState, previousUiMenuState: previousState };
       }
       case 'UPDATE_TYPE_FILTER': {
         const newTypes = new Set(state.activeFilters.types);
         if (event.payload.checked) newTypes.add(event.payload.type);
         else newTypes.delete(event.payload.type);
         logDebug('DebugConsoleFsmContext', 'FilterChange', `Type filter updated: ${event.payload.type}, checked: ${event.payload.checked}. New types: ${Array.from(newTypes).join(', ')}`);
-        return { ...state, activeFilters: { ...state.activeFilters, types: newTypes } };
+        return { ...state, activeFilters: { ...state.activeFilters, types: newTypes }, previousUiMenuState: previousState };
       }
       case 'UPDATE_SOURCE_FILTER': {
         const newSources = new Set(state.activeFilters.sources);
         if (event.payload.checked) newSources.add(event.payload.source);
         else newSources.delete(event.payload.source);
         logDebug('DebugConsoleFsmContext', 'FilterChange', `Source filter updated: ${event.payload.source}, checked: ${event.payload.checked}. New sources: ${Array.from(newSources).join(', ')}`);
-        return { ...state, activeFilters: { ...state.activeFilters, sources: newSources } };
+        return { ...state, activeFilters: { ...state.activeFilters, sources: newSources }, previousUiMenuState: previousState };
       }
       case 'SET_ALL_TYPE_FILTERS': {
-        const newTypes = event.payload.selectAll ? new Set(['debug', 'info', 'log', 'warn', 'error'] as LogType[]) : new Set<LogType>();
+        const newTypes = event.payload.selectAll ? new Set(allLogTypes) : new Set<LogType>();
         logDebug('DebugConsoleFsmContext', 'FilterChange', `Set all type filters to: ${event.payload.selectAll}. New types: ${Array.from(newTypes).join(', ')}`);
-        return { ...state, activeFilters: { ...state.activeFilters, types: newTypes } };
+        return { ...state, activeFilters: { ...state.activeFilters, types: newTypes }, previousUiMenuState: previousState };
       }
       case 'SET_ALL_SOURCE_FILTERS': {
-        // Assuming logSourceIds is available or passed if needed, for now, clears all.
-        // For full "select all" functionality, logSourceIds would need to be imported and used here.
-        // This implementation simplifies to clear or keeps current selection logic.
-        // For a full "Select All", this should iterate over all available LogSourceIds.
-        // Keeping it simple to clear all or rely on individual toggles from previous structure.
-        // To properly implement "Select All", this reducer or context would need access to all `logSourceIds`.
-        // For now, SET_ALL_SOURCE_FILTERS will just clear the sources. A true select all requires more info.
-        const newSources = event.payload.selectAll ? new Set(state.activeFilters.sources) /* Placeholder for actual all */ : new Set<LogSourceId>();
-        if (event.payload.selectAll) {
-            logDebug('DebugConsoleFsmContext', 'FilterChange', `Set all source filters - SELECT ALL action NOT fully implemented here yet, needs all source IDs. Currently keeps existing or clears.`);
-        } else {
-            logDebug('DebugConsoleFsmContext', 'FilterChange', `Set all source filters to: ${event.payload.selectAll}. New sources cleared.`);
-        }
-        return { ...state, activeFilters: { ...state.activeFilters, sources: newSources } };
+        const newSources = event.payload.selectAll ? new Set(allLogSourceIds) : new Set<LogSourceId>();
+        logDebug('DebugConsoleFsmContext', 'FilterChange', `Set all source filters to: ${event.payload.selectAll}. New sources: ${Array.from(newSources).join(', ')}`);
+        return { ...state, activeFilters: { ...state.activeFilters, sources: newSources }, previousUiMenuState: previousState };
       }
       case 'SEARCH_TERM_CHANGED':
         logDebug('DebugConsoleFsmContext', 'SearchChange', `Search term changed to: "${event.payload}"`);
-        return { ...state, searchTerm: event.payload };
+        return { ...state, searchTerm: event.payload, previousUiMenuState: previousState }; // Keep previousUiMenuState if no menu state change
       case 'CLEAR_SEARCH_TERM':
         logDebug('DebugConsoleFsmContext', 'SearchChange', `Search term cleared.`);
-        return { ...state, searchTerm: '' };
+        return { ...state, searchTerm: '', previousUiMenuState: previousState }; // Keep previousUiMenuState
       default:
         return state;
     }
   };
 
   const [state, dispatch] = useReducer(debugConsoleFsmReducer, initialDebugConsoleFsmState);
+  const [targetUiMenuDisplayState, setTargetUiMenuDisplayState] = useState<DebugConsoleFsmMenuState | null>(null);
+
+  const dispatchDebugConsoleFsmEventWithTarget = useCallback((event: DebugConsoleFsmEvent) => {
+    let targetState: DebugConsoleFsmMenuState | null = state.uiMenuState; // Default to current if no specific transition logic
+     if (event.type === 'SET_MENU_OPEN_STATE') {
+        targetState = event.payload.isOpen
+            ? (event.payload.menu === 'filterType' || event.payload.menu === 'filterSource'
+                ? DebugConsoleFsmMenuState.FILTER_TYPE_MENU_OPEN
+                : event.payload.menu === 'copy'
+                    ? DebugConsoleFsmMenuState.COPY_MENU_OPEN
+                    : DebugConsoleFsmMenuState.EXPORT_MENU_OPEN)
+            : DebugConsoleFsmMenuState.IDLE;
+    }
+    // For other event types, the menu state doesn't necessarily change, so target might be current or null.
+    // We'll set target only if it's a menu opening/closing event.
+    if (event.type === 'SET_MENU_OPEN_STATE') {
+        logDebug('DebugConsoleFsmContext', 'DispatchWithTarget', `Event ${event.type} from ${state.uiMenuState} targeting ${targetState}.`);
+        setTargetUiMenuDisplayState(targetState);
+    } else {
+        // For non-menu state changes, we might not set a specific target, or clear it.
+        // For now, we'll only explicitly set target for menu changes.
+        setTargetUiMenuDisplayState(null);
+    }
+    dispatch(event);
+  }, [state.uiMenuState, logDebug]);
+
+  useEffect(() => {
+    if (targetUiMenuDisplayState !== null && state.uiMenuState !== targetUiMenuDisplayState) {
+      // This means the state actually changed away from the target, or is about to change
+      // Clear if it has become the current state, or if it was a transient target
+    }
+    if (state.uiMenuState !== state.previousUiMenuState) { // If state actually changed
+        logDebug('DebugConsoleFsmContext', 'TargetClearEffect', `DebugConsole FSM state changed to ${state.uiMenuState}. Clearing target display state.`);
+        setTargetUiMenuDisplayState(null);
+    }
+  }, [state.uiMenuState, state.previousUiMenuState, targetUiMenuDisplayState, logDebug]);
 
   const contextValue: DebugConsoleFsmContextType = {
     uiMenuState: state.uiMenuState,
+    previousUiMenuState: state.previousUiMenuState,
+    targetUiMenuDisplayState,
     activeFilters: state.activeFilters,
     searchTerm: state.searchTerm,
-    dispatchDebugConsoleFsmEvent: dispatch,
+    dispatchDebugConsoleFsmEvent: dispatchDebugConsoleFsmEventWithTarget,
   };
 
   return (

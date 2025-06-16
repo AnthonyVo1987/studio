@@ -101,11 +101,13 @@ export function DebugConsole() {
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
-    logDebug: stockAnalysisLogDebug, // Renamed to avoid conflict
+    logDebug: stockAnalysisLogDebug,
   } = useStockAnalysis();
 
   const {
     uiMenuState,
+    previousUiMenuState,
+    targetUiMenuDisplayState,
     activeFilters,
     searchTerm,
     dispatchDebugConsoleFsmEvent,
@@ -129,11 +131,11 @@ export function DebugConsole() {
       logsToProcess = logsToProcess.filter(log =>
         formatLogMessage(log.messages).toLowerCase().includes(currentSearchTerm)
       );
-      stockAnalysisLogDebug('DebugConsole', `Search: "${currentSearchTerm}" matched ${logsToProcess.length} logs after type/source filters.`);
+      // stockAnalysisLogDebug('DebugConsole', `Search: "${currentSearchTerm}" matched ${logsToProcess.length} logs after type/source filters.`);
     }
 
     return logsToProcess.slice(Math.max(0, logsToProcess.length - MAX_DISPLAYED_LOGS));
-  }, [activeFilters, searchTerm, stockAnalysisLogDebug]);
+  }, [activeFilters, searchTerm]);
 
 
   const fetchAndUpdateLogs = useCallback(() => {
@@ -167,11 +169,11 @@ export function DebugConsole() {
     setDisplayedLogs([]);
     dispatchDebugConsoleFsmEvent({ type: 'CLEAR_SEARCH_TERM' });
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
-    stockAnalysisLogDebug('DebugConsole', 'Client debug logs cleared by user. Search term also cleared.');
+    stockAnalysisLogDebug('DebugConsole', 'LogClear', 'Client debug logs cleared by user. Search term also cleared.');
   };
 
   const handleCopyJson = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'Copying logs as JSON.');
+    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as JSON.');
     if (displayedLogs.length === 0) {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
     }
@@ -183,7 +185,7 @@ export function DebugConsole() {
   };
 
   const handleCopyTxt = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'Copying logs as TXT.');
+    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const txtData = generateLogsTxt(displayedLogs);
     if (await copyToClipboard(txtData)) {
@@ -194,7 +196,7 @@ export function DebugConsole() {
   };
 
   const handleCopyCsv = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'Copying logs as CSV.');
+    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const csvData = generateLogsCsv(displayedLogs);
     if (await copyToClipboard(csvData)) {
@@ -205,7 +207,7 @@ export function DebugConsole() {
   };
 
   const handleExportJson = () => {
-    stockAnalysisLogDebug('DebugConsole', 'Exporting logs as JSON.');
+    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as JSON.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       downloadJson(displayedLogs, 'stocksage_client_logs.json');
@@ -216,7 +218,7 @@ export function DebugConsole() {
   };
 
   const handleExportTxt = () => {
-    stockAnalysisLogDebug('DebugConsole', 'Exporting logs as TXT.');
+    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const txtData = generateLogsTxt(displayedLogs);
@@ -228,7 +230,7 @@ export function DebugConsole() {
   };
 
   const handleExportCsv = () => {
-    stockAnalysisLogDebug('DebugConsole', 'Exporting logs as CSV.');
+    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const csvData = generateLogsCsv(displayedLogs);
@@ -262,7 +264,9 @@ export function DebugConsole() {
         <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-2 flex-shrink min-w-0">
             <CardTitle className="text-sm truncate">Client Debug Console</CardTitle>
-            <CardDescription className="text-xs whitespace-nowrap">({displayedLogs.length} entries)</CardDescription>
+            <CardDescription className="text-xs whitespace-nowrap">
+              ({displayedLogs.length} entries) Menu: P: {previousUiMenuState || 'N/A'} | C: {uiMenuState} | T: {targetUiMenuDisplayState || 'N/A'}
+            </CardDescription>
           </div>
           <div className="flex items-center gap-1.5 flex-grow justify-center px-2">
             <div className="relative w-full max-w-xs">
@@ -290,7 +294,7 @@ export function DebugConsole() {
           </div>
           <div className="flex items-center gap-1">
             <DropdownMenu
-              open={uiMenuState === DebugConsoleFsmMenuState.FILTER_TYPE_MENU_OPEN || uiMenuState === DebugConsoleFsmMenuState.FILTER_SOURCE_MENU_OPEN}
+              open={uiMenuState === DebugConsoleFsmMenuState.FILTER_TYPE_MENU_OPEN}
               onOpenChange={(isOpen) => dispatchDebugConsoleFsmEvent({ type: 'SET_MENU_OPEN_STATE', payload: { menu: 'filterType', isOpen } })}
             >
               <DropdownMenuTrigger asChild>

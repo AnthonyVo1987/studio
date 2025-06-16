@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useRef, useCallback } from 'react'; 
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useStockAnalysis, type ChatMessage } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,32 +25,32 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { copyToClipboard, downloadJson } from '@/lib/export-utils';
-import type { ChatActionInputs } from '@/actions/chat-server-action';
 import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context';
 
 interface ChatbotProps {
-  // chatFormAction is now managed by ChatbotFsmProvider
-  isChatPending: boolean; // Still needed to know when server action completes
-  currentTickerForDisplay: string; // For UI display
+  isChatPending: boolean;
+  currentTickerForDisplay: string;
 }
 
 export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps) {
-  const { 
-    chatHistory: globalChatHistory, 
+  const {
+    chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
     logDebug,
   } = useStockAnalysis();
-  
-  const { 
-    fsmState: chatbotFsmState, 
-    userInput: fsmUserInput, 
-    dispatchChatbotFsmEvent 
+
+  const {
+    fsmState: chatbotFsmState,
+    previousChatbotFsmState,
+    targetChatbotFsmDisplayState,
+    userInput: fsmUserInput,
+    dispatchChatbotFsmEvent
   } = useChatbotFsm();
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  
-  logDebug('Chatbot', 'Render', `ChatbotFSM State: ${chatbotFsmState}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+
+  logDebug('Chatbot', 'Render', `ChatbotFSM: Prev: ${previousChatbotFsmState || 'N/A'} | Curr: ${chatbotFsmState} | Target: ${targetChatbotFsmDisplayState || 'N/A'}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -58,7 +58,6 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
     }
   }, [globalChatHistory]);
 
-  // Effect to transition Chatbot FSM back to IDLE when the server action (isChatPending) concludes
   useEffect(() => {
     if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && !isChatPending) {
       logDebug('Chatbot', 'EffectOnIsChatPending', `isChatPending became false while FSM was SUBMITTING_MESSAGE. Dispatching SUBMISSION_CONCLUDED.`);
@@ -69,7 +68,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
 
   const handleFormSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    logDebug('Chatbot', 'handleFormSubmit', `Submit requested. FSM State: ${chatbotFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+    logDebug('Chatbot', 'handleFormSubmit', `Submit requested. ChatbotFSM State: ${chatbotFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
     if (!fsmUserInput.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) {
       logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty or already submitting.');
       return;
@@ -108,7 +107,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
       logDebug('Chatbot', 'ExportChat', 'Error:', error);
     }
   };
-  
+
   const isProcessing = chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isChatPending;
 
   return (
@@ -120,7 +119,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
             StockSage AI Chat
           </CardTitle>
           <CardDescription className="text-xs mt-1">
-            Ask questions about {currentTickerForDisplay || "the analyzed stock"}. Chat history is session-based.
+            Ask about {currentTickerForDisplay || "the stock"}. Chatbot FSM: P: {previousChatbotFsmState || 'N/A'} | C: {chatbotFsmState} | T: {targetChatbotFsmDisplayState || 'N/A'}.
           </CardDescription>
         </div>
         <div className="flex items-center gap-1">
@@ -161,7 +160,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
             )}
             {globalChatHistory.map((msg) => (
               <div
-                key={msg.id} // Ensure unique keys
+                key={msg.id}
                 className={cn(
                   "flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words",
                   msg.role === 'user'
@@ -184,7 +183,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
             )}
           </div>
         </ScrollArea>
-        
+
         <div className="flex flex-wrap gap-2 mb-2">
           {exampleChatPrompts.map((p, index) => (
             <Button
