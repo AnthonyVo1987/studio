@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig } from "lucide-react";
 import type { StockSnapshotData } from '@/services/data-sources/types';
 import { useActionState } from 'react';
-import type { ChatActionState, ChatActionInputs } from '@/actions/chat-server-action';
+import { chatServerAction, type ChatActionState, type ChatActionInputs } from '@/actions/chat-server-action';
 
 
 enum MainTabLocalFsmState {
@@ -62,9 +62,11 @@ const initialMainTabLocalFsmState: MainTabLocalFsmManagedState = {
   currentInputTicker: "NVDA",
 };
 
-const initialChatActionState: ChatActionState = {
+// Local definition of initial state for the chat server action
+const initialLocalChatActionState: ChatActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
+
 
 function isDataReadyForProcessing(jsonString: string | null | undefined, logDebugFn?: Function, sourceComponent?: string, dataName?: string): boolean {
   const callContext = `${sourceComponent || 'isDataReadyForProcessing'}:${dataName || 'data'}`;
@@ -115,6 +117,8 @@ export function MainTabContent({
     aiAnalyzedTaJson: contextAiAnalyzedTaJson,
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson,
+    setChatbotRequestJson,
+    setChatbotResponseJson,
     logDebug,
     fsmState: globalFsmStateFromContext,
     dispatchFsmEvent: dispatchGlobalFsmEvent,
@@ -178,7 +182,7 @@ export function MainTabContent({
               ...initialMainTabLocalFsmState, previousLocalState,
               currentInputTicker: state.currentInputTicker,
               localState: nextLocalState,
-              activeAnalysisTicker: state.activeAnalysisTicker,
+              activeAnalysisTicker: state.activeAnalysisTicker, // Preserve for manual actions if they become available
             };
           }
         }
@@ -353,9 +357,14 @@ export function MainTabContent({
       type: 'TICKER_INPUT_CHANGED',
       payload: { isValid: !!tickerInput.trim(), tickerValue: tickerInput }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(() => ({status: 'idle'}), initialChatActionState);
+
+  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
+    chatServerAction,
+    initialLocalChatActionState
+  );
 
 
   useEffect(() => {
@@ -380,11 +389,44 @@ export function MainTabContent({
 
 
   useEffect(() => {
-    const dummyChatActionState: ChatActionState = {status: 'idle'};
-    if (dummyChatActionState.status === 'success' || dummyChatActionState.status === 'error') {
-        logDebug('MainTabContent:chatActionState', 'ChatActionResultObserved', `Chat action server call concluded. Status: ${dummyChatActionState.status}. Message: ${dummyChatActionState.message}`);
+    if (chatActionState.status === 'success' && chatActionState.data) {
+        logDebug('MainTabContent:chatActionState', 'ChatActionResultObserved:SUCCESS', `Chat action server call succeeded. Message: ${chatActionState.message}`);
+        setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
+        setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
+        try {
+            const modelResponse = JSON.parse(chatActionState.data.chatbotResponseJson);
+            const lastMessageInHistory = contextChatHistoryRef.current[contextChatHistoryRef.current.length -1];
+            if (modelResponse.response && (lastMessageInHistory?.role !== 'model' || lastMessageInHistory?.content !== modelResponse.response)) {
+                addChatMessageToGlobalContext({
+                    id: Date.now().toString() + '_model_main',
+                    role: 'model',
+                    content: modelResponse.response,
+                });
+                logDebug('MainTabContent:chatActionState', 'ModelResponseAdded', 'Model response added to global chat history.');
+            } else if (modelResponse.response && lastMessageInHistory?.role === 'model' && lastMessageInHistory?.content === modelResponse.response) {
+                logDebug('MainTabContent:chatActionState', 'ModelResponseDuplicate', 'Duplicate model response detected, not adding to history.');
+            } else {
+                 logDebug('MainTabContent:chatActionState', 'ModelResponseMissing', 'Model response content missing in successful action state.');
+            }
+        } catch (e) {
+            logDebug('MainTabContent:chatActionState', 'ModelResponseParseError', 'Failed to parse chatbotResponseJson.', e);
+             addChatMessageToGlobalContext({
+                id: Date.now().toString() + '_model_error_main',
+                role: 'model',
+                content: "Sorry, I had trouble understanding that response. Please try again.",
+            });
+        }
+    } else if (chatActionState.status === 'error') {
+        logDebug('MainTabContent:chatActionState', 'ChatActionResultObserved:ERROR', `Chat action server call failed. Error: ${chatActionState.error}, Message: ${chatActionState.message}`);
+        setChatbotRequestJson(chatActionState.data?.chatbotRequestJson || JSON.stringify({ error: chatActionState.error, message: chatActionState.message }, null, 2));
+        setChatbotResponseJson(chatActionState.data?.chatbotResponseJson || JSON.stringify({ error: chatActionState.error }, null, 2));
+        addChatMessageToGlobalContext({
+            id: Date.now().toString() + '_model_error_main',
+            role: 'model',
+            content: chatActionState.message || "Sorry, an error occurred. Please try again.",
+        });
     }
-  }, [ logDebug, globalFsmStateFromContext]);
+  }, [chatActionState, addChatMessageToGlobalContext, logDebug, setChatbotRequestJson, setChatbotResponseJson]);
 
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -640,7 +682,7 @@ export function MainTabContent({
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider
-            chatFormAction={chatFormAction as any}
+            chatFormAction={chatFormAction}
             addChatMessageToGlobalContext={addChatMessageToGlobalContext}
             currentTicker={localFsm.activeAnalysisTicker || localFsm.currentInputTicker}
             stockSnapshotJson={contextStockSnapshotJson || '{}'}
@@ -662,5 +704,3 @@ export function MainTabContent({
     </Card>
   );
 }
-
-    
