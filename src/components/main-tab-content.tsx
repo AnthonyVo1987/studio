@@ -14,7 +14,7 @@ import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details
 import { MarketStatusDisplay } from "@/components/market-status-display";
 import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiAnalyzedTaDisplay } from "@/components/ai-analyzed-ta-display";
-import { OptionsChainTable } from "@/components/options-chain-table"; // Ensure this is imported
+import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot } from "@/components/chatbot";
@@ -68,8 +68,8 @@ const initialChatActionState: ChatActionState = {
 
 function isDataReadyForProcessing(jsonString: string | null | undefined, logDebugFn?: Function, sourceComponent?: string, dataName?: string): boolean {
   const callContext = `${sourceComponent || 'isDataReadyForProcessing'}:${dataName || 'data'}`;
-  if (!jsonString || jsonString === '{}' || jsonString.trim() === '{ "status": "pending..." }') {
-    logDebugFn?.(sourceComponent || 'isDataReadyForProcessing', 'Check', `${callContext} Data is not ready (null, empty, or generic pending). Value: '${jsonString?.substring(0,50)}...'`);
+  if (!jsonString || jsonString === '{}' || jsonString.trim() === '{ "status": "pending..." }' || jsonString.trim() === '{ "status": "no_analysis_run_yet" }' || jsonString.trim() === '{ "status": "initializing..." }') {
+    logDebugFn?.(sourceComponent || 'isDataReadyForProcessing', 'Check', `${callContext} Data is not ready (null, empty, or generic pending/initial). Value: '${jsonString?.substring(0,50)}...'`);
     return false;
   }
   try {
@@ -120,7 +120,7 @@ export function MainTabContent({
     dispatchFsmEvent: dispatchGlobalFsmEvent,
     chatHistory: contextChatHistory,
     addChatMessage: addChatMessageToGlobalContext,
-    setChatbotFsmDisplay, 
+    setChatbotFsmDisplay,
   } = useStockAnalysis();
 
   const contextChatHistoryRef = useRef<ChatMessage[]>([]);
@@ -168,7 +168,7 @@ export function MainTabContent({
         if (event.type === 'GLOBAL_FSM_UPDATED') {
           if (event.payload.globalFsmState === GlobalFsmState.FULL_ANALYSIS_COMPLETE) {
             logDebug('MainTabContent_FSM', 'LocalReducerAction', `AUTOMATED_PIPELINE_IN_PROGRESS -> GLOBAL_FSM_UPDATED (FULL_ANALYSIS_COMPLETE). Transitioning to MANUAL_ACTIONS_ENABLED. ActiveAnalysisTicker (${state.activeAnalysisTicker}) PRESERVED.`);
-            return { ...state, previousLocalState, localState: MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED }; 
+            return { ...state, previousLocalState, localState: MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED };
           }
           if ([GlobalFsmState.IDLE, GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.AI_TA_FAILED].includes(event.payload.globalFsmState)) {
             const isInputStillValid = !!state.currentInputTicker.trim();
@@ -178,7 +178,7 @@ export function MainTabContent({
               ...initialMainTabLocalFsmState, previousLocalState,
               currentInputTicker: state.currentInputTicker,
               localState: nextLocalState,
-              activeAnalysisTicker: state.activeAnalysisTicker, // Keep active ticker if global idle after full success
+              activeAnalysisTicker: state.activeAnalysisTicker,
             };
           }
         }
@@ -188,16 +188,13 @@ export function MainTabContent({
         if (event.type === 'TICKER_INPUT_CHANGED') {
             const isTickerSameAsActive = event.payload.tickerValue === state.activeAnalysisTicker;
             if (!event.payload.isValid) {
-                // Input becomes invalid, clear activeAnalysisTicker and go to IDLE
                 return { ...state, previousLocalState, currentInputTicker: event.payload.tickerValue, localState: MainTabLocalFsmState.IDLE, activeAnalysisTicker: null };
             } else if (!isTickerSameAsActive) {
-                // Input is valid but different from active, clear activeAnalysisTicker and go to INPUT_VALID
                 return { ...state, previousLocalState, currentInputTicker: event.payload.tickerValue, localState: MainTabLocalFsmState.INPUT_VALID, activeAnalysisTicker: null };
             }
-            // Input is valid and same as active, no change to activeAnalysisTicker or localState
             return { ...state, previousLocalState, currentInputTicker: event.payload.tickerValue };
         }
-        if (event.type === 'AUTOMATED_ANALYSIS_SUBMITTED') { 
+        if (event.type === 'AUTOMATED_ANALYSIS_SUBMITTED') {
           return { ...state, previousLocalState, localState: MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED, activeAnalysisTicker: state.currentInputTicker };
         }
         if (event.type === 'MANUAL_KEY_TAKEAWAYS_SUBMITTED') {
@@ -301,11 +298,11 @@ export function MainTabContent({
             if (event.type === 'TICKER_INPUT_CHANGED') {
                  if (!event.payload.isValid) targetState = MainTabLocalFsmState.IDLE;
                  else if (event.payload.tickerValue !== localFsm.activeAnalysisTicker) targetState = MainTabLocalFsmState.INPUT_VALID;
-                 else targetState = MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED; 
+                 else targetState = MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED;
             } else if (event.type === 'AUTOMATED_ANALYSIS_SUBMITTED') targetState = MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED;
             else if (event.type === 'MANUAL_KEY_TAKEAWAYS_SUBMITTED') targetState = MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED;
             else if (event.type === 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED') targetState = MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED;
-            else if (event.type === 'GLOBAL_FSM_UPDATED' && event.payload.globalFsmState === GlobalFsmState.IDLE) targetState = MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED; 
+            else if (event.type === 'GLOBAL_FSM_UPDATED' && event.payload.globalFsmState === GlobalFsmState.IDLE) targetState = MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED;
             break;
         case MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED:
             if (event.type === 'GLOBAL_FSM_UPDATED') {
@@ -325,13 +322,13 @@ export function MainTabContent({
         case MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_PENDING:
             if (event.type === 'GLOBAL_FSM_UPDATED' && [GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED, GlobalFsmState.FULL_ANALYSIS_COMPLETE, GlobalFsmState.IDLE].includes(event.payload.globalFsmState)) targetState = MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED;
             break;
-        default: targetState = null; 
+        default: targetState = null;
     }
 
     if (targetState) {
         logDebug('MainTabContent_FSM', 'DispatchWithTarget', `Event ${event.type} from ${currentLocalState} targeting ${targetState}.`);
         setTargetLocalFsmDisplayState(targetState);
-        setMainTabFsmTargetState(targetState); // Also update prop for PageContent
+        setMainTabFsmTargetState(targetState);
     }
     dispatchLocalFsmEventActual(event);
   }, [localFsm.localState, localFsm.currentInputTicker, localFsm.activeAnalysisTicker, logDebug, setMainTabFsmTargetState]);
@@ -340,7 +337,7 @@ export function MainTabContent({
     if (targetLocalFsmDisplayState !== null && localFsm.localState === targetLocalFsmDisplayState) {
         logDebug('MainTabContent_FSM', 'TargetClearEffect', `Local FSM state changed to ${localFsm.localState}. Clearing target display state.`);
         setTargetLocalFsmDisplayState(null);
-        setMainTabFsmTargetState(null); // Also clear prop for PageContent
+        setMainTabFsmTargetState(null);
     }
   }, [localFsm.localState, targetLocalFsmDisplayState, logDebug, setMainTabFsmTargetState]);
 
@@ -356,7 +353,7 @@ export function MainTabContent({
       type: 'TICKER_INPUT_CHANGED',
       payload: { isValid: !!tickerInput.trim(), tickerValue: tickerInput }
     });
-  }, []); 
+  }, []);
 
   const [, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(() => ({status: 'idle'}), initialChatActionState);
 
@@ -477,68 +474,88 @@ export function MainTabContent({
 
 
   const getCombinedDataForExport = useCallback(() => {
-    return {
+    const baseData: any = {
       ticker: localFsm.activeAnalysisTicker || localFsm.currentInputTicker,
       marketStatus: JSON.parse(contextMarketStatusJson || '{}'),
       stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'),
       standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'),
       aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'),
-      aiKeyTakeaways: JSON.parse(contextAiKeyTakeawaysJson || '{}'),
-      optionsChain: JSON.parse(contextOptionsChainJson || '{}'),
-      aiOptionsAnalysis: JSON.parse(contextAiOptionsAnalysisJson || '{}'),
     };
-  }, [contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextOptionsChainJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, localFsm.currentInputTicker, localFsm.activeAnalysisTicker]);
 
-  const isAllDataReadyForCombinedExport =
+    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'CombinedExportCheck', 'AiKeyTakeaways')) {
+      baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}');
+    }
+    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'CombinedExportCheck', 'AiOptionsAnalysis')) {
+      baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}');
+    }
+    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'CombinedExportCheck', 'OptionsChain')) {
+      baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}');
+    }
+
+
+    return baseData;
+  }, [
+      localFsm.activeAnalysisTicker, localFsm.currentInputTicker,
+      contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson,
+      contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson,
+      contextOptionsChainJson, logDebug
+    ]);
+
+  const isBaseDataReadyForCombinedExport =
     isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'ExportCheck', 'MarketStatus') &&
     isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'ExportCheck', 'StockSnapshot') &&
     isDataReadyForProcessing(contextStandardTasJson, logDebug, 'ExportCheck', 'StandardTAs') &&
-    isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'ExportCheck', 'OptionsChain') &&
-    isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'ExportCheck', 'AiAnalyzedTA') &&
-    isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'ExportCheck', 'AiKeyTakeaways') &&
-    isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'ExportCheck', 'AiOptionsAnalysis');
+    isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'ExportCheck', 'AiAnalyzedTA');
+
+  const combinedExportButtonsDisabled =
+    !isBaseDataReadyForCombinedExport ||
+    analyzeButtonLoading ||
+    keyTakeawaysButtonLoading ||
+    optionsAnalysisButtonLoading ||
+    isGlobalPipelineActive;
+
 
   const handleExportAllToJson = useCallback(async () => {
     logDebug('MainTabContent', 'Export_All', 'Export All to JSON clicked.');
-    if (!isAllDataReadyForCombinedExport) {
-      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Not all data sections are available for export.' });
+    if (!isBaseDataReadyForCombinedExport) {
+      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Core data sections are not available for export.' });
       return;
     }
     try {
       const combinedData = getCombinedDataForExport();
       const filename = `${combinedData.ticker || 'StockSage'}_full_analysis_${new Date().toISOString().split('T')[0]}.json`;
       downloadJson(combinedData, filename);
-      toast({ title: 'Export Successful', description: `All data exported to ${filename}` });
+      toast({ title: 'Export Successful', description: `Data exported to ${filename}` });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Export Error', description: `Could not export data: ${e.message}` });
     }
-  }, [isAllDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
+  }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
 
   const handleCopyAllToJson = useCallback(async () => {
     logDebug('MainTabContent', 'Copy_All', 'Copy All to JSON clicked.');
-     if (!isAllDataReadyForCombinedExport) {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Not all data sections are available for copy.' });
+     if (!isBaseDataReadyForCombinedExport) {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Core data sections are not available for copy.' });
       return;
     }
     try {
       const combinedData = getCombinedDataForExport();
       const success = await copyToClipboard(JSON.stringify(combinedData, null, 2));
       if (success) {
-        toast({ title: 'Copied to Clipboard', description: 'All data copied as JSON.' });
+        toast({ title: 'Copied to Clipboard', description: 'Data copied as JSON.' });
       } else {
         throw new Error('Clipboard API failed.');
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Copy Error', description: `Could not copy data: ${e.message}` });
     }
-  }, [isAllDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
+  }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock Analysis Input</CardTitle>
         <CardDescription>
-          Enter ticker for Data Fetch & AI TA. Manual AI actions available after. 
+          Enter ticker for Data Fetch & AI TA. Manual AI actions available after.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -601,12 +618,12 @@ export function MainTabContent({
 
         <div className="space-y-2">
             <h3 className="text-lg font-medium">Combined Data Export</h3>
-            <CardDescription>Exports Snapshot, Standard TAs, AI Analyzed TA, AI Key Takeaways, AI Options Analysis, Options Chain, and Market Status.</CardDescription>
+            <CardDescription>Exports Snapshot, Standard TAs, AI Analyzed TA, and Market Status. AI Key Takeaways, Options Chain, and AI Options Analysis are included if available.</CardDescription>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Button onClick={handleExportAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isAllDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalPipelineActive}>
+                <Button onClick={handleExportAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={combinedExportButtonsDisabled}>
                     <Download className="mr-2 h-4 w-4" /> Export All to JSON
                 </Button>
-                <Button onClick={handleCopyAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={!isAllDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalPipelineActive}>
+                <Button onClick={handleCopyAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={combinedExportButtonsDisabled}>
                     <Copy className="mr-2 h-4 w-4" /> Copy All to JSON
                 </Button>
             </div>
@@ -620,7 +637,7 @@ export function MainTabContent({
           <StandardTaDisplay />
           <AiAnalyzedTaDisplay />
           <AiKeyTakeawaysDisplay />
-          <OptionsChainTable /> {/* Ensure OptionsChainTable is rendered here */}
+          <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider
             chatFormAction={chatFormAction as any}
@@ -632,7 +649,7 @@ export function MainTabContent({
             aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'}
             currentGlobalChatHistory={contextChatHistory}
             logDebug={logDebug}
-            setChatbotFsmDisplayState={setChatbotFsmDisplay} 
+            setChatbotFsmDisplayState={setChatbotFsmDisplay}
           >
             <Chatbot
               isChatPending={isChatPending}
@@ -645,3 +662,5 @@ export function MainTabContent({
     </Card>
   );
 }
+
+    

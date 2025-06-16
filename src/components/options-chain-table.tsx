@@ -19,7 +19,7 @@ import { formatDisplayDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { downloadTxt, copyToClipboard } from "@/lib/export-utils";
+import { downloadJson, downloadTxt, copyToClipboard } from "@/lib/export-utils"; // Ensure downloadJson is imported
 
 interface OptionHeaderConfig {
   key: keyof StreamlinedOptionContract;
@@ -29,8 +29,8 @@ interface OptionHeaderConfig {
 
 const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) }, 
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) }, 
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
   { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
@@ -84,7 +84,7 @@ const generateOptionsCsv = (optionsData: OptionsChainData, logDebug: Function): 
   const rows: string[] = (optionsData.contracts || []).map(contractRow => {
     const callValues = csvCallKeys.map(key => {
       let val = contractRow.call?.[key];
-      if (key === 'percent_change' && typeof val === 'number') { 
+      if (key === 'percent_change' && typeof val === 'number') {
         val = roundNumber(val / 100, 4);
       }
       return val !== undefined && val !== null ? String(val) : "";
@@ -98,7 +98,7 @@ const generateOptionsCsv = (optionsData: OptionsChainData, logDebug: Function): 
     });
     return [...callValues, String(contractRow.strike ?? ""), ...putValues].join(',');
   });
-  
+
   const csvString = [headers.join(','), ...rows].join('\n');
   logDebug('OptionsChainTable:generateOptionsCsv', `CSV generation complete. Header: ${headers.join(',')}. First data row preview: ${rows[0]?.substring(0,100)}`);
   return csvString;
@@ -125,8 +125,8 @@ export function OptionsChainTable() {
   let currentPriceForATM: number | null = null;
 
   if (!optionsChainJson || optionsChainJson === '{}') {
-    isLoading = false; 
-    isError = false; 
+    isLoading = false;
+    isError = false;
     parsedData = null;
     errorOrSkippedMessage = "No options chain data. This data is fetched with 'Analyze Stock'.";
     logDebug(componentName, "optionsChainJson is empty or null. Displaying 'No data'.");
@@ -134,7 +134,7 @@ export function OptionsChainTable() {
     isLoading = true;
     isError = false;
     parsedData = null;
-    errorOrSkippedMessage = ""; 
+    errorOrSkippedMessage = "";
     logDebug(componentName, "optionsChainJson is in a defined pending/initializing state.");
   } else if (optionsChainJson.includes('"status": "error"') || optionsChainJson.includes('"error":')) {
     isLoading = false;
@@ -143,13 +143,13 @@ export function OptionsChainTable() {
     try {
         const statusObj = JSON.parse(optionsChainJson);
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading options data.";
-    } catch(e) { 
+    } catch(e) {
         errorOrSkippedMessage = "Error loading options data (malformed error JSON).";
     }
     logDebug(componentName, "optionsChainJson indicates an error state.", errorOrSkippedMessage);
   } else if (optionsChainJson.includes('"status": "skipped"')) {
     isLoading = false;
-    isError = true; // Treat skipped as an error for display purposes in this table
+    isError = true;
     parsedData = null;
     try {
         const statusObj = JSON.parse(optionsChainJson);
@@ -166,7 +166,7 @@ export function OptionsChainTable() {
         isLoading = false;
         isError = false;
         parsedData = data;
-        errorOrSkippedMessage = ""; // Clear any previous error
+        errorOrSkippedMessage = "";
         logDebug(componentName, "Successfully parsed optionsChainJson.");
       } else {
         logDebug(componentName, "Parsed optionsChainJson is missing contracts array or contains error/status field. Data:", data);
@@ -263,6 +263,44 @@ export function OptionsChainTable() {
     }
   };
 
+  const handleExportOptionsJson = () => {
+    logDebug(componentName, 'Export Options JSON button clicked. Data ready:', isDataReadyForExport);
+    if (!isDataReadyForExport || !parsedData) {
+      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON export.' });
+      return;
+    }
+    try {
+      const filenameTicker = parsedData.ticker || "STOCK";
+      const filenameExpDate = parsedData.expiration_date ? parsedData.expiration_date.replace(/-/g,'') : "EXP";
+      const filename = `${filenameTicker}_options_chain_${filenameExpDate}.json`;
+      downloadJson(parsedData, filename);
+      toast({ title: 'Options Exported (JSON)', description: `Options chain for ${filenameTicker} downloaded as ${filename}.` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Export Error', description: `Failed to download JSON: ${e.message}` });
+      logDebug(componentName, 'JSON Export error:', e);
+    }
+  };
+
+  const handleCopyOptionsJson = async () => {
+    logDebug(componentName, 'Copy Options JSON button clicked. Data ready:', isDataReadyForExport);
+    if (!isDataReadyForExport || !parsedData) {
+      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON copy.' });
+      return;
+    }
+    try {
+      const success = await copyToClipboard(JSON.stringify(parsedData, null, 2));
+      if (success) {
+        toast({ title: 'Options Copied (JSON)', description: 'Options chain JSON data copied to clipboard.' });
+      } else {
+        toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy options chain JSON data.' });
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Copy Error', description: `Failed to copy JSON: ${e.message}` });
+      logDebug(componentName, 'JSON Copy error:', e);
+    }
+  };
+
+
   logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, contracts.length=${contracts.length}, atmStrike=${atmStrikeValue}, isDataReadyForExport=${isDataReadyForExport}`);
 
   return (
@@ -279,12 +317,18 @@ export function OptionsChainTable() {
                     </CardDescription>
                 )}
             </div>
-            <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleExportOptionsCsv} disabled={!isDataReadyForExport} title="Export Options Chain as CSV">
-                    <Download className="mr-2 h-4 w-4" /> Export CSV
+            <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={handleCopyOptionsJson} disabled={!isDataReadyForExport} title="Copy Options Chain as JSON">
+                    <Copy className="mr-2 h-4 w-4" /> Copy JSON
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportOptionsJson} disabled={!isDataReadyForExport} title="Export Options Chain as JSON">
+                    <Download className="mr-2 h-4 w-4" /> Export JSON
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleCopyOptionsCsv} disabled={!isDataReadyForExport} title="Copy Options Chain as CSV">
                     <Copy className="mr-2 h-4 w-4" /> Copy CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportOptionsCsv} disabled={!isDataReadyForExport} title="Export Options Chain as CSV">
+                    <Download className="mr-2 h-4 w-4" /> Export CSV
                 </Button>
             </div>
         </div>
@@ -356,3 +400,5 @@ export function OptionsChainTable() {
     </Card>
   );
 }
+
+    

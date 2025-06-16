@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useRef, useCallback } from 'react';
@@ -35,7 +36,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
   const {
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
-    logDebug: globalLogDebug, // Use a distinct name if logDebug is also from ChatbotFsmContext
+    logDebug: globalLogDebug,
   } = useStockAnalysis();
 
   const {
@@ -48,9 +49,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  // Use the logDebug from the ChatbotFsmContext if available, otherwise global
-  const logDebug = globalLogDebug; 
+  const logDebug = globalLogDebug;
 
   logDebug('Chatbot', 'Render', `ChatbotFSM State: Prev: ${previousChatbotFsmState || 'N/A'} | Curr: ${chatbotFsmState} | Target: ${targetChatbotFsmDisplayState || 'N/A'}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
@@ -67,8 +66,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
     }
   }, [isChatPending, chatbotFsmState, dispatchChatbotFsmEvent, logDebug]);
 
-
-  const handleFormSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     logDebug('Chatbot', 'handleFormSubmit', `Submit requested. ChatbotFSM State: ${chatbotFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
     if (!fsmUserInput.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) {
@@ -76,13 +74,41 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
       return;
     }
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
-  };
+  }, [fsmUserInput, chatbotFsmState, dispatchChatbotFsmEvent, logDebug]);
 
   const handleExamplePromptClick = (promptTemplate: string) => {
     if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) return;
     const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
     dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
-    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}"`);
+    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Initiating submit.`);
+    // Directly call handleFormSubmit after setting the input
+    // Need to ensure fsmUserInput is updated before handleFormSubmit sees it.
+    // A small delay or relying on the next render cycle might be needed if direct call uses stale state.
+    // For simplicity, let's try direct call. If issues, we can use a useEffect to trigger submit.
+    // Update: To make this reliable, we need to ensure the state update for userInput has propagated.
+    // The best way is to trigger submit in an effect that watches for fsmUserInput change IF it was set by an example.
+    // However, the current FSM structure has an effect in the provider that handles submission when state is SUBMITTING_MESSAGE.
+    // So, setting the input and then dispatching SUBMIT_MESSAGE_REQUESTED should work.
+    // We'll update handleFormSubmit to be callable without an event.
+
+    // To make handleFormSubmit work correctly when called programmatically,
+    // we ensure it reads the latest fsmUserInput from the FSM state.
+    // The dispatch of USER_INPUT_CHANGED updates the FSM state with the new prompt.
+    // Then, dispatching SUBMIT_MESSAGE_REQUESTED will make the FSM transition,
+    // and the effect in ChatbotFsmProvider will pick up the latest userInput.
+    
+    // Temporarily set the input via a ref to ensure handleFormSubmit gets it for this synchronous call path
+    // This is a bit of a workaround. A cleaner way might involve a dedicated FSM event.
+    const internalInputRef = { current: filledPrompt }; // Mimic ref for immediate access
+
+    if (!internalInputRef.current.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) {
+      logDebug('Chatbot', 'handleExamplePromptClick', 'Submit (from example) prevented: input empty or already submitting.');
+      return;
+    }
+    // Dispatch USER_INPUT_CHANGED first to update the context state
+    dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
+    // Then dispatch SUBMIT_MESSAGE_REQUESTED. The effect in ChatbotFsmProvider will use the updated userInput.
+    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   };
 
   const handleCopyChat = async () => {
@@ -121,7 +147,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
             StockSage AI Chat
           </CardTitle>
           <CardDescription className="text-xs mt-1">
-            Ask about {currentTickerForDisplay || "the stock"}. 
+            Ask about {currentTickerForDisplay || "the stock"}.
           </CardDescription>
         </div>
         <div className="flex items-center gap-1">
@@ -209,7 +235,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
             placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`}
             disabled={isProcessing}
             className="flex-grow"
-            onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) handleFormSubmit(e as any);}}
+            onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}}
           />
           <Button type="submit" disabled={isProcessing || !fsmUserInput.trim()}>
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -220,3 +246,5 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
     </Card>
   );
 }
+
+    
