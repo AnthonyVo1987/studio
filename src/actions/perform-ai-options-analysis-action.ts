@@ -20,12 +20,12 @@ export interface PerformAiOptionsAnalysisActionState {
   message?: string | null;
 }
 
-const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = { // Not exported
-  status: 'idle',
-  data: undefined,
-  error: null,
-  message: null,
-};
+// const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = { // Not exported
+//   status: 'idle',
+//   data: undefined,
+//   error: null,
+//   message: null,
+// };
 
 interface PerformAiOptionsAnalysisActionInputs {
   ticker: string;
@@ -46,15 +46,21 @@ export async function performAiOptionsAnalysisAction(
 
   let currentUnderlyingPrice: number;
   let flowInput: AiOptionsAnalysisInput;
-  let aiOptionsAnalysisRequestJson: string = JSON.stringify({ error: "Request preparation incomplete", ticker }, null, 2); // Default request JSON
+  let aiOptionsAnalysisRequestJson: string = JSON.stringify({ error: "Request preparation incomplete", ticker }, null, 2); 
 
   const baseErrorReturn = (errMsg: string, detailMsg?: string, reqJsonOverride?: string) => ({
     status: 'error' as 'error',
-    error: errMsg,
-    message: detailMsg || errMsg,
+    error: errMsg, 
+    message: detailMsg || errMsg, 
     data: {
       aiOptionsAnalysisRequestJson: reqJsonOverride || aiOptionsAnalysisRequestJson,
-      aiOptionsAnalysisJson: JSON.stringify({ status: 'error', error: errMsg, details: detailMsg, callWalls: [], putWalls: [] }, null, 2),
+      aiOptionsAnalysisJson: JSON.stringify({ 
+        status: 'error', 
+        error: errMsg,   
+        details: detailMsg, 
+        callWalls: [], 
+        putWalls: [] 
+      }, null, 2),
     },
   });
 
@@ -89,32 +95,29 @@ export async function performAiOptionsAnalysisAction(
     console.log(`[ServerAction:performAiOptionsAnalysisAction] Calling analyzeOptionsChain flow for ${ticker}. Input Keys: ${Object.keys(flowInput).join(', ')}. Current Price: ${currentUnderlyingPrice}`);
 
     const flowOutput: AiOptionsAnalysisOutput = await analyzeOptionsChain(flowInput);
-
     
     if (!flowOutput || !Array.isArray(flowOutput.callWalls) || !Array.isArray(flowOutput.putWalls)) {
-        const flowErrorMsg = 'AI options analysis flow returned invalid or malformed data structure.';
-        console.error(`[ServerAction:performAiOptionsAnalysisAction] Flow for ${ticker} returned malformed output (not arrays or missing keys):`, flowOutput);
-        return baseErrorReturn(flowErrorMsg, `AI options analysis for ${ticker} failed to produce valid wall data.`);
+        const flowErrorMsg = 'AI options analysis flow returned invalid, malformed, or empty data structure from the flow directly.';
+        console.error(`[ServerAction:performAiOptionsAnalysisAction] Flow for ${ticker} returned malformed/empty output (not arrays or missing keys, or flow returned empty itself):`, flowOutput);
+        return baseErrorReturn(flowErrorMsg, `AI options analysis for ${ticker} failed to produce valid wall data from the flow execution.`);
     }
     
-    const aiOptionsAnalysisJson = JSON.stringify(flowOutput, null, 2);
+    const aiOptionsAnalysisJsonOutput = JSON.stringify(flowOutput, null, 2);
     console.log(`[ServerAction:performAiOptionsAnalysisAction] analyzeOptionsChain flow succeeded for ${ticker}. CallWalls: ${flowOutput.callWalls.length}, PutWalls: ${flowOutput.putWalls.length}`);
 
     return {
       status: 'success',
       data: {
         aiOptionsAnalysisRequestJson,
-        aiOptionsAnalysisJson,
+        aiOptionsAnalysisJson: aiOptionsAnalysisJsonOutput,
       },
       message: `AI options analysis for ${ticker} generated successfully.`,
       error: null,
     };
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred during AI options analysis.';
-    console.error(`[ServerAction:performAiOptionsAnalysisAction] CRITICAL Error for ${ticker}:`, error);
-    // Capture details of the error if it's an object
-    const errorDetails = (typeof error === 'object' && error !== null) ? JSON.stringify(error) : String(error);
-    return baseErrorReturn(errorMessage, `Failed to generate AI options analysis for ${ticker}. Error: ${errorDetails}`);
+    console.error(`[ServerAction:performAiOptionsAnalysisAction] CRITICAL Unhandled Error for ${ticker}:`, error);
+    const userFriendlyDetailMsg = `Failed to generate AI options analysis for ${ticker}. Please check server logs for technical details.`;
+    return baseErrorReturn(errorMessage, userFriendlyDetailMsg);
   }
 }
-

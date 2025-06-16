@@ -56,7 +56,7 @@ Output Requirements:
 -   **Walls:** Identify the MOST significant Call Walls and Put Walls if data supports. Select AT MOST 3 Call Walls and AT MOST 3 Put Walls (ordered by significance, e.g., highest OI meeting criteria). Populate \`callWalls\` and \`putWalls\` arrays. Each element: \`{strike: number, openInterest: number, type: 'call'|'put'}\`.
 -   If no significant wall is identified for a type, return an empty array for that type.
 
-Strictly adhere to the output schema (only callWalls and putWalls, each an array with AT MOST 3 elements). Ensure numerical values. Do not force walls if criteria are not met.
+Strictly adhere to the output schema (callWalls and putWalls, each an array with AT MOST 3 elements). Ensure numerical values. Do not force walls if criteria are not met.
 If you encounter issues parsing or the data is clearly insufficient (e.g., less than 5 strikes with OI for both calls and puts), return empty arrays.
 `,
   config: {
@@ -80,34 +80,35 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     try {
       parsedOptionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
       console.log('[AIFlow:analyzeOptionsChainFlow] Parsed options chain JSON. Contracts count:', parsedOptionsData.contracts?.length);
-      if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { // Pre-check for clearly insufficient data
+      if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) { 
         console.warn('[AIFlow:analyzeOptionsChainFlow] Options chain data seems insufficient (less than 3 contracts). Returning empty walls. Contracts length:', parsedOptionsData.contracts?.length);
         return { callWalls: [], putWalls: [] };
       }
     } catch (e) {
       console.error('[AIFlow:analyzeOptionsChainFlow] Failed to parse optionsChainJson in pre-check:', e);
-      return { callWalls: [], putWalls: [] }; // Return valid empty structure on parse failure
+      return { callWalls: [], putWalls: [] }; 
     }
 
     console.log('[AIFlow:analyzeOptionsChainFlow] Executing prompt for ticker:', input.ticker);
-    const {output} = await analyzeOptionsChainPrompt(input);
+    try {
+        const {output} = await analyzeOptionsChainPrompt(input);
 
-    if (!output || !output.callWalls || !output.putWalls) { 
-      console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return a valid output for ticker:', input.ticker, 'Received output:', output);
-      return { callWalls: [], putWalls: [] }; // Return valid empty structure on AI error
+        if (!output || !Array.isArray(output.callWalls) || !Array.isArray(output.putWalls)) { 
+          console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return a valid output structure for ticker:', input.ticker, 'Received output:', output);
+          return { callWalls: [], putWalls: [] }; 
+        }
+        
+        const finalOutput: AiOptionsAnalysisOutput = {
+            callWalls: (output.callWalls || []).slice(0, 3),
+            putWalls: (output.putWalls || []).slice(0, 3),
+        };
+        
+        console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete for ticker:', input.ticker, 'Call Walls:', finalOutput.callWalls.length, 'Put Walls:', finalOutput.putWalls.length);
+        return finalOutput;
+
+    } catch (promptError: any) {
+        console.error('[AIFlow:analyzeOptionsChainFlow] CRITICAL ERROR during analyzeOptionsChainPrompt execution for ticker:', input.ticker, 'Error name:', promptError?.name, 'Error message:', promptError?.message, 'Error stack:', promptError?.stack, 'Full error object:', promptError);
+        return { callWalls: [], putWalls: [] };
     }
-    
-    // Output directly conforms to schema (max 3 walls), no further slicing needed here.
-    // The display component will handle rendering up to 3.
-    const finalOutput: AiOptionsAnalysisOutput = {
-        callWalls: (output.callWalls || []).slice(0, 3), // Ensure it respects max 3 even if AI gives more.
-        putWalls: (output.putWalls || []).slice(0, 3),   // Ensure it respects max 3.
-    };
-    
-    console.log('[AIFlow:analyzeOptionsChainFlow] Analysis complete for ticker:', input.ticker, 'Call Walls:', finalOutput.callWalls.length, 'Put Walls:', finalOutput.putWalls.length);
-    return finalOutput;
   }
 );
-
-
-    
