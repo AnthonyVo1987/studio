@@ -60,7 +60,7 @@ interface MainTabLocalFsmManagedState {
 const initialMainTabLocalFsmState: MainTabLocalFsmManagedState = {
   localState: MainTabLocalFsmState.IDLE,
   activeAnalysisTicker: null,
-  currentInputTicker: "NVDA", // Initialize with the default ticker
+  currentInputTicker: "NVDA", 
 };
 // --- End Local FSM ---
 
@@ -96,7 +96,7 @@ function isDataReadyForProcessing(jsonString: string | null | undefined, logDebu
 
 
 export function MainTabContent() {
-  const [tickerInput, setTickerInput] = useState("NVDA"); // Still used for controlled input component
+  const [tickerInput, setTickerInput] = useState("NVDA"); 
   const { toast } = useToast();
   const {
     marketStatusJson: contextMarketStatusJson,
@@ -128,9 +128,11 @@ export function MainTabContent() {
         if (event.type === 'TICKER_INPUT_CHANGED') {
           const newState = { ...state, currentInputTicker: event.payload.tickerValue };
           if (event.payload.isValid) {
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `IDLE -> TICKER_INPUT_CHANGED (Valid: ${event.payload.tickerValue}). Transitioning to INPUT_VALID.`);
             return { ...newState, localState: MainTabLocalFsmState.INPUT_VALID };
           }
-          return newState; // Remain IDLE if not valid
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `IDLE -> TICKER_INPUT_CHANGED (Invalid: ${event.payload.tickerValue}). Remaining IDLE.`);
+          return newState; 
         }
         return state;
 
@@ -138,12 +140,14 @@ export function MainTabContent() {
         if (event.type === 'TICKER_INPUT_CHANGED') {
           const newState = { ...state, currentInputTicker: event.payload.tickerValue };
           if (!event.payload.isValid) {
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `INPUT_VALID -> TICKER_INPUT_CHANGED (Invalid: ${event.payload.tickerValue}). Transitioning to IDLE.`);
             return { ...newState, localState: MainTabLocalFsmState.IDLE };
           }
-          return newState; // Remain INPUT_VALID if still valid
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `INPUT_VALID -> TICKER_INPUT_CHANGED (Valid: ${event.payload.tickerValue}). Remaining INPUT_VALID.`);
+          return newState; 
         }
         if (event.type === 'AUTOMATED_ANALYSIS_SUBMITTED') {
-          // activeAnalysisTicker is set here based on the FSM's currentInputTicker
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `INPUT_VALID -> AUTOMATED_ANALYSIS_SUBMITTED. Setting activeAnalysisTicker to: ${state.currentInputTicker}. Transitioning to AUTOMATED_PIPELINE_REQUESTED.`);
           return { ...state, localState: MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED, activeAnalysisTicker: state.currentInputTicker };
         }
         return state;
@@ -151,6 +155,7 @@ export function MainTabContent() {
       case MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED:
         if (event.type === 'GLOBAL_FSM_UPDATED') {
           if ([GlobalFsmState.INITIALIZING_ANALYSIS, GlobalFsmState.AWAITING_DATA_FETCH_TRIGGER, GlobalFsmState.FETCHING_DATA, GlobalFsmState.ANALYZING_TA].includes(event.payload.globalFsmState)) {
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `AUTOMATED_PIPELINE_REQUESTED -> GLOBAL_FSM_UPDATED (${event.payload.globalFsmState}). Transitioning to AUTOMATED_PIPELINE_IN_PROGRESS.`);
             return { ...state, localState: MainTabLocalFsmState.AUTOMATED_PIPELINE_IN_PROGRESS };
           }
         }
@@ -159,43 +164,64 @@ export function MainTabContent() {
       case MainTabLocalFsmState.AUTOMATED_PIPELINE_IN_PROGRESS:
         if (event.type === 'GLOBAL_FSM_UPDATED') {
           if (event.payload.globalFsmState === GlobalFsmState.FULL_ANALYSIS_COMPLETE) {
-            // activeAnalysisTicker should have been set when AUTOMATED_PIPELINE_REQUESTED was entered
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `AUTOMATED_PIPELINE_IN_PROGRESS -> GLOBAL_FSM_UPDATED (FULL_ANALYSIS_COMPLETE). Transitioning to MANUAL_ACTIONS_ENABLED.`);
             return { ...state, localState: MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED };
           }
           if ([GlobalFsmState.IDLE, GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, GlobalFsmState.DATA_FETCH_FAILED].includes(event.payload.globalFsmState)) {
-            return { ...state, localState: MainTabLocalFsmState.IDLE, activeAnalysisTicker: null };
+            const isInputStillValid = !!state.currentInputTicker.trim();
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `AUTOMATED_PIPELINE_IN_PROGRESS -> GLOBAL_FSM_UPDATED (${event.payload.globalFsmState}). Resetting. Input still valid: ${isInputStillValid}.`);
+            return {
+              ...initialMainTabLocalFsmState, 
+              currentInputTicker: state.currentInputTicker, 
+              localState: isInputStillValid ? MainTabLocalFsmState.INPUT_VALID : MainTabLocalFsmState.IDLE, 
+              activeAnalysisTicker: null, 
+            };
           }
         }
         if (event.type === 'RESET_REQUESTED') {
+             logDebug('MainTabContent_FSM', 'LocalReducerAction', `AUTOMATED_PIPELINE_IN_PROGRESS -> RESET_REQUESTED. Resetting to initial state, preserving currentInputTicker.`);
              return { ...initialMainTabLocalFsmState, currentInputTicker: state.currentInputTicker, activeAnalysisTicker: null };
         }
         return state;
 
       case MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED:
-        if (event.type === 'AUTOMATED_ANALYSIS_SUBMITTED') { // User starts a new automated analysis
+        if (event.type === 'AUTOMATED_ANALYSIS_SUBMITTED') { 
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> AUTOMATED_ANALYSIS_SUBMITTED. Setting activeAnalysisTicker to: ${state.currentInputTicker}. Transitioning to AUTOMATED_PIPELINE_REQUESTED.`);
           return { ...state, localState: MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED, activeAnalysisTicker: state.currentInputTicker };
         }
         if (event.type === 'MANUAL_KEY_TAKEAWAYS_SUBMITTED') {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> MANUAL_KEY_TAKEAWAYS_SUBMITTED. Transitioning to MANUAL_KEY_TAKEAWAYS_REQUESTED.`);
           return { ...state, localState: MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED };
         }
         if (event.type === 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED') {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> MANUAL_OPTIONS_ANALYSIS_SUBMITTED. Transitioning to MANUAL_OPTIONS_ANALYSIS_REQUESTED.`);
           return { ...state, localState: MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED };
         }
         if (event.type === 'GLOBAL_FSM_UPDATED' && event.payload.globalFsmState === GlobalFsmState.IDLE) {
-            return { ...initialMainTabLocalFsmState, currentInputTicker: state.currentInputTicker, activeAnalysisTicker: null };
+            const isInputStillValid = !!state.currentInputTicker.trim();
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> GLOBAL_FSM_UPDATED (IDLE). Resetting. Input still valid: ${isInputStillValid}. ActiveAnalysisTicker will be ${state.activeAnalysisTicker}.`);
+            return {
+              ...initialMainTabLocalFsmState,
+              currentInputTicker: state.currentInputTicker,
+              localState: isInputStillValid ? MainTabLocalFsmState.INPUT_VALID : MainTabLocalFsmState.IDLE,
+              activeAnalysisTicker: state.activeAnalysisTicker, // Preserve activeAnalysisTicker if global FSM went idle after manual action
+            };
         }
         if (event.type === 'RESET_REQUESTED') {
+             logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> RESET_REQUESTED. Resetting to initial state, preserving currentInputTicker.`);
              return { ...initialMainTabLocalFsmState, currentInputTicker: state.currentInputTicker, activeAnalysisTicker: null };
         }
         if (event.type === 'TICKER_INPUT_CHANGED') {
             const newState = { ...state, currentInputTicker: event.payload.tickerValue };
             if (event.payload.isValid) {
-                // If ticker changes and is valid, but doesn't match activeAnalysisTicker, reset manual capability
                 if (event.payload.tickerValue !== state.activeAnalysisTicker) {
+                    logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> TICKER_INPUT_CHANGED (Valid, but new: ${event.payload.tickerValue}). Resetting manual capability, activeAnalysisTicker. Transitioning to INPUT_VALID.`);
                     return { ...newState, localState: MainTabLocalFsmState.INPUT_VALID, activeAnalysisTicker: null };
                 }
-                return newState; // Remain MANUAL_ACTIONS_ENABLED if ticker matches and is valid
-            } else { // Input became invalid
+                logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> TICKER_INPUT_CHANGED (Valid, same: ${event.payload.tickerValue}). Remaining MANUAL_ACTIONS_ENABLED.`);
+                return newState; 
+            } else { 
+                logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_ACTIONS_ENABLED -> TICKER_INPUT_CHANGED (Invalid: ${event.payload.tickerValue}). Resetting activeAnalysisTicker. Transitioning to IDLE.`);
                 return { ...newState, localState: MainTabLocalFsmState.IDLE, activeAnalysisTicker: null };
             }
         }
@@ -203,9 +229,11 @@ export function MainTabContent() {
 
       case MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED:
         if (event.type === 'GLOBAL_FSM_UPDATED' && event.payload.globalFsmState === GlobalFsmState.GENERATING_KEY_TAKEAWAYS) {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_KEY_TAKEAWAYS_REQUESTED -> GLOBAL_FSM_UPDATED (GENERATING_KEY_TAKEAWAYS). Transitioning to MANUAL_KEY_TAKEAWAYS_PENDING.`);
           return { ...state, localState: MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_PENDING };
         }
         if (event.type === 'GLOBAL_FSM_UPDATED' && (event.payload.globalFsmState === GlobalFsmState.FULL_ANALYSIS_COMPLETE || event.payload.globalFsmState === GlobalFsmState.IDLE)) {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_KEY_TAKEAWAYS_REQUESTED -> GLOBAL_FSM_UPDATED (${event.payload.globalFsmState}). Transitioning to MANUAL_ACTIONS_ENABLED.`);
           return { ...state, localState: MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED };
         }
         return state;
@@ -213,19 +241,24 @@ export function MainTabContent() {
       case MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_PENDING:
         if (event.type === 'GLOBAL_FSM_UPDATED') {
           if ([GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED, GlobalFsmState.FULL_ANALYSIS_COMPLETE].includes(event.payload.globalFsmState)) {
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_KEY_TAKEAWAYS_PENDING -> GLOBAL_FSM_UPDATED (${event.payload.globalFsmState}). Transitioning to MANUAL_ACTIONS_ENABLED.`);
             return { ...state, localState: MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED };
           }
            if (event.payload.globalFsmState === GlobalFsmState.IDLE) {
-            return { ...initialMainTabLocalFsmState, currentInputTicker: state.currentInputTicker, activeAnalysisTicker: null };
+            const isInputStillValid = !!state.currentInputTicker.trim();
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_KEY_TAKEAWAYS_PENDING -> GLOBAL_FSM_UPDATED (IDLE). Resetting. Input still valid: ${isInputStillValid}.`);
+            return { ...initialMainTabLocalFsmState, currentInputTicker: state.currentInputTicker, localState: isInputStillValid ? MainTabLocalFsmState.INPUT_VALID : MainTabLocalFsmState.IDLE, activeAnalysisTicker: null };
           }
         }
         return state;
 
       case MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED:
         if (event.type === 'GLOBAL_FSM_UPDATED' && event.payload.globalFsmState === GlobalFsmState.ANALYZING_OPTIONS) {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_OPTIONS_ANALYSIS_REQUESTED -> GLOBAL_FSM_UPDATED (ANALYZING_OPTIONS). Transitioning to MANUAL_OPTIONS_ANALYSIS_PENDING.`);
           return { ...state, localState: MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_PENDING };
         }
         if (event.type === 'GLOBAL_FSM_UPDATED' && (event.payload.globalFsmState === GlobalFsmState.FULL_ANALYSIS_COMPLETE || event.payload.globalFsmState === GlobalFsmState.IDLE)) {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_OPTIONS_ANALYSIS_REQUESTED -> GLOBAL_FSM_UPDATED (${event.payload.globalFsmState}). Transitioning to MANUAL_ACTIONS_ENABLED.`);
           return { ...state, localState: MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED };
         }
         return state;
@@ -233,10 +266,13 @@ export function MainTabContent() {
       case MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_PENDING:
         if (event.type === 'GLOBAL_FSM_UPDATED') {
           if ([GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED, GlobalFsmState.FULL_ANALYSIS_COMPLETE].includes(event.payload.globalFsmState)) {
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_OPTIONS_ANALYSIS_PENDING -> GLOBAL_FSM_UPDATED (${event.payload.globalFsmState}). Transitioning to MANUAL_ACTIONS_ENABLED.`);
             return { ...state, localState: MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED };
           }
           if (event.payload.globalFsmState === GlobalFsmState.IDLE) {
-            return { ...initialMainTabLocalFsmState, currentInputTicker: state.currentInputTicker, activeAnalysisTicker: null };
+            const isInputStillValid = !!state.currentInputTicker.trim();
+            logDebug('MainTabContent_FSM', 'LocalReducerAction', `MANUAL_OPTIONS_ANALYSIS_PENDING -> GLOBAL_FSM_UPDATED (IDLE). Resetting. Input still valid: ${isInputStillValid}.`);
+            return { ...initialMainTabLocalFsmState, currentInputTicker: state.currentInputTicker, localState: isInputStillValid ? MainTabLocalFsmState.INPUT_VALID : MainTabLocalFsmState.IDLE, activeAnalysisTicker: null };
           }
         }
         return state;
@@ -247,17 +283,16 @@ export function MainTabContent() {
 
   const [localFsm, dispatchLocalFsmEvent] = useReducer(mainTabLocalFsmReducer, {
     ...initialMainTabLocalFsmState,
-    currentInputTicker: tickerInput, // Ensure local FSM currentInputTicker starts with UI's tickerInput
+    currentInputTicker: tickerInput, 
   });
 
-  // Effect for initial ticker validation
   useEffect(() => {
     logDebug('MainTabContent_FSM', 'InitialMountEffect', `Component mounted. Initial tickerInput: "${tickerInput}". Dispatching TICKER_INPUT_CHANGED.`);
     dispatchLocalFsmEvent({
       type: 'TICKER_INPUT_CHANGED',
       payload: { isValid: !!tickerInput.trim(), tickerValue: tickerInput }
     });
-  }, [dispatchLocalFsmEvent, logDebug]); // Removed tickerInput from deps as it's for initial check
+  }, [dispatchLocalFsmEvent, logDebug]); 
 
   const [, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(() => ({status: 'idle'}), initialChatActionState);
 
@@ -274,35 +309,33 @@ export function MainTabContent() {
       logDebug('MainTabContent_FSM', 'DispatchToGlobal', `Local FSM state MANUAL_OPTIONS_ANALYSIS_REQUESTED. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
       dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker }});
     }
-  }, [localFsm.localState, localFsm.activeAnalysisTicker, localFsm.currentInputTicker, dispatchGlobalFsmEvent, logDebug]);
+  }, [localFsm.localState, localFsm.activeAnalysisTicker, dispatchGlobalFsmEvent, logDebug]);
 
 
   useEffect(() => {
     logDebug('MainTabContent_FSM', 'GlobalFsmListener', `Global FSM state changed to: ${globalFsmStateFromContext}. Current Local FSM State: ${localFsm.localState}`);
     dispatchLocalFsmEvent({ type: 'GLOBAL_FSM_UPDATED', payload: { globalFsmState: globalFsmStateFromContext } });
 
+    // This handles the case where global FSM goes to IDLE *after* a full analysis cycle,
+    // potentially making the "Analyze Stock" button ready again if input is valid.
+    // This logic is now more deeply embedded in the reducer for specific state transitions.
     if (globalFsmStateFromContext === GlobalFsmState.IDLE &&
-        ![
-            MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_PENDING,
-            MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_PENDING,
-            MainTabLocalFsmState.AUTOMATED_PIPELINE_IN_PROGRESS
-        ].includes(localFsm.localState)
+        (
+            localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_IN_PROGRESS ||
+            localFsm.localState === MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED ||
+            localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_PENDING ||
+            localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_PENDING
+        )
     ) {
-        logDebug('MainTabContent_FSM', 'GlobalFsmListener', `Global FSM is IDLE. Requesting local FSM reset.`);
-        // activeAnalysisTicker is preserved if it's still relevant, or cleared if input changed
-        const shouldPreserveActiveTicker = localFsm.activeAnalysisTicker && localFsm.activeAnalysisTicker === localFsm.currentInputTicker;
-        dispatchLocalFsmEvent({ type: 'RESET_REQUESTED' });
-        if (shouldPreserveActiveTicker) {
-            // If we want to go to MANUAL_ACTIONS_ENABLED after a global reset, if data for current input still exists
-            // This part might need more thought based on desired UX after a global reset
-        }
+        logDebug('MainTabContent_FSM', 'GlobalFsmListener', `Global FSM is IDLE and local FSM was in an active/post-active state (${localFsm.localState}). Dispatching GLOBAL_FSM_UPDATED to local FSM to potentially transition to INPUT_VALID.`);
+        // The reducer handles transitioning to INPUT_VALID if currentInputTicker is still valid.
     }
 
-  }, [globalFsmStateFromContext, logDebug, localFsm.localState, localFsm.activeAnalysisTicker, localFsm.currentInputTicker]);
+  }, [globalFsmStateFromContext, logDebug, localFsm.localState]);
 
 
   useEffect(() => {
-    const dummyChatActionState: ChatActionState = {status: 'idle'}; // Placeholder
+    const dummyChatActionState: ChatActionState = {status: 'idle'}; 
     if (![GlobalFsmState.IDLE, GlobalFsmState.FULL_ANALYSIS_COMPLETE].includes(globalFsmStateFromContext)) {
         if (dummyChatActionState.status === 'success' || dummyChatActionState.status === 'error') {
             logDebug('MainTabContent:chatActionState', 'SkipHandleChatResult', `Skipping chat result processing. Global FSM State: ${globalFsmStateFromContext} is not IDLE or FULL_ANALYSIS_COMPLETE. Chat Action Status: ${dummyChatActionState.status}`);
@@ -336,7 +369,7 @@ export function MainTabContent() {
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTicker = e.target.value.toUpperCase();
-    setTickerInput(newTicker); // Keep UI input controlled
+    setTickerInput(newTicker); 
     dispatchLocalFsmEvent({ type: 'TICKER_INPUT_CHANGED', payload: { isValid: !!newTicker.trim(), tickerValue: newTicker } });
   };
 
@@ -376,7 +409,7 @@ export function MainTabContent() {
     GlobalFsmState.KEY_TAKEAWAYS_FAILED,
     GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED,
     GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
-    GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, // Added error states where UI should be idle
+    GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, 
     GlobalFsmState.DATA_FETCH_FAILED,
     GlobalFsmState.AI_TA_FAILED,
   ].includes(globalFsmStateFromContext);
@@ -384,20 +417,24 @@ export function MainTabContent() {
 
   const analyzeButtonLoading = localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED ||
                              localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_IN_PROGRESS ||
-                             globalFsmStateFromContext === GlobalFsmState.FETCHING_DATA || // Listen to global FSM too
-                             globalFsmStateFromContext === GlobalFsmState.ANALYZING_TA;
-  const analyzeButtonDisabled = localFsm.localState !== MainTabLocalFsmState.INPUT_VALID || analyzeButtonLoading;
+                             globalFsmStateFromContext === GlobalFsmState.FETCHING_DATA || 
+                             globalFsmStateFromContext === GlobalFsmState.ANALYZING_TA ||
+                             globalFsmStateFromContext === GlobalFsmState.INITIALIZING_ANALYSIS ||
+                             globalFsmStateFromContext === GlobalFsmState.AWAITING_DATA_FETCH_TRIGGER ||
+                             globalFsmStateFromContext === GlobalFsmState.AWAITING_AI_TA_TRIGGER;
+
+  const analyzeButtonDisabled = localFsm.localState !== MainTabLocalFsmState.INPUT_VALID || analyzeButtonLoading || isGlobalPipelineActive;
 
 
   const manualActionsPossible = localFsm.localState === MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED &&
                               !!localFsm.activeAnalysisTicker &&
-                              localFsm.activeAnalysisTicker === localFsm.currentInputTicker; // Ensure manual actions are for current input
+                              localFsm.activeAnalysisTicker === localFsm.currentInputTicker; 
 
 
   const keyTakeawaysButtonLoading = localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED ||
                                   localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_PENDING ||
                                   globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
-  const keyTakeawaysButtonDisabled = !manualActionsPossible || keyTakeawaysButtonLoading || analyzeButtonLoading ||
+  const keyTakeawaysButtonDisabled = !manualActionsPossible || keyTakeawaysButtonLoading || analyzeButtonLoading || isGlobalPipelineActive ||
     !isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'KTButtonCheck', 'Snapshot') ||
     !isDataReadyForProcessing(contextStandardTasJson, logDebug, 'KTButtonCheck', 'StdTA') ||
     !isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'KTButtonCheck', 'AiTA') ||
@@ -407,7 +444,7 @@ export function MainTabContent() {
   const optionsAnalysisButtonLoading = localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED ||
                                      localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_PENDING ||
                                      globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
-  const optionsAnalysisButtonDisabled = !manualActionsPossible || optionsAnalysisButtonLoading || analyzeButtonLoading ||
+  const optionsAnalysisButtonDisabled = !manualActionsPossible || optionsAnalysisButtonLoading || analyzeButtonLoading || isGlobalPipelineActive ||
     !isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'OptButtonCheck', 'Snapshot') ||
     !isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'OptButtonCheck', 'OptionsChain');
 
@@ -558,9 +595,8 @@ export function MainTabContent() {
           <AiAnalyzedTaDisplay />
           <AiKeyTakeawaysDisplay />
           <AiOptionsAnalysisDisplay />
-          <OptionsChainTable />
           <ChatbotFsmProvider
-            chatFormAction={chatFormAction as any} // Cast because useActionState type inference is tricky here
+            chatFormAction={chatFormAction as any} 
             addChatMessageToGlobalContext={addChatMessageToGlobalContext}
             currentTicker={localFsm.activeAnalysisTicker || localFsm.currentInputTicker}
             stockSnapshotJson={contextStockSnapshotJson || '{}'}
@@ -581,4 +617,3 @@ export function MainTabContent() {
     </Card>
   );
 }
-
