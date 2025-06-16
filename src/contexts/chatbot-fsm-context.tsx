@@ -3,22 +3,22 @@
 
 import type { ReactNode} from 'react';
 import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
-import type { ChatMessage } from './stock-analysis-context';
+import type { ChatMessage, FsmDisplayTuple } from './stock-analysis-context'; // Added FsmDisplayTuple
 import type { ChatActionInputs } from '@/actions/chat-server-action';
 import { startTransition } from 'react';
 
 // FSM States for Chatbot UI
 export enum ChatbotFsmInternalState {
-  IDLE = 'IDLE', // Ready for input, or after a response
-  PROCESSING_USER_INPUT = 'PROCESSING_USER_INPUT', // User is actively typing
-  SUBMITTING_MESSAGE = 'SUBMITTING_MESSAGE', // User has clicked send, action is being invoked
+  IDLE = 'IDLE', 
+  PROCESSING_USER_INPUT = 'PROCESSING_USER_INPUT', 
+  SUBMITTING_MESSAGE = 'SUBMITTING_MESSAGE', 
 }
 
 // FSM Events for Chatbot UI
 export type ChatbotFsmEvent =
   | { type: 'USER_INPUT_CHANGED'; payload: string }
   | { type: 'SUBMIT_MESSAGE_REQUESTED' }
-  | { type: 'SUBMISSION_CONCLUDED' }; // When isChatPending (external) becomes false
+  | { type: 'SUBMISSION_CONCLUDED' }; 
 
 interface ChatbotFsmManagedState {
   fsmState: ChatbotFsmInternalState;
@@ -27,7 +27,7 @@ interface ChatbotFsmManagedState {
 }
 
 interface ChatbotFsmContextType extends Omit<ChatbotFsmManagedState, 'previousFsmState'> {
-  previousChatbotFsmState: ChatbotFsmInternalState | null; // Explicitly part of context type
+  previousChatbotFsmState: ChatbotFsmInternalState | null; 
   targetChatbotFsmDisplayState: ChatbotFsmInternalState | null;
   dispatchChatbotFsmEvent: (event: ChatbotFsmEvent) => void;
 }
@@ -51,6 +51,7 @@ interface ChatbotFsmProviderProps {
   aiOptionsAnalysisJson?: string;
   currentGlobalChatHistory: ChatMessage[];
   logDebug: (source: string, category: string, ...messages: any[]) => void;
+  setChatbotFsmDisplayState: (displayTuple: FsmDisplayTuple) => void; // New prop
 }
 
 export function ChatbotFsmProvider({
@@ -64,6 +65,7 @@ export function ChatbotFsmProvider({
   aiOptionsAnalysisJson,
   currentGlobalChatHistory,
   logDebug,
+  setChatbotFsmDisplayState, // New prop
 }: ChatbotFsmProviderProps) {
   const chatbotFsmReducer = (
     state: ChatbotFsmManagedState,
@@ -85,7 +87,7 @@ export function ChatbotFsmProvider({
       case 'SUBMIT_MESSAGE_REQUESTED':
         if (!state.userInput.trim()) {
           logDebug('ChatbotFsmContext', 'ReducerAction', 'SUBMIT_MESSAGE_REQUESTED: User input empty, no change.');
-          return state; // No change if input is empty, previous state remains the same
+          return { ...state, previousFsmState: previousState };
         }
         logDebug('ChatbotFsmContext', 'ReducerAction', 'SUBMIT_MESSAGE_REQUESTED: Transitioning to SUBMITTING_MESSAGE.');
         nextState = ChatbotFsmInternalState.SUBMITTING_MESSAGE;
@@ -103,7 +105,7 @@ export function ChatbotFsmProvider({
           previousFsmState: previousState,
         };
       default:
-        return state;
+        return { ...state, previousFsmState: previousState };
     }
   };
 
@@ -122,7 +124,7 @@ export function ChatbotFsmProvider({
             break;
         case ChatbotFsmInternalState.SUBMITTING_MESSAGE:
             if (event.type === 'SUBMISSION_CONCLUDED') targetState = ChatbotFsmInternalState.IDLE;
-            else if (event.type === 'USER_INPUT_CHANGED') targetState = currentState; // Remain submitting while input changes during submission (rare)
+            else if (event.type === 'USER_INPUT_CHANGED') targetState = currentState; 
             break;
     }
 
@@ -134,14 +136,21 @@ export function ChatbotFsmProvider({
   }, [state.fsmState, state.userInput, logDebug]);
 
   useEffect(() => {
-    if (targetChatbotFsmDisplayState !== null) {
+    if (targetChatbotFsmDisplayState !== null && state.fsmState === targetChatbotFsmDisplayState) {
       logDebug('ChatbotFsmContext', 'TargetClearEffect', `Chatbot FSM state changed to ${state.fsmState}. Clearing target display state.`);
       setTargetChatbotFsmDisplayState(null);
     }
-  }, [state.fsmState, logDebug]);
+  }, [state.fsmState, targetChatbotFsmDisplayState, logDebug]);
+
+  useEffect(() => {
+    setChatbotFsmDisplayState({
+      previous: state.previousFsmState,
+      current: state.fsmState,
+      target: targetChatbotFsmDisplayState,
+    });
+  }, [state.fsmState, state.previousFsmState, targetChatbotFsmDisplayState, setChatbotFsmDisplayState]);
 
 
-  // Effect to handle the actual submission when state becomes SUBMITTING_MESSAGE
   useEffect(() => {
     if (state.fsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && state.userInput.trim()) {
       logDebug('ChatbotFsmContext', 'EffectOnSubmit', 'SUBMITTING_MESSAGE state detected. Preparing to call actions.');
@@ -171,7 +180,6 @@ export function ChatbotFsmProvider({
         chatFormAction(chatPayload);
       });
 
-      // Clear input in the FSM after submission has been initiated
       dispatchChatbotFsmEventWithTarget({ type: 'USER_INPUT_CHANGED', payload: '' });
       logDebug('ChatbotFsmContext', 'EffectOnSubmit', 'User input cleared in FSM, server action initiated.');
     }
@@ -187,7 +195,7 @@ export function ChatbotFsmProvider({
     aiOptionsAnalysisJson,
     currentGlobalChatHistory,
     logDebug,
-    dispatchChatbotFsmEventWithTarget // Added to dependency array
+    dispatchChatbotFsmEventWithTarget 
   ]);
 
 
@@ -213,3 +221,5 @@ export function useChatbotFsm() {
   }
   return context;
 }
+
+    

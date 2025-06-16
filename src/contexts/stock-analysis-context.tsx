@@ -47,6 +47,14 @@ export interface FsmHistoryState {
   current: FsmState;
 }
 
+export type FsmDisplayTuple = {
+  previous: string | null;
+  current: string;
+  target: string | null;
+};
+
+const initialFsmDisplayTuple: FsmDisplayTuple = { previous: 'N/A', current: 'N/A', target: 'N/A'};
+
 
 // FSM Event Types & Payloads
 interface FetchDataSuccessPayload extends StockDataFetchResult {}
@@ -151,6 +159,12 @@ interface StockAnalysisState {
   fsmState: FsmState; // Current FSM state derived from fsmHistory
   previousFsmState: FsmState | null; // Previous FSM state derived from fsmHistory
   targetFsmDisplayState: FsmState | null; // For UI display of intended next state
+
+  isFsmDebugCardEnabled: boolean;
+  isFsmDebugCardOpen: boolean;
+  mainTabFsmDisplay: FsmDisplayTuple;
+  chatbotFsmDisplay: FsmDisplayTuple;
+  debugConsoleMenuFsmDisplay: FsmDisplayTuple;
 }
 
 interface StockAnalysisContextSetters {
@@ -182,6 +196,12 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
   logDebug: (source: LogSourceId, category: string, ...messages: any[]) => void;
 
   dispatchFsmEvent: (event: FsmEvent) => void; // Wrapped dispatch
+
+  setFsmDebugCardEnabled: (enabled: boolean) => void;
+  setFsmDebugCardOpen: (open: boolean) => void;
+  setMainTabFsmDisplay: (display: FsmDisplayTuple) => void;
+  setChatbotFsmDisplay: (display: FsmDisplayTuple) => void;
+  setDebugConsoleMenuFsmDisplay: (display: FsmDisplayTuple) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -232,6 +252,11 @@ const defaultState: StockAnalysisState = {
   fsmState: initialFsmHistory.current,
   previousFsmState: initialFsmHistory.previous,
   targetFsmDisplayState: null,
+  isFsmDebugCardEnabled: true,
+  isFsmDebugCardOpen: true,
+  mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
+  chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
+  debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -272,6 +297,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
   const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<FsmState | null>(null);
   const activeAnalysisTickerRef = useRef<string | null>(null);
+
+  const [_isFsmDebugCardEnabled, _setIsFsmDebugCardEnabled] = useState<boolean>(defaultState.isFsmDebugCardEnabled);
+  const [_isFsmDebugCardOpen, _setIsFsmDebugCardOpen] = useState<boolean>(defaultState.isFsmDebugCardOpen);
+  const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple>(defaultState.mainTabFsmDisplay);
+  const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple>(defaultState.chatbotFsmDisplay);
+  const [_debugConsoleMenuFsmDisplay, _setDebugConsoleMenuFsmDisplay] = useState<FsmDisplayTuple>(defaultState.debugConsoleMenuFsmDisplay);
 
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
@@ -339,7 +370,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setAiKeyTakeawaysJson(pendingJson);
     _setAiOptionsAnalysisRequestJson(pendingJson);
     _setAiOptionsAnalysisJson(pendingJson);
-    // Only reset chatbot JSONs if it's a full analysis trigger, not manual AI calls
     if (isFullAnalysis) {
         _setChatbotRequestJson(pendingJson);
         _setChatbotResponseJson(pendingJson);
@@ -380,6 +410,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _setClientDebugConsoleOpen(false);
     }
   }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals, enableAllLogSources, logDebug]);
+
+  const setFsmDebugCardEnabled = useCallback((enabled: boolean) => {
+    logDebug('StockAnalysisContext', 'FsmDebugCard', `FSM Debug Card ENabled toggled to: ${enabled}`);
+    _setIsFsmDebugCardEnabled(enabled);
+    if (enabled) {
+        _setIsFsmDebugCardOpen(true);
+    } else {
+        _setIsFsmDebugCardOpen(false);
+    }
+  }, [logDebug]);
 
 
   const fsmReducer = (currentHistory: FsmHistoryState, event: FsmEvent): FsmHistoryState => {
@@ -543,14 +583,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
           contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `KEY_TAKEAWAYS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE; // Or IDLE if this is the only manual action
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         } else if (event.type === 'KEY_TAKEAWAYS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Key Takeaways generation failed';
           const ktErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiKeyTakeawaysRequestJson(errorPayload.aiKeyTakeawaysRequestJson || ktErrorJson);
           contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `KEY_TAKEAWAYS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE; // Or IDLE
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
         break;
 
@@ -559,14 +599,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
           contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `OPTIONS_ANALYSIS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE; // Or IDLE
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         } else if (event.type === 'OPTIONS_ANALYSIS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Options Analysis failed';
           const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson);
           contextSetters.setAiOptionsAnalysisJson(optErrorJson);
           logDebug('StockAnalysisContext', 'FSM_TRANSITION', `OPTIONS_ANALYSIS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
-          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE; // Or IDLE
+          nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
         break;
 
@@ -574,8 +614,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'PROCEED_TO_IDLE') {
             logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${currentActualState} handling PROCEED_TO_IDLE. isFullAnalysisTriggered: ${_isFullAnalysisTriggeredInternalState}. Active Ticker: ${activeAnalysisTickerRef.current}. Transitioning to IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false);
-            // activeAnalysisTickerRef.current is NOT reset here to allow manual actions on current data.
-            // It's reset if a NEW StartFullAnalysis comes or if MainTabContent explicitly signals a different ticker.
             nextCurrentState = FsmState.IDLE;
         } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
@@ -845,7 +883,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   // Effect for fetchStockDataAction results
   useEffect(() => {
-    if (fsmHistoryRef.current.current !== FsmState.FETCHING_DATA) return; // Process only if we were expecting this result
+    if (fsmHistoryRef.current.current !== FsmState.FETCHING_DATA) return; 
 
     if (fetchDataActionState.status === 'success' && fetchDataActionState.data) {
         logDebug('StockAnalysisContext', 'ActionState:fetchData', 'SUCCESS', fetchDataActionState.data);
@@ -969,6 +1007,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     previousFsmState: fsmHistory.previous,
     targetFsmDisplayState: _targetFsmDisplayState,
     dispatchFsmEvent,
+    isFsmDebugCardEnabled: _isFsmDebugCardEnabled, setFsmDebugCardEnabled,
+    isFsmDebugCardOpen: _isFsmDebugCardOpen, setFsmDebugCardOpen: _setIsFsmDebugCardOpen,
+    mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay: _setMainTabFsmDisplay,
+    chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay: _setChatbotFsmDisplay,
+    debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay: _setDebugConsoleMenuFsmDisplay,
   };
 
   return (
@@ -985,3 +1028,5 @@ export function useStockAnalysis() {
   }
   return context;
 }
+
+    

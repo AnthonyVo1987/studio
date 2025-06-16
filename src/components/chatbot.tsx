@@ -41,8 +41,6 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
 
   const {
     fsmState: chatbotFsmState,
-    previousChatbotFsmState,
-    targetChatbotFsmDisplayState,
     userInput: fsmUserInput,
     dispatchChatbotFsmEvent
   } = useChatbotFsm();
@@ -50,7 +48,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  logDebug('Chatbot', 'Render', `ChatbotFSM: Prev: ${previousChatbotFsmState || 'N/A'} | Curr: ${chatbotFsmState} | Target: ${targetChatbotFsmDisplayState || 'N/A'}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+  logDebug('Chatbot', 'Render', `ChatbotFSM State: ${chatbotFsmState}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -119,7 +117,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
             StockSage AI Chat
           </CardTitle>
           <CardDescription className="text-xs mt-1">
-            Ask about {currentTickerForDisplay || "the stock"}. Chatbot FSM: P: {previousChatbotFsmState || 'N/A'} | C: {chatbotFsmState} | T: {targetChatbotFsmDisplayState || 'N/A'}.
+            Ask about {currentTickerForDisplay || "the stock"}. 
           </CardDescription>
         </div>
         <div className="flex items-center gap-1">
@@ -218,3 +216,5 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
     </Card>
   );
 }
+
+    

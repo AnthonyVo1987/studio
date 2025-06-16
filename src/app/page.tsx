@@ -10,6 +10,7 @@ import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
 import { StockAnalysisProvider, useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { DebugConsoleFsmProvider } from "@/contexts/debug-console-fsm-context";
+import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-debug-card";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
 
@@ -18,16 +19,33 @@ function PageContent() {
     isClientDebugConsoleEnabled,
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
+    isFsmDebugCardEnabled,
+    setFsmDebugCardEnabled,
+    isFsmDebugCardOpen,
     logDebug,
-    fsmState,
-    previousFsmState,
-    targetFsmDisplayState,
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
-    logDebug('MainTabContent', `Main debug console switch toggled by user to: ${checked}`);
+    logDebug('PageContent', `Main debug console switch toggled by user to: ${checked}`);
     setClientDebugConsoleEnabled(checked);
   };
+
+  const handleFsmDebugCardToggle = (checked: boolean) => {
+    logDebug('PageContent', `FSM debug card switch toggled by user to: ${checked}`);
+    setFsmDebugCardEnabled(checked);
+  };
+
+  const calculatePaddingBottom = () => {
+    let padding = 32; // Default padding
+    if (isClientDebugConsoleEnabled && isClientDebugConsoleOpen) {
+      padding = CONSOLE_HEIGHT_PX + 16;
+    }
+    if (isFsmDebugCardEnabled && isFsmDebugCardOpen) {
+      padding = (isClientDebugConsoleEnabled && isClientDebugConsoleOpen ? padding - 16 : 0) + FSM_CARD_HEIGHT_PX + 16;
+    }
+    return `${padding}px`;
+  };
+
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -36,21 +54,24 @@ function PageContent() {
         className={cn(
           "flex-grow container mx-auto py-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ease-in-out"
         )}
-        style={{ paddingBottom: isClientDebugConsoleEnabled && isClientDebugConsoleOpen ? `${CONSOLE_HEIGHT_PX + 16}px` : '32px' }}
+        style={{ paddingBottom: calculatePaddingBottom() }}
       >
-        <div className="flex items-center space-x-2 mb-4 p-4 border rounded-md bg-card/50">
-          <Switch
-            id="enable-debug-console"
-            checked={isClientDebugConsoleEnabled}
-            onCheckedChange={handleDebugConsoleToggle}
-          />
-          <Label htmlFor="enable-debug-console" className="flex-shrink-0">Enable & Show Client Debug Console</Label>
-          <div className="ml-auto text-xs text-muted-foreground text-right flex-grow space-x-2">
-            <span>Prev: <span className="font-semibold">{previousFsmState || 'N/A'}</span></span>
-            <span>|</span>
-            <span>Current: <span className="font-semibold">{fsmState}</span></span>
-            <span>|</span>
-            <span>Target: <span className="font-semibold">{targetFsmDisplayState || 'N/A'}</span></span>
+        <div className="flex flex-col space-y-2 mb-4 p-4 border rounded-md bg-card/50">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="enable-debug-console"
+              checked={isClientDebugConsoleEnabled}
+              onCheckedChange={handleDebugConsoleToggle}
+            />
+            <Label htmlFor="enable-debug-console" className="flex-shrink-0">Enable & Show Client Debug Console</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+             <Switch
+              id="enable-fsm-debug-card"
+              checked={isFsmDebugCardEnabled}
+              onCheckedChange={handleFsmDebugCardToggle}
+            />
+            <Label htmlFor="enable-fsm-debug-card" className="flex-shrink-0">Enable & Show FSM State Debug Card</Label>
           </div>
         </div>
         <Tabs defaultValue="main" className="w-full">
@@ -66,10 +87,11 @@ function PageContent() {
           </TabsContent>
         </Tabs>
       </main>
-      <Footer />
+      <FsmStateDebugCard />
       <DebugConsoleFsmProvider logDebug={logDebug}>
         <DebugConsole />
       </DebugConsoleFsmProvider>
+      <Footer />
     </div>
   );
 }
@@ -81,3 +103,5 @@ export default function Home() {
     </StockAnalysisProvider>
   );
 }
+
+    

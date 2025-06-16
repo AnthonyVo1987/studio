@@ -102,12 +102,12 @@ export function DebugConsole() {
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
     logDebug: stockAnalysisLogDebug,
+    isFsmDebugCardOpen,
+    isFsmDebugCardEnabled,
   } = useStockAnalysis();
 
   const {
     uiMenuState,
-    previousUiMenuState,
-    targetUiMenuDisplayState,
     activeFilters,
     searchTerm,
     dispatchDebugConsoleFsmEvent,
@@ -131,7 +131,6 @@ export function DebugConsole() {
       logsToProcess = logsToProcess.filter(log =>
         formatLogMessage(log.messages).toLowerCase().includes(currentSearchTerm)
       );
-      // stockAnalysisLogDebug('DebugConsole', `Search: "${currentSearchTerm}" matched ${logsToProcess.length} logs after type/source filters.`);
     }
 
     return logsToProcess.slice(Math.max(0, logsToProcess.length - MAX_DISPLAYED_LOGS));
@@ -252,20 +251,26 @@ export function DebugConsole() {
   const activeFilterCountFromFsm = activeFilters.types.size + activeFilters.sources.size;
   const isUserInteractionDisabled = displayedLogs.length === 0;
 
+  const translateY = isFsmDebugCardEnabled && isFsmDebugCardOpen ? `-${250 + 200}px` : '-250px';
+  // Adjusted translateY to place it below the FSM card if FSM card is open
+
   return (
     <Card
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-50 border-t-2 shadow-2xl bg-background/95 backdrop-blur-sm',
+        'fixed bottom-0 left-0 right-0 z-30 border-t-2 shadow-2xl bg-background/95 backdrop-blur-sm',
         'transition-all duration-300 ease-in-out'
       )}
-      style={{ height: `${CONSOLE_HEIGHT_PX}px` }}
+      style={{ 
+        transform: `translateY(0px)`, // Debug console is always at the bottom now
+        height: `${CONSOLE_HEIGHT_PX}px` 
+      }} 
     >
       <CardHeader className="p-2 border-b">
         <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-2 flex-shrink min-w-0">
             <CardTitle className="text-sm truncate">Client Debug Console</CardTitle>
             <CardDescription className="text-xs whitespace-nowrap">
-              ({displayedLogs.length} entries) Menu: P: {previousUiMenuState || 'N/A'} | C: {uiMenuState} | T: {targetUiMenuDisplayState || 'N/A'}
+              ({displayedLogs.length} entries)
             </CardDescription>
           </div>
           <div className="flex items-center gap-1.5 flex-grow justify-center px-2">
@@ -423,3 +428,5 @@ export function DebugConsole() {
     </Card>
   );
 }
+
+    
