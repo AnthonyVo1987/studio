@@ -363,7 +363,7 @@ export function MainTabContent({
 
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
     chatServerAction,
-    initialLocalChatActionState
+    initialLocalChatActionState 
   );
 
 
@@ -475,6 +475,8 @@ export function MainTabContent({
     GlobalFsmState.DATA_FETCH_FAILED,
     GlobalFsmState.AI_TA_FAILED,
   ].includes(globalFsmStateFromContext);
+
+  const isOverallAnalysisPending = isGlobalPipelineActive || isChatPending;
 
 
   const analyzeButtonLoading = localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED ||
@@ -694,7 +696,7 @@ export function MainTabContent({
             setChatbotFsmDisplayState={setChatbotFsmDisplay}
           >
             <Chatbot
-              isChatPending={isChatPending}
+              isAnyAnalysisInProgress={isOverallAnalysisPending}
               currentTickerForDisplay={localFsm.activeAnalysisTicker || localFsm.currentInputTicker}
             />
           </ChatbotFsmProvider>

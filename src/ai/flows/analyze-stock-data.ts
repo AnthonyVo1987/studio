@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that generates key insights about a stock, emphasizing sentiment.
@@ -43,7 +44,7 @@ If a specific indicator or window was not available, it might be missing from th
 Analyze all the provided data comprehensively. Your goal is to generate 5 distinct key takeaways, each with a concise statement and an associated sentiment. The categories for these takeaways are:
 1.  **Price Action:** Observations about the stock's recent price movements, support/resistance interactions with MAs or pivot points, etc.
 2.  **Trend:** The prevailing direction (or lack thereof) of the stock's price over a relevant period, considering MAs.
-3.  **Volatility:** For Volatility, describe the stock's recent price variation characteristics (e.g., daily range, percentage change significance). If volatility is typical or low, state that and provide context. **It's crucial to provide a descriptive statement beyond just 'low' or 'high'. For example, if low, state 'Volatility is currently low, with the stock trading in a narrow range of X% over the past Y period, suggesting consolidation.'** Ensure you provide a meaningful textual description for this category.
+3.  **Volatility:** For Volatility, describe the stock's recent price variation characteristics (e.g., daily range, percentage change significance). **You MUST provide a meaningful textual description (at least 10-15 words) for this category, even if volatility is low or typical.** For example: 'Volatility is currently low, with {{{ticker}}} trading in a narrow range of X% over the past Y period, suggesting consolidation.' or 'Volatility for {{{ticker}}} is elevated, with significant price swings observed, indicating market uncertainty around recent events.'
 4.  **Momentum:** The speed or rate of price changes for the stock, considering RSI and MACD.
 5.  **Patterns:** Any significant chart patterns observed or noteworthy absence of clear patterns.
 

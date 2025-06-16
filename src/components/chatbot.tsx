@@ -28,11 +28,11 @@ import { copyToClipboard, downloadJson } from '@/lib/export-utils';
 import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context';
 
 interface ChatbotProps {
-  isChatPending: boolean;
+  isAnyAnalysisInProgress: boolean; // Changed from isChatPending
   currentTickerForDisplay: string;
 }
 
-export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps) {
+export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: ChatbotProps) {
   const {
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
@@ -51,7 +51,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const logDebug = globalLogDebug;
 
-  logDebug('Chatbot', 'Render', `ChatbotFSM State: Prev: ${previousChatbotFsmState || 'N/A'} | Curr: ${chatbotFsmState} | Target: ${targetChatbotFsmDisplayState || 'N/A'}, isChatPending (prop): ${isChatPending}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+  logDebug('Chatbot', 'Render', `ChatbotFSM State: Prev: ${previousChatbotFsmState || 'N/A'} | Curr: ${chatbotFsmState} | Target: ${targetChatbotFsmDisplayState || 'N/A'}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -60,51 +60,30 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
   }, [globalChatHistory]);
 
   useEffect(() => {
-    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && !isChatPending) {
-      logDebug('Chatbot', 'EffectOnIsChatPending', `isChatPending became false while FSM was SUBMITTING_MESSAGE. Dispatching SUBMISSION_CONCLUDED.`);
+    // If the overall analysis (including chat's own server action) is no longer pending,
+    // AND the chatbot FSM was in a submitting state, conclude the submission.
+    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && !isAnyAnalysisInProgress) {
+      logDebug('Chatbot', 'EffectOnIsAnyAnalysisInProgress', `isAnyAnalysisInProgress became false while FSM was SUBMITTING_MESSAGE. Dispatching SUBMISSION_CONCLUDED.`);
       dispatchChatbotFsmEvent({ type: 'SUBMISSION_CONCLUDED' });
     }
-  }, [isChatPending, chatbotFsmState, dispatchChatbotFsmEvent, logDebug]);
+  }, [isAnyAnalysisInProgress, chatbotFsmState, dispatchChatbotFsmEvent, logDebug]);
 
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     logDebug('Chatbot', 'handleFormSubmit', `Submit requested. ChatbotFSM State: ${chatbotFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
-    if (!fsmUserInput.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) {
-      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty or already submitting.');
+    if (!fsmUserInput.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isAnyAnalysisInProgress) {
+      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty, already submitting, or another analysis is in progress.');
       return;
     }
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
-  }, [fsmUserInput, chatbotFsmState, dispatchChatbotFsmEvent, logDebug]);
+  }, [fsmUserInput, chatbotFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
 
   const handleExamplePromptClick = (promptTemplate: string) => {
-    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) return;
+    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isAnyAnalysisInProgress) return;
     const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
-    dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
-    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Initiating submit.`);
-    // Directly call handleFormSubmit after setting the input
-    // Need to ensure fsmUserInput is updated before handleFormSubmit sees it.
-    // A small delay or relying on the next render cycle might be needed if direct call uses stale state.
-    // For simplicity, let's try direct call. If issues, we can use a useEffect to trigger submit.
-    // Update: To make this reliable, we need to ensure the state update for userInput has propagated.
-    // The best way is to trigger submit in an effect that watches for fsmUserInput change IF it was set by an example.
-    // However, the current FSM structure has an effect in the provider that handles submission when state is SUBMITTING_MESSAGE.
-    // So, setting the input and then dispatching SUBMIT_MESSAGE_REQUESTED should work.
-    // We'll update handleFormSubmit to be callable without an event.
-
-    // To make handleFormSubmit work correctly when called programmatically,
-    // we ensure it reads the latest fsmUserInput from the FSM state.
-    // The dispatch of USER_INPUT_CHANGED updates the FSM state with the new prompt.
-    // Then, dispatching SUBMIT_MESSAGE_REQUESTED will make the FSM transition,
-    // and the effect in ChatbotFsmProvider will pick up the latest userInput.
     
-    // Temporarily set the input via a ref to ensure handleFormSubmit gets it for this synchronous call path
-    // This is a bit of a workaround. A cleaner way might involve a dedicated FSM event.
-    const internalInputRef = { current: filledPrompt }; // Mimic ref for immediate access
-
-    if (!internalInputRef.current.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE) {
-      logDebug('Chatbot', 'handleExamplePromptClick', 'Submit (from example) prevented: input empty or already submitting.');
-      return;
-    }
+    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Dispatching USER_INPUT_CHANGED then SUBMIT_MESSAGE_REQUESTED.`);
+    
     // Dispatch USER_INPUT_CHANGED first to update the context state
     dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
     // Then dispatch SUBMIT_MESSAGE_REQUESTED. The effect in ChatbotFsmProvider will use the updated userInput.
@@ -136,7 +115,7 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
     }
   };
 
-  const isProcessing = chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isChatPending;
+  const isProcessing = chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isAnyAnalysisInProgress;
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -147,13 +126,13 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
             StockSage AI Chat
           </CardTitle>
           <CardDescription className="text-xs mt-1">
-            Ask about {currentTickerForDisplay || "the stock"}.
+            Ask about {currentTickerForDisplay || "the stock"}. (Inputs disabled during analysis)
           </CardDescription>
         </div>
         <div className="flex items-center gap-1">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" title="Clear Chat History" disabled={globalChatHistory.length === 0}>
+                    <Button variant="ghost" size="icon" title="Clear Chat History" disabled={globalChatHistory.length === 0 || isProcessing}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 </AlertDialogTrigger>
@@ -170,10 +149,10 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-          <Button variant="ghost" size="icon" onClick={handleCopyChat} title="Copy Chat (JSON)" disabled={globalChatHistory.length === 0}>
+          <Button variant="ghost" size="icon" onClick={handleCopyChat} title="Copy Chat (JSON)" disabled={globalChatHistory.length === 0 || isProcessing}>
             <Copy className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleExportChat} title="Export Chat (JSON)" disabled={globalChatHistory.length === 0}>
+          <Button variant="ghost" size="icon" onClick={handleExportChat} title="Export Chat (JSON)" disabled={globalChatHistory.length === 0 || isProcessing}>
             <Download className="h-4 w-4" />
           </Button>
         </div>
@@ -246,5 +225,3 @@ export function Chatbot({ isChatPending, currentTickerForDisplay }: ChatbotProps
     </Card>
   );
 }
-
-    

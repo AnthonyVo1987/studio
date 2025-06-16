@@ -35,11 +35,18 @@ export const ChatOutputSchema = z.object({
 });
 export type ChatOutput = z.infer<typeof ChatOutputSchema>;
 
-// Example prompts for UI (as per PRD Section 2.2 - AI Chatbot Interface)
+// Example prompts for UI
 export const exampleChatPrompts: {title: string; prompt: string}[] = [
-    { title: "Current Price?", prompt: "What is the current price of {TICKER}?" },
-    { title: "Explain Pivot Points", prompt: "Can you explain the pivot points for {TICKER}?" },
-    { title: "Options Walls?", prompt: "What are the significant call and put walls for {TICKER} based on your options analysis?"}, // New example
-    { title: "Summarize Analysis", prompt: "Give me a quick summary of your analysis for {TICKER}." },
-    { title: "Recent Trend?", prompt: "What's the recent trend for {TICKER} according to your takeaways?" },
+    {
+        title: "Stock Trader's 3 Takeaways",
+        prompt: "Based on all currently available data for {TICKER} (including snapshot, technical indicators, any AI-generated TAs, key takeaways, and options analysis if present), provide 3 concise key takeaways specifically for a stock trader. Focus on actionable insights for short-to-medium term price action, trend, and momentum."
+    },
+    {
+        title: "Options Trader's 3 Takeaways",
+        prompt: "Based on all currently available data for {TICKER} (including snapshot, technical indicators, any AI-generated TAs, key takeaways, and especially options analysis if present), provide 3 concise key takeaways specifically for an options trader. Focus on volatility, key support/resistance levels for strike selection, and potential sentiment shifts relevant to options strategies."
+    },
+    {
+        title: "Additional 3 Holistic Takeaways",
+        prompt: "Provide 3 additional holistic key takeaways for {TICKER} that are distinct from typical price/trend/indicator summaries and not redundant with other AI analyses already displayed. Consider overall market sentiment reflected in the data, unique patterns in the provided JSONs, or broader implications if context allows. Focus on insights a human analyst might highlight beyond pure numbers."
+    }
 ];
