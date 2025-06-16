@@ -22,6 +22,7 @@ function PageContent() {
     isFsmDebugCardEnabled,
     setFsmDebugCardEnabled,
     isFsmDebugCardOpen,
+    setDebugConsoleMenuFsmDisplay, // Renamed from context for clarity if needed, but original name is fine
     logDebug,
   } = useStockAnalysis();
 
@@ -41,7 +42,9 @@ function PageContent() {
       padding = CONSOLE_HEIGHT_PX + 16;
     }
     if (isFsmDebugCardEnabled && isFsmDebugCardOpen) {
-      padding = (isClientDebugConsoleEnabled && isClientDebugConsoleOpen ? padding - 16 : 0) + FSM_CARD_HEIGHT_PX + 16;
+      // If console is also open, FSM card is above it, so add its height.
+      // If console is closed, FSM card is at the bottom, so its height is the primary factor.
+      padding = (isClientDebugConsoleEnabled && isClientDebugConsoleOpen ? CONSOLE_HEIGHT_PX : 0) + FSM_CARD_HEIGHT_PX + 16 + (isClientDebugConsoleEnabled && isClientDebugConsoleOpen ? 16 : 0) ;
     }
     return `${padding}px`;
   };
@@ -88,7 +91,10 @@ function PageContent() {
         </Tabs>
       </main>
       <FsmStateDebugCard />
-      <DebugConsoleFsmProvider logDebug={logDebug}>
+      <DebugConsoleFsmProvider 
+        logDebug={logDebug}
+        setDebugConsoleMenuFsmDisplayState={setDebugConsoleMenuFsmDisplay}
+      >
         <DebugConsole />
       </DebugConsoleFsmProvider>
       <Footer />
@@ -103,5 +109,3 @@ export default function Home() {
     </StockAnalysisProvider>
   );
 }
-
-    
