@@ -16,6 +16,48 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.C.Y` (Streamline & Consolidate Debug Logs)
+**Tag:** `Phase-9_Task-9.C.Y_StreamlineDebugLogs` - Commit Hash: `f68eb561`
+**Subject:** `feat(debug): Consolidate debug logging, refine AI options prompt (v2.9.C.Y)`
+**Details:**
+This version encapsulates several iterations focused on refining AI analysis, enhancing debuggability, and then streamlining those debug logs.
+
+**Key Changes from v2.9.C.U to v2.9.C.Y:**
+
+*   **Task v2.9.C.U (AI Key Takeaways & Options Analysis Refinement):**
+    *   `src/ai/flows/analyze-stock-data.ts`: Further improved default/error object return for all five AI key takeaway categories to ensure a well-structured response even on AI generation failure.
+    *   `src/ai/definitions/analyze-options-chain.json`: Continued to loosen the prompt for AI options analysis, aiming for more wall identification by emphasizing "noteworthy OI" and relative significance.
+    *   Application version updated to `v2.9.C.U`.
+
+*   **Task v2.9.C.V (AI Options - Enforce Min/Max Walls in Prompt):**
+    *   `src/ai/definitions/analyze-options-chain.json`: Prompt significantly updated to explicitly request "AT LEAST 1 Call Wall and AT LEAST 1 Put Wall if any reasonable candidates exist," up to a maximum of 3. Instructions were made more insistent for the AI to make every effort to find walls, even if significance is moderate.
+    *   `src/ai/flows/analyze-options-chain-flow.ts`: The flow logic continues to respect the AI's output; the emphasis for improvement was placed on the prompt's direct instructions.
+    *   Application version updated to `v2.9.C.V`.
+
+*   **Task v2.9.C.W (FEAT - Additional Debug Trace Logging - Phase 1: Server-Side):**
+    *   `src/ai/definition-loader.ts`: Added detailed logging for definition loading, validation, and prompt string building processes.
+    *   `src/ai/flows/*.ts` (all AI flows): Implemented comprehensive logging for flow entry, input parameters, prompt execution details (model, prompt snippets), output summaries, and detailed error capture.
+    *   `src/actions/*.ts` (all server actions): Added extensive logging for action entry, payload validation, calls to AI flows, flow output handling, and detailed error capture.
+    *   Resolved syntax errors in `src/ai/definition-loader.ts` (removed `'use server';`) and in `src/ai/flows/*.ts` (misplaced `console.log` statements within `ai.definePrompt` object definitions).
+    *   Application version updated to `v2.9.C.W`.
+
+*   **Task v2.9.C.X (FEAT - Additional Debug Trace Logging - Phase 2: Client-Side):**
+    *   `src/contexts/stock-analysis-context.tsx`: Added detailed logging for Global FSM transitions, action result handling, and key state setters.
+    *   `src/contexts/chatbot-fsm-context.tsx` & `src/contexts/debug-console-fsm-context.tsx`: Implemented logging for local FSM events and transitions.
+    *   `src/components/main-tab-content.tsx`: Added logging for its internal local FSM and user interactions triggering analysis pipelines.
+    *   Primary display components (e.g., `AiKeyTakeawaysDisplay`, `OptionsChainTable`, etc.): Added logging for incoming JSON props (status/length), parsed data summaries, and user actions like export/copy.
+    *   `src/components/chatbot.tsx`, `src/components/debug-console.tsx`: Enhanced UI interaction logging.
+    *   `src/lib/debug-log-types.ts`: Log source IDs and labels reviewed; existing toggles cover the new client-side log points.
+    *   Application version updated to `v2.9.C.X`.
+
+*   **Task v2.9.C.Y (FEAT - Streamline & Consolidate Older Debug Logs):**
+    *   **Client-Side Display Components:** Reduced verbosity of initial JSON prop logging (now logs length/status instead of snippets). Summarized logging for large parsed data objects (e.g., Object.keys or item counts).
+    *   `src/services/data-sources/adapters/polygon-adapter.ts`: Removed redundant cache-bust timestamp logging from individual TA API call logs (RSI, EMA, SMA).
+    *   Critical logs in contexts (FSM, actions, flows), definition loader, and `MainTabContent` local FSM were reviewed and confirmed to be essential and retained.
+    *   Application version updated to `v2.9.C.Y`.
+
+These changes aim to improve the robustness of AI outputs, significantly enhance the debuggability of both server-side and client-side operations, and then refine the logging to reduce noise while maintaining critical trace information.
+---
 **App Version:** `v2.9.C.T` (Fix Takeaways Error, Refine Options Prompt)
 **Tag:** `Phase-9_Task-9.C.T_FixTakeawaysLoosenOptionsPrompt` - Commit Hash: `(placeholder_for_C.T_commit)`
 **Subject:** `fix(ai): Improve AI Takeaways error handling, loosen Options prompt (v2.9.C.T)`
@@ -414,6 +456,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 
