@@ -69,17 +69,20 @@ export function ChatbotFsmProvider({
   logDebug,
   setChatbotFsmDisplayState,
 }: ChatbotFsmProviderProps) {
+  const componentLogSource = 'ChatbotFsmContext'; // Consistent source for logs from this context
+
   const chatbotFsmReducer = (
     state: ChatbotFsmManagedState,
     event: ChatbotFsmEvent
   ): ChatbotFsmManagedState => {
     const previousState = state.fsmState;
-    logDebug('ChatbotFsmContext', 'ReducerEvent', `Event: ${event.type}, CurrentState: ${state.fsmState}, PrevState: ${previousState}, UserInput: "${state.userInput.substring(0,20)}"`);
+    logDebug(componentLogSource, 'Reducer_Event', `Event: ${event.type}, CurrentState: ${state.fsmState}, PrevState: ${previousState}, UserInput: "${state.userInput.substring(0,20)}"`);
     let nextState: ChatbotFsmInternalState = state.fsmState;
 
     switch (event.type) {
       case 'USER_INPUT_CHANGED':
         nextState = state.fsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE ? state.fsmState : ChatbotFsmInternalState.PROCESSING_USER_INPUT;
+        logDebug(componentLogSource, 'Reducer_Transition', `USER_INPUT_CHANGED: Transitioning to ${nextState}. New input: "${event.payload.substring(0,20)}"`);
         return {
           ...state,
           userInput: event.payload,
@@ -88,10 +91,10 @@ export function ChatbotFsmProvider({
         };
       case 'SUBMIT_MESSAGE_REQUESTED':
         if (!state.userInput.trim()) {
-          logDebug('ChatbotFsmContext', 'ReducerAction', 'SUBMIT_MESSAGE_REQUESTED: User input empty, no change.');
+          logDebug(componentLogSource, 'Reducer_Action', 'SUBMIT_MESSAGE_REQUESTED: User input empty, no change.');
           return { ...state, previousFsmState: previousState };
         }
-        logDebug('ChatbotFsmContext', 'ReducerAction', 'SUBMIT_MESSAGE_REQUESTED: Transitioning to SUBMITTING_MESSAGE.');
+        logDebug(componentLogSource, 'Reducer_Transition', 'SUBMIT_MESSAGE_REQUESTED: Transitioning to SUBMITTING_MESSAGE.');
         nextState = ChatbotFsmInternalState.SUBMITTING_MESSAGE;
         return {
           ...state,
@@ -99,7 +102,7 @@ export function ChatbotFsmProvider({
           previousFsmState: previousState,
         };
       case 'SUBMISSION_CONCLUDED':
-        logDebug('ChatbotFsmContext', 'ReducerAction', 'SUBMISSION_CONCLUDED: Transitioning to IDLE.');
+        logDebug(componentLogSource, 'Reducer_Transition', 'SUBMISSION_CONCLUDED: Transitioning to IDLE.');
         nextState = ChatbotFsmInternalState.IDLE;
         return {
           ...state,
@@ -107,6 +110,7 @@ export function ChatbotFsmProvider({
           previousFsmState: previousState,
         };
       default:
+         logDebug(componentLogSource, 'Reducer_UnhandledEvent', `Unhandled event type: ${event.type}`);
         return { ...state, previousFsmState: previousState };
     }
   };
@@ -120,11 +124,13 @@ export function ChatbotFsmProvider({
       current: state.fsmState,
       target: targetChatbotFsmDisplayState,
     });
-  }, [state.fsmState, state.previousFsmState, targetChatbotFsmDisplayState, setChatbotFsmDisplayState]);
+    logDebug(componentLogSource, 'Effect_DisplayUpdate', `FSM display state reported to global context. Prev: ${state.previousFsmState}, Curr: ${state.fsmState}, Target: ${targetChatbotFsmDisplayState}`);
+  }, [state.fsmState, state.previousFsmState, targetChatbotFsmDisplayState, setChatbotFsmDisplayState, logDebug]);
 
   const dispatchChatbotFsmEventWithTarget = useCallback((event: ChatbotFsmEvent) => {
-    let targetState: ChatbotFsmInternalState | null = null;
+    let targetState: ChatbotFsmInternalState | null = state.fsmState; 
     const currentState = state.fsmState;
+    logDebug(componentLogSource, 'Dispatch_Attempt', `Attempting dispatch. Event: ${event.type}, CurrentState: ${currentState}`);
 
     switch (currentState) {
         case ChatbotFsmInternalState.IDLE:
@@ -138,23 +144,28 @@ export function ChatbotFsmProvider({
             break;
     }
 
-    if (targetState) {
-      logDebug('ChatbotFsmContext', 'DispatchWithTarget', `Event ${event.type} from ${currentState} targeting ${targetState}.`);
+    if (targetState && targetState !== currentState) {
+      logDebug(componentLogSource, 'Dispatch_TargetSet', `Event ${event.type} from ${currentState} targeting ${targetState}.`);
       setTargetChatbotFsmDisplayState(targetState);
+    } else if (targetState === currentState && event.type !== 'USER_INPUT_CHANGED') { // Avoid clearing target if only input changed within same conceptual state
+      logDebug(componentLogSource, 'Dispatch_TargetClear', `Event ${event.type} from ${currentState} resulted in same target. Clearing target display.`);
+      setTargetChatbotFsmDisplayState(null);
+    } else if (targetState === currentState && event.type === 'USER_INPUT_CHANGED'){
+      // No change to target display if only user input changes within PROCESSING_USER_INPUT
     }
     dispatch(event);
   }, [state.fsmState, state.userInput, logDebug]);
 
   useEffect(() => {
     if (targetChatbotFsmDisplayState !== null && state.fsmState === targetChatbotFsmDisplayState) {
-      logDebug('ChatbotFsmContext', 'TargetClearEffect', `Chatbot FSM state changed to ${state.fsmState}. Clearing target display state.`);
+      logDebug(componentLogSource, 'Effect_TargetReached', `Chatbot FSM state changed to ${state.fsmState}. Clearing target display state.`);
       setTargetChatbotFsmDisplayState(null);
     }
   }, [state.fsmState, targetChatbotFsmDisplayState, logDebug]);
 
   useEffect(() => {
     if (state.fsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && state.userInput.trim()) {
-      logDebug('ChatbotFsmContext', 'EffectOnSubmit', 'SUBMITTING_MESSAGE state detected. Preparing to call actions.');
+      logDebug(componentLogSource, 'Effect_SubmitMessage', 'SUBMITTING_MESSAGE state detected. Preparing to call actions.');
 
       const userMessageContent = state.userInput.trim();
       const userMessage: ChatMessage = {
@@ -164,7 +175,7 @@ export function ChatbotFsmProvider({
       };
 
       addChatMessageToGlobalContext(userMessage);
-      logDebug('ChatbotFsmContext', 'EffectOnSubmit', 'User message added to global context.');
+      logDebug(componentLogSource, 'Effect_SubmitMessage', 'User message added to global context.');
 
       const chatPayload: ChatActionInputs = {
         ticker: currentTicker,
@@ -175,14 +186,15 @@ export function ChatbotFsmProvider({
         chatHistory: [...currentGlobalChatHistory, userMessage],
         userInput: userMessageContent,
       };
+      logDebug(componentLogSource, 'Effect_SubmitMessage_Payload', 'Chat payload prepared:', { ticker: currentTicker, historyLength: chatPayload.chatHistory.length, userInputSnippet: userMessageContent.substring(0,30) });
 
-      logDebug('ChatbotFsmContext', 'EffectOnSubmit', 'Calling server action chatFormAction within startTransition.');
+      logDebug(componentLogSource, 'Effect_SubmitMessage', 'Calling server action chatFormAction within startTransition.');
       startTransition(() => {
         chatFormAction(chatPayload);
       });
 
       dispatchChatbotFsmEventWithTarget({ type: 'USER_INPUT_CHANGED', payload: '' });
-      logDebug('ChatbotFsmContext', 'EffectOnSubmit', 'User input cleared in FSM, server action initiated.');
+      logDebug(componentLogSource, 'Effect_SubmitMessage', 'User input cleared in FSM, server action initiated.');
     }
   }, [
     state.fsmState,

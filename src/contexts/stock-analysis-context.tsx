@@ -341,23 +341,23 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
     _setLogSourceConfig(prevConfig => {
       const newConfig = { ...prevConfig, [source]: enabled };
-      logDebug('StockAnalysisContext', 'LogConfig', `Log source '${source}' ${enabled ? 'ENABLED' : 'DISABLED'}.`);
+      logDebug('StockAnalysisContext', 'LogConfigChange', `Log source '${source}' ${enabled ? 'ENABLED' : 'DISABLED'}.`);
       return newConfig;
     });
   }, [_setLogSourceConfig, logDebug]);
 
   const addChatMessage = useCallback((message: ChatMessage) => {
     _setChatHistory(prev => [...prev, message]);
-    logDebug('StockAnalysisContext', 'Chat', `Added interactive chat message from ${message.role}:`, message.content.substring(0, 50));
+    logDebug('StockAnalysisContext', 'ChatUpdate', `Added interactive chat message from ${message.role}:`, message.content.substring(0, 50));
   }, [_setChatHistory, logDebug]);
 
   const clearChatHistory = useCallback(() => {
     _setChatHistory([]);
-    logDebug('StockAnalysisContext', 'Chat', 'Interactive chat history CLEARED by user action.');
+    logDebug('StockAnalysisContext', 'ChatUpdate', 'Interactive chat history CLEARED by user action.');
   }, [_setChatHistory, logDebug]);
 
   const setAllPlaceholdersInternal = useCallback((currentTickerForLogOnly: string, isFullAnalysis: boolean) => {
-    logDebug('StockAnalysisContext','FSM_UTIL', `Resetting analysis-related context JSONs to generic PENDING for new analysis of ${currentTickerForLogOnly}. Full analysis mode: ${isFullAnalysis}. CHAT HISTORY AND DEBUG LOGS ARE PRESERVED.`);
+    logDebug('StockAnalysisContext','FsmUtil', `Resetting analysis-related context JSONs to generic PENDING for new analysis of ${currentTickerForLogOnly}. Full analysis mode: ${isFullAnalysis}. CHAT HISTORY AND DEBUG LOGS ARE PRESERVED.`);
     _setPolygonApiRequestLogJson(pendingJson);
     _setPolygonApiResponseLogJson(pendingJson);
     _setMarketStatusJson(pendingJson);
@@ -377,42 +377,38 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [logDebug]);
 
   const enableAllLogSources = useCallback(() => {
-    contextOriginals.debug('[CONTEXT_ENABLE_ALL_SOURCES] Called.');
+    logDebug('StockAnalysisContext', 'LogConfigChange', 'Enable All Log Sources button clicked.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
     logSourceIds.forEach(id => { newConfig[id] = true; });
     newConfig.DebugConsole = true; 
-    contextOriginals.debug('[CONTEXT_ENABLE_ALL_SOURCES] newConfig prepared:', JSON.stringify(newConfig));
     _setLogSourceConfig(newConfig);
-  }, [contextOriginals]);
+  }, [_setLogSourceConfig, logDebug]);
 
   const disableAllLogSources = useCallback(() => {
-    contextOriginals.debug('[CONTEXT_DISABLE_ALL_SOURCES] Called.');
+    logDebug('StockAnalysisContext', 'LogConfigChange', 'Disable All Log Sources button clicked.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
     logSourceIds.forEach(id => {
       newConfig[id] = id === 'DebugConsole'; 
     });
-    contextOriginals.debug('[CONTEXT_DISABLE_ALL_SOURCES] newConfig prepared:', JSON.stringify(newConfig));
     _setLogSourceConfig(newConfig);
-  }, [contextOriginals]);
+  }, [_setLogSourceConfig, logDebug]);
 
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
-    contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Called with: ${enabled}. Current _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
+    logDebug('StockAnalysisContext', 'DebugConsoleToggle', `ClientDebugConsoleEnabled toggled to: ${enabled}.`);
     _setClientDebugConsoleEnabled(enabled);
     if (enabled) {
-        contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === true) met. Calling enableAllLogSources and _setClientDebugConsoleOpen(true).`);
         enableAllLogSources();
         _setLogSourceConfig(prevConfig => ({ ...prevConfig, OptionsChainTable: false }));
-        logDebug('StockAnalysisContext', 'LogConfig', `OptionsChainTable log source explicitly DISABLED after enabling all.`);
+        logDebug('StockAnalysisContext', 'LogConfigChange', `OptionsChainTable log source explicitly DISABLED after enabling all.`);
         _setClientDebugConsoleOpen(true);
     } else {
-        contextOriginals.debug(`[CONTEXT_SET_CONSOLE_ENABLED] Condition (enabled === false) met. Calling _setClientDebugConsoleOpen(false).`);
         _setClientDebugConsoleOpen(false);
     }
-  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, contextOriginals, enableAllLogSources, logDebug]);
+  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
 
   const setFsmDebugCardEnabled = useCallback((enabled: boolean) => {
-    logDebug('StockAnalysisContext', 'FsmDebugCard', `FSM Debug Card ENabled toggled to: ${enabled}`);
+    logDebug('StockAnalysisContext', 'FsmDebugCardToggle', `FSM Debug Card Enabled toggled to: ${enabled}`);
     _setIsFsmDebugCardEnabled(enabled);
     if (enabled) {
         _setIsFsmDebugCardOpen(true);
@@ -428,7 +424,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           prevDisplay?.target === display?.target) {
         return prevDisplay;
       }
-      logDebug('StockAnalysisContext', 'FSM_DISPLAY_UPDATE', 'MainTabFsmDisplay updated.', display);
+      logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'MainTabFsmDisplay updated.', display);
       return display;
     });
   }, [_setMainTabFsmDisplay, logDebug]);
@@ -440,7 +436,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           prevDisplay?.target === display?.target) {
         return prevDisplay;
       }
-      logDebug('StockAnalysisContext', 'FSM_DISPLAY_UPDATE', 'ChatbotFsmDisplay updated.', display);
+      logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'ChatbotFsmDisplay updated.', display);
       return display;
     });
   }, [_setChatbotFsmDisplay, logDebug]);
@@ -452,7 +448,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           prevDisplay?.target === display?.target) {
         return prevDisplay;
       }
-      logDebug('StockAnalysisContext', 'FSM_DISPLAY_UPDATE', 'DebugConsoleMenuFsmDisplay updated.', display);
+      logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'DebugConsoleMenuFsmDisplay updated.', display);
       return display;
     });
   }, [_setDebugConsoleMenuFsmDisplay, logDebug]);
@@ -460,9 +456,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const fsmReducer = (currentHistory: FsmHistoryState, event: FsmEvent): FsmHistoryState => {
     const currentActualState = currentHistory.current;
-    logDebug('StockAnalysisContext', 'FSM_REDUCER_ENTRY', `Global FSM Event: ${event.type}, Current State: ${currentActualState}`);
+    logDebug('StockAnalysisContext', 'FSM_Reducer_Event', `Global FSM Event: ${event.type}, Current State: ${currentActualState}`);
     if ('payload' in event && event.type !== 'ADD_CHAT_MESSAGE') {
-        logDebug('StockAnalysisContext', 'FSM_REDUCER_PAYLOAD', `Payload for ${event.type}:`, event.payload ? JSON.stringify(event.payload).substring(0, 200) : 'No Payload Content');
+        logDebug('StockAnalysisContext', 'FSM_Reducer_Payload', `Payload for ${event.type}:`, event.payload ? JSON.stringify(event.payload).substring(0, 200) : 'No Payload Content');
     }
 
 
@@ -477,17 +473,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           activeAnalysisTickerRef.current = event.payload.ticker;
           setAllPlaceholdersInternal(event.payload.ticker, true);
           _setIsFullAnalysisTriggeredInternalState(true);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `START_FULL_ANALYSIS for ${event.payload.ticker}. activeAnalysisTickerRef set. isFullAnalysisTriggered true. Transitioning to INITIALIZING_ANALYSIS.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `IDLE -> START_FULL_ANALYSIS for ${event.payload.ticker}. Transitioning to INITIALIZING_ANALYSIS.`);
           nextCurrentState = FsmState.INITIALIZING_ANALYSIS;
         } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Key Takeaways for ${event.payload.ticker}. Setting placeholders.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `IDLE -> Manually triggering Key Takeaways for ${event.payload.ticker}. Setting placeholders. Transitioning to GENERATING_KEY_TAKEAWAYS.`);
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
           contextSetters.setAiKeyTakeawaysJson(pendingJson);
           nextCurrentState = FsmState.GENERATING_KEY_TAKEAWAYS;
         } else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Options Analysis for ${event.payload.ticker}. Setting placeholders.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `IDLE -> Manually triggering Options Analysis for ${event.payload.ticker}. Setting placeholders. Transitioning to ANALYZING_OPTIONS.`);
           contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
           contextSetters.setAiOptionsAnalysisJson(pendingJson);
           nextCurrentState = FsmState.ANALYZING_OPTIONS;
@@ -499,14 +495,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.INITIALIZING_ANALYSIS:
         if (event.type === 'INITIALIZATION_COMPLETE') {
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `INITIALIZATION_COMPLETE. Transitioning to AWAITING_DATA_FETCH_TRIGGER.`);
+            logDebug('StockAnalysisContext', 'FSM_Transition', `INITIALIZING_ANALYSIS -> INITIALIZATION_COMPLETE. Transitioning to AWAITING_DATA_FETCH_TRIGGER.`);
             nextCurrentState = FsmState.AWAITING_DATA_FETCH_TRIGGER;
         }
         break;
 
       case FsmState.AWAITING_DATA_FETCH_TRIGGER:
         if (event.type === 'TRIGGER_DATA_FETCH') {
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `TRIGGER_DATA_FETCH. Transitioning to FETCHING_DATA.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `AWAITING_DATA_FETCH_TRIGGER -> TRIGGER_DATA_FETCH. Transitioning to FETCHING_DATA.`);
           nextCurrentState = FsmState.FETCHING_DATA;
         }
         break;
@@ -519,7 +515,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setOptionsChainJson(event.payload.optionsChainJson);
           contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson);
           contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `FETCH_DATA_SUCCESS. Transitioning to DATA_FETCH_SUCCEEDED.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `FETCHING_DATA -> FETCH_DATA_SUCCESS. Transitioning to DATA_FETCH_SUCCEEDED.`);
           nextCurrentState = FsmState.DATA_FETCH_SUCCEEDED;
         } else if (event.type === 'FETCH_DATA_FAILURE') {
           const errorMsg = event.payload.message || 'Data fetch failed';
@@ -535,11 +531,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           contextSetters.setAiAnalyzedTaRequestJson(skippedJson); contextSetters.setAiAnalyzedTaJson(skippedJson);
           contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
           contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `FETCH_DATA_FAILURE. Error: ${errorMsg}. Transitioning to DATA_FETCH_FAILED.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `FETCHING_DATA -> FETCH_DATA_FAILURE. Error: ${errorMsg}. Transitioning to DATA_FETCH_FAILED.`);
           nextCurrentState = FsmState.DATA_FETCH_FAILED;
         } else if (event.type === 'STALE_DATA_FROM_ACTION') {
           const { error, message, expectedTicker, foundTickerInSnapshot } = event.payload;
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `STALE_DATA_FROM_ACTION. Expected: ${expectedTicker}, Found: ${foundTickerInSnapshot}. Error: ${error}. Msg: ${message}. Transitioning to STALE_DATA_FROM_ACTION_ERROR.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `FETCHING_DATA -> STALE_DATA_FROM_ACTION. Expected: ${expectedTicker}, Found: ${foundTickerInSnapshot}. Error: ${error}. Msg: ${message}. Transitioning to STALE_DATA_FROM_ACTION_ERROR.`);
           const staleErrorJson = errorJsonWithDetails(message, `Expected ${expectedTicker}, got ${foundTickerInSnapshot || 'unknown'} from action state.`);
           contextSetters.setMarketStatusJson(staleErrorJson);
           contextSetters.setStockSnapshotJson(staleErrorJson);
@@ -555,7 +551,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.DATA_FETCH_SUCCEEDED:
         if (event.type === 'INITIATE_AI_TA_SEQUENCE') {
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `DATA_FETCH_SUCCEEDED handling INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders. Transitioning to AWAITING_AI_TA_TRIGGER.`);
+            logDebug('StockAnalysisContext', 'FSM_Transition', `DATA_FETCH_SUCCEEDED -> INITIATE_AI_TA_SEQUENCE. Setting AI TA placeholders. Transitioning to AWAITING_AI_TA_TRIGGER.`);
             contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
             contextSetters.setAiAnalyzedTaJson(pendingJson);
             nextCurrentState = FsmState.AWAITING_AI_TA_TRIGGER;
@@ -564,7 +560,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.DATA_FETCH_FAILED:
       case FsmState.STALE_DATA_FROM_ACTION_ERROR:
         if (event.type === 'PROCEED_TO_IDLE') {
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${currentActualState} -> IDLE on PROCEED_TO_IDLE. Resetting isFullAnalysisTriggered.`);
+            logDebug('StockAnalysisContext', 'FSM_Transition', `${currentActualState} -> PROCEED_TO_IDLE. Resetting isFullAnalysisTriggered. Transitioning to IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false);
             activeAnalysisTickerRef.current = null;
             nextCurrentState = FsmState.IDLE;
@@ -573,7 +569,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case FsmState.AWAITING_AI_TA_TRIGGER:
         if (event.type === 'TRIGGER_AI_TA') {
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `TRIGGER_AI_TA. Transitioning to ANALYZING_TA.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `AWAITING_AI_TA_TRIGGER -> TRIGGER_AI_TA. Transitioning to ANALYZING_TA.`);
           nextCurrentState = FsmState.ANALYZING_TA;
         } else if (event.type === 'AI_TA_FAILURE') { 
             const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA failed (consistency check in AWAITING)';
@@ -582,7 +578,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             const skippedJson = createSkippedJson("ai_ta_consistency", errorMsg);
             contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
             contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
+            logDebug('StockAnalysisContext', 'FSM_Transition', `AWAITING_AI_TA_TRIGGER -> AI_TA_FAILURE (from AWAITING). Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
             nextCurrentState = FsmState.AI_TA_FAILED;
         }
         break;
@@ -591,7 +587,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'AI_TA_SUCCESS') {
           contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson);
           contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_SUCCESS. Transitioning to AI_TA_SUCCEEDED.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `ANALYZING_TA -> AI_TA_SUCCESS. Transitioning to AI_TA_SUCCEEDED.`);
           nextCurrentState = FsmState.AI_TA_SUCCEEDED;
         } else if (event.type === 'AI_TA_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'AI TA analysis failed';
@@ -600,16 +596,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           const skippedJson = createSkippedJson("ai_ta", errorMsg);
           contextSetters.setAiKeyTakeawaysRequestJson(skippedJson); contextSetters.setAiKeyTakeawaysJson(skippedJson);
           contextSetters.setAiOptionsAnalysisRequestJson(skippedJson); contextSetters.setAiOptionsAnalysisJson(skippedJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `AI_TA_FAILURE. Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `ANALYZING_TA -> AI_TA_FAILURE. Error: ${errorMsg}. Transitioning to AI_TA_FAILED.`);
           nextCurrentState = FsmState.AI_TA_FAILED;
         }
         break;
 
       case FsmState.AI_TA_SUCCEEDED:
       case FsmState.AI_TA_FAILED:
-        logDebug('StockAnalysisContext', 'FSM_STATE_LOG', `State is ${currentActualState}. Current event: ${event.type}`);
+        logDebug('StockAnalysisContext', 'FSM_StateLog', `State is ${currentActualState}. Current event: ${event.type}. isFullAnalysisTriggered: ${_isFullAnalysisTriggeredInternalState}`);
         if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') {
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `Event FINALIZE_AUTOMATED_PIPELINE received in ${currentActualState} state. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+            logDebug('StockAnalysisContext', 'FSM_Transition', `${currentActualState} -> FINALIZE_AUTOMATED_PIPELINE. Transitioning to FULL_ANALYSIS_COMPLETE.`);
             nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
         break; 
@@ -618,14 +614,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'KEY_TAKEAWAYS_SUCCESS') {
           contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
           contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `KEY_TAKEAWAYS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `GENERATING_KEY_TAKEAWAYS -> KEY_TAKEAWAYS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
           nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         } else if (event.type === 'KEY_TAKEAWAYS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Key Takeaways generation failed';
           const ktErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiKeyTakeawaysRequestJson(errorPayload.aiKeyTakeawaysRequestJson || ktErrorJson);
           contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `KEY_TAKEAWAYS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `GENERATING_KEY_TAKEAWAYS -> KEY_TAKEAWAYS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
           nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
         break;
@@ -634,32 +630,33 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') {
           contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
           contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `OPTIONS_ANALYSIS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `ANALYZING_OPTIONS -> OPTIONS_ANALYSIS_SUCCESS (manual). Transitioning to FULL_ANALYSIS_COMPLETE.`);
           nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         } else if (event.type === 'OPTIONS_ANALYSIS_FAILURE') {
           const errorPayload = event.payload; const errorMsg = errorPayload.message || 'Options Analysis failed';
           const optErrorJson = errorJsonWithDetails(errorMsg, errorPayload.error);
           contextSetters.setAiOptionsAnalysisRequestJson(errorPayload.aiOptionsAnalysisRequestJson || optErrorJson);
           contextSetters.setAiOptionsAnalysisJson(optErrorJson);
-          logDebug('StockAnalysisContext', 'FSM_TRANSITION', `OPTIONS_ANALYSIS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
+          logDebug('StockAnalysisContext', 'FSM_Transition', `ANALYZING_OPTIONS -> OPTIONS_ANALYSIS_FAILURE (manual). Error: ${errorMsg}. Transitioning to FULL_ANALYSIS_COMPLETE.`);
           nextCurrentState = FsmState.FULL_ANALYSIS_COMPLETE;
         }
         break;
 
       case FsmState.FULL_ANALYSIS_COMPLETE:
         if (event.type === 'PROCEED_TO_IDLE') {
-            logDebug('StockAnalysisContext', 'FSM_TRANSITION', `${currentActualState} handling PROCEED_TO_IDLE. isFullAnalysisTriggered: ${_isFullAnalysisTriggeredInternalState}. Active Ticker: ${activeAnalysisTickerRef.current}. Transitioning to IDLE.`);
+            logDebug('StockAnalysisContext', 'FSM_Transition', `${currentActualState} -> PROCEED_TO_IDLE. isFullAnalysisTriggered: ${_isFullAnalysisTriggeredInternalState}. Active Ticker: ${activeAnalysisTickerRef.current}. Transitioning to IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false);
+            // activeAnalysisTickerRef.current = null; // Keep for manual re-runs until new analysis starts
             nextCurrentState = FsmState.IDLE;
         } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Key Takeaways for ${event.payload.ticker} from FULL_ANALYSIS_COMPLETE. Setting placeholders.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `FULL_ANALYSIS_COMPLETE -> Manually triggering Key Takeaways for ${event.payload.ticker}. Setting placeholders. Transitioning to GENERATING_KEY_TAKEAWAYS.`);
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
           contextSetters.setAiKeyTakeawaysJson(pendingJson);
           nextCurrentState = FsmState.GENERATING_KEY_TAKEAWAYS;
         } else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_TRANSITION', `Manually triggering Options Analysis for ${event.payload.ticker} from FULL_ANALYSIS_COMPLETE. Setting placeholders.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `FULL_ANALYSIS_COMPLETE -> Manually triggering Options Analysis for ${event.payload.ticker}. Setting placeholders. Transitioning to ANALYZING_OPTIONS.`);
           contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
           contextSetters.setAiOptionsAnalysisJson(pendingJson);
           nextCurrentState = FsmState.ANALYZING_OPTIONS;
@@ -669,7 +666,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         break;
       default:
-        logDebug('StockAnalysisContext', 'FSM_UnhandledState', `Unhandled state in FSM reducer: ${currentActualState} for event ${event.type}`);
+        logDebug('StockAnalysisContext', 'FSM_UnhandledEvent', `Unhandled event ${event.type} in state ${currentActualState}`);
         break;
     }
     return { current: nextCurrentState, previous: currentActualState };
@@ -680,11 +677,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fsmHistoryRef.current = fsmHistory;
-  }, [fsmHistory]);
+    logDebug('StockAnalysisContext', 'FSM_StateUpdate', `Global FSM actual state updated. Prev: ${fsmHistory.previous}, Curr: ${fsmHistory.current}.`);
+  }, [fsmHistory, logDebug]);
 
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
     const currentActualState = fsmHistoryRef.current.current;
     let determinedTarget: FsmState | null = null;
+    logDebug('StockAnalysisContext', 'FSM_Dispatch', `Dispatching event: ${event.type}. Current actual state: ${currentActualState}`);
 
     switch (currentActualState) {
         case FsmState.IDLE:
@@ -736,28 +735,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
 
     if (determinedTarget) {
-        logDebug('StockAnalysisContext', 'FSM_TARGET', `Event ${event.type} from ${currentActualState} targeting ${determinedTarget}.`);
+        logDebug('StockAnalysisContext', 'FSM_TargetSet', `Event ${event.type} from ${currentActualState} targeting ${determinedTarget}.`);
         _setTargetFsmDisplayState(determinedTarget);
     }
     _dispatchFsmEventActual(event);
   }, [_dispatchFsmEventActual, _setTargetFsmDisplayState, logDebug]);
 
   useEffect(() => {
-    logDebug('StockAnalysisContext', 'FSM_TARGET_CLEAR', `Current FSM state changed to ${fsmHistory.current}. Clearing target display state.`);
-    _setTargetFsmDisplayState(null);
-  }, [fsmHistory.current, logDebug]);
+    if (_targetFsmDisplayState !== null && fsmHistory.current === _targetFsmDisplayState) {
+      logDebug('StockAnalysisContext', 'FSM_TargetReached', `Global FSM current state ${_targetFsmDisplayState} matches target. Clearing target display state.`);
+      _setTargetFsmDisplayState(null);
+    }
+  }, [fsmHistory.current, _targetFsmDisplayState, logDebug]);
 
 
   useEffect(() => {
-      contextOriginals.debug(`[CONTEXT_EFFECT_MONITOR_STATES] States changed: _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}, _logSourceConfig.NATIVE_CONSOLE: ${_logSourceConfig.NATIVE_CONSOLE}, _logSourceConfig.StockAnalysisContext: ${_logSourceConfig.StockAnalysisContext}, _logSourceConfig.DebugConsole: ${_logSourceConfig.DebugConsole}`);
-  }, [_isClientDebugConsoleEnabled, _logSourceConfig, contextOriginals]);
-
-
-  useEffect(() => {
-    contextOriginals.debug(`[CONTEXT_EFFECT_INTERCEPTION] Running. _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
+      logDebug('StockAnalysisContext', 'Effect_ConsoleInterception', `Running. _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
 
     if (typeof window === 'undefined') {
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION_SSR]', 'Skipping on server.');
+      logDebug('StockAnalysisContext', 'Effect_ConsoleInterception_SSR', 'Skipping on server.');
       return;
     }
 
@@ -795,41 +791,39 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
 
     if (_isClientDebugConsoleEnabled) {
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] APPLYING interceptors.');
+      logDebug('StockAnalysisContext', 'Effect_ConsoleInterception_Status', 'APPLYING interceptors.');
       console.log = (...args) => interceptAndProcessLog('log', ...args);
       console.warn = (...args) => interceptAndProcessLog('warn', ...args);
       console.error = (...args) => interceptAndProcessLog('error', ...args);
       console.info = (...args) => interceptAndProcessLog('info', ...args);
       console.debug = (...args) => interceptAndProcessLog('debug', ...args);
-      logDebug('StockAnalysisContext', 'EFFECT_DEBUG_INTERCEPT_ACTIVE', 'Console interception is NOW ACTIVE for UI buffer (call via intercepted console.debug).');
     } else {
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] _isClientDebugConsoleEnabled is FALSE. Attempting to RESTORE original console methods.');
+      logDebug('StockAnalysisContext', 'Effect_ConsoleInterception_Status', '_isClientDebugConsoleEnabled is FALSE. Attempting to RESTORE original console methods.');
       if ((console as any).__stockSageContextOriginals) {
         Object.assign(console, (console as any).__stockSageContextOriginals);
-        contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] Console interception for UI buffer is NOW INACTIVE, context originals restored.');
+        logDebug('StockAnalysisContext', 'Effect_ConsoleInterception_Status', 'Console interception for UI buffer is NOW INACTIVE, context originals restored.');
       } else {
          contextOriginals.warn('[CONTEXT_EFFECT_INTERCEPTION] No context originals found to restore! This is unexpected.');
       }
     }
 
     return () => {
-      contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] CLEANUP: Restoring originals.');
+      logDebug('StockAnalysisContext', 'Effect_ConsoleInterception_Cleanup', 'CLEANUP: Restoring originals.');
       if ((console as any).__stockSageContextOriginals) {
         Object.assign(console, (console as any).__stockSageContextOriginals);
-        contextOriginals.debug('[CONTEXT_EFFECT_INTERCEPTION] Originals restored from context capture on cleanup.');
       } else {
         contextOriginals.warn('[CONTEXT_EFFECT_INTERCEPTION] Cleanup: No context originals found to restore!');
       }
     };
-  }, [_isClientDebugConsoleEnabled, logDebug, _logSourceConfig, contextOriginals]);
+  }, [_isClientDebugConsoleEnabled, _logSourceConfig, contextOriginals, logDebug]);
 
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
-    logDebug('StockAnalysisContext', 'DebugConsoleToggle', `ClientDebugConsoleOpen will be set to: ${open}. Current isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
+    logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', `ClientDebugConsoleOpen will be set to: ${open}. Current isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
     if (_isClientDebugConsoleEnabled || !open) {
         _setClientDebugConsoleOpen(open);
     } else if (!_isClientDebugConsoleEnabled && open) {
-        logDebug('StockAnalysisContext', 'DebugConsoleToggle', 'Attempted to open console while it is disabled. Opening action will be ignored.');
+        logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', 'Attempted to open console while it is disabled. Opening action will be ignored.');
     }
   }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
 
@@ -854,62 +848,61 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   // Effect for Global FSM Pipeline Orchestration
   useEffect(() => {
     const currentGlobalFsmState = fsmHistoryRef.current.current;
-    logDebug('StockAnalysisContext', 'GlobalFsmEffect', `Global FSM Orchestrator running. Current State: ${currentGlobalFsmState}, Active Ticker: ${activeAnalysisTickerRef.current}`);
+    logDebug('StockAnalysisContext', 'FSM_Orchestrator', `Global FSM Orchestrator running. Current State: ${currentGlobalFsmState}, Active Ticker: ${activeAnalysisTickerRef.current}`);
 
     if (currentGlobalFsmState === FsmState.INITIALIZING_ANALYSIS) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', 'State is INITIALIZING_ANALYSIS. Dispatching INITIALIZATION_COMPLETE.');
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', 'State is INITIALIZING_ANALYSIS. Dispatching INITIALIZATION_COMPLETE.');
         _dispatchFsmEventActual({ type: 'INITIALIZATION_COMPLETE' });
     } else if (currentGlobalFsmState === FsmState.AWAITING_DATA_FETCH_TRIGGER) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', 'State is AWAITING_DATA_FETCH_TRIGGER. Dispatching TRIGGER_DATA_FETCH.');
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', 'State is AWAITING_DATA_FETCH_TRIGGER. Dispatching TRIGGER_DATA_FETCH.');
         _dispatchFsmEventActual({ type: 'TRIGGER_DATA_FETCH' });
     } else if (currentGlobalFsmState === FsmState.FETCHING_DATA && activeAnalysisTickerRef.current) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is FETCHING_DATA for ${activeAnalysisTickerRef.current}. Calling fetchStockDataFormAction.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is FETCHING_DATA for ${activeAnalysisTickerRef.current}. Calling fetchStockDataFormAction.`);
         startTransition(() => {
             fetchStockDataFormAction({ ticker: activeAnalysisTickerRef.current! });
         });
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `fetchStockDataFormAction call initiated for ${activeAnalysisTickerRef.current}.`);
     } else if (currentGlobalFsmState === FsmState.DATA_FETCH_SUCCEEDED && _isFullAnalysisTriggeredInternalState) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is DATA_FETCH_SUCCEEDED and full analysis is triggered. Dispatching INITIATE_AI_TA_SEQUENCE.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is DATA_FETCH_SUCCEEDED and full analysis is triggered. Dispatching INITIATE_AI_TA_SEQUENCE.`);
         _dispatchFsmEventActual({ type: 'INITIATE_AI_TA_SEQUENCE' });
     } else if (currentGlobalFsmState === FsmState.AWAITING_AI_TA_TRIGGER && _isFullAnalysisTriggeredInternalState) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is AWAITING_AI_TA_TRIGGER and full analysis is triggered. Dispatching TRIGGER_AI_TA.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is AWAITING_AI_TA_TRIGGER and full analysis is triggered. Dispatching TRIGGER_AI_TA.`);
          _dispatchFsmEventActual({ type: 'TRIGGER_AI_TA' });
     } else if (currentGlobalFsmState === FsmState.ANALYZING_TA && activeAnalysisTickerRef.current && _isFullAnalysisTriggeredInternalState) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is ANALYZING_TA for ${activeAnalysisTickerRef.current} (full analysis). Calling analyzeTaFormAction.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ANALYZING_TA for ${activeAnalysisTickerRef.current} (full analysis). Calling analyzeTaFormAction.`);
         if (_stockSnapshotJson && _stockSnapshotJson !== pendingJson && !_stockSnapshotJson.includes("error")) {
             startTransition(() => {
                 analyzeTaFormAction({ stockSnapshotJson: _stockSnapshotJson, ticker: activeAnalysisTickerRef.current! });
             });
         } else {
-            logDebug('StockAnalysisContext', 'GlobalFsmEffect_Error', `Skipping AI TA for ${activeAnalysisTickerRef.current} due to missing or error in stockSnapshotJson.`);
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping AI TA for ${activeAnalysisTickerRef.current} due to missing or error in stockSnapshotJson.`);
             _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: 'Snapshot data missing for AI TA', error: 'Snapshot data unavailable' } });
         }
     } else if ((currentGlobalFsmState === FsmState.AI_TA_SUCCEEDED || currentGlobalFsmState === FsmState.AI_TA_FAILED) && _isFullAnalysisTriggeredInternalState) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is ${currentGlobalFsmState} (full analysis). Dispatching FINALIZE_AUTOMATED_PIPELINE.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState} (full analysis). Dispatching FINALIZE_AUTOMATED_PIPELINE.`);
         _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     } else if (currentGlobalFsmState === FsmState.GENERATING_KEY_TAKEAWAYS && activeAnalysisTickerRef.current) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is GENERATING_KEY_TAKEAWAYS for ${activeAnalysisTickerRef.current}. Calling performAiAnalysisFormAction.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is GENERATING_KEY_TAKEAWAYS for ${activeAnalysisTickerRef.current}. Calling performAiAnalysisFormAction.`);
         if (_stockSnapshotJson && _standardTasJson && _aiAnalyzedTaJson && _marketStatusJson &&
             !_stockSnapshotJson.includes("error") && !_standardTasJson.includes("error") && !_aiAnalyzedTaJson.includes("error") && !_marketStatusJson.includes("error")) {
             startTransition(() => {
                 performAiAnalysisFormAction({ ticker: activeAnalysisTickerRef.current!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson });
             });
         } else {
-            logDebug('StockAnalysisContext', 'GlobalFsmEffect_Error', `Skipping Key Takeaways for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping Key Takeaways for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
             _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: 'Prerequisite data missing for Key Takeaways', error: 'Data unavailable' } });
         }
     } else if (currentGlobalFsmState === FsmState.ANALYZING_OPTIONS && activeAnalysisTickerRef.current) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is ANALYZING_OPTIONS for ${activeAnalysisTickerRef.current}. Calling performAiOptionsAnalysisFormAction.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ANALYZING_OPTIONS for ${activeAnalysisTickerRef.current}. Calling performAiOptionsAnalysisFormAction.`);
         if (_optionsChainJson && _stockSnapshotJson && !_optionsChainJson.includes("error") && !_stockSnapshotJson.includes("error")) {
             startTransition(() => {
                 performAiOptionsAnalysisFormAction({ ticker: activeAnalysisTickerRef.current!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson });
             });
         } else {
-            logDebug('StockAnalysisContext', 'GlobalFsmEffect_Error', `Skipping Options Analysis for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping Options Analysis for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
             _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: 'Prerequisite data missing for Options Analysis', error: 'Data unavailable' } });
         }
     } else if ((currentGlobalFsmState === FsmState.DATA_FETCH_FAILED || currentGlobalFsmState === FsmState.STALE_DATA_FROM_ACTION_ERROR || currentGlobalFsmState === FsmState.FULL_ANALYSIS_COMPLETE)) {
-        logDebug('StockAnalysisContext', 'GlobalFsmEffect_Action', `State is ${currentGlobalFsmState}. Dispatching PROCEED_TO_IDLE.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState}. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     }
 
@@ -919,13 +912,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   // Effect for fetchStockDataAction results
   useEffect(() => {
+    logDebug('StockAnalysisContext', 'ActionStateEffect_FetchData', `fetchDataActionState changed. Status: ${fetchDataActionState.status}. Current FSM state: ${fsmHistoryRef.current.current}`);
     if (fsmHistoryRef.current.current !== FsmState.FETCHING_DATA) return; 
 
     if (fetchDataActionState.status === 'success' && fetchDataActionState.data) {
-        logDebug('StockAnalysisContext', 'ActionState:fetchData', 'SUCCESS', fetchDataActionState.data);
+        logDebug('StockAnalysisContext', 'ActionState_Result_FetchData', 'SUCCESS', fetchDataActionState.data);
         dispatchFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: fetchDataActionState.data });
     } else if (fetchDataActionState.status === 'error') {
-        logDebug('StockAnalysisContext', 'ActionState:fetchData', 'ERROR', fetchDataActionState);
+        logDebug('StockAnalysisContext', 'ActionState_Result_FetchData', 'ERROR', fetchDataActionState);
         if (fetchDataActionState.message && fetchDataActionState.message.includes("Stale data detected")) {
              dispatchFsmEvent({ 
                 type: 'STALE_DATA_FROM_ACTION', 
@@ -952,13 +946,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   // Effect for analyzeTaAction results
   useEffect(() => {
+    logDebug('StockAnalysisContext', 'ActionStateEffect_AnalyzeTa', `analyzeTaActionState changed. Status: ${analyzeTaActionState.status}. Current FSM state: ${fsmHistoryRef.current.current}`);
     if (fsmHistoryRef.current.current !== FsmState.ANALYZING_TA) return;
 
     if (analyzeTaActionState.status === 'success' && analyzeTaActionState.data) {
-        logDebug('StockAnalysisContext', 'ActionState:analyzeTa', 'SUCCESS', analyzeTaActionState.data);
+        logDebug('StockAnalysisContext', 'ActionState_Result_AnalyzeTa', 'SUCCESS', analyzeTaActionState.data);
         dispatchFsmEvent({ type: 'AI_TA_SUCCESS', payload: analyzeTaActionState.data });
     } else if (analyzeTaActionState.status === 'error') {
-        logDebug('StockAnalysisContext', 'ActionState:analyzeTa', 'ERROR', analyzeTaActionState);
+        logDebug('StockAnalysisContext', 'ActionState_Result_AnalyzeTa', 'ERROR', analyzeTaActionState);
         dispatchFsmEvent({ 
             type: 'AI_TA_FAILURE', 
             payload: { 
@@ -972,13 +967,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   
   // Effect for performAiAnalysisAction (Key Takeaways) results
   useEffect(() => {
+    logDebug('StockAnalysisContext', 'ActionStateEffect_PerformAiAnalysis', `performAiAnalysisActionState changed. Status: ${performAiAnalysisActionState.status}. Current FSM state: ${fsmHistoryRef.current.current}`);
     if (fsmHistoryRef.current.current !== FsmState.GENERATING_KEY_TAKEAWAYS) return;
 
     if (performAiAnalysisActionState.status === 'success' && performAiAnalysisActionState.data) {
-        logDebug('StockAnalysisContext', 'ActionState:performAiAnalysis', 'SUCCESS', performAiAnalysisActionState.data);
+        logDebug('StockAnalysisContext', 'ActionState_Result_PerformAiAnalysis', 'SUCCESS', performAiAnalysisActionState.data);
         dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: performAiAnalysisActionState.data });
     } else if (performAiAnalysisActionState.status === 'error') {
-        logDebug('StockAnalysisContext', 'ActionState:performAiAnalysis', 'ERROR', performAiAnalysisActionState);
+        logDebug('StockAnalysisContext', 'ActionState_Result_PerformAiAnalysis', 'ERROR', performAiAnalysisActionState);
         dispatchFsmEvent({ 
             type: 'KEY_TAKEAWAYS_FAILURE', 
             payload: { 
@@ -992,13 +988,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   // Effect for performAiOptionsAnalysisAction results
   useEffect(() => {
+    logDebug('StockAnalysisContext', 'ActionStateEffect_PerformAiOptions', `performAiOptionsAnalysisActionState changed. Status: ${performAiOptionsAnalysisActionState.status}. Current FSM state: ${fsmHistoryRef.current.current}`);
     if (fsmHistoryRef.current.current !== FsmState.ANALYZING_OPTIONS) return;
 
     if (performAiOptionsAnalysisActionState.status === 'success' && performAiOptionsAnalysisActionState.data) {
-        logDebug('StockAnalysisContext', 'ActionState:performAiOptions', 'SUCCESS', performAiOptionsAnalysisActionState.data);
+        logDebug('StockAnalysisContext', 'ActionState_Result_PerformAiOptions', 'SUCCESS', performAiOptionsAnalysisActionState.data);
         dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: performAiOptionsAnalysisActionState.data });
     } else if (performAiOptionsAnalysisActionState.status === 'error') {
-        logDebug('StockAnalysisContext', 'ActionState:performAiOptions', 'ERROR', performAiOptionsAnalysisActionState);
+        logDebug('StockAnalysisContext', 'ActionState_Result_PerformAiOptions', 'ERROR', performAiOptionsAnalysisActionState);
         dispatchFsmEvent({ 
             type: 'OPTIONS_ANALYSIS_FAILURE', 
             payload: { 

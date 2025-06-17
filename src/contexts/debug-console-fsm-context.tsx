@@ -72,12 +72,14 @@ export function DebugConsoleFsmProvider({
   logDebug,
   setDebugConsoleMenuFsmDisplayState,
 }: DebugConsoleFsmProviderProps) {
+  const componentLogSource = 'DebugConsoleFsmContext'; // Consistent source for logs
+
   const debugConsoleFsmReducer = (
     state: DebugConsoleFsmManagedState,
     event: DebugConsoleFsmEvent
   ): DebugConsoleFsmManagedState => {
     const previousState = state.uiMenuState;
-    logDebug('DebugConsoleFsmContext', 'ReducerEvent', `Event: ${event.type}, Current MenuState: ${state.uiMenuState}, Prev MenuState: ${previousState}`);
+    logDebug(componentLogSource, 'Reducer_Event', `Event: ${event.type}, Current MenuState: ${state.uiMenuState}, Prev MenuState: ${previousState}`);
     let nextUiMenuState = state.uiMenuState;
 
     switch (event.type) {
@@ -99,39 +101,41 @@ export function DebugConsoleFsmProvider({
               break;
           }
         }
+        logDebug(componentLogSource, 'Reducer_Transition_Menu', `SET_MENU_OPEN_STATE: Menu ${menu} to ${isOpen ? nextUiMenuState : 'IDLE'}.`);
         return { ...state, uiMenuState: nextUiMenuState, previousUiMenuState: previousState };
       }
       case 'UPDATE_TYPE_FILTER': {
         const newTypes = new Set(state.activeFilters.types);
         if (event.payload.checked) newTypes.add(event.payload.type);
         else newTypes.delete(event.payload.type);
-        logDebug('DebugConsoleFsmContext', 'FilterChange', `Type filter updated: ${event.payload.type}, checked: ${event.payload.checked}. New types: ${Array.from(newTypes).join(', ')}`);
+        logDebug(componentLogSource, 'Reducer_FilterChange', `Type filter updated: ${event.payload.type}, checked: ${event.payload.checked}. New types: ${Array.from(newTypes).join(', ')}`);
         return { ...state, activeFilters: { ...state.activeFilters, types: newTypes }, previousUiMenuState: previousState };
       }
       case 'UPDATE_SOURCE_FILTER': {
         const newSources = new Set(state.activeFilters.sources);
         if (event.payload.checked) newSources.add(event.payload.source);
         else newSources.delete(event.payload.source);
-        logDebug('DebugConsoleFsmContext', 'FilterChange', `Source filter updated: ${event.payload.source}, checked: ${event.payload.checked}. New sources: ${Array.from(newSources).join(', ')}`);
+        logDebug(componentLogSource, 'Reducer_FilterChange', `Source filter updated: ${event.payload.source}, checked: ${event.payload.checked}. New sources: ${Array.from(newSources).join(', ')}`);
         return { ...state, activeFilters: { ...state.activeFilters, sources: newSources }, previousUiMenuState: previousState };
       }
       case 'SET_ALL_TYPE_FILTERS': {
         const newTypes = event.payload.selectAll ? new Set(allLogTypes) : new Set<LogType>();
-        logDebug('DebugConsoleFsmContext', 'FilterChange', `Set all type filters to: ${event.payload.selectAll}. New types: ${Array.from(newTypes).join(', ')}`);
+        logDebug(componentLogSource, 'Reducer_FilterChange', `Set all type filters to: ${event.payload.selectAll}. New types: ${Array.from(newTypes).join(', ')}`);
         return { ...state, activeFilters: { ...state.activeFilters, types: newTypes }, previousUiMenuState: previousState };
       }
       case 'SET_ALL_SOURCE_FILTERS': {
         const newSources = event.payload.selectAll ? new Set(allLogSourceIds) : new Set<LogSourceId>();
-        logDebug('DebugConsoleFsmContext', 'FilterChange', `Set all source filters to: ${event.payload.selectAll}. New sources: ${Array.from(newSources).join(', ')}`);
+        logDebug(componentLogSource, 'Reducer_FilterChange', `Set all source filters to: ${event.payload.selectAll}. New sources: ${Array.from(newSources).join(', ')}`);
         return { ...state, activeFilters: { ...state.activeFilters, sources: newSources }, previousUiMenuState: previousState };
       }
       case 'SEARCH_TERM_CHANGED':
-        logDebug('DebugConsoleFsmContext', 'SearchChange', `Search term changed to: "${event.payload}"`);
+        logDebug(componentLogSource, 'Reducer_SearchChange', `Search term changed to: "${event.payload}"`);
         return { ...state, searchTerm: event.payload, previousUiMenuState: previousState }; 
       case 'CLEAR_SEARCH_TERM':
-        logDebug('DebugConsoleFsmContext', 'SearchChange', `Search term cleared.`);
+        logDebug(componentLogSource, 'Reducer_SearchChange', `Search term cleared.`);
         return { ...state, searchTerm: '', previousUiMenuState: previousState }; 
       default:
+        logDebug(componentLogSource, 'Reducer_UnhandledEvent', `Unhandled event type: ${event.type}`);
         return { ...state, previousUiMenuState: previousState };
     }
   };
@@ -145,11 +149,15 @@ export function DebugConsoleFsmProvider({
         current: state.uiMenuState,
         target: targetUiMenuDisplayState,
     });
-  }, [state.uiMenuState, state.previousUiMenuState, targetUiMenuDisplayState, setDebugConsoleMenuFsmDisplayState]);
+    logDebug(componentLogSource, 'Effect_DisplayUpdate', `FSM display state reported to global context. Prev: ${state.previousUiMenuState}, Curr: ${state.uiMenuState}, Target: ${targetUiMenuDisplayState}`);
+  }, [state.uiMenuState, state.previousUiMenuState, targetUiMenuDisplayState, setDebugConsoleMenuFsmDisplayState, logDebug]);
 
 
   const dispatchDebugConsoleFsmEventWithTarget = useCallback((event: DebugConsoleFsmEvent) => {
     let targetState: DebugConsoleFsmMenuState | null = state.uiMenuState; 
+    const currentState = state.uiMenuState;
+    logDebug(componentLogSource, 'Dispatch_Attempt', `Attempting dispatch. Event: ${event.type}, CurrentState: ${currentState}`);
+    
      if (event.type === 'SET_MENU_OPEN_STATE') {
         targetState = event.payload.isOpen
             ? (event.payload.menu === 'filterType' || event.payload.menu === 'filterSource'
@@ -160,18 +168,18 @@ export function DebugConsoleFsmProvider({
             : DebugConsoleFsmMenuState.IDLE;
     }
     
-    if (event.type === 'SET_MENU_OPEN_STATE') {
-        logDebug('DebugConsoleFsmContext', 'DispatchWithTarget', `Event ${event.type} from ${state.uiMenuState} targeting ${targetState}.`);
+    if (event.type === 'SET_MENU_OPEN_STATE' && targetState !== currentState) {
+        logDebug(componentLogSource, 'Dispatch_TargetSet', `Event ${event.type} from ${currentState} targeting ${targetState}.`);
         setTargetUiMenuDisplayState(targetState);
     } else {
-        setTargetUiMenuDisplayState(null);
+        setTargetUiMenuDisplayState(null); // Clear target if no menu state change or not a menu event
     }
     dispatch(event);
   }, [state.uiMenuState, logDebug]);
 
   useEffect(() => {
     if (targetUiMenuDisplayState !== null && state.uiMenuState === targetUiMenuDisplayState) {
-        logDebug('DebugConsoleFsmContext', 'TargetClearEffect', `DebugConsole FSM state changed to ${state.uiMenuState}. Clearing target display state.`);
+        logDebug(componentLogSource, 'Effect_TargetReached', `DebugConsole FSM state changed to ${state.uiMenuState}. Clearing target display state.`);
         setTargetUiMenuDisplayState(null);
     }
   }, [state.uiMenuState, targetUiMenuDisplayState, logDebug]);
