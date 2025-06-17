@@ -16,6 +16,51 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.C.R` (Simplify AI Options Analysis)
+**Tag:** `Phase-9_Task-9.C.R_SimplifyOptionsAnalysis` - Commit Hash: `91dab923`
+**Subject:** `refactor(options): Simplify AI Options Analysis prompt and output (v2.9.C.R)`
+**Details:**
+This version significantly simplifies the AI Analyzed Options Chain feature, moving away from a complex adaptive algorithm back to a more straightforward approach for identifying Call and Put walls. The primary goal was to improve reliability and make it easier for the AI to consistently identify significant option concentrations based on Open Interest (OI) and/or Volume.
+
+Key changes included in v2.9.C.R:
+- **Schema Update (`src/ai/schemas/ai-options-analysis-schemas.ts`):**
+    - `WallDetailSchema`: Removed the `wallScore` field. Added an optional `volume` field to capture volume if it's a key factor in identifying a wall.
+    - `AiOptionsAnalysisOutputSchema`: Removed `liquidityTier` and `analysisMethodology` fields, as they were tied to the previous complex algorithm. The schema continues to allow for up to 3 `callWalls` and 3 `putWalls`.
+- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts`):**
+    - The `analyzeOptionsChainPrompt` was completely rewritten to be much simpler. It now instructs the AI to identify up to 3 Call/Put walls based on "High and/or Clustered Concentrations of Open Interest (OI) and/or Volume," ordering them by perceived significance. It also explicitly requests the inclusion of `volume` in the output if it's a key factor.
+    - The `analyzeOptionsChainFlow` function maintains its pre-check for insufficient input data and robust error handling, returning `{ callWalls: [], putWalls: [] }` on failure or if no walls are identified.
+- **Display Component Update (`src/components/ai-options-analysis-display.tsx`):**
+    - The table rendering logic was updated to remove the "Wall Score" column and add an optional "Volume" column, formatted using `formatCompactNumber`.
+    - Removed display elements related to `liquidityTier` and `analysisMethodology`.
+- Application version updated to `v2.9.C.R` in `src/components/layout/header.tsx`.
+- `README.md` and `CHANGELOG.md` updated to reflect the new version, task completion, and the simplification of the AI options analysis.
+
+This refactor aims to provide more consistent and understandable AI-driven options analysis. The ability of the AI to *identify* significant walls consistently is still an area for future refinement.
+---
+**App Version:** `v2.9.C.Q` (Adaptive AI Options Analysis)
+**Tag:** `Phase-9_Task-9.C.Q_AdaptiveOptionsAnalysis` - Commit Hash: `(previous_commit_for_C.Q)`
+**Subject:** `feat(options): Implement Adaptive Call/Put Wall Detection algorithm (v2.9.C.Q)`
+**Details:**
+This version introduces a more sophisticated "Adaptive Call/Put Wall Detection" algorithm for the AI Options Analysis feature. The goal is to provide a more nuanced identification of significant option walls by considering liquidity tiers and relative OI normalization.
+
+Key changes included in v2.9.C.Q:
+- **Schema Update (`src/ai/schemas/ai-options-analysis-schemas.ts`):**
+    - `WallDetailSchema`: Added `wallScore` (optional number).
+    - `AiOptionsAnalysisOutputSchema`: Added `liquidityTier` (optional enum: Low, Medium, High, NotApplicable) and `analysisMethodology` (optional string).
+- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts`):**
+    - `analyzeOptionsChainPrompt` updated to guide the LLM through a chain-of-thought process:
+        - Parse options data, classify liquidity tier (Low <1000 avg OI, Medium 1000-4000, High >4000).
+        - Normalize OI using Z-scores.
+        - Detect local OI spikes (ratio to ±2 strike local average).
+        - Apply tier-based thresholds for OI, Z_OI, and local_ratio to flag walls.
+        - Optionally confirm with volume.
+        - Output includes walls (with `wallScore`), `liquidityTier`, and `analysisMethodology`.
+    - `analyzeOptionsChainFlow` retains pre-checks and error handling, returning a structured empty/error object.
+- **Display Component Update (`src/components/ai-options-analysis-display.tsx`):**
+    - Updated to render the new `wallScore` in the tables.
+    - Added display for `liquidityTier` and `analysisMethodology`.
+- Application version updated to `v2.9.C.Q`.
+---
 **App Version:** `v2.9.C.P` (Fix AI Options Display Logic)
 **Tag:** `Phase-9_Task-9.C.P_FixOptionsDisplayLogic` - Commit Hash: `79e7cf4c`
 **Subject:** `fix(options): Refactor AI Options Display logic & intermediate save (v2.9.C.P)`
@@ -35,6 +80,19 @@ Key changes included in v2.9.C.P:
 - **Known Issue (Work In Progress):** The AI Options Analysis flow itself may still not be identifying walls as consistently or robustly as desired in all market conditions or for all tickers. This will be addressed in future iterations.
 - Application version updated to `v2.9.C.P` in `src/components/layout/header.tsx`.
 - `README.md` and `CHANGELOG.md` updated to reflect the new version and completed task.
+---
+**App Version:** `v2.9.C.O` (Improve AI Options Wall Detection)
+**Tag:** `Phase-9_Task-9.C.O_ImproveOptionsWallDetection` - Commit Hash: `(previous_commit_for_C.O)`
+**Subject:** `refactor(options): Simplify AI Options Wall Detection prompt (v2.9.C.O)`
+**Details:**
+This version addresses the issue where the AI Options Analysis was frequently returning empty walls. The complex "Adaptive Call/Put Wall Detection Template" from v2.9.C.Q was proving too rigid or difficult for the LLM to consistently satisfy, leading to "AI Options Analysis data not available" being shown when the flow correctly returned `{"callWalls": [], "putWalls": []}`.
+
+Key changes included in v2.9.C.O:
+- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts`):**
+    - The `analyzeOptionsChainPrompt` was significantly simplified. It now uses more qualitative guidance, instructing the AI to identify up to 3 Call/Put walls based on "High and/or Clustered Concentrations of Open Interest (OI) and/or Volume," ordered by perceived significance. The complex multi-step algorithm, liquidity tiers, Z-scores, and local ratios were removed from the prompt.
+    - The prompt still requests an empty array if no significant walls are found.
+- The schema (`src/ai/schemas/ai-options-analysis-schemas.ts`) and display component (`src/components/ai-options-analysis-display.tsx`) were reverted to not expect `wallScore`, `liquidityTier`, or `analysisMethodology` as these were specific to the removed complex algorithm. `volume` (optional) was re-added to `WallDetailSchema`.
+- Application version updated to `v2.9.C.O`.
 ---
 **App Version:** `v2.9.C.N` (Fix AI Options Flow/Action Robustness)
 **Tag:** `Phase-9_Task-9.C.N_FixOptionsFlowActionRobustness` - Commit Hash: `(previous_commit_for_C.N)`
@@ -58,7 +116,7 @@ This version reverts the AI Options Analysis to allow for up to 3 Call/Put walls
 - **`src/ai/flows/analyze-options-chain-flow.ts`:**
     - Prompt (`analyzeOptionsChainPrompt`) updated to request "AT MOST 3" significant walls per type, ordered by significance.
     - Added a pre-check in `analyzeOptionsChainFlow` to return empty walls if `input.optionsChainJson` is unparsable or contains insufficient contracts (less than 3), avoiding an unnecessary LLM call.
-    - The flow now returns up to 3 walls per type as provided by the AI, conforming to the updated schema.
+    - The flow logic updated to return up to 3 walls per type as provided by the AI, conforming to the updated schema.
 - Application version updated to `v2.9.C.M`.
 ---
 **App Version:** `v2.9.C.L` (Refine AI Displays, Chat Formatting & Options Analysis)
@@ -320,4 +378,5 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
