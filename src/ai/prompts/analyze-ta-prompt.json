@@ -1,0 +1,42 @@
+
+{
+  "promptName": "analyze-ta-prompt",
+  "description": "Defines parameters and logic for calculating technical indicators like pivot points. This definition is for structured calculation, not direct LLM prompting for this specific flow, but prepares for future LLM integration if TA interpretation is added.",
+  "chainOfThought": [
+    {
+      "role": "CalculationObjective",
+      "parts": [
+        { "text": "Objective: Calculate standard daily pivot points (PP, S1-S3, R1-R3)." }
+      ]
+    },
+    {
+      "role": "InputParameters",
+      "parts": [
+        { "text": "Input Parameters Required:" },
+        { "text": "- `previousDayHigh` (H): The high price of the stock from the previous trading day." },
+        { "text": "- `previousDayLow` (L): The low price of the stock from the previous trading day." },
+        { "text": "- `previousDayClose` (C): The closing price of the stock from the previous trading day." }
+      ]
+    },
+    {
+      "role": "CalculationFormulas",
+      "parts": [
+        { "text": "Formulas:" },
+        { "text": "1. Pivot Point (PP) = (H + L + C) / 3" },
+        { "text": "2. Support 1 (S1) = (2 * PP) - H" },
+        { "text": "3. Resistance 1 (R1) = (2 * PP) - L" },
+        { "text": "4. Support 2 (S2) = PP - (H - L)" },
+        { "text": "5. Resistance 2 (R2) = PP + (H - L)" },
+        { "text": "6. Support 3 (S3) = L - 2 * (H - PP)" },
+        { "text": "7. Resistance 3 (R3) = H + 2 * (PP - L)" }
+      ]
+    },
+    {
+      "role": "OutputFormat",
+      "parts": [
+        { "text": "Output: A JSON object conforming to AnalyzeTaOutputSchema, containing all calculated pivot levels, formatted to two decimal places." }
+      ]
+    }
+  ],
+  "outputSchemaHint": "AnalyzeTaOutputSchema"
+}

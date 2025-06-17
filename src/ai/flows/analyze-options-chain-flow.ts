@@ -1,9 +1,9 @@
 
-      
 'use server';
 /**
  * @fileOverview An AI agent that analyzes options chain data to identify significant
  * features like Call/Put Walls by looking for high and/or clustered OI/Volume.
+ * Prompt definition is now loaded from a JSON file.
  *
  * - analyzeOptionsChain - Function to trigger the options analysis flow.
  * - AiOptionsAnalysisInput (from schemas) - Input type.
@@ -19,6 +19,36 @@ import {
 } from '@/ai/schemas/ai-options-analysis-schemas';
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import type { OptionsChainData } from '@/services/data-sources/types';
+import { loadPromptDefinition, buildPromptStringFromDefinition, type PromptDefinition } from '@/ai/prompt-loader';
+
+let analyzeOptionsChainPromptDefinition: PromptDefinition | null = null;
+
+async function getAnalyzedOptionsChainPrompt() {
+  if (!analyzeOptionsChainPromptDefinition) {
+    analyzeOptionsChainPromptDefinition = await loadPromptDefinition('analyze-options-chain-prompt');
+  }
+
+  const promptString = buildPromptStringFromDefinition(analyzeOptionsChainPromptDefinition);
+  const modelId = analyzeOptionsChainPromptDefinition.modelId || DEFAULT_ANALYSIS_MODEL_ID;
+  const safetySettings = analyzeOptionsChainPromptDefinition.safetySettings || [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+  ];
+
+  return ai.definePrompt({
+    name: 'analyzeOptionsChainPrompt', // Keep a consistent internal name for Genkit
+    input: {schema: AiOptionsAnalysisInputSchema},
+    output: {schema: AiOptionsAnalysisOutputSchema},
+    model: modelId,
+    prompt: promptString,
+    config: {
+      safetySettings: safetySettings,
+    },
+  });
+}
+
 
 export async function analyzeOptionsChain(
   input: AiOptionsAnalysisInput
@@ -27,39 +57,6 @@ export async function analyzeOptionsChain(
   return analyzeOptionsChainFlow(input);
 }
 
-const analyzeOptionsChainPrompt = ai.definePrompt({
-  name: 'analyzeOptionsChainPrompt',
-  input: {schema: AiOptionsAnalysisInputSchema},
-  output: {schema: AiOptionsAnalysisOutputSchema},
-  model: DEFAULT_ANALYSIS_MODEL_ID,
-  prompt: `You are an expert options market analyst.
-Your task is to identify significant Call and Put "Walls" from the provided options chain data for the stock: {{{ticker}}}.
-The current underlying price is \${{{currentUnderlyingPrice}}} for context.
-The options chain data is provided as a JSON string: {{{optionsChainJson}}}
-This JSON string represents an 'OptionsChainData' object with a 'contracts' array. Each element in 'contracts' is an 'OptionsTableRow' having 'strike', 'call' (StreamlinedOptionContract), and 'put' (StreamlinedOptionContract) properties.
-
-Focus on identifying strikes with **High and/or Clustered Concentrations of Open Interest (OI) and/or Volume**.
-These concentrations represent potential support (for Puts) or resistance (for Calls).
-
-Output Requirements:
-- Select AT MOST 3 Call Walls and AT MOST 3 Put Walls. Order them by your perceived significance (e.g., highest OI/Volume first, or most impactful cluster).
-- For each selected wall, populate the output JSON:
-    - \`callWalls\`: Array of wall objects: \`{strike: number, openInterest: number, volume?: number, type: 'call'}\`. Include volume if it's a key factor for identification.
-    - \`putWalls\`: Array of wall objects: \`{strike: number, openInterest: number, volume?: number, type: 'put'}\`. Include volume if it's a key factor for identification.
-- If no significant walls are identified for a type, return an empty array for that type (e.g., \`callWalls: []\`).
-
-Strictly adhere to the output schema.
-If optionsChainJson is empty or clearly insufficient (e.g., very few contracts or all zero OI/volume), return empty walls.
-`,
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-    ],
-  },
-});
 
 const analyzeOptionsChainFlow = ai.defineFlow(
   {
@@ -99,14 +96,14 @@ const analyzeOptionsChainFlow = ai.defineFlow(
 
     console.log('[AIFlow:analyzeOptionsChainFlow] Executing prompt for ticker:', input.ticker);
     try {
-        const {output} = await analyzeOptionsChainPrompt(input);
+        const promptToUse = await getAnalyzedOptionsChainPrompt();
+        const {output} = await promptToUse(input);
 
         if (!output || !Array.isArray(output.callWalls) || !Array.isArray(output.putWalls)) {
           console.error('[AIFlow:analyzeOptionsChainFlow] AI options analysis flow did not return a valid output structure for ticker:', input.ticker, 'Received output:', JSON.stringify(output).substring(0,500));
           return emptyOutput;
         }
-
-        // Ensure it still conforms to max 3 even if AI provides more
+        
         const finalOutput: AiOptionsAnalysisOutput = {
             callWalls: (output.callWalls || []).slice(0, 3),
             putWalls: (output.putWalls || []).slice(0, 3),
@@ -121,5 +118,3 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     }
   }
 );
-
-    

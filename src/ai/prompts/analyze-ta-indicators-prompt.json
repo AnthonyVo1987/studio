@@ -1,0 +1,6 @@
+
+{
+  "promptName": "analyze-ta-indicators",
+  "description": "Configuration for calculating technical analysis indicators. Currently supports pivot points.",
+  "calculationType": "pivotPoints_v1"
+}

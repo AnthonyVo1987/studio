@@ -1,0 +1,64 @@
+
+{
+  "definitionType": "llm-prompt",
+  "promptName": "analyzeOptionsChainPrompt",
+  "description": "Analyzes options chain data to identify significant Call/Put Walls based on OI/Volume.",
+  "modelId": "googleai/gemini-2.5-flash-preview-05-20",
+  "safetySettings": [
+    { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" }
+  ],
+  "outputSchemaHint": "AiOptionsAnalysisOutputSchema from '@/ai/schemas/ai-options-analysis-schemas'",
+  "chainOfThought": [
+    {
+      "role": "SystemSetup",
+      "parts": [
+        {
+          "text": "You are an expert options market analyst."
+        }
+      ]
+    },
+    {
+      "role": "CoreTask",
+      "parts": [
+        {
+          "text": "Your task is to identify significant Call and Put \"Walls\" from the provided options chain data for the stock: {{{ticker}}}."
+        }
+      ]
+    },
+    {
+      "role": "DataContext",
+      "parts": [
+        {
+          "text": "The current underlying price is ${{{currentUnderlyingPrice}}} for context.\nThe options chain data is provided as a JSON string: {{{optionsChainJson}}}\nThis JSON string represents an 'OptionsChainData' object with a 'contracts' array. Each element in 'contracts' is an 'OptionsTableRow' having 'strike', 'call' (StreamlinedOptionContract), and 'put' (StreamlinedOptionContract) properties."
+        }
+      ]
+    },
+    {
+      "role": "AnalysisCriteria",
+      "parts": [
+        {
+          "text": "Focus on identifying strikes with **High and/or Clustered Concentrations of Open Interest (OI) and/or Volume**.\nThese concentrations represent potential support (for Puts) or resistance (for Calls)."
+        }
+      ]
+    },
+    {
+      "role": "OutputRequirements",
+      "parts": [
+        {
+          "text": "Output Requirements:\n- Select AT MOST 3 Call Walls and AT MOST 3 Put Walls. Order them by your perceived significance (e.g., highest OI/Volume first, or most impactful cluster).\n- For each selected wall, populate the output JSON:\n    - `callWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'call'}`. Include volume if it's a key factor for identification.\n    - `putWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'put'}`. Include volume if it's a key factor for identification.\n- If no significant walls are identified for a type, return an empty array for that type (e.g., `callWalls: []`)."
+        }
+      ]
+    },
+    {
+      "role": "FinalInstruction",
+      "parts": [
+        {
+          "text": "Strictly adhere to the output schema.\nIf optionsChainJson is empty or clearly insufficient (e.g., very few contracts or all zero OI/volume), return empty walls."
+        }
+      ]
+    }
+  ]
+}

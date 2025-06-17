@@ -1,13 +1,16 @@
 
 "use client";
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useStockAnalysis, type ChatMessage } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { exampleChatPrompts } from '@/ai/schemas/chat-schemas';
+// Example prompts will be loaded from JSON
+import exampleChatPromptsData from '@/ai/prompts/example-chat-prompts.json';
+import type { ExampleChatPrompt, ExampleChatPromptsFile } from '@/ai/prompt-loader';
+
 import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -31,6 +34,10 @@ interface ChatbotProps {
   isAnyAnalysisInProgress: boolean;
   currentTickerForDisplay: string;
 }
+
+// Cast the imported JSON data to the correct type
+const exampleChatPrompts: ExampleChatPromptsFile = exampleChatPromptsData as ExampleChatPromptsFile;
+
 
 export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: ChatbotProps) {
   const {
@@ -83,7 +90,9 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Dispatching USER_INPUT_CHANGED then SUBMIT_MESSAGE_REQUESTED.`);
         
     dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
-    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
+    // Small timeout to allow state update before submitting, if necessary, though direct dispatch is usually fine
+    // setTimeout(() => dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' }), 50);
+    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' }); // Direct submission
   };
 
   const handleCopyChat = async () => {
@@ -188,12 +197,12 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
         </ScrollArea>
 
         <div className="flex flex-wrap gap-2 mb-2">
-          {exampleChatPrompts.map((p, index) => (
+          {exampleChatPrompts.map((p: ExampleChatPrompt, index: number) => (
             <Button
               key={index}
               variant="outline"
               size="sm"
-              onClick={() => handleExamplePromptClick(p.prompt)}
+              onClick={() => handleExamplePromptClick(p.promptTemplate)}
               disabled={isProcessing}
               className="text-xs px-2 py-1 h-auto"
             >
@@ -221,6 +230,3 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     </Card>
   );
 }
-
-
-    

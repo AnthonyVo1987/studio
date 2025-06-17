@@ -5,6 +5,8 @@
  * This flow specifically calculates daily pivot points (PP, S1-S3, R1-R3)
  * based on the previous day's high, low, and close (HLC) prices.
  * The output is part of the "AI Analyzed Technical Analysis".
+ * The definition of parameters is now loaded from a JSON file for consistency,
+ * though the calculation remains direct.
  *
  * - analyzeTaIndicators - A function that triggers the pivot point calculation flow.
  * - AnalyzeTaInput - The input type (from schemas).
@@ -19,11 +21,34 @@ import {
   type AnalyzeTaOutput,
 } from '@/ai/schemas/ai-analyzed-ta-schemas'; 
 import { formatToTwoDecimals } from '@/lib/number-utils'; 
+import { loadPromptDefinition, type PromptDefinition } from '@/ai/prompt-loader';
+
+// Load the definition for documentation and future potential use, not for LLM prompting in this version.
+let analyzeTaPromptDefinition: PromptDefinition | null = null;
+
+async function ensureTaPromptDefinitionLoaded() {
+  if (!analyzeTaPromptDefinition) {
+    try {
+      analyzeTaPromptDefinition = await loadPromptDefinition('analyze-ta-prompt');
+      console.log('[AIFlow:analyzeTaIndicators] analyze-ta-prompt.json loaded successfully for reference.');
+    } catch (error) {
+      console.error('[AIFlow:analyzeTaIndicators] Failed to load analyze-ta-prompt.json. Flow will proceed with hardcoded logic if possible, but this indicates a configuration issue.', error);
+      // Depending on how critical the JSON is, you might throw or allow fallback.
+      // For now, as it's mostly for future-proofing, we'll log and continue.
+    }
+  }
+}
+// Ensure it's loaded when the module is initialized
+ensureTaPromptDefinitionLoaded();
+
 
 export async function analyzeTaIndicators( 
   input: AnalyzeTaInput
 ): Promise<AnalyzeTaOutput> {
   console.log('[AIFlow:analyzeTaIndicators] Received input (keys):', Object.keys(input).join(', '));
+  // Ensure definition is available if needed, though not directly used for LLM call here.
+  // await ensureTaPromptDefinitionLoaded(); 
+  // No need to await again here as it's loaded at module init, but good for visibility if it were lazy-loaded per call.
   return analyzeTaIndicatorsFlow(input); 
 }
 
@@ -32,6 +57,8 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
     name: 'analyzeTaIndicatorsFlow', 
     inputSchema: AnalyzeTaInputSchema,
     outputSchema: AnalyzeTaOutputSchema,
+    // No LLM prompt is defined here as it's a direct calculation.
+    // The JSON definition is for structure and future extensibility.
   },
   async (input: AnalyzeTaInput): Promise<AnalyzeTaOutput> => {
     console.log('[AIFlow:analyzeTaIndicatorsFlow] Starting calculation with input:', input);
@@ -62,4 +89,3 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
     return output;
   }
 );
-

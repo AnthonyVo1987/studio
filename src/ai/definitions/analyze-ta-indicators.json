@@ -1,0 +1,33 @@
+
+{
+  "definitionType": "calculation-logic",
+  "logicName": "pivotPointCalculation",
+  "description": "Calculates standard daily pivot points and support/resistance levels based on previous day's HLC.",
+  "inputs": [
+    {"name": "previousDayHigh", "type": "number", "description": "Previous day's high price."},
+    {"name": "previousDayLow", "type": "number", "description": "Previous day's low price."},
+    {"name": "previousDayClose", "type": "number", "description": "Previous day's close price."}
+  ],
+  "calculations": [
+    {"outputVar": "H", "sourceInput": "previousDayHigh"},
+    {"outputVar": "L", "sourceInput": "previousDayLow"},
+    {"outputVar": "C", "sourceInput": "previousDayClose"},
+    {"outputVar": "PP", "formula": "(H + L + C) / 3"},
+    {"outputVar": "S1", "formula": "(2 * PP) - H"},
+    {"outputVar": "R1", "formula": "(2 * PP) - L"},
+    {"outputVar": "S2", "formula": "PP - (H - L)"},
+    {"outputVar": "R2", "formula": "PP + (H - L)"},
+    {"outputVar": "S3", "formula": "L - 2 * (H - PP)"},
+    {"outputVar": "R3", "formula": "H + 2 * (PP - L)"}
+  ],
+  "outputs": [
+    {"name": "pivotPoint", "sourceCalculation": "PP"},
+    {"name": "support1", "sourceCalculation": "S1"},
+    {"name": "support2", "sourceCalculation": "S2"},
+    {"name": "support3", "sourceCalculation": "S3"},
+    {"name": "resistance1", "sourceCalculation": "R1"},
+    {"name": "resistance2", "sourceCalculation": "R2"},
+    {"name": "resistance3", "sourceCalculation": "R3"}
+  ],
+  "outputSchemaHint": "AnalyzeTaOutputSchema from '@/ai/schemas/ai-analyzed-ta-schemas'"
+}
