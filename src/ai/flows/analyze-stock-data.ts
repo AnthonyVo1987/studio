@@ -18,16 +18,20 @@ import {
   type StockAnalysisOutput,
 } from '@/ai/schemas/stock-analysis-schemas';
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
-import { loadPromptDefinition, buildPromptStringFromDefinition, type PromptDefinition } from '@/ai/prompt-loader';
+import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
-let analyzeStockDataPromptDefinition: PromptDefinition | null = null;
+let analyzeStockDataPromptDefinition: LlmPromptDefinition | null = null;
 
 async function getAnalyzedStockDataPrompt() {
   if (!analyzeStockDataPromptDefinition) {
-    analyzeStockDataPromptDefinition = await loadPromptDefinition('analyze-stock-data-prompt');
+    const genericDefinition = await loadDefinition('analyze-stock-data');
+    if (genericDefinition.definitionType !== 'llm-prompt') {
+      throw new Error('Loaded definition for analyze-stock-data is not an LLM prompt type.');
+    }
+    analyzeStockDataPromptDefinition = genericDefinition;
   }
 
-  const promptString = buildPromptStringFromDefinition(analyzeStockDataPromptDefinition);
+  const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition);
   const modelId = analyzeStockDataPromptDefinition.modelId || DEFAULT_ANALYSIS_MODEL_ID;
   const safetySettings = analyzeStockDataPromptDefinition.safetySettings || [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
@@ -55,6 +59,10 @@ export async function analyzeStockData(
   return analyzeStockDataFlow(input);
 }
 
+const defaultTakeaway = (category: string, ticker: string): { takeaway: string; sentiment: "neutral" } => ({
+  takeaway: `AI analysis for ${category} for ${ticker} was incomplete or not provided.`,
+  sentiment: "neutral",
+});
 
 const analyzeStockDataFlow = ai.defineFlow(
   {
@@ -62,33 +70,41 @@ const analyzeStockDataFlow = ai.defineFlow(
     inputSchema: StockAnalysisInputSchema,
     outputSchema: StockAnalysisOutputSchema,
   },
-  async input => {
+  async (input: StockAnalysisInput): Promise<StockAnalysisOutput> => {
     console.log('[AIFlow:analyzeStockDataFlow] Executing for ticker:', input.ticker);
-    const promptToUse = await getAnalyzedStockDataPrompt();
-    const {output} = await promptToUse(input);
+    let output: StockAnalysisOutput | undefined;
+
+    try {
+      const promptToUse = await getAnalyzedStockDataPrompt();
+      const result = await promptToUse(input);
+      output = result.output;
+    } catch (error) {
+      console.error('[AIFlow:analyzeStockDataFlow] Error during prompt execution for ticker:', input.ticker, error);
+      output = undefined; // Ensure output is undefined on error
+    }
 
     if (!output) {
       console.error('[AIFlow:analyzeStockDataFlow] AI analysis flow did not return an output for ticker:', input.ticker);
       return {
-        priceAction: { takeaway: "Error: AI analysis for price action failed.", sentiment: "neutral" },
-        trend: { takeaway: "Error: AI analysis for trend failed.", sentiment: "neutral" },
+        priceAction: defaultTakeaway("price action", input.ticker),
+        trend: defaultTakeaway("trend", input.ticker),
         volatility: { takeaway: `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators if available or consider re-running the analysis.`, sentiment: "neutral" },
-        momentum: { takeaway: "Error: AI analysis for momentum failed.", sentiment: "neutral" },
-        patterns: { takeaway: "Error: AI analysis for patterns failed.", sentiment: "neutral" },
+        momentum: defaultTakeaway("momentum", input.ticker),
+        patterns: defaultTakeaway("patterns", input.ticker),
       };
     }
 
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
     for (const category of categories) {
-        if (!output[category] || !output[category].takeaway) {
-            console.warn('[AIFlow:analyzeStockDataFlow]', `Output for category '${category}' was missing or empty for ticker ${input.ticker}. Providing default error message.`);
-            output[category] = { takeaway: `AI analysis for ${category} was incomplete or not provided.`, sentiment: "neutral" };
+        if (!output[category] || !output[category].takeaway || output[category].takeaway.trim() === "") {
+            console.warn('[AIFlow:analyzeStockDataFlow]', `Output for category '${category}' was missing or empty for ticker ${input.ticker}. Providing default message.`);
+            output[category] = defaultTakeaway(category, input.ticker);
         }
     }
     
     if (output.volatility && (!output.volatility.takeaway || output.volatility.takeaway.trim().split(/\s+/).length < 5)) {
-        console.warn(`[AIFlow:analyzeStockDataFlow] Volatility takeaway for ${input.ticker} was too short. Setting default.`);
-        output.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators if available or consider re-running the analysis.`;
+        console.warn(`[AIFlow:analyzeStockDataFlow] Volatility takeaway for ${input.ticker} was too short. Setting default placeholder.`);
+        output.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`;
         if (!output.volatility.sentiment) {
              output.volatility.sentiment = "neutral";
         }
@@ -98,3 +114,4 @@ const analyzeStockDataFlow = ai.defineFlow(
     return output;
   }
 );
+

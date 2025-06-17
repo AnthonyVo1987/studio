@@ -2,7 +2,7 @@
 {
   "definitionType": "llm-prompt",
   "promptName": "analyzeOptionsChainPrompt",
-  "description": "Analyzes options chain data to identify significant Call/Put Walls based on OI/Volume.",
+  "description": "Analyzes options chain data to identify significant Call/Put Walls based on noteworthy OI and/or Volume concentrations.",
   "modelId": "googleai/gemini-2.5-flash-preview-05-20",
   "safetySettings": [
     { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH" },
@@ -32,7 +32,7 @@
       "role": "DataContext",
       "parts": [
         {
-          "text": "The current underlying price is ${{{currentUnderlyingPrice}}} for context.\nThe options chain data is provided as a JSON string: {{{optionsChainJson}}}\nThis JSON string represents an 'OptionsChainData' object with a 'contracts' array. Each element in 'contracts' is an 'OptionsTableRow' having 'strike', 'call' (StreamlinedOptionContract), and 'put' (StreamlinedOptionContract) properties."
+          "text": "The current underlying price is ${{{currentUnderlyingPrice}}} for context.\nThe options chain data is provided as a JSON string: {{{optionsChainJson}}}\nThis JSON string represents an 'OptionsChainData' object with a 'contracts' array. Each element in 'contracts' is an 'OptionsTableRow' having 'strike', 'call' (StreamlinedOptionContract), and 'put' (StreamlinedOptionContract) properties. Each contract detail (call/put) includes 'open_interest' and 'volume'."
         }
       ]
     },
@@ -40,7 +40,7 @@
       "role": "AnalysisCriteria",
       "parts": [
         {
-          "text": "Focus on identifying strikes with **High and/or Clustered Concentrations of Open Interest (OI) and/or Volume**.\nThese concentrations represent potential support (for Puts) or resistance (for Calls)."
+          "text": "Identify strikes with **noteworthy Open Interest (OI)**. These concentrations can be relative to nearby strikes or stand out in the overall chain. Consider **Volume** as a secondary confirming factor if available and significant. Focus on levels that might reasonably act as support (for Puts) or resistance (for Calls)."
         }
       ]
     },
@@ -48,7 +48,7 @@
       "role": "OutputRequirements",
       "parts": [
         {
-          "text": "Output Requirements:\n- Select AT MOST 3 Call Walls and AT MOST 3 Put Walls. Order them by your perceived significance (e.g., highest OI/Volume first, or most impactful cluster).\n- For each selected wall, populate the output JSON:\n    - `callWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'call'}`. Include volume if it's a key factor for identification.\n    - `putWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'put'}`. Include volume if it's a key factor for identification.\n- If no significant walls are identified for a type, return an empty array for that type (e.g., `callWalls: []`)."
+          "text": "Output Requirements:\n- Select AT MOST 3 Call Walls and AT MOST 3 Put Walls. Order them by your perceived significance (e.g., highest OI, most impactful cluster, significant volume confirmation). Even if significance is moderate, identify potential levels.\n- For each selected wall, populate the output JSON:\n    - `callWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'call'}`. Include `volume` if it's a key factor in your identification or particularly noteworthy.\n    - `putWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'put'}`. Include `volume` if it's a key factor in your identification or particularly noteworthy.\n- If no significant walls are identified for a type (even with loosened criteria), return an empty array for that type (e.g., `callWalls: []`)."
         }
       ]
     },

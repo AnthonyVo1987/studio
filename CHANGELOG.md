@@ -16,6 +16,42 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.C.T` (Fix Takeaways Error, Refine Options Prompt)
+**Tag:** `Phase-9_Task-9.C.T_FixTakeawaysLoosenOptionsPrompt` - Commit Hash: `(placeholder_for_C.T_commit)`
+**Subject:** `fix(ai): Improve AI Takeaways error handling, loosen Options prompt (v2.9.C.T)`
+**Details:**
+This version focuses on two main areas:
+1.  **AI Key Takeaways Error Handling (`src/ai/flows/analyze-stock-data.ts`):**
+    *   Enhanced the `analyzeStockDataFlow` to provide more robust default/error takeaways for all five categories (priceAction, trend, volatility, momentum, patterns) if the AI prompt fails or returns incomplete/empty data for any category. This ensures the UI (`AiKeyTakeawaysDisplay.tsx`) always receives a well-structured object, preventing parsing errors when displaying error states.
+    *   The default message for missing volatility takeaways was also refined.
+2.  **AI Options Analysis Prompt Refinement (`src/ai/definitions/analyze-options-chain.json`):**
+    *   The prompt was "loosened" to encourage the AI to identify a broader range of potential Call/Put walls. Instructions were changed to focus on "noteworthy Open Interest (OI)" relative to surroundings or the overall chain, with Volume as a secondary confirming factor, rather than strictly "High and/or Clustered Concentrations."
+    *   The AI is still asked to return AT MOST 3 walls per type, ordered by perceived significance, even if that significance is now considered more moderate.
+    *   This change aims to address the issue where the AI frequently returned no walls, even when some significant OI levels might have been present. The display component will continue to show "No significant walls identified by AI" if the flow successfully returns empty arrays.
+
+- Application version updated to `v2.9.C.T` in `src/components/layout/header.tsx`.
+- `README.md` and `CHANGELOG.md` updated to reflect the new version, task completion, and these refinements.
+---
+**App Version:** `v2.9.C.S` (Modularize AI Prompts)
+**Tag:** `Phase-9_Task-9.C.S_ModularizeAiPrompts` - Commit Hash: `(placeholder_for_C.S_commit)`
+**Subject:** `feat(ai): Modularize all AI prompts & TA logic into JSON definitions (v2.9.C.S)`
+**Details:**
+This version introduces a major refactoring to externalize AI prompt configurations and the TA calculation logic into JSON definition files.
+- Created a new directory `src/ai/definitions/` to store all JSON definition files.
+- Implemented `src/ai/definition-loader.ts` with `LlmPromptDefinitionSchema`, `CalculationLogicDefinitionSchema`, and a `GenericDefinitionSchema` union.
+    - `loadDefinition` function loads and validates these JSONs.
+    - `buildPromptStringFromLlmDefinition` helper constructs prompt strings for LLM flows.
+- Created JSON definition files:
+    - `analyze-stock-data.json` (LLM Prompt)
+    - `analyze-options-chain.json` (LLM Prompt)
+    - `stock-chatbot.json` (LLM Prompt)
+    - `analyze-ta-indicators.json` (Calculation Logic for pivot points)
+    - `example-chat-prompts.json` (Simple array, moved to this directory)
+- Updated Genkit flows (`analyze-stock-data.ts`, `analyze-options-chain-flow.ts`, `chat-flow.ts`, `analyze-ta-flow.ts`) to load their configurations/prompts from these JSON files using `definition-loader.ts`.
+- `Chatbot.tsx` now loads example prompts from the new JSON file location.
+- Application version updated to `v2.9.C.S`. `README.md` and `CHANGELOG.md` updated.
+This enhances modularity, simplifies prompt management, and prepares the TA flow for future, more complex, definition-driven calculations.
+---
 **App Version:** `v2.9.C.R` (Simplify AI Options Analysis)
 **Tag:** `Phase-9_Task-9.C.R_SimplifyOptionsAnalysis` - Commit Hash: `91dab923`
 **Subject:** `refactor(options): Simplify AI Options Analysis prompt and output (v2.9.C.R)`
@@ -26,7 +62,7 @@ Key changes included in v2.9.C.R:
 - **Schema Update (`src/ai/schemas/ai-options-analysis-schemas.ts`):**
     - `WallDetailSchema`: Removed the `wallScore` field. Added an optional `volume` field to capture volume if it's a key factor in identifying a wall.
     - `AiOptionsAnalysisOutputSchema`: Removed `liquidityTier` and `analysisMethodology` fields, as they were tied to the previous complex algorithm. The schema continues to allow for up to 3 `callWalls` and 3 `putWalls`.
-- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts`):**
+- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts` -> `src/ai/definitions/analyze-options-chain.json` post v2.9.C.S):**
     - The `analyzeOptionsChainPrompt` was completely rewritten to be much simpler. It now instructs the AI to identify up to 3 Call/Put walls based on "High and/or Clustered Concentrations of Open Interest (OI) and/or Volume," ordering them by perceived significance. It also explicitly requests the inclusion of `volume` in the output if it's a key factor.
     - The `analyzeOptionsChainFlow` function maintains its pre-check for insufficient input data and robust error handling, returning `{ callWalls: [], putWalls: [] }` on failure or if no walls are identified.
 - **Display Component Update (`src/components/ai-options-analysis-display.tsx`):**
@@ -47,7 +83,7 @@ Key changes included in v2.9.C.Q:
 - **Schema Update (`src/ai/schemas/ai-options-analysis-schemas.ts`):**
     - `WallDetailSchema`: Added `wallScore` (optional number).
     - `AiOptionsAnalysisOutputSchema`: Added `liquidityTier` (optional enum: Low, Medium, High, NotApplicable) and `analysisMethodology` (optional string).
-- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts`):**
+- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts` -> `src/ai/definitions/analyze-options-chain.json` post v2.9.C.S):**
     - `analyzeOptionsChainPrompt` updated to guide the LLM through a chain-of-thought process:
         - Parse options data, classify liquidity tier (Low <1000 avg OI, Medium 1000-4000, High >4000).
         - Normalize OI using Z-scores.
@@ -88,7 +124,7 @@ Key changes included in v2.9.C.P:
 This version addresses the issue where the AI Options Analysis was frequently returning empty walls. The complex "Adaptive Call/Put Wall Detection Template" from v2.9.C.Q was proving too rigid or difficult for the LLM to consistently satisfy, leading to "AI Options Analysis data not available" being shown when the flow correctly returned `{"callWalls": [], "putWalls": []}`.
 
 Key changes included in v2.9.C.O:
-- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts`):**
+- **Prompt Revision (`src/ai/flows/analyze-options-chain-flow.ts` -> `src/ai/definitions/analyze-options-chain.json` post v2.9.C.S):**
     - The `analyzeOptionsChainPrompt` was significantly simplified. It now uses more qualitative guidance, instructing the AI to identify up to 3 Call/Put walls based on "High and/or Clustered Concentrations of Open Interest (OI) and/or Volume," ordered by perceived significance. The complex multi-step algorithm, liquidity tiers, Z-scores, and local ratios were removed from the prompt.
     - The prompt still requests an empty array if no significant walls are found.
 - The schema (`src/ai/schemas/ai-options-analysis-schemas.ts`) and display component (`src/components/ai-options-analysis-display.tsx`) were reverted to not expect `wallScore`, `liquidityTier`, or `analysisMethodology` as these were specific to the removed complex algorithm. `volume` (optional) was re-added to `WallDetailSchema`.
@@ -100,7 +136,7 @@ Key changes included in v2.9.C.O:
 **Details:**
 This version addresses ongoing issues with the AI Analyzed Options Chain, focusing on improving the robustness of the AI flow and server action error handling.
 - **`src/ai/flows/analyze-options-chain-flow.ts`:**
-    - Implemented a more robust `try...catch` block around the `analyzeOptionsChainPrompt(input)` call. On prompt failure, it now logs the error comprehensively and returns a well-formed empty result (`{ callWalls: [], putWalls: [] }`).
+    - Implemented a more robust `try...catch` block around the `analyzeOptionsChainPrompt(input)` call (or equivalent if using JSON prompts). On prompt failure, it now logs the error comprehensively and returns a well-formed empty result (`{ callWalls: [], putWalls: [] }`).
     - The pre-check for insufficient input data (e.g., too few contracts) remains.
     - The post-prompt check for valid output structure also remains, ensuring an empty valid structure if the AI's output is malformed.
 - **`src/actions/perform-ai-options-analysis-action.ts`:**
@@ -113,7 +149,7 @@ This version addresses ongoing issues with the AI Analyzed Options Chain, focusi
 **Details:**
 This version reverts the AI Options Analysis to allow for up to 3 Call/Put walls (from 1 in v2.9.C.L) and improves flow robustness.
 - **`src/ai/schemas/ai-options-analysis-schemas.ts`:** `AiOptionsAnalysisOutputSchema` updated to set `max(3)` for `callWalls` and `putWalls`.
-- **`src/ai/flows/analyze-options-chain-flow.ts`:**
+- **`src/ai/flows/analyze-options-chain-flow.ts` (and its JSON prompt post v2.9.C.S):**
     - Prompt (`analyzeOptionsChainPrompt`) updated to request "AT MOST 3" significant walls per type, ordered by significance.
     - Added a pre-check in `analyzeOptionsChainFlow` to return empty walls if `input.optionsChainJson` is unparsable or contains insufficient contracts (less than 3), avoiding an unnecessary LLM call.
     - The flow logic updated to return up to 3 walls per type as provided by the AI, conforming to the updated schema.
@@ -128,9 +164,9 @@ This version addresses several UI display and AI generation issues:
     - Changed text color for "moderate" volatility sentiment to `text-foreground` to ensure readability on light card backgrounds.
 - **AI Chat Word Wrap (`src/components/chatbot.tsx`):**
     - Changed `w-max` to `w-full` on the chat message container div for better word wrapping.
-- **AI Chat Message Formatting (`src/ai/flows/chat-flow.ts`):**
+- **AI Chat Message Formatting (`src/ai/flows/chat-flow.ts` -> `src/ai/definitions/stock-chatbot.json` post v2.9.C.S):**
     - Updated `stockChatBotPrompt` to explicitly request bullet points and better line spacing in Markdown.
-- **AI Analyzed Options Chain (`src/ai/schemas/ai-options-analysis-schemas.ts`, `src/ai/flows/analyze-options-chain-flow.ts`):**
+- **AI Analyzed Options Chain (`src/ai/schemas/ai-options-analysis-schemas.ts`, `src/ai/flows/analyze-options-chain-flow.ts` / JSON prompt):**
     - Schema updated to `max(1)` for `callWalls` and `putWalls`.
     - Prompt updated to request the "SINGLE MOST" significant wall per type.
     - Flow logic updated to slice output to ensure only one wall per type is returned.
@@ -144,7 +180,7 @@ This version addresses several UI display and AI generation issues:
     - Added a programmatic check in `analyzeStockDataFlow`. If `output.volatility.takeaway` is empty or too short (less than 5 words), it's set to a default placeholder.
 - **AI Chat - Word Wrapping (`src/components/chatbot.tsx`):**
     - Added `break-words` class to the chat message `div` for better text wrapping.
-- **AI Chat - Example Prompts (`src/ai/schemas/chat-schemas.ts`):**
+- **AI Chat - Example Prompts (`src/ai/schemas/chat-schemas.ts` -> `src/ai/definitions/example-chat-prompts.json` post v2.9.C.S):**
     - Enhanced "Stock Trader's Takeaways" to ask for entry/exit points.
     - Enhanced "Options Trader's Takeaways" to ask for example option trade ideas.
     - Reinforced "Additional 3 Holistic Takeaways" to request three full, distinct takeaways.
@@ -207,7 +243,7 @@ This version addresses multiple UI/UX issues and adds new export functionality:
 This version addresses a crash in AI Options Analysis, simplifies its output, and ensures the Options Chain Table is consistently rendered.
 - **AI Options Analysis Simplification:**
     - **Schema (`src/ai/schemas/ai-options-analysis-schemas.ts`):** `AiOptionsAnalysisOutputSchema` modified to only include `callWalls` and `putWalls`. Removed `callClusters`, `putClusters`, and `analysisSummary`.
-    - **Flow (`src/ai/flows/analyze-options-chain-flow.ts`):**
+    - **Flow (`src/ai/flows/analyze-options-chain-flow.ts` / JSON prompt):**
         - Prompt updated to only request Call/Put Walls (max 3 each). Removed instructions for clusters and summary.
         - Flow now ensures output strictly conforms to the simplified schema, returning `{ callWalls: [], putWalls: [] }` on error or malformed AI response.
         - Explicitly limits walls to max 3 per type.
@@ -378,5 +414,6 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 

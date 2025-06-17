@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview Utility for loading and parsing AI prompt and logic definitions from JSON files.
  */
@@ -26,7 +25,7 @@ export const LlmPromptDefinitionSchema = z.object({
     category: z.string(),
     threshold: z.string(),
   })).optional(),
-  chainOfThought: z.array(LlmChainOfThoughtStepSchema),
+  chainOfThought: z.array(LlmChainOfThoughtStepSchema).optional(), // Made optional
   outputSchemaHint: z.string().optional(),
 });
 export type LlmPromptDefinition = z.infer<typeof LlmPromptDefinitionSchema>;
@@ -104,11 +103,16 @@ export async function loadDefinition(definitionName: string): Promise<GenericDef
  */
 export function buildPromptStringFromLlmDefinition(definition: LlmPromptDefinition): string {
   let fullPrompt = "";
-  for (const step of definition.chainOfThought) {
-    for (const part of step.parts) {
-      fullPrompt += part.text + "\\n"; // Add newline between parts/steps
+  if (definition.chainOfThought && Array.isArray(definition.chainOfThought)) {
+    for (const step of definition.chainOfThought) {
+      if (step.parts && Array.isArray(step.parts)) {
+        for (const part of step.parts) {
+          fullPrompt += part.text + "\\n"; // Add newline between parts/steps
+        }
+      }
     }
   }
   // console.log(`[DefinitionLoader:buildPromptString] Built prompt for ${definition.promptName}: ${fullPrompt.substring(0,100)}...`);
   return fullPrompt.trim();
 }
+
