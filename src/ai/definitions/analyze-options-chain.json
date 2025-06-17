@@ -40,7 +40,7 @@
       "role": "AnalysisCriteria",
       "parts": [
         {
-          "text": "Identify strikes with **noteworthy Open Interest (OI)**. These concentrations can be relative to nearby strikes or stand out in the overall chain. Consider **Volume** as a secondary confirming factor if available and significant. Focus on levels that might reasonably act as support (for Puts) or resistance (for Calls)."
+          "text": "Identify strikes that show potentially significant Open Interest (OI) that *might* act as support/resistance. Consider OI levels that are elevated compared to their immediate surroundings or that appear noteworthy within the context of the overall options chain for {{{ticker}}}. High volume at these strikes can be a confirming factor but is not strictly required if OI itself is notable. The goal is to highlight areas of interest, not just extreme concentrations."
         }
       ]
     },
@@ -48,7 +48,7 @@
       "role": "OutputRequirements",
       "parts": [
         {
-          "text": "Output Requirements:\n- Select AT MOST 3 Call Walls and AT MOST 3 Put Walls. Order them by your perceived significance (e.g., highest OI, most impactful cluster, significant volume confirmation). Even if significance is moderate, identify potential levels.\n- For each selected wall, populate the output JSON:\n    - `callWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'call'}`. Include `volume` if it's a key factor in your identification or particularly noteworthy.\n    - `putWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'put'}`. Include `volume` if it's a key factor in your identification or particularly noteworthy.\n- If no significant walls are identified for a type (even with loosened criteria), return an empty array for that type (e.g., `callWalls: []`)."
+          "text": "Output Requirements:\n- Select AT MOST 3 Call Walls and AT MOST 3 Put Walls. Order them by your perceived significance (e.g., highest OI, most impactful cluster, significant volume confirmation), *even if that significance is moderate*. If there are strikes with OI that stands out even moderately from its neighbors, consider including them.\n- For each selected wall, populate the output JSON:\n    - `callWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'call'}`. Include `volume` if it's a key factor in your identification or particularly noteworthy.\n    - `putWalls`: Array of wall objects: `{strike: number, openInterest: number, volume?: number, type: 'put'}`. Include `volume` if it's a key factor in your identification or particularly noteworthy.\n- If no significant walls are identified for a type (even with loosened criteria), return an empty array for that type (e.g., `callWalls: []`)."
         }
       ]
     },

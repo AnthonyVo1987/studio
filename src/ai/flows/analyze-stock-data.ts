@@ -60,7 +60,7 @@ export async function analyzeStockData(
 }
 
 const defaultTakeaway = (category: string, ticker: string): { takeaway: string; sentiment: "neutral" } => ({
-  takeaway: `AI analysis for ${category} for ${ticker} was incomplete or not provided.`,
+  takeaway: `AI analysis for ${category} for ${ticker} was incomplete or not provided by the AI model.`,
   sentiment: "neutral",
 });
 
@@ -72,46 +72,42 @@ const analyzeStockDataFlow = ai.defineFlow(
   },
   async (input: StockAnalysisInput): Promise<StockAnalysisOutput> => {
     console.log('[AIFlow:analyzeStockDataFlow] Executing for ticker:', input.ticker);
-    let output: StockAnalysisOutput | undefined;
+    let outputFromPrompt: StockAnalysisOutput | undefined;
 
     try {
       const promptToUse = await getAnalyzedStockDataPrompt();
       const result = await promptToUse(input);
-      output = result.output;
+      outputFromPrompt = result.output;
     } catch (error) {
       console.error('[AIFlow:analyzeStockDataFlow] Error during prompt execution for ticker:', input.ticker, error);
-      output = undefined; // Ensure output is undefined on error
+      outputFromPrompt = undefined; // Ensure outputFromPrompt is undefined on error
     }
 
-    if (!output) {
-      console.error('[AIFlow:analyzeStockDataFlow] AI analysis flow did not return an output for ticker:', input.ticker);
-      return {
-        priceAction: defaultTakeaway("price action", input.ticker),
-        trend: defaultTakeaway("trend", input.ticker),
-        volatility: { takeaway: `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators if available or consider re-running the analysis.`, sentiment: "neutral" },
-        momentum: defaultTakeaway("momentum", input.ticker),
-        patterns: defaultTakeaway("patterns", input.ticker),
-      };
-    }
-
+    const finalOutput: StockAnalysisOutput = {
+      priceAction: outputFromPrompt?.priceAction || defaultTakeaway("price action", input.ticker),
+      trend: outputFromPrompt?.trend || defaultTakeaway("trend", input.ticker),
+      volatility: outputFromPrompt?.volatility || { takeaway: `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`, sentiment: "neutral" },
+      momentum: outputFromPrompt?.momentum || defaultTakeaway("momentum", input.ticker),
+      patterns: outputFromPrompt?.patterns || defaultTakeaway("patterns", input.ticker),
+    };
+    
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
     for (const category of categories) {
-        if (!output[category] || !output[category].takeaway || output[category].takeaway.trim() === "") {
-            console.warn('[AIFlow:analyzeStockDataFlow]', `Output for category '${category}' was missing or empty for ticker ${input.ticker}. Providing default message.`);
-            output[category] = defaultTakeaway(category, input.ticker);
+        if (!finalOutput[category] || !finalOutput[category].takeaway || finalOutput[category].takeaway.trim() === "") {
+            console.warn('[AIFlow:analyzeStockDataFlow]', `Output for category '${category}' was missing or empty after initial population for ticker ${input.ticker}. Providing default message.`);
+            finalOutput[category] = defaultTakeaway(category, input.ticker);
         }
     }
     
-    if (output.volatility && (!output.volatility.takeaway || output.volatility.takeaway.trim().split(/\s+/).length < 5)) {
-        console.warn(`[AIFlow:analyzeStockDataFlow] Volatility takeaway for ${input.ticker} was too short. Setting default placeholder.`);
-        output.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`;
-        if (!output.volatility.sentiment) {
-             output.volatility.sentiment = "neutral";
+    if (finalOutput.volatility && (!finalOutput.volatility.takeaway || finalOutput.volatility.takeaway.trim().split(/\s+/).length < 5)) {
+        console.warn(`[AIFlow:analyzeStockDataFlow] Volatility takeaway for ${input.ticker} was too short or still default after initial. Setting specific placeholder.`);
+        finalOutput.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`;
+        if (!finalOutput.volatility.sentiment) {
+             finalOutput.volatility.sentiment = "neutral";
         }
     }
 
-    console.log('[AIFlow:analyzeStockDataFlow] Successfully executed for ticker:', input.ticker, 'Output keys:', Object.keys(output).join(', '));
-    return output;
+    console.log('[AIFlow:analyzeStockDataFlow] Successfully executed for ticker:', input.ticker, 'Output keys:', Object.keys(finalOutput).join(', '));
+    return finalOutput;
   }
 );
-
