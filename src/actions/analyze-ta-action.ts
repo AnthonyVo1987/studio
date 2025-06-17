@@ -20,7 +20,6 @@ export interface AnalyzeTaActionState {
   message?: string | null;
 }
 
-// Definition remains, but NOT exported
 const initialAnalyzeTaState: AnalyzeTaActionState = {
   status: 'idle',
   data: undefined,
@@ -38,31 +37,38 @@ export async function analyzeTaAction(
   payload: AnalyzeTaActionInputs
 ): Promise<AnalyzeTaActionState> {
   const { stockSnapshotJson, ticker } = payload;
-  console.log(`[ServerAction:analyzeTaAction] Request for ticker: ${ticker || 'Unknown'}`);
+  const actionLogPrefix = `[ServerAction:analyzeTaAction:Ticker:${ticker || 'Unknown'}]`;
+  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}. PrevState status: ${prevState.status}`);
 
   if (!stockSnapshotJson || stockSnapshotJson === '{}') {
     const errorMsg = 'Stock snapshot data is missing or empty. Cannot perform AI TA analysis.';
-    console.warn(`[ServerAction:analyzeTaAction] Validation Error for ${ticker || 'Unknown'}: ${errorMsg}`);
+    console.warn(`${actionLogPrefix} Validation Error: ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
-      message: 'Prerequisite data not available.',
-      data: undefined,
+      message: 'Prerequisite data not available for AI TA.',
+      data: {
+        aiAnalyzedTaRequestJson: JSON.stringify({ error: errorMsg, ticker }, null, 2),
+        aiAnalyzedTaJson: JSON.stringify({ error: errorMsg }, null, 2),
+      },
     };
   }
 
   let snapshotData: StockSnapshotData;
   try {
     snapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-    console.log(`[ServerAction:analyzeTaAction] Parsed stockSnapshotJson for ${ticker || snapshotData.ticker}`);
+    console.log(`${actionLogPrefix} Parsed stockSnapshotJson. Snapshot ticker: ${snapshotData.ticker}`);
   } catch(e: any) {
     const errorMsg = `Failed to parse stockSnapshotJson: ${e.message}`;
-    console.error(`[ServerAction:analyzeTaAction] Error parsing snapshot for ${ticker || 'Unknown'}: ${errorMsg}`);
+    console.error(`${actionLogPrefix} Error parsing snapshot: ${errorMsg}. Snapshot JSON (first 100): ${stockSnapshotJson.substring(0,100)}`);
     return {
       status: 'error',
       error: errorMsg,
-      message: 'Corrupted snapshot data.',
-      data: undefined,
+      message: 'Corrupted snapshot data for AI TA.',
+      data: {
+        aiAnalyzedTaRequestJson: JSON.stringify({ error: errorMsg, ticker, stockSnapshotJsonSnippet: stockSnapshotJson.substring(0,100) }, null, 2),
+        aiAnalyzedTaJson: JSON.stringify({ error: errorMsg }, null, 2),
+      },
     };
   }
 
@@ -72,12 +78,15 @@ export async function analyzeTaAction(
         snapshotData.prevDay.l == null ||
         snapshotData.prevDay.c == null) {
       const errorMsg = 'Previous day HLC data is missing from the stock snapshot.';
-      console.warn(`[ServerAction:analyzeTaAction] Data Error for ${ticker || snapshotData.ticker}: ${errorMsg}`);
+      console.warn(`${actionLogPrefix} Data Error: ${errorMsg}. PrevDay data: ${JSON.stringify(snapshotData.prevDay)}`);
       return {
         status: 'error',
         error: errorMsg,
         message: 'Incomplete data for AI TA analysis.',
-        data: undefined,
+        data: {
+            aiAnalyzedTaRequestJson: JSON.stringify({ error: errorMsg, ticker, snapshotPrevDay: snapshotData.prevDay }, null, 2),
+            aiAnalyzedTaJson: JSON.stringify({ error: errorMsg }, null, 2),
+        },
       };
     }
     
@@ -88,11 +97,11 @@ export async function analyzeTaAction(
     };
 
     const aiAnalyzedTaRequestJson = JSON.stringify(flowInput, null, 2); 
-    console.log(`[ServerAction:analyzeTaAction] Calling analyzeTaIndicators flow for ${ticker || snapshotData.ticker} with input (keys): ${Object.keys(flowInput).join(', ')}`);
+    console.log(`${actionLogPrefix} Calling analyzeTaIndicators flow. Input keys: ${Object.keys(flowInput).join(', ')}`);
 
     const flowOutput: AnalyzeTaOutput = await analyzeTaIndicators(flowInput); 
     const aiAnalyzedTaJson = JSON.stringify(flowOutput, null, 2); 
-    console.log(`[ServerAction:analyzeTaAction] analyzeTaIndicators flow succeeded for ${ticker || snapshotData.ticker}. Output (keys): ${Object.keys(flowOutput).join(', ')}`);
+    console.log(`${actionLogPrefix} analyzeTaIndicators flow succeeded. Output keys: ${Object.keys(flowOutput).join(', ')}`);
 
     return {
       status: 'success',
@@ -104,7 +113,7 @@ export async function analyzeTaAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`[ServerAction:analyzeTaAction] CRITICAL Error for ${ticker || snapshotData?.ticker || 'Unknown'}:`, error);
+    console.error(`${actionLogPrefix} CRITICAL Error during AI TA analysis. Error: ${error.message}, Stack: ${error.stack}`);
     const requestJsonOnError = JSON.stringify({ 
       error: 'Flow input could not be prepared or flow failed', 
       snapshotPrevDay: snapshotData?.prevDay 
@@ -115,8 +124,9 @@ export async function analyzeTaAction(
       message: 'Failed to complete AI TA analysis.', 
       data: {
         aiAnalyzedTaRequestJson: requestJsonOnError,
-        aiAnalyzedTaJson: JSON.stringify({ error: error.message || 'Flow execution failed' }, null, 2),
+        aiAnalyzedTaJson: JSON.stringify({ error: error.message || 'Flow execution failed', details: String(error) }, null, 2),
       },
     };
   }
 }
+

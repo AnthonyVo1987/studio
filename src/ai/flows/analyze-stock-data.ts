@@ -23,12 +23,17 @@ import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefin
 let analyzeStockDataPromptDefinition: LlmPromptDefinition | null = null;
 
 async function getAnalyzedStockDataPrompt() {
+  const logPrefix = '[AIFlow:getAnalyzedStockDataPrompt]';
   if (!analyzeStockDataPromptDefinition) {
+    console.log(`${logPrefix} Loading 'analyze-stock-data' definition for the first time.`);
     const genericDefinition = await loadDefinition('analyze-stock-data');
     if (genericDefinition.definitionType !== 'llm-prompt') {
-      throw new Error('Loaded definition for analyze-stock-data is not an LLM prompt type.');
+      const errorMsg = `Loaded definition for 'analyze-stock-data' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
+      console.error(`${logPrefix} ${errorMsg}`);
+      throw new Error(errorMsg);
     }
     analyzeStockDataPromptDefinition = genericDefinition;
+    console.log(`${logPrefix} 'analyze-stock-data' definition loaded and validated. Loaded definition (keys): ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
   }
 
   const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition);
@@ -40,8 +45,11 @@ async function getAnalyzedStockDataPrompt() {
       { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
   ];
   
+  console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
+  console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
+  
   return ai.definePrompt({
-    name: 'analyzeStockDataPrompt', // Keep consistent internal name
+    name: 'analyzeStockDataPrompt', 
     input: {schema: StockAnalysisInputSchema},
     output: {schema: StockAnalysisOutputSchema},
     model: modelId,
@@ -55,7 +63,7 @@ async function getAnalyzedStockDataPrompt() {
 export async function analyzeStockData(
   input: StockAnalysisInput
 ): Promise<StockAnalysisOutput> {
-  console.log('[AIFlow:analyzeStockData] Received request for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
+  console.log('[AIFlow:analyzeStockData:Entry] Received request for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
   return analyzeStockDataFlow(input);
 }
 
@@ -71,16 +79,19 @@ const analyzeStockDataFlow = ai.defineFlow(
     outputSchema: StockAnalysisOutputSchema,
   },
   async (input: StockAnalysisInput): Promise<StockAnalysisOutput> => {
-    console.log('[AIFlow:analyzeStockDataFlow] Executing for ticker:', input.ticker);
+    const logPrefix = `[AIFlow:analyzeStockDataFlow:Ticker:${input.ticker}]`;
+    console.log(`${logPrefix} Flow execution started. Input keys: ${Object.keys(input).join(', ')}`);
     let outputFromPrompt: StockAnalysisOutput | undefined;
 
     try {
       const promptToUse = await getAnalyzedStockDataPrompt();
+      console.log(`${logPrefix} Executing analyzeStockDataPrompt for ticker: ${input.ticker}. Input keys: ${Object.keys(input).join(', ')}`);
       const result = await promptToUse(input);
       outputFromPrompt = result.output;
-    } catch (error) {
-      console.error('[AIFlow:analyzeStockDataFlow] Error during prompt execution for ticker:', input.ticker, error);
-      outputFromPrompt = undefined; // Ensure outputFromPrompt is undefined on error
+      console.log(`${logPrefix} analyzeStockDataPrompt completed for ticker: ${input.ticker}. Output keys from AI: ${outputFromPrompt ? Object.keys(outputFromPrompt).join(', ') : 'undefined'}`);
+    } catch (error: any) {
+      console.error(`${logPrefix} CRITICAL ERROR during analyzeStockDataPrompt execution for ticker: ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}, Stack (first 500): ${error?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(error).substring(0,500)}.`);
+      outputFromPrompt = undefined; 
     }
 
     const finalOutput: StockAnalysisOutput = {
@@ -94,20 +105,21 @@ const analyzeStockDataFlow = ai.defineFlow(
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
     for (const category of categories) {
         if (!finalOutput[category] || !finalOutput[category].takeaway || finalOutput[category].takeaway.trim() === "") {
-            console.warn('[AIFlow:analyzeStockDataFlow]', `Output for category '${category}' was missing or empty after initial population for ticker ${input.ticker}. Providing default message.`);
+            console.warn(`${logPrefix} Output for category '${category}' was missing or empty after initial population for ticker ${input.ticker}. Providing default message.`);
             finalOutput[category] = defaultTakeaway(category, input.ticker);
         }
     }
     
     if (finalOutput.volatility && (!finalOutput.volatility.takeaway || finalOutput.volatility.takeaway.trim().split(/\s+/).length < 5)) {
-        console.warn(`[AIFlow:analyzeStockDataFlow] Volatility takeaway for ${input.ticker} was too short or still default after initial. Setting specific placeholder.`);
+        console.warn(`${logPrefix} Volatility takeaway for ${input.ticker} was too short or still default after initial. Setting specific placeholder.`);
         finalOutput.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`;
         if (!finalOutput.volatility.sentiment) {
              finalOutput.volatility.sentiment = "neutral";
         }
     }
 
-    console.log('[AIFlow:analyzeStockDataFlow] Successfully executed for ticker:', input.ticker, 'Output keys:', Object.keys(finalOutput).join(', '));
+    console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Final output keys: ${Object.keys(finalOutput).join(', ')}`);
     return finalOutput;
   }
 );
+

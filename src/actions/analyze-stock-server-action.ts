@@ -20,7 +20,6 @@ export interface AnalyzeStockServerActionState {
   message?: string | null;
 }
 
-// Definition remains, but NOT exported
 const initialStockDataFetchResult: AnalyzeStockServerActionState = {
   status: 'idle',
   data: undefined,
@@ -30,8 +29,8 @@ const initialStockDataFetchResult: AnalyzeStockServerActionState = {
 
 interface FetchStockDataActionInputs {
   ticker: string;
-  dataSource?: string;
-  analysisType?: string;
+  dataSource?: string; 
+  analysisType?: string; 
 }
 
 export async function fetchStockDataAction(
@@ -40,8 +39,8 @@ export async function fetchStockDataAction(
 ): Promise<AnalyzeStockServerActionState> {
   const { ticker } = payload;
   const requestedTickerUpperCase = ticker.toUpperCase();
-  const actionLogPrefix = `[ServerAction:fetchStockDataAction RequestedTicker: ${requestedTickerUpperCase}]`;
-  console.log(`${actionLogPrefix} Received request payload. Current prevState status: ${prevState.status}`);
+  const actionLogPrefix = `[ServerAction:fetchStockDataAction:Ticker:${requestedTickerUpperCase}]`;
+  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}. PrevState status: ${prevState.status}`);
 
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
     const errorMsg = 'Ticker symbol is required and must be a non-empty string.';
@@ -58,93 +57,85 @@ export async function fetchStockDataAction(
     console.log(`${actionLogPrefix} Calling getFullStockData for ${requestedTickerUpperCase}.`);
     const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase);
     
+    console.log(`${actionLogPrefix} getFullStockData returned. Raw request params keys: ${adapterOutput.rawRequestParams ? Object.keys(adapterOutput.rawRequestParams).join(', ') : 'N/A'}. Raw response summary keys: ${adapterOutput.rawResponseSummary ? Object.keys(adapterOutput.rawResponseSummary).join(', ') : 'N/A'}`);
+    
     const adapterStockDataTicker = adapterOutput.stockData.ticker;
     const adapterSnapshotTicker = adapterOutput.stockData.stockSnapshot?.ticker;
-    const adapterRawResponseSummaryTicker = adapterOutput.rawResponseSummary?.responseTicker;
-    const adapterRawRequestSummaryTicker = adapterOutput.rawResponseSummary?.requestedTicker; 
-
-    console.log(`${actionLogPrefix} getFullStockData returned. Requested: ${requestedTickerUpperCase}, AdapterStockDataPkgTicker: ${adapterStockDataTicker}, AdapterSnapshotTicker: ${adapterSnapshotTicker}, AdapterRawRespSummaryTicker: ${adapterRawResponseSummaryTicker}, AdapterRawReqSummaryTicker(from adapter): ${adapterRawRequestSummaryTicker}`);
+    
+    console.log(`${actionLogPrefix} Ticker consistency check: Requested: ${requestedTickerUpperCase}, AdapterStockDataPkgTicker: ${adapterStockDataTicker}, AdapterSnapshotTicker: ${adapterSnapshotTicker}`);
     
     if (adapterSnapshotTicker && adapterSnapshotTicker !== requestedTickerUpperCase) {
         const staleDataErrorMsg = `CRITICAL STALE DATA (Snapshot): Adapter returned snapshot data for ${adapterSnapshotTicker} when ${requestedTickerUpperCase} was requested.`;
-        console.error(`${actionLogPrefix} ${staleDataErrorMsg}`);
-        const errorJson = JSON.stringify({ error: staleDataErrorMsg, details: `Expected ${requestedTickerUpperCase}, adapter provided snapshot for ${adapterSnapshotTicker}. Adapter output for snapshot: ${JSON.stringify(adapterOutput.stockData.stockSnapshot)}` }, null, 2);
-        const requestLogJsonOnError = JSON.stringify(adapterOutput.rawRequestParams || { error: "Request params missing during stale data error" }, null, 2);
-        const responseLogJsonOnError = JSON.stringify(adapterOutput.rawResponseSummary || { error: "Response summary missing during stale data error" }, null, 2);
+        console.error(`${actionLogPrefix} ${staleDataErrorMsg}. Adapter output snapshot (first 200 chars): ${JSON.stringify(adapterOutput.stockData.stockSnapshot).substring(0,200)}`);
+        const errorJson = JSON.stringify({ error: staleDataErrorMsg, details: `Expected ${requestedTickerUpperCase}, adapter provided snapshot for ${adapterSnapshotTicker}.` }, null, 2);
         
         return {
             status: 'error',
             error: staleDataErrorMsg,
-            message: `Stale data detected from data source. Expected ${requestedTickerUpperCase}, but received snapshot for ${adapterSnapshotTicker}.`,
+            message: `Stale data detected from data source. Expected ${requestedTickerUpperCase}, received snapshot for ${adapterSnapshotTicker}.`,
             data: { 
-                marketStatusJson: errorJson,
-                stockSnapshotJson: errorJson,
-                standardTasJson: errorJson,
-                optionsChainJson: errorJson,
-                polygonApiRequestLogJson: requestLogJsonOnError,
-                polygonApiResponseLogJson: responseLogJsonOnError,
+                marketStatusJson: errorJson, stockSnapshotJson: errorJson,
+                standardTasJson: errorJson, optionsChainJson: errorJson,
+                polygonApiRequestLogJson: JSON.stringify(adapterOutput.rawRequestParams || { error: "Request params missing during stale data error" }, null, 2),
+                polygonApiResponseLogJson: JSON.stringify(adapterOutput.rawResponseSummary || { error: "Response summary missing during stale data error" }, null, 2),
             }
         };
     }
 
-
     if (adapterOutput.stockData.error) {
-      console.error(`${actionLogPrefix} Adapter Error for ${requestedTickerUpperCase}: ${adapterOutput.stockData.error}`);
+      console.error(`${actionLogPrefix} Adapter Error: ${adapterOutput.stockData.error}. RawOverallError (first 200 chars): ${JSON.stringify(adapterOutput.stockData.rawOverallError).substring(0,200)}`);
       const adapterErrorJson = JSON.stringify({ error: adapterOutput.stockData.error, rawErrorDetails: adapterOutput.stockData.rawOverallError || adapterOutput.stockData.rawErrorDetails }, null, 2);
       return {
         status: 'error',
         error: `Adapter Error: ${adapterOutput.stockData.error}`,
-        message: `Failed to fetch data for ${requestedTickerUpperCase}. Adapter reported an error. Check client debug console for Polygon Adapter logs.`,
+        message: `Failed to fetch data. Adapter reported an error.`,
         data: {
-            marketStatusJson: adapterErrorJson,
-            stockSnapshotJson: adapterErrorJson,
-            standardTasJson: adapterErrorJson,
-            optionsChainJson: adapterErrorJson,
+            marketStatusJson: adapterErrorJson, stockSnapshotJson: adapterErrorJson,
+            standardTasJson: adapterErrorJson, optionsChainJson: adapterErrorJson,
             polygonApiRequestLogJson: JSON.stringify(adapterOutput.rawRequestParams || { error: "Request params missing" }, null, 2),
             polygonApiResponseLogJson: JSON.stringify(adapterOutput.rawResponseSummary || { error: "Response summary missing" }, null, 2),
         },
       };
     }
 
-    const stringify = (obj: any): string => {
-      if (obj === undefined || obj === null) return '{}';
+    const stringify = (obj: any, name: string): string => {
+      if (obj === undefined || obj === null) {
+        console.warn(`${actionLogPrefix} Data for '${name}' is null or undefined before stringifying.`);
+        return '{}';
+      }
       try {
         return JSON.stringify(obj, null, 2);
-      } catch (e) {
-        console.error(`${actionLogPrefix} Error stringifying object:`, e);
-        return JSON.stringify({ error: "Failed to stringify content", details: (e as Error).message }, null, 2);
+      } catch (e: any) {
+        console.error(`${actionLogPrefix} Error stringifying '${name}': ${e.message}. Object (first 100 chars): ${String(obj).substring(0,100)}`);
+        return JSON.stringify({ error: `Failed to stringify ${name}`, details: e.message }, null, 2);
       }
     };
 
-    const marketStatusJson = stringify(adapterOutput.stockData.marketStatus);
-    const stockSnapshotJson = stringify(adapterOutput.stockData.stockSnapshot);
-    const standardTasJson = stringify(adapterOutput.stockData.technicalIndicators);
-    const optionsChainJson = stringify(adapterOutput.stockData.optionsChain);
+    const marketStatusJson = stringify(adapterOutput.stockData.marketStatus, "marketStatus");
+    const stockSnapshotJson = stringify(adapterOutput.stockData.stockSnapshot, "stockSnapshot");
+    const standardTasJson = stringify(adapterOutput.stockData.technicalIndicators, "technicalIndicators");
+    const optionsChainJson = stringify(adapterOutput.stockData.optionsChain, "optionsChain");
+    const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams, "rawRequestParams");
+    const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary, "rawResponseSummary");
 
-    const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams);
-    const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary);
-
-    console.log(`${actionLogPrefix} Successfully processed data. Ticker in final stockSnapshotJson being returned to client: ${adapterOutput.stockData.stockSnapshot?.ticker} (Expected: ${requestedTickerUpperCase})`);
+    console.log(`${actionLogPrefix} Successfully processed data. Final snapshot ticker: ${adapterOutput.stockData.stockSnapshot?.ticker}`);
     return {
       status: 'success',
       data: {
-        marketStatusJson,
-        stockSnapshotJson,
-        standardTasJson,
-        optionsChainJson,
-        polygonApiRequestLogJson,
-        polygonApiResponseLogJson,
+        marketStatusJson, stockSnapshotJson, standardTasJson, optionsChainJson,
+        polygonApiRequestLogJson, polygonApiResponseLogJson,
       },
       message: `Data for ${requestedTickerUpperCase} fetched successfully.`,
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CRITICAL Unhandled Error in fetchStockDataAction for ${requestedTickerUpperCase}:`, error);
+    console.error(`${actionLogPrefix} CRITICAL Unhandled Error in fetchStockDataAction. Error: ${error.message}, Stack: ${error.stack}`);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during data fetching.',
-      message: `Failed to fetch data for ${requestedTickerUpperCase}. Check server logs.`,
+      message: `Failed to fetch data. Check server logs.`,
       data: undefined,
     };
   }
 }
+

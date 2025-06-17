@@ -42,23 +42,28 @@ export async function chatServerAction(
     chatHistory, 
     userInput 
   } = payload;
-  console.log(`[ServerAction:chatServerAction] Request for ticker: ${ticker}, User Input (first 50 chars): "${userInput.substring(0,50)}..."`);
+  const actionLogPrefix = `[ServerAction:chatServerAction:Ticker:${ticker}]`;
+  console.log(`${actionLogPrefix} Received request. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}. PrevState status: ${prevState.status}`);
+
 
   if (!userInput || userInput.trim() === '') {
     const errorMsg = 'User input cannot be empty.';
-    console.warn(`[ServerAction:chatServerAction] Validation Error for ${ticker}: ${errorMsg}`);
+    console.warn(`${actionLogPrefix} Validation Error: ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
       message: 'Please provide a question or statement.',
-      data: undefined,
+      data: {
+        chatbotRequestJson: JSON.stringify({ error: errorMsg, ticker, userInput }, null, 2),
+        chatbotResponseJson: JSON.stringify({ error: errorMsg }, null, 2),
+      },
     };
   }
   if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' || 
       !aiKeyTakeawaysJson || aiKeyTakeawaysJson === '{}' || 
       !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') { 
      const errorMsg = 'Contextual stock data is missing for the chat.';
-     console.warn(`[ServerAction:chatServerAction] Validation Error for ${ticker}: ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, Analyzed TA empty: ${aiAnalyzedTaJson === '{}'}`);
+     console.warn(`${actionLogPrefix} Validation Error: ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, Analyzed TA empty: ${aiAnalyzedTaJson === '{}'}`);
      return {
       status: 'error',
       error: errorMsg,
@@ -81,12 +86,12 @@ export async function chatServerAction(
   };
 
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
-  console.log(`[ServerAction:chatServerAction] Calling chatWithBot flow for ${ticker}. History length: ${flowInput.chatHistory.length}. Input keys: ${Object.keys(flowInput).join(', ')}`);
+  console.log(`${actionLogPrefix} Calling chatWithBot flow. Input keys: ${Object.keys(flowInput).join(', ')}. History length: ${flowInput.chatHistory.length}.`);
 
   try {
     const flowOutput: ChatOutput = await chatWithBot(flowInput);
     const chatbotResponseJson = JSON.stringify(flowOutput, null, 2);
-    console.log(`[ServerAction:chatServerAction] chatWithBot flow succeeded for ${ticker}. Response (first 50 chars): ${flowOutput.response.substring(0,50)}...`);
+    console.log(`${actionLogPrefix} chatWithBot flow succeeded. Response (first 50 chars): "${flowOutput.response.substring(0,50)}..."`);
 
     return {
       status: 'success',
@@ -98,14 +103,14 @@ export async function chatServerAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`[ServerAction:chatServerAction] CRITICAL Error for ${ticker} with input "${userInput.substring(0,50)}...":`, error);
+    console.error(`${actionLogPrefix} CRITICAL Error during chat processing. Error: ${error.message}, Stack: ${error.stack}`);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during chat processing.',
       message: 'Chatbot failed to respond.',
       data: { 
         chatbotRequestJson,
-        chatbotResponseJson: JSON.stringify({ error: error.message || 'Flow execution failed' }, null, 2),
+        chatbotResponseJson: JSON.stringify({ error: error.message || 'Flow execution failed', details: String(error) }, null, 2),
       },
     };
   }

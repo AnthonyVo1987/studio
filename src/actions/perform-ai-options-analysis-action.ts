@@ -20,12 +20,12 @@ export interface PerformAiOptionsAnalysisActionState {
   message?: string | null;
 }
 
-// const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = { // Not exported
-//   status: 'idle',
-//   data: undefined,
-//   error: null,
-//   message: null,
-// };
+const initialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = {
+  status: 'idle',
+  data: undefined,
+  error: null,
+  message: null,
+};
 
 interface PerformAiOptionsAnalysisActionInputs {
   ticker: string;
@@ -42,32 +42,34 @@ export async function performAiOptionsAnalysisAction(
     optionsChainJson,
     stockSnapshotJson,
   } = payload;
-  console.log(`[ServerAction:performAiOptionsAnalysisAction] Request for ticker: ${ticker}`);
+  const actionLogPrefix = `[ServerAction:performAiOptionsAnalysisAction:Ticker:${ticker}]`;
+  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}. PrevState status: ${prevState.status}`);
+
 
   let currentUnderlyingPrice: number;
   let flowInput: AiOptionsAnalysisInput;
   let aiOptionsAnalysisRequestJson: string = JSON.stringify({ error: "Request preparation incomplete", ticker }, null, 2); 
 
-  const baseErrorReturn = (errMsg: string, detailMsg?: string, reqJsonOverride?: string) => ({
-    status: 'error' as 'error',
-    error: errMsg, 
-    message: detailMsg || errMsg, 
-    data: {
-      aiOptionsAnalysisRequestJson: reqJsonOverride || aiOptionsAnalysisRequestJson,
-      aiOptionsAnalysisJson: JSON.stringify({ 
-        status: 'error', 
-        error: errMsg,   
-        details: detailMsg, 
-        callWalls: [], 
-        putWalls: [] 
-      }, null, 2),
-    },
-  });
+  const baseErrorReturn = (errMsg: string, detailMsg?: string, reqJsonOverride?: string) => {
+    console.error(`${actionLogPrefix} Returning error: ${errMsg}, Detail: ${detailMsg}`);
+    return {
+      status: 'error' as 'error',
+      error: errMsg, 
+      message: detailMsg || errMsg, 
+      data: {
+        aiOptionsAnalysisRequestJson: reqJsonOverride || aiOptionsAnalysisRequestJson,
+        aiOptionsAnalysisJson: JSON.stringify({ 
+          status: 'error', error: errMsg, details: detailMsg, 
+          callWalls: [], putWalls: [] 
+        }, null, 2),
+      },
+    };
+  };
 
   try {
     if (!ticker || !optionsChainJson || optionsChainJson === '{}' || !stockSnapshotJson || stockSnapshotJson === '{}') {
-      const errorMsg = 'Ticker, Options Chain JSON, or Stock Snapshot JSON is missing or empty. Cannot perform AI options analysis.';
-      console.warn(`[ServerAction:performAiOptionsAnalysisAction] Validation Error for ${ticker}: ${errorMsg}`);
+      const errorMsg = 'Ticker, Options Chain JSON, or Stock Snapshot JSON is missing or empty.';
+      console.warn(`${actionLogPrefix} Validation Error: ${errorMsg}. OptionsChain empty: ${optionsChainJson === '{}'}, Snapshot empty: ${stockSnapshotJson === '{}'}`);
       aiOptionsAnalysisRequestJson = JSON.stringify({ error: errorMsg, ticker, optionsChainJsonProvided: !!(optionsChainJson && optionsChainJson !== '{}'), stockSnapshotJsonProvided: !!(stockSnapshotJson && stockSnapshotJson !== '{}') }, null, 2);
       return baseErrorReturn(errorMsg, 'Prerequisite data not available for AI options analysis.');
     }
@@ -78,10 +80,11 @@ export async function performAiOptionsAnalysisAction(
         throw new Error('Current price not found in stock snapshot.');
       }
       currentUnderlyingPrice = snapshot.currentPrice;
+      console.log(`${actionLogPrefix} Extracted current underlying price: ${currentUnderlyingPrice}`);
     } catch (e: any) {
       const errorMsg = `Failed to get current price from stockSnapshotJson: ${e.message}`;
-      console.error(`[ServerAction:performAiOptionsAnalysisAction] ${errorMsg} for ${ticker}`);
-      aiOptionsAnalysisRequestJson = JSON.stringify({ error: errorMsg, ticker, stockSnapshotJson }, null, 2);
+      console.error(`${actionLogPrefix} ${errorMsg}. Snapshot JSON (first 100): ${stockSnapshotJson.substring(0,100)}`);
+      aiOptionsAnalysisRequestJson = JSON.stringify({ error: errorMsg, ticker, stockSnapshotJsonSnippet: stockSnapshotJson.substring(0,100) }, null, 2);
       return baseErrorReturn(errorMsg, 'Could not determine current price for AI options analysis.');
     }
 
@@ -92,18 +95,18 @@ export async function performAiOptionsAnalysisAction(
     };
     aiOptionsAnalysisRequestJson = JSON.stringify(flowInput, null, 2);
 
-    console.log(`[ServerAction:performAiOptionsAnalysisAction] Calling analyzeOptionsChain flow for ${ticker}. Input Keys: ${Object.keys(flowInput).join(', ')}. Current Price: ${currentUnderlyingPrice}`);
+    console.log(`${actionLogPrefix} Calling analyzeOptionsChain flow. Input Keys: ${Object.keys(flowInput).join(', ')}.`);
 
     const flowOutput: AiOptionsAnalysisOutput = await analyzeOptionsChain(flowInput);
     
     if (!flowOutput || !Array.isArray(flowOutput.callWalls) || !Array.isArray(flowOutput.putWalls)) {
-        const flowErrorMsg = 'AI options analysis flow returned invalid, malformed, or empty data structure from the flow directly.';
-        console.error(`[ServerAction:performAiOptionsAnalysisAction] Flow for ${ticker} returned malformed/empty output (not arrays or missing keys, or flow returned empty itself):`, flowOutput);
-        return baseErrorReturn(flowErrorMsg, `AI options analysis for ${ticker} failed to produce valid wall data from the flow execution.`);
+        const flowErrorMsg = 'AI options analysis flow returned invalid, malformed, or empty data structure.';
+        console.error(`${actionLogPrefix} Flow returned malformed output. Output (first 200): ${JSON.stringify(flowOutput).substring(0,200)}`);
+        return baseErrorReturn(flowErrorMsg, `AI options analysis failed to produce valid wall data from the flow.`);
     }
     
     const aiOptionsAnalysisJsonOutput = JSON.stringify(flowOutput, null, 2);
-    console.log(`[ServerAction:performAiOptionsAnalysisAction] analyzeOptionsChain flow succeeded for ${ticker}. CallWalls: ${flowOutput.callWalls.length}, PutWalls: ${flowOutput.putWalls.length}`);
+    console.log(`${actionLogPrefix} analyzeOptionsChain flow succeeded. CallWalls: ${flowOutput.callWalls.length}, PutWalls: ${flowOutput.putWalls.length}`);
 
     return {
       status: 'success',
@@ -116,8 +119,9 @@ export async function performAiOptionsAnalysisAction(
     };
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred during AI options analysis.';
-    console.error(`[ServerAction:performAiOptionsAnalysisAction] CRITICAL Unhandled Error for ${ticker}:`, error);
-    const userFriendlyDetailMsg = `Failed to generate AI options analysis for ${ticker}. Please check server logs for technical details.`;
-    return baseErrorReturn(errorMessage, userFriendlyDetailMsg);
+    console.error(`${actionLogPrefix} CRITICAL Unhandled Error. Error: ${errorMessage}, Stack: ${error.stack}`);
+    const userFriendlyDetailMsg = `Failed to generate AI options analysis for ${ticker}.`;
+    return baseErrorReturn(errorMessage, userFriendlyDetailMsg, JSON.stringify({ error: errorMessage, details: String(error) }, null, 2));
   }
 }
+

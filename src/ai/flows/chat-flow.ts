@@ -18,27 +18,39 @@ import {
   type ChatOutput,
 } from '@/ai/schemas/chat-schemas';
 import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
-import { loadPromptDefinition, buildPromptStringFromDefinition, type PromptDefinition } from '@/ai/prompt-loader';
+import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
-let stockChatBotPromptDefinition: PromptDefinition | null = null;
+let stockChatBotPromptDefinition: LlmPromptDefinition | null = null;
 
 async function getStockChatBotPrompt() {
+  const logPrefix = '[AIFlow:getStockChatBotPrompt]';
   if (!stockChatBotPromptDefinition) {
-    stockChatBotPromptDefinition = await loadPromptDefinition('stock-chatbot-prompt');
+    console.log(`${logPrefix} Loading 'stock-chatbot' definition for the first time.`);
+    const genericDefinition = await loadDefinition('stock-chatbot');
+    if (genericDefinition.definitionType !== 'llm-prompt') {
+      const errorMsg = `Loaded definition for 'stock-chatbot' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
+      console.error(`${logPrefix} ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+    stockChatBotPromptDefinition = genericDefinition;
+    console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated. Loaded definition (keys): ${Object.keys(stockChatBotPromptDefinition).join(', ')}`);
   }
 
-  const promptString = buildPromptStringFromDefinition(stockChatBotPromptDefinition);
+  const promptString = buildPromptStringFromLlmDefinition(stockChatBotPromptDefinition);
   const modelId = stockChatBotPromptDefinition.modelId || DEFAULT_CHAT_MODEL_ID;
   const safetySettings = stockChatBotPromptDefinition.safetySettings || [
       {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH'},
-      {category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH'},
+      {category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH'},
   ];
 
+  console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
+  console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
+
   return ai.definePrompt({
-    name: 'stockChatBotPrompt', // Keep consistent internal name
+    name: 'stockChatBotPrompt', 
     input: {schema: ChatInputSchema},
     output: {schema: ChatOutputSchema},
     model: modelId,
@@ -51,7 +63,7 @@ async function getStockChatBotPrompt() {
 
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
-  console.log('[AIFlow:chatWithBot] Received request for ticker:', input.ticker, 'User input (first 50):', input.userInput.substring(0,50), 'History length:', input.chatHistory?.length || 0);
+  console.log('[AIFlow:chatWithBot:Entry] Received request for ticker:', input.ticker, 'User input (first 50):', input.userInput.substring(0,50), 'History length:', input.chatHistory?.length || 0);
   return chatFlow(input);
 }
 
@@ -62,20 +74,28 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input: ChatInput) => {
-    console.log('[AIFlow:stockChatBotFlow] Executing for ticker:', input.ticker, 'User input (first 50):', input.userInput.substring(0,50));
-    const promptToUse = await getStockChatBotPrompt();
-    const {output} = await promptToUse(input);
+    const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker}]`;
+    console.log(`${logPrefix} Flow execution started. User input (first 50 chars): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}.`);
     
-    if (!output) {
-        console.error('[AIFlow:stockChatBotFlow] Chatbot flow did not return an output for ticker:', input.ticker);
-        // Return a structured error that matches ChatOutputSchema
-        return { response: "Sorry, I encountered an unexpected issue and couldn't generate a response. Please try again." };
+    try {
+      const promptToUse = await getStockChatBotPrompt();
+      console.log(`${logPrefix} Executing stockChatBotPrompt for ticker ${input.ticker}. User input (first 50): "${input.userInput.substring(0,50)}..."`);
+      const {output} = await promptToUse(input);
+      
+      if (!output) {
+          console.error(`${logPrefix} Chatbot flow for ticker ${input.ticker} did not return an output.`);
+          return { response: "Sorry, I encountered an unexpected issue and couldn't generate a response. Please try again." };
+      }
+      if (!output.response || typeof output.response !== 'string') {
+          console.error(`${logPrefix} Chatbot flow output for ticker ${input.ticker} is malformed (missing response string). Output: ${JSON.stringify(output).substring(0,200)}`);
+          return { response: "Sorry, I received a malformed response. Please try asking in a different way." };
+      }
+      console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${output.response.substring(0,50)}..."`);
+      return output;
+    } catch (error: any) {
+      console.error(`${logPrefix} CRITICAL ERROR during stockChatBotPrompt execution for ticker ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}, Stack (first 500): ${error?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(error).substring(0,500)}.`);
+      return { response: "I'm sorry, but I encountered a problem while processing your request. Please try again later." };
     }
-    if (!output.response || typeof output.response !== 'string') {
-        console.error('[AIFlow:stockChatBotFlow] Chatbot flow output is malformed (missing response string) for ticker:', input.ticker, 'Output:', output);
-        return { response: "Sorry, I received a malformed response. Please try asking in a different way." };
-    }
-    console.log('[AIFlow:stockChatBotFlow] Successfully executed for ticker:', input.ticker, 'Response (first 50):', output.response.substring(0,50));
-    return output;
   }
 );
+
