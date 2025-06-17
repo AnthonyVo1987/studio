@@ -1,24 +1,19 @@
 
+      
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Download, Copy, Info } from "lucide-react";
+import { Download, Copy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
-import { formatCurrency, formatCompactNumber, formatToTwoDecimals } from "@/lib/number-utils";
+import { formatCurrency, formatCompactNumber } from "@/lib/number-utils";
 import type { StockSnapshotData } from "@/services/data-sources/types";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 const getTickerFromSnapshot = (snapshotJson: string, logDebug: Function): string => {
   try {
@@ -64,7 +59,7 @@ export function AiOptionsAnalysisDisplay() {
         errorMessageForDisplay = parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
         logDebug(componentName, `JSON indicates status/error: ${parsedJson.status || parsedJson.error || 'unknown_structure'}, message: ${errorMessageForDisplay}`);
       } else if (parsedJson.status === 'skipped') {
-        isError = true;
+        isError = true; // Treat skipped as an error for display purposes
         errorMessageForDisplay = parsedJson.message || "AI Options Analysis was skipped.";
         logDebug(componentName, `JSON indicates status: skipped, message: ${errorMessageForDisplay}`);
       } else if (typeof parsedJson === 'object' && parsedJson !== null && Array.isArray(parsedJson.callWalls) && Array.isArray(parsedJson.putWalls)) {
@@ -87,8 +82,7 @@ export function AiOptionsAnalysisDisplay() {
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
   const isDataReadyForExport = !isLoading && !isError && parsedSuccessfullyData &&
     ( (parsedSuccessfullyData.callWalls && parsedSuccessfullyData.callWalls.length > 0) ||
-      (parsedSuccessfullyData.putWalls && parsedSuccessfullyData.putWalls.length > 0) ||
-       parsedSuccessfullyData.liquidityTier // Allow export if tier/methodology exists even with no walls
+      (parsedSuccessfullyData.putWalls && parsedSuccessfullyData.putWalls.length > 0)
     );
 
   const handleExport = () => {
@@ -133,7 +127,7 @@ export function AiOptionsAnalysisDisplay() {
           <TableRow>
             <TableHead>Strike</TableHead>
             <TableHead className="text-right">Open Interest</TableHead>
-            <TableHead className="text-right">Wall Score</TableHead>
+            <TableHead className="text-right">Volume</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -141,7 +135,7 @@ export function AiOptionsAnalysisDisplay() {
             <TableRow key={`${type}-wall-${wall.strike}`}>
               <TableCell>{formatCurrency(wall.strike, "$", "N/A", true)}</TableCell>
               <TableCell className="text-right">{formatCompactNumber(wall.openInterest, "N/A")}</TableCell>
-              <TableCell className="text-right">{wall.wallScore !== undefined ? formatToTwoDecimals(wall.wallScore, "-") : "-"}</TableCell>
+              <TableCell className="text-right">{wall.volume !== undefined ? formatCompactNumber(wall.volume, "-") : "-"}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -155,8 +149,6 @@ export function AiOptionsAnalysisDisplay() {
   if (isLoading) {
     content = (
       <div className="space-y-4 p-2">
-        <Skeleton className="h-6 w-1/2 mb-1" />
-        <Skeleton className="h-4 w-3/4 mb-3" />
         <Skeleton className="h-8 w-1/3 mb-2" />
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-8 w-1/3 mb-2 mt-4" />
@@ -173,25 +165,6 @@ export function AiOptionsAnalysisDisplay() {
     const hasWalls = parsedSuccessfullyData.callWalls.length > 0 || parsedSuccessfullyData.putWalls.length > 0;
     content = (
       <>
-        {parsedSuccessfullyData.liquidityTier && (
-          <div className="p-2 mb-3 text-sm text-muted-foreground border-b pb-3">
-            <span className="font-semibold text-foreground">Liquidity Tier:</span> {parsedSuccessfullyData.liquidityTier}
-            {parsedSuccessfullyData.analysisMethodology && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 p-0 align-middle">
-                      <Info className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="text-xs">{parsedSuccessfullyData.analysisMethodology}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        )}
         {hasWalls ? (
           <Accordion type="multiple" defaultValue={["call-walls", "put-walls"]} className="w-full">
             <AccordionItem value="call-walls">
@@ -209,7 +182,7 @@ export function AiOptionsAnalysisDisplay() {
           </Accordion>
         ) : (
           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-            No significant walls identified by AI using the current methodology.
+            No significant walls identified by AI.
           </div>
         )}
       </>
@@ -227,7 +200,7 @@ export function AiOptionsAnalysisDisplay() {
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
           <CardTitle>AI Analyzed Options Chain</CardTitle>
-          <CardDescription>Key levels (Call & Put Walls, up to 3 each) based on adaptive OI analysis.</CardDescription>
+          <CardDescription>Key levels (Call & Put Walls, up to 3 each) based on OI/Volume concentration.</CardDescription>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleCopy} disabled={!isDataReadyForExport}>
@@ -244,3 +217,5 @@ export function AiOptionsAnalysisDisplay() {
     </Card>
   );
 }
+
+    
