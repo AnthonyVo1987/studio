@@ -45,7 +45,7 @@ const getSemanticTextColorClass = (sentiment?: string, categoryKey?: TakeawayCat
     const s = sentiment.toLowerCase();
 
     if (categoryKey === 'volatility' && s.includes('moderate')) {
-        return 'text-foreground'; // Override for volatility moderate to ensure visibility
+        return 'text-foreground'; 
     }
 
     if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) return 'text-positive';
@@ -116,7 +116,7 @@ export function AiKeyTakeawaysDisplay() {
   const jsonString = aiKeyTakeawaysJson;
   const componentName = 'AiKeyTakeawaysDisplay';
 
-  logDebug(componentName, "aiKeyTakeawaysJson (start):", jsonString ? jsonString.substring(0,100) : "null");
+  logDebug(componentName, "PropsReceived", "aiKeyTakeawaysJson received. Length:", jsonString?.length, "Is empty/null:", !jsonString || jsonString === '{}');
 
   let isLoading = false;
   let isError = false;
@@ -129,13 +129,11 @@ export function AiKeyTakeawaysDisplay() {
     isError = false; 
     parsedTakeawaysData = null;
     errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
-    logDebug(componentName, "aiKeyTakeawaysJson is empty or null. Displaying 'No data'.");
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(jsonString.trim())) {
     isLoading = true;
     isError = false;
     parsedTakeawaysData = null;
     errorOrSkippedMessage = ""; 
-    logDebug(componentName, "aiKeyTakeawaysJson is in a defined pending/initializing state.");
   } else if (jsonString.includes('"status": "error"') || jsonString.includes('"status": "skipped"')) {
     isLoading = false;
     isError = true;
@@ -147,13 +145,10 @@ export function AiKeyTakeawaysDisplay() {
       } else { 
         errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Key Takeaways.";
       }
-      logDebug(componentName, `JSON indicates status: ${statusObj.status}, message: ${errorOrSkippedMessage}`);
     } catch (e) {
       errorOrSkippedMessage = "Failed to parse status message from error/skipped JSON for AI Key Takeaways.";
-      logDebug(componentName, "Failed to parse error/skipped status JSON for AI Key Takeaways.", e);
     }
   } else {
-    
     isLoading = false;
     isError = false;
     try {
@@ -168,28 +163,26 @@ export function AiKeyTakeawaysDisplay() {
             textSentimentClass: getSemanticTextColorClass(data[key]?.sentiment, key),
             badgeSentimentClass: getSemanticBadgeClass(data[key]?.sentiment)
         }));
-        logDebug(componentName, "Successfully parsed aiKeyTakeawaysJson data.", data);
+        logDebug(componentName, "DataParsed", "Successfully parsed aiKeyTakeawaysJson. Keys:", Object.keys(parsedTakeawaysData));
       } else {
         isError = true;
         errorOrSkippedMessage = "AI Key Takeaways data is malformed or incomplete.";
         parsedTakeawaysData = null;
-        logDebug(componentName, "Parsed aiKeyTakeawaysJson data is malformed or missing critical fields.", data);
       }
     } catch (e) {
       isError = true;
       errorOrSkippedMessage = "Failed to parse AI Key Takeaways data.";
       parsedTakeawaysData = null;
-      logDebug(componentName, "Error parsing AI Key Takeaways JSON.", e);
     }
   }
 
-  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
+  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
 
   const isDataReadyForExport = !isLoading && !isError && parsedTakeawaysData && Object.keys(parsedTakeawaysData).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
 
   const handleExport = (format: 'json' | 'text' | 'csv') => {
-    logDebug(componentName, `Attempting to export takeaways as ${format} for ${currentTicker}`);
+    logDebug(componentName, `ExportAction`, `Attempting to export takeaways as ${format} for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysData) {
       toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
       return;
@@ -208,15 +201,13 @@ export function AiKeyTakeawaysDisplay() {
         downloadTxt(csvData, `${filename}.csv`); 
         toast({ title: "Exported as CSV", description: "Key takeaways downloaded." });
       }
-      logDebug(componentName, `Successfully exported as ${format}`);
     } catch (e: any) {
-      logDebug(componentName, `Error exporting as ${format}:`, e);
       toast({ variant: "destructive", title: "Export Error", description: `Could not export takeaways: ${e.message}` });
     }
   };
 
   const handleCopy = async (format: 'json' | 'text' | 'csv') => {
-    logDebug(componentName, `Attempting to copy takeaways as ${format} for ${currentTicker}`);
+    logDebug(componentName, `CopyAction`, `Attempting to copy takeaways as ${format} for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysData) {
       toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
       return;
@@ -234,12 +225,10 @@ export function AiKeyTakeawaysDisplay() {
       success = await copyToClipboard(dataToCopy);
       if (success) {
         toast({ title: `Copied as ${format.toUpperCase()}`, description: "Key takeaways copied to clipboard." });
-        logDebug(componentName, `Successfully copied as ${format}`);
       } else {
         throw new Error("Clipboard API failed.");
       }
     } catch (e: any) {
-      logDebug(componentName, `Error copying as ${format}:`, e);
       toast({ variant: "destructive", title: "Copy Error", description: `Could not copy takeaways: ${e.message}` });
     }
   };
@@ -315,6 +304,3 @@ export function AiKeyTakeawaysDisplay() {
     </Card>
   );
 }
-
-
-    

@@ -48,7 +48,7 @@ export function MarketStatusDisplay() {
   const [details, setDetails] = useState<MarketDetailItem[]>([]);
 
   useEffect(() => {
-    logDebug(componentName, "marketStatusJson (effect start):", marketStatusJson ? marketStatusJson.substring(0,100) : "null");
+    logDebug(componentName, "PropsReceived", "marketStatusJson received. Length:", marketStatusJson?.length, "Is empty/null:", !marketStatusJson || marketStatusJson === '{}');
     let currentIsLoading = false;
     let currentIsError = false;
     let currentErrorOrSkippedMessage: string | null = "Market status data not available.";
@@ -58,12 +58,10 @@ export function MarketStatusDisplay() {
       currentIsLoading = false;
       currentIsError = false; 
       currentErrorOrSkippedMessage = "No market status data. Ensure stock data was fetched.";
-      logDebug(componentName, "marketStatusJson is empty or null. Displaying 'No data'.");
     } else if (PENDING_STATUS_JSON_VARIANTS.includes(marketStatusJson.trim())) {
       currentIsLoading = true;
       currentIsError = false;
       currentErrorOrSkippedMessage = ""; 
-      logDebug(componentName, "marketStatusJson is in a defined pending/initializing state.");
     } else if (marketStatusJson.includes('"status": "error"') || marketStatusJson.includes('"error":')) {
       currentIsLoading = false;
       currentIsError = true;
@@ -73,7 +71,6 @@ export function MarketStatusDisplay() {
       } catch (e) {
         currentErrorOrSkippedMessage = "Error loading market status (failed to parse error JSON).";
       }
-      logDebug(componentName, "marketStatusJson indicates an error state.", currentErrorOrSkippedMessage);
     } else if (marketStatusJson.includes('"status": "skipped"')) {
       currentIsLoading = false;
       currentIsError = true;
@@ -83,23 +80,21 @@ export function MarketStatusDisplay() {
       } catch (e) {
         currentErrorOrSkippedMessage = "Market status loading was skipped (failed to parse skipped JSON).";
       }
-      logDebug(componentName, "marketStatusJson indicates a skipped state.", currentErrorOrSkippedMessage);
     } else {
       try {
         const data = JSON.parse(marketStatusJson) as MarketStatusData;
-        logDebug(componentName, "Attempting to parse marketStatusJson in effect. Market status:", data?.market);
         if (data && typeof data === 'object' && !data.error) {
           currentIsLoading = false;
           currentIsError = false;
           currentErrorOrSkippedMessage = null; 
           
           setFormattedServerTime(formatTimestampToPacificTime(data.serverTime));
+          logDebug(componentName, "DataParsed", "Successfully parsed marketStatusJson. Market status:", data?.market);
 
           currentDetails = [
             { label: "Market Status", value: data.market?.toUpperCase() || "N/A" },
             { label: "Early Hours Trading", value: data.earlyHours ? "Yes" : "No" },
             { label: "Late Hours Trading", value: data.lateHours ? "Yes" : "No" },
-            // Server Time will be handled by formattedServerTime state
           ];
           if (data.exchanges) {
             Object.entries(data.exchanges).forEach(([key, value]) => {
@@ -116,21 +111,17 @@ export function MarketStatusDisplay() {
                 currentDetails.push({ label: `${key.toUpperCase()} Market`, value: value?.toUpperCase() || "N/A" });
               });
           }
-          logDebug(componentName, "Successfully parsed marketStatusJson in effect.", currentDetails);
         } else {
            if (data?.error) {
              currentErrorOrSkippedMessage = `Error in market data: ${data.error}`;
-             logDebug(componentName, "Parsed marketStatusJson (effect) contains an error field:", data.error);
            } else {
              currentErrorOrSkippedMessage = "Market status data is malformed.";
-             logDebug(componentName, "Parsed marketStatusJson (effect) is not a valid object for display.");
            }
            currentIsLoading = false;
            currentIsError = true;
         }
       } catch (e) {
         console.error(`[${componentName}] (effect) Failed to parse marketStatusJson:`, e);
-        logDebug(componentName, "Error during marketStatusJson parsing in effect.", e);
         currentIsLoading = false;
         currentIsError = true;
         currentErrorOrSkippedMessage = "Failed to parse market status data.";
@@ -151,18 +142,16 @@ export function MarketStatusDisplay() {
     if (serverTimeDetailIndex > -1) {
         finalDetails[serverTimeDetailIndex].value = formattedServerTime;
     } else {
-        // Insert server time if not already part of the initial detail construction (e.g. if it was added later)
-        const marketStatusIndex = finalDetails.findIndex(d => d.label === "Late Hours Trading"); // Find a common point to insert after
+        const marketStatusIndex = finalDetails.findIndex(d => d.label === "Late Hours Trading");
         if (marketStatusIndex !== -1) {
             finalDetails.splice(marketStatusIndex + 1, 0, { label: "Server Time (ET)", value: formattedServerTime });
         } else {
-             finalDetails.push({ label: "Server Time (ET)", value: formattedServerTime }); // Fallback to append
+             finalDetails.push({ label: "Server Time (ET)", value: formattedServerTime });
         }
     }
   }
 
-
-  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, details.length=${finalDetails.length}, formattedServerTime=${formattedServerTime}`);
+  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, details.length=${finalDetails.length}, formattedServerTime=${formattedServerTime}`);
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 4);
 
   return (
@@ -187,5 +176,3 @@ export function MarketStatusDisplay() {
     </Card>
   );
 }
-
-    

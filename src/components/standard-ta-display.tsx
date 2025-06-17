@@ -48,7 +48,8 @@ const renderMultiWindowValues = (
 
 export function StandardTaDisplay() {
   const { standardTasJson, logDebug } = useStockAnalysis();
-  logDebug('StandardTaDisplay', "standardTasJson (start):", standardTasJson.substring(0,100));
+  const componentName = 'StandardTaDisplay';
+  logDebug(componentName, "PropsReceived", "standardTasJson received. Length:", standardTasJson?.length, "Is empty/null:", !standardTasJson || standardTasJson === '{}');
 
   let isLoading = false;
   let isError = false;
@@ -58,24 +59,18 @@ export function StandardTaDisplay() {
   if (standardTasJson && standardTasJson !== '{}') {
     if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"') || standardTasJson.includes('"status": "full_analysis_pending..."')) {
       isLoading = true;
-      logDebug('StandardTaDisplay', "standardTasJson is in pending/initializing state.");
     } else if (standardTasJson.includes('"status": "error"') || standardTasJson.includes('"error":')) {
         isLoading = false;
         isError = true;
         errorOrSkippedMessage = "Error loading technical indicators.";
-        logDebug('StandardTaDisplay', "standardTasJson indicates an error state.");
         try {
             const tempData = JSON.parse(standardTasJson);
-            if (tempData.error) {
-                 errorOrSkippedMessage = tempData.error;
-                 logDebug('StandardTaDisplay', "Parsed error from JSON:", tempData.error);
-            }
-        } catch(e) { /* Ignore if not valid JSON */ }
+            if (tempData.error) errorOrSkippedMessage = tempData.error;
+        } catch(e) { /* Ignore */ }
     } else if (standardTasJson.includes('"status": "skipped"')) {
         isLoading = false;
         isError = true;
         errorOrSkippedMessage = "Technical indicators loading was skipped.";
-        logDebug('StandardTaDisplay', "standardTasJson indicates a skipped state.");
     } else {
       try {
         const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
@@ -83,21 +78,18 @@ export function StandardTaDisplay() {
           isLoading = false;
           isError = false;
           parsedTaData = data;
-          logDebug('StandardTaDisplay', "Successfully parsed standardTasJson. RSI data:", data?.RSI);
+          logDebug(componentName, "DataParsed", "Successfully parsed standardTasJson. Keys:", Object.keys(parsedTaData));
         } else if (data && data.error) {
           isLoading = false;
           isError = true;
           errorOrSkippedMessage = data.error;
-          logDebug('StandardTaDisplay', "Parsed standardTasJson contains an error property:", data.error);
         } else {
           isLoading = false;
           isError = true;
           errorOrSkippedMessage = "TA data is malformed or incomplete.";
-          logDebug('StandardTaDisplay', "Parsed standardTasJson is missing expected TA data or structure.");
         }
       } catch (e) {
-        console.error("[StandardTaDisplay] Failed to parse standardTasJson:", e);
-        logDebug('StandardTaDisplay', "Error during standardTasJson parsing.", e);
+        console.error(`[${componentName}] Failed to parse standardTasJson:`, e);
         isLoading = false;
         isError = true;
         errorOrSkippedMessage = "Failed to parse technical indicators data.";
@@ -105,11 +97,9 @@ export function StandardTaDisplay() {
     }
   } else {
     isLoading = false;
-    logDebug('StandardTaDisplay', "standardTasJson is empty or null.");
-    // Do not set isError true here, just means no data yet
   }
 
-  logDebug('StandardTaDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}`);
+  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}`);
 
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';

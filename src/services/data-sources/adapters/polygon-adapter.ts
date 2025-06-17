@@ -90,13 +90,13 @@ class PolygonAdapter {
     const stockDataPackage: StockDataPackage = { ticker: tickerToUse };
     let currentStockPrice: number | undefined;
     const apiCallDelay = 150;
-    const cacheBustQuery = { query: { _t: Date.now() } };
+    const cacheBustQuery = { query: { _t: Date.now() } }; // Cache bust value generated once per full fetch
 
-    console.log(`${logPrefix} Starting data fetch operations for ${tickerToUse}.`);
+    console.log(`${logPrefix} Starting data fetch operations for ${tickerToUse}. Cache bust value for this run: ${cacheBustQuery.query._t}`);
 
     try {
       try {
-        console.log(`${logPrefix} Fetching market status. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+        console.log(`${logPrefix} Fetching market status. Delay: ${apiCallDelay}ms.`);
         await delay(apiCallDelay);
         const marketStatusResponse = await this.client.reference.marketStatus(undefined, cacheBustQuery);
         console.log(`${logPrefix} Market status fetched successfully.`);
@@ -115,7 +115,7 @@ class PolygonAdapter {
       }
 
       try {
-        console.log(`${logPrefix} Fetching snapshot for ${tickerToUse}. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+        console.log(`${logPrefix} Fetching snapshot for ${tickerToUse}. Delay: ${apiCallDelay}ms.`);
         await delay(apiCallDelay);
         const snapshotResponse = await this.client.stocks.snapshotTicker(tickerToUse, undefined, cacheBustQuery);
 
@@ -156,7 +156,7 @@ class PolygonAdapter {
         const rsiWindows = [7, 10, 14];
         for (const window of rsiWindows) {
           try {
-            console.log(`${logPrefix} Fetching RSI(${window}) for ${tickerToUse}. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+            console.log(`${logPrefix} Fetching RSI(${window}) for ${tickerToUse}. Delay: ${apiCallDelay}ms.`);
             await delay(apiCallDelay);
             const rsiRes = await this.client.stocks.rsi(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 }, cacheBustQuery);
             if (rsiRes.results?.values?.[0]?.value) {
@@ -166,7 +166,7 @@ class PolygonAdapter {
         }
 
         try {
-            console.log(`${logPrefix} Fetching MACD for ${tickerToUse}. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+            console.log(`${logPrefix} Fetching MACD for ${tickerToUse}. Delay: ${apiCallDelay}ms.`);
             await delay(apiCallDelay);
             const macdRes = await this.client.stocks.macd(tickerToUse, { timespan: 'day', series_type: 'close', limit: 1 }, cacheBustQuery);
             if (macdRes.results?.values?.[0]) {
@@ -189,7 +189,7 @@ class PolygonAdapter {
         const emaWindows = [5, 10, 20, 50, 200];
         for (const window of emaWindows) {
           try {
-            console.log(`${logPrefix} Fetching EMA(${window}) for ${tickerToUse}. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+            console.log(`${logPrefix} Fetching EMA(${window}) for ${tickerToUse}. Delay: ${apiCallDelay}ms.`);
             await delay(apiCallDelay);
             const emaRes = await this.client.stocks.ema(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 }, cacheBustQuery);
             if (emaRes.results?.values?.[0]?.value) {
@@ -202,7 +202,7 @@ class PolygonAdapter {
         const smaWindows = [5, 10, 20, 50, 200];
         for (const window of smaWindows) {
           try {
-            console.log(`${logPrefix} Fetching SMA(${window}) for ${tickerToUse}. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+            console.log(`${logPrefix} Fetching SMA(${window}) for ${tickerToUse}. Delay: ${apiCallDelay}ms.`);
             await delay(apiCallDelay);
             const smaRes = await this.client.stocks.sma(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 }, cacheBustQuery);
             if (smaRes.results?.values?.[0]?.value) {
@@ -239,13 +239,13 @@ class PolygonAdapter {
             limit: 250,
           };
 
-          console.log(`${logPrefix} Fetching CALLS for ${tickerToUse}, expiration ${expirationDate}. Current price: ${currentStockPrice}. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+          console.log(`${logPrefix} Fetching CALLS for ${tickerToUse}, expiration ${expirationDate}. Current price: ${currentStockPrice}. Delay: ${apiCallDelay}ms.`);
           await delay(apiCallDelay);
           const callsSnapshot = await this.client.options.snapshotOptionChain(tickerToUse, {
             ...commonOptionsParams, contract_type: 'call',
           }, cacheBustQuery);
 
-          console.log(`${logPrefix} Fetching PUTS for ${tickerToUse}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms. CacheBust: ${cacheBustQuery.query._t}`);
+          console.log(`${logPrefix} Fetching PUTS for ${tickerToUse}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms.`);
           await delay(apiCallDelay);
           const putsSnapshot = await this.client.options.snapshotOptionChain(tickerToUse, {
             ...commonOptionsParams, contract_type: 'put',
@@ -316,7 +316,7 @@ class PolygonAdapter {
       console.log(`${logPrefix} All data fetching operations for ${tickerToUse} complete.`);
       return {
         stockData: stockDataPackage,
-        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValue: cacheBustQuery.query._t },
+        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValueForRun: cacheBustQuery.query._t },
         rawResponseSummary: {
           requestedTicker: requestedTickerMethodArg,
           adapterInstanceFor: this.currentTickerForClient,
@@ -339,7 +339,7 @@ class PolygonAdapter {
           error: overallErrorMessage,
           rawOverallError: this.createSafeErrorObject(error, "Overall data fetch failed")
         } as StockDataPackage,
-        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValue: cacheBustQuery.query._t },
+        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValueForRun: cacheBustQuery.query._t },
         rawResponseSummary: { error: overallErrorMessage, requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, responseTicker: tickerToUse },
       };
     }

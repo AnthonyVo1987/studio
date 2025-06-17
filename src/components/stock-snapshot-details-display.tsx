@@ -40,7 +40,8 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
 
 export function StockSnapshotDetailsDisplay() {
   const { stockSnapshotJson, logDebug } = useStockAnalysis();
-  logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const componentName = 'StockSnapshotDetailsDisplay';
+  logDebug(componentName, "PropsReceived", "stockSnapshotJson received. Length:", stockSnapshotJson?.length, "Is empty/null:", !stockSnapshotJson || stockSnapshotJson === '{}');
 
   let isLoading = false;
   let isError = false;
@@ -50,10 +51,8 @@ export function StockSnapshotDetailsDisplay() {
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson indicates an error or skipped state.");
       isLoading = false;
       isError = true;
       if (stockSnapshotJson.includes('"status": "skipped"')) {
@@ -64,11 +63,11 @@ export function StockSnapshotDetailsDisplay() {
     } else {
       try {
         const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        logDebug('StockSnapshotDetailsDisplay', "Successfully parsed stockSnapshotJson. Ticker:", data?.ticker);
         if (data && typeof data === 'object' && data.ticker) {
           isLoading = false;
           isError = false;
           parsedSnapshotData = data;
+          logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Keys:", Object.keys(parsedSnapshotData));
 
           const change = parsedSnapshotData.todaysChange ?? 0;
           const changePerc = parsedSnapshotData.todaysChangePerc ?? null;
@@ -104,26 +103,22 @@ export function StockSnapshotDetailsDisplay() {
             ...prevDayDetails,
           ];
         } else {
-          logDebug('StockSnapshotDetailsDisplay', "Parsed stockSnapshotJson is missing ticker or not an object.");
           isLoading = false;
           isError = true;
           errorOrSkippedMessage = "Snapshot data is malformed or incomplete.";
         }
       } catch (e) {
-        console.error("[StockSnapshotDetailsDisplay] Failed to parse stockSnapshotJson:", e);
-        logDebug('StockSnapshotDetailsDisplay', "Error during stockSnapshotJson parsing.", e);
+        console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e);
         isLoading = false;
         isError = true;
         errorOrSkippedMessage = "Failed to parse snapshot data.";
       }
     }
   } else {
-    logDebug('StockSnapshotDetailsDisplay', "stockSnapshotJson is empty or null.");
     isLoading = false;
-    // Not setting isError true here as it's just empty initially
   }
 
-  logDebug('StockSnapshotDetailsDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, details.length=${details.length}, parsedSnapshotData exists=${!!parsedSnapshotData}`);
+  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', details.length=${details.length}, parsedSnapshotData exists=${!!parsedSnapshotData}`);
   const placeholderRowCount = 10;
 
   return (

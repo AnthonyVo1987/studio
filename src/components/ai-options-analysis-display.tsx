@@ -1,5 +1,4 @@
 
-      
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -38,7 +37,7 @@ export function AiOptionsAnalysisDisplay() {
   const { toast } = useToast();
   const componentName = 'AiOptionsAnalysisDisplay';
 
-  logDebug(componentName, "aiOptionsAnalysisJson (start):", aiOptionsAnalysisJson ? aiOptionsAnalysisJson.substring(0,100) : "null");
+  logDebug(componentName, "PropsReceived", "aiOptionsAnalysisJson received. Length:", aiOptionsAnalysisJson?.length, "Is empty/null:", !aiOptionsAnalysisJson || aiOptionsAnalysisJson === '{}');
 
   let isLoading = false;
   let isError = false;
@@ -57,25 +56,22 @@ export function AiOptionsAnalysisDisplay() {
       if (parsedJson.status === 'error' || parsedJson.error) {
         isError = true;
         errorMessageForDisplay = parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
-        logDebug(componentName, `JSON indicates status/error: ${parsedJson.status || parsedJson.error || 'unknown_structure'}, message: ${errorMessageForDisplay}`);
       } else if (parsedJson.status === 'skipped') {
-        isError = true; // Treat skipped as an error for display purposes
+        isError = true; 
         errorMessageForDisplay = parsedJson.message || "AI Options Analysis was skipped.";
-        logDebug(componentName, `JSON indicates status: skipped, message: ${errorMessageForDisplay}`);
       } else if (typeof parsedJson === 'object' && parsedJson !== null && Array.isArray(parsedJson.callWalls) && Array.isArray(parsedJson.putWalls)) {
         parsedSuccessfullyData = parsedJson as AiOptionsAnalysisOutput;
         isError = false;
         errorMessageForDisplay = null;
-        logDebug(componentName, "Successfully parsed aiOptionsAnalysisJson data.", parsedSuccessfullyData);
+        logDebug(componentName, "DataParsed", "Successfully parsed aiOptionsAnalysisJson. CallWalls:", parsedSuccessfullyData.callWalls.length, "PutWalls:", parsedSuccessfullyData.putWalls.length);
       } else {
         isError = true;
         errorMessageForDisplay = "AI Options Analysis data is malformed or incomplete.";
-        logDebug(componentName, "Parsed aiOptionsAnalysisJson data is malformed or missing critical fields.", parsedJson);
       }
     } catch (e) {
       isError = true;
       errorMessageForDisplay = "Failed to parse AI Options Analysis data.";
-      logDebug(componentName, "Error parsing AI Options Analysis JSON.", e, aiOptionsAnalysisJson);
+      logDebug(componentName, "ParseError", "Error parsing AI Options Analysis JSON.", e, aiOptionsAnalysisJson);
     }
   }
 
@@ -86,7 +82,7 @@ export function AiOptionsAnalysisDisplay() {
     );
 
   const handleExport = () => {
-    logDebug(componentName, `Attempting to export options analysis as JSON for ${currentTicker}`);
+    logDebug(componentName, `ExportAction`, `Attempting to export options analysis as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedSuccessfullyData) {
       toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available for export." });
       return;
@@ -100,7 +96,7 @@ export function AiOptionsAnalysisDisplay() {
   };
 
   const handleCopy = async () => {
-    logDebug(componentName, `Attempting to copy options analysis as JSON for ${currentTicker}`);
+    logDebug(componentName, `CopyAction`, `Attempting to copy options analysis as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedSuccessfullyData) {
       toast({ variant: "destructive", title: "Copy Failed", description: "AI options analysis data not available for copy." });
       return;
@@ -143,7 +139,7 @@ export function AiOptionsAnalysisDisplay() {
     );
   };
 
-  logDebug(componentName, `Render state: isLoading=${isLoading}, isError=${isError}, errorMessageForDisplay='${errorMessageForDisplay}', parsedSuccessfullyData exists=${!!parsedSuccessfullyData}`);
+  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorMessageForDisplay='${errorMessageForDisplay}', parsedSuccessfullyData exists=${!!parsedSuccessfullyData}`);
 
   let content;
   if (isLoading) {
@@ -217,5 +213,3 @@ export function AiOptionsAnalysisDisplay() {
     </Card>
   );
 }
-
-    

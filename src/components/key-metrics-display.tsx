@@ -80,7 +80,9 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 
 export function KeyMetricsDisplay() {
   const { stockSnapshotJson, logDebug } = useStockAnalysis();
-  logDebug('KeyMetricsDisplay', "stockSnapshotJson (start):", stockSnapshotJson.substring(0,100));
+  const componentName = 'KeyMetricsDisplay';
+
+  logDebug(componentName, "PropsReceived", "stockSnapshotJson received. Length:", stockSnapshotJson?.length, "Is empty/null:", !stockSnapshotJson || stockSnapshotJson === '{}');
 
   let tickerDisplay = "N/A";
   let currentPriceDisplay = "N/A";
@@ -91,16 +93,14 @@ export function KeyMetricsDisplay() {
 
   if (stockSnapshotJson && stockSnapshotJson !== '{}') {
     if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
-      logDebug('KeyMetricsDisplay', "stockSnapshotJson is in pending/initializing state.");
       isLoading = true;
     } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      logDebug('KeyMetricsDisplay', "stockSnapshotJson indicates an error or skipped state. Displaying N/A.");
       isLoading = false;
       isError = true;
     } else {
       try {
         const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        logDebug('KeyMetricsDisplay', "Successfully parsed stockSnapshotJson. Ticker:", snapshot?.ticker);
+        logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Keys:", snapshot ? Object.keys(snapshot) : "null");
         if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
           isLoading = false;
           isError = false;
@@ -114,29 +114,25 @@ export function KeyMetricsDisplay() {
             else if (todaysChangePerc < 0) dayChangeSentiment = 'bearish';
           }
         } else {
-          logDebug('KeyMetricsDisplay', "Parsed stockSnapshotJson is missing ticker or not an object. Displaying N/A.");
           isLoading = false;
           isError = true;
         }
       } catch (e) {
-        console.error("[KeyMetricsDisplay] Failed to parse stockSnapshotJson:", e);
-        logDebug('KeyMetricsDisplay', "Error during stockSnapshotJson parsing. Displaying N/A.", e);
+        console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e);
         isLoading = false;
         isError = true;
       }
     }
   } else {
-    logDebug('KeyMetricsDisplay', "stockSnapshotJson is empty or null. Displaying N/A initially.");
-    isLoading = false; // No data to load, not an error yet, just empty.
+    isLoading = false; 
   }
 
-  if (isError && !isLoading) { // Ensure N/A if error after loading attempt.
+  if (isError && !isLoading) { 
       tickerDisplay = "N/A";
       currentPriceDisplay = "N/A";
-      logDebug('KeyMetricsDisplay', 'Setting display to N/A due to error state.');
   }
 
-  logDebug('KeyMetricsDisplay', `Render state: isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
+  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
