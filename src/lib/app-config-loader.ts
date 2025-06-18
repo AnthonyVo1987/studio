@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Utility for loading and parsing the application's metadata configuration.
  */
@@ -69,3 +70,4 @@ export async function getAppConfig(): Promise<AppConfig> {
     throw loadError;
   }
 }
+
