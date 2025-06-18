@@ -47,6 +47,11 @@ export async function performAiAnalysisAction(
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiAnalysisAction:Ticker:${ticker}]`;
   console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}. PrevState status: ${prevState.status}`);
+  console.log(`${actionLogPrefix} Payload - stockSnapshotJson (len: ${stockSnapshotJson.length}): ${stockSnapshotJson.substring(0,150)}...`);
+  console.log(`${actionLogPrefix} Payload - standardTasJson (len: ${standardTasJson.length}): ${standardTasJson.substring(0,150)}...`);
+  console.log(`${actionLogPrefix} Payload - aiAnalyzedTaJson (len: ${aiAnalyzedTaJson.length}): ${aiAnalyzedTaJson.substring(0,150)}...`);
+  console.log(`${actionLogPrefix} Payload - marketStatusJson (len: ${marketStatusJson.length}): ${marketStatusJson.substring(0,150)}...`);
+
 
   if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' || 
       !standardTasJson || standardTasJson === '{}' ||
@@ -104,3 +109,5 @@ export async function performAiAnalysisAction(
   }
 }
 
+
+    

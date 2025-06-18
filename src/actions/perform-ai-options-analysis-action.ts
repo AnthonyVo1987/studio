@@ -44,6 +44,8 @@ export async function performAiOptionsAnalysisAction(
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiOptionsAnalysisAction:Ticker:${ticker}]`;
   console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}. PrevState status: ${prevState.status}`);
+  console.log(`${actionLogPrefix} Payload - optionsChainJson (len: ${optionsChainJson.length}): ${optionsChainJson.substring(0,150)}...`);
+  console.log(`${actionLogPrefix} Payload - stockSnapshotJson (len: ${stockSnapshotJson.length}): ${stockSnapshotJson.substring(0,150)}...`);
 
 
   let currentUnderlyingPrice: number;
@@ -106,7 +108,7 @@ export async function performAiOptionsAnalysisAction(
     }
     
     const aiOptionsAnalysisJsonOutput = JSON.stringify(flowOutput, null, 2);
-    console.log(`${actionLogPrefix} analyzeOptionsChain flow succeeded. CallWalls: ${flowOutput.callWalls.length}, PutWalls: ${flowOutput.putWalls.length}`);
+    console.log(`${actionLogPrefix} analyzeOptionsChain flow succeeded. CallWalls: ${flowOutput.callWalls.length}, PutWalls: ${flowOutput.putWalls.length}.`);
 
     return {
       status: 'success',
@@ -125,3 +127,5 @@ export async function performAiOptionsAnalysisAction(
   }
 }
 
+
+    

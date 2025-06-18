@@ -477,13 +477,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           nextCurrentState = FsmState.INITIALIZING_ANALYSIS;
         } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_Transition', `IDLE -> Manually triggering Key Takeaways for ${event.payload.ticker}. Setting placeholders. Transitioning to GENERATING_KEY_TAKEAWAYS.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `IDLE -> TRIGGER_MANUAL_KEY_TAKEAWAYS for ${event.payload.ticker}. Setting placeholders. Transitioning to GENERATING_KEY_TAKEAWAYS.`);
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
           contextSetters.setAiKeyTakeawaysJson(pendingJson);
           nextCurrentState = FsmState.GENERATING_KEY_TAKEAWAYS;
         } else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_Transition', `IDLE -> Manually triggering Options Analysis for ${event.payload.ticker}. Setting placeholders. Transitioning to ANALYZING_OPTIONS.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `IDLE -> TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker}. Setting placeholders. Transitioning to ANALYZING_OPTIONS.`);
           contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
           contextSetters.setAiOptionsAnalysisJson(pendingJson);
           nextCurrentState = FsmState.ANALYZING_OPTIONS;
@@ -611,6 +611,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break; 
 
       case FsmState.GENERATING_KEY_TAKEAWAYS:
+        if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') { // Re-triggering while already generating
+            logDebug('StockAnalysisContext', 'FSM_Reducer_Action', `GENERATING_KEY_TAKEAWAYS -> Retriggering TRIGGER_MANUAL_KEY_TAKEAWAYS for ${event.payload.ticker}. Remains in GENERATING_KEY_TAKEAWAYS.`);
+            // Potentially reset placeholders if needed or just let the ongoing action complete/fail
+            contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
+            contextSetters.setAiKeyTakeawaysJson(pendingJson);
+            activeAnalysisTickerRef.current = event.payload.ticker; // Update ticker if different
+            // No state change, the orchestrator will pick up the new action call
+            return { ...currentHistory, previous: currentActualState }; 
+        }
         if (event.type === 'KEY_TAKEAWAYS_SUCCESS') {
           contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
           contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
@@ -627,6 +636,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
 
       case FsmState.ANALYZING_OPTIONS:
+         if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') { // Re-triggering
+            logDebug('StockAnalysisContext', 'FSM_Reducer_Action', `ANALYZING_OPTIONS -> Retriggering TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker}. Remains in ANALYZING_OPTIONS.`);
+            contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
+            contextSetters.setAiOptionsAnalysisJson(pendingJson);
+            activeAnalysisTickerRef.current = event.payload.ticker;
+            return { ...currentHistory, previous: currentActualState };
+        }
         if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') {
           contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
           contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
@@ -650,13 +666,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextCurrentState = FsmState.IDLE;
         } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_Transition', `FULL_ANALYSIS_COMPLETE -> Manually triggering Key Takeaways for ${event.payload.ticker}. Setting placeholders. Transitioning to GENERATING_KEY_TAKEAWAYS.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `FULL_ANALYSIS_COMPLETE -> TRIGGER_MANUAL_KEY_TAKEAWAYS for ${event.payload.ticker}. Setting placeholders. Transitioning to GENERATING_KEY_TAKEAWAYS.`);
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
           contextSetters.setAiKeyTakeawaysJson(pendingJson);
           nextCurrentState = FsmState.GENERATING_KEY_TAKEAWAYS;
         } else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
-          logDebug('StockAnalysisContext','FSM_Transition', `FULL_ANALYSIS_COMPLETE -> Manually triggering Options Analysis for ${event.payload.ticker}. Setting placeholders. Transitioning to ANALYZING_OPTIONS.`);
+          logDebug('StockAnalysisContext','FSM_Transition', `FULL_ANALYSIS_COMPLETE -> TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker}. Setting placeholders. Transitioning to ANALYZING_OPTIONS.`);
           contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
           contextSetters.setAiOptionsAnalysisJson(pendingJson);
           nextCurrentState = FsmState.ANALYZING_OPTIONS;
@@ -684,6 +700,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const currentActualState = fsmHistoryRef.current.current;
     let determinedTarget: FsmState | null = null;
     logDebug('StockAnalysisContext', 'FSM_Dispatch', `Dispatching event: ${event.type}. Current actual state: ${currentActualState}`);
+     if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
+        logDebug('StockAnalysisContext', 'FSM_Dispatch_ManualKT', `Received TRIGGER_MANUAL_KEY_TAKEAWAYS for ticker: ${event.payload.ticker}`);
+    } else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') {
+        logDebug('StockAnalysisContext', 'FSM_Dispatch_ManualOptions', `Received TRIGGER_MANUAL_OPTIONS_ANALYSIS for ticker: ${event.payload.ticker}`);
+    }
+
 
     switch (currentActualState) {
         case FsmState.IDLE:
@@ -719,9 +741,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             break;
         case FsmState.GENERATING_KEY_TAKEAWAYS:
             if (event.type === 'KEY_TAKEAWAYS_SUCCESS' || event.type === 'KEY_TAKEAWAYS_FAILURE') determinedTarget = FsmState.FULL_ANALYSIS_COMPLETE;
+            else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = FsmState.GENERATING_KEY_TAKEAWAYS; // Stay if re-triggered
             break;
         case FsmState.ANALYZING_OPTIONS:
             if (event.type === 'OPTIONS_ANALYSIS_SUCCESS' || event.type === 'OPTIONS_ANALYSIS_FAILURE') determinedTarget = FsmState.FULL_ANALYSIS_COMPLETE;
+            else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = FsmState.ANALYZING_OPTIONS; // Stay if re-triggered
             break;
         case FsmState.FULL_ANALYSIS_COMPLETE:
             if (event.type === 'PROCEED_TO_IDLE') determinedTarget = FsmState.IDLE;
@@ -848,7 +872,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   // Effect for Global FSM Pipeline Orchestration
   useEffect(() => {
     const currentGlobalFsmState = fsmHistoryRef.current.current;
-    logDebug('StockAnalysisContext', 'FSM_Orchestrator', `Global FSM Orchestrator running. Current State: ${currentGlobalFsmState}, Active Ticker: ${activeAnalysisTickerRef.current}`);
+    const currentGlobalFsmStatePrev = fsmHistoryRef.current.previous; // For re-trigger checks
+    logDebug('StockAnalysisContext', 'FSM_Orchestrator', `Global FSM Orchestrator. State: ${currentGlobalFsmState}, Prev: ${currentGlobalFsmStatePrev}, ActiveTicker: ${activeAnalysisTickerRef.current}, FullAnalysisTriggered: ${_isFullAnalysisTriggeredInternalState}`);
 
     if (currentGlobalFsmState === FsmState.INITIALIZING_ANALYSIS) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', 'State is INITIALIZING_ANALYSIS. Dispatching INITIALIZATION_COMPLETE.');
@@ -881,25 +906,36 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState} (full analysis). Dispatching FINALIZE_AUTOMATED_PIPELINE.`);
         _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     } else if (currentGlobalFsmState === FsmState.GENERATING_KEY_TAKEAWAYS && activeAnalysisTickerRef.current) {
-        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is GENERATING_KEY_TAKEAWAYS for ${activeAnalysisTickerRef.current}. Calling performAiAnalysisFormAction.`);
-        if (_stockSnapshotJson && _standardTasJson && _aiAnalyzedTaJson && _marketStatusJson &&
-            !_stockSnapshotJson.includes("error") && !_standardTasJson.includes("error") && !_aiAnalyzedTaJson.includes("error") && !_marketStatusJson.includes("error")) {
-            startTransition(() => {
-                performAiAnalysisFormAction({ ticker: activeAnalysisTickerRef.current!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson });
-            });
+        // Check if this state was just entered from IDLE or FULL_ANALYSIS_COMPLETE to prevent re-calls if action is already pending
+        if (currentGlobalFsmStatePrev === FsmState.IDLE || currentGlobalFsmStatePrev === FsmState.FULL_ANALYSIS_COMPLETE || currentGlobalFsmStatePrev === FsmState.KEY_TAKEAWAYS_FAILED || currentGlobalFsmStatePrev === FsmState.KEY_TAKEAWAYS_SUCCEEDED) {
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is GENERATING_KEY_TAKEAWAYS for ${activeAnalysisTickerRef.current}. Prereq JSONs: Snapshot(${_stockSnapshotJson.substring(0,30)}), StdTA(${_standardTasJson.substring(0,30)}), AiTA(${_aiAnalyzedTaJson.substring(0,30)}), MktStatus(${_marketStatusJson.substring(0,30)})`);
+            if (_stockSnapshotJson && _standardTasJson && _aiAnalyzedTaJson && _marketStatusJson &&
+                !_stockSnapshotJson.includes("error") && !_standardTasJson.includes("error") && !_aiAnalyzedTaJson.includes("error") && !_marketStatusJson.includes("error")) {
+                logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `Calling performAiAnalysisFormAction for Key Takeaways.`);
+                startTransition(() => {
+                    performAiAnalysisFormAction({ ticker: activeAnalysisTickerRef.current!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson });
+                });
+            } else {
+                logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping Key Takeaways for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
+                _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: 'Prerequisite data missing for Key Takeaways', error: 'Data unavailable' } });
+            }
         } else {
-            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping Key Takeaways for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
-            _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: 'Prerequisite data missing for Key Takeaways', error: 'Data unavailable' } });
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Info', 'State is GENERATING_KEY_TAKEAWAYS, but not just entered. Action likely already pending.');
         }
     } else if (currentGlobalFsmState === FsmState.ANALYZING_OPTIONS && activeAnalysisTickerRef.current) {
-        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ANALYZING_OPTIONS for ${activeAnalysisTickerRef.current}. Calling performAiOptionsAnalysisFormAction.`);
-        if (_optionsChainJson && _stockSnapshotJson && !_optionsChainJson.includes("error") && !_stockSnapshotJson.includes("error")) {
-            startTransition(() => {
-                performAiOptionsAnalysisFormAction({ ticker: activeAnalysisTickerRef.current!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson });
-            });
+         if (currentGlobalFsmStatePrev === FsmState.IDLE || currentGlobalFsmStatePrev === FsmState.FULL_ANALYSIS_COMPLETE || currentGlobalFsmStatePrev === FsmState.OPTIONS_ANALYSIS_FAILED || currentGlobalFsmStatePrev === FsmState.OPTIONS_ANALYSIS_SUCCEEDED) {
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ANALYZING_OPTIONS for ${activeAnalysisTickerRef.current}. Prereq JSONs: OptionsChain(${_optionsChainJson.substring(0,30)}), Snapshot(${_stockSnapshotJson.substring(0,30)})`);
+            if (_optionsChainJson && _stockSnapshotJson && !_optionsChainJson.includes("error") && !_stockSnapshotJson.includes("error")) {
+                logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `Calling performAiOptionsAnalysisFormAction for Options Analysis.`);
+                startTransition(() => {
+                    performAiOptionsAnalysisFormAction({ ticker: activeAnalysisTickerRef.current!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson });
+                });
+            } else {
+                logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping Options Analysis for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
+                _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: 'Prerequisite data missing for Options Analysis', error: 'Data unavailable' } });
+            }
         } else {
-            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping Options Analysis for ${activeAnalysisTickerRef.current} due to missing or error in prerequisite data.`);
-            _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: 'Prerequisite data missing for Options Analysis', error: 'Data unavailable' } });
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Info', 'State is ANALYZING_OPTIONS, but not just entered. Action likely already pending.');
         }
     } else if ((currentGlobalFsmState === FsmState.DATA_FETCH_FAILED || currentGlobalFsmState === FsmState.STALE_DATA_FROM_ACTION_ERROR || currentGlobalFsmState === FsmState.FULL_ANALYSIS_COMPLETE)) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState}. Dispatching PROCEED_TO_IDLE.`);
@@ -1062,3 +1098,5 @@ export function useStockAnalysis() {
   return context;
 }
 
+
+    

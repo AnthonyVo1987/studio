@@ -78,6 +78,9 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
     const logPrefix = `[AIFlow:analyzeOptionsChainFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started. Current underlying: ${input.currentUnderlyingPrice}`);
+    console.log(`${logPrefix} Flow Input - ticker: ${input.ticker}`);
+    console.log(`${logPrefix} Flow Input - optionsChainJson (len: ${input.optionsChainJson.length}): ${input.optionsChainJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Flow Input - currentUnderlyingPrice: ${input.currentUnderlyingPrice}`);
     
     const emptyOutput: AiOptionsAnalysisOutput = {
       callWalls: [],
@@ -133,3 +136,5 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   }
 );
 
+
+    

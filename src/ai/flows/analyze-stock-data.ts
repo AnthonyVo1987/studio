@@ -81,11 +81,17 @@ const analyzeStockDataFlow = ai.defineFlow(
   async (input: StockAnalysisInput): Promise<StockAnalysisOutput> => {
     const logPrefix = `[AIFlow:analyzeStockDataFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started. Input keys: ${Object.keys(input).join(', ')}`);
+    console.log(`${logPrefix} Flow Input - ticker: ${input.ticker}`);
+    console.log(`${logPrefix} Flow Input - stockSnapshotJson (len: ${input.stockSnapshotJson.length}): ${input.stockSnapshotJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Flow Input - standardTasJson (len: ${input.standardTasJson.length}): ${input.standardTasJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Flow Input - aiAnalyzedTaJson (len: ${input.aiAnalyzedTaJson.length}): ${input.aiAnalyzedTaJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Flow Input - marketStatusJson (len: ${input.marketStatusJson.length}): ${input.marketStatusJson.substring(0,100)}...`);
+    
     let outputFromPrompt: StockAnalysisOutput | undefined;
 
     try {
       const promptToUse = await getAnalyzedStockDataPrompt();
-      console.log(`${logPrefix} Executing analyzeStockDataPrompt for ticker: ${input.ticker}. Input keys: ${Object.keys(input).join(', ')}`);
+      console.log(`${logPrefix} Executing analyzeStockDataPrompt for ticker: ${input.ticker}.`);
       const result = await promptToUse(input);
       outputFromPrompt = result.output;
       console.log(`${logPrefix} analyzeStockDataPrompt completed for ticker: ${input.ticker}. Output keys from AI: ${outputFromPrompt ? Object.keys(outputFromPrompt).join(', ') : 'undefined'}`);
@@ -123,3 +129,5 @@ const analyzeStockDataFlow = ai.defineFlow(
   }
 );
 
+
+    
