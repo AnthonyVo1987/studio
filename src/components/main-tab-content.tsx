@@ -419,10 +419,10 @@ export function MainTabContent({
   };
 
   const handleGenerateKeyTakeaways = () => {
-    console.log('[RAW_CLICK_KT_D.E_EFFECTIVELY_CLICKED]');
-    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_KT_D.E_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
+    console.log('[RAW_CLICK_KT_D.H_RAW_EFFECTIVELY_CLICKED]'); 
+    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_KT_D.H_RAW_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
     dispatchLocalFsmEvent({ type: 'MANUAL_KEY_TAKEAWAYS_SUBMITTED' });
-    console.log('[RAW_CLICK_KT_D.E_DISPATCHED_TO_LOCAL_FSM]');
+    console.log('[RAW_CLICK_KT_D.H_RAW_DISPATCHED_TO_LOCAL_FSM]'); 
   };
 
   const handleGenerateOptionsAnalysis = () => {
@@ -695,16 +695,27 @@ export function MainTabContent({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button 
-              key={isKtButtonDisabled ? 'kt-disabled' : 'kt-enabled'}
-              style={{ opacity: isKtButtonDisabled ? 0.5 : 1 }}
-              onClick={handleGenerateKeyTakeaways} 
-              className="w-full sm:w-auto" 
+            <button
+              key={isKtButtonDisabled ? 'kt-disabled-raw' : 'kt-enabled-raw'}
+              style={{ 
+                opacity: isKtButtonDisabled ? 0.5 : 1,
+                padding: '0.5rem 1rem', 
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 'var(--radius)',
+                cursor: isKtButtonDisabled ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                lineHeight: '1.25rem',
+              }}
+              onClick={handleGenerateKeyTakeaways}
               disabled={isKtButtonDisabled}
+              className="w-full sm:w-auto bg-secondary text-secondary-foreground hover:bg-secondary/80"
             >
               {keyTakeawaysButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Brain className="mr-2 h-4 w-4" /> Generate AI Key Takeaways
-            </Button>
+              <Brain className="mr-2 h-4 w-4" /> Generate AI Key Takeaways (RAW HTML)
+            </button>
             <Button 
               key={isOptButtonDisabled ? 'opt-disabled' : 'opt-enabled'}
               style={{ opacity: isOptButtonDisabled ? 0.5 : 1 }}
