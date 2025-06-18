@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { FormEvent } from 'react';
@@ -63,38 +62,34 @@ const initialMainTabLocalFsmState: MainTabLocalFsmManagedState = {
   currentInputTicker: "NVDA",
 };
 
-// Local definition of initial state for the chat server action
 const initialLocalChatActionState: ChatActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
 
 
 function isDataReadyForProcessing(jsonString: string | null | undefined, logDebugFn?: Function, sourceComponent?: string, dataName?: string): boolean {
-  const callContext = `${sourceComponent || 'isDataReadyForProcessing'}:${dataName || 'data'}`;
+  const callContext = `${sourceComponent || 'isDataReadyForProcessingCheck'}:${dataName || 'data'}`;
   if (!jsonString || jsonString === '{}' || jsonString.trim() === '{ "status": "pending..." }' || jsonString.trim() === '{ "status": "no_analysis_run_yet" }' || jsonString.trim() === '{ "status": "initializing..." }') {
-    logDebugFn?.(sourceComponent || 'isDataReadyForProcessing', 'CheckResult:NotReady(EmptyOrGenericPending)', `${callContext} JSON: '${jsonString?.substring(0,50)}...'`);
+    logDebugFn?.(sourceComponent || 'isDataReadyForProcessingCheck', 'Result:NotReady(EmptyOrGenericPending)', `${callContext} JSON: '${jsonString?.substring(0,50)}...'`);
     return false;
   }
   try {
     const parsed = JSON.parse(jsonString.trim());
     if (parsed && typeof parsed === 'object') {
       if (parsed.status && (parsed.status.includes('error') || parsed.status.includes('skipped') || parsed.status.includes('pending') || parsed.status.includes('initializing'))) {
-        logDebugFn?.(sourceComponent || 'isDataReadyForProcessing','CheckResult:NotReady(StatusField)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
+        logDebugFn?.(sourceComponent || 'isDataReadyForProcessingCheck','Result:NotReady(StatusField)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
         return false;
       }
-      if (parsed.error) { // Direct error property
-        logDebugFn?.(sourceComponent || 'isDataReadyForProcessing','CheckResult:NotReady(ErrorField)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
+      if (parsed.error) { 
+        logDebugFn?.(sourceComponent || 'isDataReadyForProcessingCheck','Result:NotReady(ErrorField)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
         return false;
       }
     }
   } catch(e) {
-    // If it's not a known status/error JSON, but fails to parse, it's not ready.
-    logDebugFn?.(sourceComponent || 'isDataReadyForProcessing','CheckResult:NotReady(ParseFailed)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
+    logDebugFn?.(sourceComponent || 'isDataReadyForProcessingCheck','Result:NotReady(ParseFailed)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
     return false;
   }
-  // If it's not null/empty, not a generic pending/initial, not an error/skipped status, and doesn't have a direct error field,
-  // and is parseable (or was already not matching error/pending strings), consider it ready.
-  logDebugFn?.(sourceComponent || 'isDataReadyForProcessing','CheckResult:Ready', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
+  logDebugFn?.(sourceComponent || 'isDataReadyForProcessingCheck','Result:Ready', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
   return true;
 }
 
@@ -186,7 +181,7 @@ export function MainTabContent({
               ...initialMainTabLocalFsmState, previousLocalState,
               currentInputTicker: state.currentInputTicker,
               localState: nextLocalState,
-              activeAnalysisTicker: state.activeAnalysisTicker, // Preserve for manual actions if they become available
+              activeAnalysisTicker: state.activeAnalysisTicker, 
             };
           }
         }
@@ -195,14 +190,19 @@ export function MainTabContent({
       case MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED:
         if (event.type === 'TICKER_INPUT_CHANGED') {
             const isTickerSameAsActive = event.payload.tickerValue === state.activeAnalysisTicker;
+            logDebug('MainTabContent_FSM', 'MANUAL_ACTIONS_ENABLED:TICKER_INPUT_CHANGED', `New Ticker: ${event.payload.tickerValue}, Valid: ${event.payload.isValid}, Active: ${state.activeAnalysisTicker}, SameAsActive: ${isTickerSameAsActive}`);
             if (!event.payload.isValid) {
+                logDebug('MainTabContent_FSM', 'MANUAL_ACTIONS_ENABLED:TICKER_INPUT_CHANGED', 'Input invalid. Transition to IDLE. activeAnalysisTicker: null');
                 return { ...state, previousLocalState, currentInputTicker: event.payload.tickerValue, localState: MainTabLocalFsmState.IDLE, activeAnalysisTicker: null };
             } else if (!isTickerSameAsActive) {
+                logDebug('MainTabContent_FSM', 'MANUAL_ACTIONS_ENABLED:TICKER_INPUT_CHANGED', 'Input valid but different from active. Transition to INPUT_VALID. activeAnalysisTicker: null');
                 return { ...state, previousLocalState, currentInputTicker: event.payload.tickerValue, localState: MainTabLocalFsmState.INPUT_VALID, activeAnalysisTicker: null };
             }
+             logDebug('MainTabContent_FSM', 'MANUAL_ACTIONS_ENABLED:TICKER_INPUT_CHANGED', 'Input valid and same as active. No state change. activeAnalysisTicker preserved.');
             return { ...state, previousLocalState, currentInputTicker: event.payload.tickerValue };
         }
         if (event.type === 'AUTOMATED_ANALYSIS_SUBMITTED') {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', 'MANUAL_ACTIONS_ENABLED -> AUTOMATED_ANALYSIS_SUBMITTED. Transitioning to AUTOMATED_PIPELINE_REQUESTED.');
           return { ...state, previousLocalState, localState: MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED, activeAnalysisTicker: state.currentInputTicker };
         }
         if (event.type === 'MANUAL_KEY_TAKEAWAYS_SUBMITTED') {
@@ -376,22 +376,25 @@ export function MainTabContent({
   useEffect(() => {
     logDebug('MainTabContent_FSM', 'LocalFsmSideEffect', `LocalState: ${localFsm.localState}, PrevLocal: ${localFsm.previousLocalState}, ActiveAnalysisTicker: ${localFsm.activeAnalysisTicker}, CurrentInputTicker: ${localFsm.currentInputTicker}`);
     if (localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED && localFsm.activeAnalysisTicker) {
-      logDebug('MainTabContent_FSM', 'DispatchToGlobal', `Local FSM state AUTOMATED_PIPELINE_REQUESTED. Dispatching START_FULL_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
+      logDebug('MainTabContent_FSM', 'DispatchToGlobal_Automated', `Dispatching START_FULL_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
       dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker } });
     } else if (localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED && localFsm.activeAnalysisTicker) {
-      logDebug('MainTabContent_FSM', 'DispatchToGlobal', `Local FSM state MANUAL_KEY_TAKEAWAYS_REQUESTED. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS to global FSM for ${localFsm.activeAnalysisTicker}.`);
+      logDebug('MainTabContent_FSM', 'DispatchToGlobal_ManualKT', `Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS to global FSM for ${localFsm.activeAnalysisTicker}.`);
       dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: localFsm.activeAnalysisTicker }});
     } else if (localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED && localFsm.activeAnalysisTicker) {
-      logDebug('MainTabContent_FSM', 'DispatchToGlobal', `Local FSM state MANUAL_OPTIONS_ANALYSIS_REQUESTED. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
+      logDebug('MainTabContent_FSM', 'DispatchToGlobal_ManualOptions', `Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
       dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker }});
     }
   }, [localFsm.localState, localFsm.activeAnalysisTicker, localFsm.previousLocalState, dispatchGlobalFsmEvent, logDebug]);
 
 
   useEffect(() => {
-    logDebug('MainTabContent_FSM', 'GlobalFsmListener', `Global FSM state changed to: ${globalFsmStateFromContext}. Current Local FSM State: ${localFsm.localState}`);
+    logDebug('MainTabContent_FSM', 'GlobalFsmListener', `Global FSM state changed to: ${globalFsmStateFromContext}. Current Local FSM State: ${localFsm.localState}. Active Ticker: ${localFsm.activeAnalysisTicker}`);
+    if (globalFsmStateFromContext === GlobalFsmState.FULL_ANALYSIS_COMPLETE) {
+      logDebug('MainTabContent_FSM', 'GlobalFsmListener_FullComplete', `Global FSM is FULL_ANALYSIS_COMPLETE. Local FSM should transition to MANUAL_ACTIONS_ENABLED. Current ActiveAnalysisTicker: ${localFsm.activeAnalysisTicker}`);
+    }
     dispatchLocalFsmEvent({ type: 'GLOBAL_FSM_UPDATED', payload: { globalFsmState: globalFsmStateFromContext } });
-  }, [globalFsmStateFromContext, logDebug, localFsm.localState, dispatchLocalFsmEvent]);
+  }, [globalFsmStateFromContext, logDebug, localFsm.localState, localFsm.activeAnalysisTicker, dispatchLocalFsmEvent]);
 
 
   useEffect(() => {
@@ -447,13 +450,13 @@ export function MainTabContent({
       toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
       return;
     }
-    logDebug('MainTabContent_FSM', 'UserAction', `Automated "Analyze Stock" button clicked for ${localFsm.currentInputTicker}. Current Local FSM State: ${localFsm.localState}`);
+    logDebug('MainTabContent_FSM', 'UserAction_AnalyzeStock', `Button clicked for ${localFsm.currentInputTicker}. LocalState: ${localFsm.localState}`);
     dispatchLocalFsmEvent({ type: 'AUTOMATED_ANALYSIS_SUBMITTED' });
   };
 
   const handleGenerateKeyTakeaways = () => {
     const logPrefix = 'MainTabContent_FSM:HandleKT';
-    logDebug(logPrefix, 'Entry', `Attempting to generate Key Takeaways. Active Ticker: ${localFsm.activeAnalysisTicker}, Current Input: ${localFsm.currentInputTicker}, Local State: ${localFsm.localState}`);
+    logDebug(logPrefix, 'Entry', `Attempting to generate Key Takeaways. LocalState: ${localFsm.localState}, ActiveTicker: ${localFsm.activeAnalysisTicker}, CurrentInput: ${localFsm.currentInputTicker}`);
 
     if (!localFsm.activeAnalysisTicker) {
       toast({ title: "No Active Stock", description: "Please analyze a stock first using 'Analyze Stock'.", variant: "default" });
@@ -466,12 +469,12 @@ export function MainTabContent({
         return;
     }
 
-    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'StockSnapshot');
-    const stdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefix, 'StandardTas');
-    const aiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefix, 'AiAnalyzedTa');
-    const marketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefix, 'MarketStatus');
+    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'KT_InputCheck_StockSnapshot');
+    const stdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefix, 'KT_InputCheck_StandardTas');
+    const aiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefix, 'KT_InputCheck_AiAnalyzedTa');
+    const marketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefix, 'KT_InputCheck_MarketStatus');
 
-    logDebug(logPrefix, 'DataCheck', `SnapshotReady: ${snapshotReady}, StdTaReady: ${stdTaReady}, AiTaReady: ${aiTaReady}, MarketStatusReady: ${marketStatusReady}`);
+    logDebug(logPrefix, 'KT_InputDataCheckResults', `SnapshotReady: ${snapshotReady}, StdTaReady: ${stdTaReady}, AiTaReady: ${aiTaReady}, MarketStatusReady: ${marketStatusReady}`);
 
     if (snapshotReady && stdTaReady && aiTaReady && marketStatusReady) {
       logDebug(logPrefix, 'Dispatch', 'All data ready for Key Takeaways. Dispatching MANUAL_KEY_TAKEAWAYS_SUBMITTED.');
@@ -484,7 +487,7 @@ export function MainTabContent({
 
   const handleGenerateOptionsAnalysis = () => {
     const logPrefix = 'MainTabContent_FSM:HandleOptions';
-    logDebug(logPrefix, 'Entry', `Attempting to generate Options Analysis. Active Ticker: ${localFsm.activeAnalysisTicker}, Current Input: ${localFsm.currentInputTicker}, Local State: ${localFsm.localState}`);
+    logDebug(logPrefix, 'Entry', `Attempting to generate Options Analysis. LocalState: ${localFsm.localState}, ActiveTicker: ${localFsm.activeAnalysisTicker}, CurrentInput: ${localFsm.currentInputTicker}`);
     
     if (!localFsm.activeAnalysisTicker) {
       toast({ title: "No Active Stock", description: "Please analyze a stock first using 'Analyze Stock'.", variant: "default" });
@@ -497,10 +500,10 @@ export function MainTabContent({
         return;
     }
 
-    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'StockSnapshot');
-    const optionsChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefix, 'OptionsChain');
+    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'Options_InputCheck_StockSnapshot');
+    const optionsChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefix, 'Options_InputCheck_OptionsChain');
 
-    logDebug(logPrefix, 'DataCheck', `SnapshotReady: ${snapshotReady}, OptionsChainReady: ${optionsChainReady}`);
+    logDebug(logPrefix, 'Options_InputDataCheckResults', `SnapshotReady: ${snapshotReady}, OptionsChainReady: ${optionsChainReady}`);
 
     if (snapshotReady && optionsChainReady) {
       logDebug(logPrefix, 'Dispatch', 'All data ready for Options Analysis. Dispatching MANUAL_OPTIONS_ANALYSIS_SUBMITTED.');
@@ -515,10 +518,10 @@ export function MainTabContent({
   const isGlobalPipelineActive = ![
     GlobalFsmState.IDLE,
     GlobalFsmState.FULL_ANALYSIS_COMPLETE,
-    GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, // Manual action complete
-    GlobalFsmState.KEY_TAKEAWAYS_FAILED,   // Manual action complete
-    GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, // Manual action complete
-    GlobalFsmState.OPTIONS_ANALYSIS_FAILED,    // Manual action complete
+    GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, 
+    GlobalFsmState.KEY_TAKEAWAYS_FAILED,   
+    GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, 
+    GlobalFsmState.OPTIONS_ANALYSIS_FAILED,    
     GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR,
     GlobalFsmState.DATA_FETCH_FAILED,
     GlobalFsmState.AI_TA_FAILED,
@@ -550,10 +553,10 @@ export function MainTabContent({
                                   globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   
   const keyTakeawaysPrereqsMet = 
-    isDataReadyForProcessing(contextStockSnapshotJson, undefined, 'KTButtonDisabledCheck', 'Snapshot') &&
-    isDataReadyForProcessing(contextStandardTasJson, undefined, 'KTButtonDisabledCheck', 'StdTA') &&
-    isDataReadyForProcessing(contextAiAnalyzedTaJson, undefined, 'KTButtonDisabledCheck', 'AiTA') &&
-    isDataReadyForProcessing(contextMarketStatusJson, undefined, 'KTButtonDisabledCheck', 'MarketStatus');
+    isDataReadyForProcessing(contextStockSnapshotJson) &&
+    isDataReadyForProcessing(contextStandardTasJson) &&
+    isDataReadyForProcessing(contextAiAnalyzedTaJson) &&
+    isDataReadyForProcessing(contextMarketStatusJson);
 
   const keyTakeawaysButtonDisabled = !manualActionsPossible || keyTakeawaysButtonLoading || analyzeButtonLoading ||
     (isGlobalPipelineActive && globalFsmStateFromContext !== GlobalFsmState.IDLE && globalFsmStateFromContext !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) ||
@@ -565,26 +568,58 @@ export function MainTabContent({
                                      globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
   
   const optionsAnalysisPrereqsMet = 
-    isDataReadyForProcessing(contextStockSnapshotJson, undefined, 'OptButtonDisabledCheck', 'Snapshot') &&
-    isDataReadyForProcessing(contextOptionsChainJson, undefined, 'OptButtonDisabledCheck', 'OptionsChain');
+    isDataReadyForProcessing(contextStockSnapshotJson) &&
+    isDataReadyForProcessing(contextOptionsChainJson);
 
   const optionsAnalysisButtonDisabled = !manualActionsPossible || optionsAnalysisButtonLoading || analyzeButtonLoading ||
     (isGlobalPipelineActive && globalFsmStateFromContext !== GlobalFsmState.IDLE && globalFsmStateFromContext !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) ||
     !optionsAnalysisPrereqsMet;
 
   useEffect(() => {
-    logDebug('MainTabContent:ButtonStateEval', 'KeyTakeawaysButtonDisabled Details:', {
-        manualActionsPossible, keyTakeawaysButtonLoading, analyzeButtonLoading, isGlobalPipelineActive,
-        globalFsmStateFromContext, keyTakeawaysPrereqsMet,
-        result: keyTakeawaysButtonDisabled
+    const logPrefix = 'MainTabContent_FSM:ButtonStateEvalEffect';
+    logDebug(logPrefix, 'MANUAL_ACTIONS_POSSIBLE_CHECK', 
+        `localFsm.localState: ${localFsm.localState} (Expected: ${MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED})`, 
+        `localFsm.activeAnalysisTicker: ${localFsm.activeAnalysisTicker} (Expected: non-null)`,
+        `localFsm.currentInputTicker: ${localFsm.currentInputTicker} (Expected: matches activeAnalysisTicker)`,
+        `Result of manualActionsPossible: ${manualActionsPossible}`
+    );
+
+    logDebug(logPrefix, 'KEY_TAKEAWAYS_BUTTON_DISABLED_CHECK', {
+        isOverallDisabled: keyTakeawaysButtonDisabled,
+        manualActionsPossible, 
+        keyTakeawaysButtonLoading, 
+        analyzeButtonLoading, 
+        isGlobalPipelineActive,
+        globalFsmStateFromContext, 
+        keyTakeawaysPrereqsMet,
+        prereqs: {
+            contextStockSnapshotJsonReady: isDataReadyForProcessing(contextStockSnapshotJson),
+            contextStandardTasJsonReady: isDataReadyForProcessing(contextStandardTasJson),
+            contextAiAnalyzedTaJsonReady: isDataReadyForProcessing(contextAiAnalyzedTaJson),
+            contextMarketStatusJsonReady: isDataReadyForProcessing(contextMarketStatusJson),
+        }
     });
-    logDebug('MainTabContent:ButtonStateEval', 'OptionsAnalysisButtonDisabled Details:', {
-        manualActionsPossible, optionsAnalysisButtonLoading, analyzeButtonLoading, isGlobalPipelineActive,
-        globalFsmStateFromContext, optionsAnalysisPrereqsMet,
-        result: optionsAnalysisButtonDisabled
+    logDebug(logPrefix, 'OPTIONS_ANALYSIS_BUTTON_DISABLED_CHECK', {
+        isOverallDisabled: optionsAnalysisButtonDisabled,
+        manualActionsPossible, 
+        optionsAnalysisButtonLoading, 
+        analyzeButtonLoading, 
+        isGlobalPipelineActive,
+        globalFsmStateFromContext, 
+        optionsAnalysisPrereqsMet,
+        prereqs: {
+            contextStockSnapshotJsonReady: isDataReadyForProcessing(contextStockSnapshotJson),
+            contextOptionsChainJsonReady: isDataReadyForProcessing(contextOptionsChainJson),
+        }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualActionsPossible, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, analyzeButtonLoading, isGlobalPipelineActive, globalFsmStateFromContext, keyTakeawaysPrereqsMet, optionsAnalysisPrereqsMet]);
+  }, [
+      localFsm.localState, localFsm.activeAnalysisTicker, localFsm.currentInputTicker, // For manualActionsPossible
+      manualActionsPossible, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, analyzeButtonLoading, 
+      isGlobalPipelineActive, globalFsmStateFromContext, 
+      keyTakeawaysPrereqsMet, optionsAnalysisPrereqsMet, // For button disabled states
+      contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson // For prereq checks
+    ]);
 
 
   const getCombinedDataForExport = useCallback(() => {
@@ -776,6 +811,3 @@ export function MainTabContent({
     </Card>
   );
 }
-
-
-
