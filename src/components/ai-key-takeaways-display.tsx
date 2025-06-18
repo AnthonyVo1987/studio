@@ -134,45 +134,45 @@ export function AiKeyTakeawaysDisplay() {
     isError = false;
     parsedTakeawaysData = null;
     errorOrSkippedMessage = ""; 
-  } else if (jsonString.includes('"status": "error"') || jsonString.includes('"status": "skipped"')) {
-    isLoading = false;
-    isError = true;
-    parsedTakeawaysData = null;
-    try {
-      const statusObj = JSON.parse(jsonString);
-      if (statusObj.status === "skipped") {
-        errorOrSkippedMessage = statusObj.message || "AI Key Takeaways were skipped.";
-      } else { 
-        errorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading AI Key Takeaways.";
-      }
-    } catch (e) {
-      errorOrSkippedMessage = "Failed to parse status message from error/skipped JSON for AI Key Takeaways.";
-    }
   } else {
     isLoading = false;
     isError = false;
     try {
-      const data = JSON.parse(jsonString) as StockAnalysisOutput;
-      if (data && typeof data === 'object' && data.priceAction && data.trend && data.volatility && data.momentum && data.patterns) {
-        parsedTakeawaysData = data;
-        displayTakeaways = (Object.keys(data) as TakeawayCategory[]).map(key => ({
+      const parsedJson = JSON.parse(jsonString);
+      if (parsedJson.error) { // Check for direct error property first
+        isError = true;
+        errorOrSkippedMessage = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
+        logDebug(componentName, "DataError_Direct", "Parsed JSON has direct error property:", errorOrSkippedMessage);
+      } else if (parsedJson.status === 'error' || parsedJson.status === 'skipped') {
+        isError = true;
+        if (parsedJson.status === "skipped") {
+          errorOrSkippedMessage = parsedJson.message || "AI Key Takeaways were skipped.";
+        } else { 
+          errorOrSkippedMessage = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
+        }
+        logDebug(componentName, "DataError_Status", `Parsed JSON has status: ${parsedJson.status}. Message: ${errorOrSkippedMessage}`);
+      } else if (parsedJson && typeof parsedJson === 'object' && parsedJson.priceAction && parsedJson.trend && parsedJson.volatility && parsedJson.momentum && parsedJson.patterns) {
+        parsedTakeawaysData = parsedJson as StockAnalysisOutput;
+        displayTakeaways = (Object.keys(parsedJson) as TakeawayCategory[]).map(key => ({
             categoryKey: key,
             categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
-            sentiment: data[key]?.sentiment || "neutral",
-            text: data[key]?.takeaway || "No takeaway generated.",
-            textSentimentClass: getSemanticTextColorClass(data[key]?.sentiment, key),
-            badgeSentimentClass: getSemanticBadgeClass(data[key]?.sentiment)
+            sentiment: parsedJson[key]?.sentiment || "neutral",
+            text: parsedJson[key]?.takeaway || "No takeaway generated.",
+            textSentimentClass: getSemanticTextColorClass(parsedJson[key]?.sentiment, key),
+            badgeSentimentClass: getSemanticBadgeClass(parsedJson[key]?.sentiment)
         }));
         logDebug(componentName, "DataParsed", "Successfully parsed aiKeyTakeawaysJson. Keys:", Object.keys(parsedTakeawaysData));
       } else {
         isError = true;
         errorOrSkippedMessage = "AI Key Takeaways data is malformed or incomplete.";
         parsedTakeawaysData = null;
+        logDebug(componentName, "DataError_Malformed", errorOrSkippedMessage);
       }
     } catch (e) {
       isError = true;
       errorOrSkippedMessage = "Failed to parse AI Key Takeaways data.";
       parsedTakeawaysData = null;
+      logDebug(componentName, "DataError_ParseFail", errorOrSkippedMessage, e);
     }
   }
 

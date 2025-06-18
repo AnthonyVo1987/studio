@@ -30,7 +30,7 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
-const APP_VERSION_FOR_EXPORT = "v2.9.D.K"; 
+const APP_VERSION_FOR_EXPORT = "v2.9.D.L"; 
 
 function formatLogMessage(messages: any[]): string {
   const seen = new Set();
@@ -476,4 +476,3 @@ export function DebugConsole() {
     </Card>
   );
 }
-
