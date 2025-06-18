@@ -16,6 +16,34 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.D.3` (Fix Manual AI Button Logic)
+**Tag:** `Phase-9_Task-9.D.3_FixManualAIButtonLogic` - Commit Hash: `740f7ce9`
+**Subject:** `fix(ui,fsm): Resolve non-functional AI Key Takeaways & Options Analysis buttons (v2.9.D.3)`
+**Details:**
+This version addresses a critical bug where the "Generate AI Key Takeaways" and "Generate AI Options Analysis" buttons in the Main Tab were non-functional. The issue stemmed from incorrect logic in `src/components/main-tab-content.tsx` that determined the `disabled` state of these buttons and the conditions for dispatching events to the local FSM.
+
+**Key Changes (v2.9.D.0 - v2.9.D.3):**
+
+*   **Task v2.9.D.0 (Client-Side Diagnostics - Phase 1):**
+    *   Added initial detailed `logDebug` statements to the `onClick` handlers (`handleGenerateKeyTakeaways`, `handleGenerateOptionsAnalysis`) and the local FSM reducer in `MainTabContent.tsx` to trace event dispatch for manual AI actions.
+    *   Application version updated to `v2.9.D.0`.
+
+*   **Task v2.9.D.1 (Server-Side Diagnostics - Phase 2):**
+    *   Added `logDebug` statements to `StockAnalysisContext` (FSM orchestrator), server actions (`performAiAnalysisAction`, `performAiOptionsAnalysisAction`), and relevant AI flows (`analyzeStockDataFlow`, `analyzeOptionsChainFlow`) to trace data reception and processing if client-side events were successfully triggering server calls.
+    *   Application version updated to `v2.9.D.1`.
+
+*   **Task v2.9.D.2 (Refine Button Logic & Client Diagnostics):**
+    *   **Identified Root Cause & Applied Fix:** Corrected the `disabled` logic for the "Generate AI Key Takeaways" (`keyTakeawaysButtonDisabled`) and "Generate AI Options Analysis" (`optionsAnalysisButtonDisabled`) buttons in `MainTabContent.tsx`. The primary fix was to ensure these conditions correctly checked the readiness of their *actual input data sources* (e.g., `stockSnapshotJson`, `standardTasJson`, `optionsChainJson`) using `isDataReadyForProcessing`, rather than incorrectly expecting the *output AI JSONs* (e.g., `aiKeyTakeawaysJson`, `aiOptionsAnalysisJson`) to be ready *before* generation.
+    *   Added further client-side logging to the `useEffect` hook in `MainTabContent.tsx` to monitor the evaluation of the complete `disabled` conditions and their constituent parts.
+    *   Application version updated to `v2.9.D.2`.
+
+*   **Task v2.9.D.3 (Verify Fix & Further Logging):**
+    *   Added more aggressive `logDebug` statements in `MainTabContent.tsx` to thoroughly trace the `activeAnalysisTicker` state variable, the conditions evaluating `manualActionsPossible`, and the local FSM transitions related to `MANUAL_ACTIONS_ENABLED`. This was to confirm the fix from `v2.9.D.2` was effective and to ensure robust state management for enabling manual AI actions.
+    *   Confirmed that with the corrected `disabled` logic, button clicks successfully dispatch events to the local FSM, which in turn trigger the global FSM and subsequently the server actions and AI flows as intended.
+    *   Application version updated to `v2.9.D.3`.
+
+These changes restore the functionality of the on-demand AI analysis buttons, ensuring they become active when appropriate data is available and correctly initiate their respective AI processing pipelines.
+---
 **App Version:** `v2.9.C.Y` (Streamline & Consolidate Debug Logs)
 **Tag:** `Phase-9_Task-9.C.Y_StreamlineDebugLogs` - Commit Hash: `f68eb561`
 **Subject:** `feat(debug): Consolidate debug logging, refine AI options prompt (v2.9.C.Y)`
@@ -350,8 +378,8 @@ This version encapsulates a series of critical bug fixes and feature enhancement
 Key changes included up to v2.9.C.9:
 -   **Chatbot FSM Pilot (v2.9.C.0):** Introduced a dedicated FSM for `Chatbot.tsx` UI state management.
 -   **Server Action Initial State Export Fixes (v2.9.C.1 - v2.9.C.5):**
-    -   Resolved multiple build/runtime errors caused by missing exports for `initialStockDataFetchResult`, `initialAnalyzeTaState`, `initialPerformAiAnalysisState`, and `initialPerformAiOptionsAnalysisState` from their respective server action files.
-    -   Corrected the approach by defining these initial states directly in the client-side `StockAnalysisContext.tsx` where `useActionState` is used, as server actions cannot export non-function values. This addressed the "A 'use server' file can only export async functions" error.
+    *   Resolved multiple build/runtime errors caused by missing exports for `initialStockDataFetchResult`, `initialAnalyzeTaState`, `initialPerformAiAnalysisState`, and `initialPerformAiOptionsAnalysisState` from their respective server action files.
+    *   Corrected the approach by defining these initial states directly in the client-side `StockAnalysisContext.tsx` where `useActionState` is used, as server actions cannot export non-function values. This addressed the "A 'use server' file can only export async functions" error.
 -   **"Analyze Stock" Button Re-enable Fix (v2.9.C.6):** Modified the local FSM in `MainTabContent.tsx` to correctly transition to `INPUT_VALID` when the global FSM returns to `IDLE` after a full analysis, ensuring the button becomes active again.
 -   **On-Demand AI Button Availability Fix (v2.9.C.7):** Refined local FSM logic in `MainTabContent.tsx` to ensure `activeAnalysisTicker` is preserved correctly after a successful automated pipeline, allowing manual AI buttons ("Generate AI Key Takeaways", "Generate AI Options Analysis") to become enabled.
 -   **Granular FSM State Display Feature (v2.9.C.8):** Enhanced debuggability by adding "Previous", "Current", and "Target" state displays for all local FSMs (`MainTabContent`, `ChatbotFSMContext`, `DebugConsoleFSMContext`) in their respective UI components.
@@ -456,6 +484,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 
