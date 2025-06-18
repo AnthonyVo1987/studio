@@ -16,6 +16,106 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.D.C` (Restore Full Logging in Button Effect, Enhance Debug Exports)
+**Tag:** `Phase-9_Task-9.D.C_RestoreFullButtonEffectLogging_EnhanceDebugExports` - Commit Hash: `9c0d2f3e`
+**Subject:** `feat(debug): Restore full logging in button effect, add metadata to debug exports (v2.9.D.C)`
+**Details:**
+This version (`v2.9.D.C`) is an intermediate step in debugging non-functional manual AI analysis buttons. It builds on v2.9.D.B, which confirmed `logDebug` is callable from the problematic `useEffect` in `MainTabContent.tsx`.
+
+**Key Changes in v2.9.D.C:**
+
+*   **Task v2.9.D.C (Restore Full `useEffect` Logic with Enhanced Logging, Debug Console Export Enhancements):**
+    *   **`src/components/main-tab-content.tsx`:**
+        *   The `useEffect` hook responsible for calculating `isKtButtonDisabled` and `isOptButtonDisabled` has had its full detailed logging logic (from v2.9.D.8) restored.
+        *   The `logPrefix` within this effect was updated to `MainTabContent_FSM:ButtonStateEffect_DC`.
+        *   Calls to `isDataReadyForProcessing` within this effect now explicitly pass the `logDebug` function, the `logPrefixDC` (cast as `LogSourceId`), and a specific `dataName` string to ensure clear identification of each prerequisite check in the logs.
+        *   A `console.log` statement was kept at the very end of the effect's primary logic block to confirm completion.
+        *   The dependency array for this `useEffect` was confirmed to be the comprehensive one including all relevant context JSONs and loading flags.
+    *   **`src/components/debug-console.tsx`:**
+        *   Enhanced export/copy functionality (`handleExportJson`, `handleCopyJson`, `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`):
+            *   Now includes the application version (`APP_VERSION_FOR_EXPORT` constant, set to "v2.9.D.C" in this commit) as metadata at the top of exported/copied data.
+            *   Now includes a snapshot of all major FSM states (Global, Main Tab UI, Chatbot UI, Debug Console Menu UI) as metadata, positioned after the app version and before the client debug logs.
+    *   **`src/lib/debug-log-types.ts`:**
+        *   Added `'MainTabContent_FSM:ButtonStateEffect_DC'` to `logSourceIds` and `logSourceLabels`.
+        *   Ensured this new source is enabled in `defaultLogSourceConfig`.
+    *   Application version updated to `v2.9.D.C` in `src/components/layout/header.tsx`.
+
+**Debugging Status & Next Steps:**
+*   The previous step (v2.9.D.B) established that `logDebug` can be called from within the critical `useEffect` and that the effect completes its minimal execution path, successfully enabling the buttons (temporarily forced).
+*   This commit (v2.9.D.C) restores the full button disablement logic along with comprehensive logging for each step of that logic. The expectation is that these logs will now reveal exactly which condition or `isDataReadyForProcessing` check is failing, leading to the buttons being incorrectly disabled.
+*   The enhanced debug console exports will provide better contextual information for analyzing logs offline.
+---
+**App Version:** `v2.9.D.B` (Minimal `logDebug` Test in Button Effect)
+**Tag:** `Phase-9_Task-9.D.B_MinimalLogDebugTestInButtonEffect` - Commit Hash: `(previous_commit_for_D.B)`
+**Subject:** `test(debug): Minimal logDebug test in button state useEffect, simplified deps (v2.9.D.B)`
+**Details:**
+This version (`v2.9.D.B`) focused on creating the absolute minimal test case for `logDebug` within the problematic `useEffect` in `MainTabContent.tsx` and confirming basic effect completion.
+
+**Key Changes in v2.9.D.B:**
+*   **Task v2.9.D.B (Minimal `logDebug` Test & Effect Simplification):**
+    *   **`src/components/main-tab-content.tsx`:**
+        *   The `useEffect` hook for button state (log prefix updated to `MainTabContent_FSM:ButtonStateEffect_DB`):
+            *   Kept initial `console.log`s for entry and `typeof logDebug`.
+            *   Removed ALL other complex logic (prerequisite checks, `isDataReadyForProcessing` calls, `shouldKtButtonBeEnabled` calculations).
+            *   Added a single, minimal `logDebug` call wrapped in a `try...catch` (logging to `console.log` on success/failure of the call itself).
+            *   Temporarily added direct calls `setIsKtButtonDisabled(false)` and `setIsOptButtonDisabled(false)` to try and force buttons enabled.
+            *   Added a final `console.log` to confirm the minimal effect logic completed.
+            *   Simplified the dependency array for this test.
+    *   **`src/lib/debug-log-types.ts`:** Added log source ID and label for `MainTabContent_FSM:ButtonStateEffect_DB`.
+    *   Application version updated to `v2.9.D.B`.
+
+**Outcome of v2.9.D.B Test (Analyzed in v2.9.D.C):**
+*   The minimal `logDebug` call *did* appear in the client debug console.
+*   The `useEffect` *did* run to completion with the minimal logic.
+*   The temporary `setIsKtButtonDisabled(false)` calls *did* result in the buttons becoming clickable, and the subsequent `onClick` handlers and FSM dispatches for manual AI actions worked correctly.
+*   This confirmed that the issue was not `logDebug` itself being broken in the effect, nor the FSM dispatch logic, but rather the complex conditional logic *within* the `useEffect` that calculates the `disabled` state.
+---
+**App Version:** `v2.9.D.A` (Isolate `logDebug` in Button `useEffect`)
+**Tag:** `Phase-9_Task-9.D.A_IsolateLogDebugInButtonEffect` - Commit Hash: `(previous_commit_for_D.A)`
+**Subject:** `test(debug): Isolate logDebug call in button state useEffect (v2.9.D.A)`
+**Details:**
+This version (`v2.9.D.A`) continued to diagnose the non-functional manual AI buttons by focusing on whether the `logDebug` function itself was problematic within the specific `useEffect` hook in `MainTabContent.tsx`.
+
+**Key Changes in v2.9.D.A:**
+*   **Task v2.9.D.A (Isolate Potential Silent Error in `useEffect` and Test Basic `logDebug`):**
+    *   **`src/components/main-tab-content.tsx`:**
+        *   The `useEffect` hook (log prefix `MainTabContent_FSM:ButtonStateEffect_DA`):
+            *   Kept initial `console.log`s for entry and `typeof logDebug`.
+            *   Added a `try...catch` block around a single, simplified `logDebug` call, using `'StockAnalysisContext'` as the `LogSourceId` to test. Success/failure of the call itself was logged to `console.log`/`console.error`.
+            *   Other extensive D8/D9 `logDebug` calls remained commented out.
+            *   Added a final `console.log` at the end of the effect's primary logic block to confirm completion.
+    *   **`src/lib/debug-log-types.ts`:** Added log source ID and label for `MainTabContent_FSM:ButtonStateEffect_DA`.
+    *   Application version updated to `v2.9.D.A`.
+
+**Outcome of v2.9.D.A Test (Analyzed in v2.9.D.B):**
+*   The initial `console.log`s in the effect worked, and `typeof logDebug` was 'function'.
+*   The `try...catch` around the `logDebug` call did NOT catch an immediate error.
+*   However, the `logDebug` message (`ButtonEffect_D.A_Test`) did NOT appear in the client debug console, and the `console.log` immediately *after* the `logDebug` call (within the `try` block) also did not appear.
+*   The final `console.log` indicating the effect completed its primary logic was also missing.
+*   This suggested `logDebug` was callable but might be causing a non-local disruption preventing further execution or logging from within that effect.
+---
+**App Version:** `v2.9.D.9` (Verify `logDebug` in Button `useEffect`, Minimal Logging)
+**Tag:** `Phase-9_Task-9.D.9_VerifyLogDebugInButtonEffect` - Commit Hash: `(user_provided_hash_for_D9_or_placeholder)`
+**Subject:** `test(debug): Verify logDebug in button useEffect, minimal logging, check deps (v2.9.D.9)`
+**Details:**
+This version (`v2.9.D.9`) was a focused attempt to confirm if `logDebug` is callable and functional within the problematic `useEffect` in `MainTabContent.tsx` that determines button disable states. It also aimed to log essential initial values via `console.log` as a fallback.
+
+**Key Changes in v2.9.D.9:**
+*   **Task v2.9.D.9 (Verify `logDebug` in `useEffect`, Simplify, and Check Dependencies):**
+    *   **`src/components/main-tab-content.tsx`:**
+        *   In the `useEffect` hook (log prefix `MainTabContent_FSM:ButtonStateEffect_D9`):
+            *   Added `console.log` to check `typeof logDebug`.
+            *   Attempted a very simple `logDebug` call immediately after the `console.log` checks.
+            *   Logged key initial state variables (`localFsm.localState`, `activeAnalysisTicker`, `globalFsmStateFromContext`) using `console.log`.
+            *   Temporarily commented out ALL other detailed `logDebug` calls from D8 within this `useEffect`.
+            *   The dependency array was reviewed and deemed correct for this stage.
+    *   Application version updated to `v2.9.D.9`.
+
+**Outcome of v2.9.D.9 Test (Analyzed in v2.9.D.A - note: task names were out of sync with analysis):**
+*   Initial `console.log`s in the effect (entry, `typeof logDebug`, initial values) *were present*.
+*   The simple `logDebug` call *was NOT present* in the client debug console logs.
+*   This strongly suggested an issue with `logDebug` execution or logging to the buffer *specifically from within this useEffect*, despite it being a function.
+---
 **App Version:** `v2.9.D.8` (Intensify Client-Side Button Logic Diagnostics)
 **Tag:** `Phase-9_Task-9.D.8_IntensifyButtonLogicLogging` - Commit Hash: `48fba889`
 **Subject:** `debug(ui,fsm): Intensify logging in MainTabContent button state effect (v2.9.D.8)`

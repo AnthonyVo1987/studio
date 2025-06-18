@@ -33,6 +33,7 @@ export const logSourceIds = [
   'FsmStateDebugCard',
   'MainTabContent_FSM:ButtonStateEffect_DB',
   'MainTabContent_FSM:ButtonStateEffect_DC',
+  'MainTabContent_FSM:ButtonStateEffect_DA', 
 ] as const;
 
 export type LogSourceId = typeof logSourceIds[number];
@@ -46,7 +47,7 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   MarketStatusDisplay: true,
   AiAnalyzedTaDisplay: true, 
   AiKeyTakeawaysDisplay: true,
-  OptionsChainTable: false, // Explicitly disabled by default
+  OptionsChainTable: false, 
   AiOptionsAnalysisDisplay: true, 
   DebugTabContent: true,
   MainTabContent: true,
@@ -69,6 +70,7 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   FsmStateDebugCard: true,
   'MainTabContent_FSM:ButtonStateEffect_DB': true,
   'MainTabContent_FSM:ButtonStateEffect_DC': true,
+  'MainTabContent_FSM:ButtonStateEffect_DA': true,
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -101,6 +103,7 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   FsmStateDebugCard: 'FSM State Debug Card UI',
   'MainTabContent_FSM:ButtonStateEffect_DB': 'MTC Button Effect (D.B Minimal)',
   'MainTabContent_FSM:ButtonStateEffect_DC': 'MTC Button Effect (D.C Full)',
+  'MainTabContent_FSM:ButtonStateEffect_DA': 'MTC Button Effect (D.A Test)',
 };
 
 // For DebugConsole.tsx filter UI

@@ -528,7 +528,7 @@ export function MainTabContent({
                                      globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
 
   useEffect(() => {
-    const logPrefixDC = 'MainTabContent_FSM:ButtonStateEffect_DC';
+    const logPrefixDC = 'MainTabContent_FSM:ButtonStateEffect_DC'; // Log prefix for this version
     console.log(`[${logPrefixDC}_RAW_ENTRY] Button state effect entered.`);
     console.log(`[${logPrefixDC}_LOGDEBUG_TYPE_CHECK] typeof logDebug: ${typeof logDebug}`);
     

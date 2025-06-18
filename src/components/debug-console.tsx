@@ -30,7 +30,7 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
-const APP_VERSION_FOR_EXPORT = "v2.9.D.C"; // Hardcoded for now, consider making dynamic
+const APP_VERSION_FOR_EXPORT = "v2.9.D.C"; 
 
 function formatLogMessage(messages: any[]): string {
   const seen = new Set();
@@ -80,7 +80,7 @@ const generateLogsTxtWithMetadata = (
     fsmStates: any 
 ): string => {
   let metadata = `App Version: ${appVersion}\n`;
-  metadata += `Timestamp: ${new Date().toISOString()}\n\n`;
+  metadata += `Report Timestamp: ${new Date().toISOString()}\n\n`;
   metadata += "FSM States:\n";
   metadata += `  Global Application FSM: Prev: ${fsmStates.globalApplicationFSM?.previous || 'N/A'}, Curr: ${fsmStates.globalApplicationFSM?.current || 'N/A'}, Target: ${fsmStates.globalApplicationFSM?.target || 'N/A'}\n`;
   metadata += `  Main Tab UI FSM: Prev: ${fsmStates.mainTabUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.mainTabUI_FSM?.current || 'N/A'}, Target: ${fsmStates.mainTabUI_FSM?.target || 'N/A'}\n`;
@@ -136,7 +136,7 @@ export function DebugConsole() {
     targetFsmDisplayState: globalTargetFsmDisplayState,
     mainTabFsmDisplay,
     chatbotFsmDisplay,
-    debugConsoleMenuFsmDisplay: contextDebugConsoleMenuFsmDisplay, // Renamed to avoid conflict
+    debugConsoleMenuFsmDisplay: contextDebugConsoleMenuFsmDisplay, 
   } = useStockAnalysis();
 
   const {
