@@ -14,11 +14,11 @@ import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-de
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { getAppConfig, type AppConfig } from '@/lib/app-config-loader'; // Import AppConfig type
+import { getAppConfig, type AppConfig } from '@/lib/app-config-loader';
 
 interface PageContentProps {
   appVersion: string;
-  lastUpdatedTimestamp?: string; // Optional, if we decide to use it in Header
+  lastUpdatedTimestamp?: string;
 }
 
 function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentProps) {
@@ -125,14 +125,12 @@ function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentProps) {
   );
 }
 
-// This is now a Server Component (or can be an async Server Component)
 export default async function Home() {
   let appConfig: AppConfig;
   try {
     appConfig = await getAppConfig();
   } catch (error) {
     console.error("[HomeServerComponent] Failed to load app config:", error);
-    // Provide default/fallback values or handle error appropriately
     appConfig = {
       appVersion: "ErrorLoadingVersion",
       lastUpdatedTimestamp: new Date().toISOString(),
