@@ -16,6 +16,29 @@
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
 ---
+**App Version:** `v2.9.D.8` (Intensify Client-Side Button Logic Diagnostics)
+**Tag:** `Phase-9_Task-9.D.8_IntensifyButtonLogicLogging` - Commit Hash: `48fba889`
+**Subject:** `debug(ui,fsm): Intensify logging in MainTabContent button state effect (v2.9.D.8)`
+**Details:**
+This version (`v2.9.D.8`) is an intermediate step in an ongoing debugging effort to resolve non-functional "Generate AI Key Takeaways" and "Generate AI Options Analysis" buttons. The primary focus of this specific commit was to add highly detailed and comprehensive logging within the `useEffect` hook in `src/components/main-tab-content.tsx`. This hook is responsible for calculating and setting the `disabled` state of these manual AI analysis buttons.
+
+**Key Changes in v2.9.D.8:**
+*   **Task v2.9.D.8 (Intensify Logging in Button State `useEffect`):**
+    *   Enhanced `src/components/main-tab-content.tsx`:
+        *   The `useEffect` hook that determines the `isKtButtonDisabled` and `isOptButtonDisabled` states now logs every input variable it uses. This includes:
+            *   Local FSM state (`localFsm.localState`), `activeAnalysisTicker`, `currentInputTicker`.
+            *   Global FSM state (`globalFsmStateFromContext`).
+            *   All relevant loading flags (`analyzeButtonLoading`, `keyTakeawaysButtonLoading`, `optionsAnalysisButtonLoading`).
+            *   The `isGlobalPipelineActive` flag.
+            *   The calculated `manualActionsPossible` boolean.
+            *   The individual results of each `isDataReadyForProcessing(...)` check for all prerequisite JSON data strings.
+            *   The final calculated `shouldKtButtonBeEnabled` and `shouldOptButtonBeEnabled` booleans before they are used to update the button `disabled` states.
+    *   The objective is to get a definitive trace of the conditions leading to the buttons being disabled, despite previous logs suggesting they should be enabled and clickable.
+    *   Application version updated to `v2.9.D.8`.
+
+**Debugging Status:**
+*   Despite previous iterations suggesting progress, the core issue of the manual AI buttons not triggering their respective analysis pipelines persisted at the start of task v2.9.D.8. This commit aims to gather more precise diagnostic information from the client-side button enablement logic based on user reports that the fix in v2.9.D.7 was not effective in the deployed environment.
+---
 **App Version:** `v2.9.D.3` (Fix Manual AI Button Logic)
 **Tag:** `Phase-9_Task-9.D.3_FixManualAIButtonLogic` - Commit Hash: `740f7ce9`
 **Subject:** `fix(ui,fsm): Resolve non-functional AI Key Takeaways & Options Analysis buttons (v2.9.D.3)`
@@ -484,8 +507,4 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
-
-
-
-
 
