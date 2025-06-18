@@ -368,23 +368,37 @@ export function MainTabContent({
         setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
         try {
             const modelResponse = JSON.parse(chatActionState.data.chatbotResponseJson);
-            const lastMessageInHistory = contextChatHistoryRef.current[contextChatHistoryRef.current.length -1];
-            if (modelResponse.response && (lastMessageInHistory?.role !== 'model' || lastMessageInHistory?.content !== modelResponse.response)) {
+            if (modelResponse.error) { // Check for error field within successful action
+                logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseWithErrorField', 'Chatbot flow indicated an error:', modelResponse.error);
                 addChatMessageToGlobalContext({
-                    id: Date.now().toString() + '_model_main',
+                    id: Date.now().toString() + '_model_flow_error_main',
                     role: 'model',
-                    content: modelResponse.response,
+                    content: modelResponse.message || modelResponse.error || "Sorry, the chatbot encountered an issue.",
                 });
-                logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseAdded', 'Model response added to global chat history.');
-            } else if (modelResponse.response && lastMessageInHistory?.role === 'model' && lastMessageInHistory?.content === modelResponse.response) {
-                logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseDuplicate', 'Duplicate model response detected, not adding to history.');
+            } else if (modelResponse.response) {
+                const lastMessageInHistory = contextChatHistoryRef.current[contextChatHistoryRef.current.length -1];
+                if (lastMessageInHistory?.role !== 'model' || lastMessageInHistory?.content !== modelResponse.response) {
+                    addChatMessageToGlobalContext({
+                        id: Date.now().toString() + '_model_main',
+                        role: 'model',
+                        content: modelResponse.response,
+                    });
+                    logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseAdded', 'Model response added to global chat history.');
+                } else {
+                    logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseDuplicate', 'Duplicate model response detected, not adding to history.');
+                }
             } else {
-                 logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseMissing', 'Model response content missing in successful action state.');
+                 logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseMissing', 'Model response content missing in successful action state data.');
+                 addChatMessageToGlobalContext({
+                    id: Date.now().toString() + '_model_malformed_main',
+                    role: 'model',
+                    content: "Sorry, I received an unclear response. Please try again.",
+                });
             }
         } catch (e) {
             logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseParseError', 'Failed to parse chatbotResponseJson.', e);
              addChatMessageToGlobalContext({
-                id: Date.now().toString() + '_model_error_main',
+                id: Date.now().toString() + '_model_parse_error_main',
                 role: 'model',
                 content: "Sorry, I had trouble understanding that response. Please try again.",
             });
@@ -392,9 +406,9 @@ export function MainTabContent({
     } else if (chatActionState.status === 'error') {
         logDebug('MainTabContent:chatActionState' as LogSourceId, 'ChatActionResultObserved:ERROR', `Chat action server call failed. Error: ${chatActionState.error}, Message: ${chatActionState.message}`);
         setChatbotRequestJson(chatActionState.data?.chatbotRequestJson || JSON.stringify({ error: chatActionState.error, message: chatActionState.message }, null, 2));
-        setChatbotResponseJson(chatActionState.data?.chatbotResponseJson || JSON.stringify({ error: chatActionState.error }, null, 2));
+        setChatbotResponseJson(chatActionState.data?.chatbotResponseJson || JSON.stringify({ error: chatActionState.error, details: "Server action failed directly." }, null, 2));
         addChatMessageToGlobalContext({
-            id: Date.now().toString() + '_model_error_main',
+            id: Date.now().toString() + '_model_action_error_main',
             role: 'model',
             content: chatActionState.message || "Sorry, an error occurred. Please try again.",
         });
@@ -419,17 +433,13 @@ export function MainTabContent({
   };
 
   const handleGenerateKeyTakeaways = () => {
-    console.log('[RAW_CLICK_KT_D.E_EFFECTIVELY_CLICKED]');
     logDebug('MainTabContent' as LogSourceId, 'ONCLICK_KT_D.E_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
     dispatchLocalFsmEvent({ type: 'MANUAL_KEY_TAKEAWAYS_SUBMITTED' });
-    console.log('[RAW_CLICK_KT_D.E_DISPATCHED_TO_LOCAL_FSM]');
   };
 
   const handleGenerateOptionsAnalysis = () => {
-    console.log('[RAW_CLICK_OPTIONS_D.E_EFFECTIVELY_CLICKED]');
     logDebug('MainTabContent' as LogSourceId, 'ONCLICK_OPTIONS_D.E_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
     dispatchLocalFsmEvent({ type: 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED' });
-    console.log('[RAW_CLICK_OPTIONS_D.E_DISPATCHED_TO_LOCAL_FSM]');
   };
 
 
@@ -473,8 +483,6 @@ export function MainTabContent({
 
   useEffect(() => {
     const logPrefixDC = 'MainTabContent_FSM:ButtonStateEffect_DC'; 
-    console.log(`[${logPrefixDC}_RAW_ENTRY] Button state effect entered.`);
-    console.log(`[${logPrefixDC}_LOGDEBUG_TYPE_CHECK] typeof logDebug: ${typeof logDebug}`);
     
     const currentLocalFsmState = localFsm.localState;
     const currentActiveAnalysisTicker = localFsm.activeAnalysisTicker;
@@ -484,19 +492,6 @@ export function MainTabContent({
     const currentKtButtonLoading = keyTakeawaysButtonLoading;
     const currentOptButtonLoading = optionsAnalysisButtonLoading;
     const currentIsGlobalPipelineActive = isGlobalPipelineActive;
-
-    console.log(`[${logPrefixDC}_INITIAL_VALUES] localFsm.localState: ${currentLocalFsmState}, localFsm.activeAnalysisTicker: ${currentActiveAnalysisTicker}, globalFsmStateFromContext: ${currentGlobalFsmState}`);
-
-    if (typeof logDebug === 'function') {
-        try {
-            logDebug('StockAnalysisContext' as LogSourceId, 'ButtonEffect_D.C_Test', 'Attempting logDebug from ButtonStateEffect with StockAnalysisContext source.');
-            console.log(`[${logPrefixDC}_LOGDEBUG_ATTEMPTED_DC] logDebug was called from try block.`);
-        } catch (e: any) {
-            console.error(`[${logPrefixDC}_LOGDEBUG_CALL_ERROR_DC] Error calling logDebug directly:`, e.message, e.stack);
-        }
-    } else {
-        console.error(`[${logPrefixDC}_LOGDEBUG_ERROR_DC] logDebug is NOT a function here!`);
-    }
     
     logDebug(logPrefixDC as LogSourceId, 'VARIABLES_CHECK_DC', {
         currentLocalFsmState,
@@ -549,14 +544,11 @@ export function MainTabContent({
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
 
-    console.log(`[${logPrefixDC}_INTENDED_DISABLED_PROPS_DC] isKtButtonDisabled intended: ${!shouldKtButtonBeEnabled}, isOptButtonDisabled intended: ${!shouldOptButtonBeEnabled}`);
-
     logDebug(logPrefixDC as LogSourceId, 'FINAL_DISABLED_STATE_BOOLEANS_DC', { 
         final_isKtButtonDisabled: !shouldKtButtonBeEnabled, 
         final_isOptButtonDisabled: !shouldOptButtonBeEnabled 
     });
 
-    console.log(`[${logPrefixDC}_EFFECT_PRIMARY_LOGIC_COMPLETED_DC] The button state useEffect's main logic block has finished executing.`);
   }, [
       localFsm.localState, localFsm.activeAnalysisTicker, localFsm.currentInputTicker,
       globalFsmStateFromContext,
@@ -764,6 +756,3 @@ export function MainTabContent({
     </Card>
   );
 }
-
-
-    

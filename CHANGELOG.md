@@ -2,6 +2,11 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.53 (Task v2.9.D.M):** 2025-06-19 - Firebase Studio (AI Prototyper)
+    *   Updated `README.md` (to v1.53) with current app version `v2.9.D.M`.
+    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.M`.
+    *   Updated `docs/Issue-Report_AI_Analysis_Buttons.md` to reflect debugging progress and final resolution through task `v2.9.D.M`.
+    *   Updated `src/components/layout/header.tsx` and `src/components/debug-console.tsx` (`APP_VERSION_FOR_EXPORT`) to `v2.9.D.M`.
 *   **Version 1.52 (Task v2.9.D.L):** 2025-06-19 - Firebase Studio (AI Prototyper)
     *   Updated `README.md` (to v1.52) with current app version `v2.9.D.L`, acknowledging fixed AI prompt safety settings and improved client-side error display for AI takeaways.
     *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.L`.
@@ -27,6 +32,44 @@
 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
+---
+**App Version:** `v2.9.D.M` (Revert Button Debug Code, Standardize AI Flow Error Handling & Logging)
+**Tag:** `Phase-9_Task-9.D.M_CleanupRevertButtonDebug_StandardizeAIFlows_Logging`
+**Commit Hash:** `(next_commit_hash_for_D.M)`
+**Subject:** `refactor(ui,ai): Revert button debug, standardize AI flow error handling/logging (v2.9.D.M)`
+**Details:**
+This version (`v2.9.D.M`) implements cleanup and hardening measures following the resolution of AI prompt safety setting errors in `v2.9.D.L`. It also acknowledges that the manual AI buttons were, in fact, functional once the underlying AI flow errors were resolved.
+
+**Key Changes in v2.9.D.M:**
+
+*   **Task v2.9.D.M (Cleanup, Standardization, and Enhanced Logging):**
+    *   **UI Cleanup (`src/components/main-tab-content.tsx` - Task 1 of D.M):**
+        *   Removed the diagnostic `div` wrapper (with red border and `onClick` alert) previously around the manual AI buttons.
+        *   Removed the `key={...}` props from the "Generate AI Key Takeaways" and "Generate AI Options Analysis" `<Button>` components.
+        *   Removed the inline `style={{ opacity: ... }}` props from these buttons.
+        *   These elements were part of debugging efforts for a misdiagnosed button click issue.
+    *   **AI Flow Error Handling & Logging (Tasks 2 & 3 of D.M):**
+        *   `src/ai/flows/analyze-stock-data.ts`: Preserved explicit error throwing if `outputFromPrompt` is undefined (from v2.9.D.K). Added `console.time/timeEnd` for `analyzeStockDataFlowExecutionTime`.
+        *   `src/ai/flows/analyze-options-chain-flow.ts`: Implemented explicit error throwing if the AI prompt call returns `undefined` output or if `output.callWalls`/`output.putWalls` are not arrays. Added `console.time/timeEnd` for `analyzeOptionsChainFlowExecutionTime`.
+        *   `src/ai/flows/chat-flow.ts`: Modified to throw an error if `output` or `output.response` from the AI prompt is undefined or not a string. Added `console.time/timeEnd` for `chatFlowExecutionTime`.
+        *   Server Actions (`performAiAnalysisAction.ts`, `performAiOptionsAnalysisAction.ts`, `chatServerAction.ts`): Added `console.log` statements before and after calls to their respective AI flows. Ensured `catch` blocks consistently return a JSON object with `{ error: "...", details: "..." }` structure in the primary data field of the action's response when a flow throws an error.
+    *   **Client-Side Error Display Standardization (Task 4 of D.M):**
+        *   `src/components/ai-options-analysis-display.tsx`: Updated parsing logic to correctly check for and display messages from `aiOptionsAnalysisJson` when it contains a direct `error` field from the server action.
+        *   `src/components/main-tab-content.tsx`: Reviewed and confirmed logic for handling `chatActionState` to ensure error messages from `chatbotResponseJson` (if `error` field is present) are added to the chat history.
+    *   **Application Version Update (Task 4 of D.M):**
+        *   `src/components/layout/header.tsx`: Application version string updated to `v2.9.D.M`.
+        *   `src/components/debug-console.tsx`: `APP_VERSION_FOR_EXPORT` constant updated to `v2.9.D.M`.
+    *   **Documentation Updates (Task 4 of D.M):**
+        *   `README.md`: Updated to version 1.53. Reflects app version `v2.9.D.M`.
+        *   `CHANGELOG.md` (this file): Updated to reflect this v2.9.D.M commit and its changes.
+        *   `docs/Issue-Report_AI_Analysis_Buttons.md`: Updated to summarize the full resolution of the AI flow issues, acknowledge the button click misdiagnosis, and detail the cleanup and hardening measures implemented in v2.9.D.M.
+
+**Outcome of v2.9.D.M:**
+*   The codebase is cleaner, with unnecessary button debugging artifacts removed.
+*   All AI flows now have more explicit error throwing for critical AI prompt failures and include execution time logging.
+*   Server actions consistently log calls to AI flows and provide standardized error JSONs to the client.
+*   Client-side display components for AI-generated data are more robust in parsing and displaying error states.
+*   The application is now in a more stable and observable state regarding its AI functionalities.
 ---
 **App Version:** `v2.9.D.L` (Fix AI Prompt Safety Settings & Client Error Display)
 **Tag:** `Phase-9_Task-9.D.L_FixAiPromptSafety_ImproveClientErrorDisplay`

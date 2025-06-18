@@ -89,11 +89,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **AI Key Takeaways Flow (`analyze-stock-data.ts`):**
     *   Uses `analyze-stock-data.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Stock snapshot, standard TAs, AI-analyzed TAs, market status.
-    *   Output: Five key takeaways (price action, trend, volatility, momentum, patterns) with sentiment. Flow now throws an error if the AI prompt fails to return a basic output structure (as of v2.9.D.K).
+    *   Output: Five key takeaways (price action, trend, volatility, momentum, patterns) with sentiment. Flow now throws an error if the AI prompt fails to return a basic output structure (as of v2.9.D.K) and includes execution time logging (v2.9.D.M).
 *   **AI Options Analysis Flow (`analyze-options-chain-flow.ts`):**
     *   Uses `analyze-options-chain.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Options chain JSON, current underlying price, ticker.
-    *   Output: Identified Call/Put Walls (max 3 each) based on OI/Volume.
+    *   Output: Identified Call/Put Walls (max 3 each) based on OI/Volume. Flow now throws an error if the AI prompt fails to return a valid structure and includes execution time logging (v2.9.D.M).
 *   **AI Analyzed TA Flow (Pivot Points) (`analyze-ta-flow.ts`):**
     *   Uses `analyze-ta-indicators.json` (a `calculation-logic` type definition, does not use an LLM).
     *   Input: Previous day HLC.
@@ -101,15 +101,15 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **AI Chatbot Flow (`chat-flow.ts`):**
     *   Uses `stock-chatbot.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Ticker, all available data JSONs (snapshot, key takeaways, AI TA, options analysis), chat history, user input.
-    *   Output: Markdown-formatted chatbot response.
+    *   Output: Markdown-formatted chatbot response. Flow now throws an error if the AI prompt fails to return a valid response and includes execution time logging (v2.9.D.M).
 
 ### 3.4. Error Handling & Logging
 *   Comprehensive error handling throughout the application.
 *   `error.js` boundary files for handling route-level errors.
-*   `try...catch` blocks in server actions and AI flows, returning structured error states. AI flows (Key Takeaways, Options Analysis, Chat) are being updated to throw errors on critical AI prompt failures (v2.9.D.M scope). Client display components (`AiKeyTakeawaysDisplay.tsx`, etc.) are being updated to parse these error JSONs better (v2.9.D.L & v2.9.D.M scope).
+*   `try...catch` blocks in server actions and AI flows, returning structured error states. AI flows (Key Takeaways, Options Analysis, Chat) now throw errors on critical AI prompt failures and provide consistent error JSONs to client components (v2.9.D.M). Client display components (`AiKeyTakeawaysDisplay.tsx`, `AiOptionsAnalysisDisplay.tsx`, `Chatbot.tsx`) updated to parse these error JSONs (v2.9.D.L & v2.9.D.M).
 *   Detailed logging for debugging and monitoring.
 *   Client-side debug console (`DebugConsole.tsx`) for inspecting application state.
-*   Server-side logs (`console.log`, `console.error`) for tracking API calls, AI flow executions, and errors. `console.time` and `console.timeEnd` are planned for AI flows in v2.9.D.M.
+*   Server-side logs (`console.log`, `console.error`, `console.time/timeEnd`) for tracking API calls, AI flow executions, and errors.
 
 #### 3.4.1. Logging Conventions & Locations
 *   **`src/lib/debug-log-types.ts`:** Defines `LogSourceId`s, `LogType`s, labels, and default enabled configurations for client-side debug sources.
@@ -117,8 +117,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
     *   Provides `logDebug(source: LogSourceId, category: string, ...messages: any[])` function. This is the **primary method for client-side logging**.
     *   It intercepts `console.log/warn/error/info/debug` calls. If the first argument to a native console call is `__LOGDEBUG_MARKER__`, it treats the subsequent arguments as `source`, `category`, and `messages` for structured logging via the `logDebug` pathway. Otherwise, native console calls are logged with source `'NATIVE_CONSOLE'`.
     *   Logs are added to a global, non-React state buffer (`src/lib/global-log-buffer.ts`).
-*   **Server Actions (`src/actions/*.ts`):** Use `console.log` and `console.error` with a standardized prefix (e.g., `[ServerAction:actionName:Ticker:XYZ]`). Planned for v2.9.D.M: add logs before/after AI flow calls.
-*   **Genkit Flows (`src/ai/flows/*.ts`):** Use `console.log` and `console.error` with a flow-specific prefix (e.g., `[AIFlow:flowName:Ticker:XYZ]`). Planned for v2.9.D.M: add `console.time` / `console.timeEnd`.
+*   **Server Actions (`src/actions/*.ts`):** Use `console.log` and `console.error` with a standardized prefix (e.g., `[ServerAction:actionName:Ticker:XYZ]`). Now include logs before/after AI flow calls (v2.9.D.M).
+*   **Genkit Flows (`src/ai/flows/*.ts`):** Use `console.log` and `console.error` with a flow-specific prefix (e.g., `[AIFlow:flowName:Ticker:XYZ]`). Now include `console.time` / `console.timeEnd` for execution duration (v2.9.D.M).
 *   **Client Components (e.g., `src/components/main-tab-content.tsx`):** **MUST** use the `logDebug` function from `useStockAnalysis()` for structured client-side logging.
 *   **`CHANGELOG.md`:** Detailed log of changes and bug fixes.
 
@@ -134,7 +134,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Displays logs from the `logDebug` system.
 *   Allows filtering by `LogType` and `LogSourceId`.
 *   Search functionality.
-*   Export/Copy logs (JSON, TXT, CSV) including app version (`APP_VERSION_FOR_EXPORT` constant, currently `v2.9.D.L`) and current FSM states as metadata.
+*   Export/Copy logs (JSON, TXT, CSV) including app version (`APP_VERSION_FOR_EXPORT` constant, currently `v2.9.D.M`) and current FSM states as metadata.
 *   Clears logs on manual clear or implicitly on full page reload.
 
 ### 3.5. Coding Standards & Conventions
@@ -143,7 +143,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **NO `console.log` in committed client-side code** unless it's part of the `StockAnalysisContext`'s interception mechanism or a temporary, explicitly discussed debugging measure. Use `logDebug` from context.
 *   **No commented-out code in commits.**
 *   Follow established file/folder structures and naming conventions.
-*   **Debugging Status (v2.9.D.L):** The AI prompt execution failure (due to incorrect safety settings) has been resolved. The manual AI buttons *are* functional. The next phase (v2.9.D.M) will focus on cleaning up prior button debug code and hardening AI flow error handling. See `docs/Issue-Report_AI_Analysis_Buttons.md`.
+*   **Debugging Status (v2.9.D.M):** The AI prompt execution failures (due to incorrect safety settings) were resolved in v2.9.D.L. Manual AI buttons were confirmed functional. This version (v2.9.D.M) cleaned up prior button debugging code, hardened AI flow error handling, and improved logging. See `docs/Issue-Report_AI_Analysis_Buttons.md`.
 *   See extensive list in prior `README.md` versions (e.g., v2.9.D.8) for more general coding best practices (ESLint, TypeScript, `any` type avoidance, etc.). These are implicitly still in effect.
 
 #### 3.5.1. UI/UX Conventions
@@ -181,7 +181,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 
 ### 3.6. Debugging and Logging (Reiteration)
 *   **Client:** `logDebug` from `StockAnalysisContext` is the standard. Filter/search via `DebugConsole`.
-*   **Server (Actions, Flows):** `console.log/error` with prefixes. `console.time/timeEnd` planned for flows in v2.9.D.M.
+*   **Server (Actions, Flows):** `console.log/error` with prefixes. Now includes `console.time/timeEnd` for flows and pre/post call logs for actions (v2.9.D.M).
 *   Log key state transitions, inputs/outputs, and error conditions comprehensively.
 *   **`isDataReadyForProcessing` function in `MainTabContent.tsx`:** This utility is crucial for determining if prerequisite JSON data strings (from context) are valid and ready for use in AI flows or UI.
 
@@ -233,7 +233,6 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-See `CHANGELOG.md`. App version in UI header (`v2.9.D.L`).
+See `CHANGELOG.md`. App version in UI header (`v2.9.D.M`).
 
 ---
-

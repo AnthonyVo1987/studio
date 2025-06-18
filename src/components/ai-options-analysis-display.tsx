@@ -41,7 +41,7 @@ export function AiOptionsAnalysisDisplay() {
 
   let isLoading = false;
   let isError = false;
-  let errorMessageForDisplay: string | null = null;
+  let errorMessageForDisplay: string | null = "AI Options Analysis data not available.";
   let parsedSuccessfullyData: AiOptionsAnalysisOutput | null = null;
 
   if (!aiOptionsAnalysisJson) {
@@ -50,15 +50,22 @@ export function AiOptionsAnalysisDisplay() {
     errorMessageForDisplay = "No AI Options Analysis data. Ensure options chain was processed by AI.";
   } else if (PENDING_STATUS_JSON_VARIANTS.includes(aiOptionsAnalysisJson.trim())) {
     isLoading = true;
+    errorMessageForDisplay = null; 
   } else {
     try {
       const parsedJson = JSON.parse(aiOptionsAnalysisJson);
-      if (parsedJson.status === 'error' || parsedJson.error) {
+      if (parsedJson.error) { // Check for direct error property first
         isError = true;
         errorMessageForDisplay = parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
-      } else if (parsedJson.status === 'skipped') {
-        isError = true; 
-        errorMessageForDisplay = parsedJson.message || "AI Options Analysis was skipped.";
+        logDebug(componentName, "DataError_Direct", "Parsed JSON has direct error property:", errorMessageForDisplay);
+      } else if (parsedJson.status === 'error' || parsedJson.status === 'skipped') {
+        isError = true;
+        if (parsedJson.status === "skipped") {
+          errorMessageForDisplay = parsedJson.message || "AI Options Analysis was skipped.";
+        } else { 
+          errorMessageForDisplay = parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
+        }
+        logDebug(componentName, "DataError_Status", `Parsed JSON has status: ${parsedJson.status}. Message: ${errorMessageForDisplay}`);
       } else if (typeof parsedJson === 'object' && parsedJson !== null && Array.isArray(parsedJson.callWalls) && Array.isArray(parsedJson.putWalls)) {
         parsedSuccessfullyData = parsedJson as AiOptionsAnalysisOutput;
         isError = false;
@@ -67,6 +74,7 @@ export function AiOptionsAnalysisDisplay() {
       } else {
         isError = true;
         errorMessageForDisplay = "AI Options Analysis data is malformed or incomplete.";
+        logDebug(componentName, "DataError_Malformed", errorMessageForDisplay);
       }
     } catch (e) {
       isError = true;
@@ -186,7 +194,7 @@ export function AiOptionsAnalysisDisplay() {
   } else {
       content = (
         <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-          AI Options Analysis data not available.
+          {errorMessageForDisplay || "AI Options Analysis data is unavailable."}
         </div>
       );
   }
