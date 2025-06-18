@@ -167,9 +167,12 @@ export function MainTabContent({
       case MainTabLocalFsmState.AUTOMATED_PIPELINE_IN_PROGRESS:
         if (event.type === 'GLOBAL_FSM_UPDATED') {
           if (event.payload.globalFsmState === GlobalFsmState.FULL_ANALYSIS_COMPLETE) {
-            logDebug(logPrefixFSM, 'ReducerToManualEnabled', `GLOBAL_FSM_UPDATED (FULL_ANALYSIS_COMPLETE). ActiveAnalysisTicker PRESERVED: ${state.activeAnalysisTicker}. Transitioning to MANUAL_ACTIONS_ENABLED.`);
+            logDebug(logPrefixFSM, 'ReducerToManualEnabled_PreCheck', `Global FSM is FULL_ANALYSIS_COMPLETE. Current local state: ${state.localState}, ActiveAnalysisTicker (before logic): ${state.activeAnalysisTicker}, CurrentInputTicker: ${state.currentInputTicker}`);
+            // If automated pipeline just finished, activeAnalysisTicker should be currentInputTicker
+            // Otherwise, if already in MANUAL_ACTIONS_ENABLED, preserve it.
+             newActiveAnalysisTicker = state.currentInputTicker; // It was set on AUTOMATED_ANALYSIS_SUBMITTED
+            logDebug(logPrefixFSM, 'ReducerToManualEnabled_FinalCheck', `Transitioning TO MANUAL_ACTIONS_ENABLED. ActiveAnalysisTicker in state after update: ${newActiveAnalysisTicker}`);
             nextLocalState = MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED;
-            newActiveAnalysisTicker = state.activeAnalysisTicker; 
           } else if ([GlobalFsmState.IDLE, GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.AI_TA_FAILED].includes(event.payload.globalFsmState)) {
             logDebug(logPrefixFSM, 'AutoFail_Reset', `GLOBAL_FSM_UPDATED (${event.payload.globalFsmState}). Resetting. CurrentInput: ${state.currentInputTicker}, ActiveAnalysisTicker (PRESERVED): ${state.activeAnalysisTicker}`);
             nextLocalState = state.currentInputTicker.trim() ? MainTabLocalFsmState.INPUT_VALID : MainTabLocalFsmState.IDLE;
@@ -527,9 +530,9 @@ export function MainTabContent({
                                      globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
 
   useEffect(() => {
-    const logPrefix = 'MainTabContent_FSM:ButtonStateEffect';
-    console.log(`[${logPrefix}_RAW_ENTRY_D7] Button state effect entered.`);
-    logDebug(logPrefix, 'EFFECT_ENTERED_D7', 'ButtonDisabledStateLogger effect has been entered.');
+    const logPrefix = 'MainTabContent_FSM:ButtonStateEffect_D8';
+    console.log(`[${logPrefix}_RAW_ENTRY] Button state effect entered.`);
+    logDebug(logPrefix, 'EFFECT_ENTERED_D8', 'ButtonDisabledStateLogger effect has been entered.');
 
     const currentLocalFsmState = localFsm.localState;
     const currentActiveAnalysisTicker = localFsm.activeAnalysisTicker;
@@ -540,29 +543,40 @@ export function MainTabContent({
     const currentOptButtonLoading = optionsAnalysisButtonLoading;
     const currentIsGlobalPipelineActive = isGlobalPipelineActive;
 
+    logDebug(logPrefix, 'VARIABLES_CHECK_D8', {
+        currentLocalFsmState,
+        currentActiveAnalysisTicker,
+        currentInputTickerValue,
+        currentGlobalFsmState,
+        currentAnalyzeButtonLoading,
+        currentKtButtonLoading,
+        currentOptButtonLoading,
+        currentIsGlobalPipelineActive
+    });
+
     const manualActionsPossible = currentLocalFsmState === MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED &&
                                   !!currentActiveAnalysisTicker &&
                                   currentActiveAnalysisTicker === currentInputTickerValue;
 
-    logDebug(logPrefix, 'MANUAL_ACTIONS_POSSIBLE_EVALUATION_D7', {
+    logDebug(logPrefix, 'MANUAL_ACTIONS_POSSIBLE_EVALUATION_D8', {
+        manualActionsPossible,
         localFsmState: currentLocalFsmState,
         activeAnalysisTicker: currentActiveAnalysisTicker,
         currentInputTicker: currentInputTickerValue,
         isTickerMatch: currentActiveAnalysisTicker === currentInputTickerValue,
-        manualActionsPossible
     });
 
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'KT_Snapshot_D7');
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefix, 'KT_StdTA_D7');
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefix, 'KT_AiTA_D7');
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefix, 'KT_MarketStatus_D7');
+    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'KT_Snapshot_D8');
+    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefix, 'KT_StdTA_D8');
+    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefix, 'KT_AiTA_D8');
+    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefix, 'KT_MarketStatus_D8');
     const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
-    logDebug(logPrefix, 'KEY_TAKEAWAYS_PREREQS_EVALUATION_D7', { ktSnapshotReady, ktStdTaReady, ktAiTaReady, ktMarketStatusReady, overallPrereqsMet: ktPrereqsMet });
+    logDebug(logPrefix, 'KEY_TAKEAWAYS_PREREQS_EVALUATION_D8', { ktSnapshotReady, ktStdTaReady, ktAiTaReady, ktMarketStatusReady, overallPrereqsMet: ktPrereqsMet });
 
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'Opt_Snapshot_D7');
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefix, 'Opt_Chain_D7');
+    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'Opt_Snapshot_D8');
+    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefix, 'Opt_Chain_D8');
     const optPrereqsMet = optSnapshotReady && optChainReady;
-    logDebug(logPrefix, 'OPTIONS_ANALYSIS_PREREQS_EVALUATION_D7', { optSnapshotReady, optChainReady, overallPrereqsMet: optPrereqsMet });
+    logDebug(logPrefix, 'OPTIONS_ANALYSIS_PREREQS_EVALUATION_D8', { optSnapshotReady, optChainReady, overallPrereqsMet: optPrereqsMet });
 
     const shouldKtButtonBeEnabled = manualActionsPossible && !currentKtButtonLoading && !currentAnalyzeButtonLoading &&
                                  !(currentIsGlobalPipelineActive && currentGlobalFsmState !== GlobalFsmState.IDLE && currentGlobalFsmState !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) &&
@@ -572,10 +586,12 @@ export function MainTabContent({
                                   !(currentIsGlobalPipelineActive && currentGlobalFsmState !== GlobalFsmState.IDLE && currentGlobalFsmState !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) &&
                                   optPrereqsMet;
     
-    logDebug(logPrefix, 'CALCULATED_SHOULD_BE_ENABLED_STATES_D7', { shouldKtButtonBeEnabled, shouldOptButtonBeEnabled });
+    logDebug(logPrefix, 'CALCULATED_SHOULD_BE_ENABLED_STATES_D8', { shouldKtButtonBeEnabled, shouldOptButtonBeEnabled });
+    logDebug(logPrefix, 'SETTING_BUTTON_DISABLED_STATES_D8', `Setting KT Button Disabled: ${!shouldKtButtonBeEnabled}, Setting OPT Button Disabled: ${!shouldOptButtonBeEnabled}`);
 
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
+    logDebug(logPrefix, 'EFFECT_EXIT_D8', 'ButtonDisabledStateLogger effect finished.');
 
   }, [
       localFsm.localState, localFsm.activeAnalysisTicker, localFsm.currentInputTicker,
