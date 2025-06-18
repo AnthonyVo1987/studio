@@ -528,24 +528,27 @@ export function MainTabContent({
                                      globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
 
   useEffect(() => {
-    const logPrefix = 'MainTabContent_FSM:ButtonStateEffect_D.A';
+    const logPrefix = 'MainTabContent_FSM:ButtonStateEffect_DB'; 
     console.log(`[${logPrefix}_RAW_ENTRY] Button state effect entered.`);
     console.log(`[${logPrefix}_LOGDEBUG_TYPE_CHECK] typeof logDebug: ${typeof logDebug}`);
+    console.log(`[${logPrefix}_INITIAL_VALUES] localFsm.localState: ${localFsm.localState}, localFsm.activeAnalysisTicker: ${localFsm.activeAnalysisTicker}, globalFsmStateFromContext: ${globalFsmStateFromContext}`);
     
-    if (typeof logDebug === 'function') {
-        try {
-            logDebug('StockAnalysisContext' as LogSourceId, 'ButtonEffect_D.A_Test', 'Attempting logDebug from ButtonStateEffect with StockAnalysisContext source.');
-            console.log(`[${logPrefix}_LOGDEBUG_ATTEMPTED_DA] logDebug was called.`);
-        } catch (e: any) {
-            console.error(`[${logPrefix}_LOGDEBUG_CALL_ERROR_DA] Error calling logDebug directly:`, e.message, e.stack);
-        }
-    } else {
-        console.error(`[${logPrefix}_LOGDEBUG_ERROR_DA] logDebug is NOT a function here!`);
+    console.log(`[${logPrefix}] Attempting very simple logDebug call.`);
+    try {
+        logDebug(logPrefix as LogSourceId, 'MINIMAL_EFFECT_TEST_DB', 'This is a minimal logDebug from ButtonStateEffect_DB.');
+        console.log(`[${logPrefix}] Minimal logDebug call attempted (SUCCESS if previous log appears in client console).`);
+    } catch (e: any) {
+        console.error(`[${logPrefix}] CRITICAL_ERROR calling minimal logDebug:`, e.message, e.stack);
     }
 
-    console.log(`[${logPrefix}_INITIAL_VALUES] localFsm.localState: ${localFsm.localState}, localFsm.activeAnalysisTicker: ${localFsm.activeAnalysisTicker}, localFsm.currentInputTicker: ${localFsm.currentInputTicker}, globalFsmStateFromContext: ${globalFsmStateFromContext}`);
-    
-    // The D8 extensive logDebug calls are still commented out below for this D.A test
+    // Temporarily set buttons to enabled to see if this part is reached
+    setIsKtButtonDisabled(false);
+    setIsOptButtonDisabled(false);
+    console.log(`[${logPrefix}] setIsKtButtonDisabled(false) and setIsOptButtonDisabled(false) CALLED.`);
+
+    console.log(`[${logPrefix}_EFFECT_COMPLETED_MINIMAL_DB] Minimal effect logic completed.`);
+
+    // Commented out D8 detailed logging and full logic
     /*
     const currentLocalFsmState = localFsm.localState;
     const currentActiveAnalysisTicker = localFsm.activeAnalysisTicker;
@@ -556,7 +559,7 @@ export function MainTabContent({
     const currentOptButtonLoading = optionsAnalysisButtonLoading;
     const currentIsGlobalPipelineActive = isGlobalPipelineActive;
 
-    logDebug(logPrefix as LogSourceId, 'VARIABLES_CHECK_D8', {
+    logDebug(logPrefixD8 as LogSourceId, 'VARIABLES_CHECK_D8', {
         currentLocalFsmState,
         currentActiveAnalysisTicker,
         currentInputTickerValue,
@@ -571,7 +574,7 @@ export function MainTabContent({
                                   !!currentActiveAnalysisTicker &&
                                   currentActiveAnalysisTicker === currentInputTickerValue;
 
-    logDebug(logPrefix as LogSourceId, 'MANUAL_ACTIONS_POSSIBLE_EVALUATION_D8', {
+    logDebug(logPrefixD8 as LogSourceId, 'MANUAL_ACTIONS_POSSIBLE_EVALUATION_D8', {
         manualActionsPossible,
         localFsmState: currentLocalFsmState,
         activeAnalysisTicker: currentActiveAnalysisTicker,
@@ -579,19 +582,19 @@ export function MainTabContent({
         isTickerMatch: currentActiveAnalysisTicker === currentInputTickerValue,
     });
 
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'KT_Snapshot_D8');
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefix, 'KT_StdTA_D8');
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefix, 'KT_AiTA_D8');
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefix, 'KT_MarketStatus_D8');
+    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixD8, 'KT_Snapshot_D8');
+    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixD8, 'KT_StdTA_D8');
+    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixD8, 'KT_AiTA_D8');
+    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixD8, 'KT_MarketStatus_D8');
     const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
     
-    logDebug(logPrefix as LogSourceId, 'KEY_TAKEAWAYS_PREREQS_EVALUATION_D8', { ktSnapshotReady, ktStdTaReady, ktAiTaReady, ktMarketStatusReady, overallPrereqsMet: ktPrereqsMet });
+    logDebug(logPrefixD8 as LogSourceId, 'KEY_TAKEAWAYS_PREREQS_EVALUATION_D8', { ktSnapshotReady, ktStdTaReady, ktAiTaReady, ktMarketStatusReady, overallPrereqsMet: ktPrereqsMet });
     
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'Opt_Snapshot_D8');
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefix, 'Opt_Chain_D8');
+    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixD8, 'Opt_Snapshot_D8');
+    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixD8, 'Opt_Chain_D8');
     const optPrereqsMet = optSnapshotReady && optChainReady;
 
-    logDebug(logPrefix as LogSourceId, 'OPTIONS_ANALYSIS_PREREQS_EVALUATION_D8', { optSnapshotReady, optChainReady, overallPrereqsMet: optPrereqsMet });
+    logDebug(logPrefixD8 as LogSourceId, 'OPTIONS_ANALYSIS_PREREQS_EVALUATION_D8', { optSnapshotReady, optChainReady, overallPrereqsMet: optPrereqsMet });
     
     const shouldKtButtonBeEnabled = manualActionsPossible && !currentKtButtonLoading && !currentAnalyzeButtonLoading &&
                                  !(currentIsGlobalPipelineActive && currentGlobalFsmState !== GlobalFsmState.IDLE && currentGlobalFsmState !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) &&
@@ -601,47 +604,20 @@ export function MainTabContent({
                                   !(currentIsGlobalPipelineActive && currentGlobalFsmState !== GlobalFsmState.IDLE && currentGlobalFsmState !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) &&
                                   optPrereqsMet;
     
-    logDebug(logPrefix as LogSourceId, 'CALCULATED_SHOULD_BE_ENABLED_STATES_D8', { shouldKtButtonBeEnabled, shouldOptButtonBeEnabled });
-    logDebug(logPrefix as LogSourceId, 'SETTING_BUTTON_DISABLED_STATES_D8', `Setting KT Button Disabled: ${!shouldKtButtonBeEnabled}, Setting OPT Button Disabled: ${!shouldOptButtonBeEnabled}`);
+    logDebug(logPrefixD8 as LogSourceId, 'CALCULATED_SHOULD_BE_ENABLED_STATES_D8', { shouldKtButtonBeEnabled, shouldOptButtonBeEnabled });
+    logDebug(logPrefixD8 as LogSourceId, 'SETTING_BUTTON_DISABLED_STATES_D8', `Setting KT Button Disabled: ${!shouldKtButtonBeEnabled}, Setting OPT Button Disabled: ${!shouldOptButtonBeEnabled}`);
     
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
     */
-
-    // For now, to simplify, let's just use the existing full logic but ensure it's not erroring out.
-    // The actual disabling logic based on the conditions:
-    const manualActionsPossible = localFsm.localState === MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED &&
-                                  !!localFsm.activeAnalysisTicker &&
-                                  localFsm.activeAnalysisTicker === localFsm.currentInputTicker;
-
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson);
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson);
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson);
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson);
-    const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
-    
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson);
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson);
-    const optPrereqsMet = optSnapshotReady && optChainReady;
-
-    const calcShouldKtButtonBeEnabled = manualActionsPossible && !keyTakeawaysButtonLoading && !analyzeButtonLoading &&
-                                 !(isGlobalPipelineActive && globalFsmStateFromContext !== GlobalFsmState.IDLE && globalFsmStateFromContext !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) &&
-                                 ktPrereqsMet;
-    
-    const calcShouldOptButtonBeEnabled = manualActionsPossible && !optionsAnalysisButtonLoading && !analyzeButtonLoading &&
-                                  !(isGlobalPipelineActive && globalFsmStateFromContext !== GlobalFsmState.IDLE && globalFsmStateFromContext !== GlobalFsmState.FULL_ANALYSIS_COMPLETE) &&
-                                  optPrereqsMet;
-
-    setIsKtButtonDisabled(!calcShouldKtButtonBeEnabled);
-    setIsOptButtonDisabled(!calcShouldOptButtonBeEnabled);
-    
-    console.log(`[${logPrefix}_EFFECT_PRIMARY_LOGIC_COMPLETED_DA] The button state useEffect's main logic block has finished executing. KT Disabled: ${!calcShouldKtButtonBeEnabled}, Opt Disabled: ${!calcShouldOptButtonBeEnabled}`);
-
   }, [
-      localFsm.localState, localFsm.activeAnalysisTicker, localFsm.currentInputTicker,
-      globalFsmStateFromContext,
-      contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson,
-      analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isGlobalPipelineActive, logDebug
+      localFsm.localState,
+      localFsm.activeAnalysisTicker,
+      // localFsm.currentInputTicker, // Removed for D.B minimal test
+      // globalFsmStateFromContext, // Removed for D.B minimal test
+      // contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, // Removed for D.B minimal test
+      // analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isGlobalPipelineActive, // Removed for D.B minimal test
+      logDebug // Kept as it's part of the test
     ]);
 
 
