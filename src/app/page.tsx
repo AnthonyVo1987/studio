@@ -14,8 +14,14 @@ import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-de
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { getAppConfig, type AppConfig } from '@/lib/app-config-loader'; // Import AppConfig type
 
-function PageContent() {
+interface PageContentProps {
+  appVersion: string;
+  lastUpdatedTimestamp?: string; // Optional, if we decide to use it in Header
+}
+
+function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentProps) {
   const {
     isClientDebugConsoleEnabled,
     setClientDebugConsoleEnabled,
@@ -43,7 +49,7 @@ function PageContent() {
   };
 
   const calculatePaddingBottom = () => {
-    let padding = 32; 
+    let padding = 32;
     if (isClientDebugConsoleEnabled && isClientDebugConsoleOpen) {
       padding = CONSOLE_HEIGHT_PX + 16;
     }
@@ -53,7 +59,6 @@ function PageContent() {
     return `${padding}px`;
   };
 
-  // Callback to update mainTabFsmDisplay in StockAnalysisContext
   const updateMainTabFsmDisplayInGlobalContext = (display: FsmDisplayTuple | null) => {
     setMainTabFsmDisplay(display);
   };
@@ -61,7 +66,7 @@ function PageContent() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <Header appVersion={appVersion} lastUpdatedTimestamp={lastUpdatedTimestamp} />
       <main
         className={cn(
           "flex-grow container mx-auto py-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ease-in-out"
@@ -92,11 +97,11 @@ function PageContent() {
             <TabsTrigger value="debug">Debug</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
-            <MainTabContent 
-              setMainTabFsmPreviousState={setMainTabFsmPreviousState} // For direct prop to FsmStateDebugCard
-              setMainTabFsmCurrentState={setMainTabFsmCurrentState}   // For direct prop to FsmStateDebugCard
-              setMainTabFsmTargetState={setMainTabFsmTargetState}       // For direct prop to FsmStateDebugCard
-              setMainTabFsmDisplayState={updateMainTabFsmDisplayInGlobalContext} // For reporting to global context
+            <MainTabContent
+              setMainTabFsmPreviousState={setMainTabFsmPreviousState}
+              setMainTabFsmCurrentState={setMainTabFsmCurrentState}
+              setMainTabFsmTargetState={setMainTabFsmTargetState}
+              setMainTabFsmDisplayState={updateMainTabFsmDisplayInGlobalContext}
             />
           </TabsContent>
           <TabsContent value="debug">
@@ -104,27 +109,40 @@ function PageContent() {
           </TabsContent>
         </Tabs>
       </main>
-      <DebugConsoleFsmProvider 
-        logDebug={logDebug} 
+      <DebugConsoleFsmProvider
+        logDebug={logDebug}
         setDebugConsoleMenuFsmDisplayState={setDebugConsoleMenuFsmDisplay}
       >
-        <FsmStateDebugCard 
+        <FsmStateDebugCard
             mainTabFsmPreviousState={mainTabFsmPreviousState}
             mainTabFsmCurrentState={mainTabFsmCurrentState}
             mainTabFsmTargetState={mainTabFsmTargetState}
         />
-        <DebugConsole />
+        <DebugConsole appVersion={appVersion} />
       </DebugConsoleFsmProvider>
       <Footer />
     </div>
   );
 }
 
-export default function Home() {
+// This is now a Server Component (or can be an async Server Component)
+export default async function Home() {
+  let appConfig: AppConfig;
+  try {
+    appConfig = await getAppConfig();
+  } catch (error) {
+    console.error("[HomeServerComponent] Failed to load app config:", error);
+    // Provide default/fallback values or handle error appropriately
+    appConfig = {
+      appVersion: "ErrorLoadingVersion",
+      lastUpdatedTimestamp: new Date().toISOString(),
+      metadataSchemaVersion: "0.0.0",
+    };
+  }
+
   return (
     <StockAnalysisProvider>
-      <PageContent />
+      <PageContent appVersion={appConfig.appVersion} lastUpdatedTimestamp={appConfig.lastUpdatedTimestamp} />
     </StockAnalysisProvider>
   );
 }
-
