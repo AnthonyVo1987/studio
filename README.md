@@ -60,7 +60,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Client Components for interactive elements.
 
 #### 3.2.2. Genkit (AI Backend)
-*   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis.
+*   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis. Safety settings in prompt definitions have been corrected to use fully qualified harm category names (e.g., `HARM_CATEGORY_SEXUALLY_EXPLICIT`).
 *   AI flows for orchestrating LLM calls.
 *   Prompts (defined in JSON files under `src/ai/definitions/`) for AI tasks.
 *   Tools for accessing external data and performing actions (currently not heavily used but available).
@@ -84,12 +84,12 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **FSM State Display:** A dedicated "FSM State Debug Card" (`FsmStateDebugCard.tsx`) provides a centralized view of Previous, Current, and Target states for all major FSMs. Local FSMs report their display states to `StockAnalysisContext` for this purpose.
 
 ### 3.3. AI Flow & Prompt Design
-*   AI prompt definitions are externalized into JSON files in `src/ai/definitions/`. All LLM-based flows now use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`.
+*   AI prompt definitions are externalized into JSON files in `src/ai/definitions/`. All LLM-based flows now use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`. Safety settings in these definitions have been corrected (v2.9.D.L).
 *   A `DefinitionLoader` (`src/ai/definition-loader.ts`) loads and validates these JSONs, and helps build prompt strings for Genkit flows.
 *   **AI Key Takeaways Flow (`analyze-stock-data.ts`):**
     *   Uses `analyze-stock-data.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Stock snapshot, standard TAs, AI-analyzed TAs, market status.
-    *   Output: Five key takeaways (price action, trend, volatility, momentum, patterns) with sentiment.
+    *   Output: Five key takeaways (price action, trend, volatility, momentum, patterns) with sentiment. Flow now throws an error if the AI prompt fails to return a basic output structure (as of v2.9.D.K).
 *   **AI Options Analysis Flow (`analyze-options-chain-flow.ts`):**
     *   Uses `analyze-options-chain.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Options chain JSON, current underlying price, ticker.
@@ -106,10 +106,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 ### 3.4. Error Handling & Logging
 *   Comprehensive error handling throughout the application.
 *   `error.js` boundary files for handling route-level errors.
-*   `try...catch` blocks in server actions and AI flows, returning structured error states.
+*   `try...catch` blocks in server actions and AI flows, returning structured error states. AI flows (Key Takeaways, Options Analysis, Chat) are being updated to throw errors on critical AI prompt failures (v2.9.D.M scope). Client display components (`AiKeyTakeawaysDisplay.tsx`, etc.) are being updated to parse these error JSONs better (v2.9.D.L & v2.9.D.M scope).
 *   Detailed logging for debugging and monitoring.
 *   Client-side debug console (`DebugConsole.tsx`) for inspecting application state.
-*   Server-side logs (`console.log`, `console.error`) for tracking API calls, AI flow executions, and errors.
+*   Server-side logs (`console.log`, `console.error`) for tracking API calls, AI flow executions, and errors. `console.time` and `console.timeEnd` are planned for AI flows in v2.9.D.M.
 
 #### 3.4.1. Logging Conventions & Locations
 *   **`src/lib/debug-log-types.ts`:** Defines `LogSourceId`s, `LogType`s, labels, and default enabled configurations for client-side debug sources.
@@ -117,8 +117,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
     *   Provides `logDebug(source: LogSourceId, category: string, ...messages: any[])` function. This is the **primary method for client-side logging**.
     *   It intercepts `console.log/warn/error/info/debug` calls. If the first argument to a native console call is `__LOGDEBUG_MARKER__`, it treats the subsequent arguments as `source`, `category`, and `messages` for structured logging via the `logDebug` pathway. Otherwise, native console calls are logged with source `'NATIVE_CONSOLE'`.
     *   Logs are added to a global, non-React state buffer (`src/lib/global-log-buffer.ts`).
-*   **Server Actions (`src/actions/*.ts`):** Use `console.log` and `console.error` with a standardized prefix (e.g., `[ServerAction:actionName:Ticker:XYZ]`).
-*   **Genkit Flows (`src/ai/flows/*.ts`):** Use `console.log` and `console.error` with a flow-specific prefix (e.g., `[AIFlow:flowName:Ticker:XYZ]`).
+*   **Server Actions (`src/actions/*.ts`):** Use `console.log` and `console.error` with a standardized prefix (e.g., `[ServerAction:actionName:Ticker:XYZ]`). Planned for v2.9.D.M: add logs before/after AI flow calls.
+*   **Genkit Flows (`src/ai/flows/*.ts`):** Use `console.log` and `console.error` with a flow-specific prefix (e.g., `[AIFlow:flowName:Ticker:XYZ]`). Planned for v2.9.D.M: add `console.time` / `console.timeEnd`.
 *   **Client Components (e.g., `src/components/main-tab-content.tsx`):** **MUST** use the `logDebug` function from `useStockAnalysis()` for structured client-side logging.
 *   **`CHANGELOG.md`:** Detailed log of changes and bug fixes.
 
@@ -134,7 +134,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Displays logs from the `logDebug` system.
 *   Allows filtering by `LogType` and `LogSourceId`.
 *   Search functionality.
-*   Export/Copy logs (JSON, TXT, CSV) including app version (`APP_VERSION_FOR_EXPORT` constant) and current FSM states as metadata.
+*   Export/Copy logs (JSON, TXT, CSV) including app version (`APP_VERSION_FOR_EXPORT` constant, currently `v2.9.D.L`) and current FSM states as metadata.
 *   Clears logs on manual clear or implicitly on full page reload.
 
 ### 3.5. Coding Standards & Conventions
@@ -143,7 +143,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **NO `console.log` in committed client-side code** unless it's part of the `StockAnalysisContext`'s interception mechanism or a temporary, explicitly discussed debugging measure. Use `logDebug` from context.
 *   **No commented-out code in commits.**
 *   Follow established file/folder structures and naming conventions.
-*   **Current Debugging Focus (v2.9.D series):** The manual AI analysis buttons in `MainTabContent.tsx`. Refer to `docs/Issue-Report_AI_Analysis_Buttons.md`.
+*   **Debugging Status (v2.9.D.L):** The AI prompt execution failure (due to incorrect safety settings) has been resolved. The manual AI buttons *are* functional. The next phase (v2.9.D.M) will focus on cleaning up prior button debug code and hardening AI flow error handling. See `docs/Issue-Report_AI_Analysis_Buttons.md`.
 *   See extensive list in prior `README.md` versions (e.g., v2.9.D.8) for more general coding best practices (ESLint, TypeScript, `any` type avoidance, etc.). These are implicitly still in effect.
 
 #### 3.5.1. UI/UX Conventions
@@ -171,7 +171,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
     *   Response: `response.text`, `response.output` (not functions).
     *   Streaming: `const {stream, response} = ai.generateStream(...);` (no `await` on `generateStream`), then `for await (const chunk of stream) {}`, then `await response;`.
 *   Flow files (`src/ai/flows/*.ts`): `'use server';`, JSDoc overview, export async wrapper & types.
-*   Prompts load definitions from JSON (`src/ai/definitions/*.json`). All LLM-based flows use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`.
+*   Prompts load definitions from JSON (`src/ai/definitions/*.json`). All LLM-based flows use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`. Safety settings have been corrected as of v2.9.D.L.
 *   Handlebars for prompt templating: `{{{variable}}}`. **NO logic in templates.**
 *   Tools: `ai.defineTool`. Use for LLM-decided actions.
 
@@ -181,12 +181,12 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 
 ### 3.6. Debugging and Logging (Reiteration)
 *   **Client:** `logDebug` from `StockAnalysisContext` is the standard. Filter/search via `DebugConsole`.
-*   **Server (Actions, Flows):** `console.log/error` with prefixes.
+*   **Server (Actions, Flows):** `console.log/error` with prefixes. `console.time/timeEnd` planned for flows in v2.9.D.M.
 *   Log key state transitions, inputs/outputs, and error conditions comprehensively.
-*   **`isDataReadyForProcessing` function in `MainTabContent.tsx`:** This utility is crucial for determining if prerequisite JSON data strings (from context) are valid and ready for use in AI flows or UI. It checks for null, empty, pending, error, or skipped states. Its behavior with various JSON states is central to button enablement logic, which is currently under intense debugging (see `docs/Issue-Report_AI_Analysis_Buttons.md`).
+*   **`isDataReadyForProcessing` function in `MainTabContent.tsx`:** This utility is crucial for determining if prerequisite JSON data strings (from context) are valid and ready for use in AI flows or UI.
 
 ### 3.7. Commit & Changelog Procedures
-*   Increment app version in `src/components/layout/header.tsx`.
+*   Increment app version in `src/components/layout/header.tsx` and `APP_VERSION_FOR_EXPORT` in `src/components/debug-console.tsx`.
 *   Update `CHANGELOG.md` with a detailed commit message for each task/fix.
 *   Update this `README.md` if PRD, architecture, or core AI operational rules change significantly.
 
@@ -233,7 +233,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-See `CHANGELOG.md`. App version in UI header (`v2.9.D.I`).
+See `CHANGELOG.md`. App version in UI header (`v2.9.D.L`).
 
 ---
 

@@ -2,8 +2,13 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.52 (Task v2.9.D.L):** 2025-06-19 - Firebase Studio (AI Prototyper)
+    *   Updated `README.md` (to v1.52) with current app version `v2.9.D.L`, acknowledging fixed AI prompt safety settings and improved client-side error display for AI takeaways.
+    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.L`.
+    *   Updated `docs/Issue-Report_AI_Analysis_Buttons.md` to reflect debugging progress up to task `v2.9.D.L`, noting the AI safety setting fix and outlining the scope for `v2.9.D.M`.
+    *   Updated `src/components/layout/header.tsx` and `src/components/debug-console.tsx` (`APP_VERSION_FOR_EXPORT`) to `v2.9.D.L`.
 *   **Version 1.51 (Task v2.9.D.I):** 2025-06-18 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.51) with current app version `v2.9.D.I`, Gemini model update to `gemini-2.5-flash-lite-preview-06-17`, and refined details in architecture, AI flow, and logging sections.
+    *   Updated `README.md` (to v1.51) with current app version `v2.9.D.I`, Gemini model update to `googleai/gemini-2.5-flash-lite-preview-06-17`, and refined details in architecture, AI flow, and logging sections.
     *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.I`.
     *   Updated `docs/Issue-Report_AI_Analysis_Buttons.md` to reflect debugging progress up to task `v2.9.D.I`.
     *   Updated AI model ID to `googleai/gemini-2.5-flash-lite-preview-06-17` in `src/ai/models.ts`, `src/ai/genkit.ts`, and all relevant `modelId` fields in JSON prompt definitions under `src/ai/definitions/`.
@@ -22,6 +27,86 @@
 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
+---
+**App Version:** `v2.9.D.L` (Fix AI Prompt Safety Settings & Client Error Display)
+**Tag:** `Phase-9_Task-9.D.L_FixAiPromptSafety_ImproveClientErrorDisplay`
+**Commit Hash:** `0894312b`
+**Subject:** `fix(ai,ui): Correct AI safety settings, improve client error display, update docs (v2.9.D.L)`
+**Details:**
+This version (`v2.9.D.L`) addresses critical AI flow failures caused by incorrect safety setting category strings and improves how client-side components display errors originating from AI flows.
+
+**Key Changes in v2.9.D.L:**
+
+*   **Task v2.9.D.L (Fix AI Safety Settings & Client Error Display):**
+    *   **AI Flow Safety Setting Fixes:**
+        *   `src/ai/definitions/analyze-stock-data.json`: Corrected `safetySettings[3].category` from `"SEXUALLY_EXPLICIT"` to `"HARM_CATEGORY_SEXUALLY_EXPLICIT"`.
+        *   `src/ai/definitions/analyze-options-chain.json`: Corrected `safetySettings[3].category` from `"SEXUALLY_EXPLICIT"` to `"HARM_CATEGORY_SEXUALLY_EXPLICIT"`.
+        *   `src/ai/definitions/stock-chatbot.json`: Corrected the fourth safety setting category from `"SEXUALLY_EXPLICIT"` to `"HARM_CATEGORY_SEXUALLY_EXPLICIT"`. All other safety settings were confirmed to be using the correct `HARM_CATEGORY_` prefix.
+        *   These changes resolve the `[400 Bad Request] Invalid value at 'safety_settings[3].category'` error previously observed in server logs when AI flows were invoked.
+    *   **Client-Side Error Display Improvement:**
+        *   `src/components/ai-key-takeaways-display.tsx`: Enhanced the parsing logic for `aiKeyTakeawaysJson` to more reliably detect and display error messages when the JSON contains a direct `error` field (e.g., `{ "error": "...", "details": "..." }`). This improves user feedback when an AI flow fails and the server action returns a structured error.
+    *   **Application Version Update:**
+        *   `src/components/layout/header.tsx`: Application version string updated to `v2.9.D.L`.
+        *   `src/components/debug-console.tsx`: `APP_VERSION_FOR_EXPORT` constant updated to `v2.9.D.L`.
+    *   **Documentation Updates:**
+        *   `README.md`: Updated to version 1.52. Reflects app version `v2.9.D.L`.
+        *   `CHANGELOG.md` (this file): Updated to reflect this v2.9.D.L commit and its changes.
+        *   `docs/Issue-Report_AI_Analysis_Buttons.md`: Updated to summarize findings from `v2.9.D.L` logs (confirming AI prompt fixes worked and identifying the same safety setting issue for options analysis). The report now clearly states the button click issue was a misdiagnosis for the AI takeaway problem and outlines the scope for `v2.9.D.M` (reverting unnecessary button debug code, standardizing AI flow error handling, and adding timing logs).
+
+**Debugging Status & Next Steps (Leading into v2.9.D.M):**
+*   The `v2.9.D.L` fixes resolved the AI safety setting errors, allowing AI flows to execute and return actual data (or valid "no results" data) instead of failing immediately.
+*   This confirmed that the manual AI button clicks *were* functional, as they successfully triggered the (previously failing) AI pipelines.
+*   The next planned step (`v2.9.D.M`) is to:
+    *   Clean up the now-unnecessary button debugging code (diagnostic div, key props, style props on buttons in `MainTabContent.tsx`).
+    *   Standardize error handling and default return logic across all AI flows to ensure robust behavior and clear error propagation.
+    *   Improve logging for AI flow execution times.
+---
+**App Version:** `v2.9.D.K` (Enhanced Error Handling in Key Takeaways Flow)
+**Tag:** `Phase-9_Task-9.D.K_ExplicitFailForAIKeyTakeaways`
+**Commit Hash:** `(previous_commit_for_D.K)`
+**Subject:** `fix(ai): Throw explicit error in Key Takeaways flow if AI output undefined (v2.9.D.K)`
+**Details:**
+This version (`v2.9.D.K`) focused on making the AI Key Takeaways flow (`analyzeStockDataFlow`) fail more visibly if the underlying AI prompt call did not return a usable output structure.
+
+**Key Changes in v2.9.D.K:**
+*   **Task v2.9.D.K (Explicit Failure for AI Prompt Issues in Key Takeaways Flow):**
+    *   `src/ai/flows/analyze-stock-data.ts`:
+        *   Modified `analyzeStockDataFlow` to explicitly check if `outputFromPrompt` (the result of the `await promptToUse(input)` call) is `undefined`.
+        *   If `outputFromPrompt` is `undefined`, the flow now throws a `new Error('AI prompt execution for Key Takeaways failed to return any output structure.');`. This ensures that a complete failure of the AI prompt to return data is treated as a hard error by the flow, which should then be caught by the calling server action (`performAiAnalysisAction`).
+        *   The existing logic for filling in default messages for *partially* missing categories (if `outputFromPrompt` itself is defined but lacks certain fields) remains.
+        *   Diagnostic logging from D.J within this flow was preserved.
+    *   `src/components/layout/header.tsx`: Application version updated to `v2.9.D.K`.
+    *   `src/components/debug-console.tsx`: `APP_VERSION_FOR_EXPORT` updated to `v2.9.D.K`.
+
+**Debugging Status & Outcome:**
+*   Server logs from the `v2.9.D.K` run (provided for task D.L) revealed a `[400 Bad Request] Invalid value at 'safety_settings[3].category'` error from the Google Generative AI API for *both* the Key Takeaways and Options Analysis flows. This was due to using `"SEXUALLY_EXPLICIT"` instead of the correct `"HARM_CATEGORY_SEXUALLY_EXPLICIT"`.
+*   The D.K change in `analyzeStockDataFlow` (throwing an error on undefined AI output) worked as intended: the flow threw an error due to the API failure, this was caught by `performAiAnalysisAction`, and an error-structured JSON was sent to the client.
+*   The client-side `AiKeyTakeawaysDisplay` then showed an error message, "Failed to parse status message from error/skipped JSON...", highlighting a need to improve its parsing of raw error objects from the action.
+*   Crucially, the server logs also showed that the manual AI button clicks *were* triggering the server actions and subsequently the AI flows, which was a key piece of information often obscured in earlier debugging.
+---
+**App Version:** `v2.9.D.J` (Enhanced Logging in AI Key Takeaways Flow & Action)
+**Tag:** `Phase-9_Task-9.D.J_LogKeyTakeawaysFlowDetails`
+**Commit Hash:** `(previous_commit_for_D.J)`
+**Subject:** `debug(ai): Add detailed logging to Key Takeaways flow & action (v2.9.D.J)`
+**Details:**
+This version (`v2.9.D.J`) focused on instrumenting the AI Key Takeaways pipeline with more detailed server-side logging to diagnose why default takeaways might be appearing prematurely.
+
+**Key Changes in v2.9.D.J:**
+*   **Task v2.9.D.J (Enhanced Logging for AI Key Takeaways):**
+    *   `src/ai/flows/analyze-stock-data.ts` (`analyzeStockDataFlow`):
+        *   Added detailed logging *immediately after* the `await promptToUse(input)` call to inspect `outputFromPrompt`.
+        *   Added logging for the content of `outputFromPrompt`.
+        *   Added logging to indicate if default fallbacks were being triggered for each of the five takeaway categories.
+        *   Prefixes like `Flow_Log_DJ_` were used for these new logs.
+    *   `src/actions/perform-ai-analysis-action.ts` (`performAiAnalysisAction`):
+        *   Added detailed logging for the `flowOutput` received from `analyzeStockData(flowInput)` *before* stringification.
+        *   Added logging if the action's main `try...catch` block was entered.
+        *   Prefixes like `Action_Log_DJ_` were used for these new logs.
+    *   `src/components/layout/header.tsx`: Application version updated to `v2.9.D.J`.
+    *   `src/components/debug-console.tsx`: `APP_VERSION_FOR_EXPORT` updated to `v2.9.D.J`.
+
+**Outcome (from D.K log analysis):**
+*   The detailed server-side logs added in D.J were instrumental in revealing the `[400 Bad Request]` API error related to safety settings in the AI prompt definitions.
 ---
 **App Version:** `v2.9.D.I` (Intermediate Debugging, Doc & Model Update)
 **Tag:** `Phase-9_Task-9.D.I_IntermediateDebug_DocUpdate_ModelUpdate`
@@ -130,7 +215,7 @@ This version (`v2.9.D.A`) continued to diagnose the non-functional manual AI but
     *   **`src/lib/debug-log-types.ts`:** Added log source ID and label for `MainTabContent_FSM:ButtonStateEffect_DA`.
     *   Application version updated to `v2.9.D.A`.
 
-**Outcome of v2.9.D.A Test (Analyzed in v2.9.D.B):**
+**Outcome of v2.9.D.A Test (Analyzed in v2.9.D.B - note: task names were out of sync with analysis):**
 *   The initial `console.log`s in the effect worked, and `typeof logDebug` was 'function'.
 *   The `try...catch` around the `logDebug` call did NOT catch an immediate error.
 *   However, the `logDebug` message (`ButtonEffect_D.A_Test`) did NOT appear in the client debug console, and the `console.log` immediately *after* the `logDebug` call (within the `try` block) also did not appear.
@@ -650,4 +735,5 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
