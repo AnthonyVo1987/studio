@@ -59,7 +59,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Client Components for interactive elements.
 
 #### 3.2.2. Genkit (AI Backend)
-*   Google Gemini models (currently `gemini-2.5-flash-preview-05-20`) for AI analysis.
+*   Google Gemini models (currently `gemini-2.5-flash-lite-preview-06-17`) for AI analysis.
 *   AI flows for orchestrating LLM calls.
 *   Prompts (defined in JSON files under `src/ai/definitions/`) for AI tasks.
 *   Tools for accessing external data and performing actions (currently not heavily used but available).

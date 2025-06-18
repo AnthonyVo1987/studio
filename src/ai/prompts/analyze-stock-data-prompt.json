@@ -2,7 +2,7 @@
 {
   "promptName": "analyze-stock-data-prompt",
   "description": "Generates key insights about a stock, emphasizing sentiment. Analyzes stock data and technical indicators to provide 5 key takeaways.",
-  "modelId": "googleai/gemini-2.5-flash-preview-05-20",
+  "modelId": "googleai/gemini-2.5-flash-lite-preview-06-17",
   "safetySettings": [
     { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH" },
     { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" },
