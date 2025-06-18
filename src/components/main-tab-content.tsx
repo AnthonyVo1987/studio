@@ -695,11 +695,23 @@ export function MainTabContent({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button onClick={handleGenerateKeyTakeaways} className="w-full sm:w-auto" disabled={isKtButtonDisabled}>
+            <Button 
+              key={isKtButtonDisabled ? 'kt-disabled' : 'kt-enabled'}
+              style={{ opacity: isKtButtonDisabled ? 0.5 : 1 }}
+              onClick={handleGenerateKeyTakeaways} 
+              className="w-full sm:w-auto" 
+              disabled={isKtButtonDisabled}
+            >
               {keyTakeawaysButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Brain className="mr-2 h-4 w-4" /> Generate AI Key Takeaways
             </Button>
-            <Button onClick={handleGenerateOptionsAnalysis} className="w-full sm:w-auto" disabled={isOptButtonDisabled}>
+            <Button 
+              key={isOptButtonDisabled ? 'opt-disabled' : 'opt-enabled'}
+              style={{ opacity: isOptButtonDisabled ? 0.5 : 1 }}
+              onClick={handleGenerateOptionsAnalysis} 
+              className="w-full sm:w-auto" 
+              disabled={isOptButtonDisabled}
+            >
               {optionsAnalysisButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <BarChartBig className="mr-2 h-4 w-4" /> Generate AI Options Analysis
             </Button>
