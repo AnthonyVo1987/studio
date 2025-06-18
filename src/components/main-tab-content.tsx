@@ -202,9 +202,11 @@ export function MainTabContent({
           return { ...state, previousLocalState, localState: MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED, activeAnalysisTicker: state.currentInputTicker };
         }
         if (event.type === 'MANUAL_KEY_TAKEAWAYS_SUBMITTED') {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', 'MANUAL_ACTIONS_ENABLED -> MANUAL_KEY_TAKEAWAYS_SUBMITTED. Transitioning to MANUAL_KEY_TAKEAWAYS_REQUESTED.');
           return { ...state, previousLocalState, localState: MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED };
         }
         if (event.type === 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED') {
+          logDebug('MainTabContent_FSM', 'LocalReducerAction', 'MANUAL_ACTIONS_ENABLED -> MANUAL_OPTIONS_ANALYSIS_SUBMITTED. Transitioning to MANUAL_OPTIONS_ANALYSIS_REQUESTED.');
           return { ...state, previousLocalState, localState: MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED };
         }
          if (event.type === 'GLOBAL_FSM_UPDATED' && event.payload.globalFsmState === GlobalFsmState.IDLE) {
@@ -446,21 +448,47 @@ export function MainTabContent({
   };
 
   const handleGenerateKeyTakeaways = () => {
+    logDebug('MainTabContent_FSM', 'Manual_KT_Click', `Attempting to generate Key Takeaways for ${localFsm.activeAnalysisTicker}. Current local state: ${localFsm.localState}`);
     if (!localFsm.activeAnalysisTicker) {
-      toast({ title: "No Active Stock", description: "Please analyze a stock first.", variant: "default" });
+      toast({ title: "No Active Stock", description: "Please analyze a stock first using 'Analyze Stock'.", variant: "default" });
+      logDebug('MainTabContent_FSM', 'Manual_KT_Bail', 'No activeAnalysisTicker.');
       return;
     }
-    logDebug('MainTabContent_FSM', 'UserAction', `Manual "Generate AI Key Takeaways" clicked for ${localFsm.activeAnalysisTicker}. Current Local FSM State: ${localFsm.localState}`);
-    dispatchLocalFsmEvent({ type: 'MANUAL_KEY_TAKEAWAYS_SUBMITTED' });
+    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'handleGenerateKeyTakeaways', 'StockSnapshot');
+    const stdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, 'handleGenerateKeyTakeaways', 'StandardTas');
+    const aiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'handleGenerateKeyTakeaways', 'AiAnalyzedTa');
+    const marketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'handleGenerateKeyTakeaways', 'MarketStatus');
+
+    logDebug('MainTabContent_FSM', 'Manual_KT_DataCheck', `Data readiness for Key Takeaways: Snapshot=${snapshotReady}, StdTA=${stdTaReady}, AiTA=${aiTaReady}, MarketStatus=${marketStatusReady}`);
+
+    if (snapshotReady && stdTaReady && aiTaReady && marketStatusReady) {
+      logDebug('MainTabContent_FSM', 'Manual_KT_Dispatch', `All data ready for Key Takeaways. Dispatching MANUAL_KEY_TAKEAWAYS_SUBMITTED.`);
+      dispatchLocalFsmEvent({ type: 'MANUAL_KEY_TAKEAWAYS_SUBMITTED' });
+    } else {
+      toast({ title: "Data Not Ready", description: "Required data for AI Key Takeaways is not available or still processing. Please ensure the initial 'Analyze Stock' process completed successfully.", variant: "destructive" });
+      logDebug('MainTabContent_FSM', 'Manual_KT_Bail_DataNotReady', 'Prerequisite data not ready for Key Takeaways.');
+    }
   };
 
   const handleGenerateOptionsAnalysis = () => {
+    logDebug('MainTabContent_FSM', 'Manual_Options_Click', `Attempting to generate Options Analysis for ${localFsm.activeAnalysisTicker}. Current local state: ${localFsm.localState}`);
     if (!localFsm.activeAnalysisTicker) {
-      toast({ title: "No Active Stock", description: "Please analyze a stock first.", variant: "default" });
+      toast({ title: "No Active Stock", description: "Please analyze a stock first using 'Analyze Stock'.", variant: "default" });
+      logDebug('MainTabContent_FSM', 'Manual_Options_Bail', 'No activeAnalysisTicker.');
       return;
     }
-    logDebug('MainTabContent_FSM', 'UserAction', `Manual "Generate AI Options Analysis" clicked for ${localFsm.activeAnalysisTicker}. Current Local FSM State: ${localFsm.localState}`);
-    dispatchLocalFsmEvent({ type: 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED' });
+    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'handleGenerateOptionsAnalysis', 'StockSnapshot');
+    const optionsChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'handleGenerateOptionsAnalysis', 'OptionsChain');
+
+    logDebug('MainTabContent_FSM', 'Manual_Options_DataCheck', `Data readiness for Options Analysis: Snapshot=${snapshotReady}, OptionsChain=${optionsChainReady}`);
+
+    if (snapshotReady && optionsChainReady) {
+      logDebug('MainTabContent_FSM', 'Manual_Options_Dispatch', `All data ready for Options Analysis. Dispatching MANUAL_OPTIONS_ANALYSIS_SUBMITTED.`);
+      dispatchLocalFsmEvent({ type: 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED' });
+    } else {
+      toast({ title: "Data Not Ready", description: "Required data for AI Options Analysis (Stock Snapshot and Options Chain) is not available or still processing. Please ensure the initial 'Analyze Stock' process completed successfully.", variant: "destructive" });
+      logDebug('MainTabContent_FSM', 'Manual_Options_Bail_DataNotReady', 'Prerequisite data not ready for Options Analysis.');
+    }
   };
 
 
@@ -706,3 +734,4 @@ export function MainTabContent({
     </Card>
   );
 }
+
