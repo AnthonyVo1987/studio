@@ -42,7 +42,7 @@ async function getStockChatBotPrompt() {
       {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH'},
-      {category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH'},
+      {category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH'},
   ];
 
@@ -50,7 +50,7 @@ async function getStockChatBotPrompt() {
   console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
 
   return ai.definePrompt({
-    name: 'stockChatBotPrompt', 
+    name: 'stockChatBotPrompt',
     input: {schema: ChatInputSchema},
     output: {schema: ChatOutputSchema},
     model: modelId,
@@ -63,8 +63,17 @@ async function getStockChatBotPrompt() {
 
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
-  console.log('[AIFlow:chatWithBot:Entry] Received request for ticker:', input.ticker, 'User input (first 50):', input.userInput.substring(0,50), 'History length:', input.chatHistory?.length || 0);
-  return chatFlow(input);
+  console.time('chatFlowExecutionTime');
+  const logPrefix = `[AIFlow:chatWithBot:Ticker:${input.ticker}:Entry]`;
+  console.log(`${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}`);
+  try {
+    const result = await chatFlow(input);
+    console.timeEnd('chatFlowExecutionTime');
+    return result;
+  } catch (error) {
+    console.timeEnd('chatFlowExecutionTime');
+    throw error; // Re-throw to be caught by server action
+  }
 }
 
 const chatFlow = ai.defineFlow(
@@ -76,25 +85,25 @@ const chatFlow = ai.defineFlow(
   async (input: ChatInput) => {
     const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started. User input (first 50 chars): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}.`);
-    
+
     try {
       const promptToUse = await getStockChatBotPrompt();
       console.log(`${logPrefix} Executing stockChatBotPrompt for ticker ${input.ticker}. User input (first 50): "${input.userInput.substring(0,50)}..."`);
       const {output} = await promptToUse(input);
-      
+
       if (!output) {
-          console.error(`${logPrefix} Chatbot flow for ticker ${input.ticker} did not return an output.`);
-          return { response: "Sorry, I encountered an unexpected issue and couldn't generate a response. Please try again." };
+          console.error(`${logPrefix} Chatbot AI prompt for ticker ${input.ticker} did not return an output structure.`);
+          throw new Error('Chatbot AI prompt failed to return any output structure.');
       }
       if (!output.response || typeof output.response !== 'string') {
-          console.error(`${logPrefix} Chatbot flow output for ticker ${input.ticker} is malformed (missing response string). Output: ${JSON.stringify(output).substring(0,200)}`);
-          return { response: "Sorry, I received a malformed response. Please try asking in a different way." };
+          console.error(`${logPrefix} Chatbot AI prompt output for ticker ${input.ticker} is malformed (missing response string or not a string). Output (first 200): ${JSON.stringify(output).substring(0,200)}`);
+          throw new Error('Chatbot AI prompt returned a malformed response (e.g., response not a string).');
       }
       console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${output.response.substring(0,50)}..."`);
       return output;
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL ERROR during stockChatBotPrompt execution for ticker ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}, Stack (first 500): ${error?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(error).substring(0,500)}.`);
-      return { response: "I'm sorry, but I encountered a problem while processing your request. Please try again later." };
+      console.error(`${logPrefix} CRITICAL ERROR during stockChatBotPrompt execution for ticker ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}. Throwing error further.`);
+      throw error; // Re-throw the error
     }
   }
 );
