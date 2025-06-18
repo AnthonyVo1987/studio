@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -16,7 +17,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
-import { useStockAnalysis } from '@/contexts/stock-analysis-context';
+import { useStockAnalysis, type FsmDisplayTuple } from '@/contexts/stock-analysis-context';
 import { useDebugConsoleFsm, DebugConsoleFsmMenuState } from '@/contexts/debug-console-fsm-context';
 import { globalLogEntries, clearGlobalLogBuffer, type GlobalLogEntry } from '@/lib/global-log-buffer';
 import { downloadJson, copyToClipboard, downloadTxt } from '@/lib/export-utils';
@@ -29,6 +30,7 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
+const APP_VERSION_FOR_EXPORT = "v2.9.D.C"; // Hardcoded for now, consider making dynamic
 
 function formatLogMessage(messages: any[]): string {
   const seen = new Set();
@@ -72,26 +74,54 @@ const escapeCsvField = (field: any): string => {
   return stringField;
 };
 
-const generateLogsTxt = (logs: GlobalLogEntry[]): string => {
-  return logs.map(log => {
+const generateLogsTxtWithMetadata = (
+    logs: GlobalLogEntry[],
+    appVersion: string,
+    fsmStates: any 
+): string => {
+  let metadata = `App Version: ${appVersion}\n`;
+  metadata += `Timestamp: ${new Date().toISOString()}\n\n`;
+  metadata += "FSM States:\n";
+  metadata += `  Global Application FSM: Prev: ${fsmStates.globalApplicationFSM?.previous || 'N/A'}, Curr: ${fsmStates.globalApplicationFSM?.current || 'N/A'}, Target: ${fsmStates.globalApplicationFSM?.target || 'N/A'}\n`;
+  metadata += `  Main Tab UI FSM: Prev: ${fsmStates.mainTabUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.mainTabUI_FSM?.current || 'N/A'}, Target: ${fsmStates.mainTabUI_FSM?.target || 'N/A'}\n`;
+  metadata += `  Chatbot UI FSM: Prev: ${fsmStates.chatbotUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.chatbotUI_FSM?.current || 'N/A'}, Target: ${fsmStates.chatbotUI_FSM?.target || 'N/A'}\n`;
+  metadata += `  Debug Console Menu FSM: Prev: ${fsmStates.debugConsoleMenuUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.debugConsoleMenuUI_FSM?.current || 'N/A'}, Target: ${fsmStates.debugConsoleMenuUI_FSM?.target || 'N/A'}\n\n`;
+  metadata += "Client Debug Logs:\n";
+  metadata += "--------------------------------------------------\n";
+  
+  const logLines = logs.map(log => {
     const timestamp = `[${new Date(log.timestamp).toISOString()}]`;
     const type = `[${log.type.toUpperCase()}]`;
     const source = log.source ? `[${getSourceLabel(log.source)}]` : '[UNKNOWN_SOURCE]';
     const message = formatLogMessage(log.messages);
     return `${timestamp} ${type} ${source} ${message}`;
   }).join('\n');
+  return metadata + logLines;
 };
 
-const generateLogsCsv = (logs: GlobalLogEntry[]): string => {
-  const headers = "Timestamp,Type,Source,Message\n";
-  const rows = logs.map(log => {
+const generateLogsCsvWithMetadata = (
+    logs: GlobalLogEntry[],
+    appVersion: string,
+    fsmStates: any
+): string => {
+  let metadata = `App Version:,${appVersion}\n`;
+  metadata += `Report Timestamp:,${new Date().toISOString()}\n\n`;
+  metadata += `FSM States:\n`;
+  metadata += `Global Application FSM:,Prev: ${fsmStates.globalApplicationFSM?.previous || 'N/A'}, Curr: ${fsmStates.globalApplicationFSM?.current || 'N/A'}, Target: ${fsmStates.globalApplicationFSM?.target || 'N/A'}\n`;
+  metadata += `Main Tab UI FSM:,Prev: ${fsmStates.mainTabUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.mainTabUI_FSM?.current || 'N/A'}, Target: ${fsmStates.mainTabUI_FSM?.target || 'N/A'}\n`;
+  metadata += `Chatbot UI FSM:,Prev: ${fsmStates.chatbotUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.chatbotUI_FSM?.current || 'N/A'}, Target: ${fsmStates.chatbotUI_FSM?.target || 'N/A'}\n`;
+  metadata += `Debug Console Menu FSM:,Prev: ${fsmStates.debugConsoleMenuUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.debugConsoleMenuUI_FSM?.current || 'N/A'}, Target: ${fsmStates.debugConsoleMenuUI_FSM?.target || 'N/A'}\n\n`;
+  metadata += "Client Debug Logs:\n";
+  metadata += "Timestamp,Type,Source,Message\n";
+  
+  const logRows = logs.map(log => {
     const timestamp = log.timestamp;
     const type = log.type;
     const source = log.source ? getSourceLabel(log.source) : '';
     const message = formatLogMessage(log.messages);
     return `${escapeCsvField(timestamp)},${escapeCsvField(type)},${escapeCsvField(source)},${escapeCsvField(message)}`;
   }).join('\n');
-  return headers + rows;
+  return metadata + logRows;
 };
 
 
@@ -100,9 +130,13 @@ export function DebugConsole() {
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
-    logDebug: stockAnalysisLogDebug, // Renamed to avoid conflict if DebugConsoleFsmContext provides its own logDebug
-    isFsmDebugCardOpen,
-    isFsmDebugCardEnabled,
+    logDebug: stockAnalysisLogDebug,
+    fsmState: globalFsmState,
+    previousFsmState: globalPreviousFsmState,
+    targetFsmDisplayState: globalTargetFsmDisplayState,
+    mainTabFsmDisplay,
+    chatbotFsmDisplay,
+    debugConsoleMenuFsmDisplay: contextDebugConsoleMenuFsmDisplay, // Renamed to avoid conflict
   } = useStockAnalysis();
 
   const {
@@ -110,7 +144,6 @@ export function DebugConsole() {
     activeFilters,
     searchTerm,
     dispatchDebugConsoleFsmEvent,
-    // Removed: previousUiMenuState, targetUiMenuDisplayState (will get from FsmStateDebugCard if needed there)
   } = useDebugConsoleFsm();
 
   const { toast } = useToast();
@@ -163,6 +196,17 @@ export function DebugConsole() {
     return null;
   }
 
+  const getFullFsmStatesForExport = () => ({
+    appVersion: APP_VERSION_FOR_EXPORT,
+    reportTimestamp: new Date().toISOString(),
+    fsmStatesSnapshot: {
+      globalApplicationFSM: { previous: globalPreviousFsmState, current: globalFsmState, target: globalTargetFsmDisplayState },
+      mainTabUI_FSM: mainTabFsmDisplay,
+      chatbotUI_FSM: chatbotFsmDisplay,
+      debugConsoleMenuUI_FSM: contextDebugConsoleMenuFsmDisplay,
+    }
+  });
+
   const handleClearLogs = () => {
     clearGlobalLogBuffer();
     setDisplayedLogs([]);
@@ -176,8 +220,9 @@ export function DebugConsole() {
     if (displayedLogs.length === 0) {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
     }
-    if (await copyToClipboard(JSON.stringify(displayedLogs, null, 2))) {
-      toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as JSON.' });
+    const exportData = { ...getFullFsmStatesForExport(), logs: displayedLogs };
+    if (await copyToClipboard(JSON.stringify(exportData, null, 2))) {
+      toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM states copied to clipboard as JSON.' });
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as JSON.' });
     }
@@ -186,9 +231,10 @@ export function DebugConsole() {
   const handleCopyTxt = async () => {
     stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
-    const txtData = generateLogsTxt(displayedLogs);
+    const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
+    const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates);
     if (await copyToClipboard(txtData)) {
-      toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as TXT.' });
+      toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM states copied to clipboard as TXT.' });
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as TXT.' });
     }
@@ -197,9 +243,10 @@ export function DebugConsole() {
   const handleCopyCsv = async () => {
     stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
-    const csvData = generateLogsCsv(displayedLogs);
+    const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
+    const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates);
     if (await copyToClipboard(csvData)) {
-      toast({ title: 'Logs Copied', description: 'Displayed client logs copied to clipboard as CSV.' });
+      toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM states copied to clipboard as CSV.' });
     } else {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as CSV.' });
     }
@@ -209,8 +256,9 @@ export function DebugConsole() {
     stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as JSON.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      downloadJson(displayedLogs, 'stocksage_client_logs.json');
-      toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as JSON.' });
+      const exportData = { ...getFullFsmStatesForExport(), logs: displayedLogs };
+      downloadJson(exportData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.json`);
+      toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as JSON.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as JSON.' });
     }
@@ -220,9 +268,10 @@ export function DebugConsole() {
     stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      const txtData = generateLogsTxt(displayedLogs);
-      downloadTxt(txtData, 'stocksage_client_logs.txt');
-      toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as TXT.' });
+      const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
+      const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates);
+      downloadTxt(txtData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.txt`);
+      toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as TXT.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as TXT.' });
     }
@@ -232,13 +281,15 @@ export function DebugConsole() {
     stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      const csvData = generateLogsCsv(displayedLogs);
-      downloadTxt(csvData, 'stocksage_client_logs.csv');
-      toast({ title: 'Logs Exported', description: 'Displayed client logs downloaded as CSV.' });
+      const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
+      const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates);
+      downloadTxt(csvData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.csv`);
+      toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as CSV.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as CSV.' });
     }
   };
+
 
   const handleSearchTermChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     dispatchDebugConsoleFsmEvent({ type: 'SEARCH_TERM_CHANGED', payload: event.target.value });
@@ -267,7 +318,7 @@ export function DebugConsole() {
           <div className="flex items-center gap-2 flex-shrink min-w-0">
             <CardTitle className="text-sm truncate">Client Debug Console</CardTitle>
             <CardDescription className="text-xs whitespace-nowrap">
-              ({displayedLogs.length} entries)
+              (App: {APP_VERSION_FOR_EXPORT} | {displayedLogs.length} entries)
             </CardDescription>
           </div>
           <div className="flex items-center gap-1.5 flex-grow justify-center px-2">
@@ -425,3 +476,4 @@ export function DebugConsole() {
     </Card>
   );
 }
+

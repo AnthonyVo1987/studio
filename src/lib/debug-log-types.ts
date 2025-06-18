@@ -32,6 +32,7 @@ export const logSourceIds = [
   'DebugConsoleFsmContext',
   'FsmStateDebugCard',
   'MainTabContent_FSM:ButtonStateEffect_DB',
+  'MainTabContent_FSM:ButtonStateEffect_DC',
 ] as const;
 
 export type LogSourceId = typeof logSourceIds[number];
@@ -67,6 +68,7 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   DebugConsoleFsmContext: true,
   FsmStateDebugCard: true,
   'MainTabContent_FSM:ButtonStateEffect_DB': true,
+  'MainTabContent_FSM:ButtonStateEffect_DC': true,
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -98,6 +100,7 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   DebugConsoleFsmContext: 'Debug Console FSM Context',
   FsmStateDebugCard: 'FSM State Debug Card UI',
   'MainTabContent_FSM:ButtonStateEffect_DB': 'MTC Button Effect (D.B Minimal)',
+  'MainTabContent_FSM:ButtonStateEffect_DC': 'MTC Button Effect (D.C Full)',
 };
 
 // For DebugConsole.tsx filter UI
