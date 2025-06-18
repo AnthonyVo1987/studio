@@ -63,7 +63,7 @@ async function getAnalyzedStockDataPrompt() {
 export async function analyzeStockData(
   input: StockAnalysisInput
 ): Promise<StockAnalysisOutput> {
-  console.log('[AIFlow:analyzeStockData:Entry] Received request for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
+  console.log('[AIFlow:analyzeStockData:Entry_DJ] Received request for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
   return analyzeStockDataFlow(input);
 }
 
@@ -79,55 +79,57 @@ const analyzeStockDataFlow = ai.defineFlow(
     outputSchema: StockAnalysisOutputSchema,
   },
   async (input: StockAnalysisInput): Promise<StockAnalysisOutput> => {
-    const logPrefix = `[AIFlow:analyzeStockDataFlow:Ticker:${input.ticker}]`;
+    const logPrefix = `[AIFlow:analyzeStockDataFlow:Ticker:${input.ticker}:DJ]`;
     console.log(`${logPrefix} Flow execution started. Input keys: ${Object.keys(input).join(', ')}`);
-    console.log(`${logPrefix} Flow Input - ticker: ${input.ticker}`);
-    console.log(`${logPrefix} Flow Input - stockSnapshotJson (len: ${input.stockSnapshotJson.length}): ${input.stockSnapshotJson.substring(0,100)}...`);
-    console.log(`${logPrefix} Flow Input - standardTasJson (len: ${input.standardTasJson.length}): ${input.standardTasJson.substring(0,100)}...`);
-    console.log(`${logPrefix} Flow Input - aiAnalyzedTaJson (len: ${input.aiAnalyzedTaJson.length}): ${input.aiAnalyzedTaJson.substring(0,100)}...`);
-    console.log(`${logPrefix} Flow Input - marketStatusJson (len: ${input.marketStatusJson.length}): ${input.marketStatusJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Input - stockSnapshotJson (len: ${input.stockSnapshotJson.length}): ${input.stockSnapshotJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Input - standardTasJson (len: ${input.standardTasJson.length}): ${input.standardTasJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Input - aiAnalyzedTaJson (len: ${input.aiAnalyzedTaJson.length}): ${input.aiAnalyzedTaJson.substring(0,100)}...`);
+    console.log(`${logPrefix} Input - marketStatusJson (len: ${input.marketStatusJson.length}): ${input.marketStatusJson.substring(0,100)}...`);
     
     let outputFromPrompt: StockAnalysisOutput | undefined;
 
     try {
       const promptToUse = await getAnalyzedStockDataPrompt();
-      console.log(`${logPrefix} Executing analyzeStockDataPrompt for ticker: ${input.ticker}.`);
+      console.log(`${logPrefix} Executing analyzeStockDataPrompt.`);
       const result = await promptToUse(input);
       outputFromPrompt = result.output;
-      console.log(`${logPrefix} analyzeStockDataPrompt completed for ticker: ${input.ticker}. Output keys from AI: ${outputFromPrompt ? Object.keys(outputFromPrompt).join(', ') : 'undefined'}`);
+      console.log(`${logPrefix} Prompt execution completed. outputFromPrompt is defined: ${!!outputFromPrompt}`);
+      if (outputFromPrompt) {
+        console.log(`${logPrefix} outputFromPrompt (raw from AI, first 500 chars): ${JSON.stringify(outputFromPrompt).substring(0,500)}`);
+      } else {
+        console.warn(`${logPrefix} outputFromPrompt is UNDEFINED after AI call. This indicates a likely AI/prompt execution failure.`);
+      }
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL ERROR during analyzeStockDataPrompt execution for ticker: ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}, Stack (first 500): ${error?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(error).substring(0,500)}.`);
+      console.error(`${logPrefix} CRITICAL ERROR during analyzeStockDataPrompt execution. Error name: ${error?.name}, Message: ${error?.message}, Stack (first 500): ${error?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(error).substring(0,500)}.`);
       outputFromPrompt = undefined; 
     }
 
     const finalOutput: StockAnalysisOutput = {
-      priceAction: outputFromPrompt?.priceAction || defaultTakeaway("price action", input.ticker),
-      trend: outputFromPrompt?.trend || defaultTakeaway("trend", input.ticker),
-      volatility: outputFromPrompt?.volatility || { takeaway: `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`, sentiment: "neutral" },
-      momentum: outputFromPrompt?.momentum || defaultTakeaway("momentum", input.ticker),
-      patterns: outputFromPrompt?.patterns || defaultTakeaway("patterns", input.ticker),
+      priceAction: outputFromPrompt?.priceAction || (console.warn(`${logPrefix} Defaulting Price Action.`), defaultTakeaway("price action", input.ticker)),
+      trend: outputFromPrompt?.trend || (console.warn(`${logPrefix} Defaulting Trend.`), defaultTakeaway("trend", input.ticker)),
+      volatility: outputFromPrompt?.volatility || (console.warn(`${logPrefix} Defaulting Volatility (initial).`), { takeaway: `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`, sentiment: "neutral" }),
+      momentum: outputFromPrompt?.momentum || (console.warn(`${logPrefix} Defaulting Momentum.`), defaultTakeaway("momentum", input.ticker)),
+      patterns: outputFromPrompt?.patterns || (console.warn(`${logPrefix} Defaulting Patterns.`), defaultTakeaway("patterns", input.ticker)),
     };
     
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
     for (const category of categories) {
         if (!finalOutput[category] || !finalOutput[category].takeaway || finalOutput[category].takeaway.trim() === "") {
-            console.warn(`${logPrefix} Output for category '${category}' was missing or empty after initial population for ticker ${input.ticker}. Providing default message.`);
+            console.warn(`${logPrefix} Output for category '${category}' was missing or empty after initial population. Providing default message again.`);
             finalOutput[category] = defaultTakeaway(category, input.ticker);
         }
     }
     
     if (finalOutput.volatility && (!finalOutput.volatility.takeaway || finalOutput.volatility.takeaway.trim().split(/\s+/).length < 5)) {
-        console.warn(`${logPrefix} Volatility takeaway for ${input.ticker} was too short or still default after initial. Setting specific placeholder.`);
+        console.warn(`${logPrefix} Volatility takeaway was too short or still default after initial. Setting specific placeholder. Current takeaway: "${finalOutput.volatility.takeaway}"`);
         finalOutput.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`;
         if (!finalOutput.volatility.sentiment) {
              finalOutput.volatility.sentiment = "neutral";
         }
     }
 
-    console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Final output keys: ${Object.keys(finalOutput).join(', ')}`);
+    console.log(`${logPrefix} Flow successfully executed. Final output keys: ${Object.keys(finalOutput).join(', ')}. PriceAction takeaway (first 30): "${finalOutput.priceAction.takeaway.substring(0,30)}..."`);
     return finalOutput;
   }
 );
-
-
     
