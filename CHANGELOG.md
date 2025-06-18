@@ -35,7 +35,7 @@ This section tracks the commit history of the StockSage application, with versio
 ---
 **App Version:** `v2.9.D.M` (Revert Button Debug Code, Standardize AI Flow Error Handling & Logging)
 **Tag:** `Phase-9_Task-9.D.M_CleanupRevertButtonDebug_StandardizeAIFlows_Logging`
-**Commit Hash:** `(next_commit_hash_for_D.M)`
+**Commit Hash:** `76e56c98`
 **Subject:** `refactor(ui,ai): Revert button debug, standardize AI flow error handling/logging (v2.9.D.M)`
 **Details:**
 This version (`v2.9.D.M`) implements cleanup and hardening measures following the resolution of AI prompt safety setting errors in `v2.9.D.L`. It also acknowledges that the manual AI buttons were, in fact, functional once the underlying AI flow errors were resolved.
@@ -778,5 +778,6 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
