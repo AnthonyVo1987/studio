@@ -26,7 +26,7 @@ export function Header() {
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-          <h1 className="text-2xl font-headline font-semibold">StockSage <span className="text-lg font-normal text-muted-foreground">v2.9.D.4</span></h1>
+          <h1 className="text-2xl font-headline font-semibold">StockSage <span className="text-lg font-normal text-muted-foreground">v2.9.D.5</span></h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-xs text-muted-foreground text-right space-x-1 hidden md:block">
