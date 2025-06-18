@@ -15,10 +15,11 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
-import { DEFAULT_ANALYSIS_MODEL_ID } from './models';
+import { DEFAULT_ANALYSIS_MODEL_ID } from './models'; // DEFAULT_ANALYSIS_MODEL_ID will now be gemini-2.5-flash-lite-preview-06-17
 
 export const ai = genkit({
   plugins: [googleAI()],
-  model: DEFAULT_ANALYSIS_MODEL_ID,
+  model: DEFAULT_ANALYSIS_MODEL_ID, // This now correctly uses the updated model from models.ts
   enableOpenTelemetry: false, // Explicitly disable OpenTelemetry
 });
+

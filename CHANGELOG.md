@@ -1,6 +1,13 @@
+
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.51 (Task v2.9.D.I):** 2025-06-18 - Firebase Studio (AI Prototyper)
+    *   Updated `README.md` (to v1.51) with current app version `v2.9.D.I`, Gemini model update to `gemini-2.5-flash-lite-preview-06-17`, and refined details in architecture, AI flow, and logging sections.
+    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.I`.
+    *   Updated `docs/Issue-Report_AI_Analysis_Buttons.md` to reflect debugging progress up to task `v2.9.D.I`.
+    *   Updated AI model ID to `googleai/gemini-2.5-flash-lite-preview-06-17` in `src/ai/models.ts`, `src/ai/genkit.ts`, and all relevant `modelId` fields in JSON prompt definitions under `src/ai/definitions/`.
+    *   Updated `APP_VERSION_FOR_EXPORT` in `src/components/debug-console.tsx` to `v2.9.D.I`.
 *   **Version 1.50 (Task v2.9.C.0):** 2025-06-15 - Firebase Studio (AI Prototyper)
     *   Updated `README.md` (to v1.50) with version `v2.9.C.0` after Chatbot FSM pilot. Added new Task 9.C.0 to Phased Plan. Updated AI operational rules for XML output (Section 0.5).
 *   **Version 1.1 (Task v2.9.B.9):** 2025-06-15 - Firebase Studio (AI Prototyper)
@@ -15,6 +22,42 @@
 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
+---
+**App Version:** `v2.9.D.I` (Intermediate Debugging, Doc & Model Update)
+**Tag:** `Phase-9_Task-9.D.I_IntermediateDebug_DocUpdate_ModelUpdate`
+**Commit Hash:** `bb39d6e2`
+**Subject:** `docs(all): Update docs for v2.9.D.I, codify Gemini model update, reflect AI button debug progress`
+**Details:**
+This version (`v2.9.D.I`) is an intermediate step in debugging non-functional manual AI analysis buttons and includes comprehensive documentation updates and codification of a user-initiated AI model update.
+
+**Key Changes in v2.9.D.I:**
+
+*   **Task v2.9.D.I (Intermediate Debugging, Documentation, and AI Model Update):**
+    *   **Code Changes (from previous debugging steps, now formally part of this version for documentation):**
+        *   `src/components/main-tab-content.tsx`:
+            *   "Generate AI Key Takeaways" button reverted to ShadCN `<Button>`.
+            *   Both manual AI buttons ("Key Takeaways", "Options Analysis") now include `key` props (e.g., `key={isKtButtonDisabled ? 'kt-disabled' : 'kt-enabled'}`) to help force re-renders when their disabled state changes.
+            *   Inline `style={{ opacity: ... }}` props were added to these buttons to visually reflect their `disabled` state (opacity 0.5 if disabled, 1 if enabled).
+            *   A new diagnostic `div` with its own `onClick` handler (logging to console and triggering an `alert`) and visible styling (red dashed border) was added to wrap these two buttons. This is to test if clicks are registered in the general area of the buttons.
+            *   The `onClick` handlers for the manual AI buttons (`handleGenerateKeyTakeaways`, `handleGenerateOptionsAnalysis`) remain simplified to directly log entry and dispatch to the local FSM (using "D.E" in their log messages).
+            *   The `useEffect` (source `MainTabContent_FSM:ButtonStateEffect_DC`) that calculates `isKtButtonDisabled` and `isOptButtonDisabled` remains unchanged, as its logic for determining button enablement and logging this process is confirmed to be working correctly.
+        *   `src/components/layout/header.tsx`: Application version string updated to `v2.9.D.I`.
+        *   `src/components/debug-console.tsx`: `APP_VERSION_FOR_EXPORT` constant updated to `v2.9.D.I`.
+    *   **AI Model Update (Codified User Change):**
+        *   The Google Gemini model used for AI flows has been updated to `googleai/gemini-2.5-flash-lite-preview-06-17`. This change, initially made manually by the user, is now codified in:
+            *   `src/ai/models.ts`: `DEFAULT_CHAT_MODEL_ID` and `DEFAULT_ANALYSIS_MODEL_ID` updated.
+            *   `src/ai/genkit.ts`: Default model for `ai.genkit()` configuration now reflects the new model via `DEFAULT_ANALYSIS_MODEL_ID`.
+            *   `src/ai/definitions/analyze-options-chain.json`, `src/ai/definitions/analyze-stock-data.json`, `src/ai/definitions/stock-chatbot.json`: `modelId` field updated to `googleai/gemini-2.5-flash-lite-preview-06-17`.
+    *   **Documentation Updates:**
+        *   `README.md`: Updated to version 1.51. Reflects app version `v2.9.D.I`. Section 3.2.2 (Genkit AI Backend) and 3.3 (AI Flow & Prompt Design) updated to mention `googleai/gemini-2.5-flash-lite-preview-06-17`. Logging section (3.4.3) updated regarding `APP_VERSION_FOR_EXPORT` in debug console. Debugging focus note (3.5.0) maintained.
+        *   `CHANGELOG.md` (this file): Updated to reflect this v2.9.D.I commit and its changes.
+        *   `docs/Issue-Report_AI_Analysis_Buttons.md`: Updated to include analysis of v2.9.D.H logs and the setup for v2.9.D.I tests (diagnostic div).
+
+**Debugging Status & Next Steps for AI Analysis Buttons:**
+*   The `useEffect` in `MainTabContent.tsx` correctly determines that manual AI buttons should be enabled and calls state setters (e.g., `setIsKtButtonDisabled(false)`).
+*   Despite this, and attempts to force re-renders (using `key` props) and even replacing a button with raw HTML (in v2.9.D.H), the `onClick` handlers for these buttons are still not firing.
+*   The current test in v2.9.D.I (with the diagnostic `div` wrapper) aims to determine if clicks are being registered in the general vicinity of the buttons. If the div's `onClick` fires but the buttons' do not, it points to an issue highly localized to the buttons or their immediate interaction with the `disabled` prop rendering. If the div's `onClick` also fails, a larger event blocking issue is suspected.
+*   The investigation continues.
 ---
 **App Version:** `v2.9.D.C` (Restore Full Logging in Button Effect, Enhance Debug Exports)
 **Tag:** `Phase-9_Task-9.D.C_RestoreFullButtonEffectLogging_EnhanceDebugExports` - Commit Hash: `9c0d2f3e`

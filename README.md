@@ -1,3 +1,4 @@
+
 ---
 
 ## 1. Introduction
@@ -59,7 +60,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Client Components for interactive elements.
 
 #### 3.2.2. Genkit (AI Backend)
-*   Google Gemini models (currently `gemini-2.5-flash-lite-preview-06-17`) for AI analysis.
+*   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis.
 *   AI flows for orchestrating LLM calls.
 *   Prompts (defined in JSON files under `src/ai/definitions/`) for AI tasks.
 *   Tools for accessing external data and performing actions (currently not heavily used but available).
@@ -83,22 +84,22 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **FSM State Display:** A dedicated "FSM State Debug Card" (`FsmStateDebugCard.tsx`) provides a centralized view of Previous, Current, and Target states for all major FSMs. Local FSMs report their display states to `StockAnalysisContext` for this purpose.
 
 ### 3.3. AI Flow & Prompt Design
-*   AI prompt definitions are externalized into JSON files in `src/ai/definitions/`.
+*   AI prompt definitions are externalized into JSON files in `src/ai/definitions/`. All LLM-based flows now use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`.
 *   A `DefinitionLoader` (`src/ai/definition-loader.ts`) loads and validates these JSONs, and helps build prompt strings for Genkit flows.
 *   **AI Key Takeaways Flow (`analyze-stock-data.ts`):**
-    *   Uses `analyze-stock-data.json` definition.
+    *   Uses `analyze-stock-data.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Stock snapshot, standard TAs, AI-analyzed TAs, market status.
     *   Output: Five key takeaways (price action, trend, volatility, momentum, patterns) with sentiment.
 *   **AI Options Analysis Flow (`analyze-options-chain-flow.ts`):**
-    *   Uses `analyze-options-chain.json` definition.
+    *   Uses `analyze-options-chain.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Options chain JSON, current underlying price, ticker.
     *   Output: Identified Call/Put Walls (max 3 each) based on OI/Volume.
 *   **AI Analyzed TA Flow (Pivot Points) (`analyze-ta-flow.ts`):**
-    *   Uses `analyze-ta-indicators.json` (a `calculation-logic` type definition).
+    *   Uses `analyze-ta-indicators.json` (a `calculation-logic` type definition, does not use an LLM).
     *   Input: Previous day HLC.
     *   Output: Standard daily pivot points and support/resistance levels.
 *   **AI Chatbot Flow (`chat-flow.ts`):**
-    *   Uses `stock-chatbot.json` definition.
+    *   Uses `stock-chatbot.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
     *   Input: Ticker, all available data JSONs (snapshot, key takeaways, AI TA, options analysis), chat history, user input.
     *   Output: Markdown-formatted chatbot response.
 
@@ -133,7 +134,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Displays logs from the `logDebug` system.
 *   Allows filtering by `LogType` and `LogSourceId`.
 *   Search functionality.
-*   Export/Copy logs (JSON, TXT, CSV) including app version and current FSM states as metadata.
+*   Export/Copy logs (JSON, TXT, CSV) including app version (`APP_VERSION_FOR_EXPORT` constant) and current FSM states as metadata.
 *   Clears logs on manual clear or implicitly on full page reload.
 
 ### 3.5. Coding Standards & Conventions
@@ -166,11 +167,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Server Actions for mutations.
 *   Genkit (`src/ai/genkit.ts` `ai` object) **MUST** be used for `ai.defineFlow`, `ai.definePrompt`.
 *   **Genkit 1.x API:**
-    *   Init: `const ai = genkit({plugins: [googleAI()]});` (No `logLevel`).
+    *   Init: `const ai = genkit({plugins: [googleAI()]});` (No `logLevel`). The default model used is `googleai/gemini-2.5-flash-lite-preview-06-17` via `DEFAULT_ANALYSIS_MODEL_ID` from `src/ai/models.ts`.
     *   Response: `response.text`, `response.output` (not functions).
     *   Streaming: `const {stream, response} = ai.generateStream(...);` (no `await` on `generateStream`), then `for await (const chunk of stream) {}`, then `await response;`.
 *   Flow files (`src/ai/flows/*.ts`): `'use server';`, JSDoc overview, export async wrapper & types.
-*   Prompts load definitions from JSON (`src/ai/definitions/*.json`).
+*   Prompts load definitions from JSON (`src/ai/definitions/*.json`). All LLM-based flows use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`.
 *   Handlebars for prompt templating: `{{{variable}}}`. **NO logic in templates.**
 *   Tools: `ai.defineTool`. Use for LLM-decided actions.
 
@@ -182,7 +183,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **Client:** `logDebug` from `StockAnalysisContext` is the standard. Filter/search via `DebugConsole`.
 *   **Server (Actions, Flows):** `console.log/error` with prefixes.
 *   Log key state transitions, inputs/outputs, and error conditions comprehensively.
-*   **`isDataReadyForProcessing` function in `MainTabContent.tsx`:** This utility is crucial for determining if prerequisite JSON data strings (from context) are valid and ready for use in AI flows or UI. It checks for null, empty, pending, error, or skipped states. Its behavior with various JSON states is central to button enablement logic.
+*   **`isDataReadyForProcessing` function in `MainTabContent.tsx`:** This utility is crucial for determining if prerequisite JSON data strings (from context) are valid and ready for use in AI flows or UI. It checks for null, empty, pending, error, or skipped states. Its behavior with various JSON states is central to button enablement logic, which is currently under intense debugging (see `docs/Issue-Report_AI_Analysis_Buttons.md`).
 
 ### 3.7. Commit & Changelog Procedures
 *   Increment app version in `src/components/layout/header.tsx`.
@@ -202,7 +203,7 @@ Create a `.env` file in the project root:
 ```env
 POLYGON_API_KEY=your_polygon_api_key
 GOOGLE_API_KEY=your_google_ai_api_key 
-# (Note: GOOGLE_API_KEY is used by Genkit's GoogleAI plugin)
+# (Note: GOOGLE_API_KEY is used by Genkit's GoogleAI plugin, for models like gemini-2.5-flash-lite-preview-06-17)
 ```
 
 ### 4.3. Installation
@@ -232,6 +233,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-See `CHANGELOG.md`. App version in UI header.
+See `CHANGELOG.md`. App version in UI header (`v2.9.D.I`).
 
 ---
+
