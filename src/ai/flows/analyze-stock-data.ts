@@ -42,7 +42,7 @@ async function getAnalyzedStockDataPrompt() {
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
   ];
   
   console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
@@ -63,8 +63,17 @@ async function getAnalyzedStockDataPrompt() {
 export async function analyzeStockData(
   input: StockAnalysisInput
 ): Promise<StockAnalysisOutput> {
-  console.log('[AIFlow:analyzeStockData:Entry_DJ] Received request for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
-  return analyzeStockDataFlow(input);
+  console.time('analyzeStockDataFlowExecutionTime');
+  const logPrefix = `[AIFlow:analyzeStockData:Ticker:${input.ticker}:Entry_DJ]`;
+  console.log(`${logPrefix} Received request. Input keys: ${Object.keys(input).join(', ')}`);
+  try {
+    const result = await analyzeStockDataFlow(input);
+    console.timeEnd('analyzeStockDataFlowExecutionTime');
+    return result;
+  } catch (error) {
+    console.timeEnd('analyzeStockDataFlowExecutionTime');
+    throw error;
+  }
 }
 
 const defaultTakeaway = (category: string, ticker: string): { takeaway: string; sentiment: "neutral" } => ({
@@ -92,25 +101,21 @@ const analyzeStockDataFlow = ai.defineFlow(
       const promptToUse = await getAnalyzedStockDataPrompt();
       console.log(`${logPrefix} Flow_Log_DJ_PrePromptCall - Executing analyzeStockDataPrompt.`);
       const result = await promptToUse(input);
-      outputFromPrompt = result.output;
+      outputFromPrompt = result.output; // Correctly access the output property
       console.log(`${logPrefix} Flow_Log_DJ_PostPromptCall - Prompt execution completed. outputFromPrompt is defined: ${!!outputFromPrompt}`);
       
       if (outputFromPrompt) {
         console.log(`${logPrefix} Flow_Log_DJ_OutputFromPrompt (raw from AI, first 500 chars): ${JSON.stringify(outputFromPrompt).substring(0,500)}`);
       } else {
         console.warn(`${logPrefix} Flow_Log_DJ_OutputFromPrompt_UNDEFINED - outputFromPrompt is UNDEFINED after AI call. This indicates a likely AI/prompt execution failure.`);
-        // CRITICAL CHANGE FOR D.K: Throw error if AI returns nothing usable
         throw new Error('AI prompt execution for Key Takeaways failed to return any output structure.');
       }
 
     } catch (error: any) {
       console.error(`${logPrefix} Flow_Log_DJ_PromptError - CRITICAL ERROR during analyzeStockDataPrompt execution. Error name: ${error?.name}, Message: ${error?.message}, Stack (first 500): ${error?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(error).substring(0,500)}.`);
-      // Re-throw the error to ensure the flow fails and this is caught by the server action
       throw error; 
     }
-
-    // This part will only be reached if outputFromPrompt was defined (i.e., AI returned something)
-    // and the explicit throw above was not triggered.
+    
     const finalOutput: StockAnalysisOutput = {
       priceAction: outputFromPrompt.priceAction || (console.warn(`${logPrefix} Flow_Log_DJ_Defaulting - Defaulting Price Action.`), defaultTakeaway("price action", input.ticker)),
       trend: outputFromPrompt.trend || (console.warn(`${logPrefix} Flow_Log_DJ_Defaulting - Defaulting Trend.`), defaultTakeaway("trend", input.ticker)),

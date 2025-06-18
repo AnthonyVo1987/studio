@@ -42,7 +42,7 @@ async function getAnalyzedOptionsChainPrompt() {
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
   ];
 
   console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
@@ -64,8 +64,17 @@ async function getAnalyzedOptionsChainPrompt() {
 export async function analyzeOptionsChain(
   input: AiOptionsAnalysisInput
 ): Promise<AiOptionsAnalysisOutput> {
-  console.log('[AIFlow:analyzeOptionsChain:Entry] Received input for ticker:', input.ticker, 'Input keys:', Object.keys(input).join(', '));
-  return analyzeOptionsChainFlow(input);
+  console.time('analyzeOptionsChainFlowExecutionTime');
+  const logPrefix = `[AIFlow:analyzeOptionsChain:Ticker:${input.ticker}:Entry]`;
+  console.log(`${logPrefix} Received input. Input keys: ${Object.keys(input).join(', ')}`);
+  try {
+    const result = await analyzeOptionsChainFlow(input);
+    console.timeEnd('analyzeOptionsChainFlowExecutionTime');
+    return result;
+  } catch (error) {
+    console.timeEnd('analyzeOptionsChainFlowExecutionTime');
+    throw error;
+  }
 }
 
 
@@ -78,11 +87,9 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
     const logPrefix = `[AIFlow:analyzeOptionsChainFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started. Current underlying: ${input.currentUnderlyingPrice}`);
-    console.log(`${logPrefix} Flow Input - ticker: ${input.ticker}`);
-    console.log(`${logPrefix} Flow Input - optionsChainJson (len: ${input.optionsChainJson.length}): ${input.optionsChainJson.substring(0,100)}...`);
-    console.log(`${logPrefix} Flow Input - currentUnderlyingPrice: ${input.currentUnderlyingPrice}`);
+    console.log(`${logPrefix} Flow_Log_DJ_Input - optionsChainJson (len: ${input.optionsChainJson.length}): ${input.optionsChainJson.substring(0,100)}...`);
     
-    const emptyOutput: AiOptionsAnalysisOutput = {
+    const emptyOutputOnError: AiOptionsAnalysisOutput = {
       callWalls: [],
       putWalls: [],
     };
@@ -92,7 +99,7 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       parsedOptionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
       if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) {
         console.warn(`${logPrefix} Pre-check: Options chain data seems insufficient (less than 3 contracts). Contracts length: ${parsedOptionsData.contracts?.length}. Returning empty walls.`);
-        return emptyOutput;
+        return emptyOutputOnError; // Return empty, not throw, as this is a valid data condition.
       }
       const totalOI = parsedOptionsData.contracts.reduce((sum, contract) => {
         return sum + (contract.call?.open_interest || 0) + (contract.put?.open_interest || 0);
@@ -102,39 +109,40 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       }, 0);
 
       if (totalOI === 0 && totalVolume === 0 && parsedOptionsData.contracts.length > 0) {
-         console.warn(`${logPrefix} Pre-check: All open interest and volume are zero for ticker ${input.ticker}. Returning empty walls.`);
-         return emptyOutput;
+         console.warn(`${logPrefix} Pre-check: All open interest and volume are zero. Returning empty walls.`);
+         return emptyOutputOnError; // Return empty for valid "no activity" data.
       }
-      console.log(`${logPrefix} Pre-check passed for ${input.ticker}. Total OI: ${totalOI}, Total Volume: ${totalVolume}, Contract Count: ${parsedOptionsData.contracts.length}`);
+      console.log(`${logPrefix} Pre-check passed. Total OI: ${totalOI}, Total Volume: ${totalVolume}, Contract Count: ${parsedOptionsData.contracts.length}`);
     } catch (e: any) {
-      console.error(`${logPrefix} Pre-check: Failed to parse optionsChainJson or basic validation failed for ticker ${input.ticker}. Error: ${e.message}. Returning empty walls.`);
-      return emptyOutput;
+      console.error(`${logPrefix} Pre-check: Failed to parse optionsChainJson or basic validation failed. Error: ${e.message}. Returning empty walls.`);
+      return emptyOutputOnError; // Return empty, as this is a data integrity issue before AI.
     }
 
-    console.log(`${logPrefix} Executing prompt for ticker ${input.ticker}. Input keys: ${Object.keys(input).join(', ')}`);
+    let outputFromPrompt: AiOptionsAnalysisOutput | undefined;
+    console.log(`${logPrefix} Flow_Log_DJ_PrePromptCall_Options - Executing analyzeOptionsChainPrompt.`);
     try {
         const promptToUse = await getAnalyzedOptionsChainPrompt();
-        const {output} = await promptToUse(input);
+        const {output} = await promptToUse(input); // result.output from Genkit v1.x
+        outputFromPrompt = output; 
+        console.log(`${logPrefix} Flow_Log_DJ_PostPromptCall_Options - Prompt execution completed. Output from AI (first 500 chars): ${outputFromPrompt ? JSON.stringify(outputFromPrompt).substring(0,500) : 'undefined'}`);
 
-        if (!output || !Array.isArray(output.callWalls) || !Array.isArray(output.putWalls)) {
-          console.error(`${logPrefix} AI options analysis flow for ticker ${input.ticker} did not return a valid output structure. Received output (first 500 chars): ${JSON.stringify(output).substring(0,500)}. Returning empty walls.`);
-          return emptyOutput;
+        if (!outputFromPrompt || !Array.isArray(outputFromPrompt.callWalls) || !Array.isArray(outputFromPrompt.putWalls)) {
+          console.error(`${logPrefix} AI options analysis flow did not return a valid output structure. Received output: ${JSON.stringify(outputFromPrompt)}. Throwing error.`);
+          throw new Error('AI prompt for Options Analysis failed to return a valid structure.');
         }
         
         const finalOutput: AiOptionsAnalysisOutput = {
-            callWalls: (output.callWalls || []).slice(0, 3),
-            putWalls: (output.putWalls || []).slice(0, 3),
+            callWalls: (outputFromPrompt.callWalls || []).slice(0, 3),
+            putWalls: (outputFromPrompt.putWalls || []).slice(0, 3),
         };
 
-        console.log(`${logPrefix} Analysis complete for ${input.ticker}. Call Walls identified: ${finalOutput.callWalls.length}, Put Walls identified: ${finalOutput.putWalls.length}.`);
+        console.log(`${logPrefix} Analysis complete. Call Walls identified: ${finalOutput.callWalls.length}, Put Walls identified: ${finalOutput.putWalls.length}.`);
         return finalOutput;
 
     } catch (promptError: any) {
-        console.error(`${logPrefix} CRITICAL ERROR during analyzeOptionsChainPrompt execution for ticker ${input.ticker}. Error name: ${promptError?.name}, Message: ${promptError?.message}, Stack (first 500): ${promptError?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(promptError).substring(0,500)}. Returning empty walls.`);
-        return emptyOutput;
+        console.error(`${logPrefix} CRITICAL ERROR during analyzeOptionsChainPrompt execution. Error name: ${promptError?.name}, Message: ${promptError?.message}. Throwing error further.`);
+        throw promptError; // Re-throw the error to be caught by the server action
     }
   }
 );
-
-
     
