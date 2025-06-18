@@ -419,17 +419,17 @@ export function MainTabContent({
   };
 
   const handleGenerateKeyTakeaways = () => {
-    console.log('[RAW_CLICK_KT_D.D_ATTEMPT]');
-    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_KT_D.D_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
+    console.log('[RAW_CLICK_KT_D.E_EFFECTIVELY_CLICKED]');
+    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_KT_D.E_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
     dispatchLocalFsmEvent({ type: 'MANUAL_KEY_TAKEAWAYS_SUBMITTED' });
-    console.log('[RAW_CLICK_KT_D.D_DISPATCHED]');
+    console.log('[RAW_CLICK_KT_D.E_DISPATCHED_TO_LOCAL_FSM]');
   };
 
   const handleGenerateOptionsAnalysis = () => {
-    console.log('[RAW_CLICK_OPTIONS_D.D_ATTEMPT]');
-    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_OPTIONS_D.D_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
+    console.log('[RAW_CLICK_OPTIONS_D.E_EFFECTIVELY_CLICKED]');
+    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_OPTIONS_D.E_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
     dispatchLocalFsmEvent({ type: 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED' });
-    console.log('[RAW_CLICK_OPTIONS_D.D_DISPATCHED]');
+    console.log('[RAW_CLICK_OPTIONS_D.E_DISPATCHED_TO_LOCAL_FSM]');
   };
 
 
@@ -521,16 +521,16 @@ export function MainTabContent({
         isTickerMatch: currentActiveAnalysisTicker === currentInputTickerValue,
     });
 
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC, 'KT_Snapshot_DC');
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixDC, 'KT_StdTA_DC');
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixDC, 'KT_AiTA_DC');
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixDC, 'KT_MarketStatus_DC');
+    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'KT_Snapshot_DC');
+    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixDC as LogSourceId, 'KT_StdTA_DC');
+    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixDC as LogSourceId, 'KT_AiTA_DC');
+    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixDC as LogSourceId, 'KT_MarketStatus_DC');
     const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
     
     logDebug(logPrefixDC as LogSourceId, 'KEY_TAKEAWAYS_PREREQS_EVALUATION_DC', { ktSnapshotReady, ktStdTaReady, ktAiTaReady, ktMarketStatusReady, overallPrereqsMet: ktPrereqsMet });
     
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC, 'Opt_Snapshot_DC');
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixDC, 'Opt_Chain_DC');
+    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Snapshot_DC');
+    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Chain_DC');
     const optPrereqsMet = optSnapshotReady && optChainReady;
 
     logDebug(logPrefixDC as LogSourceId, 'OPTIONS_ANALYSIS_PREREQS_EVALUATION_DC', { optSnapshotReady, optChainReady, overallPrereqsMet: optPrereqsMet });
@@ -574,13 +574,13 @@ export function MainTabContent({
       aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'),
     };
 
-    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'CombinedExportCheck', 'AiKeyTakeaways')) {
+    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'CombinedExportCheck' as LogSourceId, 'AiKeyTakeaways')) {
       baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}');
     }
-    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'CombinedExportCheck', 'AiOptionsAnalysis')) {
+    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'CombinedExportCheck' as LogSourceId, 'AiOptionsAnalysis')) {
       baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}');
     }
-    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'CombinedExportCheck', 'OptionsChain')) {
+    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'CombinedExportCheck' as LogSourceId, 'OptionsChain')) {
       baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}');
     }
 
@@ -594,10 +594,10 @@ export function MainTabContent({
     ]);
 
   const isBaseDataReadyForCombinedExport =
-    isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'ExportCheck', 'MarketStatus') &&
-    isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'ExportCheck', 'StockSnapshot') &&
-    isDataReadyForProcessing(contextStandardTasJson, logDebug, 'ExportCheck', 'StandardTAs') &&
-    isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'ExportCheck', 'AiAnalyzedTA');
+    isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'ExportCheck' as LogSourceId, 'MarketStatus') &&
+    isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'ExportCheck' as LogSourceId, 'StockSnapshot') &&
+    isDataReadyForProcessing(contextStandardTasJson, logDebug, 'ExportCheck' as LogSourceId, 'StandardTAs') &&
+    isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'ExportCheck' as LogSourceId, 'AiAnalyzedTA');
 
   const combinedExportButtonsDisabled =
     !isBaseDataReadyForCombinedExport ||
