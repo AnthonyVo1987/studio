@@ -695,23 +695,8 @@ export function MainTabContent({
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
-            <div 
-              onClick={() => {
-                console.log('[RAW_CLICK_ON_DEMAND_CARD_CONTENT_DIV_D.I]');
-                alert('On-Demand CardContent Div Clicked!');
-              }}
-              style={{ 
-                border: '2px dashed red', 
-                padding: '10px', 
-                backgroundColor: 'rgba(255,0,0,0.1)'
-              }}
-              className="space-y-2"
-            >
-              <p style={{color: 'red', fontWeight: 'bold', textAlign: 'center', marginBottom: '8px'}}>CLICK TEST AREA (D.I)</p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
-                  key={isKtButtonDisabled ? 'kt-disabled' : 'kt-enabled'}
-                  style={{ opacity: isKtButtonDisabled ? 0.5 : 1 }}
                   onClick={handleGenerateKeyTakeaways}
                   className="w-full sm:w-auto"
                   disabled={isKtButtonDisabled}
@@ -720,8 +705,6 @@ export function MainTabContent({
                   <Brain className="mr-2 h-4 w-4" /> Generate AI Key Takeaways
                 </Button>
                 <Button 
-                  key={isOptButtonDisabled ? 'opt-disabled' : 'opt-enabled'}
-                  style={{ opacity: isOptButtonDisabled ? 0.5 : 1 }}
                   onClick={handleGenerateOptionsAnalysis} 
                   className="w-full sm:w-auto" 
                   disabled={isOptButtonDisabled}
@@ -730,7 +713,6 @@ export function MainTabContent({
                   <BarChartBig className="mr-2 h-4 w-4" /> Generate AI Options Analysis
                 </Button>
               </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -783,3 +765,5 @@ export function MainTabContent({
   );
 }
 
+
+    
