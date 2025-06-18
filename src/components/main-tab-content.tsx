@@ -419,73 +419,17 @@ export function MainTabContent({
   };
 
   const handleGenerateKeyTakeaways = () => {
-    console.log('[RAW_CLICK_KT] Generate AI Key Takeaways CLICKED');
-    const logPrefix = 'MainTabContent_FSM:HandleKT';
-    logDebug(logPrefix as LogSourceId, 'CLICKED_DETAILS', `LocalState: ${localFsm.localState}, ActiveTicker: ${localFsm.activeAnalysisTicker}, CurrentInput: ${localFsm.currentInputTicker}`);
-
-    if (!localFsm.activeAnalysisTicker) {
-      toast({ title: "No Active Stock", description: "Please analyze a stock first using 'Analyze Stock'.", variant: "default" });
-      logDebug(logPrefix as LogSourceId, 'Bail:NoActiveTicker', 'No activeAnalysisTicker.');
-      return;
-    }
-     if (localFsm.activeAnalysisTicker !== localFsm.currentInputTicker) {
-        toast({ title: "Ticker Mismatch", description: `Current input ticker (${localFsm.currentInputTicker}) does not match the analyzed stock (${localFsm.activeAnalysisTicker}). Please re-analyze or clear input.`, variant: "default" });
-        logDebug(logPrefix as LogSourceId, 'Bail:TickerMismatch', `Input: ${localFsm.currentInputTicker}, Active: ${localFsm.activeAnalysisTicker}`);
-        return;
-    }
-
-    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'KT_InputCheck_StockSnapshot');
-    const stdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefix, 'KT_InputCheck_StandardTas');
-    const aiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefix, 'KT_InputCheck_AiAnalyzedTa');
-    const marketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefix, 'KT_InputCheck_MarketStatus');
-
-    logDebug(logPrefix as LogSourceId, 'KT_InputDataCheckResults', `SnapshotReady: ${snapshotReady}, StdTaReady: ${stdTaReady}, AiTaReady: ${aiTaReady}, MarketStatusReady: ${marketStatusReady}`);
-    logDebug(logPrefix as LogSourceId, 'PRE_DISPATCH_CHECK_KT', 'Evaluating final dispatch condition for Key Takeaways.');
-    
-    const allPrerequisitesMetForKeyTakeaways = snapshotReady && stdTaReady && aiTaReady && marketStatusReady;
-    logDebug(logPrefix as LogSourceId, 'FINAL_KT_PREREQ_CHECK_COMBINED', `Combined prerequisite for Key Takeaways: ${allPrerequisitesMetForKeyTakeaways}`);
-
-    if (allPrerequisitesMetForKeyTakeaways) {
-      logDebug(logPrefix as LogSourceId, 'Dispatch_INSIDE_IF_KT', 'INSIDE IF for Key Takeaways. Attempting to dispatch MANUAL_KEY_TAKEAWAYS_SUBMITTED.');
-      dispatchLocalFsmEvent({ type: 'MANUAL_KEY_TAKEAWAYS_SUBMITTED' });
-    } else {
-      logDebug(logPrefix as LogSourceId, 'Dispatch_SKIPPED_KT', 'SKIPPED dispatch for Key Takeaways because allPrerequisitesMetForKeyTakeaways was false.');
-      toast({ title: "Data Still Not Ready (KT)", description: "Internal combined prerequisite check failed for AI Key Takeaways. Please check console.", variant: "destructive" });
-    }
+    console.log('[RAW_CLICK_KT_D.D_ATTEMPT]');
+    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_KT_D.D_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
+    dispatchLocalFsmEvent({ type: 'MANUAL_KEY_TAKEAWAYS_SUBMITTED' });
+    console.log('[RAW_CLICK_KT_D.D_DISPATCHED]');
   };
 
   const handleGenerateOptionsAnalysis = () => {
-    console.log('[RAW_CLICK_OPTIONS] Generate AI Options Analysis CLICKED');
-    const logPrefix = 'MainTabContent_FSM:HandleOptions';
-    logDebug(logPrefix as LogSourceId, 'CLICKED_DETAILS', `LocalState: ${localFsm.localState}, ActiveTicker: ${localFsm.activeAnalysisTicker}, CurrentInput: ${localFsm.currentInputTicker}`);
-    
-    if (!localFsm.activeAnalysisTicker) {
-      toast({ title: "No Active Stock", description: "Please analyze a stock first using 'Analyze Stock'.", variant: "default" });
-      logDebug(logPrefix as LogSourceId, 'Bail:NoActiveTicker', 'No activeAnalysisTicker.');
-      return;
-    }
-     if (localFsm.activeAnalysisTicker !== localFsm.currentInputTicker) {
-        toast({ title: "Ticker Mismatch", description: `Current input ticker (${localFsm.currentInputTicker}) does not match the analyzed stock (${localFsm.activeAnalysisTicker}). Please re-analyze or clear input.`, variant: "default" });
-        logDebug(logPrefix as LogSourceId, 'Bail:TickerMismatch', `Input: ${localFsm.currentInputTicker}, Active: ${localFsm.activeAnalysisTicker}`);
-        return;
-    }
-
-    const snapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefix, 'Options_InputCheck_StockSnapshot');
-    const optionsChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefix, 'Options_InputCheck_OptionsChain');
-
-    logDebug(logPrefix as LogSourceId, 'Options_InputDataCheckResults', `SnapshotReady: ${snapshotReady}, OptionsChainReady: ${optionsChainReady}`);
-    logDebug(logPrefix as LogSourceId, 'PRE_DISPATCH_CHECK_OPTIONS', 'Evaluating final dispatch condition for Options Analysis.');
-
-    const allPrerequisitesMetForOptions = snapshotReady && optionsChainReady;
-    logDebug(logPrefix as LogSourceId, 'FINAL_OPT_PREREQ_CHECK_COMBINED', `Combined prerequisite for Options Analysis: ${allPrerequisitesMetForOptions}`);
-
-    if (allPrerequisitesMetForOptions) {
-      logDebug(logPrefix as LogSourceId, 'Dispatch_INSIDE_IF_OPT', 'INSIDE IF for Options Analysis. Attempting to dispatch MANUAL_OPTIONS_ANALYSIS_SUBMITTED.');
-      dispatchLocalFsmEvent({ type: 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED' });
-    } else {
-      logDebug(logPrefix as LogSourceId, 'Dispatch_SKIPPED_OPT', 'SKIPPED dispatch for Options Analysis because allPrerequisitesMetForOptions was false.');
-      toast({ title: "Data Still Not Ready (Options)", description: "Internal combined prerequisite check failed for AI Options Analysis. Please check console.", variant: "destructive" });
-    }
+    console.log('[RAW_CLICK_OPTIONS_D.D_ATTEMPT]');
+    logDebug('MainTabContent' as LogSourceId, 'ONCLICK_OPTIONS_D.D_HANDLER_ENTERED', 'Active Ticker:', localFsm.activeAnalysisTicker);
+    dispatchLocalFsmEvent({ type: 'MANUAL_OPTIONS_ANALYSIS_SUBMITTED' });
+    console.log('[RAW_CLICK_OPTIONS_D.D_DISPATCHED]');
   };
 
 
@@ -528,7 +472,7 @@ export function MainTabContent({
                                      globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
 
   useEffect(() => {
-    const logPrefixDC = 'MainTabContent_FSM:ButtonStateEffect_DC'; // Log prefix for this version
+    const logPrefixDC = 'MainTabContent_FSM:ButtonStateEffect_DC'; 
     console.log(`[${logPrefixDC}_RAW_ENTRY] Button state effect entered.`);
     console.log(`[${logPrefixDC}_LOGDEBUG_TYPE_CHECK] typeof logDebug: ${typeof logDebug}`);
     
@@ -604,6 +548,8 @@ export function MainTabContent({
     
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
+
+    console.log(`[${logPrefixDC}_INTENDED_DISABLED_PROPS_DC] isKtButtonDisabled intended: ${!shouldKtButtonBeEnabled}, isOptButtonDisabled intended: ${!shouldOptButtonBeEnabled}`);
 
     logDebug(logPrefixDC as LogSourceId, 'FINAL_DISABLED_STATE_BOOLEANS_DC', { 
         final_isKtButtonDisabled: !shouldKtButtonBeEnabled, 
