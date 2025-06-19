@@ -1,7 +1,7 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.4
+**Document Version:** 1.5
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
@@ -113,8 +113,19 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
             *   Dependency array for the console interception `useEffect` updated to include these new flags.
         2.  In `StockAnalysisContext.tsx`, a `logDebug` call ("Initial application startup sequence complete...") added to the FSM orchestration `useEffect` to fire when `_isInitialAppStartupComplete` is set to `true`.
 
+### Phase 3: Testing and Debug (Target: `v3.1.3.y`)
+*   **Task v3.1.3.0: Initial Testing & Bug Fixing for Debug Log Enhancements**
+    *   **Status:** `COMPLETED` (Commit: `6b16ba4e`)
+    *   **File(s):** `src/services/data-sources/adapters/polygon-adapter.ts`, `src/contexts/stock-analysis-context.tsx`, `src/components/main-tab-content.tsx`
+    *   **Details:**
+        1.  Fixed issue with `currentPrice` derivation in `PolygonAdapter` becoming `0`, which broke options chain data fetching and subsequent AI Options Analysis. Ensured fallback to `prevDay.c` if current day's prices are `0`. Added check for `currentStockPrice > 0` before options fetching.
+        2.  Refined `set*FsmDisplay` functions in `StockAnalysisContext` to log only when FSM display tuple content actually changes, reducing duplicate logs.
+        3.  Implemented `useRef` guard in `MainTabContent`'s effect for global FSM dispatches to prevent duplicate dispatches for the same logical action.
+
+
 ## 6. Document Changelog
 
+*   **v1.5 (2025-06-20):** Updated status of Task v3.1.3.0 to `COMPLETED` (Commit: `6b16ba4e`). Added details for Phase 3 bug fixes.
 *   **v1.4 (2025-06-20):** Updated status of Task v3.1.2.2 to `COMPLETED` (Commit: `1031efa4`).
 *   **v1.3 (2025-06-20):** Updated status of Task v3.1.2.1 to `COMPLETED` (Commit: `7ab72c10`).
 *   **v1.2 (2025-06-20):** Updated status of Task v3.1.1.2 to `COMPLETED` (Commit: `378c654f`).
@@ -123,4 +134,5 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
+
 
