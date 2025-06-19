@@ -1,7 +1,7 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.2
+**Document Version:** 1.3
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
@@ -92,7 +92,7 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 ### Phase 2: Startup-Specific Log Reduction & UI Toggle (Target: `v3.1.2.y`)
 
 *   **Task v3.1.2.1: Implement Startup State Flag & UI Toggle**
-    *   **Status:** `PENDING`
+    *   **Status:** `COMPLETED` (Commit: `7ab72c10`)
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`, `src/components/debug-settings-card.tsx`.
     *   **Details:**
         1.  In `StockAnalysisContext.tsx`:
@@ -128,11 +128,10 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 
 ## 6. Document Changelog
 
+*   **v1.3 (2025-06-20):** Updated status of Task v3.1.2.1 to `COMPLETED` (Commit: `7ab72c10`).
 *   **v1.2 (2025-06-20):** Updated status of Task v3.1.1.2 to `COMPLETED` (Commit: `378c654f`).
 *   **v1.1 (2025-06-20):** Updated Task v3.1.1.1 status to `COMPLETED` (Commit: `d2ede246`).
 *   **v1.0 (2025-06-19):** Initial document creation. Includes full scope, analysis, risks, and phased implementation plan for Debug Log Enhancements feature (v3.1.x.y).
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
-
-    
