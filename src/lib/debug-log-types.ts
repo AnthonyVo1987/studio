@@ -34,6 +34,7 @@ export const logSourceIds = [
   'MainTabContent_FSM:ButtonStateEffect_DB',
   'MainTabContent_FSM:ButtonStateEffect_DC',
   'MainTabContent_FSM:ButtonStateEffect_DA', 
+  'LogBuffer', // Added new source
 ] as const;
 
 export type LogSourceId = typeof logSourceIds[number];
@@ -71,6 +72,7 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   'MainTabContent_FSM:ButtonStateEffect_DB': true,
   'MainTabContent_FSM:ButtonStateEffect_DC': true,
   'MainTabContent_FSM:ButtonStateEffect_DA': true,
+  LogBuffer: true, // Added new source config
 };
 
 export const logSourceLabels: Record<LogSourceId, string> = {
@@ -104,9 +106,9 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   'MainTabContent_FSM:ButtonStateEffect_DB': 'MTC Button Effect (D.B Minimal)',
   'MainTabContent_FSM:ButtonStateEffect_DC': 'MTC Button Effect (D.C Full)',
   'MainTabContent_FSM:ButtonStateEffect_DA': 'MTC Button Effect (D.A Test)',
+  LogBuffer: 'Log Buffer System', // Added new label
 };
 
 // For DebugConsole.tsx filter UI
-export const logTypes = ['debug', 'info', 'log', 'warn', 'error'] as const;
+export const logTypes = ['debug', 'info', 'log', 'warn', 'error', 'system'] as const; // Added 'system'
 export type LogType = typeof logTypes[number];
-

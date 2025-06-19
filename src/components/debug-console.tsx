@@ -30,7 +30,6 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
-// REMOVED: export const APP_VERSION_FOR_EXPORT = "v3.0.0.1"; 
 
 interface DebugConsoleProps {
   appVersion: string; 
@@ -112,6 +111,9 @@ const generateLogsTxtWithMetadata = (
   metadata += "--------------------------------------------------\n";
 
   const logLines = logs.map(log => {
+    if (log.source === 'LogBuffer' && log.type === 'system') { // Handle wrap marker
+      return `\n--- ${formatLogMessage(log.messages)} ---\n`;
+    }
     const timestamp = `[${new Date(log.timestamp).toISOString()}]`;
     const type = `[${log.type.toUpperCase()}]`;
     const source = log.source ? `[${getSourceLabel(log.source)}]` : '[UNKNOWN_SOURCE]';
@@ -137,6 +139,9 @@ const generateLogsCsvWithMetadata = (
   metadata += "Timestamp,Type,Source,Message\n";
 
   const logRows = logs.map(log => {
+    if (log.source === 'LogBuffer' && log.type === 'system') { // Handle wrap marker for CSV
+      return `"",system,LogBuffer,"${escapeCsvField(formatLogMessage(log.messages))}"`;
+    }
     const timestamp = log.timestamp;
     const type = log.type;
     const source = log.source ? getSourceLabel(log.source) : '';
@@ -183,11 +188,13 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     }
 
     if (currentSearchTerm) {
-      logsToProcess = logsToProcess.filter(log =>
-        formatLogMessage(log.messages).toLowerCase().includes(currentSearchTerm)
-      );
+      logsToProcess = logsToProcess.filter(log => {
+        // Do not filter out system LogBuffer messages by search term
+        if (log.source === 'LogBuffer' && log.type === 'system') return true;
+        return formatLogMessage(log.messages).toLowerCase().includes(currentSearchTerm);
+      });
     }
-
+    // MAX_DISPLAYED_LOGS is now 1000, matching buffer size potentially
     return logsToProcess.slice(Math.max(0, logsToProcess.length - MAX_DISPLAYED_LOGS));
   }, [activeFilters, searchTerm]);
 
@@ -480,26 +487,40 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
             </div>
           ) : (
             <div className="space-y-1 font-code text-xs">
-              {displayedLogs.map((log) => (
-                <div key={log.id} className="flex items-start">
-                  <span className="text-muted-foreground/70 mr-1 whitespace-nowrap">
-                    [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })}]
-                  </span>
-                  <span
-                    className={cn('mr-1 font-semibold uppercase', {
-                      'text-yellow-500 dark:text-yellow-400': log.type === 'warn',
-                      'text-red-500 dark:text-red-400': log.type === 'error',
-                      'text-blue-500 dark:text-blue-400': log.type === 'info',
-                      'text-purple-500 dark:text-purple-400': log.type === 'debug',
-                      'text-gray-500 dark:text-gray-400': log.type === 'log',
-                    })}
-                  >
-                    [{log.type}]
-                  </span>
-                  <span className="text-muted-foreground/80 mr-1">{log.source ? `[${getSourceLabel(log.source)}]` : ''}</span>
-                  <span className="whitespace-pre-wrap break-all">{formatLogMessage(log.messages)}</span>
-                </div>
-              ))}
+              {displayedLogs.map((log) => {
+                if (log.source === 'LogBuffer' && log.type === 'system') {
+                  return (
+                    <div key={log.id} className="my-2 text-center">
+                      <Separator className="mb-1" />
+                      <em className="text-muted-foreground text-xs px-2 py-0.5 rounded bg-muted/50">
+                        {formatLogMessage(log.messages)}
+                      </em>
+                      <Separator className="mt-1" />
+                    </div>
+                  );
+                }
+                return (
+                  <div key={log.id} className="flex items-start">
+                    <span className="text-muted-foreground/70 mr-1 whitespace-nowrap">
+                      [{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })}]
+                    </span>
+                    <span
+                      className={cn('mr-1 font-semibold uppercase', {
+                        'text-yellow-500 dark:text-yellow-400': log.type === 'warn',
+                        'text-red-500 dark:text-red-400': log.type === 'error',
+                        'text-blue-500 dark:text-blue-400': log.type === 'info',
+                        'text-purple-500 dark:text-purple-400': log.type === 'debug',
+                        'text-green-500 dark:text-green-400': log.type === 'system', // Color for system messages
+                        'text-gray-500 dark:text-gray-400': log.type === 'log',
+                      })}
+                    >
+                      [{log.type}]
+                    </span>
+                    <span className="text-muted-foreground/80 mr-1">{log.source ? `[${getSourceLabel(log.source)}]` : ''}</span>
+                    <span className="whitespace-pre-wrap break-all">{formatLogMessage(log.messages)}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ScrollArea>
@@ -507,6 +528,3 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     </Card>
   );
 }
-
-
-    
