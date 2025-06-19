@@ -1,41 +1,43 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y.z)
 
-**Document Version:** 1.4
+**Document Version:** 1.5
 **Date:** 2025-06-20
 **Feature Target Application Version Series:** 3.2.x.y.z
-**Current App Version:** `v3.2.1.2.0`
+**Current App Version:** `v3.2.1.3.0`
 
 ## 1. Overall Feature Status
 
 **Current Status:** `IN PROGRESS`
 **Last Updated:** 2025-06-20
 
-**Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM. Phase 1, Task 2 (v3.2.1.2.0) is complete.
+**Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM. Phase 1, Task 3 (v3.2.1.3.0) is complete.
 
 ## 2. Phase & Task Status
 
 ### **Phase 1: Foundation & Core FSM Setup (FEAT Phase 'x' = 1)**
-*   **Overall Phase Status:** `IN PROGRESS`
+*   **Overall Phase Status:** `IN PROGRESS` (Automated pipeline integration complete, manual actions pending)
 *   **Tasks:**
     *   **Task v3.2.1.0.0: Define Initial Single FSM Structure & Core States**
         *   **Status:** `COMPLETED`
         *   **Commit Hash:** `919db9f2`
         *   **App Version Tag:** `v3.2.1.0.0`
-    *   **Bug Fix Task v3.2.1.0.1: Resolve Repeated `INITIALIZATION_COMPLETE` Dispatch**
+    *   **Bug Fix Task v3.2.1.0.1 (was v3.2.1.1): Resolve Repeated `INITIALIZATION_COMPLETE` Dispatch**
         *   **Status:** `COMPLETED`
         *   **Commit Hash:** `1aefabe1`
         *   **App Version Tag:** `v3.2.1.0.1`
-    *   **Task v3.2.1.1.0: Integrate "Analyze Stock" Button & Input Handling**
+    *   **Task v3.2.1.1.0 (was v3.2.1.2): Integrate "Analyze Stock" Button & Input Handling**
         *   **Status:** `COMPLETED`
         *   **Commit Hash:** `1d1342aa`
         *   **App Version Tag:** `v3.2.1.1.0`
-    *   **Task v3.2.1.2.0: Migrate Data Fetching Pipeline to New FSM**
+    *   **Task v3.2.1.2.0 (was v3.2.1.3): Migrate Data Fetching Pipeline to New FSM**
         *   **Status:** `COMPLETED`
         *   **Commit Hash:** `368c85ab`
         *   **App Version Tag:** `v3.2.1.2.0`
     *   **Task v3.2.1.3.0: Migrate AI TA Calculation to New FSM (Automated Pipeline)**
-        *   **Status:** `PLANNED`
+        *   **Status:** `COMPLETED`
+        *   **Commit Hash:** `2f0acd35`
+        *   **App Version Tag:** `v3.2.1.3.0`
 
 ### **Phase 2: Integrating Manual AI Actions (FEAT Phase 'x' = 2)**
 *   **Overall Phase Status:** `PLANNED`
@@ -75,6 +77,7 @@
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                              | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------- |
+| 2025-06-20 | `v3.2.1.3.0`                             | `2f0acd35`                  | Integrated AI TA calculation pipeline (automated analysis) into the global FSM. App metadata: `v3.2.1.3.0`. Task v3.2.1.3.0 complete.                                           | COMPLETED   |
 | 2025-06-20 | `v3.2.1.2.0`                             | `368c85ab`                  | Integrated data fetching pipeline (automated analysis) into the global FSM. App metadata: `v3.2.1.2.0`. Task v3.2.1.2.0 complete.                                            | COMPLETED   |
 | 2025-06-20 | `v3.2.1.1.0`                             | `1d1342aa`                  | Integrated "Analyze Stock" button & input handling into global FSM. Removed local FSM from MainTabContent. App metadata: `v3.2.1.1.0`. Task v3.2.1.1.0 complete.                  | COMPLETED   |
 | 2025-06-20 | `v3.2.1.0.1`                             | `1aefabe1`                  | Bug Fix for Task v3.2.1.0: Added `useRef` guard to FSM orchestrator to prevent repeated `INITIALIZATION_COMPLETE` dispatches. App metadata: `v3.2.1.0.1`.                 | COMPLETED   |
@@ -83,10 +86,11 @@
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
-*   **v1.4 (2025-06-20):** Updated status of Task v3.2.1.2.0 to `COMPLETED`. Commit hash `368c85ab`. Current App Version `v3.2.1.2.0`.
-*   **v1.3 (2025-06-20):** Updated status of Task v3.2.1.1 (now `v3.2.1.1.0`) to `COMPLETED`. Commit hash `1d1342aa`. Updated app version.
-*   **v1.2 (2025-06-20):** Updated status of Task v3.2.1.0 Bug Fix (now `v3.2.1.0.1`) to `COMPLETED`. Commit hash `1aefabe1`.
-*   **v1.1 (2025-06-20):** Updated status of Task v3.2.1.0 (now `v3.2.1.0.0`) to `COMPLETED`. Commit hash `919db9f2`.
+*   **v1.5 (2025-06-20):** Updated status of Task v3.2.1.3.0 to `COMPLETED`. Commit hash `2f0acd35`. Current App Version `v3.2.1.3.0`.
+*   **v1.4 (2025-06-20):** Updated status of Task v3.2.1.2.0 to `COMPLETED`. Commit hash `368c85ab`. Current App Version `v3.2.1.2.0`. (Formerly v3.2.1.3).
+*   **v1.3 (2025-06-20):** Updated status of Task v3.2.1.1.0 (formerly v3.2.1.2) to `COMPLETED`. Commit hash `1d1342aa`. Updated app version.
+*   **v1.2 (2025-06-20):** Updated status of Task v3.2.1.0 Bug Fix (v3.2.1.0.1, formerly v3.2.1.1) to `COMPLETED`. Commit hash `1aefabe1`.
+*   **v1.1 (2025-06-20):** Updated status of Task v3.2.1.0.0 (formerly v3.2.1.0) to `COMPLETED`. Commit hash `919db9f2`.
 *   **v1.0 (2025-06-20):** Initial document creation. Outlines feature phases, tasks, and initial status as "PLANNED" based on approved scope and user-provided re-phasing. Marks v3.2.1.0 as `COMPLETED` (based on prior AI action). Versioning scheme `3.w.x.y.z` introduced.
 
 ---
