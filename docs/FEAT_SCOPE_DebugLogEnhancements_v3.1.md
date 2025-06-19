@@ -1,7 +1,7 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.8
+**Document Version:** 1.9
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
@@ -76,59 +76,39 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 *   **Task v3.1.1.1: Increase Max Log Buffer Size & Implement Wrap Indicator**
     *   **Status:** `COMPLETED` (Commit: `d2ede246`)
     *   **File(s):** `src/lib/global-log-buffer.ts`, `src/components/debug-console.tsx`, `src/lib/debug-log-types.ts`
-    *   **Details:**
-        1.  Increased `MAX_BUFFER_SIZE` to 1000.
-        2.  Added "LOG BUFFER WRAPPED" marker.
-        3.  Updated `DebugConsole` to highlight marker.
-        4.  Added `LogBuffer` source and `system` type to `debug-log-types.ts`.
-
 *   **Task v3.1.1.2: Initial Pass - Reduce General Log Verbosity**
     *   **Status:** `COMPLETED` (Commit: `378c654f`)
     *   **File(s):** `src/components/main-tab-content.tsx`.
-    *   **Details:**
-        1.  Reviewed and reduced `logDebug` verbosity in the `useEffect` hook (log prefix `MainTabContent_FSM:ButtonStateEffect_DC`) responsible for button state calculations.
-        2.  Consolidated multiple `logDebug` calls into fewer, more summarized logs while retaining critical entry and final decision point information. Individual prerequisite checks via `isDataReadyForProcessing` will continue to provide detailed logs.
 
 ### Phase 2: Startup-Specific Log Reduction & UI Toggle (Target: `v3.1.2.y`)
 
 *   **Task v3.1.2.1: Implement Startup State Flag & UI Toggle**
     *   **Status:** `COMPLETED` (Commit: `7ab72c10`)
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`, `src/components/debug-settings-card.tsx`.
-    *   **Details:**
-        1.  In `StockAnalysisContext.tsx`:
-            *   Add state: `isInitialAppStartupComplete: boolean` (default: `false`).
-            *   Add state: `isReducedStartupLoggingEnabled: boolean` (default: `true`).
-            *   Add setter: `setReducedStartupLoggingEnabled(enabled: boolean): void`.
-            *   In the Global FSM `useEffect` orchestrator, or where `FULL_ANALYSIS_COMPLETE` transitions to `IDLE` for the *first time*: set `isInitialAppStartupComplete = true`. This logic must be idempotent per page load. Consider using a `useRef` to track if it has already been set.
-        2.  In `DebugSettingsCard.tsx`:
-            *   Add a new `<Switch />` and `<Label />` for "Enable Reduced Logging During Initial App Startup", bound to `isReducedStartupLoggingEnabled` and `setReducedStartupLoggingEnabled` from context.
-
 *   **Task v3.1.2.2: Implement Conditional Startup Logging Logic**
     *   **Status:** `COMPLETED` (Commit: `1031efa4`)
-    *   **File(s):** `src/contexts/stock-analysis-context.tsx` (specifically the `useEffect` for console interception and the `useEffect` for FSM orchestration).
-    *   **Details:**
-        1.  Modified the console interception logic in `StockAnalysisContext`:
-            *   Checks `_isInitialAppStartupComplete` and `_isReducedStartupLoggingEnabled` flags.
-            *   If reduced startup logging is active, suppresses non-critical logs from `globalLogBuffer`. Critical sources (`StockAnalysisContext`, `DefinitionLoader`) and `error`/`warn` types are still logged.
-            *   Dependency array for the console interception `useEffect` updated to include these new flags.
-        2.  In `StockAnalysisContext.tsx`, a `logDebug` call ("Initial application startup sequence complete...") added to the FSM orchestration `useEffect` to fire when `_isInitialAppStartupComplete` is set to `true`.
+    *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
 
 ### Phase 3: Testing and Debug (Target: `v3.1.3.y`)
 *   **Task v3.1.3.0: Initial Testing & Bug Fixing for Debug Log Enhancements**
     *   **Status:** `COMPLETED` (Commit: `6b16ba4e`)
-    *   **Details:** Fixed currentPrice derivation in PolygonAdapter (impacting Options Analysis). Refined FSM display logging in StockAnalysisContext to reduce duplicates. Implemented useRef guard in MainTabContent to prevent duplicate global FSM dispatches.
+    *   **Details:** Fixed currentPrice derivation in PolygonAdapter. Refined FSM display logging. Implemented useRef guard for global FSM dispatches.
 *   **Task v3.1.3.1: Follow-up Bug Fixes for Logging & AI Options Path**
     *   **Status:** `COMPLETED` (Commit: `01c34db1`)
-    *   **Details:** Further refined `globalDispatchGuardRef` logic in `MainTabContent`. Strengthened `currentStockPrice` derivation in `PolygonAdapter`. Removed a pre-check in `analyzeOptionsChainFlow`. Enhanced AI prompt for options analysis.
+    *   **Details:** Further refined dispatch guards. Strengthened `currentPrice` logic in PolygonAdapter. Tweaked AI Options flow/prompt.
 *   **Task v3.1.3.2: Final Log Refinements & Guard Logic Verification**
     *   **Status:** `COMPLETED` (Commit: `d369fcfc`)
-    *   **Details:** Further refined FSM dispatch guard reset logic in `MainTabContent.tsx` to be more precise, further reducing duplicate global FSM event dispatches.
+    *   **Details:** Further refined FSM dispatch guard reset logic in `MainTabContent.tsx`.
 *   **Task v3.1.3.3: Refine FSM Dispatch Guard Reset Logic (Further)**
     *   **Status:** `COMPLETED` (Commit: `f0bb42b4`)
-    *   **Details:** Further refined the reset conditions for `globalDispatchGuardRef` in `MainTabContent.tsx` to be highly specific to the completion of the guarded global FSM action for the correct ticker, significantly improving the prevention of duplicate global event dispatches.
+    *   **Details:** Further refined the reset conditions for `globalDispatchGuardRef` in `MainTabContent.tsx` for even more precise control over global FSM event dispatches.
+*   **Task v3.1.3.4: Fix ReferenceError in MainTabContent Dispatch Guard Logic**
+    *   **Status:** `COMPLETED` (Commit: `9aef8261`)
+    *   **Details:** Fixed `ReferenceError: activeAnalysisTickerRef is not defined` in `MainTabContent.tsx` by correctly using `localFsm.activeAnalysisTicker` within the global FSM dispatch guard reset logic.
 
 ## 6. Document Changelog
 
+*   **v1.9 (2025-06-20):** Updated Task v3.1.3.4 status to `COMPLETED` (Commit: `9aef8261`).
 *   **v1.8 (2025-06-20):** Updated status of Task v3.1.3.3 to `COMPLETED` (Commit: `f0bb42b4`). All phases of Debug Log Enhancements feature are now complete.
 *   **v1.7 (2025-06-20):** Updated status of Task v3.1.3.2 to `COMPLETED` (Commit: `d369fcfc`).
 *   **v1.6 (2025-06-20):** Updated status of Task v3.1.3.1 to `COMPLETED` (Commit: `01c34db1`). Added details for Phase 3 follow-up bug fixes.
@@ -142,3 +122,5 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 ---
 This document will be updated as the feature progresses through its implementation phases.
 
+
+    
