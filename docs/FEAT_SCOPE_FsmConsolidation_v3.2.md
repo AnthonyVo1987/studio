@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.1
+**Document Version:** 1.2
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.2.x.y
 **Feature Status:** IN PROGRESS
@@ -83,7 +83,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
         6.  *Adapt Reducer:* Modify the main `fsmReducer` in `StockAnalysisContext` to use the new `GlobalFsmState` enum and manage the new `variables` and `flags` as part of its state updates. Map existing global FSM logic broadly to these new states, initializing flags and variables correctly on transitions (e.g., on `START_FULL_ANALYSIS`, reset data flags, set `activeTicker`).
         7.  *Update Orchestrator and Action Handlers:* Adapt the orchestrator `useEffect` and server action result `useEffect`s to work with the new FSM state structure, dispatch new FSM events, and update new flags/variables.
     *   **Testability:** App should load. The FSM Debug Card (though not yet updated for flags/vars) should reflect the new initial FSM state. Automated pipeline for "Analyze Stock" should still broadly function, with the new FSM states being logged.
-    *   **App Metadata:** Update to `v3.2.1.0`.
+    *   **App Metadata:** Updated to `v3.2.1.0`.
 
 *   **Task v3.2.1.1: [BUG FIX] Resolve Repeated `INITIALIZATION_COMPLETE` Dispatch**
     *   **Status:** `COMPLETED` (Commit: `1aefabe1`)
@@ -91,32 +91,32 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* The `INITIALIZATION_COMPLETE` event was being dispatched multiple times.
         2.  *Implement Guard:* Add a `useRef` (e.g., `initializationDispatchedRef`) in `StockAnalysisContext` to track if `INITIALIZATION_COMPLETE` has already been dispatched by the orchestrator `useEffect`.
-        3.  *Modify Orchestrator:* Ensure the dispatch only occurs if the ref is `false`, then set the ref to `true`.
-    *   **Testability:** Verify `INITIALIZATION_COMPLETE` is dispatched and processed only once during app startup.
-    *   **App Metadata:** Update to `v3.2.1.1`.
+        3.  *Modify Orchestrator:* Ensure the dispatch only occurs if the ref is `false`, then set the ref to `true`. This check should be at the very beginning of the `APP_INITIALIZING` state handling block in the orchestrator.
+    *   **Testability:** Verify `INITIALIZATION_COMPLETE` is dispatched and processed only once during app startup by observing client logs.
+    *   **App Metadata:** Updated to `v3.2.1.1`.
 
 *   **Task v3.2.1.2: Integrate "Analyze Stock" Button & Input Handling**
-    *   **Status:** `PLANNED`
+    *   **Status:** `COMPLETED` (Commit: `7da707fa`)
     *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* The local FSM in `MainTabContent` for ticker input and automated analysis submission needs to be removed. This logic will move to the global FSM.
         2.  *`MainTabContent.tsx` Changes:*
             *   Remove its local FSM reducer and states related to `INPUT_VALID`, `AUTOMATED_PIPELINE_REQUESTED`, etc.
-            *   The `tickerInput` can remain a local `useState` in `MainTabContent`.
-            *   The "Analyze Stock" button's `disabled` attribute should now be derived from `useStockAnalysis().fsmFlags.canAnalyzeStock` and potentially if `useStockAnalysis().fsmState.current` indicates a busy pipeline.
-            *   The `onSubmit` handler for the form (and thus the "Analyze Stock" button) will dispatch a global event: `START_FULL_ANALYSIS` (renamed from `PROCESS_TICKER_AUTOMATED`) with `{ ticker: tickerInput }` as payload.
+            *   The `tickerInput` remains a local `useState` in `MainTabContent`.
+            *   The "Analyze Stock" button's `disabled` attribute is now derived from `useStockAnalysis().fsmFlags.canAnalyzeStock` and if `useStockAnalysis().fsmState.current` indicates a busy pipeline.
+            *   The `onSubmit` handler for the form (and thus the "Analyze Stock" button) dispatches a global event: `START_FULL_ANALYSIS` with `{ ticker: tickerInput }` as payload.
         3.  *`StockAnalysisContext.tsx` (Reducer) Changes:*
             *   Handle `START_FULL_ANALYSIS`:
                 *   Set `variables.userInputTicker = event.payload.ticker`.
                 *   Set `variables.activeTicker = event.payload.ticker`.
                 *   Set `flags.canAnalyzeStock = false`.
-                *   Transition to `PIPELINE_REQUESTED_DATA_FETCH` (or `APP_INITIALIZING` if this is the first analysis, then to `PIPELINE_REQUESTED_DATA_FETCH` via orchestrator).
+                *   Transition to `PIPELINE_REQUESTED_DATA_FETCH`.
                 *   Reset all data availability flags (`isMarketDataReady`, `isSnapshotDataReady`, etc.) to `false`.
                 *   Reset `variables.lastError = null`.
                 *   Invoke `setAllPlaceholdersInternal` to reset context JSON strings.
-            *   Update derivation logic for `flags.canAnalyzeStock`: It should be true if FSM current state is `IDLE`, `AWAITING_TICKER_INPUT`, or `VALID_TICKER_ENTERED` and `variables.userInputTicker` is valid.
-    *   **Testability:** "Analyze Stock" button enables/disables based on global FSM state/flags. Clicking it updates `activeTicker` in the global FSM, resets relevant flags/JSONs, and transitions the global FSM to `APP_INITIALIZING` or `PIPELINE_REQUESTED_DATA_FETCH`.
-    *   **App Metadata:** Update to `v3.2.1.2`.
+            *   Update derivation logic for `flags.canAnalyzeStock`: It should be true if FSM current state is `IDLE`, `AWAITING_TICKER_INPUT`, or `VALID_TICKER_ENTERED` and `variables.userInputTicker` is valid. (This derivation logic will be implemented or refined within the reducer as flags are updated based on state transitions).
+    *   **Testability:** "Analyze Stock" button enables/disables based on global FSM state/flags. Clicking it updates `activeTicker` in the global FSM, resets relevant flags/JSONs, and transitions the global FSM to `PIPELINE_REQUESTED_DATA_FETCH`.
+    *   **App Metadata:** Updated to `v3.2.1.2`.
 
 *   **Task v3.2.1.3: Migrate Data Fetching Pipeline to New FSM**
     *   **Status:** `PLANNED`
@@ -285,8 +285,11 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
-*   **v1.1 (2025-06-20):** Added Task v3.2.1.1 for bug fixing initial FSM structure. Adjusted subsequent task numbering in Phase 1. Updated Implementation Plan to be a 5-phase plan with dedicated Testing (Phase 4) and Documentation/Cleanup (Phase 5).
+*   **v1.2 (2025-06-20):** Updated Task v3.2.1.2 status to `COMPLETED` (Commit: `7da707fa`).
+*   **v1.1 (2025-06-20):** Updated Task v3.2.1.1 status to `COMPLETED` (Commit: `1aefabe1`). Adjusted subsequent task numbering in Phase 1. Updated Implementation Plan to be a 5-phase plan with dedicated Testing (Phase 4) and Documentation/Cleanup (Phase 5).
 *   **v1.0 (2025-06-20):** Initial document creation. Includes full scope, analysis, risks, and phased implementation plan for FSM Consolidation & Refactor feature (v3.2.x.y). Based on approved scope and user-provided re-phasing.
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
+
+    
