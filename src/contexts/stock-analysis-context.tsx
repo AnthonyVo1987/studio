@@ -3,7 +3,8 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, startTransition, useMemo } from 'react';
-import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig, type LogType } from '@/lib/debug-log-types';
+import type { LogSourceId, LogSourceConfig, LogType } from '@/lib/debug-log-types'; // Keep existing imports from debug-log-types
+import { logSourceIds, defaultLogSourceConfig, logTypes as allLogTypes } from '@/lib/debug-log-types'; // For enabling/disabling all
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer';
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
@@ -14,23 +15,22 @@ import { useActionState } from 'react';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
-// New Single Global FSM States
 export enum GlobalFsmState {
-  APP_INITIALIZING = 'APP_INITIALIZING', // Initial state on app load
-  IDLE = 'IDLE', // App is ready for user input or has completed/failed an operation
-  AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT', // App is idle but specifically waiting for a ticker
-  VALID_TICKER_ENTERED = 'VALID_TICKER_ENTERED', // User has entered a valid ticker, ready for analysis submission
+  APP_INITIALIZING = 'APP_INITIALIZING',
+  IDLE = 'IDLE',
+  AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT',
+  VALID_TICKER_ENTERED = 'VALID_TICKER_ENTERED',
   
-  PIPELINE_REQUESTED_DATA_FETCH = 'PIPELINE_REQUESTED_DATA_FETCH', // User submitted ticker for automated analysis
-  DATA_FETCH_IN_PROGRESS = 'DATA_FETCH_IN_PROGRESS', // Data fetching (market, snapshot, TAs, options) is active
-  DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED', // All data fetched successfully
-  DATA_FETCH_FAILED = 'DATA_FETCH_FAILED', // Data fetching failed
+  PIPELINE_REQUESTED_DATA_FETCH = 'PIPELINE_REQUESTED_DATA_FETCH',
+  DATA_FETCH_IN_PROGRESS = 'DATA_FETCH_IN_PROGRESS',
+  DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
+  DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
   
-  CALCULATING_AI_TA = 'CALCULATING_AI_TA', // AI TA calculation (e.g., pivots) is active
+  CALCULATING_AI_TA = 'CALCULATING_AI_TA',
   AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
   
-  PIPELINE_AUTOMATED_COMPLETE = 'PIPELINE_AUTOMATED_COMPLETE', // Entire automated pipeline (fetch + TA) successful
+  PIPELINE_AUTOMATED_COMPLETE = 'PIPELINE_AUTOMATED_COMPLETE',
 
   GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS', 
   KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
@@ -41,9 +41,9 @@ export enum GlobalFsmState {
   OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
 
   ERROR_STALE_DATA = 'ERROR_STALE_DATA', 
+  // CHAT_MESSAGE_PENDING = 'CHAT_MESSAGE_PENDING' // Placeholder
 }
 
-// New FSM Context Variables
 export interface GlobalFsmContextVariables {
   activeTicker: string | null; 
   userInputTicker: string; 
@@ -51,7 +51,6 @@ export interface GlobalFsmContextVariables {
   lastError: { message: string; source: string; details?: any } | null; 
 }
 
-// New FSM Flags
 export interface GlobalFsmFlags {
   canAnalyzeStock: boolean; 
   isMarketDataReady: boolean;
@@ -198,10 +197,10 @@ interface StockAnalysisContextSetters {
 }
 
 interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState'>, StockAnalysisContextSetters {
-  fsmState: GlobalFsmState;
-  previousFsmState: GlobalFsmState | null;
-  fsmVariables: GlobalFsmContextVariables;
-  fsmFlags: GlobalFsmFlags;
+  fsmState: GlobalFsmState; // Expose only the 'current' state directly for simple access
+  previousFsmState: GlobalFsmState | null; // Expose previous for UI display
+  fsmVariables: GlobalFsmContextVariables; // Expose all variables
+  fsmFlags: GlobalFsmFlags; // Expose all flags
 
   addChatMessage: (message: ChatMessage) => void;
   clearChatHistory: () => void;
@@ -277,7 +276,7 @@ const defaultState: StockAnalysisState = {
   isFsmDebugCardEnabled: true,
   isFsmDebugCardOpen: true,
   
-  mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
+  mainTabFsmDisplay: null, // MainTabContent no longer manages its own FSM display state to report
   chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
 
@@ -463,18 +462,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
-      const hasChanged = !(
-        prevDisplay?.current === display?.current &&
-        prevDisplay?.previous === display?.previous &&
-        prevDisplay?.target === display?.target
-      );
-      if (hasChanged) {
-        logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'MainTabFsmDisplay updated.', display);
-        return display;
-      }
-      return prevDisplay;
+      // No longer logging this update as MainTabContent's local FSM is removed for automated pipeline
+      return display; 
     });
-  }, [_setMainTabFsmDisplay, logDebug]);
+  }, [_setMainTabFsmDisplay]);
 
   const setChatbotFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setChatbotFsmDisplay(prevDisplay => {
@@ -517,7 +508,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   ): GlobalFsmReducerManagedState => {
     const previousState = state.current;
     logDebug('StockAnalysisContext', 'GlobalFSM_Event', `Event: ${event.type}, Current State: ${previousState}`);
-    if ('payload' in event && event.type !== 'ADD_CHAT_MESSAGE') {
+    if ('payload' in event && event.type !== 'ADD_CHAT_MESSAGE') { 
         logDebug('StockAnalysisContext', 'GlobalFSM_Payload', `Payload for ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
     }
 
@@ -545,8 +536,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           nextFlags.isOptionsAnalysisDataAvailable = false;
           nextVariables.lastError = null;
           setAllPlaceholdersInternal(event.payload.ticker, true); 
-          nextCurrentState = GlobalFsmState.APP_INITIALIZING;
-          logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> START_FULL_ANALYSIS for ${event.payload.ticker}. To APP_INITIALIZING.`);
+          nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH; 
+          logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> START_FULL_ANALYSIS for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
         }
         break;
 
@@ -570,7 +561,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH: 
         if (event.type === 'TRIGGER_DATA_FETCH') { 
             nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
-            nextFlags.canAnalyzeStock = false; 
+            // canAnalyzeStock remains false
             logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `PIPELINE_REQUESTED_DATA_FETCH -> TRIGGER_DATA_FETCH. To DATA_FETCH_IN_PROGRESS.`);
         }
         break;
@@ -663,10 +654,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 nextCurrentState = GlobalFsmState.VALID_TICKER_ENTERED;
                 nextFlags.canAnalyzeStock = true;
             } else {
-                nextCurrentState = GlobalFsmState.AWAITING_TICKER_INPUT;
-                nextFlags.canAnalyzeStock = false;
+                nextCurrentState = GlobalFsmState.AWAITING_TICKER_INPUT; // Default to awaiting if no valid user input ticker
+                nextFlags.canAnalyzeStock = false; // If no ticker, cannot analyze
             }
             logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> PROCEED_TO_IDLE. To ${nextCurrentState}. canAnalyze: ${nextFlags.canAnalyzeStock}`);
+        } else if (event.type === 'START_FULL_ANALYSIS') { 
+            nextVariables.activeTicker = event.payload.ticker;
+            nextVariables.userInputTicker = event.payload.ticker;
+            nextFlags.canAnalyzeStock = false;
+            nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
+            nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
+            nextFlags.isCalculatedTADataReady = false; nextFlags.isKeyTakeawaysDataAvailable = false;
+            nextFlags.isOptionsAnalysisDataAvailable = false;
+            nextVariables.lastError = null;
+            setAllPlaceholdersInternal(event.payload.ticker, true);
+            nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
+            logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> START_FULL_ANALYSIS (re-analysis) for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
         }
         break;
 
@@ -694,13 +697,30 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.IDLE:
         case GlobalFsmState.AWAITING_TICKER_INPUT:
         case GlobalFsmState.VALID_TICKER_ENTERED:
-            if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.APP_INITIALIZING;
+            if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             break;
         case GlobalFsmState.APP_INITIALIZING:
             if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = GlobalFsmState.AWAITING_TICKER_INPUT; 
             break;
         case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH:
             if (event.type === 'TRIGGER_DATA_FETCH') determinedTarget = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+            break;
+        case GlobalFsmState.DATA_FETCH_SUCCEEDED:
+            if (event.type === 'INITIATE_AI_TA_SEQUENCE') determinedTarget = GlobalFsmState.CALCULATING_AI_TA;
+            break;
+        case GlobalFsmState.CALCULATING_AI_TA:
+            if (event.type === 'AI_TA_SUCCESS') determinedTarget = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
+            else if (event.type === 'AI_TA_FAILURE') determinedTarget = GlobalFsmState.AI_TA_CALCULATION_FAILED;
+            break;
+        case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED:
+             if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') determinedTarget = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
+            break;
+        case GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE:
+        case GlobalFsmState.DATA_FETCH_FAILED:
+        case GlobalFsmState.AI_TA_CALCULATION_FAILED:
+        case GlobalFsmState.ERROR_STALE_DATA:
+             if (event.type === 'PROCEED_TO_IDLE') determinedTarget = GlobalFsmState.IDLE; // Or VALID_TICKER_ENTERED
+             else if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             break;
     }
 
@@ -1009,7 +1029,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     dispatchFsmEvent,
     isFsmDebugCardEnabled: _isFsmDebugCardEnabled, setFsmDebugCardEnabled,
     isFsmDebugCardOpen: _isFsmDebugCardOpen, setFsmDebugCardOpen: _setIsFsmDebugCardOpen,
-    mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
+    mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay, 
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
     debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay,
     isInitialAppStartupComplete: _isInitialAppStartupComplete,
