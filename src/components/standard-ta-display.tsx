@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
@@ -45,61 +46,96 @@ const renderMultiWindowValues = (
   );
 };
 
+const PENDING_STATUS_JSON_VARIANTS = [
+  '{ "status": "pending..." }',
+  '{ "status": "initializing..." }',
+  '{ "status": "full_analysis_pending..." }',
+  '{ "status": "no_analysis_run_yet" }'
+];
 
 export function StandardTaDisplay() {
   const { standardTasJson, logDebug } = useStockAnalysis();
   const componentName = 'StandardTaDisplay';
-  logDebug(componentName, "PropsReceived", "standardTasJson received. Length:", standardTasJson?.length, "Is empty/null:", !standardTasJson || standardTasJson === '{}');
+  const prevJsonRef = useRef<string | null>(null);
 
-  let isLoading = false;
-  let isError = false;
-  let errorOrSkippedMessage: string | null = "Technical indicators data not available.";
-  let parsedTaData: TechnicalIndicatorsData | null = null;
+  const [isLoadingState, setIsLoadingState] = useState(true);
+  const [isErrorState, setIsErrorState] = useState(false);
+  const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState("Technical indicators data not available.");
+  const [parsedTaDataState, setParsedTaDataState] = useState<TechnicalIndicatorsData | null>(null);
 
-  if (standardTasJson && standardTasJson !== '{}') {
-    if (standardTasJson.includes('"status": "initializing"') || standardTasJson.includes('"status": "pending"') || standardTasJson.includes('"status": "full_analysis_pending..."')) {
-      isLoading = true;
-    } else if (standardTasJson.includes('"status": "error"') || standardTasJson.includes('"error":')) {
-        isLoading = false;
-        isError = true;
-        errorOrSkippedMessage = "Error loading technical indicators.";
-        try {
-            const tempData = JSON.parse(standardTasJson);
-            if (tempData.error) errorOrSkippedMessage = tempData.error;
-        } catch(e) { /* Ignore */ }
-    } else if (standardTasJson.includes('"status": "skipped"')) {
-        isLoading = false;
-        isError = true;
-        errorOrSkippedMessage = "Technical indicators loading was skipped.";
+  useEffect(() => {
+    const currentJson = standardTasJson;
+    if (currentJson !== prevJsonRef.current) {
+      logDebug(componentName, "PropsReceived", "standardTasJson prop changed. New Length:", currentJson?.length);
+      prevJsonRef.current = currentJson;
     } else {
-      try {
-        const data = JSON.parse(standardTasJson) as TechnicalIndicatorsData;
-        if (data && typeof data === 'object' && !data.error) { 
-          isLoading = false;
-          isError = false;
-          parsedTaData = data;
-          logDebug(componentName, "DataParsed", "Successfully parsed standardTasJson. Keys:", Object.keys(parsedTaData));
-        } else if (data && data.error) {
-          isLoading = false;
-          isError = true;
-          errorOrSkippedMessage = data.error;
-        } else {
-          isLoading = false;
-          isError = true;
-          errorOrSkippedMessage = "TA data is malformed or incomplete.";
-        }
-      } catch (e) {
-        console.error(`[${componentName}] Failed to parse standardTasJson:`, e);
-        isLoading = false;
-        isError = true;
-        errorOrSkippedMessage = "Failed to parse technical indicators data.";
-      }
+      return;
     }
-  } else {
-    isLoading = false;
-  }
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, parsedTaData exists=${!!parsedTaData}`);
+    let newIsLoading = true;
+    let newIsError = false;
+    let newErrorMsg = "Technical indicators data not available.";
+    let newParsedData: TechnicalIndicatorsData | null = null;
+
+    if (currentJson && currentJson !== '{}') {
+      if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
+        newIsLoading = true;
+        newErrorMsg = "Loading standard TAs...";
+        logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
+      } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
+        newIsLoading = false;
+        newIsError = true;
+        if (currentJson.includes('"status": "skipped"')) {
+          newErrorMsg = "Standard TA loading was skipped.";
+        } else {
+          newErrorMsg = "Error loading standard TAs.";
+          try {
+            const tempData = JSON.parse(currentJson);
+            if (tempData.error) newErrorMsg = tempData.error;
+          } catch(e) { /* Ignore parse error for error message itself */ }
+        }
+        logDebug(componentName, "StateUpdate:ErrorOrSkipped", newErrorMsg);
+      } else {
+        try {
+          const data = JSON.parse(currentJson) as TechnicalIndicatorsData;
+          if (data && typeof data === 'object' && !data.error) { 
+            newIsLoading = false;
+            newIsError = false;
+            newParsedData = data;
+            logDebug(componentName, "DataParsed", "Successfully parsed standardTasJson. Keys:", Object.keys(newParsedData));
+          } else if (data && data.error) {
+            newIsLoading = false;
+            newIsError = true;
+            newErrorMsg = data.error;
+            logDebug(componentName, "StateUpdate:DataErrorField", newErrorMsg);
+          } else {
+            newIsLoading = false;
+            newIsError = true;
+            newErrorMsg = "Standard TA data is malformed or incomplete.";
+            logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
+          }
+        } catch (e) {
+          console.error(`[${componentName}] Failed to parse standardTasJson:`, e, "JSON:", currentJson.substring(0,200));
+          newIsLoading = false;
+          newIsError = true;
+          newErrorMsg = "Failed to parse standard TA data.";
+          logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg);
+        }
+      }
+    } else {
+      newIsLoading = false;
+      newErrorMsg = "No standard TA data to display.";
+      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
+    }
+
+    setIsLoadingState(newIsLoading);
+    setIsErrorState(newIsError);
+    setErrorOrSkippedMessageState(newErrorMsg);
+    setParsedTaDataState(newParsedData);
+
+  }, [standardTasJson, logDebug]);
+  
+  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', parsedData=${!!parsedTaDataState}`);
 
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';
@@ -137,7 +173,7 @@ export function StandardTaDisplay() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isLoadingState ? (
               <>
                 {renderSkeletonRow("rsi")}
                 {renderSkeletonRow("macd")}
@@ -145,27 +181,27 @@ export function StandardTaDisplay() {
                 {renderSkeletonRow("ema")}
                 {renderSkeletonRow("sma")}
               </>
-            ) : isError ? (
+            ) : isErrorState ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                  {errorOrSkippedMessage}
+                  {errorOrSkippedMessageState}
                 </TableCell>
               </TableRow>
-            ) : !parsedTaData || Object.keys(parsedTaData).length === 0 ? (
+            ) : !parsedTaDataState || Object.keys(parsedTaDataState).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                  No standard technical indicators to display.
+                  {errorOrSkippedMessageState}
                 </TableCell>
               </TableRow>
             ) : (
               <>
-                {renderMultiWindowValues("RSI", parsedTaData.RSI, ["7", "10", "14"], "14", rsiSentiment)}
+                {renderMultiWindowValues("RSI", parsedTaDataState.RSI, ["7", "10", "14"], "14", rsiSentiment)}
                 <TableRow>
                   <TableCell className="font-medium">MACD (12,26,9)</TableCell>
                   <TableCell className="text-right">
-                    {parsedTaData.MACD ? (
+                    {parsedTaDataState.MACD ? (
                       <>
-                        {formatToTwoDecimals(parsedTaData.MACD.value)} / {formatToTwoDecimals(parsedTaData.MACD.signal)} / <span className={getSentimentColorClass(macdSentiment(parsedTaData.MACD.histogram))}>{formatToTwoDecimals(parsedTaData.MACD.histogram)}</span>
+                        {formatToTwoDecimals(parsedTaDataState.MACD.value)} / {formatToTwoDecimals(parsedTaDataState.MACD.signal)} / <span className={getSentimentColorClass(macdSentiment(parsedTaDataState.MACD.histogram))}>{formatToTwoDecimals(parsedTaDataState.MACD.histogram)}</span>
                       </>
                     ) : "N/A"}
                   </TableCell>
@@ -173,13 +209,13 @@ export function StandardTaDisplay() {
                 <TableRow>
                   <TableCell className="font-medium">VWAP</TableCell>
                   <TableCell className="text-right">
-                    {parsedTaData.VWAP ? (
-                      `Day: $${formatToTwoDecimals(parsedTaData.VWAP.day)} | Minute: $${formatToTwoDecimals(parsedTaData.VWAP.minute)}`
+                    {parsedTaDataState.VWAP ? (
+                      `Day: $${formatToTwoDecimals(parsedTaDataState.VWAP.day)} | Minute: $${formatToTwoDecimals(parsedTaDataState.VWAP.minute)}`
                     ) : "N/A"}
                   </TableCell>
                 </TableRow>
-                {renderMultiWindowValues("EMA", parsedTaData.EMA, ["5", "10", "20", "50", "200"])}
-                {renderMultiWindowValues("SMA", parsedTaData.SMA, ["5", "10", "20", "50", "200"])}
+                {renderMultiWindowValues("EMA", parsedTaDataState.EMA, ["5", "10", "20", "50", "200"])}
+                {renderMultiWindowValues("SMA", parsedTaDataState.SMA, ["5", "10", "20", "50", "200"])}
               </>
             )}
           </TableBody>
@@ -188,4 +224,3 @@ export function StandardTaDisplay() {
     </Card>
   );
 }
-

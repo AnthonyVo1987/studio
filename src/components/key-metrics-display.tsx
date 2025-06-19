@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
@@ -78,86 +79,124 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
   );
 }
 
+const PENDING_STATUS_JSON_VARIANTS = [
+  '{ "status": "pending..." }',
+  '{ "status": "initializing..." }',
+  '{ "status": "full_analysis_pending..." }',
+  '{ "status": "no_analysis_run_yet" }'
+];
+
 export function KeyMetricsDisplay() {
   const { stockSnapshotJson, logDebug } = useStockAnalysis();
   const componentName = 'KeyMetricsDisplay';
+  const prevJsonRef = useRef<string | null>(null);
 
-  logDebug(componentName, "PropsReceived", "stockSnapshotJson received. Length:", stockSnapshotJson?.length, "Is empty/null:", !stockSnapshotJson || stockSnapshotJson === '{}');
-
-  let tickerDisplay = "N/A";
-  let currentPriceDisplay = "N/A";
-  let todaysChangePerc: number | null = null;
-  let isLoading = true;
-  let isError = false;
-  let dayChangeSentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
-
-  if (stockSnapshotJson && stockSnapshotJson !== '{}') {
-    if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
-      isLoading = true;
-    } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      isLoading = false;
-      isError = true;
+  const [isLoadingState, setIsLoadingState] = useState(true);
+  const [isErrorState, setIsErrorState] = useState(false);
+  const [tickerDisplayState, setTickerDisplayState] = useState("N/A");
+  const [currentPriceDisplayState, setCurrentPriceDisplayState] = useState("N/A");
+  const [todaysChangePercState, setTodaysChangePercState] = useState<number | null>(null);
+  const [dayChangeSentimentState, setDayChangeSentimentState] = useState<'bullish' | 'bearish' | 'neutral'>('neutral');
+  
+  useEffect(() => {
+    const currentJson = stockSnapshotJson;
+    if (currentJson !== prevJsonRef.current) {
+      logDebug(componentName, "PropsReceived", "stockSnapshotJson prop changed. New Length:", currentJson?.length);
+      prevJsonRef.current = currentJson;
     } else {
-      try {
-        const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Keys:", snapshot ? Object.keys(snapshot) : "null");
-        if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
-          isLoading = false;
-          isError = false;
-          tickerDisplay = snapshot.ticker || "N/A";
-          const price = snapshot.currentPrice ?? snapshot.day?.c;
-          currentPriceDisplay = formatCurrency(price, "$", "N/A");
-          todaysChangePerc = snapshot.todaysChangePerc ?? null;
-
-          if (todaysChangePerc !== null) {
-            if (todaysChangePerc > 0) dayChangeSentiment = 'bullish';
-            else if (todaysChangePerc < 0) dayChangeSentiment = 'bearish';
-          }
-        } else {
-          isLoading = false;
-          isError = true;
-        }
-      } catch (e) {
-        console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e);
-        isLoading = false;
-        isError = true;
-      }
+      return; 
     }
-  } else {
-    isLoading = false; 
-  }
 
-  if (isError && !isLoading) { 
-      tickerDisplay = "N/A";
-      currentPriceDisplay = "N/A";
-  }
+    let newIsLoading = true;
+    let newIsError = false;
+    let newTickerDisplay = "N/A";
+    let newCurrentPriceDisplay = "N/A";
+    let newTodaysChangePerc: number | null = null;
+    let newDayChangeSentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+    let errorMsg = "Snapshot data not available.";
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, ticker=${tickerDisplay}, price=${currentPriceDisplay}, changePerc=${todaysChangePerc}`);
+    if (currentJson && currentJson !== '{}') {
+      if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
+        newIsLoading = true;
+        errorMsg = "Loading key metrics...";
+        logDebug(componentName, "StateUpdate:Loading", errorMsg);
+      } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
+        newIsLoading = false;
+        newIsError = true;
+        errorMsg = "Error loading snapshot data for metrics.";
+        logDebug(componentName, "StateUpdate:ErrorOrSkipped", errorMsg);
+      } else {
+        try {
+          const snapshot = JSON.parse(currentJson) as StockSnapshotData;
+          if (snapshot && typeof snapshot === 'object' && snapshot.ticker) {
+            newIsLoading = false;
+            newIsError = false;
+            newTickerDisplay = snapshot.ticker || "N/A";
+            const price = snapshot.currentPrice ?? snapshot.day?.c;
+            newCurrentPriceDisplay = formatCurrency(price, "$", "N/A");
+            newTodaysChangePerc = snapshot.todaysChangePerc ?? null;
+
+            if (newTodaysChangePerc !== null) {
+              if (newTodaysChangePerc > 0) newDayChangeSentiment = 'bullish';
+              else if (newTodaysChangePerc < 0) newDayChangeSentiment = 'bearish';
+            }
+            logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Ticker:", newTickerDisplay);
+          } else {
+            newIsLoading = false;
+            newIsError = true;
+            errorMsg = "Snapshot data malformed for metrics.";
+            logDebug(componentName, "StateUpdate:Malformed", errorMsg);
+          }
+        } catch (e) {
+          console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e, "JSON:", currentJson.substring(0,200));
+          newIsLoading = false;
+          newIsError = true;
+          errorMsg = "Failed to parse snapshot data for metrics.";
+          logDebug(componentName, "StateUpdate:ParseFailed", errorMsg);
+        }
+      }
+    } else {
+      newIsLoading = false; // No JSON means not loading, just default/empty state
+      errorMsg = "No snapshot data available for metrics.";
+      logDebug(componentName, "StateUpdate:NoData", errorMsg);
+    }
+    
+    setIsLoadingState(newIsLoading);
+    setIsErrorState(newIsError);
+    setTickerDisplayState(newTickerDisplay);
+    setCurrentPriceDisplayState(newCurrentPriceDisplay);
+    setTodaysChangePercState(newTodaysChangePerc);
+    setDayChangeSentimentState(newDayChangeSentiment);
+
+  }, [stockSnapshotJson, logDebug]);
+  
+  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, ticker=${tickerDisplayState}, price=${currentPriceDisplayState}, changePerc=${todaysChangePercState}`);
+
+  const displayValueForDayChange = isLoadingState ? "Loading..." : (isErrorState || todaysChangePercState === null ? "N/A" : formatPercentage(todaysChangePercState, "N/A", true, 2));
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <KeyMetricCard
         label="Ticker"
-        value={tickerDisplay}
+        value={tickerDisplayState}
         icon={<Hash className="h-4 w-4" />}
-        isLoading={isLoading}
+        isLoading={isLoadingState}
         sentiment="neutral"
       />
       <KeyMetricCard
         label="Current Price"
-        value={currentPriceDisplay}
+        value={currentPriceDisplayState}
         icon={<DollarSign className="h-4 w-4" />}
-        isLoading={isLoading}
+        isLoading={isLoadingState}
         sentiment="neutral"
       />
       <KeyMetricCard
         label="Day's Change"
-        value={isLoading ? "Loading..." : (isError || todaysChangePerc === null ? "N/A" : formatPercentage(todaysChangePerc, "N/A", true, 2))}
-        changePercent={todaysChangePerc}
-        isLoading={isLoading}
-        sentiment={dayChangeSentiment}
+        value={displayValueForDayChange}
+        changePercent={todaysChangePercState}
+        isLoading={isLoadingState}
+        sentiment={dayChangeSentimentState}
       />
     </div>
   );
 }
-

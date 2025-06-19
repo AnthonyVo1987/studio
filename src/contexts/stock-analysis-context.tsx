@@ -2,7 +2,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, startTransition } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, startTransition, useMemo } from 'react';
 import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer';
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
@@ -613,11 +613,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case FsmState.GENERATING_KEY_TAKEAWAYS:
         if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') { // Re-triggering while already generating
             logDebug('StockAnalysisContext', 'FSM_Reducer_Action', `GENERATING_KEY_TAKEAWAYS -> Retriggering TRIGGER_MANUAL_KEY_TAKEAWAYS for ${event.payload.ticker}. Remains in GENERATING_KEY_TAKEAWAYS.`);
-            // Potentially reset placeholders if needed or just let the ongoing action complete/fail
             contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
             contextSetters.setAiKeyTakeawaysJson(pendingJson);
-            activeAnalysisTickerRef.current = event.payload.ticker; // Update ticker if different
-            // No state change, the orchestrator will pick up the new action call
+            activeAnalysisTickerRef.current = event.payload.ticker; 
             return { ...currentHistory, previous: currentActualState }; 
         }
         if (event.type === 'KEY_TAKEAWAYS_SUCCESS') {
@@ -662,7 +660,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (event.type === 'PROCEED_TO_IDLE') {
             logDebug('StockAnalysisContext', 'FSM_Transition', `${currentActualState} -> PROCEED_TO_IDLE. isFullAnalysisTriggered: ${_isFullAnalysisTriggeredInternalState}. Active Ticker: ${activeAnalysisTickerRef.current}. Transitioning to IDLE.`);
             _setIsFullAnalysisTriggeredInternalState(false);
-            // activeAnalysisTickerRef.current = null; // Keep for manual re-runs until new analysis starts
             nextCurrentState = FsmState.IDLE;
         } else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') {
           activeAnalysisTickerRef.current = event.payload.ticker;
@@ -741,11 +738,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             break;
         case FsmState.GENERATING_KEY_TAKEAWAYS:
             if (event.type === 'KEY_TAKEAWAYS_SUCCESS' || event.type === 'KEY_TAKEAWAYS_FAILURE') determinedTarget = FsmState.FULL_ANALYSIS_COMPLETE;
-            else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = FsmState.GENERATING_KEY_TAKEAWAYS; // Stay if re-triggered
+            else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = FsmState.GENERATING_KEY_TAKEAWAYS; 
             break;
         case FsmState.ANALYZING_OPTIONS:
             if (event.type === 'OPTIONS_ANALYSIS_SUCCESS' || event.type === 'OPTIONS_ANALYSIS_FAILURE') determinedTarget = FsmState.FULL_ANALYSIS_COMPLETE;
-            else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = FsmState.ANALYZING_OPTIONS; // Stay if re-triggered
+            else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = FsmState.ANALYZING_OPTIONS; 
             break;
         case FsmState.FULL_ANALYSIS_COMPLETE:
             if (event.type === 'PROCEED_TO_IDLE') determinedTarget = FsmState.IDLE;
@@ -872,7 +869,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   // Effect for Global FSM Pipeline Orchestration
   useEffect(() => {
     const currentGlobalFsmState = fsmHistoryRef.current.current;
-    const currentGlobalFsmStatePrev = fsmHistoryRef.current.previous; // For re-trigger checks
+    const currentGlobalFsmStatePrev = fsmHistoryRef.current.previous; 
     logDebug('StockAnalysisContext', 'FSM_Orchestrator', `Global FSM Orchestrator. State: ${currentGlobalFsmState}, Prev: ${currentGlobalFsmStatePrev}, ActiveTicker: ${activeAnalysisTickerRef.current}, FullAnalysisTriggered: ${_isFullAnalysisTriggeredInternalState}`);
 
     if (currentGlobalFsmState === FsmState.INITIALIZING_ANALYSIS) {
@@ -906,7 +903,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState} (full analysis). Dispatching FINALIZE_AUTOMATED_PIPELINE.`);
         _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     } else if (currentGlobalFsmState === FsmState.GENERATING_KEY_TAKEAWAYS && activeAnalysisTickerRef.current) {
-        // Check if this state was just entered from IDLE or FULL_ANALYSIS_COMPLETE to prevent re-calls if action is already pending
         if (currentGlobalFsmStatePrev === FsmState.IDLE || currentGlobalFsmStatePrev === FsmState.FULL_ANALYSIS_COMPLETE || currentGlobalFsmStatePrev === FsmState.KEY_TAKEAWAYS_FAILED || currentGlobalFsmStatePrev === FsmState.KEY_TAKEAWAYS_SUCCEEDED) {
             logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is GENERATING_KEY_TAKEAWAYS for ${activeAnalysisTickerRef.current}. Prereq JSONs: Snapshot(${_stockSnapshotJson.substring(0,30)}), StdTA(${_standardTasJson.substring(0,30)}), AiTA(${_aiAnalyzedTaJson.substring(0,30)}), MktStatus(${_marketStatusJson.substring(0,30)})`);
             if (_stockSnapshotJson && _standardTasJson && _aiAnalyzedTaJson && _marketStatusJson &&
@@ -1043,8 +1039,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
   }, [performAiOptionsAnalysisActionState, dispatchFsmEvent, logDebug]);
 
-
-  const contextValue: StockAnalysisContextType = {
+  const contextValue: StockAnalysisContextType = useMemo(() => ({
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson,
     polygonApiResponseLogJson: _polygonApiResponseLogJson, setPolygonApiResponseLogJson,
     marketStatusJson: _marketStatusJson, setMarketStatusJson,
@@ -1059,12 +1054,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson,
     chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson,
     chatbotResponseJson: _chatbotResponseJson, setChatbotResponseJson,
-
     isFullAnalysisTriggered: _isFullAnalysisTriggeredInternalState,
     chatHistory,
     addChatMessage,
     clearChatHistory,
-
     isClientDebugConsoleEnabled: _isClientDebugConsoleEnabled, isClientDebugConsoleOpen: _isClientDebugConsoleOpen,
     logSourceConfig: _logSourceConfig,
     setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
@@ -1081,7 +1074,33 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
     debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay,
-  };
+  }), [
+    _polygonApiRequestLogJson, setPolygonApiRequestLogJson,
+    _polygonApiResponseLogJson, setPolygonApiResponseLogJson,
+    _marketStatusJson, setMarketStatusJson,
+    _stockSnapshotJson, setStockSnapshotJson,
+    _standardTasJson, setStandardTasJson,
+    _optionsChainJson, setOptionsChainJson,
+    _aiAnalyzedTaRequestJson, setAiAnalyzedTaRequestJson,
+    _aiAnalyzedTaJson, setAiAnalyzedTaJson,
+    _aiOptionsAnalysisRequestJson, setAiOptionsAnalysisRequestJson,
+    _aiOptionsAnalysisJson, setAiOptionsAnalysisJson,
+    _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson,
+    _aiKeyTakeawaysJson, setAiKeyTakeawaysJson,
+    _chatbotRequestJson, setChatbotRequestJson,
+    _chatbotResponseJson, setChatbotResponseJson,
+    _isFullAnalysisTriggeredInternalState,
+    chatHistory, addChatMessage, clearChatHistory,
+    _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
+    _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
+    setLogSourceEnabled, enableAllLogSources, disableAllLogSources,
+    logDebug, fsmHistory, _targetFsmDisplayState, dispatchFsmEvent,
+    _isFsmDebugCardEnabled, setFsmDebugCardEnabled,
+    _isFsmDebugCardOpen, _setIsFsmDebugCardOpen,
+    _mainTabFsmDisplay, setMainTabFsmDisplay,
+    _chatbotFsmDisplay, setChatbotFsmDisplay,
+    _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay
+  ]);
 
   return (
     <StockAnalysisContext.Provider value={contextValue}>
@@ -1097,6 +1116,3 @@ export function useStockAnalysis() {
   }
   return context;
 }
-
-
-    

@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
@@ -38,109 +39,138 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
   );
 };
 
+const PENDING_STATUS_JSON_VARIANTS = [
+  '{ "status": "pending..." }',
+  '{ "status": "initializing..." }',
+  '{ "status": "full_analysis_pending..." }',
+  '{ "status": "no_analysis_run_yet" }'
+];
+
 export function StockSnapshotDetailsDisplay() {
   const { stockSnapshotJson, logDebug } = useStockAnalysis();
   const componentName = 'StockSnapshotDetailsDisplay';
-  logDebug(componentName, "PropsReceived", "stockSnapshotJson received. Length:", stockSnapshotJson?.length, "Is empty/null:", !stockSnapshotJson || stockSnapshotJson === '{}');
+  const prevJsonRef = useRef<string | null>(null);
 
-  let isLoading = false;
-  let isError = false;
-  let errorOrSkippedMessage = "Snapshot data not available.";
-  let details: StockDetailItem[] = [];
-  let parsedSnapshotData: StockSnapshotData | null = null;
+  const [isLoadingState, setIsLoadingState] = useState(true);
+  const [isErrorState, setIsErrorState] = useState(false);
+  const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState("Snapshot data not available.");
+  const [detailsState, setDetailsState] = useState<StockDetailItem[]>([]);
+  const [parsedSnapshotDataState, setParsedSnapshotDataState] = useState<StockSnapshotData | null>(null);
 
-  if (stockSnapshotJson && stockSnapshotJson !== '{}') {
-    if (stockSnapshotJson.includes('"status": "initializing"') || stockSnapshotJson.includes('"status": "pending"') || stockSnapshotJson.includes('"status": "full_analysis_pending..."')) {
-      isLoading = true;
-    } else if (stockSnapshotJson.includes('"error":') || stockSnapshotJson.includes('"status": "skipped"')) {
-      isLoading = false;
-      isError = true;
-      if (stockSnapshotJson.includes('"status": "skipped"')) {
-        errorOrSkippedMessage = "Snapshot data loading was skipped.";
+  useEffect(() => {
+    const currentJson = stockSnapshotJson;
+    if (currentJson !== prevJsonRef.current) {
+      logDebug(componentName, "PropsReceived", "stockSnapshotJson prop changed. New Length:", currentJson?.length);
+      prevJsonRef.current = currentJson;
+    } else {
+      return;
+    }
+
+    let newIsLoading = true;
+    let newIsError = false;
+    let newErrorMsg = "Snapshot data not available.";
+    let newDetails: StockDetailItem[] = [];
+    let newParsedSnapshotData: StockSnapshotData | null = null;
+
+    if (currentJson && currentJson !== '{}') {
+      if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
+        newIsLoading = true;
+        newErrorMsg = "Loading snapshot details...";
+        logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
+      } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
+        newIsLoading = false;
+        newIsError = true;
+        if (currentJson.includes('"status": "skipped"')) {
+          newErrorMsg = "Snapshot data loading was skipped.";
+        } else {
+          newErrorMsg = "Error loading snapshot data.";
+        }
+        logDebug(componentName, "StateUpdate:ErrorOrSkipped", newErrorMsg);
       } else {
-        errorOrSkippedMessage = "Error loading snapshot data.";
+        try {
+          const data = JSON.parse(currentJson) as StockSnapshotData;
+          if (data && typeof data === 'object' && data.ticker) {
+            newIsLoading = false;
+            newIsError = false;
+            newParsedSnapshotData = data;
+            logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Ticker:", newParsedSnapshotData.ticker);
+
+            const change = newParsedSnapshotData.todaysChange ?? 0;
+            const changePerc = newParsedSnapshotData.todaysChangePerc ?? null;
+            const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
+
+            const criticalDetails: StockDetailItem[] = [
+              { label: "Current Price", value: formatCurrency(newParsedSnapshotData.currentPrice)},
+              { label: "Today's Change %", value: formatPercentage(changePerc, "N/A", true, 2), sentiment: changeSentiment },
+              { label: "Today's Change", value: formatCurrency(change, "$", "N/A"), sentiment: changeSentiment },
+              { label: "Day's VWAP", value: formatCurrency(newParsedSnapshotData.day?.vw) },
+              { label: "Day's Volume", value: formatCompactNumber(newParsedSnapshotData.day?.v) },
+              { label: "Day's Close", value: formatCurrency(newParsedSnapshotData.day?.c) },
+            ];
+            const dayDetails: StockDetailItem[] = [
+              { label: "Day's Open", value: formatCurrency(newParsedSnapshotData.day?.o) },
+              { label: "Day's High", value: formatCurrency(newParsedSnapshotData.day?.h) },
+              { label: "Day's Low", value: formatCurrency(newParsedSnapshotData.day?.l) },
+            ];
+            const prevDayDetails: StockDetailItem[] = [
+              { label: "Prev. Open", value: formatCurrency(newParsedSnapshotData.prevDay?.o) },
+              { label: "Prev. High", value: formatCurrency(newParsedSnapshotData.prevDay?.h) },
+              { label: "Prev. Low", value: formatCurrency(newParsedSnapshotData.prevDay?.l) },
+              { label: "Prev. Close", value: formatCurrency(newParsedSnapshotData.prevDay?.c) },
+              { label: "Prev. Volume", value: formatCompactNumber(newParsedSnapshotData.prevDay?.v) },
+              { label: "Prev. VWAP", value: formatCurrency(newParsedSnapshotData.prevDay?.vw) },
+            ];
+            newDetails = [...criticalDetails, ...dayDetails, ...prevDayDetails];
+          } else {
+            newIsLoading = false;
+            newIsError = true;
+            newErrorMsg = "Snapshot data malformed for details display.";
+            logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
+          }
+        } catch (e) {
+          console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e, "JSON:", currentJson.substring(0,200));
+          newIsLoading = false;
+          newIsError = true;
+          newErrorMsg = "Failed to parse snapshot data for details display.";
+          logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg);
+        }
       }
     } else {
-      try {
-        const data = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-        if (data && typeof data === 'object' && data.ticker) {
-          isLoading = false;
-          isError = false;
-          parsedSnapshotData = data;
-          logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Keys:", Object.keys(parsedSnapshotData));
-
-          const change = parsedSnapshotData.todaysChange ?? 0;
-          const changePerc = parsedSnapshotData.todaysChangePerc ?? null;
-          const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
-
-          const criticalDetails: StockDetailItem[] = [
-            { label: "Current Price", value: formatCurrency(parsedSnapshotData.currentPrice)},
-            { label: "Today's Change %", value: formatPercentage(changePerc, "N/A", true, 2), sentiment: changeSentiment },
-            { label: "Today's Change", value: formatCurrency(change, "$", "N/A"), sentiment: changeSentiment },
-            { label: "Day's VWAP", value: formatCurrency(parsedSnapshotData.day?.vw) },
-            { label: "Day's Volume", value: formatCompactNumber(parsedSnapshotData.day?.v) },
-            { label: "Day's Close", value: formatCurrency(parsedSnapshotData.day?.c) },
-          ];
-
-          const dayDetails: StockDetailItem[] = [
-            { label: "Day's Open", value: formatCurrency(parsedSnapshotData.day?.o) },
-            { label: "Day's High", value: formatCurrency(parsedSnapshotData.day?.h) },
-            { label: "Day's Low", value: formatCurrency(parsedSnapshotData.day?.l) },
-          ];
-
-          const prevDayDetails: StockDetailItem[] = [
-            { label: "Prev. Open", value: formatCurrency(parsedSnapshotData.prevDay?.o) },
-            { label: "Prev. High", value: formatCurrency(parsedSnapshotData.prevDay?.h) },
-            { label: "Prev. Low", value: formatCurrency(parsedSnapshotData.prevDay?.l) },
-            { label: "Prev. Close", value: formatCurrency(parsedSnapshotData.prevDay?.c) },
-            { label: "Prev. Volume", value: formatCompactNumber(parsedSnapshotData.prevDay?.v) },
-            { label: "Prev. VWAP", value: formatCurrency(parsedSnapshotData.prevDay?.vw) },
-          ];
-
-          details = [
-            ...criticalDetails,
-            ...dayDetails,
-            ...prevDayDetails,
-          ];
-        } else {
-          isLoading = false;
-          isError = true;
-          errorOrSkippedMessage = "Snapshot data is malformed or incomplete.";
-        }
-      } catch (e) {
-        console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e);
-        isLoading = false;
-        isError = true;
-        errorOrSkippedMessage = "Failed to parse snapshot data.";
-      }
+      newIsLoading = false;
+      newErrorMsg = "No snapshot data available for details display.";
+      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
     }
-  } else {
-    isLoading = false;
-  }
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', details.length=${details.length}, parsedSnapshotData exists=${!!parsedSnapshotData}`);
+    setIsLoadingState(newIsLoading);
+    setIsErrorState(newIsError);
+    setErrorOrSkippedMessageState(newErrorMsg);
+    setDetailsState(newDetails);
+    setParsedSnapshotDataState(newParsedSnapshotData);
+
+  }, [stockSnapshotJson, logDebug]);
+
+  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', details=${detailsState.length}, parsedData=${!!parsedSnapshotDataState}`);
   const placeholderRowCount = 10;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock Snapshot Details</CardTitle>
-        <CardDescription>Detailed price and volume information for {parsedSnapshotData?.ticker || "the selected ticker"}.</CardDescription>
+        <CardDescription>Detailed price and volume information for {parsedSnapshotDataState?.ticker || "the selected ticker"}.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableBody>
-            {isLoading
+            {isLoadingState
               ? Array.from({ length: placeholderRowCount }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
-              : isError
-                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessage}</TableCell></TableRow>
-                : !parsedSnapshotData || details.length === 0
-                    ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">No snapshot data to display.</TableCell></TableRow>
-                    : details.map((item, index) => renderDetailRow(item, index, false))}
+              : isErrorState
+                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessageState}</TableCell></TableRow>
+                : !parsedSnapshotDataState || detailsState.length === 0
+                    ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessageState}</TableCell></TableRow>
+                    : detailsState.map((item, index) => renderDetailRow(item, index, false))}
           </TableBody>
         </Table>
       </CardContent>
     </Card>
   );
 }
-

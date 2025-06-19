@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
@@ -17,7 +17,8 @@ interface MarketDetailItem {
 const PENDING_STATUS_JSON_VARIANTS = [
   '{ "status": "pending..." }',
   '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }'
+  '{ "status": "full_analysis_pending..." }',
+  '{ "status": "no_analysis_run_yet" }' 
 ];
 
 const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boolean) => {
@@ -40,49 +41,65 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 export function MarketStatusDisplay() {
   const { marketStatusJson, logDebug } = useStockAnalysis();
   const componentName = 'MarketStatusDisplay';
+  const prevMarketStatusJsonRef = useRef<string | null>(null);
 
   const [formattedServerTime, setFormattedServerTime] = useState<string>("Loading server time...");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Start true
   const [isError, setIsError] = useState<boolean>(false);
   const [errorOrSkippedMessage, setErrorOrSkippedMessage] = useState<string | null>("Market status data not available.");
   const [details, setDetails] = useState<MarketDetailItem[]>([]);
 
   useEffect(() => {
-    logDebug(componentName, "PropsReceived", "marketStatusJson received. Length:", marketStatusJson?.length, "Is empty/null:", !marketStatusJson || marketStatusJson === '{}');
+    const currentJson = marketStatusJson;
+    const prevJson = prevMarketStatusJsonRef.current;
+
+    if (currentJson !== prevJson) {
+      logDebug(componentName, "PropsReceived", "marketStatusJson prop changed. New Length:", currentJson?.length, "Is empty/null:", !currentJson || currentJson === '{}');
+      prevMarketStatusJsonRef.current = currentJson;
+    } else {
+      // If prop string reference hasn't changed, no need to re-process or log "PropsReceived" again.
+      // The component might re-render due to parent, but this effect shouldn't re-log this specific message.
+      return;
+    }
+    
     let currentIsLoading = false;
     let currentIsError = false;
     let currentErrorOrSkippedMessage: string | null = "Market status data not available.";
     let currentDetails: MarketDetailItem[] = [];
 
-    if (!marketStatusJson || marketStatusJson === '{}') {
+    if (!currentJson || currentJson === '{}') {
       currentIsLoading = false;
       currentIsError = false; 
       currentErrorOrSkippedMessage = "No market status data. Ensure stock data was fetched.";
-    } else if (PENDING_STATUS_JSON_VARIANTS.includes(marketStatusJson.trim())) {
+      logDebug(componentName, "StateUpdate:NoData", currentErrorOrSkippedMessage);
+    } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
       currentIsLoading = true;
       currentIsError = false;
-      currentErrorOrSkippedMessage = ""; 
-    } else if (marketStatusJson.includes('"status": "error"') || marketStatusJson.includes('"error":')) {
+      currentErrorOrSkippedMessage = "Loading market status..."; 
+      logDebug(componentName, "StateUpdate:Loading", currentErrorOrSkippedMessage);
+    } else if (currentJson.includes('"status": "error"') || currentJson.includes('"error":')) {
       currentIsLoading = false;
       currentIsError = true;
       try {
-        const statusObj = JSON.parse(marketStatusJson);
+        const statusObj = JSON.parse(currentJson);
         currentErrorOrSkippedMessage = statusObj.message || statusObj.error || "Error loading market status.";
       } catch (e) {
         currentErrorOrSkippedMessage = "Error loading market status (failed to parse error JSON).";
       }
-    } else if (marketStatusJson.includes('"status": "skipped"')) {
+      logDebug(componentName, "StateUpdate:Error", currentErrorOrSkippedMessage);
+    } else if (currentJson.includes('"status": "skipped"')) {
       currentIsLoading = false;
-      currentIsError = true;
+      currentIsError = true; // Treat skipped as an error for display purposes
       try {
-        const statusObj = JSON.parse(marketStatusJson);
+        const statusObj = JSON.parse(currentJson);
         currentErrorOrSkippedMessage = statusObj.message || "Market status loading was skipped.";
       } catch (e) {
         currentErrorOrSkippedMessage = "Market status loading was skipped (failed to parse skipped JSON).";
       }
+      logDebug(componentName, "StateUpdate:Skipped", currentErrorOrSkippedMessage);
     } else {
       try {
-        const data = JSON.parse(marketStatusJson) as MarketStatusData;
+        const data = JSON.parse(currentJson) as MarketStatusData;
         if (data && typeof data === 'object' && !data.error) {
           currentIsLoading = false;
           currentIsError = false;
@@ -119,12 +136,14 @@ export function MarketStatusDisplay() {
            }
            currentIsLoading = false;
            currentIsError = true;
+           logDebug(componentName, "StateUpdate:Malformed", currentErrorOrSkippedMessage);
         }
       } catch (e) {
-        console.error(`[${componentName}] (effect) Failed to parse marketStatusJson:`, e);
+        console.error(`[${componentName}] (effect) Failed to parse marketStatusJson:`, e, "JSON:", currentJson.substring(0,200));
         currentIsLoading = false;
         currentIsError = true;
         currentErrorOrSkippedMessage = "Failed to parse market status data.";
+        logDebug(componentName, "StateUpdate:ParseFailed", currentErrorOrSkippedMessage);
       }
     }
     
@@ -136,22 +155,26 @@ export function MarketStatusDisplay() {
   }, [marketStatusJson, logDebug]);
 
 
-  const finalDetails = [...details];
+  const finalDetailsToRender = [...details];
   if (!isLoading && !isError && errorOrSkippedMessage === null) {
-    const serverTimeDetailIndex = finalDetails.findIndex(d => d.label === "Server Time (ET)");
+    const serverTimeDetailIndex = finalDetailsToRender.findIndex(d => d.label === "Server Time (ET)");
     if (serverTimeDetailIndex > -1) {
-        finalDetails[serverTimeDetailIndex].value = formattedServerTime;
+        finalDetailsToRender[serverTimeDetailIndex].value = formattedServerTime;
     } else {
-        const marketStatusIndex = finalDetails.findIndex(d => d.label === "Late Hours Trading");
+        const marketStatusIndex = finalDetailsToRender.findIndex(d => d.label === "Late Hours Trading");
         if (marketStatusIndex !== -1) {
-            finalDetails.splice(marketStatusIndex + 1, 0, { label: "Server Time (ET)", value: formattedServerTime });
+            finalDetailsToRender.splice(marketStatusIndex + 1, 0, { label: "Server Time (ET)", value: formattedServerTime });
         } else {
-             finalDetails.push({ label: "Server Time (ET)", value: formattedServerTime });
+             finalDetailsToRender.push({ label: "Server Time (ET)", value: formattedServerTime });
         }
     }
   }
+  
+  // This log now more accurately reflects the processed state after useEffect.
+  // It will still log on re-renders not caused by marketStatusJson change, but its content will be stable then.
+  // The key is that the "PropsReceived" and parsing logic logs inside useEffect are now conditional.
+  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorMsg='${errorOrSkippedMessage}', details=${finalDetailsToRender.length}`);
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage=${errorOrSkippedMessage}, details.length=${finalDetails.length}, formattedServerTime=${formattedServerTime}`);
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 4);
 
   return (
@@ -167,8 +190,8 @@ export function MarketStatusDisplay() {
               ? Array.from({ length: placeholderRows }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
               : isError && errorOrSkippedMessage
                 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessage}</TableCell></TableRow>
-                : finalDetails.length > 0 && finalDetails.some(d => d.value && d.value !== "N/A")
-                    ? finalDetails.map((item, index) => renderDetailRow(item, index, false))
+                : finalDetailsToRender.length > 0 && finalDetailsToRender.some(d => d.value && d.value !== "N/A")
+                    ? finalDetailsToRender.map((item, index) => renderDetailRow(item, index, false))
                     : <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessage || "No applicable market status to display."}</TableCell></TableRow>}
           </TableBody>
         </Table>

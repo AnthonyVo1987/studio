@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,14 +64,14 @@ const categoryLabels: Record<TakeawayCategory, string> = {
   patterns: "Patterns",
 };
 
-const getTickerFromSnapshot = (snapshotJson: string, logDebug: Function): string => {
+const getTickerFromSnapshot = (snapshotJson: string, logDebugFn: Function, compName: string): string => {
   try {
     if (snapshotJson && snapshotJson !== '{}' && !snapshotJson.includes('"status":') && !snapshotJson.includes('"error":')) {
       const snapshotData = JSON.parse(snapshotJson) as StockSnapshotData;
       return snapshotData?.ticker?.toUpperCase() || "STOCK";
     }
   } catch (e) {
-    logDebug('AiKeyTakeawaysDisplay:getTickerFromSnapshot', "Failed to parse stockSnapshotJson for ticker", e);
+    logDebugFn(compName, "GetTickerError", "Failed to parse stockSnapshotJson for ticker", e);
   }
   return "STOCK";
 };
@@ -107,97 +108,121 @@ const generateKeyTakeawaysCsv = (data: StockAnalysisOutput): string => {
 const PENDING_STATUS_JSON_VARIANTS = [
   '{ "status": "pending..." }',
   '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }'
+  '{ "status": "full_analysis_pending..." }',
+  '{ "status": "no_analysis_run_yet" }'
 ];
 
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
-  const jsonString = aiKeyTakeawaysJson;
   const componentName = 'AiKeyTakeawaysDisplay';
+  const prevJsonRef = useRef<string | null>(null);
 
-  logDebug(componentName, "PropsReceived", "aiKeyTakeawaysJson received. Length:", jsonString?.length, "Is empty/null:", !jsonString || jsonString === '{}');
-
-  let isLoading = false;
-  let isError = false;
-  let errorOrSkippedMessage = "AI Key Takeaways not available.";
-  let parsedTakeawaysData: StockAnalysisOutput | null = null;
-  let displayTakeaways: TakeawayDisplayItem[] = [];
+  const [isLoadingState, setIsLoadingState] = useState(true);
+  const [isErrorState, setIsErrorState] = useState(false);
+  const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState("AI Key Takeaways not available.");
+  const [parsedTakeawaysDataState, setParsedTakeawaysDataState] = useState<StockAnalysisOutput | null>(null);
+  const [displayTakeawaysState, setDisplayTakeawaysState] = useState<TakeawayDisplayItem[]>([]);
   
-  if (!jsonString || jsonString === '{}') {
-    isLoading = false;
-    isError = false; 
-    parsedTakeawaysData = null;
-    errorOrSkippedMessage = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
-  } else if (PENDING_STATUS_JSON_VARIANTS.includes(jsonString.trim())) {
-    isLoading = true;
-    isError = false;
-    parsedTakeawaysData = null;
-    errorOrSkippedMessage = ""; 
-  } else {
-    isLoading = false;
-    isError = false;
-    try {
-      const parsedJson = JSON.parse(jsonString);
-      if (parsedJson.error) { // Check for direct error property first
-        isError = true;
-        errorOrSkippedMessage = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
-        logDebug(componentName, "DataError_Direct", "Parsed JSON has direct error property:", errorOrSkippedMessage);
-      } else if (parsedJson.status === 'error' || parsedJson.status === 'skipped') {
-        isError = true;
-        if (parsedJson.status === "skipped") {
-          errorOrSkippedMessage = parsedJson.message || "AI Key Takeaways were skipped.";
-        } else { 
-          errorOrSkippedMessage = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
-        }
-        logDebug(componentName, "DataError_Status", `Parsed JSON has status: ${parsedJson.status}. Message: ${errorOrSkippedMessage}`);
-      } else if (parsedJson && typeof parsedJson === 'object' && parsedJson.priceAction && parsedJson.trend && parsedJson.volatility && parsedJson.momentum && parsedJson.patterns) {
-        parsedTakeawaysData = parsedJson as StockAnalysisOutput;
-        displayTakeaways = (Object.keys(parsedJson) as TakeawayCategory[]).map(key => ({
-            categoryKey: key,
-            categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
-            sentiment: parsedJson[key]?.sentiment || "neutral",
-            text: parsedJson[key]?.takeaway || "No takeaway generated.",
-            textSentimentClass: getSemanticTextColorClass(parsedJson[key]?.sentiment, key),
-            badgeSentimentClass: getSemanticBadgeClass(parsedJson[key]?.sentiment)
-        }));
-        logDebug(componentName, "DataParsed", "Successfully parsed aiKeyTakeawaysJson. Keys:", Object.keys(parsedTakeawaysData));
-      } else {
-        isError = true;
-        errorOrSkippedMessage = "AI Key Takeaways data is malformed or incomplete.";
-        parsedTakeawaysData = null;
-        logDebug(componentName, "DataError_Malformed", errorOrSkippedMessage);
-      }
-    } catch (e) {
-      isError = true;
-      errorOrSkippedMessage = "Failed to parse AI Key Takeaways data.";
-      parsedTakeawaysData = null;
-      logDebug(componentName, "DataError_ParseFail", errorOrSkippedMessage, e);
+  useEffect(() => {
+    const currentJson = aiKeyTakeawaysJson;
+    if (currentJson !== prevJsonRef.current) {
+      logDebug(componentName, "PropsReceived", "aiKeyTakeawaysJson prop changed. New Length:", currentJson?.length);
+      prevJsonRef.current = currentJson;
+    } else {
+      return;
     }
-  }
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorOrSkippedMessage='${errorOrSkippedMessage}', parsedDataExists=${!!parsedTakeawaysData}, displayTakeaways.length=${displayTakeaways.length}`);
+    let newIsLoading = true;
+    let newIsError = false;
+    let newErrorMsg = "AI Key Takeaways not available.";
+    let newParsedData: StockAnalysisOutput | null = null;
+    let newDisplayTakeaways: TakeawayDisplayItem[] = [];
+  
+    if (!currentJson || currentJson === '{}') {
+      newIsLoading = false;
+      newErrorMsg = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
+      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
+    } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
+      newIsLoading = true;
+      newErrorMsg = "Loading AI Key Takeaways...";
+      logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
+    } else {
+      try {
+        const parsedJson = JSON.parse(currentJson);
+        if (parsedJson.error) { 
+          newIsLoading = false;
+          newIsError = true;
+          newErrorMsg = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
+          logDebug(componentName, "StateUpdate:DataErrorDirect", newErrorMsg);
+        } else if (parsedJson.status === 'error' || parsedJson.status === 'skipped') {
+          newIsLoading = false;
+          newIsError = true;
+          if (parsedJson.status === "skipped") {
+            newErrorMsg = parsedJson.message || "AI Key Takeaways were skipped.";
+          } else { 
+            newErrorMsg = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
+          }
+          logDebug(componentName, "StateUpdate:DataErrorStatus", `Status: ${parsedJson.status}. Message: ${newErrorMsg}`);
+        } else if (parsedJson && typeof parsedJson === 'object' && parsedJson.priceAction && parsedJson.trend && parsedJson.volatility && parsedJson.momentum && parsedJson.patterns) {
+          newIsLoading = false;
+          newIsError = false;
+          newParsedData = parsedJson as StockAnalysisOutput;
+          newDisplayTakeaways = (Object.keys(parsedJson) as TakeawayCategory[]).map(key => ({
+              categoryKey: key,
+              categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
+              sentiment: parsedJson[key]?.sentiment || "neutral",
+              text: parsedJson[key]?.takeaway || "No takeaway generated.",
+              textSentimentClass: getSemanticTextColorClass(parsedJson[key]?.sentiment, key),
+              badgeSentimentClass: getSemanticBadgeClass(parsedJson[key]?.sentiment)
+          }));
+          newErrorMsg = ""; // Clear error on success
+          logDebug(componentName, "DataParsed", "Successfully parsed aiKeyTakeawaysJson. Display items:", newDisplayTakeaways.length);
+        } else {
+          newIsLoading = false;
+          newIsError = true;
+          newErrorMsg = "AI Key Takeaways data is malformed or incomplete.";
+          logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
+        }
+      } catch (e) {
+        console.error(`[${componentName}] Failed to parse aiKeyTakeawaysJson:`, e, "JSON:", currentJson.substring(0,200));
+        newIsLoading = false;
+        newIsError = true;
+        newErrorMsg = "Failed to parse AI Key Takeaways data.";
+        logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg, e);
+      }
+    }
 
-  const isDataReadyForExport = !isLoading && !isError && parsedTakeawaysData && Object.keys(parsedTakeawaysData).length > 0;
-  const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug);
+    setIsLoadingState(newIsLoading);
+    setIsErrorState(newIsError);
+    setErrorOrSkippedMessageState(newErrorMsg);
+    setParsedTakeawaysDataState(newParsedData);
+    setDisplayTakeawaysState(newDisplayTakeaways);
+
+  }, [aiKeyTakeawaysJson, logDebug]);
+
+  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', parsedData=${!!parsedTakeawaysDataState}, displayItems=${displayTakeawaysState.length}`);
+
+  const isDataReadyForExport = !isLoadingState && !isErrorState && parsedTakeawaysDataState && Object.keys(parsedTakeawaysDataState).length > 0;
+  const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug, componentName);
 
   const handleExport = (format: 'json' | 'text' | 'csv') => {
     logDebug(componentName, `ExportAction`, `Attempting to export takeaways as ${format} for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedTakeawaysData) {
+    if (!isDataReadyForExport || !parsedTakeawaysDataState) {
       toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
       return;
     }
     try {
       let filename = `${currentTicker}_key_takeaways`;
       if (format === 'json') {
-        downloadJson(parsedTakeawaysData, `${filename}.json`);
+        downloadJson(parsedTakeawaysDataState, `${filename}.json`);
         toast({ title: "Exported as JSON", description: "Key takeaways downloaded." });
       } else if (format === 'text') {
-        const textData = generateKeyTakeawaysText(parsedTakeawaysData, currentTicker);
+        const textData = generateKeyTakeawaysText(parsedTakeawaysDataState, currentTicker);
         downloadTxt(textData, `${filename}.txt`);
         toast({ title: "Exported as Text", description: "Key takeaways downloaded." });
       } else if (format === 'csv') {
-        const csvData = generateKeyTakeawaysCsv(parsedTakeawaysData);
+        const csvData = generateKeyTakeawaysCsv(parsedTakeawaysDataState);
         downloadTxt(csvData, `${filename}.csv`); 
         toast({ title: "Exported as CSV", description: "Key takeaways downloaded." });
       }
@@ -208,7 +233,7 @@ export function AiKeyTakeawaysDisplay() {
 
   const handleCopy = async (format: 'json' | 'text' | 'csv') => {
     logDebug(componentName, `CopyAction`, `Attempting to copy takeaways as ${format} for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedTakeawaysData) {
+    if (!isDataReadyForExport || !parsedTakeawaysDataState) {
       toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
       return;
     }
@@ -216,11 +241,11 @@ export function AiKeyTakeawaysDisplay() {
     let success = false;
     try {
       if (format === 'json') {
-        dataToCopy = JSON.stringify(parsedTakeawaysData, null, 2);
+        dataToCopy = JSON.stringify(parsedTakeawaysDataState, null, 2);
       } else if (format === 'text') {
-        dataToCopy = generateKeyTakeawaysText(parsedTakeawaysData, currentTicker);
+        dataToCopy = generateKeyTakeawaysText(parsedTakeawaysDataState, currentTicker);
       } else if (format === 'csv') {
-        dataToCopy = generateKeyTakeawaysCsv(parsedTakeawaysData);
+        dataToCopy = generateKeyTakeawaysCsv(parsedTakeawaysDataState);
       }
       success = await copyToClipboard(dataToCopy);
       if (success) {
@@ -268,7 +293,7 @@ export function AiKeyTakeawaysDisplay() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {isLoading ? (
+        {isLoadingState ? (
           Array.from({ length: 5 }).map((_, index) => (
             <div key={`skeleton-takeaway-${index}`} className="p-3 border rounded-md bg-card/60 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
@@ -279,12 +304,12 @@ export function AiKeyTakeawaysDisplay() {
               <Skeleton className="h-4 w-3/4 mt-1" />
             </div>
           ))
-        ) : isError ? (
+        ) : isErrorState ? (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             {errorOrSkippedMessage}
+             {errorOrSkippedMessageState}
            </div>
-        ) : displayTakeaways.length > 0 && parsedTakeawaysData ? (
-          displayTakeaways.map((takeaway) => (
+        ) : displayTakeawaysState.length > 0 && parsedTakeawaysDataState ? (
+          displayTakeawaysState.map((takeaway) => (
             <div key={takeaway.categoryKey} className="p-3 border rounded-md bg-card/60 shadow-sm">
               <div className="flex justify-between items-center mb-1.5">
                 <h4 className="font-semibold text-md">{takeaway.categoryLabel}</h4>
@@ -297,7 +322,7 @@ export function AiKeyTakeawaysDisplay() {
           ))
         ) : (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             {errorOrSkippedMessage || "No AI Key Takeaways data to display."}
+             {errorOrSkippedMessageState}
            </div>
         )}
       </CardContent>
