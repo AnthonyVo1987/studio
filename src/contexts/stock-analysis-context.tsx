@@ -346,7 +346,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isInitialAppStartupComplete, _setIsInitialAppStartupComplete] = useState<boolean>(defaultState.isInitialAppStartupComplete);
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
   const initialStartupFlaggedRef = useRef(false);
-  const initializationDispatchedRef = useRef(false); // Added ref for initialization dispatch guard
+  const initializationDispatchedRef = useRef(false); 
 
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
@@ -552,6 +552,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case GlobalFsmState.APP_INITIALIZING:
         if (event.type === 'INITIALIZATION_COMPLETE') {
+          if (state.current !== GlobalFsmState.APP_INITIALIZING) {
+            logDebug('StockAnalysisContext', 'GlobalFSM_Reducer_Warning', `Received INITIALIZATION_COMPLETE but current state is already ${state.current}. Ignoring.`);
+            return { ...state, previous: previousState }; 
+          }
           if (nextVariables.userInputTicker && nextVariables.userInputTicker.trim() !== "") {
               nextCurrentState = GlobalFsmState.VALID_TICKER_ENTERED;
               nextFlags.canAnalyzeStock = true; 
@@ -1056,5 +1060,3 @@ export function useStockAnalysis() {
   return context;
 }
 
-
-    
