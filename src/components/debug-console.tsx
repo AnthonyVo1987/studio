@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -29,10 +30,10 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
-export const APP_VERSION_FOR_EXPORT = "v2.9.D.U"; // Updated app version
+export const APP_VERSION_FOR_EXPORT = "v3.0.0.1"; 
 
 interface DebugConsoleProps {
-  appVersion: string; // Prop for display, keep separate from constant used in export
+  appVersion: string; 
 }
 
 function formatLogMessage(messages: any[]): string {
@@ -79,7 +80,7 @@ const escapeCsvField = (field: any): string => {
 
 const generateLogsTxtWithMetadata = (
     logs: GlobalLogEntry[],
-    currentAppVersionConstant: string, // Use the constant for export
+    currentAppVersionConstant: string, 
     fsmStates: any
 ): string => {
   let metadata = `App Version: ${currentAppVersionConstant}\n`;
@@ -104,7 +105,7 @@ const generateLogsTxtWithMetadata = (
 
 const generateLogsCsvWithMetadata = (
     logs: GlobalLogEntry[],
-    currentAppVersionConstant: string, // Use the constant for export
+    currentAppVersionConstant: string, 
     fsmStates: any
 ): string => {
   let metadata = `App Version:,${currentAppVersionConstant}\n`;
@@ -200,7 +201,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
   }
 
   const getFullFsmStatesForExport = () => ({
-    appVersion: APP_VERSION_FOR_EXPORT, // Use the constant for export
+    appVersion: APP_VERSION_FOR_EXPORT, 
     reportTimestamp: new Date().toISOString(),
     fsmStatesSnapshot: {
       globalApplicationFSM: { previous: globalPreviousFsmState, current: globalFsmState, target: globalTargetFsmDisplayState },
@@ -235,7 +236,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-    const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
+    const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); 
     if (await copyToClipboard(txtData)) {
       toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM states copied to clipboard as TXT.' });
     } else {
@@ -247,7 +248,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-    const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
+    const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); 
     if (await copyToClipboard(csvData)) {
       toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM states copied to clipboard as CSV.' });
     } else {
@@ -260,7 +261,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const exportData = { ...getFullFsmStatesForExport(), logs: displayedLogs };
-      downloadJson(exportData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.json`); // Use constant
+      downloadJson(exportData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.json`); 
       toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as JSON.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as JSON.' });
@@ -272,8 +273,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-      const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
-      downloadTxt(txtData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.txt`); // Use constant
+      const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); 
+      downloadTxt(txtData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.txt`); 
       toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as TXT.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as TXT.' });
@@ -285,8 +286,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-      const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
-      downloadTxt(csvData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.csv`); // Use constant
+      const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); 
+      downloadTxt(csvData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.csv`); 
       toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as CSV.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as CSV.' });
@@ -479,3 +480,4 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     </Card>
   );
 }
+
