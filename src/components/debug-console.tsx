@@ -30,7 +30,7 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
-export const APP_VERSION_FOR_EXPORT = "v2.9.D.U"; 
+export const APP_VERSION_FOR_EXPORT = "v3.0.0.1"; 
 
 interface DebugConsoleProps {
   appVersion: string; 
