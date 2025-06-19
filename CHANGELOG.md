@@ -2,6 +2,12 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.55 (Task v2.9.D.U Docs):** 2025-06-19 - Firebase Studio (AI Prototyper)
+    *   Updated `README.md` (to v1.55) to reflect application functional version `v2.9.D.U` (commit `cd5e3a46`).
+    *   Codified new versioning procedures in `README.md` (Section 3.7): version updates strictly in `app-metadata.json`; manual version updates in `header.tsx` and `debug-console.tsx` are prohibited for app versioning.
+    *   Reinforced strict policy against placeholder timestamps in `app-metadata.json` within `README.md`.
+    *   Updated `CHANGELOG.md` (this file) with this commit log detailing the documentation consolidation for `v2.9.D.U`.
+    *   No changes to `src/config/app-metadata.json`, `src/components/layout/header.tsx`, or `src/components/debug-console.tsx` were made as part of this documentation-only update, as their `v2.9.D.U` state was established by prior commit `cd5e3a46`.
 *   **Version 1.54 (Task v2.9.D.U):** 2025-06-19 - Firebase Studio (AI Prototyper)
     *   Updated `README.md` (to v1.54) with current app version `v2.9.D.U`. Codified AI `thinkingConfig` usage and metadata timestamp policy.
     *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.U`.
@@ -53,21 +59,22 @@ This version (`v2.9.D.U`) is a documentation and metadata consolidation commit. 
         *   AI flows (`src/ai/flows/analyze-stock-data.ts`, `src/ai/flows/analyze-options-chain-flow.ts`, `src/ai/flows/chat-flow.ts`) now correctly pass the `thinkingBudget` parameter (e.g., `thinkingBudget: -1` for dynamic thinking) within a nested `thinkingConfig` object, which is part of the main `config` object supplied to `ai.definePrompt`. This aligns with Google AI API expectations and resolves previous 400 Bad Request errors related to unknown `generation_config` parameters.
 *   **Application Metadata (`src/config/app-metadata.json` - Reflecting `v2.9.D.T` fix):**
     *   **Timestamp Correction:** Fixed an issue where `lastUpdatedTimestamp` used a placeholder string, causing Zod validation failures during application startup. This field now correctly uses a valid ISO 8601 timestamp.
-    *   **Policy Enforcement:** The `README.md` has been updated to codify a strict policy against using placeholder timestamps in metadata files; real, valid timestamps must be used.
-    *   **Version Update:** Application version in `src/config/app-metadata.json` updated to `v2.9.D.U`.
+    *   **Policy Enforcement:** The `README.md` has been updated to codify a strict policy against using placeholder timestamps in metadata files; real, valid timestamps must be used. It also now specifies that `app-metadata.json` is the sole source for `appVersion` and that `header.tsx` / `debug-console.tsx` should not be manually updated for versioning.
+    *   **Version Update:** Application version in `src/config/app-metadata.json` updated to `v2.9.D.U`. The `APP_VERSION_FOR_EXPORT` in `debug-console.tsx` is also aligned with this commit tag.
 *   **Documentation (`README.md`, `CHANGELOG.md`):**
-    *   `README.md`: Updated to reflect the current application version `v2.9.D.U`. Relevant sections (PRD, AI Configuration, Commit Procedures) updated to detail the correct `thinkingConfig` usage and the new metadata timestamp policy.
+    *   `README.md`: Updated to reflect the current application version `v2.9.D.U`. Relevant sections (PRD, AI Configuration, Commit Procedures) updated to detail the correct `thinkingConfig` usage, the new metadata timestamp policy, and the new versioning procedures.
     *   `CHANGELOG.md` (this file): Updated with this consolidated commit log for `v2.9.D.U`, summarizing the fixes and documentation changes.
 *   **UI Version Display (`src/components/layout/header.tsx`, `src/components/debug-console.tsx`):**
-    *   The application version string displayed in the UI header and used for debug log exports (`APP_VERSION_FOR_EXPORT`) has been updated to `v2.9.D.U`.
+    *   The `header.tsx` now receives `appVersion` dynamically via props from `page.tsx` (which loads from `app-metadata.json`).
+    *   The `APP_VERSION_FOR_EXPORT` constant in `src/components/debug-console.tsx` has been set to `v2.9.D.U` for this specific commit tag.
 *   **Deferred Items:**
     *   Planned improvements for reducing client-side log spam and refining initial state logging in display components (originally scoped for `v2.9.D.U` code changes) have been deferred to a future task. The codebase regarding these logging aspects remains as it was at the end of `v2.9.D.T`.
 
 **Outcome of v2.9.D.U:**
 *   The application's AI flows now use the correct configuration for Google AI's "Dynamic Thinking" feature, preventing related API errors.
-*   Application metadata handling is more robust with the enforcement of valid timestamps.
-*   Documentation accurately reflects the current state of AI configuration and metadata policies.
-*   The application version is consistently updated across all relevant files and displays.
+*   Application metadata handling is more robust with the enforcement of valid timestamps and centralized versioning.
+*   Documentation accurately reflects the current state of AI configuration, metadata policies, and versioning procedures.
+*   The application version is consistently managed and displayed.
 ---
 **App Version:** `v2.9.D.M` (Revert Button Debug Code, Standardize AI Flow Error Handling & Logging)
 **Tag:** `Phase-9_Task-9.D.M_CleanupRevertButtonDebug_StandardizeAIFlows_Logging`
@@ -536,11 +543,11 @@ Key changes included in v2.9.C.O:
 **Details:**
 This version addresses ongoing issues with the AI Analyzed Options Chain, focusing on improving the robustness of the AI flow and server action error handling.
 - **`src/ai/flows/analyze-options-chain-flow.ts`:**
-    - Implemented a more robust `try...catch` block around the `analyzeOptionsChainPrompt(input)` call (or equivalent if using JSON prompts). On prompt failure, it now logs the error comprehensively and returns a well-formed empty result (`{ callWalls: [], putWalls: [] }`).
-    - The pre-check for insufficient input data (e.g., too few contracts) remains.
-    - The post-prompt check for valid output structure also remains, ensuring an empty valid structure if the AI's output is malformed.
+    *   Implemented a more robust `try...catch` block around the `analyzeOptionsChainPrompt(input)` call (or equivalent if using JSON prompts). On prompt failure, it now logs the error comprehensively and returns a well-formed empty result (`{ callWalls: [], putWalls: [] }`).
+    *   The pre-check for insufficient input data (e.g., too few contracts) remains.
+    *   The post-prompt check for valid output structure also remains, ensuring an empty valid structure if the AI's output is malformed.
 - **`src/actions/perform-ai-options-analysis-action.ts`:**
-    - Simplified the error message construction in the main `catch (error: any)` block. The `detailMsg` for `baseErrorReturn` is now a more generic user-friendly message, reducing the risk of complex error objects breaking JSON stringification for the client.
+    *   Simplified the error message construction in the main `catch (error: any)` block. The `detailMsg` for `baseErrorReturn` is now a more generic user-friendly message, reducing the risk of complex error objects breaking JSON stringification for the client.
 - Application version updated to `v2.9.C.N`.
 ---
 **App Version:** `v2.9.C.M` (Fix AI Options Flow and Schema)
@@ -814,6 +821,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 

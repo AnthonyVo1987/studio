@@ -61,14 +61,16 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 
 #### 3.2.2. Genkit (AI Backend)
 *   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis. Safety settings in prompt definitions have been corrected to use fully qualified harm category names (e.g., `HARM_CATEGORY_SEXUALLY_EXPLICIT`).
-*   AI flows for orchestrating LLM calls. Prompts (defined in JSON files under `src/ai/definitions/`) now correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }` (or other values for `thinkingBudget`) within the `config` object for `ai.definePrompt`. The erroneous `enableDynamicThinking` flag has been removed.
+*   AI flows for orchestrating LLM calls. Prompts (defined in JSON files under `src/ai/definitions/`) now correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }` (or other values for `thinkingBudget`) within the `config` object for `ai.definePrompt`. The erroneous `enableDynamicThinking` flag has been removed (as of `v2.9.D.S`).
 *   Tools for accessing external data and performing actions (currently not heavily used but available).
 *   Zod schemas for data validation.
 
 #### 3.2.3. Data Sources
 *   Polygon.io API: For stock data and options chain data.
 *   `.env` file: Stores API keys and configuration parameters.
-*   `src/config/app-metadata.json`: Stores application version and last update timestamp. **The `lastUpdatedTimestamp` field MUST always be a real, valid ISO 8601 string; placeholder values are strictly prohibited.**
+*   `src/config/app-metadata.json`: Stores application version and last update timestamp.
+    *   **Policy:** The `appVersion` field is the **sole source of truth** for the application's functional version.
+    *   **Policy:** The `lastUpdatedTimestamp` field **MUST always be a real, valid ISO 8601 string** reflecting the time of the metadata update; placeholder values are strictly prohibited. This was corrected and enforced as of `v2.9.D.T`.
 
 #### 3.2.4. State Management
 *   **React Context (`StockAnalysisContext`):** Primary global state management for application-wide data (like fetched JSONs, FSM states) and core functionalities (like `logDebug`, FSM event dispatch).
@@ -85,7 +87,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 
 ### 3.3. AI Flow & Prompt Design
 *   AI prompt definitions are externalized into JSON files in `src/ai/definitions/`. All LLM-based flows now use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`. Safety settings in these definitions were corrected in v2.9.D.L.
-*   AI prompt definitions now correctly support `thinkingBudget` (e.g., `thinkingBudget: -1` for dynamic thinking) within a `thinkingConfig` object in the JSON definition file. This is then used by the `definition-loader.ts` and AI flows to configure the Genkit prompt.
+*   AI prompt definitions now correctly support `thinkingBudget` (e.g., `thinkingBudget: -1` for dynamic thinking) within a `thinkingConfig` object in the JSON definition file. This is then used by the `definition-loader.ts` and AI flows to configure the Genkit prompt (corrected in `v2.9.D.S`).
 *   A `DefinitionLoader` (`src/ai/definition-loader.ts`) loads and validates these JSONs, and helps build prompt strings and configuration for Genkit flows.
 *   **AI Key Takeaways Flow (`analyze-stock-data.ts`):**
     *   Uses `analyze-stock-data.json` definition.
@@ -148,13 +150,15 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **NO `console.log` in committed client-side code** unless it's part of the `StockAnalysisContext`'s interception mechanism or a temporary, explicitly discussed debugging measure. Use `logDebug` from context.
 *   **No commented-out code in commits.**
 *   Follow established file/folder structures and naming conventions.
-*   **App Metadata Policy (`src/config/app-metadata.json`):** The `lastUpdatedTimestamp` field **MUST** always be set to a real, valid ISO 8601 timestamp upon any modification to the file or related version update. Placeholder timestamps (e.g., "YYYY-MM-DDTHH:MM:SSZ") are strictly prohibited.
+*   **App Metadata Policy (`src/config/app-metadata.json`):**
+    *   The `appVersion` field in this file is the **single source of truth** for the application's displayed version.
+    *   The `lastUpdatedTimestamp` field **MUST** always be set to a real, valid ISO 8601 timestamp upon any modification to the file or related version update. Placeholder timestamps (e.g., "YYYY-MM-DDTHH:MM:SSZ") are strictly prohibited (Enforced since `v2.9.D.T`).
 *   **Debugging Status (v2.9.D.U):**
     *   Issues with AI prompts (safety settings) were resolved in `v2.9.D.L`.
     *   Manual AI buttons were confirmed functional post `v2.9.D.L`.
     *   Version `v2.9.D.M` completed cleanup of prior button debugging code, hardened AI flow error handling, and improved logging across all AI flows and server actions.
-    *   Version `v2.9.D.S` (now part of `v2.9.D.U` consolidated state) corrected the `thinkingConfig` usage for Google AI models in Genkit prompts.
-    *   Version `v2.9.D.T` (now part of `v2.9.D.U` consolidated state) fixed the `lastUpdatedTimestamp` format in `app-metadata.json`.
+    *   Version `v2.9.D.S` corrected the `thinkingConfig` usage for Google AI models in Genkit prompts.
+    *   Version `v2.9.D.T` fixed the `lastUpdatedTimestamp` format in `app-metadata.json`.
     *   See `docs/Issue-Report_AI_Analysis_Buttons.md` for a detailed debugging history.
 *   See extensive list in prior `README.md` versions (e.g., v2.9.D.8) for more general coding best practices (ESLint, TypeScript, `any` type avoidance, etc.). These are implicitly still in effect.
 
@@ -182,7 +186,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
     *   Init: `const ai = genkit({plugins: [googleAI()]});` (No `logLevel`). The default model used is `googleai/gemini-2.5-flash-lite-preview-06-17` via `DEFAULT_ANALYSIS_MODEL_ID` from `src/ai/models.ts`.
     *   Response: `response.text`, `response.output` (not functions).
     *   Streaming: `const {stream, response} = ai.generateStream(...);` (no `await` on `generateStream`), then `for await (const chunk of stream) {}`, then `await response;`.
-    *   **AI Thinking Mode Configuration:** For Google AI models, "Dynamic Thinking" is enabled by setting `thinkingBudget: -1` (or other values for budget control) within a `thinkingConfig` object, which itself is part of the main `config` object passed to `ai.definePrompt`. E.g., `config: { thinkingConfig: { thinkingBudget: -1 }, safetySettings: [...] }`.
+    *   **AI Thinking Mode Configuration:** For Google AI models, "Dynamic Thinking" is enabled by setting `thinkingBudget: -1` (or other values for budget control) within a `thinkingConfig` object, which itself is part of the main `config` object passed to `ai.definePrompt`. E.g., `config: { thinkingConfig: { thinkingBudget: -1 }, safetySettings: [...] }`. (Corrected in `v2.9.D.S`).
 *   Flow files (`src/ai/flows/*.ts`): `'use server';`, JSDoc overview, export async wrapper & types.
 *   Prompts load definitions from JSON (`src/ai/definitions/*.json`). These definitions include model ID, safety settings, and `thinkingBudget`.
 *   Handlebars for prompt templating: `{{{variable}}}`. **NO logic in templates.**
@@ -198,14 +202,16 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Log key state transitions, inputs/outputs, and error conditions comprehensively.
 *   **`isDataReadyForProcessing` function in `MainTabContent.tsx`:** This utility is crucial for determining if prerequisite JSON data strings (from context) are valid and ready for use in AI flows or UI.
 
-### 3.7. Commit & Changelog Procedures
-*   Increment app version in:
-    *   `src/components/layout/header.tsx`
-    *   `APP_VERSION_FOR_EXPORT` in `src/components/debug-console.tsx`
-    *   `src/config/app-metadata.json` (field: `appVersion`)
-*   Update `lastUpdatedTimestamp` in `src/config/app-metadata.json` to the **current real-world ISO 8601 timestamp**. No placeholders allowed.
-*   Update `CHANGELOG.md` with a detailed commit message for each task/fix.
-*   Update this `README.md` if PRD, architecture, or core AI operational rules change significantly.
+### 3.7. Commit & Changelog Procedures (Effective `v2.9.D.U` and onwards)
+*   **Application Versioning - Single Source of Truth:**
+    *   The application's functional version is updated **ONLY** in `src/config/app-metadata.json` within the `appVersion` field.
+    *   The `lastUpdatedTimestamp` field in `src/config/app-metadata.json` **MUST** be updated to the **current real-world ISO 8601 timestamp** at the time of the change. Placeholder timestamps are strictly prohibited.
+*   **Source File Versioning - PROHIBITED for App Version Updates:**
+    *   `src/components/layout/header.tsx`: This component receives the `appVersion` as a prop from `page.tsx`, which loads it from `app-metadata.json`. **DO NOT manually update version strings in `header.tsx` for application version changes.**
+    *   `src/components/debug-console.tsx`: The `APP_VERSION_FOR_EXPORT` constant in this file is set based on the **commit tag/version of a release** (e.g., `v2.9.D.U`). It is for log export identification and is **independent of the dynamically displayed application version**. It should be updated when a new tagged release is made.
+*   **Documentation Updates:**
+    *   `CHANGELOG.md`: Update with a detailed commit message for each task/fix, clearly stating the new application version if `app-metadata.json` was changed.
+    *   `README.md`: Update this `README.md` if PRD, architecture, or core operational rules (like these versioning procedures) change significantly.
 
 ---
 
@@ -219,7 +225,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 Create a `.env` file in the project root:
 ```env
 POLYGON_API_KEY=your_polygon_api_key
-GOOGLE_API_KEY=your_google_ai_api_key 
+GOOGLE_API_KEY=your_google_ai_api_key
 # (Note: GOOGLE_API_KEY is used by Genkit's GoogleAI plugin, for models like gemini-2.5-flash-lite-preview-06-17)
 ```
 
@@ -250,6 +256,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-See `CHANGELOG.md`. App version in UI header (`v2.9.D.U`).
+See `CHANGELOG.md`. Application functional version is `v2.9.D.U` (commit `cd5e3a46`), sourced from `src/config/app-metadata.json`. This `README.md` document itself is at conceptual version 1.55.
 
 ---
+
