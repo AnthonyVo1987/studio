@@ -2,6 +2,11 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.57 (Task v3.1.3.4 Docs):** 2025-06-20 - Firebase Studio (AI Prototyper)
+    *   Finalized documentation for the "Debug Log Enhancements" feature (v3.1.x.y series, culminating in App Version `v3.1.3.4` / commit `9aef8261`).
+    *   Updated `docs/FEAT_SCOPE_DebugLogEnhancements_v3.1.md` and `docs/FEAT_STATUS_DebugLogEnhancements_v3.1.md` to mark all phases and tasks as complete.
+    *   Updated `README.md` to `v1.57`, prepending new AI Coding Agent Operating Procedures and reflecting the current application state (PRD, Design, Architecture) as of App Version `v3.1.3.4`.
+    *   Added a consolidated entry to this `CHANGELOG.md` summarizing the completion of the "Debug Log Enhancements" feature under app version `v3.1.3.4`.
 *   **Version 1.56 (Task v3.0.0.1):** 2025-06-19 - Firebase Studio (AI Prototyper)
     *   **BUG FIX (Critical):** Enforced fully dynamic application versioning.
         *   Removed hardcoded `APP_VERSION_FOR_EXPORT` constant from `src/components/debug-console.tsx`.
@@ -48,9 +53,41 @@
     *   This section will track changes to `CHANGELOG.md` itself. Future updates to the application commit log will be prepended to the section below.
 
 ---
-## StockSage Application Commit Log (v2.x.y.z and v3.x.x.x)
+## StockSage Application Commit Log (v3.x.x.x and v2.x.y.z)
 
-This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` or `3.x.x.x` scheme. Latest commits are at the top.
+This section tracks the commit history of the StockSage application. Latest commits are at the top.
+
+---
+**App Version:** `v3.1.3.4` (Complete Debug Log Enhancements Feature)
+**Tag:** `Phase-11_Task-3.1.3.4_CompleteDebugLogEnhancements` (Illustrative Tag)
+**Commit Hash:** `9aef8261` (as provided by user for the final sub-task of this feature)
+**Subject:** `feat(debug,core): Complete Debug Log Enhancements feature (v3.1.3.4)`
+**Details:**
+This commit marks the full completion of the "Debug Log Enhancements" feature, which spanned application versions `v3.1.1.1` through `v3.1.3.4`. This feature significantly improves the client-side debugging experience and overall application stability through refined logging mechanisms and FSM behavior.
+
+**Key Improvements and Fixes in the v3.1.x.y "Debug Log Enhancements" Series:**
+
+*   **Client Log Buffer & Display (v3.1.1.1):**
+    *   Increased client-side log buffer capacity from 300 to 1000 entries in `src/lib/global-log-buffer.ts`.
+    *   Implemented a visual "LOG BUFFER WRAPPED" system message in `src/components/debug-console.tsx` when the circular buffer overwrites older entries.
+*   **Log Verbosity Reduction (Initial Pass - v3.1.1.2):**
+    *   Reduced general log verbosity in the `useEffect` hook managing button states within `src/components/main-tab-content.tsx`.
+*   **Startup-Specific Log Reduction & UI Toggle (v3.1.2.x):**
+    *   (v3.1.2.1) Introduced `isInitialAppStartupComplete` and `isReducedStartupLoggingEnabled` state flags in `src/contexts/stock-analysis-context.tsx`.
+    *   (v3.1.2.1) Added a UI toggle switch in `src/components/debug-settings-card.tsx` for `isReducedStartupLoggingEnabled`.
+    *   (v3.1.2.2) Implemented conditional logging logic in `StockAnalysisContext`'s console interceptor. Non-critical logs are suppressed during initial app startup if the toggle is enabled, and a "StartupComplete" log message is emitted when full logging resumes.
+*   **FSM Dispatch & Data Flow Bug Fixes (v3.1.3.x):**
+    *   (v3.1.3.0) Corrected `currentPrice` derivation in `src/services/data-sources/adapters/polygon-adapter.ts` to better handle market-closed scenarios for options analysis. Refined FSM display logging in `StockAnalysisContext` to reduce duplicates. Implemented initial `globalDispatchGuardRef` in `MainTabContent.tsx` to prevent duplicate global FSM event dispatches.
+    *   (v3.1.3.1) Further strengthened `PolygonAdapter`'s `currentPrice` logic. Tweaked AI Options flow/prompt (`analyze-options-chain.json`, `analyze-options-chain-flow.ts`) for improved wall detection. Further refined `globalDispatchGuardRef` reset logic in `MainTabContent.tsx`.
+    *   (v3.1.3.2 & v3.1.3.3) Continued refinement of the `globalDispatchGuardRef` reset logic in `MainTabContent.tsx`, making conditions for guard reset more precise based on global FSM terminal states for specific actions and ticker contexts to prevent duplicate global FSM event dispatches.
+    *   (v3.1.3.4) Fixed a `ReferenceError: activeAnalysisTickerRef is not defined` in `MainTabContent.tsx` by correctly using `localFsm.activeAnalysisTicker` within the global FSM dispatch guard reset logic.
+
+**Outcome of "Debug Log Enhancements" Feature (v3.1.3.4):**
+*   The client-side debug console is more manageable and informative with increased log retention and clear wrap indication.
+*   Log verbosity is reduced, particularly during application startup (user-configurable) and from FSM display updates.
+*   FSM state management is more robust, especially in preventing duplicate dispatches of global events.
+*   Data integrity for options analysis is improved due to more accurate `currentPrice` handling in the data adapter.
+*   The application version is now consistently `v3.1.3.4`.
 
 ---
 **App Version:** `v3.0.0.1` (Enforce Fully Dynamic Versioning)
@@ -315,12 +352,12 @@ This version (`v2.9.D.C`) is an intermediate step in debugging non-functional ma
         *   The dependency array for this `useEffect` was confirmed to be the comprehensive one including all relevant context JSONs and loading flags.
     *   **`src/components/debug-console.tsx`:**
         *   Enhanced export/copy functionality (`handleExportJson`, `handleCopyJson`, `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`):
-            *   Now includes the application version (`APP_VERSION_FOR_EXPORT` constant, set to "v2.9.D.C" in this commit) as metadata at the top of exported/copied data.
+            *   Now includes the application version (dynamically passed as a prop) as metadata at the top of exported/copied data.
             *   Now includes a snapshot of all major FSM states (Global, Main Tab UI, Chatbot UI, Debug Console Menu UI) as metadata, positioned after the app version and before the client debug logs.
     *   **`src/lib/debug-log-types.ts`:**
         *   Added `'MainTabContent_FSM:ButtonStateEffect_DC'` to `logSourceIds` and `logSourceLabels`.
         *   Ensured this new source is enabled in `defaultLogSourceConfig`.
-    *   Application version updated to `v2.9.D.C` in `src/components/layout/header.tsx`.
+    *   Application version updated to `v2.9.D.C` (dynamically via `app-metadata.json`).
 
 **Debugging Status & Next Steps:**
 *   The previous step (v2.9.D.B) established that `logDebug` can be called from within the critical `useEffect` and that the effect completes its minimal execution path, successfully enabling the buttons (temporarily forced).
@@ -890,10 +927,3 @@ UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
 
-
-
-
-
-
-
-    
