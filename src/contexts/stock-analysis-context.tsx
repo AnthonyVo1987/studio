@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, startTransition, useMemo } from 'react';
-import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig } from '@/lib/debug-log-types';
+import { type LogSourceId, logSourceIds, type LogSourceConfig, defaultLogSourceConfig, type LogType } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer';
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
@@ -164,8 +164,8 @@ interface StockAnalysisState {
   chatbotFsmDisplay: FsmDisplayTuple | null;
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
 
-  isInitialAppStartupComplete: boolean; // New state
-  isReducedStartupLoggingEnabled: boolean; // New state
+  isInitialAppStartupComplete: boolean;
+  isReducedStartupLoggingEnabled: boolean;
 }
 
 interface StockAnalysisContextSetters {
@@ -205,7 +205,7 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setDebugConsoleMenuFsmDisplay: (display: FsmDisplayTuple | null) => void;
 
-  setReducedStartupLoggingEnabled: (enabled: boolean) => void; // New setter
+  setReducedStartupLoggingEnabled: (enabled: boolean) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -261,8 +261,8 @@ const defaultState: StockAnalysisState = {
   mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
-  isInitialAppStartupComplete: false, // New default
-  isReducedStartupLoggingEnabled: true, // New default
+  isInitialAppStartupComplete: false,
+  isReducedStartupLoggingEnabled: true,
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -627,7 +627,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break; 
 
       case FsmState.GENERATING_KEY_TAKEAWAYS:
-        if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') { // Re-triggering while already generating
+        if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') { 
             logDebug('StockAnalysisContext', 'FSM_Reducer_Action', `GENERATING_KEY_TAKEAWAYS -> Retriggering TRIGGER_MANUAL_KEY_TAKEAWAYS for ${event.payload.ticker}. Remains in GENERATING_KEY_TAKEAWAYS.`);
             contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
             contextSetters.setAiKeyTakeawaysJson(pendingJson);
@@ -650,7 +650,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
 
       case FsmState.ANALYZING_OPTIONS:
-         if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') { // Re-triggering
+         if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') { 
             logDebug('StockAnalysisContext', 'FSM_Reducer_Action', `ANALYZING_OPTIONS -> Retriggering TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker}. Remains in ANALYZING_OPTIONS.`);
             contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
             contextSetters.setAiOptionsAnalysisJson(pendingJson);
@@ -787,7 +787,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-      logDebug('StockAnalysisContext', 'Effect_ConsoleInterception', `Running. _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
+    logDebug('StockAnalysisContext', 'Effect_ConsoleInterception', `Running. _isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}, _isInitialAppStartupComplete: ${_isInitialAppStartupComplete}, _isReducedStartupLoggingEnabled: ${_isReducedStartupLoggingEnabled}`);
 
     if (typeof window === 'undefined') {
       logDebug('StockAnalysisContext', 'Effect_ConsoleInterception_SSR', 'Skipping on server.');
@@ -797,25 +797,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
 
     const interceptAndProcessLog = (
-      type: 'log' | 'warn' | 'error' | 'info' | 'debug',
+      type: LogType,
       ...args: any[]
     ) => {
-      currentOriginalsForInterceptor[type](...args);
+      currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args); // system is not a console method
       
       queueMicrotask(() => {
         if (!_isClientDebugConsoleEnabled) {
           return;
         }
 
-        let source: LogSourceId = 'NATIVE_CONSOLE';
+        let sourceForBuffer: LogSourceId = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
-        let logTypeForBuffer = type;
+        let typeForBuffer = type;
 
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
-          source = args[1] as LogSourceId;
-          messagesForBuffer = args.slice(3);
-          logTypeForBuffer = 'debug';
-          if (!_logSourceConfig[source]) {
+          sourceForBuffer = args[1] as LogSourceId;
+          messagesForBuffer = args.slice(3); 
+          typeForBuffer = 'debug'; 
+          if (!_logSourceConfig[sourceForBuffer]) {
             return;
           }
         } else {
@@ -823,7 +823,31 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             return;
           }
         }
-        addEntryToGlobalLogBuffer({ type: logTypeForBuffer, messages: messagesForBuffer, source });
+        
+        if (!_isInitialAppStartupComplete && _isReducedStartupLoggingEnabled) {
+          const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader'];
+          let allowLog = false;
+
+          if (sourceForBuffer && criticalSources.includes(sourceForBuffer)) {
+            allowLog = true;
+          } else if (typeForBuffer === 'error' || typeForBuffer === 'warn') {
+            allowLog = true;
+          }
+          
+          if (sourceForBuffer === 'NATIVE_CONSOLE' && typeForBuffer !== 'error' && typeForBuffer !== 'warn' && !criticalSources.includes('NATIVE_CONSOLE')) {
+             // If NATIVE_CONSOLE is not critical, only its errors/warns pass due to above rule. Other native logs get suppressed here.
+             allowLog = false;
+          }
+
+
+          if (!allowLog) {
+            currentOriginalsForInterceptor.debug(
+              `[CONTEXT_INTERCEPTOR_SUPPRESSED_STARTUP_LOG] Type: ${typeForBuffer}, Source: ${sourceForBuffer}, Msg: ${String(messagesForBuffer[0]).substring(0,50)}...`
+            );
+            return; 
+          }
+        }
+        addEntryToGlobalLogBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
       });
     };
 
@@ -852,7 +876,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextOriginals.warn('[CONTEXT_EFFECT_INTERCEPTION] Cleanup: No context originals found to restore!');
       }
     };
-  }, [_isClientDebugConsoleEnabled, _logSourceConfig, contextOriginals, logDebug]);
+  }, [_isClientDebugConsoleEnabled, _logSourceConfig, contextOriginals, logDebug, _isInitialAppStartupComplete, _isReducedStartupLoggingEnabled]);
 
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
@@ -954,16 +978,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     }
 
-    // Set isInitialAppStartupComplete after an initial full analysis cycle
     if (
         currentGlobalFsmState === FsmState.IDLE &&
         (currentGlobalFsmStatePrev === FsmState.FULL_ANALYSIS_COMPLETE || currentGlobalFsmStatePrev === FsmState.DATA_FETCH_FAILED || currentGlobalFsmStatePrev === FsmState.STALE_DATA_FROM_ACTION_ERROR) &&
-        _isFullAnalysisTriggeredInternalState && // Ensures it was an automated pipeline that just finished
+        _isFullAnalysisTriggeredInternalState && 
         !initialStartupFlaggedRef.current
     ) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_StartupComplete', `Initial automated pipeline concluded (Prev: ${currentGlobalFsmStatePrev}, Curr: IDLE). Setting isInitialAppStartupComplete to true.`);
         _setIsInitialAppStartupComplete(true);
-        initialStartupFlaggedRef.current = true; // Prevent this from running again
+        initialStartupFlaggedRef.current = true; 
+        logDebug('StockAnalysisContext', 'StartupComplete', 'Initial application startup sequence complete. Full debug logging is now active.');
     }
 
 
