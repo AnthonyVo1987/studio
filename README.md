@@ -1,9 +1,11 @@
+
 ### AI Coding Agent Operating Procedure Instructions
-1.  Features will be staged as version '3.x.y.z' series. Please follow this version naming convention when I request for commits later on. Do not increment versions on your own.
-    *   App Major Version: 3
-    *   Phase Version: x
-    *   Phase Version Task #: y
-    *   Phase Version Sub-Task #: z
+1.  Features will be staged as version '3.w.x.y.z' series. Please follow this version naming convention when I request for commits later on. Do not increment versions on your own.
+    *   App Major Version: 3 (Fixed)
+    *   APP Phase Version (w): Represents the overall feature phase (e.g., 1 for Initial Setup, 2 for FSM Refactor, 3 for UI Enhancements).
+    *   FEAT Phase Version (x): Represents the phase within the specific feature being implemented (e.g., for FSM Refactor, Phase 1 might be 'Foundation', Phase 2 'Manual Actions Integration').
+    *   FEAT Phase Task # (y): The specific task number within the feature's phase.
+    *   Bug FEAT Phase Task # (z): Increment for bug fix iterations related to a specific FEAT Phase Task # (y). Starts at 0 for the initial implementation.
 ###
 2.  All new features need to provide the following documentation:
     *   Generate a brand new ‘FEAT_SCOPE_xxx.md” markdown file in docs folder and it needs to contain:
@@ -22,8 +24,8 @@
     *   That way, when we start testing some changes and we encounter issues, I can just provide the debug logs which will have the version meta data so it's clear what task we are on and will help to ground us.
 
 ---
-**README Document Version:** 1.57
-**Application Version (from `app-metadata.json`):** v3.1.3.4 (Commit `9aef8261`)
+**README Document Version:** 1.58
+**Application Version (from `app-metadata.json`):** v3.2.1.1.0 (Commit `1d1342aa`)
 **Last Updated:** 2025-06-20
 
 ## 1. Introduction
@@ -98,7 +100,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs).
 *   **Client Debug Console:** Real-time client-side log display with filtering, search, max 1000 entries, wrap indicator, and export capabilities. Exported logs include the dynamic application version.
 *   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup.
-*   **FSM State Debug Card:** Real-time display of FSM states.
+*   **FSM State Debug Card:** Real-time display of FSM states, flags, and context variables.
 
 ### 3.2. System Architecture & Components
 
@@ -122,36 +124,36 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Polygon.io API:** Primary source for stock data (snapshot, historical aggregates for TAs) and options chain data.
 *   **Environment Variables (`.env`):** Stores API keys (Polygon, Google AI).
 *   **Application Metadata (`src/config/app-metadata.json`):**
-    *   Stores the application version (`appVersion`) and last update timestamp (`lastUpdatedTimestamp`).
-    *   **Policy (Strictly Enforced as of v3.0.0.1):**
+    *   Stores the application version (`appVersion` - following `3.w.x.y.z` scheme) and last update timestamp (`lastUpdatedTimestamp`).
+    *   **Policy (Strictly Enforced):**
         *   This file is the **SOLE SOURCE OF TRUTH** for the application's functional version.
         *   The `appVersion` from this file is dynamically loaded at runtime (e.g., in `src/app/page.tsx` via `getAppConfig()`) and passed as props to components like `Header` and `DebugConsole` for UI display and inclusion in exported log/data file metadata.
         *   The `lastUpdatedTimestamp` field **MUST ALWAYS be a real, valid ISO 8601 string** reflecting the time of the metadata update; placeholder values are strictly prohibited.
 
-#### 3.2.4. State Management
+#### 3.2.4. State Management (Target Architecture for v3.2.x.y.z - FSM Consolidation)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
     *   Fetched data JSON strings (e.g., `stockSnapshotJson`, `aiKeyTakeawaysJson`).
-    *   Global Finite State Machine (FSM) state and event dispatching.
+    *   **Single, Enhanced Global Finite State Machine (FSM):** This FSM will manage all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `canUserTriggerManualAnalysis`), and key context variables (e.g., `activeAnalysisTicker`, `lastErrorDetails`). It will orchestrate the entire application lifecycle and UI flows.
     *   Client-side debug logging (`logDebug` function, configuration, startup logging flags).
     *   Chat history.
     *   UI states for debug console and FSM debug card visibility.
     *   The `contextValue` provided by `StockAnalysisProvider` is memoized using `useMemo`.
-*   **`useReducer` (in `StockAnalysisContext` and local FSMs):** Manages the global application FSM and local component UI FSMs.
+*   **`useReducer` (in `StockAnalysisContext`):** Manages the single, enhanced global application FSM.
 *   **`useActionState` (React Hook):** Manages the lifecycle (pending, success, error) of server actions invoked from client components.
 
-#### 3.2.5. FSM (Finite State Machines)
-*   **Global Application FSM (managed in `StockAnalysisContext`):** Orchestrates the main application lifecycle (e.g., `IDLE`, `FETCHING_DATA`, `GENERATING_KEY_TAKEAWAYS`).
-*   **Local UI FSMs:**
-    *   **`MainTabContent.tsx` Local FSM:** Manages UI states for the main input form, automated pipeline requests, and manual AI action requests. Includes guard logic (`globalDispatchGuardRef`) to prevent duplicate global dispatches.
-    *   **`ChatbotFsmContext.tsx`:** Manages the Chatbot's internal UI logic.
-    *   **`DebugConsoleFsmContext.tsx`:** Manages UI states for the Debug Console's menus.
-*   **FSM State Display:** A dedicated "FSM State Debug Card" (`FsmStateDebugCard.tsx`) provides a centralized, real-time view of Previous, Current, and Target states for all major FSMs.
+#### 3.2.5. FSM (Finite State Machines) - (Target Architecture for v3.2.x.y.z)
+*   **Single Global Application FSM (managed in `StockAnalysisContext`):**
+    *   Orchestrates the main application lifecycle (e.g., `APP_INITIALIZING`, `IDLE`, `PIPELINE_REQUESTED_DATA_FETCH`, `MANUAL_ACTION_PENDING_KEY_TAKEAWAYS`, `CHAT_MESSAGE_PENDING`).
+    *   Manages `GlobalFsmFlags` (booleans for specific conditions like `isSnapshotDataReady`) and `GlobalFsmContextVariables` (data like `activeTicker`).
+    *   Drives UI enablement/disablement and conditional logic throughout the app.
+*   **Local UI FSMs (MainTabContent, ChatbotFsmContext, DebugConsoleFsmContext):** To be deprecated or their roles significantly reduced/absorbed by the single global FSM. UI components will primarily react to the global FSM's state, flags, and variables.
+*   **FSM State Display:** The "FSM State Debug Card" (`FsmStateDebugCard.tsx`) will be enhanced to display the state, flags, and variables of the single global FSM.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
 *   Flows (`analyze-stock-data.ts`, `analyze-options-chain-flow.ts`, `analyze-ta-flow.ts`, `chat-flow.ts`) load definitions using `src/ai/definition-loader.ts` (dynamic `import()`).
 *   All flows include error handling and execution time logging.
-*   **AI Options Analysis Flow (`analyze-options-chain-flow.ts`):** Refined prompt to encourage identification of relative OI spikes. Pre-check for `totalOI === 0 && totalVolume === 0` removed.
+*   **AI Options Analysis Flow (`analyze-options-chain-flow.ts`):** Refined prompt to encourage identification of relative OI spikes.
 
 ### 3.4. Error Handling & Logging
 
@@ -169,7 +171,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Debug Console (`src/components/debug-console.tsx`):**
     *   Displays client-side logs (up to 1000 entries).
     *   Features: Filtering by type/source, search, visual wrap indicator message.
-    *   Export/Copy: Logs (JSON, TXT, CSV) include the **dynamic application version** and FSM states.
+    *   Export/Copy: Logs (JSON, TXT, CSV) include the **dynamic application version** and a snapshot of FSM states (and eventually flags/variables from the single FSM).
 
 ### 3.5. Coding Standards & Conventions
 
@@ -178,17 +180,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **No Commented-Out Code in Commits.**
 *   **JSDoc:** For overviews and complex functions. No inline code comments unless essential.
 *   **`package.json`:** No comments.
-*   **Application Versioning (Strictly Enforced):**
-    *   The `appVersion` field in `src/config/app-metadata.json` is the **single source of truth** for the application's functional version.
-    *   This version is loaded dynamically by `src/app/page.tsx` and passed as props to `Header` and `DebugConsole`.
-    *   **NO HARDCODED application version strings** are permitted in UI components or export logic.
 *   **Metadata Timestamps (`src/config/app-metadata.json`):**
     *   The `lastUpdatedTimestamp` field **MUST** always be a real, valid ISO 8601 timestamp.
-*   **Debugging Status (as of v3.1.3.4):**
-    *   Core AI functionality and prompt configurations (safety, thinking budget) are stable.
-    *   The "Debug Log Enhancements" feature (v3.1.x.y) is complete, providing better log management, retention, and startup control.
-    *   FSM dispatch logic, especially for global events, has been refined to reduce duplicate actions.
-    *   Data handling in `PolygonAdapter` for `currentPrice` (especially when market is closed) is more robust.
+*   **Debugging Status (as of v3.2.1.1.0):**
+    *   "Debug Log Enhancements" feature (v3.1.x.y.z) is complete.
+    *   "FSM Consolidation & Refactor" (v3.2.x.y.z) is IN PROGRESS. Phase 1, Task 1 (v3.2.1.1.0 - Integrate Analyze Stock Button) is complete.
 
 #### 3.5.2. UI/UX Conventions
 *   Consistent use of ShadCN components from `components/ui`.
@@ -212,16 +208,21 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Prompt Definitions (`src/ai/definitions/*.json`): Loaded via dynamic `import()` in `definition-loader.ts`. Handlebars for templating (NO logic).
 *   Tools (`ai.defineTool`): For LLM-decided actions.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.1.3.4 and New Instructions)
-*   **Application Versioning - Single Source of Truth & `3.x.y.z` Scheme:**
-    *   The application's functional version is updated **ONLY** in `src/config/app-metadata.json` within the `appVersion` field, following the `3.x.y.z` scheme (Major.Phase.Task.SubTask).
+### 3.6. Commit & Changelog Procedures (Reflecting v3.2.1.1.0 and New Versioning Scheme)
+*   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
+    *   The application's functional version is updated **ONLY** in `src/config/app-metadata.json` within the `appVersion` field, following the `3.w.x.y.z` scheme:
+        *   `3`: App Major Version (Fixed).
+        *   `w`: APP Phase Version (e.g., 2 for FSM Consolidation).
+        *   `x`: FEAT Phase Version (e.g., 1 for FSM Consolidation - Phase 1: Foundation).
+        *   `y`: FEAT Phase Task # (e.g., 1 for Task v3.2.1.1 - Integrate "Analyze Stock" Button).
+        *   `z`: Bug FEAT Phase Task # (Increment for bug fixes specific to task 'y'. Starts at 0).
     *   The `lastUpdatedTimestamp` field in `src/config/app-metadata.json` **MUST** be updated to the current real-world ISO 8601 timestamp.
 *   **Dynamic Versioning in UI/Exports:**
     *   `src/components/layout/header.tsx` receives `appVersion` via props (from `page.tsx` -> `app-metadata.json`).
     *   `src/components/debug-console.tsx` receives `appVersion` via props for inclusion in log exports.
 *   **Documentation Updates:**
     *   `CHANGELOG.md`: Update with detailed commit message for each task/fix, reflecting the new `appVersion`.
-    *   `README.md`: Update this PRD if core architecture or primary functional requirements change.
+    *   `README.md`: Update this PRD if core architecture or primary functional requirements change (like this versioning scheme update).
     *   **New Feature Docs:** For entirely new features, generate `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` in the `/docs` folder as per new operating procedures.
 
 ---
@@ -266,8 +267,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.57
-*   **Current Application Version:** `v3.1.3.4` (Commit `9aef8261`)
+*   **This README Document Version:** 1.58
+*   **Current Application Version:** `v3.2.1.1.0` (Commit `1d1342aa`)
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
@@ -275,3 +276,4 @@ npm run start
 
 ---
 
+    
