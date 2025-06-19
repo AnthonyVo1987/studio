@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.3
+**Document Version:** 1.4
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** IN PROGRESS
@@ -113,7 +113,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
     *   **App Metadata:** `v3.2.1.1.0`.
 
 *   **Task v3.2.1.2.0: Migrate Data Fetching Pipeline to New FSM**
-    *   **Status:** `PLANNED`
+    *   **Status:** `COMPLETED` (Commit: `368c85ab`)
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* The sequence of fetching market data, snapshot, TAs, and options (currently orchestrated by `useEffect` hooks listening to old FSM states) needs to be driven by the new single FSM.
@@ -279,7 +279,8 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
-*   **v1.3 (2025-06-20):** Updated Task v3.2.1.1 status to `COMPLETED` (Commit: `1d1342aa`). Updated versioning to `3.w.x.y.z`.
+*   **v1.4 (2025-06-20):** Updated Task v3.2.1.2.0 status to `COMPLETED` (Commit: `368c85ab`).
+*   **v1.3 (2025-06-20):** Updated Task v3.2.1.1 (now `v3.2.1.1.0`) status to `COMPLETED` (Commit: `1d1342aa`). Updated versioning to `3.w.x.y.z`.
 *   **v1.2 (2025-06-20):** Updated Task v3.2.1.0 Bug Fix Task (v3.2.1.0.1) to `COMPLETED` (Commit: `1aefabe1`). Adjusted subsequent task numbering in Phase 1. Updated Implementation Plan to be a 5-phase plan with dedicated Testing (Phase 4) and Documentation/Cleanup (Phase 5).
 *   **v1.1 (2025-06-20):** Updated Task v3.2.1.0 status to `COMPLETED` (Commit: `919db9f2`). Added bug fix sub-task v3.2.1.0.1.
 *   **v1.0 (2025-06-20):** Initial document creation. Includes full scope, analysis, risks, and revised 5-phase implementation plan for FSM Consolidation & Refactor feature (v3.2.x.y.z).
