@@ -1,10 +1,10 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.2.x.y
-**Feature Status:** PLANNED
+**Feature Status:** IN PROGRESS
 
 ## 1. Introduction & Objective
 
@@ -72,18 +72,21 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *Objective: Establish the basic structure of the new single FSM, define initial core states, flags, and context variables. Integrate the existing automated "Analyze Stock" pipeline (data fetch + TA calculation) into this new FSM as a pilot.*
 
 *   **Task v3.2.1.0: Define Initial Single FSM Structure & Core States**
+    *   **Status:** `COMPLETED` (Commit: `919db9f2`)
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The goal is to create the foundational types/enums for the new single FSM.
-        2.  *Define `GlobalFsmState` Enum:* Create a new enum with initial core states. Consider these as a starting point: `APP_INITIALIZING`, `IDLE`, `AWAITING_TICKER_INPUT`, `VALID_TICKER_ENTERED`, `PIPELINE_REQUESTED_DATA_FETCH`, `DATA_FETCH_IN_PROGRESS`, `DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`, `CALCULATING_AI_TA`, `AI_TA_CALCULATION_SUCCEEDED`, `AI_TA_CALCULATION_FAILED`, `PIPELINE_AUTOMATED_COMPLETE`. (More states will be added in later tasks for manual actions, chat, errors).
-        3.  *Define `GlobalFsmContextVariables` Interface:* Initial variables: `activeAnalysisTicker: string | null`, `userInputTicker: string` (for the main input field), `isInitialAppLoad: boolean` (true initially, false after first successful automated pipeline), `lastError: { message: string, source: string, details?: any } | null`.
-        4.  *Define `GlobalFsmFlags` Interface:* Initial flags: `canAnalyzeStock: boolean` (derived from FSM state and input validity), `isMarketDataReady: boolean`, `isSnapshotDataReady: boolean`, `isStandardTADataReady: boolean`, `isOptionsChainDataReady: boolean`, `isCalculatedTADataReady: boolean`.
-        5.  *Update FSM State Object in `StockAnalysisState`:* Modify the `fsmState` and `previousFsmState` to use the new `GlobalFsmState` enum. Add `fsmVariables: GlobalFsmContextVariables` and `fsmFlags: GlobalFsmFlags` to the main context state. Initialize these appropriately.
-        6.  *Adapt Reducer:* Modify the main `fsmReducer` in `StockAnalysisContext` to use the new `GlobalFsmState` enum and manage the new `fsmVariables` and `fsmFlags` as part of its state updates. For now, map existing global FSM logic broadly to these new states. For example, current `INITIALIZING_ANALYSIS` could map to `APP_INITIALIZING`.
-    *   **Testability:** App should load. The FSM Debug Card (though not yet updated for flags/vars) should reflect the new initial FSM state (e.g., `APP_INITIALIZING` then `IDLE` or `AWAITING_TICKER_INPUT`).
+        1.  *Understand:* The goal is to create the foundational types/enums for the new single FSM and adapt the reducer.
+        2.  *Define `GlobalFsmState` Enum:* Create a new enum with initial core states: `APP_INITIALIZING`, `IDLE`, `AWAITING_TICKER_INPUT`, `VALID_TICKER_ENTERED`, `PIPELINE_REQUESTED_DATA_FETCH`, `DATA_FETCH_IN_PROGRESS`, `DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`, `CALCULATING_AI_TA`, `AI_TA_CALCULATION_SUCCEEDED`, `AI_TA_CALCULATION_FAILED`, `PIPELINE_AUTOMATED_COMPLETE`, plus placeholders for future `GENERATING_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`, `ANALYZING_OPTIONS`, `OPTIONS_ANALYSIS_SUCCEEDED`, `OPTIONS_ANALYSIS_FAILED`, and `ERROR_STALE_DATA`.
+        3.  *Define `GlobalFsmContextVariables` Interface:* Initial variables: `activeTicker: string | null`, `userInputTicker: string`, `isInitialLoad: boolean`, `lastError: { message: string, source: string, details?: any } | null`.
+        4.  *Define `GlobalFsmFlags` Interface:* Initial flags: `canAnalyzeStock: boolean`, `isMarketDataReady: boolean`, `isSnapshotDataReady: boolean`, `isStandardTADataReady: boolean`, `isOptionsChainDataReady: boolean`, `isCalculatedTADataReady: boolean`, `isKeyTakeawaysDataAvailable: boolean`, `isOptionsAnalysisDataAvailable: boolean`.
+        5.  *Update FSM State Object in `StockAnalysisState`:* Modify the `globalFsmState` (previously `fsmState`) to be of type `GlobalFsmReducerManagedState` which includes `{ current: GlobalFsmState, previous: GlobalFsmState | null, variables: GlobalFsmContextVariables, flags: GlobalFsmFlags }`. Update `defaultState` and initializers.
+        6.  *Adapt Reducer:* Modify the main `fsmReducer` in `StockAnalysisContext` to use the new `GlobalFsmState` enum and manage the new `variables` and `flags` as part of its state updates. Map existing global FSM logic broadly to these new states, initializing flags and variables correctly on transitions (e.g., on `START_FULL_ANALYSIS`, reset data flags, set `activeTicker`).
+        7.  *Update Orchestrator and Action Handlers:* Adapt the orchestrator `useEffect` and server action result `useEffect`s to work with the new FSM state structure, dispatch new FSM events, and update new flags/variables.
+    *   **Testability:** App should load. The FSM Debug Card (though not yet updated for flags/vars) should reflect the new initial FSM state. Automated pipeline for "Analyze Stock" should still broadly function, with the new FSM states being logged.
     *   **App Metadata:** Update to `v3.2.1.0`.
 
 *   **Task v3.2.1.1: Integrate "Analyze Stock" Button & Input Handling**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* The local FSM in `MainTabContent` for ticker input and automated analysis submission needs to be removed. This logic will move to the global FSM.
@@ -91,48 +94,60 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
             *   Remove its local FSM reducer and states related to `INPUT_VALID`, `AUTOMATED_PIPELINE_REQUESTED`, etc.
             *   The `tickerInput` can remain a local `useState` in `MainTabContent`.
             *   The "Analyze Stock" button's `disabled` attribute should now be derived from `useStockAnalysis().fsmFlags.canAnalyzeStock` and potentially if `useStockAnalysis().fsmState` indicates a busy pipeline.
-            *   The `onSubmit` handler for the form (and thus the "Analyze Stock" button) will dispatch a new global event: `SUBMIT_TICKER_FOR_AUTOMATED_ANALYSIS` with `{ ticker: tickerInput }` as payload.
+            *   The `onSubmit` handler for the form (and thus the "Analyze Stock" button) will dispatch a global event: `START_FULL_ANALYSIS` (renamed from `PROCESS_TICKER_AUTOMATED`) with `{ ticker: tickerInput }` as payload.
         3.  *`StockAnalysisContext.tsx` (Reducer) Changes:*
-            *   Handle `SUBMIT_TICKER_FOR_AUTOMATED_ANALYSIS`:
-                *   Set `fsmVariables.userInputTicker = event.payload.ticker`.
-                *   Set `fsmVariables.activeAnalysisTicker = event.payload.ticker`.
-                *   Set `fsmFlags.canAnalyzeStock = false`.
-                *   Transition to `PIPELINE_REQUESTED_DATA_FETCH`.
-                *   (Potentially set `fsmVariables.isInitialAppLoad = false` if this is the first user-triggered analysis).
-            *   Update derivation of `fsmFlags.canAnalyzeStock`: It should be true if FSM is `IDLE` or `AWAITING_TICKER_INPUT` (or `VALID_TICKER_ENTERED` if we keep that distinct state) and `fsmVariables.userInputTicker` is valid.
-    *   **Testability:** "Analyze Stock" button enables/disables based on global FSM state/flags. Clicking it updates `activeAnalysisTicker` in the global FSM and transitions the global FSM to `PIPELINE_REQUESTED_DATA_FETCH`.
+            *   Handle `START_FULL_ANALYSIS`:
+                *   Set `variables.userInputTicker = event.payload.ticker`.
+                *   Set `variables.activeTicker = event.payload.ticker`.
+                *   Set `flags.canAnalyzeStock = false`.
+                *   Transition to `PIPELINE_REQUESTED_DATA_FETCH` (or `APP_INITIALIZING` if this is the first analysis, then to `PIPELINE_REQUESTED_DATA_FETCH` via orchestrator).
+                *   Reset all data availability flags (`isMarketDataReady`, `isSnapshotDataReady`, etc.) to `false`.
+                *   Reset `variables.lastError = null`.
+                *   Invoke `setAllPlaceholdersInternal` to reset context JSON strings.
+            *   Update derivation logic for `flags.canAnalyzeStock`: It should be true if FSM is `IDLE`, `AWAITING_TICKER_INPUT`, or `VALID_TICKER_ENTERED` and `variables.userInputTicker` is valid.
+    *   **Testability:** "Analyze Stock" button enables/disables based on global FSM state/flags. Clicking it updates `activeTicker` in the global FSM, resets relevant flags/JSONs, and transitions the global FSM to `APP_INITIALIZING` or `PIPELINE_REQUESTED_DATA_FETCH`.
     *   **App Metadata:** Update to `v3.2.1.1`.
 
 *   **Task v3.2.1.2: Migrate Data Fetching Pipeline to New FSM**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* The sequence of fetching market data, snapshot, TAs, and options (currently orchestrated by `useEffect` hooks listening to old FSM states) needs to be driven by the new single FSM.
-        2.  *FSM State Progression:*
-            *   From `PIPELINE_REQUESTED_DATA_FETCH`: The orchestrator effect (or a new one) will trigger `fetchStockDataAction`.
-            *   Transition to `DATA_FETCH_IN_PROGRESS`.
+        2.  *FSM State Progression & Orchestration:*
+            *   From `PIPELINE_REQUESTED_DATA_FETCH`: The orchestrator effect will dispatch `TRIGGER_DATA_FETCH`.
+            *   Reducer handles `TRIGGER_DATA_FETCH`: Transition to `DATA_FETCH_IN_PROGRESS`. (Orchestrator will then call `fetchStockDataAction`).
         3.  *Server Action Result Handling (`useEffect` for `fetchDataActionState`):*
-            *   On success: Update context JSONs. Set flags: `isMarketDataReady=true`, `isSnapshotDataReady=true`, `isStandardTADataReady=true`, `isOptionsChainDataReady=true`. Dispatch `DATA_FETCH_SUCCESSFUL_EVENT` to FSM.
-            *   On error: Update context JSONs with error. Set `variables.lastError`. Set relevant data readiness flags to `false`. Dispatch `DATA_FETCH_ERROR_EVENT`.
+            *   On success: Update context JSONs. Set flags: `isMarketDataReady=true`, `isSnapshotDataReady=true`, `isStandardTADataReady=true`, `isOptionsChainDataReady=true`. Dispatch `FETCH_DATA_SUCCESS` to FSM.
+            *   On error: Update context JSONs with error. Set `variables.lastError`. Set relevant data readiness flags to `false`. Dispatch `FETCH_DATA_FAILURE`.
+            *   Handle `Stale data detected` specifically by dispatching `STALE_DATA_FROM_ACTION`.
         4.  *FSM Reducer Handling:*
-            *   `DATA_FETCH_SUCCESSFUL_EVENT`: Transition to `CALCULATING_AI_TA` (if automated pipeline).
-            *   `DATA_FETCH_ERROR_EVENT`: Transition to `ERROR_DATA_FETCH`.
-    *   **Testability:** The full data fetching sequence completes. All relevant data JSONs in context are populated. FSM moves through `PIPELINE_REQUESTED_DATA_FETCH` -> `DATA_FETCH_IN_PROGRESS` -> (`CALCULATING_AI_TA` or `ERROR_DATA_FETCH`). Data readiness flags are set correctly.
+            *   `FETCH_DATA_SUCCESS`: Transition to `DATA_FETCH_SUCCEEDED`.
+            *   `FETCH_DATA_FAILURE`: Transition to `DATA_FETCH_FAILED`.
+            *   `STALE_DATA_FROM_ACTION`: Transition to `ERROR_STALE_DATA`.
+    *   **Testability:** The full data fetching sequence completes. All relevant data JSONs in context are populated. FSM moves through `PIPELINE_REQUESTED_DATA_FETCH` -> `DATA_FETCH_IN_PROGRESS` -> (`DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`, or `ERROR_STALE_DATA`). Data readiness flags are set correctly.
     *   **App Metadata:** Update to `v3.2.1.2`.
 
 *   **Task v3.2.1.3: Migrate AI TA Calculation to New FSM (Automated Pipeline)**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* AI TA calculation is the next step in the automated pipeline.
-        2.  *FSM State Progression:*
-            *   When FSM is in `CALCULATING_AI_TA` (after successful data fetch): The orchestrator effect triggers `analyzeTaAction`.
+        2.  *FSM State Progression & Orchestration:*
+            *   From `DATA_FETCH_SUCCEEDED`: The orchestrator effect will dispatch `INITIATE_AI_TA_SEQUENCE`.
+            *   Reducer handles `INITIATE_AI_TA_SEQUENCE`: Set AI TA JSONs to pending. Transition to `CALCULATING_AI_TA`. (Orchestrator will then call `analyzeTaAction`).
         3.  *Server Action Result Handling (`useEffect` for `analyzeTaActionState`):*
-            *   On success: Update `aiAnalyzedTaJson` and `aiAnalyzedTaRequestJson`. Set `flags.isCalculatedTADataReady = true`. Dispatch `AI_TA_CALCULATION_SUCCESSFUL_EVENT`.
-            *   On error: Update JSONs with error. Set `variables.lastError`. Set `flags.isCalculatedTADataReady = false`. Dispatch `AI_TA_CALCULATION_ERROR_EVENT`.
+            *   On success: Update `aiAnalyzedTaJson` and `aiAnalyzedTaRequestJson`. Set `flags.isCalculatedTADataReady = true`. Dispatch `AI_TA_SUCCESS`.
+            *   On error: Update JSONs with error. Set `variables.lastError`. Set `flags.isCalculatedTADataReady = false`. Dispatch `AI_TA_FAILURE`.
         4.  *FSM Reducer Handling:*
-            *   `AI_TA_CALCULATION_SUCCESSFUL_EVENT`: Transition to `PIPELINE_AUTOMATED_COMPLETE`.
-            *   `AI_TA_CALCULATION_ERROR_EVENT`: Transition to `ERROR_AI_TA`.
-        5.  *Return to Idle:* From `PIPELINE_AUTOMATED_COMPLETE`, `ERROR_DATA_FETCH`, `ERROR_AI_TA`, the FSM should transition back to an `IDLE` (or `VALID_TICKER_ENTERED` if applicable) state. Reset `flags.canAnalyzeStock = true`.
-    *   **Testability:** AI TA is calculated after data fetch. `aiAnalyzedTaJson` is populated. FSM transitions correctly through `CALCULATING_AI_TA` -> (`PIPELINE_AUTOMATED_COMPLETE` or `ERROR_AI_TA`) -> `IDLE`. Relevant flags updated.
+            *   `AI_TA_SUCCESS`: Transition to `AI_TA_CALCULATION_SUCCEEDED`.
+            *   `AI_TA_FAILURE`: Transition to `AI_TA_CALCULATION_FAILED`.
+        5.  *Finalize Automated Pipeline (Orchestrator):*
+            *   From `AI_TA_CALCULATION_SUCCEEDED` or `AI_TA_CALCULATION_FAILED`: Orchestrator dispatches `FINALIZE_AUTOMATED_PIPELINE`.
+            *   Reducer handles `FINALIZE_AUTOMATED_PIPELINE`: Transition to `PIPELINE_AUTOMATED_COMPLETE`. If success, set `variables.isInitialLoad = false`.
+        6.  *Return to Idle (Orchestrator):*
+            *   From `PIPELINE_AUTOMATED_COMPLETE`, `DATA_FETCH_FAILED`, `ERROR_STALE_DATA`: Orchestrator dispatches `PROCEED_TO_IDLE`.
+            *   Reducer handles `PROCEED_TO_IDLE`: Transition to `IDLE` (or `VALID_TICKER_ENTERED`). Reset `flags.canAnalyzeStock = true`. Clear `variables.lastError`.
+    *   **Testability:** AI TA is calculated after data fetch. `aiAnalyzedTaJson` is populated. FSM transitions correctly through states, eventually returning to `IDLE`. Relevant flags updated.
     *   **App Metadata:** Update to `v3.2.1.3`.
 
 ---
@@ -141,26 +156,29 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *Objective: Migrate the "Generate AI Key Takeaways" and "Generate AI Options Analysis" buttons to use the single FSM.*
 
 *   **Task v3.2.2.0: Integrate "Generate AI Key Takeaways" Button**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Manual Key Takeaways should only be possible after a successful automated pipeline for the `activeAnalysisTicker`.
+        1.  *Understand:* Manual Key Takeaways should only be possible after a successful automated pipeline for the `variables.activeTicker`.
         2.  *`MainTabContent.tsx` Button Logic:*
-            *   Disable state derived from `fsmState` (e.g., must be `IDLE` or `PIPELINE_AUTOMATED_COMPLETE`), `fsmFlags.isKeyTakeawaysDataAvailable` (to prevent re-generation if already present, or handle it), and `fsmFlags.isSnapshotDataReady`, `fsmFlags.isStandardTADataReady`, `fsmFlags.isCalculatedTADataReady`.
-            *   `onClick`: Dispatch `REQUEST_MANUAL_AI_KEY_TAKEAWAYS_EVENT` (payload: `{ ticker: fsmVariables.activeAnalysisTicker }`).
+            *   Disable state derived from `fsmState` (e.g., must be `IDLE` or `PIPELINE_AUTOMATED_COMPLETE`), `fsmFlags.isKeyTakeawaysDataAvailable` (to prevent re-generation if already present, or handle it), `fsmFlags.isSnapshotDataReady`, `fsmFlags.isStandardTADataReady`, `fsmFlags.isCalculatedTADataReady`, and whether global pipeline is busy.
+            *   `onClick`: Dispatch `TRIGGER_MANUAL_KEY_TAKEAWAYS` event (payload: `{ ticker: fsmVariables.activeTicker }`).
         3.  *`StockAnalysisContext.tsx` (Reducer & Orchestration):*
-            *   Handle `REQUEST_MANUAL_AI_KEY_TAKEAWAYS_EVENT`: Transition to `MANUAL_ACTION_PENDING_KEY_TAKEAWAYS`.
-            *   Orchestrator `useEffect` triggers `performAiAnalysisAction` when in this state.
-            *   Handle server action result: Update `aiKeyTakeawaysJson`, set `flags.isKeyTakeawaysDataAvailable`, `variables.lastError`. Dispatch `MANUAL_AI_KEY_TAKEAWAYS_SUCCESS_EVENT` or `..._ERROR_EVENT`.
-            *   FSM transitions from `MANUAL_ACTION_PENDING_KEY_TAKEAWAYS` back to `IDLE` (or the state indicating automated pipeline is complete and manual actions are possible).
+            *   Reducer handles `TRIGGER_MANUAL_KEY_TAKEAWAYS`: Set relevant AI Key Takeaways JSONs to pending. Transition to `GENERATING_KEY_TAKEAWAYS`.
+            *   Orchestrator `useEffect` triggers `performAiAnalysisAction` when in `GENERATING_KEY_TAKEAWAYS`.
+            *   `useEffect` for `performAiAnalysisActionState` handles result: Update `aiKeyTakeawaysJson`, set `flags.isKeyTakeawaysDataAvailable`, `variables.lastError`. Dispatch `KEY_TAKEAWAYS_SUCCESS` or `KEY_TAKEAWAYS_FAILURE`.
+            *   Reducer handles `KEY_TAKEAWAYS_SUCCESS` / `KEY_TAKEAWAYS_FAILURE`: Transition to a terminal state for this manual action (e.g., `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`).
+            *   Orchestrator handles these terminal states by dispatching `PROCEED_TO_IDLE` to return to an idle state.
     *   **Testability:** Button enables/disables correctly. Key takeaways are generated. FSM transitions correctly.
     *   **App Metadata:** Update to `v3.2.2.0`.
 
 *   **Task v3.2.2.1: Integrate "Generate AI Options Analysis" Button**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:** Similar to Key Takeaways:
-        1.  Button logic based on global FSM state, flags (`isOptionsAnalysisDataAvailable`, `isOptionsChainDataReady`, `isSnapshotDataAvailable`).
-        2.  `onClick` dispatches `REQUEST_MANUAL_AI_OPTIONS_ANALYSIS_EVENT`.
-        3.  Global FSM handles, calls `performAiOptionsAnalysisAction`, updates context, transitions back.
+        1.  Button logic based on global FSM state, flags (`isOptionsAnalysisDataAvailable`, `isOptionsChainDataReady`, `isSnapshotDataReady`).
+        2.  `onClick` dispatches `TRIGGER_MANUAL_OPTIONS_ANALYSIS`.
+        3.  Global FSM: Reducer transitions to `ANALYZING_OPTIONS`. Orchestrator calls `performAiOptionsAnalysisAction`. Action result handler dispatches success/failure. Reducer transitions to terminal state. Orchestrator returns to `IDLE`.
     *   **Testability:** Button enables/disables correctly. Options analysis generated. FSM transitions.
     *   **App Metadata:** Update to `v3.2.2.1`.
 
@@ -170,78 +188,61 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *Objective: Bring Chatbot UI states and Debug Console menu states under the purview of the single FSM.*
 
 *   **Task v3.2.3.0: Integrate Chatbot Submission Flow**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/components/chatbot.tsx`, `src/contexts/stock-analysis-context.tsx`. (Potentially deprecate `ChatbotFsmContext.tsx`).
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Chat submission is an asynchronous action.
-        2.  `Chatbot.tsx`: `onSubmit` dispatches `SUBMIT_CHAT_MESSAGE_EVENT` to global FSM with payload (userInput, current data context, chat history).
+        1.  *Understand:* Chat submission is an asynchronous action. `ChatbotFsmContext` will be deprecated.
+        2.  `Chatbot.tsx`: `onSubmit` (and example prompt clicks) dispatches `ADD_CHAT_MESSAGE` to global FSM with payload (userInput, current data context, chat history). The `userInput` can be local to `Chatbot.tsx`.
         3.  `StockAnalysisContext.tsx`:
-            *   Reducer handles `SUBMIT_CHAT_MESSAGE_EVENT`: Add user message to `chatHistory`. Transition to `CHAT_MESSAGE_PENDING`.
-            *   Orchestrator `useEffect` triggers `chatServerAction`.
-            *   `useEffect` for `chatActionState` handles result: Add model response/error to `chatHistory`. Update `chatbotRequestJson`/`chatbotResponseJson`. Dispatch `CHAT_MESSAGE_SUCCESS_EVENT` or `..._ERROR_EVENT`.
-            *   Reducer handles success/error: Transition back to `IDLE` (or a state like `AWAITING_CHAT_INPUT`).
-    *   **Testability:** Chat messages can be submitted. Global FSM reflects pending/completion. Chat history updates.
+            *   Reducer handles `ADD_CHAT_MESSAGE`: Add user message to `chatHistory`. Transition to `CHAT_MESSAGE_PENDING`.
+            *   Orchestrator `useEffect` (when `CHAT_MESSAGE_PENDING`) triggers `chatServerAction`.
+            *   `useEffect` for `chatActionState` handles result: Add model response/error to `chatHistory`. Update `chatbotRequestJson`/`chatbotResponseJson`. Dispatch event to global FSM like `CHAT_MESSAGE_SUCCESS` or `CHAT_MESSAGE_ERROR`.
+            *   Reducer handles success/error: Transition back to `IDLE`.
+    *   **Testability:** Chat messages can be submitted. Global FSM reflects pending/completion. Chat history updates. Chat input disabled during pending.
     *   **App Metadata:** Update to `v3.2.3.0`.
 
-*   **Task v3.2.3.1: Chatbot UI State Management (Loading/Disabled)**
-    *   **File(s):** `src/components/chatbot.tsx`, `src/contexts/stock-analysis-context.tsx`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Input field and submit button in `Chatbot.tsx` need to be disabled during submission.
-        2.  `Chatbot.tsx`: Derive `isChatPending` (or similar) directly from global `fsmState === GlobalFsmState.CHAT_MESSAGE_PENDING`.
-        3.  If `ChatbotFsmContext` is being deprecated, ensure any other UI logic it handled is now covered by global FSM flags/state.
-    *   **Testability:** Chat input/button disable correctly based on global FSM.
-    *   **App Metadata:** Update to `v3.2.3.1`.
-
-*   **Task v3.2.3.2: Integrate Debug Console Menu UI States (Optional but Recommended)**
+*   **Task v3.2.3.1: Integrate Debug Console Menu UI States (Optional but Recommended)**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/components/debug-console.tsx`, `src/contexts/stock-analysis-context.tsx`. (Potentially deprecate `DebugConsoleFsmContext.tsx`).
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The open/closed state of Debug Console menus (Filter, Copy, Export).
-        2.  Add flags to `GlobalFsmFlags`: e.g., `isDebugConsoleFilterMenuOpen: boolean`, `isDebugConsoleCopyMenuOpen: boolean`, `isDebugConsoleExportMenuOpen: boolean`.
-        3.  `DebugConsole.tsx`: Dropdown triggers dispatch events to global FSM like `TOGGLE_DEBUG_CONSOLE_MENU_EVENT` (payload: `{ menu: 'filter' | 'copy' | 'export', isOpen: boolean }`).
-        4.  Reducer updates the corresponding flag.
-    *   **Testability:** Debug console menus open/close correctly, driven by global FSM flags.
-    *   **App Metadata:** Update to `v3.2.3.2`.
+        1.  *Understand:* The open/closed state of Debug Console menus (Filter, Copy, Export). `DebugConsoleFsmContext` will be deprecated.
+        2.  Add flags to `GlobalFsmFlags`: e.g., `isDebugConsoleFilterMenuOpen: boolean`, `isDebugConsoleCopyMenuOpen: boolean`, `isDebugConsoleExportMenuOpen: boolean`. Initialize to `false`.
+        3.  `DebugConsole.tsx`: Dropdown triggers dispatch events to global FSM like `TOGGLE_DEBUG_CONSOLE_MENU` (payload: `{ menu: 'filter' | 'copy' | 'export', currentOpenState: boolean }`).
+        4.  Reducer handles `TOGGLE_DEBUG_CONSOLE_MENU`: Updates the corresponding flag (e.g., `flags.isDebugConsoleFilterMenuOpen = !payload.currentOpenState`). If opening one menu, ensure others are closed (set their flags to `false`).
+    *   **Testability:** Debug console menus open/close correctly, driven by global FSM flags. Only one menu open at a time.
+    *   **App Metadata:** Update to `v3.2.3.1`.
 
 ---
 
-### **Phase 4: Testing and Debugging (New Phase) (Target: v3.2.4.z)**
+### **Phase 4: Testing and Debugging (Target: v3.2.4.z)**
 *Objective: Rigorous testing of the consolidated FSM across all application features and edge cases. Focus on stability, correct state transitions, accurate flag/variable updates, and absence of regressions.*
 
 *   **Task v3.2.4.0: Comprehensive End-to-End Testing - Scenario 1 (Happy Paths)**
+    *   **Status:** `PLANNED`
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* The goal is to verify all primary user flows work correctly with the new single FSM.
-        2.  *Test Plan Execution (Manual or Guiding User):*
-            *   Test initial app load (default ticker or no ticker).
-            *   Test successful "Analyze Stock" automated pipeline.
-            *   Test successful "Generate AI Key Takeaways" after automated pipeline.
-            *   Test successful "Generate AI Options Analysis" after automated pipeline.
-            *   Test multiple successful chat interactions.
-            *   Test changing ticker and re-running automated analysis.
-            *   Test all Debug Console and FSM Debug Card functionalities (export, copy, filter, toggle visibility).
-        3.  *Verification:* Monitor FSM states, flags, and variables via FSM Debug Card and console logs. Ensure UI elements (buttons, loading states, data displays) behave correctly. Verify data in context updates as expected.
-        4.  *Code Changes (If any):* Only if minor tweaks are identified during this testing that are direct consequences of the FSM refactor.
+        2.  *Test Plan Execution Guidance:* Test initial app load, successful "Analyze Stock," successful manual AI actions, multiple chat interactions, changing tickers, and all Debug Console/FSM Card functionalities.
+        3.  *Verification Criteria:* Monitor FSM states, flags, variables. Ensure UI elements behave correctly. Verify context data updates.
+        4.  *Code Changes:* Only minor tweaks directly related to FSM behavior identified during this testing.
     *   **App Metadata:** `v3.2.4.0` (update if code changes).
 
 *   **Task v3.2.4.1: Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases)**
+    *   **Status:** `PLANNED`
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Verify robust error handling and graceful recovery with the new FSM.
-        2.  *Test Plan Execution (Manual or Guiding User):*
-            *   Test invalid ticker input.
-            *   Simulate API failures (data fetch, TA calculation) if possible by temporarily modifying API keys or data sources (or rely on natural API rate limits/errors if encountered).
-            *   Simulate AI flow failures (Key Takeaways, Options, Chat) by, for example, providing malformed input to prompts if possible.
-            *   Test rapidly clicking buttons or changing inputs during FSM processing.
-            *   Test attempting manual actions when prerequisites (data flags) are not met.
-            *   Test network interruptions during operations (if feasible in dev environment).
-        3.  *Verification:* FSM transitions to appropriate `ERROR_...` states. `variables.lastError` is populated with meaningful info. UI displays user-friendly error messages or indications. Application recovers gracefully to an `IDLE` or stable state. No crashes or unexpected UI hangs.
-        4.  *Code Changes (If any):* Implement fixes for any identified issues.
+        1.  *Understand:* Verify robust error handling and graceful recovery.
+        2.  *Test Plan Execution Guidance:* Test invalid ticker, simulate API/AI flow failures, rapid clicks, actions with unmet prerequisites, network interruptions (if possible).
+        3.  *Verification Criteria:* FSM transitions to `ERROR_...` states. `variables.lastError` populated. UI shows errors. App recovers gracefully. No crashes/hangs.
+        4.  *Code Changes:* Implement fixes for identified issues.
     *   **App Metadata:** `v3.2.4.1` (update if code changes).
 
 *   **Task v3.2.4.2: Log Review & Final Refinements**
+    *   **Status:** `PLANNED`
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Perform a final check of all logs and FSM behavior for polish and completeness.
-        2.  *Action:* Review all client-side debug logs (with all sources enabled) and any relevant server-side logs generated during the comprehensive testing phase (v3.2.4.0, v3.2.4.1).
-        3.  *Identify & Address:* Any remaining anomalies, unexpected FSM transitions, incorrect flag/variable settings, or excessive/missing log messages. Focus on ensuring the "Failure Snapshot" from Debug Console exports is complete and provides maximum diagnostic value.
-        4.  *Considerations for AI Agent:* *Based on the logs from comprehensive testing, are there any states that are entered/exited too quickly or unexpectedly? Are any flags not being reset correctly upon returning to IDLE? Is `lastError` always cleared when returning to `IDLE` after a successful operation? Are there any subtle race conditions evident in how quickly states transition versus how effects that depend on them run?*
-        5.  *Code Changes (If any):* Implement final small tweaks.
+        1.  *Understand:* Final check of logs and FSM behavior.
+        2.  *Action:* Review all client/server logs from comprehensive testing.
+        3.  *Identify & Address:* Anomalies, incorrect flag/variable settings, missing/excessive logs. Ensure "Failure Snapshot" is complete.
+        4.  *Considerations:* Are states entered/exited unexpectedly? Flags reset correctly? `lastError` cleared? Subtle race conditions?
+        5.  *Code Changes:* Implement final small tweaks.
     *   **App Metadata:** `v3.2.4.2` (update if code changes).
 
 ---
@@ -249,37 +250,35 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 ### **Phase 5: Documentation & Cleanup (Target: v3.2.5.z)**
 *Objective: Finalize the enhanced debugging tools and update all project documentation to reflect the new FSM architecture.*
 
-*   **Task v3.2.5.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports (Code Touch-up if needed from Phase 4)**
+*   **Task v3.2.5.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports**
+    *   **Status:** `PLANNED`
     *   **File(s):** `src/components/fsm-state-debug-card.tsx`, `src/components/debug-console.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The FSM Debug Card and console exports are key deliverables and must be fully aligned with the final FSM structure after Phase 4 testing.
-        2.  *`FsmStateDebugCard.tsx` Update/Verification:*
-            *   Ensure it clearly and accurately displays the current `GlobalFsmState`, previous `GlobalFsmState`.
-            *   Ensure it has a dedicated section to display all `GlobalFsmFlags` (e.g., as a list of "FlagName: true/false").
-            *   Ensure it has a dedicated section to display key `GlobalFsmContextVariables` (e.g., `activeAnalysisTicker`, `userInputTicker`, relevant parts of `lastError`).
-            *   Verify its "Copy JSON" and "Export JSON" functionality correctly captures all this new FSM state, flags, and variables data.
-        3.  *`DebugConsole.tsx` Update/Verification:*
-            *   Verify that `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`, and the direct JSON copy/export handlers correctly receive or access the complete FSM state (state, flags, variables) from `StockAnalysisContext`.
-            *   Verify that this full FSM snapshot is prepended to all exported/copied log data.
-        4.  *Code Changes (If any):* Minor adjustments based on Phase 4 findings.
-    *   **Testability:** FSM Debug Card displays all required FSM information accurately. Log exports/copies from Debug Console contain the complete FSM snapshot.
+        1.  *Understand:* FSM Debug Card and console exports must align with the final FSM structure.
+        2.  *`FsmStateDebugCard.tsx` Verification:* Displays current/previous FSM state, all `GlobalFsmFlags`, key `GlobalFsmContextVariables`. Export/Copy works.
+        3.  *`DebugConsole.tsx` Verification:* Log export/copy handlers correctly include the full FSM snapshot (state, flags, variables).
+        4.  *Code Changes:* Minor adjustments based on Phase 4 findings.
+    *   **Testability:** FSM Debug Card displays all info. Log exports contain complete FSM snapshot.
     *   **App Metadata:** Update to `v3.2.5.0`.
 
 *   **Task v3.2.5.1: Update All Project Documentation (README.md, CHANGELOG.md, FEAT docs)**
+    *   **Status:** `PLANNED`
     *   **File(s):** `README.md`, `CHANGELOG.md`, `docs/FEAT_SCOPE_FsmConsolidation_v3.2.md`, `docs/FEAT_STATUS_FsmConsolidation_v3.2.md`.
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* All documentation must reflect the new single FSM architecture and the completion of this feature.
-        2.  *`README.md` Update:*
-            *   Rewrite/update sections on State Management and FSM architecture to detail the single FSM, its states, the concept of flags and context variables.
-            *   Update component descriptions (`MainTabContent`, `Chatbot`, etc.) to explain how they now interact with the global FSM.
-            *   Describe the enhanced FSM Debug Card and the enriched data in Debug Console exports.
-            *   Ensure commit procedures reflect the `v3.2.x.y` series completion for this feature.
-        3.  *`CHANGELOG.md` Update:* Add entries for each task in the `v3.2.x.y` series, culminating in the completion of this "FSM Consolidation & Refactor" feature. This should be a consolidated entry summarizing the feature.
-        4.  *`FEAT_STATUS_FsmConsolidation_v3.2.md` Update:* Mark the overall feature and all its phases/tasks as `COMPLETED`. Add final commit details.
-        5.  *`FEAT_SCOPE_FsmConsolidation_v3.2.md` Update:* Mark as `COMPLETED` and ensure the "Implementation Plan" section accurately reflects the tasks undertaken (it should already be accurate if followed).
-    *   **Testability:** Review all updated documents for accuracy, completeness, and clarity.
-    *   **App Metadata:** `v3.2.5.1` (or the final version from the previous task if no code changes here).
+        1.  *Understand:* All documentation must reflect the new single FSM architecture and feature completion.
+        2.  *`README.md` Update:* Rewrite/update State Management, FSM architecture, component interactions sections. Describe enhanced FSM Debug Card and exports. Update commit procedures.
+        3.  *`CHANGELOG.md` Update:* Add consolidated entry for `v3.2.x.y` feature completion.
+        4.  *`FEAT_STATUS_FsmConsolidation_v3.2.md` Update:* Mark feature and all phases/tasks as `COMPLETED`. Add final commit details.
+        5.  *`FEAT_SCOPE_FsmConsolidation_v3.2.md` Update:* Mark as `COMPLETED`. Ensure "Implementation Plan" reflects tasks undertaken.
+    *   **Testability:** Review all updated documents for accuracy and clarity.
+    *   **App Metadata:** `v3.2.5.1` (or final version from previous task if no code changes).
 
 ---
 
-This detailed plan should provide a solid framework. We are ready to create the initial documentation files.
+## 7. Document Changelog
+
+*   **v1.1 (2025-06-20):** Updated Task v3.2.1.0 status to COMPLETED. Added details from actual implementation. Adjusted phase descriptions slightly for AI guidance.
+*   **v1.0 (2025-06-20):** Initial document creation. Includes full scope, analysis, risks, and revised 5-phase implementation plan for FSM Consolidation & Refactor feature (v3.2.x.y).
+
+---
+This document will be updated as the feature progresses through its implementation phases.

@@ -1,32 +1,32 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Date:** 2025-06-20
 **Feature Target Application Version Series:** 3.2.x.y
-**Feature Start App Version:** `v3.2.0.0` (Pending actual start of Phase 1 coding)
+**Feature Start App Version:** `v3.2.0.0`
 
 ## 1. Overall Feature Status
 
-**Current Status:** `PLANNED`
+**Current Status:** `IN PROGRESS`
 **Last Updated:** 2025-06-20
 
-**Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM. This will improve maintainability, extensibility, and debuggability. The scope and implementation plan have been approved, and initial documentation is being generated.
+**Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM. Task v3.2.1.0 (Define Initial Single FSM Structure & Core States) is complete.
 
 ## 2. Phase & Task Status
 
-*(This section will be updated as phases and tasks are initiated and completed.)*
-
 ### **Phase 1: Foundation & Core FSM Setup (Target: v3.2.1.z)**
-*   **Overall Phase Status:** `PLANNED`
+*   **Overall Phase Status:** `IN PROGRESS`
 *   **Tasks:**
     *   **Task v3.2.1.0: Define Initial Single FSM Structure & Core States**
+        *   **Status:** `COMPLETED`
+        *   **Commit Hash:** `919db9f2`
+        *   **App Version Tag:** `v3.2.1.0`
+    *   **Task v3.2.1.1: Integrate "Analyze Stock" Button & Input Handling**
         *   **Status:** `PLANNED`
-    *   **Task v3.2.1.1: Integrate "Analyze Stock" Button (Automated Pipeline Initiation)**
+    *   **Task v3.2.1.2: Migrate Data Fetching Pipeline to New FSM**
         *   **Status:** `PLANNED`
-    *   **Task v3.2.1.2: Migrate Data Fetching Logic (Polygon Adapter Call)**
-        *   **Status:** `PLANNED`
-    *   **Task v3.2.1.3: Migrate AI TA Calculation Logic**
+    *   **Task v3.2.1.3: Migrate AI TA Calculation to New FSM (Automated Pipeline)**
         *   **Status:** `PLANNED`
 
 ### **Phase 2: Integrating Manual AI Actions (Target: v3.2.2.z)**
@@ -42,9 +42,7 @@
 *   **Tasks:**
     *   **Task v3.2.3.0: Integrate Chatbot Submission Flow**
         *   **Status:** `PLANNED`
-    *   **Task v3.2.3.1: Chatbot UI State Management (Loading/Disabled)**
-        *   **Status:** `PLANNED`
-    *   **Task v3.2.3.2: Integrate Debug Console Menu UI States (Optional Refactor)**
+    *   **Task v3.2.3.1: Integrate Debug Console Menu UI States (Optional Refactor)**
         *   **Status:** `PLANNED`
 
 ### **Phase 4: Testing and Debugging (Target: v3.2.4.z)**
@@ -60,21 +58,23 @@
 ### **Phase 5: Documentation & Cleanup (Target: v3.2.5.z)**
 *   **Overall Phase Status:** `PLANNED`
 *   **Tasks:**
-    *   **Task v3.2.5.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports (Code Touch-up if needed from Phase 4)**
+    *   **Task v3.2.5.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports**
         *   **Status:** `PLANNED`
     *   **Task v3.2.5.1: Update All Project Documentation (README.md, CHANGELOG.md, FEAT docs)**
         *   **Status:** `PLANNED`
 
 ## 3. Feature Changelog & Commit History
 
-| Date       | Version Tag (Task ID)                    | Commit Hash (if applicable) | Summary of Changes                                                                                     | Status    |
-| :--------- | :--------------------------------------- | :-------------------------- | :----------------------------------------------------------------------------------------------------- | :-------- |
-| 2025-06-20 | `v3.2.0.0` (Feature Scope Initiated)     | N/A                         | Feature scope defined & approved. Initial FEAT_SCOPE & FEAT_STATUS documents created (this file).      | PLANNED   |
-|            |                                          |                             |                                                                                                        |           |
+| Date       | Version Tag (Task ID)                    | Commit Hash (if applicable) | Summary of Changes                                                                                                                               | Status    |
+| :--------- | :--------------------------------------- | :-------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :-------- |
+| 2025-06-20 | `v3.2.1.0` (Initial FSM Structure)       | `919db9f2`                  | Defined initial GlobalFsmState, Variables, Flags. Adapted reducer & orchestrator for automated pipeline's initial steps. App metadata `v3.2.1.0`. | COMPLETED |
+| 2025-06-20 | `v3.2.0.0` (Feature Scope Initiated)     | N/A                         | Feature scope defined & approved. Initial FEAT_SCOPE & FEAT_STATUS documents created. Revised 5-phase plan.                                  | PLANNED   |
+|            |                                          |                             |                                                                                                                                                  |           |
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
-*   **v1.0 (2025-06-20):** Initial document creation. Outlines feature phases, tasks, and initial status as "PLANNED" based on approved scope.
+*   **v1.1 (2025-06-20):** Marked Task v3.2.1.0 as COMPLETED with commit `919db9f2`. Updated overall feature status to IN PROGRESS.
+*   **v1.0 (2025-06-20):** Initial document creation. Outlines feature phases, tasks, and initial status as "PLANNED" based on approved scope. Revised 5-phase plan.
 
 ---
 This status report will be updated as tasks are completed and committed.
