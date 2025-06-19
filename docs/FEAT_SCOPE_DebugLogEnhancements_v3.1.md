@@ -1,8 +1,8 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.0
-**Date:** 2025-06-19
+**Document Version:** 1.1
+**Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
 ## 1. Introduction & Objective
@@ -35,8 +35,8 @@ This document outlines the scope, requirements, and implementation plan for the 
     *   **Increase Max Entries:** Modify the `MAX_BUFFER_SIZE` constant in `src/lib/global-log-buffer.ts` from `300` to `1000`.
     *   **Circular Buffer Wrap Indication:**
         *   In `src/lib/global-log-buffer.ts`, when `globalLogEntries.push(newEntry)` causes the buffer to exceed `MAX_BUFFER_SIZE` and an old entry is `shift()`ed off:
-            *   Insert a special marker entry at the *beginning* of the `globalLogEntries` array. This entry should be clearly identifiable, e.g., `{ type: 'system', source: 'LogBuffer', messages: ['--- LOG BUFFER WRAPPED (Oldest entries removed) ---'] }`.
-            *   Ensure this marker entry uses a `LogSourceId` that is unlikely to be filtered out by default (e.g., a new one like `'LogBuffer'` or reuse `'DebugConsole'`).
+            *   Insert a special marker entry at the *beginning* of the `globalLogEntries` array. This entry should be clearly identifiable, e.g., `{ id: generateId(), timestamp: new Date().toISOString(), type: 'system', source: 'LogBuffer', messages: ['--- LOG BUFFER WRAPPED (Oldest entries removed) ---'] }`.
+            *   Ensure this marker entry uses a `LogSourceId` that is unlikely to be filtered out by default (e.g., a new one like `'LogBuffer'` or reuse `'DebugConsole'`). This was implemented as `'LogBuffer'` and `'system'` type, and relevant entries were added to `debug-log-types.ts`.
         *   In `src/components/debug-console.tsx`, update the rendering logic to visually distinguish this "LOG BUFFER WRAPPED" message (e.g., different color, italics, a horizontal line before/after).
 
 #### 2.2.3. Reduce Initial Startup Debug Logs with a Toggle
@@ -80,13 +80,18 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 ### Phase 1: Core Buffer Enhancements & Initial Verbosity Reduction (Target: `v3.1.1.y`)
 
 *   **Task v3.1.1.1: Increase Max Log Buffer Size & Implement Wrap Indicator**
-    *   **File(s):** `src/lib/global-log-buffer.ts`, `src/components/debug-console.tsx`
+    *   **File(s):** `src/lib/global-log-buffer.ts`, `src/components/debug-console.tsx`, `src/lib/debug-log-types.ts`
     *   **Details:**
         1.  In `src/lib/global-log-buffer.ts`:
             *   Increase `MAX_BUFFER_SIZE` from `300` to `1000`.
             *   Modify `addEntryToGlobalLogBuffer`: When shifting an old entry, add a new marker entry ` { id: generateId(), timestamp: new Date().toISOString(), type: 'system', source: 'LogBuffer', messages: ['--- LOG BUFFER WRAPPED (Oldest entries removed) ---'] }` to the *beginning* of `globalLogEntries`.
         2.  In `src/components/debug-console.tsx`:
             *   Modify the log rendering logic to visually highlight the "LOG BUFFER WRAPPED" message (e.g., distinct style, horizontal rule).
+        3.  In `src/lib/debug-log-types.ts`:
+            *   Add `'LogBuffer'` to `logSourceIds` and its label to `logSourceLabels`.
+            *   Add `'system'` to `logTypes`.
+            *   Ensure `'LogBuffer'` is enabled in `defaultLogSourceConfig`.
+    *   **Status:** Implemented as per commit `d2ede246`.
 
 *   **Task v3.1.1.2: Initial Pass - Reduce General Log Verbosity**
     *   **File(s):** Client components in `src/components/`, `src/contexts/stock-analysis-context.tsx`, `src/components/main-tab-content.tsx`.
@@ -136,7 +141,9 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 
 ## 6. Document Changelog
 
+*   **v1.1 (2025-06-20):** Updated Task v3.1.1.1 status to "Implemented as per commit `d2ede246`".
 *   **v1.0 (2025-06-19):** Initial document creation. Includes full scope, analysis, risks, and phased implementation plan for Debug Log Enhancements feature (v3.1.x.y).
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
+
