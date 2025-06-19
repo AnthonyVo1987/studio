@@ -2,6 +2,11 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.54 (Task v2.9.D.U):** 2025-06-19 - Firebase Studio (AI Prototyper)
+    *   Updated `README.md` (to v1.54) with current app version `v2.9.D.U`. Codified AI `thinkingConfig` usage and metadata timestamp policy.
+    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.U`.
+    *   Updated `src/config/app-metadata.json` to app version `v2.9.D.U` and a new real timestamp.
+    *   Updated `src/components/layout/header.tsx` and `src/components/debug-console.tsx` (`APP_VERSION_FOR_EXPORT`) to `v2.9.D.U`.
 *   **Version 1.53 (Task v2.9.D.M):** 2025-06-19 - Firebase Studio (AI Prototyper)
     *   Updated `README.md` (to v1.53) with current app version `v2.9.D.M`.
     *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.M`.
@@ -32,6 +37,37 @@
 
 This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
 
+---
+**App Version:** `v2.9.D.U` (Consolidated Docs, Metadata Policy & AI Thinking Config Fix)
+**Tag:** `Phase-9_Task-9.D.U_ConsolidatedDocs_MetadataPolicy_ThinkingConfigFix`
+**Commit Hash:** `cd5e3a46`
+**Subject:** `docs(all): Consolidated docs for v2.9.D.U, codify metadata rules, AI thinking_config fix`
+**Details:**
+This version (`v2.9.D.U`) is a documentation and metadata consolidation commit. It reflects the cumulative functional state achieved after tasks `v2.9.D.Q` through `v2.9.D.T`, primarily focusing on correcting AI prompt configurations and application metadata handling.
+
+**Key Changes in v2.9.D.U (consolidating fixes from D.R, D.S, D.T over D.Q):**
+
+*   **AI Prompt Configuration (Reflecting `v2.9.D.S` fixes):**
+    *   **Corrected "Dynamic Thinking" Implementation:** The method for enabling "Dynamic Thinking" in Genkit prompts for Google AI models has been rectified.
+        *   The erroneous `enableDynamicThinking` flag was removed from `LlmPromptDefinitionSchema` in `src/ai/definition-loader.ts` and from all JSON prompt definitions (`src/ai/definitions/*.json`).
+        *   AI flows (`src/ai/flows/analyze-stock-data.ts`, `src/ai/flows/analyze-options-chain-flow.ts`, `src/ai/flows/chat-flow.ts`) now correctly pass the `thinkingBudget` parameter (e.g., `thinkingBudget: -1` for dynamic thinking) within a nested `thinkingConfig` object, which is part of the main `config` object supplied to `ai.definePrompt`. This aligns with Google AI API expectations and resolves previous 400 Bad Request errors related to unknown `generation_config` parameters.
+*   **Application Metadata (`src/config/app-metadata.json` - Reflecting `v2.9.D.T` fix):**
+    *   **Timestamp Correction:** Fixed an issue where `lastUpdatedTimestamp` used a placeholder string, causing Zod validation failures during application startup. This field now correctly uses a valid ISO 8601 timestamp.
+    *   **Policy Enforcement:** The `README.md` has been updated to codify a strict policy against using placeholder timestamps in metadata files; real, valid timestamps must be used.
+    *   **Version Update:** Application version in `src/config/app-metadata.json` updated to `v2.9.D.U`.
+*   **Documentation (`README.md`, `CHANGELOG.md`):**
+    *   `README.md`: Updated to reflect the current application version `v2.9.D.U`. Relevant sections (PRD, AI Configuration, Commit Procedures) updated to detail the correct `thinkingConfig` usage and the new metadata timestamp policy.
+    *   `CHANGELOG.md` (this file): Updated with this consolidated commit log for `v2.9.D.U`, summarizing the fixes and documentation changes.
+*   **UI Version Display (`src/components/layout/header.tsx`, `src/components/debug-console.tsx`):**
+    *   The application version string displayed in the UI header and used for debug log exports (`APP_VERSION_FOR_EXPORT`) has been updated to `v2.9.D.U`.
+*   **Deferred Items:**
+    *   Planned improvements for reducing client-side log spam and refining initial state logging in display components (originally scoped for `v2.9.D.U` code changes) have been deferred to a future task. The codebase regarding these logging aspects remains as it was at the end of `v2.9.D.T`.
+
+**Outcome of v2.9.D.U:**
+*   The application's AI flows now use the correct configuration for Google AI's "Dynamic Thinking" feature, preventing related API errors.
+*   Application metadata handling is more robust with the enforcement of valid timestamps.
+*   Documentation accurately reflects the current state of AI configuration and metadata policies.
+*   The application version is consistently updated across all relevant files and displays.
 ---
 **App Version:** `v2.9.D.M` (Revert Button Debug Code, Standardize AI Flow Error Handling & Logging)
 **Tag:** `Phase-9_Task-9.D.M_CleanupRevertButtonDebug_StandardizeAIFlows_Logging`
@@ -778,6 +814,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 

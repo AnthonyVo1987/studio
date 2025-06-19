@@ -61,14 +61,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 
 #### 3.2.2. Genkit (AI Backend)
 *   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis. Safety settings in prompt definitions have been corrected to use fully qualified harm category names (e.g., `HARM_CATEGORY_SEXUALLY_EXPLICIT`).
-*   AI flows for orchestrating LLM calls.
-*   Prompts (defined in JSON files under `src/ai/definitions/`) for AI tasks.
+*   AI flows for orchestrating LLM calls. Prompts (defined in JSON files under `src/ai/definitions/`) now correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }` (or other values for `thinkingBudget`) within the `config` object for `ai.definePrompt`. The erroneous `enableDynamicThinking` flag has been removed.
 *   Tools for accessing external data and performing actions (currently not heavily used but available).
 *   Zod schemas for data validation.
 
 #### 3.2.3. Data Sources
 *   Polygon.io API: For stock data and options chain data.
 *   `.env` file: Stores API keys and configuration parameters.
+*   `src/config/app-metadata.json`: Stores application version and last update timestamp. **The `lastUpdatedTimestamp` field MUST always be a real, valid ISO 8601 string; placeholder values are strictly prohibited.**
 
 #### 3.2.4. State Management
 *   **React Context (`StockAnalysisContext`):** Primary global state management for application-wide data (like fetched JSONs, FSM states) and core functionalities (like `logDebug`, FSM event dispatch).
@@ -85,14 +85,15 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 
 ### 3.3. AI Flow & Prompt Design
 *   AI prompt definitions are externalized into JSON files in `src/ai/definitions/`. All LLM-based flows now use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`. Safety settings in these definitions were corrected in v2.9.D.L.
-*   A `DefinitionLoader` (`src/ai/definition-loader.ts`) loads and validates these JSONs, and helps build prompt strings for Genkit flows.
+*   AI prompt definitions now correctly support `thinkingBudget` (e.g., `thinkingBudget: -1` for dynamic thinking) within a `thinkingConfig` object in the JSON definition file. This is then used by the `definition-loader.ts` and AI flows to configure the Genkit prompt.
+*   A `DefinitionLoader` (`src/ai/definition-loader.ts`) loads and validates these JSONs, and helps build prompt strings and configuration for Genkit flows.
 *   **AI Key Takeaways Flow (`analyze-stock-data.ts`):**
-    *   Uses `analyze-stock-data.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
+    *   Uses `analyze-stock-data.json` definition.
     *   Input: Stock snapshot, standard TAs, AI-analyzed TAs, market status.
     *   Output: Five key takeaways (price action, trend, volatility, momentum, patterns) with sentiment.
     *   Enhanced in v2.9.D.M: Throws an error if the AI prompt fails to return a basic output structure. Includes execution time logging.
 *   **AI Options Analysis Flow (`analyze-options-chain-flow.ts`):**
-    *   Uses `analyze-options-chain.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
+    *   Uses `analyze-options-chain.json` definition.
     *   Input: Options chain JSON, current underlying price, ticker.
     *   Output: Identified Call/Put Walls (max 3 each) based on OI/Volume.
     *   Enhanced in v2.9.D.M: Throws an error if the AI prompt fails to return a valid structure. Includes execution time logging.
@@ -101,7 +102,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
     *   Input: Previous day HLC.
     *   Output: Standard daily pivot points and support/resistance levels.
 *   **AI Chatbot Flow (`chat-flow.ts`):**
-    *   Uses `stock-chatbot.json` definition (`modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`).
+    *   Uses `stock-chatbot.json` definition.
     *   Input: Ticker, all available data JSONs (snapshot, key takeaways, AI TA, options analysis), chat history, user input.
     *   Output: Markdown-formatted chatbot response.
     *   Enhanced in v2.9.D.M: Throws an error if the AI prompt fails to return a valid response. Includes execution time logging.
@@ -132,12 +133,13 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   Log inputs and outputs of AI flows and server actions (summarize large objects).
 *   Log FSM state transitions (global and local), including the event that triggered them.
 *   Log critical decision points in UI logic, especially in `useEffect` hooks controlling UI state (like button enablement).
+*   **Note (Post v2.9.D.U Scope Audit):** Planned improvements to reduce client-side log spam from display components and refine initial state logging have been deferred. The current logging behavior from these components might still be verbose on initial load.
 
 #### 3.4.3. Debug Console (`src/components/debug-console.tsx`)
 *   Displays logs from the `logDebug` system.
 *   Allows filtering by `LogType` and `LogSourceId`.
 *   Search functionality.
-*   Export/Copy logs (JSON, TXT, CSV) including app version (`APP_VERSION_FOR_EXPORT` constant, currently `v2.9.D.M`) and current FSM states as metadata.
+*   Export/Copy logs (JSON, TXT, CSV) including app version (`APP_VERSION_FOR_EXPORT` constant, currently `v2.9.D.U`) and current FSM states as metadata.
 *   Clears logs on manual clear or implicitly on full page reload.
 
 ### 3.5. Coding Standards & Conventions
@@ -146,7 +148,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **NO `console.log` in committed client-side code** unless it's part of the `StockAnalysisContext`'s interception mechanism or a temporary, explicitly discussed debugging measure. Use `logDebug` from context.
 *   **No commented-out code in commits.**
 *   Follow established file/folder structures and naming conventions.
-*   **Debugging Status (v2.9.D.M):** Issues with AI prompts (safety settings) were resolved in `v2.9.D.L`. Manual AI buttons were confirmed functional. Version `v2.9.D.M` completed cleanup of prior button debugging code, hardened AI flow error handling, and improved logging across all AI flows and server actions. See `docs/Issue-Report_AI_Analysis_Buttons.md` for the full debugging history and lessons learned.
+*   **App Metadata Policy (`src/config/app-metadata.json`):** The `lastUpdatedTimestamp` field **MUST** always be set to a real, valid ISO 8601 timestamp upon any modification to the file or related version update. Placeholder timestamps (e.g., "YYYY-MM-DDTHH:MM:SSZ") are strictly prohibited.
+*   **Debugging Status (v2.9.D.U):**
+    *   Issues with AI prompts (safety settings) were resolved in `v2.9.D.L`.
+    *   Manual AI buttons were confirmed functional post `v2.9.D.L`.
+    *   Version `v2.9.D.M` completed cleanup of prior button debugging code, hardened AI flow error handling, and improved logging across all AI flows and server actions.
+    *   Version `v2.9.D.S` (now part of `v2.9.D.U` consolidated state) corrected the `thinkingConfig` usage for Google AI models in Genkit prompts.
+    *   Version `v2.9.D.T` (now part of `v2.9.D.U` consolidated state) fixed the `lastUpdatedTimestamp` format in `app-metadata.json`.
+    *   See `docs/Issue-Report_AI_Analysis_Buttons.md` for a detailed debugging history.
 *   See extensive list in prior `README.md` versions (e.g., v2.9.D.8) for more general coding best practices (ESLint, TypeScript, `any` type avoidance, etc.). These are implicitly still in effect.
 
 #### 3.5.1. UI/UX Conventions
@@ -173,8 +182,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
     *   Init: `const ai = genkit({plugins: [googleAI()]});` (No `logLevel`). The default model used is `googleai/gemini-2.5-flash-lite-preview-06-17` via `DEFAULT_ANALYSIS_MODEL_ID` from `src/ai/models.ts`.
     *   Response: `response.text`, `response.output` (not functions).
     *   Streaming: `const {stream, response} = ai.generateStream(...);` (no `await` on `generateStream`), then `for await (const chunk of stream) {}`, then `await response;`.
+    *   **AI Thinking Mode Configuration:** For Google AI models, "Dynamic Thinking" is enabled by setting `thinkingBudget: -1` (or other values for budget control) within a `thinkingConfig` object, which itself is part of the main `config` object passed to `ai.definePrompt`. E.g., `config: { thinkingConfig: { thinkingBudget: -1 }, safetySettings: [...] }`.
 *   Flow files (`src/ai/flows/*.ts`): `'use server';`, JSDoc overview, export async wrapper & types.
-*   Prompts load definitions from JSON (`src/ai/definitions/*.json`). All LLM-based flows use `modelId: "googleai/gemini-2.5-flash-lite-preview-06-17"`. Safety settings were corrected as of v2.9.D.L.
+*   Prompts load definitions from JSON (`src/ai/definitions/*.json`). These definitions include model ID, safety settings, and `thinkingBudget`.
 *   Handlebars for prompt templating: `{{{variable}}}`. **NO logic in templates.**
 *   Tools: `ai.defineTool`. Use for LLM-decided actions.
 
@@ -189,7 +199,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) fo
 *   **`isDataReadyForProcessing` function in `MainTabContent.tsx`:** This utility is crucial for determining if prerequisite JSON data strings (from context) are valid and ready for use in AI flows or UI.
 
 ### 3.7. Commit & Changelog Procedures
-*   Increment app version in `src/components/layout/header.tsx` and `APP_VERSION_FOR_EXPORT` in `src/components/debug-console.tsx`.
+*   Increment app version in:
+    *   `src/components/layout/header.tsx`
+    *   `APP_VERSION_FOR_EXPORT` in `src/components/debug-console.tsx`
+    *   `src/config/app-metadata.json` (field: `appVersion`)
+*   Update `lastUpdatedTimestamp` in `src/config/app-metadata.json` to the **current real-world ISO 8601 timestamp**. No placeholders allowed.
 *   Update `CHANGELOG.md` with a detailed commit message for each task/fix.
 *   Update this `README.md` if PRD, architecture, or core AI operational rules change significantly.
 
@@ -236,7 +250,6 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-See `CHANGELOG.md`. App version in UI header (`v2.9.D.M`).
+See `CHANGELOG.md`. App version in UI header (`v2.9.D.U`).
 
 ---
-

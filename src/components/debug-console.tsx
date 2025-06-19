@@ -30,9 +30,10 @@ import { logSourceIds, logSourceLabels, type LogSourceId, logTypes, type LogType
 export const CONSOLE_HEIGHT_PX = 250;
 const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
+export const APP_VERSION_FOR_EXPORT = "v2.9.D.U"; // Updated app version
 
 interface DebugConsoleProps {
-  appVersion: string;
+  appVersion: string; // Prop for display, keep separate from constant used in export
 }
 
 function formatLogMessage(messages: any[]): string {
@@ -79,10 +80,10 @@ const escapeCsvField = (field: any): string => {
 
 const generateLogsTxtWithMetadata = (
     logs: GlobalLogEntry[],
-    currentAppVersion: string,
+    currentAppVersionConstant: string, // Use the constant for export
     fsmStates: any
 ): string => {
-  let metadata = `App Version: ${currentAppVersion}\n`;
+  let metadata = `App Version: ${currentAppVersionConstant}\n`;
   metadata += `Report Timestamp: ${new Date().toISOString()}\n\n`;
   metadata += "FSM States:\n";
   metadata += `  Global Application FSM: Prev: ${fsmStates.globalApplicationFSM?.previous || 'N/A'}, Curr: ${fsmStates.globalApplicationFSM?.current || 'N/A'}, Target: ${fsmStates.globalApplicationFSM?.target || 'N/A'}\n`;
@@ -104,10 +105,10 @@ const generateLogsTxtWithMetadata = (
 
 const generateLogsCsvWithMetadata = (
     logs: GlobalLogEntry[],
-    currentAppVersion: string,
+    currentAppVersionConstant: string, // Use the constant for export
     fsmStates: any
 ): string => {
-  let metadata = `App Version:,${currentAppVersion}\n`;
+  let metadata = `App Version:,${currentAppVersionConstant}\n`;
   metadata += `Report Timestamp:,${new Date().toISOString()}\n\n`;
   metadata += `FSM States:\n`;
   metadata += `Global Application FSM:,Prev: ${fsmStates.globalApplicationFSM?.previous || 'N/A'}, Curr: ${fsmStates.globalApplicationFSM?.current || 'N/A'}, Target: ${fsmStates.globalApplicationFSM?.target || 'N/A'}\n`;
@@ -200,7 +201,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
   }
 
   const getFullFsmStatesForExport = () => ({
-    appVersion, // Use prop here
+    appVersion: APP_VERSION_FOR_EXPORT, // Use the constant for export
     reportTimestamp: new Date().toISOString(),
     fsmStatesSnapshot: {
       globalApplicationFSM: { previous: globalPreviousFsmState, current: globalFsmState, target: globalTargetFsmDisplayState },
@@ -235,7 +236,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-    const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fsmStates); // Use prop
+    const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
     if (await copyToClipboard(txtData)) {
       toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM states copied to clipboard as TXT.' });
     } else {
@@ -247,7 +248,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-    const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fsmStates); // Use prop
+    const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
     if (await copyToClipboard(csvData)) {
       toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM states copied to clipboard as CSV.' });
     } else {
@@ -260,7 +261,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const exportData = { ...getFullFsmStatesForExport(), logs: displayedLogs };
-      downloadJson(exportData, `stocksage_client_logs_fsm_${appVersion}.json`); // Use prop
+      downloadJson(exportData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.json`); // Use constant
       toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as JSON.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as JSON.' });
@@ -272,8 +273,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-      const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fsmStates); // Use prop
-      downloadTxt(txtData, `stocksage_client_logs_fsm_${appVersion}.txt`); // Use prop
+      const txtData = generateLogsTxtWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
+      downloadTxt(txtData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.txt`); // Use constant
       toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as TXT.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as TXT.' });
@@ -285,8 +286,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fsmStates = getFullFsmStatesForExport().fsmStatesSnapshot;
-      const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fsmStates); // Use prop
-      downloadTxt(csvData, `stocksage_client_logs_fsm_${appVersion}.csv`); // Use prop
+      const csvData = generateLogsCsvWithMetadata(displayedLogs, APP_VERSION_FOR_EXPORT, fsmStates); // Use constant
+      downloadTxt(csvData, `stocksage_client_logs_fsm_${APP_VERSION_FOR_EXPORT}.csv`); // Use constant
       toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM states downloaded as CSV.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as CSV.' });
