@@ -2,6 +2,15 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
+*   **Version 1.56 (Task v3.0.0.1):** 2025-06-19 - Firebase Studio (AI Prototyper)
+    *   **BUG FIX (Critical):** Enforced fully dynamic application versioning.
+        *   Removed hardcoded `APP_VERSION_FOR_EXPORT` constant from `src/components/debug-console.tsx`.
+        *   Modified `DebugConsole` component to receive `appVersion` as a prop (sourced dynamically from `app-metadata.json` via `PageContent` -> `Home`).
+        *   Updated export helper functions (`getFsmStatesAndTimestampForExport`, `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`) within `debug-console.tsx` to use the dynamic `appVersion` prop for all log export metadata.
+        *   Updated `src/components/page-content.tsx` to pass the dynamic `appVersion` to the `DebugConsole` component.
+    *   Updated `README_3.0.md` (to v3.0.1) to strictly reflect this dynamic versioning policy: `app-metadata.json` is the sole source of truth for `appVersion`, and all UI/export versioning is dynamic. Hardcoded versions are prohibited.
+    *   Updated `CHANGELOG.md` (this file) with this commit log for `v3.0.0.1`.
+    *   `src/config/app-metadata.json` remains at `v3.0.0.1` from the previous AI definition loading fix.
 *   **Version 1.55 (Task v2.9.D.U Docs):** 2025-06-19 - Firebase Studio (AI Prototyper)
     *   Updated `README.md` (to v1.55) to reflect application functional version `v2.9.D.U` (commit `cd5e3a46`).
     *   Codified new versioning procedures in `README.md` (Section 3.7): version updates strictly in `app-metadata.json`; manual version updates in `header.tsx` and `debug-console.tsx` are prohibited for app versioning.
@@ -39,10 +48,69 @@
     *   This section will track changes to `CHANGELOG.md` itself. Future updates to the application commit log will be prepended to the section below.
 
 ---
-## StockSage Application Commit Log (v2.x.y.z)
+## StockSage Application Commit Log (v2.x.y.z and v3.x.x.x)
 
-This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` scheme. Latest commits are at the top.
+This section tracks the commit history of the StockSage application, with versions corresponding to the `2.x.y.z` or `3.x.x.x` scheme. Latest commits are at the top.
 
+---
+**App Version:** `v3.0.0.1` (Enforce Fully Dynamic Versioning)
+**Tag:** `Phase-10_Task-3.0.0.1_DynamicVersioningFix`
+**Commit Hash:** (To be assigned upon actual commit)
+**Subject:** `fix(core): Enforce dynamic app versioning, remove hardcoded versions (v3.0.0.1)`
+**Details:**
+This version (`v3.0.0.1`) implements a critical fix to ensure all application versioning is handled dynamically, sourcing the version from `src/config/app-metadata.json`. This resolves previous inconsistencies and enforces a strict policy against hardcoded versions in UI components or for export metadata.
+
+**Key Changes in v3.0.0.1:**
+
+*   **Dynamic Versioning Enforcement:**
+    *   `src/components/debug-console.tsx`:
+        *   Removed the `APP_VERSION_FOR_EXPORT` constant.
+        *   The `DebugConsole` component now accepts an `appVersion: string` prop.
+        *   Export helper functions (`getFsmStatesAndTimestampForExport`, `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`) were refactored to accept and use this dynamic `appVersion` prop for embedding in exported log file metadata.
+        *   All copy/export handlers in `DebugConsole` now pass the dynamic `appVersion` prop to these helper functions.
+    *   `src/components/page-content.tsx`:
+        *   The `PageContent` component now passes the `appVersion` prop (which it receives from the `Home` server component, sourced from `app-metadata.json`) to the `DebugConsole` component.
+*   **Documentation Updates:**
+    *   `README_3.0.md` (Document version 3.0.1): Updated to strictly reflect the new dynamic versioning policy:
+        *   `src/config/app-metadata.json` is the sole source of truth for `appVersion`.
+        *   All UI displays (Header) and export metadata (DebugConsole logs) derive the application version dynamically from this source.
+        *   Hardcoded version constants (like the former `APP_VERSION_FOR_EXPORT`) are prohibited and have been removed.
+        *   Commit procedures updated to reflect these changes.
+    *   `CHANGELOG.md` (this file): Updated with this commit log for `v3.0.0.1`.
+*   **Metadata (`src/config/app-metadata.json`):**
+    *   Remains at `appVersion: "v3.0.0.1"` with its `lastUpdatedTimestamp` from the previous AI definition loading fix, as this commit is part of the `v3.0.0.1` scope.
+
+**Outcome of v3.0.0.1:**
+*   The application now consistently uses a single source of truth (`src/config/app-metadata.json`) for its version number.
+*   All version displays in the UI and versions embedded in exported log files are dynamic and reflect this single source.
+*   Hardcoded version constants have been eliminated, reducing the risk of versioning inconsistencies.
+*   Documentation (`README_3.0.md`) accurately reflects the enforced dynamic versioning policy.
+---
+**App Version:** `v3.0.0.1` (Fix AI Definition Loading for Deployment)
+**Tag:** `Phase-10_Task-3.0.0.0_FixAIDefinitionLoading` (Note: Task ID was 3.0.0.0, version corrected to 3.0.0.1 by user)
+**Commit Hash:** (Previous commit hash for this fix)
+**Subject:** `fix(ai): Use dynamic imports for AI definition JSONs for deployment (v3.0.0.1)`
+**Details:**
+This version (`v3.0.0.1`) addresses a critical issue where AI flows failed in the deployed App Hosting environment due to an inability to load their prompt/logic definition JSON files. The fix involves changing the loading mechanism in `src/ai/definition-loader.ts` (and `src/ai/prompt-loader.ts`) from `fs.readFile` with `process.cwd()` to use dynamic `import()` statements with the `@/` alias for robust path resolution.
+
+**Key Changes in v3.0.0.1 (AI Definition Loading Fix):**
+
+*   **AI Definition Loading (`src/ai/definition-loader.ts`, `src/ai/prompt-loader.ts`):**
+    *   Modified `loadDefinition` and `loadPromptDefinition` functions to use dynamic `await import(\`@/ai/definitions/\${definitionName}.json\`)`.
+    *   Removed direct `fs` and `path` module imports as they are no longer needed for this loading mechanism.
+    *   Ensured that the `.default` property of the dynamically imported module is accessed to get the JSON content.
+*   **Application Metadata (`src/config/app-metadata.json`):**
+    *   `appVersion` updated to `v3.0.0.1`.
+    *   `lastUpdatedTimestamp` updated to the current real-world ISO 8601 timestamp.
+*   **Debug Console (`src/components/debug-console.tsx`):**
+    *   `APP_VERSION_FOR_EXPORT` was (incorrectly, then corrected to) updated to `v3.0.0.1`. (This will be further addressed in a subsequent commit to make it fully dynamic).
+*   **Documentation (`README_3.0.md` created, `CHANGELOG.md` updated):**
+    *   A new `README_3.0.md` was created to serve as a fresh baseline for v3.0.0.0 onwards, reflecting the current application state and excluding v2.x history.
+    *   `CHANGELOG.md` (this file) was updated with entries for this AI definition loading fix under `v3.0.0.1`.
+
+**Outcome of v3.0.0.1 (AI Definition Loading Fix):**
+*   AI flows should now correctly load their JSON definitions in the Firebase App Hosting environment, resolving the `ENOENT` errors and enabling AI functionalities.
+*   The application version is officially `v3.0.0.1`.
 ---
 **App Version:** `v2.9.D.U` (Consolidated Docs, Metadata Policy & AI Thinking Config Fix)
 **Tag:** `Phase-9_Task-9.D.U_ConsolidatedDocs_MetadataPolicy_ThinkingConfigFix`
@@ -826,3 +894,6 @@ UI Header updated to `v2.9.A.Z`. `README.md` updated.
 
 
 
+
+
+    
