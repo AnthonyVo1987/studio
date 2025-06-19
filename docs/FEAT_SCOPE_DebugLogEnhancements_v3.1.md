@@ -1,7 +1,7 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.7
+**Document Version:** 1.8
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
@@ -123,10 +123,14 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 *   **Task v3.1.3.2: Final Log Refinements & Guard Logic Verification**
     *   **Status:** `COMPLETED` (Commit: `d369fcfc`)
     *   **Details:** Further refined FSM dispatch guard reset logic in `MainTabContent.tsx` to be more precise, further reducing duplicate global FSM event dispatches.
+*   **Task v3.1.3.3: Refine FSM Dispatch Guard Reset Logic (Further)**
+    *   **Status:** `COMPLETED` (Commit: `f0bb42b4`)
+    *   **Details:** Further refined the reset conditions for `globalDispatchGuardRef` in `MainTabContent.tsx` to be highly specific to the completion of the guarded global FSM action for the correct ticker, significantly improving the prevention of duplicate global event dispatches.
 
 ## 6. Document Changelog
 
-*   **v1.7 (2025-06-20):** Updated status of Task v3.1.3.2 to `COMPLETED` (Commit: `d369fcfc`). All phases of Debug Log Enhancements feature are now complete.
+*   **v1.8 (2025-06-20):** Updated status of Task v3.1.3.3 to `COMPLETED` (Commit: `f0bb42b4`). All phases of Debug Log Enhancements feature are now complete.
+*   **v1.7 (2025-06-20):** Updated status of Task v3.1.3.2 to `COMPLETED` (Commit: `d369fcfc`).
 *   **v1.6 (2025-06-20):** Updated status of Task v3.1.3.1 to `COMPLETED` (Commit: `01c34db1`). Added details for Phase 3 follow-up bug fixes.
 *   **v1.5 (2025-06-20):** Updated status of Task v3.1.3.0 to `COMPLETED` (Commit: `6b16ba4e`). Added details for Phase 3 bug fixes.
 *   **v1.4 (2025-06-20):** Updated status of Task v3.1.2.2 to `COMPLETED` (Commit: `1031efa4`).
@@ -137,3 +141,4 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
+
