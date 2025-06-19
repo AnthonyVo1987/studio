@@ -1,7 +1,7 @@
 
-# StockSage v3.0.0.0 - Product Requirements Document & Technical Design
+# StockSage v3.0 - Product Requirements Document & Technical Design
 
-**Document Version:** 3.0.1 (Reflecting dynamic versioning policy update)
+**Document Version:** 3.0.1 (Reflecting dynamic versioning policy and AI loading fix documentation)
 **Application Version:** 3.0.0.1 (Reflecting current application version)
 **Last Updated:** (This will reflect the date of generation for this document version)
 
@@ -74,7 +74,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Export Full Options Chain Table (JSON, CSV).
     *   Export Combined Data (Stock Snapshot, TAs, AI Analyses) (JSON).
     *   Copy functionality for the above exports.
-    *   **Exported File Metadata:** All exported files (debug logs, data exports) will dynamically include the current application version sourced from `src/config/app-metadata.json`.
+    *   **Exported File Metadata:** All exported files (debug logs, data exports) will dynamically include the current application version sourced from `src/config/app-metadata.json`. This version is passed as a prop to the relevant export functions.
 *   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs).
 *   **Client Debug Console:** Real-time client-side log display with filtering and export capabilities. Exported logs include the dynamic application version.
 *   **FSM State Debug Card:** Real-time display of FSM states.
@@ -91,7 +91,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Google Gemini models (`googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis tasks.
 *   AI flows defined in `src/ai/flows/` for orchestrating LLM calls.
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
-    *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs, ensuring robust path resolution in deployed environments.
+    *   Dynamic `import()` is used in `src/ai/definition-loader.ts` and `src/ai/prompt-loader.ts` to load these JSONs, ensuring robust path resolution in deployed environments (Fixed in v3.0.0.1).
     *   Prompts correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }` (or other budget values) within the `config` object for `ai.definePrompt`.
     *   Safety settings are defined in these JSONs using fully qualified harm category names (e.g., `HARM_CATEGORY_SEXUALLY_EXPLICIT`).
 *   A `DefinitionLoader` (`src/ai/definition-loader.ts`) loads and validates these JSONs.
@@ -102,9 +102,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Environment Variables (`.env`):** Stores API keys (Polygon, Google AI).
 *   **Application Metadata (`src/config/app-metadata.json`):**
     *   Stores the application version (`appVersion`) and last update timestamp (`lastUpdatedTimestamp`).
-    *   **Policy (Strictly Enforced):**
+    *   **Policy (Strictly Enforced as of v3.0.0.1):**
         *   This file is the **SOLE SOURCE OF TRUTH** for the application's functional version.
-        *   The `appVersion` from this file is dynamically loaded at runtime and passed as props to components like `Header` and `DebugConsole` for UI display and inclusion in exported log metadata.
+        *   The `appVersion` from this file is dynamically loaded at runtime (e.g., in `src/app/page.tsx` via `getAppConfig()`) and passed as props to components like `Header` and `DebugConsole` for UI display and inclusion in exported log/data file metadata.
         *   The `lastUpdatedTimestamp` field **MUST ALWAYS be a real, valid ISO 8601 string** reflecting the time of the metadata update; placeholder values are strictly prohibited.
 
 #### 3.2.4. State Management
@@ -159,14 +159,15 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Single Source of Truth for App Version:** The `appVersion` field in `src/config/app-metadata.json` is the **sole and definitive source** for the application's functional version.
 *   **Dynamic Versioning Everywhere:**
     *   The `appVersion` is loaded dynamically at runtime by `src/app/page.tsx` (via `getAppConfig()`).
-    *   This dynamic `appVersion` is passed as a prop to components responsible for displaying it (e.g., `Header`) or embedding it in exports (e.g., `DebugConsole`).
+    *   This dynamic `appVersion` is passed as a prop to components responsible for displaying it (e.g., `Header` in `src/components/layout/header.tsx`) or embedding it in exports (e.g., `DebugConsole` in `src/components/debug-console.tsx`).
     *   **NO HARDCODED version strings related to the application's functional version are permitted in any source file (`.tsx`, `.ts`, etc.).**
-    *   The constant `APP_VERSION_FOR_EXPORT` (formerly in `DebugConsole.tsx`) is **PROHIBITED AND HAS BEEN REMOVED**. All export metadata must use the dynamic `appVersion` prop.
+    *   The constant `APP_VERSION_FOR_EXPORT` (formerly in `DebugConsole.tsx`) has been **REMOVED**. All export metadata requiring the application version must use the dynamic `appVersion` prop passed to the `DebugConsole` component.
 *   **Real Timestamps Mandatory:** The `lastUpdatedTimestamp` field in `src/config/app-metadata.json` **MUST** always be a real, valid ISO 8601 timestamp. Placeholder timestamps are strictly prohibited.
-*   **Commit Procedures:** When a new application version is established:
+*   **Commit Procedures (for Version Updates):**
     1.  Update `appVersion` and `lastUpdatedTimestamp` in `src/config/app-metadata.json`.
-    2.  Update `CHANGELOG.md` and, if necessary, this `README_3.0.md`.
-    3.  **DO NOT** manually modify version strings in other source files like `Header.tsx` or `DebugConsole.tsx`; they will reflect the new version dynamically.
+    2.  Update `CHANGELOG_3.0.md` (or relevant changelog for the version series).
+    3.  If PRD/Architecture changes, update this `README_3.0.md`.
+    4.  **DO NOT** manually modify version strings in other source files like `Header.tsx` or files within `src/components/`; they will reflect the new version dynamically or are managed independently (like commit-specific tags for debugging/export context if ever re-introduced, which is currently not the case for app versioning).
 
 #### 3.5.3. UI/UX Conventions
 *   ShadCN components from `components/ui`.
@@ -236,9 +237,6 @@ npm run start
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **This Document Version:** 3.0.1
 *   **Historical Changelogs (pre-v3.0.0.0):** Refer to `CHANGELOG.md` in the project root.
-*   **v3.0.0.0 Onwards:** Changes from `v3.0.0.0` forward will be tracked in a `CHANGELOG_3.0.md` (to be created when `v3.0.0.1` is committed or as needed for new v3 changes).
+*   **v3.0.0.0 Onwards:** Refer to `CHANGELOG_3.0.md` (this is a new file created as part of v3.0.0.1 documentation efforts).
 
 ---
-
-
-    
