@@ -1,7 +1,7 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.3
+**Document Version:** 1.4
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
@@ -48,7 +48,7 @@ This document outlines the scope, requirements, and implementation plan for the 
     *   **Conditional Startup Logging Logic (in `src/contexts/stock-analysis-context.tsx`):**
         *   Modify the `logDebug` function (or the console interceptor logic that calls `addEntryToGlobalLogBuffer`):
             *   Before adding a log entry to the buffer, check the condition: `if (!isInitialAppStartupComplete && isReducedStartupLoggingEnabled)`.
-            *   If this condition is true (i.e., startup not complete AND reduced logging is on), then only allow log entries from a predefined list of "critical" `LogSourceId`s (e.g., `'StockAnalysisContext'`, `'NATIVE_CONSOLE'` if message indicates error, `'DefinitionLoader'`, `'PolygonAdapter'` for critical errors) OR if the log entry's `type` is `'error'` or `'warn'`. All other `logDebug` calls during this phase should be suppressed (i.e., not added to `globalLogBuffer`).
+            *   If this condition is true (i.e., startup not complete AND reduced logging is on), then only allow log entries from a predefined list of "critical" `LogSourceId`s (e.g., `'StockAnalysisContext'`, `'NATIVE_CONSOLE'` if message indicates error, `'DefinitionLoader'`) OR if the log entry's `type` is `'error'` or `'warn'`. All other `logDebug` calls during this phase should be suppressed (i.e., not added to `globalLogBuffer`).
         *   After `isInitialAppStartupComplete` becomes `true`, immediately emit a distinct `logDebug` message to the console, e.g., `logDebug('StockAnalysisContext', 'StartupComplete', 'Initial application startup sequence complete. Full debug logging is now active.')`.
 
 ## 3. Value Added Proposition
@@ -104,30 +104,18 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
             *   Add a new `<Switch />` and `<Label />` for "Enable Reduced Logging During Initial App Startup", bound to `isReducedStartupLoggingEnabled` and `setReducedStartupLoggingEnabled` from context.
 
 *   **Task v3.1.2.2: Implement Conditional Startup Logging Logic**
-    *   **Status:** `PENDING`
-    *   **File(s):** `src/contexts/stock-analysis-context.tsx` (specifically the `logDebug` function or console interceptor logic).
+    *   **Status:** `COMPLETED` (Commit: `1031efa4`)
+    *   **File(s):** `src/contexts/stock-analysis-context.tsx` (specifically the `useEffect` for console interception and the `useEffect` for FSM orchestration).
     *   **Details:**
-        1.  Modify the core logging mechanism:
-            *   Before `addEntryToGlobalLogBuffer` is called, check:
-                ```javascript
-                if (!contextState.isInitialAppStartupComplete && contextState.isReducedStartupLoggingEnabled) {
-                    // If it's reduced startup logging phase
-                    const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'NATIVE_CONSOLE', /* add others if truly critical at startup like DefinitionLoader errors */];
-                    const isCriticalSource = entrySource && criticalSources.includes(entrySource);
-                    const isErrorOrWarn = entryType === 'error' || entryType === 'warn';
-
-                    if (!isCriticalSource && !isErrorOrWarn) {
-                        return; // Suppress log
-                    }
-                }
-                // Proceed to addEntryToGlobalLogBuffer...
-                ```
-            *   Ensure `entrySource` and `entryType` are available at this check point.
-        2.  In `StockAnalysisContext.tsx`, when `isInitialAppStartupComplete` is set to `true`:
-            *   Call `logDebug('StockAnalysisContext', 'StartupComplete', 'Initial application startup sequence complete. Full debug logging is now active.')`.
+        1.  Modified the console interception logic in `StockAnalysisContext`:
+            *   Checks `_isInitialAppStartupComplete` and `_isReducedStartupLoggingEnabled` flags.
+            *   If reduced startup logging is active, suppresses non-critical logs from `globalLogBuffer`. Critical sources (`StockAnalysisContext`, `DefinitionLoader`) and `error`/`warn` types are still logged.
+            *   Dependency array for the console interception `useEffect` updated to include these new flags.
+        2.  In `StockAnalysisContext.tsx`, a `logDebug` call ("Initial application startup sequence complete...") added to the FSM orchestration `useEffect` to fire when `_isInitialAppStartupComplete` is set to `true`.
 
 ## 6. Document Changelog
 
+*   **v1.4 (2025-06-20):** Updated status of Task v3.1.2.2 to `COMPLETED` (Commit: `1031efa4`).
 *   **v1.3 (2025-06-20):** Updated status of Task v3.1.2.1 to `COMPLETED` (Commit: `7ab72c10`).
 *   **v1.2 (2025-06-20):** Updated status of Task v3.1.1.2 to `COMPLETED` (Commit: `378c654f`).
 *   **v1.1 (2025-06-20):** Updated Task v3.1.1.1 status to `COMPLETED` (Commit: `d2ede246`).
@@ -135,3 +123,4 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
+
