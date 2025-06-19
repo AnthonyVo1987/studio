@@ -47,22 +47,18 @@ async function getAnalyzedOptionsChainPrompt() {
 
   const promptConfig: {
     safetySettings: any[];
-    enableDynamicThinking?: boolean;
-    thinkingBudget?: number;
+    thinkingConfig?: { thinkingBudget?: number };
   } = {
     safetySettings: safetySettings,
   };
 
-  if (analyzeOptionsChainPromptDefinition.enableDynamicThinking !== undefined) {
-    promptConfig.enableDynamicThinking = analyzeOptionsChainPromptDefinition.enableDynamicThinking;
-  }
   if (analyzeOptionsChainPromptDefinition.thinkingBudget !== undefined) {
-    promptConfig.thinkingBudget = analyzeOptionsChainPromptDefinition.thinkingBudget;
+    promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition.thinkingBudget };
   }
 
   console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
-  console.log(`${logPrefix} Thinking config: enableDynamicThinking=${promptConfig.enableDynamicThinking}, thinkingBudget=${promptConfig.thinkingBudget}`);
+  console.log(`${logPrefix} Thinking config: thinkingBudget=${promptConfig.thinkingConfig?.thinkingBudget}`);
 
   return ai.definePrompt({
     name: 'analyzeOptionsChainPrompt', 

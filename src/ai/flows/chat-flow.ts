@@ -48,22 +48,18 @@ async function getStockChatBotPrompt() {
 
   const promptConfig: {
     safetySettings: any[];
-    enableDynamicThinking?: boolean;
-    thinkingBudget?: number;
+    thinkingConfig?: { thinkingBudget?: number };
   } = {
     safetySettings: safetySettings,
   };
 
-  if (stockChatBotPromptDefinition.enableDynamicThinking !== undefined) {
-    promptConfig.enableDynamicThinking = stockChatBotPromptDefinition.enableDynamicThinking;
-  }
   if (stockChatBotPromptDefinition.thinkingBudget !== undefined) {
-    promptConfig.thinkingBudget = stockChatBotPromptDefinition.thinkingBudget;
+    promptConfig.thinkingConfig = { thinkingBudget: stockChatBotPromptDefinition.thinkingBudget };
   }
 
   console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
-  console.log(`${logPrefix} Thinking config: enableDynamicThinking=${promptConfig.enableDynamicThinking}, thinkingBudget=${promptConfig.thinkingBudget}`);
+  console.log(`${logPrefix} Thinking config: thinkingBudget=${promptConfig.thinkingConfig?.thinkingBudget}`);
 
 
   return ai.definePrompt({
