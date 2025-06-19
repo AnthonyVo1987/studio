@@ -21,7 +21,7 @@ import { Chatbot } from "@/components/chatbot";
 import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 
-import { useStockAnalysis, type ChatMessage, FsmState as GlobalFsmState, type FsmDisplayTuple, type LogSourceId } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, type ChatMessage, FsmState as GlobalFsmState, type FsmDisplayTuple, type LogSourceId, type FsmEvent } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig } from "lucide-react";
 import type { StockSnapshotData } from '@/services/data-sources/types';
@@ -298,10 +298,13 @@ export function MainTabContent({
         default: targetState = null;
     }
 
-    if (targetState) {
+    if (targetState && targetState !== currentLocalState) {
         logDebug('MainTabContent_FSM' as LogSourceId, 'DispatchWithTarget', `Event ${event.type} from ${currentLocalState} targeting ${targetState}.`);
         setTargetLocalFsmDisplayState(targetState);
         setMainTabFsmTargetState(targetState);
+    } else {
+      setTargetLocalFsmDisplayState(null);
+      setMainTabFsmTargetState(null);
     }
     dispatchLocalFsmEventActual(event);
   }, [localFsm.localState, localFsm.currentInputTicker, localFsm.activeAnalysisTicker, logDebug, setMainTabFsmTargetState, dispatchLocalFsmEventActual]);
@@ -330,58 +333,63 @@ export function MainTabContent({
   }, []);
 
   const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
+  const prevActiveAnalysisTickerRef = useRef<string | null>(localFsm.activeAnalysisTicker);
 
   useEffect(() => {
     const logPrefix = 'MainTabContent_FSM:GlobalDispatchEffect';
     logDebug(logPrefix as LogSourceId, 'ENTRY', `LocalState: ${localFsm.localState}, ActiveAnalysisTicker: ${localFsm.activeAnalysisTicker}, GlobalFSM: ${globalFsmStateFromContext}`);
 
-    const dispatchGlobalIfNeeded = (actionName: string, globalEvent: FsmEvent) => {
+    if (prevActiveAnalysisTickerRef.current !== localFsm.activeAnalysisTicker) {
+        logDebug(logPrefix as LogSourceId, 'GuardReset_ActiveTickerChange', `ActiveAnalysisTicker changed from ${prevActiveAnalysisTickerRef.current} to ${localFsm.activeAnalysisTicker}. Resetting all guards.`);
+        Object.keys(globalDispatchGuardRef.current).forEach(key => globalDispatchGuardRef.current[key] = false);
+        prevActiveAnalysisTickerRef.current = localFsm.activeAnalysisTicker;
+    }
+
+
+    const dispatchGlobalIfNeeded = (actionName: string, globalEvent: FsmEvent, completionStates: GlobalFsmState[], failureStates: GlobalFsmState[]) => {
         if (!globalDispatchGuardRef.current[actionName]) {
-            logDebug(logPrefix as LogSourceId, 'DispatchingGlobal', `Dispatching ${globalEvent.type} for ${localFsm.activeAnalysisTicker}. Guard set.`);
+            logDebug(logPrefix as LogSourceId, 'DispatchingGlobal', `Dispatching ${globalEvent.type} for ${localFsm.activeAnalysisTicker}. Guard set for ${actionName}.`);
             dispatchGlobalFsmEvent(globalEvent);
             globalDispatchGuardRef.current[actionName] = true;
         } else {
-            logDebug(logPrefix as LogSourceId, 'DispatchSkipped_Guard', `Global dispatch for ${actionName} skipped, guard already set.`);
+            logDebug(logPrefix as LogSourceId, 'DispatchSkipped_GuardActive', `Global dispatch for ${actionName} skipped, guard already active.`);
         }
-    };
 
-    const resetGuardIfNeeded = (actionName: string) => {
-        // Reset guard if global FSM is IDLE (meaning previous op completed or wasn't relevant)
-        // OR if activeAnalysisTicker has changed (new analysis context)
-        // OR if the local FSM has returned to a state where a new submission is possible (e.g. INPUT_VALID after being in a pending state)
-        const isGlobalIdleOrComplete = [GlobalFsmState.IDLE, GlobalFsmState.FULL_ANALYSIS_COMPLETE].includes(globalFsmStateFromContext);
-        const isNewAnalysisContext = localFsm.activeAnalysisTicker !== tickerInput; // tickerInput is the current value in the input field
-        const isLocalReadyForNew = localFsm.localState === MainTabLocalFsmState.INPUT_VALID || localFsm.localState === MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED;
-
-
-        if (globalDispatchGuardRef.current[actionName] && (isGlobalIdleOrComplete || isNewAnalysisContext || isLocalReadyForNew)) {
-             logDebug(logPrefix as LogSourceId, 'ResettingGuard', `Resetting guard for ${actionName}. GlobalIdleOrComplete: ${isGlobalIdleOrComplete}, NewAnalysisContext: ${isNewAnalysisContext}, LocalReady: ${isLocalReadyForNew}`);
+        // Reset guard if global FSM has completed or failed the specific action
+        if (globalDispatchGuardRef.current[actionName] && 
+            (completionStates.includes(globalFsmStateFromContext) || failureStates.includes(globalFsmStateFromContext))) {
+            logDebug(logPrefix as LogSourceId, 'ResettingGuard_ActionComplete', `Global FSM state ${globalFsmStateFromContext} indicates completion/failure for ${actionName}. Resetting guard.`);
             globalDispatchGuardRef.current[actionName] = false;
         }
     };
+    
+    const commonTerminalStates = [GlobalFsmState.IDLE, GlobalFsmState.FULL_ANALYSIS_COMPLETE];
 
-    // Handle Automated Pipeline
     if (localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED && localFsm.activeAnalysisTicker) {
-        dispatchGlobalIfNeeded('START_FULL_ANALYSIS', { type: 'START_FULL_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker! } });
-    } else {
-        resetGuardIfNeeded('START_FULL_ANALYSIS');
+        dispatchGlobalIfNeeded('START_FULL_ANALYSIS', 
+            { type: 'START_FULL_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker } },
+            [...commonTerminalStates, GlobalFsmState.DATA_FETCH_SUCCEEDED], // Completion for this step might be DATA_FETCH_SUCCEEDED before AI_TA
+            [GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, GlobalFsmState.AI_TA_FAILED]
+        );
     }
 
-    // Handle Manual Key Takeaways
     if (localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED && localFsm.activeAnalysisTicker) {
-        dispatchGlobalIfNeeded('TRIGGER_MANUAL_KEY_TAKEAWAYS', { type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: localFsm.activeAnalysisTicker! } });
-    } else {
-        resetGuardIfNeeded('TRIGGER_MANUAL_KEY_TAKEAWAYS');
+        dispatchGlobalIfNeeded('TRIGGER_MANUAL_KEY_TAKEAWAYS', 
+            { type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: localFsm.activeAnalysisTicker } },
+            [...commonTerminalStates, GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED],
+            [GlobalFsmState.KEY_TAKEAWAYS_FAILED]
+        );
     }
-
-    // Handle Manual Options Analysis
+    
     if (localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED && localFsm.activeAnalysisTicker) {
-        dispatchGlobalIfNeeded('TRIGGER_MANUAL_OPTIONS_ANALYSIS', { type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker! } });
-    } else {
-        resetGuardIfNeeded('TRIGGER_MANUAL_OPTIONS_ANALYSIS');
+        dispatchGlobalIfNeeded('TRIGGER_MANUAL_OPTIONS_ANALYSIS', 
+            { type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker } },
+            [...commonTerminalStates, GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED],
+            [GlobalFsmState.OPTIONS_ANALYSIS_FAILED]
+        );
     }
 
-  }, [localFsm.localState, localFsm.activeAnalysisTicker, tickerInput, globalFsmStateFromContext, dispatchGlobalFsmEvent, logDebug]);
+  }, [localFsm.localState, localFsm.activeAnalysisTicker, globalFsmStateFromContext, dispatchGlobalFsmEvent, logDebug]);
 
 
   useEffect(() => {
