@@ -87,7 +87,7 @@ interface StaleDataFromActionPayload {
   message: string;
   expectedTicker: string;
   foundTickerInSnapshot?: string;
-  actionStateData?: StockDataFetchResult; // Changed from any to be more specific
+  actionStateData?: StockDataFetchResult;
 }
 interface AiTaSuccessPayload extends AnalyzeTaResult {}
 interface AiTaFailurePayload { error?: string | null; message?: string | null; aiAnalyzedTaRequestJson?: string; }
@@ -107,7 +107,6 @@ export type FsmEvent =
   | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
 
   | { type: 'INITIATE_AI_TA_SEQUENCE' } 
-  | { type: 'TRIGGER_AI_TA' } 
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
   | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
 
@@ -120,7 +119,6 @@ export type FsmEvent =
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload } 
   
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' } 
-
   | { type: 'PROCEED_TO_IDLE' } 
   | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage };
 
@@ -193,10 +191,10 @@ interface StockAnalysisContextSetters {
 }
 
 interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState'>, StockAnalysisContextSetters {
-  fsmState: GlobalFsmState; // Expose only the 'current' state directly for simple access
-  previousFsmState: GlobalFsmState | null; // Expose previous for UI display
-  fsmVariables: GlobalFsmContextVariables; // Expose all variables
-  fsmFlags: GlobalFsmFlags; // Expose all flags
+  fsmState: GlobalFsmState; 
+  previousFsmState: GlobalFsmState | null; 
+  fsmVariables: GlobalFsmContextVariables; 
+  fsmFlags: GlobalFsmFlags; 
 
   addChatMessage: (message: ChatMessage) => void;
   clearChatHistory: () => void;
@@ -631,16 +629,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
 
       case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED:
+      case GlobalFsmState.AI_TA_CALCULATION_FAILED: // Finalize pipeline regardless of TA success/failure
         if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') {
           nextCurrentState = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
-          nextVariables.isInitialLoad = false; 
-          logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `AI_TA_CALCULATION_SUCCEEDED -> FINALIZE_AUTOMATED_PIPELINE. To PIPELINE_AUTOMATED_COMPLETE. Initial load set to false.`);
+          nextVariables.isInitialLoad = false; // Mark initial pipeline attempt as complete
+          logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> FINALIZE_AUTOMATED_PIPELINE. To PIPELINE_AUTOMATED_COMPLETE. Initial load set to false.`);
         }
         break;
       
       case GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE:
       case GlobalFsmState.DATA_FETCH_FAILED:
-      case GlobalFsmState.AI_TA_CALCULATION_FAILED:
+      // case GlobalFsmState.AI_TA_CALCULATION_FAILED: // Covered above by finalize
       case GlobalFsmState.ERROR_STALE_DATA:
         if (event.type === 'PROCEED_TO_IDLE') {
             nextVariables.lastError = null; 
@@ -684,7 +683,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [globalFsmReducerState, logDebug]);
 
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
-    const currentActualState = fsmStateRef.current.current;
+    const currentActualState = fsmStateRef.current.current; 
     let determinedTarget: GlobalFsmState | null = null; 
     
     switch (currentActualState) {
@@ -712,11 +711,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             else if (event.type === 'AI_TA_FAILURE') determinedTarget = GlobalFsmState.AI_TA_CALCULATION_FAILED;
             break;
         case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED:
+        case GlobalFsmState.AI_TA_CALCULATION_FAILED:
              if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') determinedTarget = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
             break;
         case GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE:
         case GlobalFsmState.DATA_FETCH_FAILED:
-        case GlobalFsmState.AI_TA_CALCULATION_FAILED:
+        // case GlobalFsmState.AI_TA_CALCULATION_FAILED: // Covered by above case now
         case GlobalFsmState.ERROR_STALE_DATA:
              if (event.type === 'PROCEED_TO_IDLE') determinedTarget = GlobalFsmState.IDLE; 
              else if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
@@ -872,23 +872,29 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         startTransition(() => {
             fetchStockDataFormAction({ ticker: currentVars.activeTicker! });
         });
-    } else if (currentGlobalFsmState === GlobalFsmState.DATA_FETCH_SUCCEEDED && currentVars.isInitialLoad) { 
-        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is DATA_FETCH_SUCCEEDED and initial load. Dispatching INITIATE_AI_TA_SEQUENCE.`);
+    } else if (currentGlobalFsmState === GlobalFsmState.DATA_FETCH_SUCCEEDED) { 
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is DATA_FETCH_SUCCEEDED. Dispatching INITIATE_AI_TA_SEQUENCE.`);
         _dispatchFsmEventActual({ type: 'INITIATE_AI_TA_SEQUENCE' });
-    } else if (currentGlobalFsmState === GlobalFsmState.CALCULATING_AI_TA && currentVars.activeTicker && currentVars.isInitialLoad) {
-        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is CALCULATING_AI_TA for ${currentVars.activeTicker} (initial load). Calling analyzeTaFormAction.`);
-        if (_stockSnapshotJson && _stockSnapshotJson !== pendingJson && !_stockSnapshotJson.includes("error")) {
+    } else if (currentGlobalFsmState === GlobalFsmState.CALCULATING_AI_TA && currentVars.activeTicker && !isAnalyzeTaPending) {
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is CALCULATING_AI_TA for ${currentVars.activeTicker}. Calling analyzeTaFormAction.`);
+        if (_stockSnapshotJson && _stockSnapshotJson !== pendingJson && !_stockSnapshotJson.includes("error") && !_stockSnapshotJson.includes("status\": \"error\"")) {
             startTransition(() => {
                 analyzeTaFormAction({ stockSnapshotJson: _stockSnapshotJson, ticker: currentVars.activeTicker! });
             });
         } else {
-            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', `Skipping AI TA for ${currentVars.activeTicker} due to missing/error snapshotJson.`);
-            _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: 'Snapshot data missing for AI TA', error: 'Snapshot data unavailable' } });
+            const errorMsg = `Snapshot data missing or in error state for AI TA of ${currentVars.activeTicker}. Snapshot: ${_stockSnapshotJson.substring(0,100)}`;
+            logDebug('StockAnalysisContext', 'FSM_Orchestrator_Error', errorMsg);
+            _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: 'Snapshot data missing/error for AI TA', error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({error: errorMsg, ticker: currentVars.activeTicker}) } });
         }
-    } else if ((currentGlobalFsmState === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED || currentGlobalFsmState === GlobalFsmState.AI_TA_CALCULATION_FAILED) && currentVars.isInitialLoad) {
-        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState} (initial load). Dispatching FINALIZE_AUTOMATED_PIPELINE.`);
+    } else if (currentGlobalFsmState === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED || currentGlobalFsmState === GlobalFsmState.AI_TA_CALCULATION_FAILED) {
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState}. Dispatching FINALIZE_AUTOMATED_PIPELINE.`);
         _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-    } else if (currentGlobalFsmState === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE || currentGlobalFsmState === GlobalFsmState.DATA_FETCH_FAILED || currentGlobalFsmState === GlobalFsmState.AI_TA_CALCULATION_FAILED || currentGlobalFsmState === GlobalFsmState.ERROR_STALE_DATA) {
+    } else if (
+        currentGlobalFsmState === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE || 
+        currentGlobalFsmState === GlobalFsmState.DATA_FETCH_FAILED || 
+        // AI_TA_CALCULATION_FAILED is handled by the previous else-if to go to FINALIZE
+        currentGlobalFsmState === GlobalFsmState.ERROR_STALE_DATA
+    ) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState}. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     }
@@ -904,7 +910,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug('StockAnalysisContext', 'StartupComplete', 'Initial application startup sequence complete. Full debug logging is now active.');
     }
 
-  }, [globalFsmReducerState.current, globalFsmReducerState.variables.activeTicker, globalFsmReducerState.variables.isInitialLoad, _dispatchFsmEventActual, logDebug, _stockSnapshotJson, fetchStockDataFormAction, analyzeTaFormAction, isFetchDataPending ]);
+  }, [globalFsmReducerState.current, globalFsmReducerState.variables.activeTicker, globalFsmReducerState.variables.isInitialLoad, _dispatchFsmEventActual, logDebug, _stockSnapshotJson, fetchStockDataFormAction, analyzeTaFormAction, isFetchDataPending, isAnalyzeTaPending ]);
 
 
   useEffect(() => {
