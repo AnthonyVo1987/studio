@@ -87,14 +87,10 @@ interface StaleDataFromActionPayload {
   message: string;
   expectedTicker: string;
   foundTickerInSnapshot?: string;
-  actionStateData?: any;
+  actionStateData?: StockDataFetchResult; // Changed from any to be more specific
 }
 interface AiTaSuccessPayload extends AnalyzeTaResult {}
-interface AiTaFailurePayload {
-  error?: string | null;
-  message?: string | null;
-  aiAnalyzedTaRequestJson?: string;
-}
+interface AiTaFailurePayload { error?: string | null; message?: string | null; aiAnalyzedTaRequestJson?: string; }
 interface AiKeyTakeawaysSuccessPayload extends PerformAiAnalysisResult {} 
 interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; } 
 interface AiOptionsAnalysisSuccessPayload extends PerformAiOptionsAnalysisResult {} 
@@ -276,7 +272,7 @@ const defaultState: StockAnalysisState = {
   isFsmDebugCardEnabled: true,
   isFsmDebugCardOpen: true,
   
-  mainTabFsmDisplay: null, // MainTabContent no longer manages its own FSM display state to report
+  mainTabFsmDisplay: null, 
   chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
 
@@ -462,7 +458,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
-      // No longer logging this update as MainTabContent's local FSM is removed for automated pipeline
       return display; 
     });
   }, [_setMainTabFsmDisplay]);
@@ -561,7 +556,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH: 
         if (event.type === 'TRIGGER_DATA_FETCH') { 
             nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
-            // canAnalyzeStock remains false
             logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `PIPELINE_REQUESTED_DATA_FETCH -> TRIGGER_DATA_FETCH. To DATA_FETCH_IN_PROGRESS.`);
         }
         break;
@@ -592,14 +586,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           nextCurrentState = GlobalFsmState.DATA_FETCH_FAILED;
           logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `DATA_FETCH_IN_PROGRESS -> FETCH_DATA_FAILURE. Error: ${errorMsg}. To DATA_FETCH_FAILED.`);
         } else if (event.type === 'STALE_DATA_FROM_ACTION') {
-          const { error, message, expectedTicker, foundTickerInSnapshot } = event.payload;
+          const { error, message, expectedTicker, foundTickerInSnapshot, actionStateData } = event.payload;
           const staleErrorJson = errorJsonWithDetails(message, `Expected ${expectedTicker}, got ${foundTickerInSnapshot || 'unknown'}.`);
-          contextSetters.setMarketStatusJson(staleErrorJson); 
-          contextSetters.setStockSnapshotJson(staleErrorJson);
-          contextSetters.setStandardTasJson(staleErrorJson);
-          contextSetters.setOptionsChainJson(staleErrorJson);
-          if (event.payload.actionStateData?.polygonApiRequestLogJson) contextSetters.setPolygonApiRequestLogJson(event.payload.actionStateData.polygonApiRequestLogJson);
-          if (event.payload.actionStateData?.polygonApiResponseLogJson) contextSetters.setPolygonApiResponseLogJson(event.payload.actionStateData.polygonApiResponseLogJson);
+          contextSetters.setMarketStatusJson(actionStateData?.marketStatusJson || staleErrorJson); 
+          contextSetters.setStockSnapshotJson(actionStateData?.stockSnapshotJson || staleErrorJson);
+          contextSetters.setStandardTasJson(actionStateData?.standardTasJson || staleErrorJson);
+          contextSetters.setOptionsChainJson(actionStateData?.optionsChainJson || staleErrorJson);
+          contextSetters.setPolygonApiRequestLogJson(actionStateData?.polygonApiRequestLogJson || errorJsonWithDetails("Request log unavailable for stale data.", null));
+          contextSetters.setPolygonApiResponseLogJson(actionStateData?.polygonApiResponseLogJson || errorJsonWithDetails("Response log unavailable for stale data.", null));
           nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
           nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
           nextVariables.lastError = { message, source: 'StaleData', details: error };
@@ -654,8 +648,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 nextCurrentState = GlobalFsmState.VALID_TICKER_ENTERED;
                 nextFlags.canAnalyzeStock = true;
             } else {
-                nextCurrentState = GlobalFsmState.AWAITING_TICKER_INPUT; // Default to awaiting if no valid user input ticker
-                nextFlags.canAnalyzeStock = false; // If no ticker, cannot analyze
+                nextCurrentState = GlobalFsmState.AWAITING_TICKER_INPUT; 
+                nextFlags.canAnalyzeStock = false;
             }
             logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> PROCEED_TO_IDLE. To ${nextCurrentState}. canAnalyze: ${nextFlags.canAnalyzeStock}`);
         } else if (event.type === 'START_FULL_ANALYSIS') { 
@@ -705,6 +699,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH:
             if (event.type === 'TRIGGER_DATA_FETCH') determinedTarget = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
             break;
+        case GlobalFsmState.DATA_FETCH_IN_PROGRESS:
+            if (event.type === 'FETCH_DATA_SUCCESS') determinedTarget = GlobalFsmState.DATA_FETCH_SUCCEEDED;
+            else if (event.type === 'FETCH_DATA_FAILURE') determinedTarget = GlobalFsmState.DATA_FETCH_FAILED;
+            else if (event.type === 'STALE_DATA_FROM_ACTION') determinedTarget = GlobalFsmState.ERROR_STALE_DATA;
+            break;
         case GlobalFsmState.DATA_FETCH_SUCCEEDED:
             if (event.type === 'INITIATE_AI_TA_SEQUENCE') determinedTarget = GlobalFsmState.CALCULATING_AI_TA;
             break;
@@ -719,7 +718,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.DATA_FETCH_FAILED:
         case GlobalFsmState.AI_TA_CALCULATION_FAILED:
         case GlobalFsmState.ERROR_STALE_DATA:
-             if (event.type === 'PROCEED_TO_IDLE') determinedTarget = GlobalFsmState.IDLE; // Or VALID_TICKER_ENTERED
+             if (event.type === 'PROCEED_TO_IDLE') determinedTarget = GlobalFsmState.IDLE; 
              else if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             break;
     }
@@ -866,11 +865,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'INITIALIZATION_COMPLETE' }); 
         initializationDispatchedRef.current = true; 
     } else if (currentGlobalFsmState === GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH && currentVars.activeTicker) {
-        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is PIPELINE_REQUESTED_DATA_FETCH for ${currentVars.activeTicker}. Calling fetchStockDataFormAction.`);
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is PIPELINE_REQUESTED_DATA_FETCH for ${currentVars.activeTicker}. Dispatching TRIGGER_DATA_FETCH.`);
+        _dispatchFsmEventActual({ type: 'TRIGGER_DATA_FETCH' }); 
+    } else if (currentGlobalFsmState === GlobalFsmState.DATA_FETCH_IN_PROGRESS && currentVars.activeTicker && !isFetchDataPending ) {
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is DATA_FETCH_IN_PROGRESS for ${currentVars.activeTicker}. Calling fetchStockDataFormAction.`);
         startTransition(() => {
             fetchStockDataFormAction({ ticker: currentVars.activeTicker! });
         });
-         _dispatchFsmEventActual({ type: 'TRIGGER_DATA_FETCH' });
     } else if (currentGlobalFsmState === GlobalFsmState.DATA_FETCH_SUCCEEDED && currentVars.isInitialLoad) { 
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is DATA_FETCH_SUCCEEDED and initial load. Dispatching INITIATE_AI_TA_SEQUENCE.`);
         _dispatchFsmEventActual({ type: 'INITIATE_AI_TA_SEQUENCE' });
@@ -903,18 +904,23 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug('StockAnalysisContext', 'StartupComplete', 'Initial application startup sequence complete. Full debug logging is now active.');
     }
 
-  }, [globalFsmReducerState.current, globalFsmReducerState.variables.activeTicker, globalFsmReducerState.variables.isInitialLoad, _dispatchFsmEventActual, logDebug, _stockSnapshotJson, fetchStockDataFormAction, analyzeTaFormAction ]);
+  }, [globalFsmReducerState.current, globalFsmReducerState.variables.activeTicker, globalFsmReducerState.variables.isInitialLoad, _dispatchFsmEventActual, logDebug, _stockSnapshotJson, fetchStockDataFormAction, analyzeTaFormAction, isFetchDataPending ]);
 
 
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current; 
     logDebug('StockAnalysisContext', 'ActionStateEffect_FetchData', `fetchDataActionState changed. Status: ${fetchDataActionState.status}. Current FSM state: ${currentFsmState}`);
-    if (currentFsmState !== GlobalFsmState.DATA_FETCH_IN_PROGRESS) return; 
+    if (currentFsmState !== GlobalFsmState.DATA_FETCH_IN_PROGRESS) {
+        if (fetchDataActionState.status !== 'idle') {
+            logDebug('StockAnalysisContext', 'ActionStateEffect_FetchData_Guard', `Current FSM state ${currentFsmState} is not DATA_FETCH_IN_PROGRESS. Ignoring fetchDataActionState update (Status: ${fetchDataActionState.status}). This might be a late arrival or benign.`);
+        }
+        return;
+    }
 
     if (fetchDataActionState.status === 'success' && fetchDataActionState.data) {
         dispatchFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: fetchDataActionState.data });
     } else if (fetchDataActionState.status === 'error') {
-        if (fetchDataActionState.message && fetchDataActionState.message.includes("Stale data detected")) {
+        if (fetchDataActionState.message && fetchDataActionState.message.includes("Stale data detected") && fetchDataActionState.data) {
              dispatchFsmEvent({ 
                 type: 'STALE_DATA_FROM_ACTION', 
                 payload: { 
@@ -941,7 +947,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current;
     logDebug('StockAnalysisContext', 'ActionStateEffect_AnalyzeTa', `analyzeTaActionState changed. Status: ${analyzeTaActionState.status}. Current FSM state: ${currentFsmState}`);
-    if (currentFsmState !== GlobalFsmState.CALCULATING_AI_TA) return;
+    if (currentFsmState !== GlobalFsmState.CALCULATING_AI_TA) {
+        if (analyzeTaActionState.status !== 'idle') {
+            logDebug('StockAnalysisContext', 'ActionStateEffect_AnalyzeTa_Guard', `Current FSM state ${currentFsmState} is not CALCULATING_AI_TA. Ignoring analyzeTaActionState update (Status: ${analyzeTaActionState.status}).`);
+        }
+        return;
+    }
 
     if (analyzeTaActionState.status === 'success' && analyzeTaActionState.data) {
         dispatchFsmEvent({ type: 'AI_TA_SUCCESS', payload: analyzeTaActionState.data });
@@ -1080,3 +1091,4 @@ export function useStockAnalysis() {
   return context;
 }
 
+    
