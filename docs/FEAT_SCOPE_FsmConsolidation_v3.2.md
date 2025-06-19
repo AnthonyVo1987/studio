@@ -158,7 +158,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *   **Task v3.2.2.1: Integrate "Generate AI Options Analysis" Button**
     *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:** Similar to Key Takeaways:
-        1.  Button logic based on global FSM state, flags (`isOptionsAnalysisDataAvailable`, `isOptionsChainDataReady`, `isSnapshotDataReady`).
+        1.  Button logic based on global FSM state, flags (`isOptionsAnalysisDataAvailable`, `isOptionsChainDataReady`, `isSnapshotDataAvailable`).
         2.  `onClick` dispatches `REQUEST_MANUAL_AI_OPTIONS_ANALYSIS_EVENT`.
         3.  Global FSM handles, calls `performAiOptionsAnalysisAction`, updates context, transitions back.
     *   **Testability:** Button enables/disables correctly. Options analysis generated. FSM transitions.
@@ -207,81 +207,79 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *Objective: Rigorous testing of the consolidated FSM across all application features and edge cases. Focus on stability, correct state transitions, accurate flag/variable updates, and absence of regressions.*
 
 *   **Task v3.2.4.0: Comprehensive End-to-End Testing - Scenario 1 (Happy Paths)**
-    *   **Action:** Test all primary user flows with valid inputs and expected API/AI responses:
-        1.  Initial app load (default ticker or no ticker).
-        2.  Successful "Analyze Stock" automated pipeline.
-        3.  Successful "Generate AI Key Takeaways" after automated.
-        4.  Successful "Generate AI Options Analysis" after automated.
-        5.  Multiple successful chat interactions.
-        6.  Changing ticker and re-running automated analysis.
-        7.  Using all Debug Console and FSM Debug Card functionalities (export, copy, filter, toggle visibility).
-    *   **Verification:** Monitor FSM states, flags, and variables via FSM Debug Card and console logs. Ensure UI elements (buttons, loading states, data displays) behave correctly. Verify data in context updates as expected.
-    *   **App Metadata:** `v3.2.4.0` (if minor tweaks are needed from testing).
+    *   **AI Agent - Chain of Thought & Action:**
+        1.  *Understand:* The goal is to verify all primary user flows work correctly with the new single FSM.
+        2.  *Test Plan Execution (Manual or Guiding User):*
+            *   Test initial app load (default ticker or no ticker).
+            *   Test successful "Analyze Stock" automated pipeline.
+            *   Test successful "Generate AI Key Takeaways" after automated pipeline.
+            *   Test successful "Generate AI Options Analysis" after automated pipeline.
+            *   Test multiple successful chat interactions.
+            *   Test changing ticker and re-running automated analysis.
+            *   Test all Debug Console and FSM Debug Card functionalities (export, copy, filter, toggle visibility).
+        3.  *Verification:* Monitor FSM states, flags, and variables via FSM Debug Card and console logs. Ensure UI elements (buttons, loading states, data displays) behave correctly. Verify data in context updates as expected.
+        4.  *Code Changes (If any):* Only if minor tweaks are identified during this testing that are direct consequences of the FSM refactor.
+    *   **App Metadata:** `v3.2.4.0` (update if code changes).
 
 *   **Task v3.2.4.1: Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases)**
-    *   **Action:** Test system behavior under error conditions:
-        1.  Invalid ticker input.
-        2.  Simulated API failures (data fetch, TA calculation if possible to mock, or rely on actual API rate limits/errors if encountered).
-        3.  Simulated AI flow failures (Key Takeaways, Options, Chat).
-        4.  Rapidly clicking buttons or changing inputs during processing.
-        5.  Attempting manual actions when prerequisites are not met.
-        6.  Network interruptions (if testable).
-    *   **Verification:** FSM transitions to appropriate `ERROR_...` states. `variables.lastError` is populated. UI displays user-friendly error messages. Application recovers gracefully to `IDLE` or a stable state. No crashes or unexpected UI hangs.
-    *   **App Metadata:** `v3.2.4.1` (if fixes are made).
+    *   **AI Agent - Chain of Thought & Action:**
+        1.  *Understand:* Verify robust error handling and graceful recovery with the new FSM.
+        2.  *Test Plan Execution (Manual or Guiding User):*
+            *   Test invalid ticker input.
+            *   Simulate API failures (data fetch, TA calculation) if possible by temporarily modifying API keys or data sources (or rely on natural API rate limits/errors if encountered).
+            *   Simulate AI flow failures (Key Takeaways, Options, Chat) by, for example, providing malformed input to prompts if possible.
+            *   Test rapidly clicking buttons or changing inputs during FSM processing.
+            *   Test attempting manual actions when prerequisites (data flags) are not met.
+            *   Test network interruptions during operations (if feasible in dev environment).
+        3.  *Verification:* FSM transitions to appropriate `ERROR_...` states. `variables.lastError` is populated with meaningful info. UI displays user-friendly error messages or indications. Application recovers gracefully to an `IDLE` or stable state. No crashes or unexpected UI hangs.
+        4.  *Code Changes (If any):* Implement fixes for any identified issues.
+    *   **App Metadata:** `v3.2.4.1` (update if code changes).
 
 *   **Task v3.2.4.2: Log Review & Final Refinements**
-    *   **Action:** Perform a final, thorough review of all client-side debug logs (with all sources enabled) and any relevant server-side logs generated during the testing phase.
-    *   Identify and address any remaining anomalies, unexpected FSM transitions, incorrect flag/variable settings, or excessive/missing log messages.
-    *   Focus on ensuring the "Failure Snapshot" from Debug Console exports is complete and provides maximum diagnostic value.
-    *   **AI Agent - Chain of Thought for Refinement:** *Based on the logs from comprehensive testing, are there any states that are entered/exited too quickly? Are any flags not being reset correctly? Is `lastError` always cleared when returning to `IDLE` after a successful operation? Are there any race conditions evident in how quickly states transition versus how effects that depend on them run?*
-    *   **App Metadata:** `v3.2.4.2` (for final tweaks).
+    *   **AI Agent - Chain of Thought & Action:**
+        1.  *Understand:* Perform a final check of all logs and FSM behavior for polish and completeness.
+        2.  *Action:* Review all client-side debug logs (with all sources enabled) and any relevant server-side logs generated during the comprehensive testing phase (v3.2.4.0, v3.2.4.1).
+        3.  *Identify & Address:* Any remaining anomalies, unexpected FSM transitions, incorrect flag/variable settings, or excessive/missing log messages. Focus on ensuring the "Failure Snapshot" from Debug Console exports is complete and provides maximum diagnostic value.
+        4.  *Considerations for AI Agent:* *Based on the logs from comprehensive testing, are there any states that are entered/exited too quickly or unexpectedly? Are any flags not being reset correctly upon returning to IDLE? Is `lastError` always cleared when returning to `IDLE` after a successful operation? Are there any subtle race conditions evident in how quickly states transition versus how effects that depend on them run?*
+        5.  *Code Changes (If any):* Implement final small tweaks.
+    *   **App Metadata:** `v3.2.4.2` (update if code changes).
 
 ---
 
-### **Phase 5: FSM Debug Tools & Documentation Update (Target: v3.2.5.z)**
+### **Phase 5: Documentation & Cleanup (Target: v3.2.5.z)**
 *Objective: Finalize the enhanced debugging tools and update all project documentation to reflect the new FSM architecture.*
 
-*   **Task v3.2.5.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports**
+*   **Task v3.2.5.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports (Code Touch-up if needed from Phase 4)**
     *   **File(s):** `src/components/fsm-state-debug-card.tsx`, `src/components/debug-console.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The FSM Debug Card and console exports are key deliverables.
-        2.  *`FsmStateDebugCard.tsx` Update:*
-            *   Ensure it clearly displays the current `GlobalFsmState`, previous `GlobalFsmState`.
-            *   Add a new section to display all `GlobalFsmFlags` (e.g., as a list of "FlagName: true/false").
-            *   Add a new section to display key `GlobalFsmContextVariables` (e.g., `activeAnalysisTicker`, `userInputTicker`, relevant parts of `lastError`).
-            *   Ensure its "Copy JSON" and "Export JSON" functionality correctly captures all this new FSM state, flags, and variables data.
-        3.  *`DebugConsole.tsx` Update:*
-            *   Modify `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`, and the direct JSON copy/export handlers.
-            *   These functions must now receive or access the complete FSM state (state, flags, variables) from `StockAnalysisContext`.
-            *   Prepend this full FSM snapshot to all exported/copied log data.
-    *   **Testability:** FSM Debug Card displays all required FSM information. Log exports/copies from Debug Console contain the complete FSM snapshot.
+        1.  *Understand:* The FSM Debug Card and console exports are key deliverables and must be fully aligned with the final FSM structure after Phase 4 testing.
+        2.  *`FsmStateDebugCard.tsx` Update/Verification:*
+            *   Ensure it clearly and accurately displays the current `GlobalFsmState`, previous `GlobalFsmState`.
+            *   Ensure it has a dedicated section to display all `GlobalFsmFlags` (e.g., as a list of "FlagName: true/false").
+            *   Ensure it has a dedicated section to display key `GlobalFsmContextVariables` (e.g., `activeAnalysisTicker`, `userInputTicker`, relevant parts of `lastError`).
+            *   Verify its "Copy JSON" and "Export JSON" functionality correctly captures all this new FSM state, flags, and variables data.
+        3.  *`DebugConsole.tsx` Update/Verification:*
+            *   Verify that `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`, and the direct JSON copy/export handlers correctly receive or access the complete FSM state (state, flags, variables) from `StockAnalysisContext`.
+            *   Verify that this full FSM snapshot is prepended to all exported/copied log data.
+        4.  *Code Changes (If any):* Minor adjustments based on Phase 4 findings.
+    *   **Testability:** FSM Debug Card displays all required FSM information accurately. Log exports/copies from Debug Console contain the complete FSM snapshot.
     *   **App Metadata:** Update to `v3.2.5.0`.
 
-*   **Task v3.2.5.1: Update All Project Documentation**
+*   **Task v3.2.5.1: Update All Project Documentation (README.md, CHANGELOG.md, FEAT docs)**
     *   **File(s):** `README.md`, `CHANGELOG.md`, `docs/FEAT_SCOPE_FsmConsolidation_v3.2.md`, `docs/FEAT_STATUS_FsmConsolidation_v3.2.md`.
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* All documentation must reflect the new single FSM architecture.
+        1.  *Understand:* All documentation must reflect the new single FSM architecture and the completion of this feature.
         2.  *`README.md` Update:*
             *   Rewrite/update sections on State Management and FSM architecture to detail the single FSM, its states, the concept of flags and context variables.
             *   Update component descriptions (`MainTabContent`, `Chatbot`, etc.) to explain how they now interact with the global FSM.
             *   Describe the enhanced FSM Debug Card and the enriched data in Debug Console exports.
-            *   Ensure commit procedures reflect the `v3.2.x.y` series.
-        3.  *`CHANGELOG.md` Update:* Add entries for each task in the `v3.2.x.y` series, culminating in the completion of this "FSM Consolidation & Refactor" feature.
+            *   Ensure commit procedures reflect the `v3.2.x.y` series completion for this feature.
+        3.  *`CHANGELOG.md` Update:* Add entries for each task in the `v3.2.x.y` series, culminating in the completion of this "FSM Consolidation & Refactor" feature. This should be a consolidated entry summarizing the feature.
         4.  *`FEAT_STATUS_FsmConsolidation_v3.2.md` Update:* Mark the overall feature and all its phases/tasks as `COMPLETED`. Add final commit details.
-        5.  *`FEAT_SCOPE_FsmConsolidation_v3.2.md` Update:* Mark as `COMPLETED` and ensure the "Implementation Plan" section accurately reflects the tasks undertaken.
+        5.  *`FEAT_SCOPE_FsmConsolidation_v3.2.md` Update:* Mark as `COMPLETED` and ensure the "Implementation Plan" section accurately reflects the tasks undertaken (it should already be accurate if followed).
     *   **Testability:** Review all updated documents for accuracy, completeness, and clarity.
     *   **App Metadata:** `v3.2.5.1` (or the final version from the previous task if no code changes here).
 
 ---
 
-This phased plan provides a structured approach. Each task aims to be an atomic, testable unit of work suitable for AI-driven implementation with human oversight and testing.Okay, the new feature documentation files have been generated.
-
-`docs/FEAT_SCOPE_FsmConsolidation_v3.2.md` now contains the detailed scope, objectives, value proposition, risks, and the refined 5-phase implementation plan (with "chain of thought" guidance for each task).
-
-`docs/FEAT_STATUS_FsmConsolidation_v3.2.md` has been initialized, marking the feature as "PLANNED" and is ready to track progress through the phases and tasks.
-
-I have also updated my internal understanding of your operating procedures, including the re-phasing and the requirement for automatic app metadata updates with code changes.
-
-We are ready to begin **Phase 1: Foundation & Core FSM Setup**, starting with **Task v3.2.1.0: Define Initial Single FSM Structure & Core States**.
-
-Please confirm when you'd like me to proceed with generating the code changes for this first task.
+This detailed plan should provide a solid framework. We are ready to create the initial documentation files.
