@@ -45,8 +45,24 @@ async function getAnalyzedOptionsChainPrompt() {
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
   ];
 
+  const promptConfig: {
+    safetySettings: any[];
+    enableDynamicThinking?: boolean;
+    thinkingBudget?: number;
+  } = {
+    safetySettings: safetySettings,
+  };
+
+  if (analyzeOptionsChainPromptDefinition.enableDynamicThinking !== undefined) {
+    promptConfig.enableDynamicThinking = analyzeOptionsChainPromptDefinition.enableDynamicThinking;
+  }
+  if (analyzeOptionsChainPromptDefinition.thinkingBudget !== undefined) {
+    promptConfig.thinkingBudget = analyzeOptionsChainPromptDefinition.thinkingBudget;
+  }
+
   console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
+  console.log(`${logPrefix} Thinking config: enableDynamicThinking=${promptConfig.enableDynamicThinking}, thinkingBudget=${promptConfig.thinkingBudget}`);
 
   return ai.definePrompt({
     name: 'analyzeOptionsChainPrompt', 
@@ -54,9 +70,7 @@ async function getAnalyzedOptionsChainPrompt() {
     output: {schema: AiOptionsAnalysisOutputSchema},
     model: modelId,
     prompt: promptString,
-    config: {
-      safetySettings: safetySettings,
-    },
+    config: promptConfig,
   });
 }
 
@@ -122,8 +136,9 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     console.log(`${logPrefix} Flow_Log_DJ_PrePromptCall_Options - Executing analyzeOptionsChainPrompt.`);
     try {
         const promptToUse = await getAnalyzedOptionsChainPrompt();
-        const {output} = await promptToUse(input); // result.output from Genkit v1.x
-        outputFromPrompt = output; 
+        const result = await promptToUse(input); 
+        outputFromPrompt = result.output;
+        console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
         console.log(`${logPrefix} Flow_Log_DJ_PostPromptCall_Options - Prompt execution completed. Output from AI (first 500 chars): ${outputFromPrompt ? JSON.stringify(outputFromPrompt).substring(0,500) : 'undefined'}`);
 
         if (!outputFromPrompt || !Array.isArray(outputFromPrompt.callWalls) || !Array.isArray(outputFromPrompt.putWalls)) {

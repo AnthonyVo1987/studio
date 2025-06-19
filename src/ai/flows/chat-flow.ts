@@ -46,8 +46,25 @@ async function getStockChatBotPrompt() {
       {category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH'},
   ];
 
+  const promptConfig: {
+    safetySettings: any[];
+    enableDynamicThinking?: boolean;
+    thinkingBudget?: number;
+  } = {
+    safetySettings: safetySettings,
+  };
+
+  if (stockChatBotPromptDefinition.enableDynamicThinking !== undefined) {
+    promptConfig.enableDynamicThinking = stockChatBotPromptDefinition.enableDynamicThinking;
+  }
+  if (stockChatBotPromptDefinition.thinkingBudget !== undefined) {
+    promptConfig.thinkingBudget = stockChatBotPromptDefinition.thinkingBudget;
+  }
+
   console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
+  console.log(`${logPrefix} Thinking config: enableDynamicThinking=${promptConfig.enableDynamicThinking}, thinkingBudget=${promptConfig.thinkingBudget}`);
+
 
   return ai.definePrompt({
     name: 'stockChatBotPrompt',
@@ -55,9 +72,7 @@ async function getStockChatBotPrompt() {
     output: {schema: ChatOutputSchema},
     model: modelId,
     prompt: promptString,
-    config: {
-      safetySettings: safetySettings,
-    },
+    config: promptConfig,
   });
 }
 
@@ -82,25 +97,28 @@ const chatFlow = ai.defineFlow(
     inputSchema: ChatInputSchema,
     outputSchema: ChatOutputSchema,
   },
-  async (input: ChatInput) => {
+  async (input: ChatInput): Promise<ChatOutput> => {
     const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started. User input (first 50 chars): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}.`);
 
     try {
       const promptToUse = await getStockChatBotPrompt();
       console.log(`${logPrefix} Executing stockChatBotPrompt for ticker ${input.ticker}. User input (first 50): "${input.userInput.substring(0,50)}..."`);
-      const {output} = await promptToUse(input);
+      const result = await promptToUse(input);
+      const outputFromPrompt = result.output;
+      console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
 
-      if (!output) {
+
+      if (!outputFromPrompt) {
           console.error(`${logPrefix} Chatbot AI prompt for ticker ${input.ticker} did not return an output structure.`);
           throw new Error('Chatbot AI prompt failed to return any output structure.');
       }
-      if (!output.response || typeof output.response !== 'string') {
-          console.error(`${logPrefix} Chatbot AI prompt output for ticker ${input.ticker} is malformed (missing response string or not a string). Output (first 200): ${JSON.stringify(output).substring(0,200)}`);
+      if (!outputFromPrompt.response || typeof outputFromPrompt.response !== 'string') {
+          console.error(`${logPrefix} Chatbot AI prompt output for ticker ${input.ticker} is malformed (missing response string or not a string). Output (first 200): ${JSON.stringify(outputFromPrompt).substring(0,200)}`);
           throw new Error('Chatbot AI prompt returned a malformed response (e.g., response not a string).');
       }
-      console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${output.response.substring(0,50)}..."`);
-      return output;
+      console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${outputFromPrompt.response.substring(0,50)}..."`);
+      return outputFromPrompt;
     } catch (error: any) {
       console.error(`${logPrefix} CRITICAL ERROR during stockChatBotPrompt execution for ticker ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}. Throwing error further.`);
       throw error; // Re-throw the error

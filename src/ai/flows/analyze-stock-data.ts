@@ -45,8 +45,24 @@ async function getAnalyzedStockDataPrompt() {
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
   ];
   
+  const promptConfig: {
+    safetySettings: any[];
+    enableDynamicThinking?: boolean;
+    thinkingBudget?: number;
+  } = {
+    safetySettings: safetySettings,
+  };
+
+  if (analyzeStockDataPromptDefinition.enableDynamicThinking !== undefined) {
+    promptConfig.enableDynamicThinking = analyzeStockDataPromptDefinition.enableDynamicThinking;
+  }
+  if (analyzeStockDataPromptDefinition.thinkingBudget !== undefined) {
+    promptConfig.thinkingBudget = analyzeStockDataPromptDefinition.thinkingBudget;
+  }
+  
   console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
+  console.log(`${logPrefix} Thinking config: enableDynamicThinking=${promptConfig.enableDynamicThinking}, thinkingBudget=${promptConfig.thinkingBudget}`);
   
   return ai.definePrompt({
     name: 'analyzeStockDataPrompt', 
@@ -54,9 +70,7 @@ async function getAnalyzedStockDataPrompt() {
     output: {schema: StockAnalysisOutputSchema},
     model: modelId,
     prompt: promptString,
-    config: {
-      safetySettings: safetySettings,
-    },
+    config: promptConfig,
   });
 }
 
@@ -101,7 +115,8 @@ const analyzeStockDataFlow = ai.defineFlow(
       const promptToUse = await getAnalyzedStockDataPrompt();
       console.log(`${logPrefix} Flow_Log_DJ_PrePromptCall - Executing analyzeStockDataPrompt.`);
       const result = await promptToUse(input);
-      outputFromPrompt = result.output; // Correctly access the output property
+      outputFromPrompt = result.output; 
+      console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
       console.log(`${logPrefix} Flow_Log_DJ_PostPromptCall - Prompt execution completed. outputFromPrompt is defined: ${!!outputFromPrompt}`);
       
       if (outputFromPrompt) {
