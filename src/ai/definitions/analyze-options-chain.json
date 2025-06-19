@@ -41,7 +41,7 @@
       "role": "AnalysisCriteria",
       "parts": [
         {
-          "text": "Identify strikes that show potentially significant Open Interest (OI) that *might* act as support/resistance. Consider OI levels that are elevated compared to their immediate surroundings or that appear noteworthy within the context of the overall options chain for {{{ticker}}}. High volume at these strikes can be a confirming factor but is not strictly required if OI itself is notable. The goal is to highlight areas of interest, not just extreme concentrations. You should make every reasonable effort to find candidates."
+          "text": "Identify strikes that show potentially significant Open Interest (OI) that *might* act as support/resistance. Consider OI levels that are elevated compared to their immediate surroundings or that appear noteworthy within the context of the overall options chain for {{{ticker}}}. Also, consider strikes where Open Interest shows a notable increase relative to immediately adjacent strikes, even if the absolute OI is not exceptionally high across the entire chain. High volume at these strikes can be a confirming factor but is not strictly required if OI itself is notable. The goal is to highlight areas of interest, not just extreme concentrations. You should make every reasonable effort to find candidates."
         }
       ]
     },
@@ -64,3 +64,4 @@
   ]
 }
 
+    

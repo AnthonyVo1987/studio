@@ -109,23 +109,13 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       parsedOptionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
       if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) {
         console.warn(`${logPrefix} Pre-check: Options chain data seems insufficient (less than 3 contracts). Contracts length: ${parsedOptionsData.contracts?.length}. Returning empty walls.`);
-        return emptyOutputOnError; // Return empty, not throw, as this is a valid data condition.
+        return emptyOutputOnError; 
       }
-      const totalOI = parsedOptionsData.contracts.reduce((sum, contract) => {
-        return sum + (contract.call?.open_interest || 0) + (contract.put?.open_interest || 0);
-      }, 0);
-      const totalVolume = parsedOptionsData.contracts.reduce((sum, contract) => {
-        return sum + (contract.call?.volume || 0) + (contract.put?.volume || 0);
-      }, 0);
-
-      if (totalOI === 0 && totalVolume === 0 && parsedOptionsData.contracts.length > 0) {
-         console.warn(`${logPrefix} Pre-check: All open interest and volume are zero. Returning empty walls.`);
-         return emptyOutputOnError; // Return empty for valid "no activity" data.
-      }
-      console.log(`${logPrefix} Pre-check passed. Total OI: ${totalOI}, Total Volume: ${totalVolume}, Contract Count: ${parsedOptionsData.contracts.length}`);
+      // Removed: Pre-check for totalOI === 0 && totalVolume === 0. Let AI attempt if contracts exist.
+      console.log(`${logPrefix} Pre-check passed. Contract Count: ${parsedOptionsData.contracts.length}`);
     } catch (e: any) {
       console.error(`${logPrefix} Pre-check: Failed to parse optionsChainJson or basic validation failed. Error: ${e.message}. Returning empty walls.`);
-      return emptyOutputOnError; // Return empty, as this is a data integrity issue before AI.
+      return emptyOutputOnError;
     }
 
     let outputFromPrompt: AiOptionsAnalysisOutput | undefined;
@@ -152,8 +142,9 @@ const analyzeOptionsChainFlow = ai.defineFlow(
 
     } catch (promptError: any) {
         console.error(`${logPrefix} CRITICAL ERROR during analyzeOptionsChainPrompt execution. Error name: ${promptError?.name}, Message: ${promptError?.message}. Throwing error further.`);
-        throw promptError; // Re-throw the error to be caught by the server action
+        throw promptError;
     }
   }
 );
     
+

@@ -123,17 +123,16 @@ class PolygonAdapter {
           console.log(`${logPrefix} Snapshot for ${tickerToUse} fetched successfully. Ticker in response: ${snapshotResponse.ticker.ticker}`);
           const { day, prevDay, min, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
           
-          // Corrected currentStockPrice derivation
-          let priceSourceVal = lastTrade?.p;
-          if (priceSourceVal === undefined || priceSourceVal === null || priceSourceVal === 0) { // Check for 0 too if it means no current trade
-            priceSourceVal = day?.c;
+          let priceSourceVal: number | null | undefined = null;
+          if (lastTrade?.p && lastTrade.p > 0) {
+              priceSourceVal = lastTrade.p;
+          } else if (day?.c && day.c > 0) {
+              priceSourceVal = day.c;
+          } else if (prevDay?.c && prevDay.c > 0) {
+              priceSourceVal = prevDay.c;
           }
-          if (priceSourceVal === undefined || priceSourceVal === null || priceSourceVal === 0) {
-            priceSourceVal = prevDay?.c;
-          }
-          currentStockPrice = roundNumber(priceSourceVal, 2);
+          currentStockPrice = roundNumber(priceSourceVal, 2); // roundNumber handles null/undefined gracefully, returning undefined
           console.log(`${logPrefix} Derived currentStockPrice: ${currentStockPrice} (from lastTrade: ${lastTrade?.p}, day.c: ${day?.c}, prevDay.c: ${prevDay?.c})`);
-
 
           stockDataPackage.stockSnapshot = {
             ticker: snapshotResponse.ticker.ticker,
@@ -143,7 +142,7 @@ class PolygonAdapter {
             todaysChange: roundNumber(todaysChange, 2),
             todaysChangePerc: roundNumber(todaysChangePerc, 4),
             updated: updated,
-            currentPrice: currentStockPrice,
+            currentPrice: currentStockPrice, 
           } as StockSnapshotData;
         } else {
             const errMsg = `Snapshot response for ${tickerToUse} did not contain matching ticker data or was malformed. Expected: ${tickerToUse}, Got in response: ${snapshotResponse.ticker?.ticker}`;
@@ -238,11 +237,14 @@ class PolygonAdapter {
       }
 
       try {
-        if (currentStockPrice !== undefined && currentStockPrice !== null && currentStockPrice > 0) { // Ensure currentStockPrice is valid for window calc
+        console.log(`${logPrefix} Options chain fetch block. Current derived stock price for window calculation: ${currentStockPrice}`);
+        if (currentStockPrice && currentStockPrice > 0) {
           const expirationDate = calculateNextFridayExpiration();
           const strikePriceWindowPercentage = 0.20;
           const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
           const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
+          console.log(`${logPrefix} Options fetch params: Expiration: ${expirationDate}, LowerBound: ${lowerStrikeBound}, UpperBound: ${upperStrikeBound}`);
+          
           const commonOptionsParams: any = {
             expiration_date: expirationDate,
             "strike_price.gte": formatToTwoDecimals(lowerStrikeBound, "0"),
@@ -250,7 +252,7 @@ class PolygonAdapter {
             limit: 250,
           };
 
-          console.log(`${logPrefix} Fetching CALLS for ${tickerToUse}, expiration ${expirationDate}. Current price: ${currentStockPrice}. Delay: ${apiCallDelay}ms.`);
+          console.log(`${logPrefix} Fetching CALLS for ${tickerToUse}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms.`);
           await delay(apiCallDelay);
           const callsSnapshot = await this.client.options.snapshotOptionChain(tickerToUse, {
             ...commonOptionsParams, contract_type: 'call',
@@ -281,14 +283,15 @@ class PolygonAdapter {
 
           let sortedStrikes = Array.from(allStrikes).sort((a, b) => a - b);
           let closestStrikeIndex = 0;
-          if (sortedStrikes.length > 0 && currentStockPrice !== undefined) { // currentStockPrice check also here
+          if (sortedStrikes.length > 0 && currentStockPrice) { 
              closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrikeItem, currentIdx) => {
                 return (Math.abs(currentStrikeItem - currentStockPrice!) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice!)) ? currentIdx : prevIdx;
             }, 0);
           }
           const startIndex = Math.max(0, closestStrikeIndex - 10);
           const endIndex = Math.min(sortedStrikes.length, closestStrikeIndex + 11);
-          const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a);
+          const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a); // Keep descending sort
+          console.log(`${logPrefix} Processed ${finalStrikesToProcess.length} strikes for options table out of ${sortedStrikes.length} unique strikes found.`);
           const optionsTableRows: OptionsTableRow[] = [];
 
           for (const strike of finalStrikesToProcess) {
@@ -314,14 +317,14 @@ class PolygonAdapter {
             ticker: tickerToUse, expiration_date: expirationDate, contracts: optionsTableRows, underlying_price: roundNumber(currentStockPrice, 2),
           };
         } else {
-            const errMsg = `Current stock price not available or invalid (0) for options chain fetching for ${tickerToUse}. Snapshot data: ${JSON.stringify(stockDataPackage.stockSnapshot).substring(0,200)}`;
+            const errMsg = `Valid current stock price for ${tickerToUse} could not be determined (was ${currentStockPrice}). Options chain cannot be reliably fetched.`;
             console.warn(`${logPrefix} ${errMsg}`);
-            stockDataPackage.optionsChain = { error: errMsg, ticker: tickerToUse, contracts: [], underlying_price: currentStockPrice } as any;
+            stockDataPackage.optionsChain = { error: errMsg, ticker: tickerToUse, contracts: [], underlying_price: currentStockPrice ?? 0 } as any;
         }
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${tickerToUse}. Polygon client error: ${error.message || String(error)}`;
         console.error(`${logPrefix} Error fetching options chain:`, error);
-        stockDataPackage.optionsChain = { error: errorMessage, rawErrorDetails: this.createSafeErrorObject(error, "Options chain fetch failed"), ticker: tickerToUse } as any;
+        stockDataPackage.optionsChain = { error: errorMessage, rawErrorDetails: this.createSafeErrorObject(error, "Options chain fetch failed"), ticker: tickerToUse, contracts: [], underlying_price: currentStockPrice ?? 0 } as any;
       }
 
       console.log(`${logPrefix} All data fetching operations for ${tickerToUse} complete.`);
