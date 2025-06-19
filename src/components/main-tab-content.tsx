@@ -334,62 +334,72 @@ export function MainTabContent({
 
   const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
   const prevActiveAnalysisTickerRef = useRef<string | null>(localFsm.activeAnalysisTicker);
+  const prevInputTickerRef = useRef<string>(localFsm.currentInputTicker);
 
   useEffect(() => {
     const logPrefix = 'MainTabContent_FSM:GlobalDispatchEffect';
-    logDebug(logPrefix as LogSourceId, 'ENTRY', `LocalState: ${localFsm.localState}, ActiveAnalysisTicker: ${localFsm.activeAnalysisTicker}, GlobalFSM: ${globalFsmStateFromContext}`);
+    logDebug(logPrefix as LogSourceId, 'ENTRY', `LocalState: ${localFsm.localState}, ActiveAnalysisTicker: ${localFsm.activeAnalysisTicker}, CurrentInputTicker: ${localFsm.currentInputTicker}, GlobalFSM: ${globalFsmStateFromContext}`);
+  
+    const activeTickerChanged = prevActiveAnalysisTickerRef.current !== localFsm.activeAnalysisTicker;
+    const inputTickerChanged = prevInputTickerRef.current !== localFsm.currentInputTicker;
 
-    if (prevActiveAnalysisTickerRef.current !== localFsm.activeAnalysisTicker) {
-        logDebug(logPrefix as LogSourceId, 'GuardReset_ActiveTickerChange', `ActiveAnalysisTicker changed from ${prevActiveAnalysisTickerRef.current} to ${localFsm.activeAnalysisTicker}. Resetting all guards.`);
+    if (activeTickerChanged || inputTickerChanged) {
+        logDebug(logPrefix as LogSourceId, 'GuardReset_TickerChange', 
+            `Ticker change detected. PrevActive: ${prevActiveAnalysisTickerRef.current}, NewActive: ${localFsm.activeAnalysisTicker}. PrevInput: ${prevInputTickerRef.current}, NewInput: ${localFsm.currentInputTicker}. Resetting ALL guards.`);
         Object.keys(globalDispatchGuardRef.current).forEach(key => globalDispatchGuardRef.current[key] = false);
         prevActiveAnalysisTickerRef.current = localFsm.activeAnalysisTicker;
+        prevInputTickerRef.current = localFsm.currentInputTicker;
     }
 
-
-    const dispatchGlobalIfNeeded = (actionName: string, globalEvent: FsmEvent, completionStates: GlobalFsmState[], failureStates: GlobalFsmState[]) => {
+    const dispatchGlobalIfNeeded = (
+        actionName: string, 
+        globalEvent: FsmEvent, 
+        relevantTerminalGlobalStates: GlobalFsmState[]
+    ) => {
         if (!globalDispatchGuardRef.current[actionName]) {
-            logDebug(logPrefix as LogSourceId, 'DispatchingGlobal', `Dispatching ${globalEvent.type} for ${localFsm.activeAnalysisTicker}. Guard set for ${actionName}.`);
+            logDebug(logPrefix as LogSourceId, 'DispatchingGlobal', `Dispatching ${globalEvent.type} for ${localFsm.activeAnalysisTicker || localFsm.currentInputTicker}. Guard set for ${actionName}.`);
             dispatchGlobalFsmEvent(globalEvent);
             globalDispatchGuardRef.current[actionName] = true;
         } else {
             logDebug(logPrefix as LogSourceId, 'DispatchSkipped_GuardActive', `Global dispatch for ${actionName} skipped, guard already active.`);
         }
-
-        // Reset guard if global FSM has completed or failed the specific action
-        if (globalDispatchGuardRef.current[actionName] && 
-            (completionStates.includes(globalFsmStateFromContext) || failureStates.includes(globalFsmStateFromContext))) {
-            logDebug(logPrefix as LogSourceId, 'ResettingGuard_ActionComplete', `Global FSM state ${globalFsmStateFromContext} indicates completion/failure for ${actionName}. Resetting guard.`);
-            globalDispatchGuardRef.current[actionName] = false;
+  
+        if (globalDispatchGuardRef.current[actionName] && relevantTerminalGlobalStates.includes(globalFsmStateFromContext)) {
+             if (actionName === 'START_FULL_ANALYSIS' && globalFsmStateFromContext === GlobalFsmState.IDLE && localFsm.localState !== MainTabLocalFsmState.MANUAL_ACTIONS_ENABLED) {
+                logDebug(logPrefix as LogSourceId, 'GuardReset_DeferCondition', `Deferring reset for ${actionName} as global is IDLE but local not yet MANUAL_ACTIONS_ENABLED.`);
+             } else {
+                logDebug(logPrefix as LogSourceId, 'ResettingGuard_ActionCompleteOrIdle', `Global FSM state ${globalFsmStateFromContext} is terminal for ${actionName}. Resetting guard.`);
+                globalDispatchGuardRef.current[actionName] = false;
+             }
         }
     };
     
-    const commonTerminalStates = [GlobalFsmState.IDLE, GlobalFsmState.FULL_ANALYSIS_COMPLETE];
+    const automatedPipelineTerminalStates = [GlobalFsmState.IDLE, GlobalFsmState.FULL_ANALYSIS_COMPLETE, GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, GlobalFsmState.AI_TA_FAILED];
+    const keyTakeawaysTerminalStates = [GlobalFsmState.IDLE, GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED];
+    const optionsAnalysisTerminalStates = [GlobalFsmState.IDLE, GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED];
 
     if (localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED && localFsm.activeAnalysisTicker) {
         dispatchGlobalIfNeeded('START_FULL_ANALYSIS', 
             { type: 'START_FULL_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker } },
-            [...commonTerminalStates, GlobalFsmState.DATA_FETCH_SUCCEEDED], // Completion for this step might be DATA_FETCH_SUCCEEDED before AI_TA
-            [GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.STALE_DATA_FROM_ACTION_ERROR, GlobalFsmState.AI_TA_FAILED]
+            automatedPipelineTerminalStates
         );
     }
-
+  
     if (localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED && localFsm.activeAnalysisTicker) {
         dispatchGlobalIfNeeded('TRIGGER_MANUAL_KEY_TAKEAWAYS', 
             { type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: localFsm.activeAnalysisTicker } },
-            [...commonTerminalStates, GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED],
-            [GlobalFsmState.KEY_TAKEAWAYS_FAILED]
+            keyTakeawaysTerminalStates
         );
     }
     
     if (localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED && localFsm.activeAnalysisTicker) {
         dispatchGlobalIfNeeded('TRIGGER_MANUAL_OPTIONS_ANALYSIS', 
             { type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker } },
-            [...commonTerminalStates, GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED],
-            [GlobalFsmState.OPTIONS_ANALYSIS_FAILED]
+            optionsAnalysisTerminalStates
         );
     }
-
-  }, [localFsm.localState, localFsm.activeAnalysisTicker, globalFsmStateFromContext, dispatchGlobalFsmEvent, logDebug]);
+  
+  }, [localFsm.localState, localFsm.activeAnalysisTicker, localFsm.currentInputTicker, globalFsmStateFromContext, dispatchGlobalFsmEvent, logDebug]);
 
 
   useEffect(() => {
