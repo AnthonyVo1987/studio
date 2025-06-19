@@ -1,7 +1,7 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.1
+**Document Version:** 1.2
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
@@ -13,8 +13,8 @@ This document outlines the scope, requirements, and implementation plan for the 
 
 ### 2.1. Core Problem Areas Addressed
 *   **Excessive Log Verbosity:** Current logging can be too dense, especially from frequently re-rendering UI components or during specific lifecycle events, making it difficult to isolate critical messages.
-*   **Limited Log Retention:** The existing maximum log entry count (previously 300) may be insufficient for comprehensive debugging sessions.
-*   **Lack of Wrap Indication:** No clear visual cue when the circular log buffer overwrites older entries.
+*   **Limited Log Retention:** The existing maximum log entry count (previously 300, now 1000 post-v3.1.1.1) may still benefit from smarter verbosity control.
+*   **Lack of Wrap Indication:** (Addressed in v3.1.1.1) No clear visual cue when the circular log buffer overwrites older entries.
 *   **Startup Log Spam:** The initial application boot-up sequence can flood the console with messages, obscuring important early-state information or the "ready" state confirmation.
 
 ### 2.2. Proposed Enhancements & Requirements
@@ -29,15 +29,9 @@ This document outlines the scope, requirements, and implementation plan for the 
     *   When logging large data objects (e.g., API responses, parsed data structures), log a summary (e.g., `Object.keys()`, item counts, or a snippet) by default, rather than the entire object. Full object logging should be conditional or used sparingly.
     *   Maintain a balance: ensure logs crucial for understanding FSM transitions, API call lifecycles, error states, and significant user interactions are preserved.
 
-#### 2.2.2. Increase Max Log Entries & Implement Circular Buffer Indication
+#### 2.2.2. Increase Max Log Entries & Implement Circular Buffer Indication (Completed in v3.1.1.1)
 *   **Requirement:** Increase the maximum number of log entries stored in the client-side buffer and provide a clear indication when the buffer wraps around.
-*   **Guidance for AI Agent:**
-    *   **Increase Max Entries:** Modify the `MAX_BUFFER_SIZE` constant in `src/lib/global-log-buffer.ts` from `300` to `1000`.
-    *   **Circular Buffer Wrap Indication:**
-        *   In `src/lib/global-log-buffer.ts`, when `globalLogEntries.push(newEntry)` causes the buffer to exceed `MAX_BUFFER_SIZE` and an old entry is `shift()`ed off:
-            *   Insert a special marker entry at the *beginning* of the `globalLogEntries` array. This entry should be clearly identifiable, e.g., `{ id: generateId(), timestamp: new Date().toISOString(), type: 'system', source: 'LogBuffer', messages: ['--- LOG BUFFER WRAPPED (Oldest entries removed) ---'] }`.
-            *   Ensure this marker entry uses a `LogSourceId` that is unlikely to be filtered out by default (e.g., a new one like `'LogBuffer'` or reuse `'DebugConsole'`). This was implemented as `'LogBuffer'` and `'system'` type, and relevant entries were added to `debug-log-types.ts`.
-        *   In `src/components/debug-console.tsx`, update the rendering logic to visually distinguish this "LOG BUFFER WRAPPED" message (e.g., different color, italics, a horizontal line before/after).
+*   **Status:** Implemented in Task v3.1.1.1. Max entries now 1000. Wrap indicator message implemented.
 
 #### 2.2.3. Reduce Initial Startup Debug Logs with a Toggle
 *   **Requirement:** Implement a mechanism to reduce log verbosity during the initial application startup phase, with a user-configurable toggle.
@@ -63,7 +57,7 @@ This document outlines the scope, requirements, and implementation plan for the 
 *   **Enhanced Developer Experience:** A less cluttered console reduces cognitive load and speeds up troubleshooting.
 *   **Better Performance (Marginal):** Reducing the volume of console I/O and log buffer manipulations can offer slight client-side performance benefits.
 *   **Flexible Logging Control:** The startup log toggle allows developers to choose between detailed startup tracing and a quieter initial load.
-*   **Increased Log History:** A larger buffer capacity (1000 entries) provides more context for diagnosing issues that unfold over time.
+*   **Increased Log History:** (Achieved in v3.1.1.1) A larger buffer capacity (1000 entries) provides more context for diagnosing issues that unfold over time.
 
 ## 4. Risks Assessment & Potential Pain Points
 
@@ -80,33 +74,25 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 ### Phase 1: Core Buffer Enhancements & Initial Verbosity Reduction (Target: `v3.1.1.y`)
 
 *   **Task v3.1.1.1: Increase Max Log Buffer Size & Implement Wrap Indicator**
+    *   **Status:** `COMPLETED` (Commit: `d2ede246`)
     *   **File(s):** `src/lib/global-log-buffer.ts`, `src/components/debug-console.tsx`, `src/lib/debug-log-types.ts`
     *   **Details:**
-        1.  In `src/lib/global-log-buffer.ts`:
-            *   Increase `MAX_BUFFER_SIZE` from `300` to `1000`.
-            *   Modify `addEntryToGlobalLogBuffer`: When shifting an old entry, add a new marker entry ` { id: generateId(), timestamp: new Date().toISOString(), type: 'system', source: 'LogBuffer', messages: ['--- LOG BUFFER WRAPPED (Oldest entries removed) ---'] }` to the *beginning* of `globalLogEntries`.
-        2.  In `src/components/debug-console.tsx`:
-            *   Modify the log rendering logic to visually highlight the "LOG BUFFER WRAPPED" message (e.g., distinct style, horizontal rule).
-        3.  In `src/lib/debug-log-types.ts`:
-            *   Add `'LogBuffer'` to `logSourceIds` and its label to `logSourceLabels`.
-            *   Add `'system'` to `logTypes`.
-            *   Ensure `'LogBuffer'` is enabled in `defaultLogSourceConfig`.
-    *   **Status:** Implemented as per commit `d2ede246`.
+        1.  Increased `MAX_BUFFER_SIZE` to 1000.
+        2.  Added "LOG BUFFER WRAPPED" marker.
+        3.  Updated `DebugConsole` to highlight marker.
+        4.  Added `LogBuffer` source and `system` type to `debug-log-types.ts`.
 
 *   **Task v3.1.1.2: Initial Pass - Reduce General Log Verbosity**
-    *   **File(s):** Client components in `src/components/`, `src/contexts/stock-analysis-context.tsx`, `src/components/main-tab-content.tsx`.
+    *   **Status:** `COMPLETED` (Commit: `378c654f`)
+    *   **File(s):** `src/components/main-tab-content.tsx`.
     *   **Details:**
-        1.  **Display Components:**
-            *   Review `useEffect` hooks in display components (`KeyMetricsDisplay`, `StockSnapshotDetailsDisplay`, etc.).
-            *   For "PropsReceived" logs, attempt to log only if data *content* has changed, not just reference. If complex, log summary (length/keys).
-            *   For parsed data logs, log summaries (e.g., `Object.keys(parsedData)`, `parsedData.contracts.length`) instead of full objects.
-        2.  **`StockAnalysisContext` / `MainTabContent`:**
-            *   Review `logDebug` calls in FSM reducers and effects. Reduce frequency for highly repetitive, low-value logs. Prioritize logs for state transitions, errors, significant data events.
-        *   **Action:** AI Agent to identify specific `logDebug` calls and propose modifications based on these guidelines.
+        1.  Reviewed and reduced `logDebug` verbosity in the `useEffect` hook (log prefix `MainTabContent_FSM:ButtonStateEffect_DC`) responsible for button state calculations.
+        2.  Consolidated multiple `logDebug` calls into fewer, more summarized logs while retaining critical entry and final decision point information. Individual prerequisite checks via `isDataReadyForProcessing` will continue to provide detailed logs.
 
 ### Phase 2: Startup-Specific Log Reduction & UI Toggle (Target: `v3.1.2.y`)
 
 *   **Task v3.1.2.1: Implement Startup State Flag & UI Toggle**
+    *   **Status:** `PENDING`
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`, `src/components/debug-settings-card.tsx`.
     *   **Details:**
         1.  In `StockAnalysisContext.tsx`:
@@ -118,6 +104,7 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
             *   Add a new `<Switch />` and `<Label />` for "Enable Reduced Logging During Initial App Startup", bound to `isReducedStartupLoggingEnabled` and `setReducedStartupLoggingEnabled` from context.
 
 *   **Task v3.1.2.2: Implement Conditional Startup Logging Logic**
+    *   **Status:** `PENDING`
     *   **File(s):** `src/contexts/stock-analysis-context.tsx` (specifically the `logDebug` function or console interceptor logic).
     *   **Details:**
         1.  Modify the core logging mechanism:
@@ -141,9 +128,11 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 
 ## 6. Document Changelog
 
-*   **v1.1 (2025-06-20):** Updated Task v3.1.1.1 status to "Implemented as per commit `d2ede246`".
+*   **v1.2 (2025-06-20):** Updated status of Task v3.1.1.2 to `COMPLETED` (Commit: `378c654f`).
+*   **v1.1 (2025-06-20):** Updated Task v3.1.1.1 status to `COMPLETED` (Commit: `d2ede246`).
 *   **v1.0 (2025-06-19):** Initial document creation. Includes full scope, analysis, risks, and phased implementation plan for Debug Log Enhancements feature (v3.1.x.y).
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
 
+    
