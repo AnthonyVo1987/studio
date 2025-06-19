@@ -90,7 +90,7 @@ class PolygonAdapter {
     const stockDataPackage: StockDataPackage = { ticker: tickerToUse };
     let currentStockPrice: number | undefined;
     const apiCallDelay = 150;
-    const cacheBustQuery = { query: { _t: Date.now() } }; // Cache bust value generated once per full fetch
+    const cacheBustQuery = { query: { _t: Date.now() } }; 
 
     console.log(`${logPrefix} Starting data fetch operations for ${tickerToUse}. Cache bust value for this run: ${cacheBustQuery.query._t}`);
 
@@ -122,7 +122,18 @@ class PolygonAdapter {
         if (snapshotResponse.ticker && snapshotResponse.ticker.ticker === tickerToUse) {
           console.log(`${logPrefix} Snapshot for ${tickerToUse} fetched successfully. Ticker in response: ${snapshotResponse.ticker.ticker}`);
           const { day, prevDay, min, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
-          currentStockPrice = roundNumber(lastTrade?.p ?? day?.c ?? prevDay?.c, 2);
+          
+          // Corrected currentStockPrice derivation
+          let priceSourceVal = lastTrade?.p;
+          if (priceSourceVal === undefined || priceSourceVal === null || priceSourceVal === 0) { // Check for 0 too if it means no current trade
+            priceSourceVal = day?.c;
+          }
+          if (priceSourceVal === undefined || priceSourceVal === null || priceSourceVal === 0) {
+            priceSourceVal = prevDay?.c;
+          }
+          currentStockPrice = roundNumber(priceSourceVal, 2);
+          console.log(`${logPrefix} Derived currentStockPrice: ${currentStockPrice} (from lastTrade: ${lastTrade?.p}, day.c: ${day?.c}, prevDay.c: ${prevDay?.c})`);
+
 
           stockDataPackage.stockSnapshot = {
             ticker: snapshotResponse.ticker.ticker,
@@ -227,7 +238,7 @@ class PolygonAdapter {
       }
 
       try {
-        if (currentStockPrice !== undefined && currentStockPrice !== null) {
+        if (currentStockPrice !== undefined && currentStockPrice !== null && currentStockPrice > 0) { // Ensure currentStockPrice is valid for window calc
           const expirationDate = calculateNextFridayExpiration();
           const strikePriceWindowPercentage = 0.20;
           const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
@@ -270,9 +281,9 @@ class PolygonAdapter {
 
           let sortedStrikes = Array.from(allStrikes).sort((a, b) => a - b);
           let closestStrikeIndex = 0;
-          if (sortedStrikes.length > 0 && currentStockPrice !== undefined) {
+          if (sortedStrikes.length > 0 && currentStockPrice !== undefined) { // currentStockPrice check also here
              closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrikeItem, currentIdx) => {
-                return (Math.abs(currentStrikeItem - currentStockPrice) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice)) ? currentIdx : prevIdx;
+                return (Math.abs(currentStrikeItem - currentStockPrice!) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice!)) ? currentIdx : prevIdx;
             }, 0);
           }
           const startIndex = Math.max(0, closestStrikeIndex - 10);
@@ -303,9 +314,9 @@ class PolygonAdapter {
             ticker: tickerToUse, expiration_date: expirationDate, contracts: optionsTableRows, underlying_price: roundNumber(currentStockPrice, 2),
           };
         } else {
-            const errMsg = `Current stock price not available for options chain fetching for ${tickerToUse}. Snapshot data: ${JSON.stringify(stockDataPackage.stockSnapshot).substring(0,200)}`;
+            const errMsg = `Current stock price not available or invalid (0) for options chain fetching for ${tickerToUse}. Snapshot data: ${JSON.stringify(stockDataPackage.stockSnapshot).substring(0,200)}`;
             console.warn(`${logPrefix} ${errMsg}`);
-            stockDataPackage.optionsChain = { error: errMsg, ticker: tickerToUse } as any;
+            stockDataPackage.optionsChain = { error: errMsg, ticker: tickerToUse, contracts: [], underlying_price: currentStockPrice } as any;
         }
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${tickerToUse}. Polygon client error: ${error.message || String(error)}`;
@@ -354,3 +365,5 @@ export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const adapter = new PolygonAdapter(apiKeyFromEnv, uppercasedTicker);
   return adapter.getFullStockData(uppercasedTicker);
 }
+
+    

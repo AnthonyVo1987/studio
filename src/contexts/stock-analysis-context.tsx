@@ -430,37 +430,46 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
-      if (prevDisplay?.current === display?.current &&
-          prevDisplay?.previous === display?.previous &&
-          prevDisplay?.target === display?.target) {
-        return prevDisplay;
+      const hasChanged = !(
+        prevDisplay?.current === display?.current &&
+        prevDisplay?.previous === display?.previous &&
+        prevDisplay?.target === display?.target
+      );
+      if (hasChanged) {
+        logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'MainTabFsmDisplay updated.', display);
+        return display;
       }
-      logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'MainTabFsmDisplay updated.', display);
-      return display;
+      return prevDisplay;
     });
   }, [_setMainTabFsmDisplay, logDebug]);
 
   const setChatbotFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setChatbotFsmDisplay(prevDisplay => {
-      if (prevDisplay?.current === display?.current &&
-          prevDisplay?.previous === display?.previous &&
-          prevDisplay?.target === display?.target) {
-        return prevDisplay;
+      const hasChanged = !(
+        prevDisplay?.current === display?.current &&
+        prevDisplay?.previous === display?.previous &&
+        prevDisplay?.target === display?.target
+      );
+      if (hasChanged) {
+        logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'ChatbotFsmDisplay updated.', display);
+        return display;
       }
-      logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'ChatbotFsmDisplay updated.', display);
-      return display;
+      return prevDisplay;
     });
   }, [_setChatbotFsmDisplay, logDebug]);
 
   const setDebugConsoleMenuFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setDebugConsoleMenuFsmDisplay(prevDisplay => {
-      if (prevDisplay?.current === display?.current &&
-          prevDisplay?.previous === display?.previous &&
-          prevDisplay?.target === display?.target) {
-        return prevDisplay;
+      const hasChanged = !(
+        prevDisplay?.current === display?.current &&
+        prevDisplay?.previous === display?.previous &&
+        prevDisplay?.target === display?.target
+      );
+      if (hasChanged) {
+        logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'DebugConsoleMenuFsmDisplay updated.', display);
+        return display;
       }
-      logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'DebugConsoleMenuFsmDisplay updated.', display);
-      return display;
+      return prevDisplay;
     });
   }, [_setDebugConsoleMenuFsmDisplay, logDebug]);
 
@@ -800,7 +809,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       type: LogType,
       ...args: any[]
     ) => {
-      currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args); // system is not a console method
+      currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args); 
       
       queueMicrotask(() => {
         if (!_isClientDebugConsoleEnabled) {
@@ -835,7 +844,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           }
           
           if (sourceForBuffer === 'NATIVE_CONSOLE' && typeForBuffer !== 'error' && typeForBuffer !== 'warn' && !criticalSources.includes('NATIVE_CONSOLE')) {
-             // If NATIVE_CONSOLE is not critical, only its errors/warns pass due to above rule. Other native logs get suppressed here.
              allowLog = false;
           }
 
@@ -1173,3 +1181,5 @@ export function useStockAnalysis() {
   return context;
 }
 
+
+    

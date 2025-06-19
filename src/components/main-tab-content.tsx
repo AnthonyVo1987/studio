@@ -304,7 +304,7 @@ export function MainTabContent({
         setMainTabFsmTargetState(targetState);
     }
     dispatchLocalFsmEventActual(event);
-  }, [localFsm.localState, localFsm.currentInputTicker, localFsm.activeAnalysisTicker, logDebug, setMainTabFsmTargetState]);
+  }, [localFsm.localState, localFsm.currentInputTicker, localFsm.activeAnalysisTicker, logDebug, setMainTabFsmTargetState, dispatchLocalFsmEventActual]);
 
   useEffect(() => {
     if (targetLocalFsmDisplayState !== null && localFsm.localState === targetLocalFsmDisplayState) {
@@ -329,26 +329,49 @@ export function MainTabContent({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
-  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
-    chatServerAction,
-    initialLocalChatActionState
-  );
-
+  const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     logDebug('MainTabContent_FSM' as LogSourceId, 'LocalFsmSideEffect_TriggerCheck', `LocalState: ${localFsm.localState}, PrevLocal: ${localFsm.previousLocalState}, ActiveAnalysisTicker: ${localFsm.activeAnalysisTicker}, CurrentInputTicker: ${localFsm.currentInputTicker}`);
+    
+    const dispatchGlobalIfNeeded = (eventName: string, dispatchLogic: () => void) => {
+      if (!globalDispatchGuardRef.current[eventName]) {
+        dispatchLogic();
+        globalDispatchGuardRef.current[eventName] = true;
+      }
+    };
+    
+    const resetGuard = (eventName: string) => {
+      globalDispatchGuardRef.current[eventName] = false;
+    };
+
     if (localFsm.localState === MainTabLocalFsmState.AUTOMATED_PIPELINE_REQUESTED && localFsm.activeAnalysisTicker) {
-      logDebug('MainTabContent_FSM' as LogSourceId, 'DispatchToGlobal_Automated', `Dispatching START_FULL_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
-      dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker } });
-    } else if (localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED && localFsm.activeAnalysisTicker) {
-      logDebug('MainTabContent_FSM' as LogSourceId, 'DispatchToGlobal_ManualKT', `Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS to global FSM for ${localFsm.activeAnalysisTicker}.`);
-      dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: localFsm.activeAnalysisTicker }});
-    } else if (localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED && localFsm.activeAnalysisTicker) {
-      logDebug('MainTabContent_FSM' as LogSourceId, 'DispatchToGlobal_ManualOptions', `Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
-      dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker }});
+      dispatchGlobalIfNeeded('START_FULL_ANALYSIS', () => {
+        logDebug('MainTabContent_FSM' as LogSourceId, 'DispatchToGlobal_Automated', `Dispatching START_FULL_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
+        dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker! } });
+      });
+    } else {
+      resetGuard('START_FULL_ANALYSIS');
     }
-  }, [localFsm.localState, localFsm.activeAnalysisTicker, localFsm.previousLocalState, dispatchGlobalFsmEvent, logDebug]);
+
+    if (localFsm.localState === MainTabLocalFsmState.MANUAL_KEY_TAKEAWAYS_REQUESTED && localFsm.activeAnalysisTicker) {
+      dispatchGlobalIfNeeded('TRIGGER_MANUAL_KEY_TAKEAWAYS', () => {
+        logDebug('MainTabContent_FSM' as LogSourceId, 'DispatchToGlobal_ManualKT', `Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS to global FSM for ${localFsm.activeAnalysisTicker}.`);
+        dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: localFsm.activeAnalysisTicker! }});
+      });
+    } else {
+      resetGuard('TRIGGER_MANUAL_KEY_TAKEAWAYS');
+    }
+    
+    if (localFsm.localState === MainTabLocalFsmState.MANUAL_OPTIONS_ANALYSIS_REQUESTED && localFsm.activeAnalysisTicker) {
+      dispatchGlobalIfNeeded('TRIGGER_MANUAL_OPTIONS_ANALYSIS', () => {
+        logDebug('MainTabContent_FSM' as LogSourceId, 'DispatchToGlobal_ManualOptions', `Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM for ${localFsm.activeAnalysisTicker}.`);
+        dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: localFsm.activeAnalysisTicker! }});
+      });
+    } else {
+      resetGuard('TRIGGER_MANUAL_OPTIONS_ANALYSIS');
+    }
+  }, [localFsm.localState, localFsm.activeAnalysisTicker, dispatchGlobalFsmEvent, logDebug]);
 
 
   useEffect(() => {
@@ -359,6 +382,12 @@ export function MainTabContent({
     }
     dispatchLocalFsmEvent({ type: 'GLOBAL_FSM_UPDATED', payload: { globalFsmState: globalFsmStateFromContext } });
   }, [globalFsmStateFromContext, logDebug, localFsm.localState, localFsm.activeAnalysisTicker, dispatchLocalFsmEvent]);
+
+
+  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
+    chatServerAction,
+    initialLocalChatActionState
+  );
 
 
   useEffect(() => {
@@ -735,3 +764,5 @@ export function MainTabContent({
     </Card>
   );
 }
+
+    
