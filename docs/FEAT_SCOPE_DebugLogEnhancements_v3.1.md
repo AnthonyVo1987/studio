@@ -1,7 +1,7 @@
 
 # Feature Scope: Debug Log Enhancements (StockSage v3.1.x.y)
 
-**Document Version:** 1.5
+**Document Version:** 1.6
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.1.x.y
 
@@ -122,9 +122,18 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
         2.  Refined `set*FsmDisplay` functions in `StockAnalysisContext` to log only when FSM display tuple content actually changes, reducing duplicate logs.
         3.  Implemented `useRef` guard in `MainTabContent`'s effect for global FSM dispatches to prevent duplicate dispatches for the same logical action.
 
+*   **Task v3.1.3.1: Follow-up Bug Fixes for Logging & AI Options Path**
+    *   **Status:** `COMPLETED` (Commit: `01c34db1`)
+    *   **File(s):** `src/components/main-tab-content.tsx`, `src/services/data-sources/adapters/polygon-adapter.ts`, `src/ai/flows/analyze-options-chain-flow.ts`, `src/ai/definitions/analyze-options-chain.json`
+    *   **Details:**
+        1.  Further refined `globalDispatchGuardRef` logic in `MainTabContent` to be more robust in preventing duplicate global FSM dispatches.
+        2.  Strengthened `currentStockPrice` derivation in `PolygonAdapter` to better handle zero values and ensure options fetching uses a valid price.
+        3.  Removed a potentially too-strict pre-check in `analyzeOptionsChainFlow` regarding zero OI/Volume if contracts exist.
+        4.  Slightly enhanced the AI prompt for options analysis in `analyze-options-chain.json` to encourage identification of relative OI spikes.
 
 ## 6. Document Changelog
 
+*   **v1.6 (2025-06-20):** Updated status of Task v3.1.3.1 to `COMPLETED` (Commit: `01c34db1`). Added details for Phase 3 follow-up bug fixes.
 *   **v1.5 (2025-06-20):** Updated status of Task v3.1.3.0 to `COMPLETED` (Commit: `6b16ba4e`). Added details for Phase 3 bug fixes.
 *   **v1.4 (2025-06-20):** Updated status of Task v3.1.2.2 to `COMPLETED` (Commit: `1031efa4`).
 *   **v1.3 (2025-06-20):** Updated status of Task v3.1.2.1 to `COMPLETED` (Commit: `7ab72c10`).
@@ -136,3 +145,6 @@ This feature will be implemented in phases, corresponding to the `v3.1.x.y` vers
 This document will be updated as the feature progresses through its implementation phases.
 
 
+
+
+    
