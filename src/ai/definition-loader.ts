@@ -25,7 +25,6 @@ export const LlmPromptDefinitionSchema = z.object({
     category: z.string(),
     threshold: z.string(),
   })).optional(),
-  enableDynamicThinking: z.boolean().optional().describe("Enables dynamic thinking for the model, allowing it to spend more time if needed."),
   thinkingBudget: z.number().optional().describe("Sets a budget for thinking tokens. -1 for dynamic allocation, 0 to disable, >0 for specific limit."),
   chainOfThought: z.array(LlmChainOfThoughtStepSchema).optional(), // Made optional
   outputSchemaHint: z.string().optional(),
