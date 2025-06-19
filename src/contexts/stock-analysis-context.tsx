@@ -163,6 +163,9 @@ interface StockAnalysisState {
   mainTabFsmDisplay: FsmDisplayTuple | null;
   chatbotFsmDisplay: FsmDisplayTuple | null;
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
+
+  isInitialAppStartupComplete: boolean; // New state
+  isReducedStartupLoggingEnabled: boolean; // New state
 }
 
 interface StockAnalysisContextSetters {
@@ -201,6 +204,8 @@ interface StockAnalysisContextType extends StockAnalysisState, StockAnalysisCont
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setDebugConsoleMenuFsmDisplay: (display: FsmDisplayTuple | null) => void;
+
+  setReducedStartupLoggingEnabled: (enabled: boolean) => void; // New setter
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -256,6 +261,8 @@ const defaultState: StockAnalysisState = {
   mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
+  isInitialAppStartupComplete: false, // New default
+  isReducedStartupLoggingEnabled: true, // New default
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -303,6 +310,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
   const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
   const [_debugConsoleMenuFsmDisplay, _setDebugConsoleMenuFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
+
+  const [_isInitialAppStartupComplete, _setIsInitialAppStartupComplete] = useState<boolean>(defaultState.isInitialAppStartupComplete);
+  const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
+  const initialStartupFlaggedRef = useRef(false);
 
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
@@ -452,6 +463,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       return display;
     });
   }, [_setDebugConsoleMenuFsmDisplay, logDebug]);
+
+  const setReducedStartupLoggingEnabled = useCallback((enabled: boolean) => {
+    logDebug('StockAnalysisContext', 'StartupLogToggle', `ReducedStartupLoggingEnabled set to: ${enabled}.`);
+    _setIsReducedStartupLoggingEnabled(enabled);
+  }, [logDebug]);
 
 
   const fsmReducer = (currentHistory: FsmHistoryState, event: FsmEvent): FsmHistoryState => {
@@ -938,6 +954,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     }
 
+    // Set isInitialAppStartupComplete after an initial full analysis cycle
+    if (
+        currentGlobalFsmState === FsmState.IDLE &&
+        (currentGlobalFsmStatePrev === FsmState.FULL_ANALYSIS_COMPLETE || currentGlobalFsmStatePrev === FsmState.DATA_FETCH_FAILED || currentGlobalFsmStatePrev === FsmState.STALE_DATA_FROM_ACTION_ERROR) &&
+        _isFullAnalysisTriggeredInternalState && // Ensures it was an automated pipeline that just finished
+        !initialStartupFlaggedRef.current
+    ) {
+        logDebug('StockAnalysisContext', 'FSM_Orchestrator_StartupComplete', `Initial automated pipeline concluded (Prev: ${currentGlobalFsmStatePrev}, Curr: IDLE). Setting isInitialAppStartupComplete to true.`);
+        _setIsInitialAppStartupComplete(true);
+        initialStartupFlaggedRef.current = true; // Prevent this from running again
+    }
+
 
   }, [fsmHistory.current, _dispatchFsmEventActual, logDebug, _isFullAnalysisTriggeredInternalState, _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson, fetchStockDataFormAction, analyzeTaFormAction, performAiAnalysisFormAction, performAiOptionsAnalysisFormAction ]);
 
@@ -1074,6 +1102,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
     debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay,
+    isInitialAppStartupComplete: _isInitialAppStartupComplete,
+    isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
+    setReducedStartupLoggingEnabled,
   }), [
     _polygonApiRequestLogJson, setPolygonApiRequestLogJson,
     _polygonApiResponseLogJson, setPolygonApiResponseLogJson,
@@ -1099,7 +1130,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _isFsmDebugCardOpen, _setIsFsmDebugCardOpen,
     _mainTabFsmDisplay, setMainTabFsmDisplay,
     _chatbotFsmDisplay, setChatbotFsmDisplay,
-    _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay
+    _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay,
+    _isInitialAppStartupComplete, _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled
   ]);
 
   return (
@@ -1116,3 +1148,4 @@ export function useStockAnalysis() {
   }
   return context;
 }
+
