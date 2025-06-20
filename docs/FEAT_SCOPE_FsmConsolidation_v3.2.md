@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.8
+**Document Version:** 1.9
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** IN PROGRESS
@@ -109,20 +109,24 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ### **Phase 3: Integrating Chat & Debug Console Menus (FEAT Phase 'x' = 3)**
 *Objective: Bring Chatbot UI states and Debug Console menu states under the purview of the single FSM.*
+*   **Overall Phase Status:** `IN PROGRESS`
 
 *   **Task v3.2.3.0.0: Integrate Chatbot Submission Flow**
-    *   **Status:** `PLANNED`
-    *   **File(s):** `src/components/chatbot.tsx`, `src/contexts/stock-analysis-context.tsx`. (Potentially deprecate `ChatbotFsmContext.tsx`).
+    *   **Status:** `COMPLETED` (Commit: `5e688769`)
+    *   **App Metadata:** `v3.2.3.0.0`.
     *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Chat submission is an asynchronous action. `ChatbotFsmContext` will be deprecated.
-        2.  `Chatbot.tsx`: `onSubmit` (and example prompt clicks) dispatches `ADD_CHAT_MESSAGE` to global FSM with payload (userInput, current data context, chat history). The `userInput` can be local to `Chatbot.tsx`.
-        3.  `StockAnalysisContext.tsx`:
-            *   Reducer handles `ADD_CHAT_MESSAGE`: Add user message to `chatHistory`. Transition to `CHAT_MESSAGE_PENDING`.
-            *   Orchestrator `useEffect` (when `CHAT_MESSAGE_PENDING`) triggers `chatServerAction`.
-            *   `useEffect` for `chatActionState` handles result: Add model response/error to `chatHistory`. Update `chatbotRequestJson`/`chatbotResponseJson`. Dispatch event to global FSM like `CHAT_MESSAGE_SUCCESS` or `CHAT_MESSAGE_ERROR`.
-            *   Reducer handles success/error: Transition back to `IDLE`.
+        1.  *Understood:* Chat submission is an asynchronous action. `ChatbotFsmContext` will be deprecated or its role significantly reduced.
+        2.  `StockAnalysisContext.tsx`:
+            *   Reducer handles `SUBMIT_CHAT_MESSAGE`: Adds user message to `chatHistory`, sets `pendingChatSubmissionPayload`, transitions to `CHAT_MESSAGE_PENDING`.
+            *   Reducer handles `PENDING_CHAT_SUBMISSION_TRIGGERED`: Clears `pendingChatSubmissionPayload`. Stays in `CHAT_MESSAGE_PENDING`.
+            *   Reducer handles `CHAT_MESSAGE_ACTION_SUCCESS`: Updates `chatbotRequestJson`/`chatbotResponseJson`, adds model response to `chatHistory`, transitions to `IDLE`.
+            *   Reducer handles `CHAT_MESSAGE_ACTION_ERROR`: Updates JSONs with error, adds error to `chatHistory`, sets `lastError`, transitions to `IDLE`.
+        3.  `MainTabContent.tsx`:
+            *   `useEffect` for `globalFsmState` and `pendingChatSubmissionPayload`: If `CHAT_MESSAGE_PENDING` and payload exists, calls `chatFormAction` (from local `useActionState`) and dispatches `PENDING_CHAT_SUBMISSION_TRIGGERED`.
+            *   `useEffect` for `chatActionState` (local): Dispatches `CHAT_MESSAGE_ACTION_SUCCESS` or `CHAT_MESSAGE_ACTION_ERROR` to global FSM.
+        4.  `ChatbotFsmContext.tsx`: On `SUBMIT_MESSAGE_REQUESTED`, now dispatches `SUBMIT_CHAT_MESSAGE` to global FSM. Local `SUBMITTING_MESSAGE` state removed.
+        5.  `Chatbot.tsx`: UI disabling driven by global FSM state `CHAT_MESSAGE_PENDING` and `isAnyAnalysisInProgress` prop.
     *   **Testability:** Chat messages can be submitted. Global FSM reflects pending/completion. Chat history updates. Chat input disabled during pending.
-    *   **App Metadata:** Update to `v3.2.3.0.0`.
 
 *   **Task v3.2.3.1.0: Integrate Debug Console Menu UI States (Optional but Recommended)**
     *   **Status:** `PLANNED`
@@ -198,6 +202,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.9 (2025-06-21):** Marked Task v3.2.3.0.0 as `COMPLETED` (Commit `5e688769`, App Version `v3.2.3.0.0`). Phase 3 "Integrating Chat & Debug Console Menus" status to `IN PROGRESS`.
 *   **v1.8 (2025-06-21):** Marked Phase 2 (Tasks v3.2.2.0.0 & v3.2.2.1.0) as `COMPLETED`. App Version `v3.2.2.1.0`, Commit `0a0ba41c`.
 *   **v1.7 (2025-06-21):** Updated Task v3.2.2.0.0 status to `COMPLETED` (Commit: `55fcc0c2`). App Version `v3.2.2.0.0`.
 *   **v1.6 (2025-06-20):** Marked Phase 1 (Tasks v3.2.1.0.0 - v3.2.1.3.0) as `COMPLETED`. Updated with Phase 1 commit hash `57c7e8b0` and app version `v3.2.1.3.0`.
