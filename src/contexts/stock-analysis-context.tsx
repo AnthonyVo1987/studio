@@ -566,10 +566,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
         nextFlags.isCalculatedTADataReady = true;
-        nextVariables.isInitialLoad = false; // Mark initial load complete after base data+TA
-        logDebug(logPrefixFsmReducer as LogSourceId, 'StateUpdate', `isInitialLoad flag set to false.`);
+        nextVariables.isInitialLoad = false;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED. isInitialLoad set to false.`);
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED.`);
         break;
       case 'AI_TA_FAILURE':
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
@@ -960,18 +959,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug('StockAnalysisContext:StartupComplete' as LogSourceId, 'Info', 'Initial application startup sequence complete. Full debug logging is now active.');
     }
   }, [
-    globalFsmReducerState.current, globalFsmReducerState.variables.activeTicker, globalFsmReducerState.variables.isInitialLoad,
-    globalFsmReducerState.variables.activePipelineProfile, globalFsmReducerState.variables.currentFullAiMacroChatStep,
-    _dispatchFsmEventActual, logDebug, _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson,
-    _optionsChainJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, 
+    globalFsmReducerState.current, globalFsmReducerState.variables, _dispatchFsmEventActual, logDebug,
+    _stockSnapshotJson, _standardTasJson, _optionsChainJson, _aiAnalyzedTaJson, 
+    _marketStatusJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory,
     fetchStockDataFormAction, analyzeTaFormAction, performAiAnalysisFormAction, performAiOptionsAnalysisFormAction,
     isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending,
-    contextOriginals, _isInitialAppStartupComplete 
+    contextOriginals, _isInitialAppStartupComplete
   ]);
 
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_FetchData';
-    logDebug(logPrefix as LogSourceId, 'Trigger', `fetchDataActionState changed. Status: ${fetchDataActionState.status}. Current FSM: ${currentFsmState}`);
     if (currentFsmState !== GlobalFsmState.DATA_FETCH_IN_PROGRESS) { if (fetchDataActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not DATA_FETCH_IN_PROGRESS. Ignoring update.`); } return; }
     if (fetchDataActionState.status === 'success' && fetchDataActionState.data) { dispatchFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: fetchDataActionState.data }); }
     else if (fetchDataActionState.status === 'error') {
@@ -982,7 +979,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_AnalyzeTa';
-    logDebug(logPrefix as LogSourceId, 'Trigger', `analyzeTaActionState changed. Status: ${analyzeTaActionState.status}. Current FSM: ${currentFsmState}`);
     if (currentFsmState !== GlobalFsmState.CALCULATING_AI_TA) { if (analyzeTaActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not CALCULATING_AI_TA. Ignoring update.`); } return; }
     if (analyzeTaActionState.status === 'success' && analyzeTaActionState.data) { dispatchFsmEvent({ type: 'AI_TA_SUCCESS', payload: analyzeTaActionState.data }); }
     else if (analyzeTaActionState.status === 'error') { dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: analyzeTaActionState.error, message: analyzeTaActionState.message, aiAnalyzedTaRequestJson: analyzeTaActionState.data?.aiAnalyzedTaRequestJson }}); }
@@ -990,7 +986,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_PerformAiAnalysis';
-    logDebug(logPrefix as LogSourceId, 'Trigger', `performAiAnalysisActionState changed. Status: ${performAiAnalysisActionState.status}. Current FSM: ${currentFsmState}`);
     if (currentFsmState !== GlobalFsmState.GENERATING_KEY_TAKEAWAYS) { if (performAiAnalysisActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not GENERATING_KEY_TAKEAWAYS. Ignoring update.`); } return; }
     if (performAiAnalysisActionState.status === 'success' && performAiAnalysisActionState.data) { dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: performAiAnalysisActionState.data }); }
     else if (performAiAnalysisActionState.status === 'error') { dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: performAiAnalysisActionState.error, message: performAiAnalysisActionState.message, aiKeyTakeawaysRequestJson: performAiAnalysisActionState.data?.aiKeyTakeawaysRequestJson }}); }
@@ -998,7 +993,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_PerformAiOptions';
-    logDebug(logPrefix as LogSourceId, 'Trigger', `performAiOptionsAnalysisActionState changed. Status: ${performAiOptionsAnalysisActionState.status}. Current FSM: ${currentFsmState}`);
     if (currentFsmState !== GlobalFsmState.ANALYZING_OPTIONS) { if (performAiOptionsAnalysisActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not ANALYZING_OPTIONS. Ignoring update.`); } return; }
     if (performAiOptionsAnalysisActionState.status === 'success' && performAiOptionsAnalysisActionState.data) { dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: performAiOptionsAnalysisActionState.data }); }
     else if (performAiOptionsAnalysisActionState.status === 'error') { dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: performAiOptionsAnalysisActionState.error, message: performAiOptionsAnalysisActionState.message, aiOptionsAnalysisRequestJson: performAiOptionsAnalysisActionState.data?.aiOptionsAnalysisRequestJson }}); }
@@ -1034,19 +1028,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setReducedStartupLoggingEnabled, isInitialAppStartupComplete: _isInitialAppStartupComplete,
     isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
   }), [
-    _polygonApiRequestLogJson, contextSetters.setPolygonApiRequestLogJson, _polygonApiResponseLogJson, contextSetters.setPolygonApiResponseLogJson,
-    _marketStatusJson, contextSetters.setMarketStatusJson, _stockSnapshotJson, contextSetters.setStockSnapshotJson,
-    _standardTasJson, contextSetters.setStandardTasJson, _optionsChainJson, contextSetters.setOptionsChainJson,
-    _aiAnalyzedTaRequestJson, contextSetters.setAiAnalyzedTaRequestJson, _aiAnalyzedTaJson, contextSetters.setAiAnalyzedTaJson,
-    _aiOptionsAnalysisRequestJson, contextSetters.setAiOptionsAnalysisRequestJson, _aiOptionsAnalysisJson, contextSetters.setAiOptionsAnalysisJson,
-    _aiKeyTakeawaysRequestJson, contextSetters.setAiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson, contextSetters.setAiKeyTakeawaysJson,
-    _chatbotRequestJson, contextSetters.setChatbotRequestJson, _chatbotResponseJson, contextSetters.setChatbotResponseJson,
-    _chatHistory, addChatMessage, clearChatHistory, _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
-    _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen, setLogSourceEnabled,
-    enableAllLogSources, disableAllLogSources, logDebug, globalFsmReducerState, _targetFsmDisplayState,
-    dispatchFsmEvent, _isFsmDebugCardEnabled, setFsmDebugCardEnabled, _isFsmDebugCardOpen, _setIsFsmDebugCardOpen,
+    _polygonApiRequestLogJson, contextSetters, _polygonApiResponseLogJson,
+    _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
+    _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
+    _aiOptionsAnalysisJson, _aiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson,
+    _chatbotRequestJson, _chatbotResponseJson, _chatHistory, addChatMessage,
+    clearChatHistory, _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
+    _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
+    setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
+    globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
+    _isFsmDebugCardEnabled, setFsmDebugCardEnabled, _isFsmDebugCardOpen,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
-    _debugConsoleMenuFsmDisplayInternal, _isInitialAppStartupComplete, _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled
+    _debugConsoleMenuFsmDisplayInternal, _isInitialAppStartupComplete,
+    _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled,
   ]);
 
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
@@ -1057,4 +1051,3 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
-
