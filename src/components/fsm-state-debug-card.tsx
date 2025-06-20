@@ -6,48 +6,39 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useStockAnalysis, type FsmDisplayTuple as GlobalFsmDisplayTuple } from '@/contexts/stock-analysis-context';
+import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
+import { useStockAnalysis, type GlobalFsmState, type GlobalFsmFlags, type GlobalFsmContextVariables } from '@/contexts/stock-analysis-context';
 import { downloadJson, copyToClipboard } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
 import { ClipboardCopy, Download, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export const CONSOLE_HEIGHT_PX = 250; // Matching DebugConsole
+export const CONSOLE_HEIGHT_PX = 250; 
 export const FSM_CARD_HEIGHT_PX = 200;
 
 interface FsmStateDisplayProps {
   title: string;
-  fsmDisplayTuple: GlobalFsmDisplayTuple | null;
+  previousState: GlobalFsmState | null;
+  currentState: GlobalFsmState;
+  targetState: GlobalFsmState | null;
 }
 
-function FsmStateDisplay({ title, fsmDisplayTuple }: FsmStateDisplayProps) {
-  const previousState = fsmDisplayTuple?.previous || 'N/A';
-  const currentState = fsmDisplayTuple?.current || 'N/A';
-  const targetState = fsmDisplayTuple?.target || 'N/A';
-  
+function GlobalFsmStateDisplay({ title, previousState, currentState, targetState }: FsmStateDisplayProps) {
   return (
     <div className="p-2 border rounded-md bg-muted/30">
       <p className="text-sm font-semibold mb-1">{title}</p>
       <p className="text-xs text-muted-foreground">
-        <span className="font-medium">Prev:</span> {previousState} |{' '}
+        <span className="font-medium">Prev:</span> {previousState || 'N/A'} |{' '}
         <span className="font-medium text-foreground">Curr:</span> {currentState} |{' '}
-        <span className="font-medium">Target:</span> {targetState}
+        <span className="font-medium">Target:</span> {targetState || 'N/A'}
       </p>
     </div>
   );
 }
 
-interface FsmStateDebugCardProps {
-  mainTabFsmPreviousState: string | null;
-  mainTabFsmCurrentState: string;
-  mainTabFsmTargetState: string | null;
-}
+// Removed FsmStateDebugCardProps interface as props are no longer passed directly
 
-export function FsmStateDebugCard({ 
-  mainTabFsmPreviousState, 
-  mainTabFsmCurrentState, 
-  mainTabFsmTargetState 
-}: FsmStateDebugCardProps) {
+export function FsmStateDebugCard() {
   const {
     isFsmDebugCardEnabled,
     isFsmDebugCardOpen,
@@ -55,10 +46,10 @@ export function FsmStateDebugCard({
     fsmState: globalFsmState,
     previousFsmState: globalPreviousFsmState,
     targetFsmDisplayState: globalTargetFsmDisplayState,
-    chatbotFsmDisplay,
-    debugConsoleMenuFsmDisplay,
-    isClientDebugConsoleEnabled, // Added this
-    isClientDebugConsoleOpen,   // Added this
+    fsmFlags,
+    fsmVariables,
+    isClientDebugConsoleEnabled, 
+    isClientDebugConsoleOpen,   
     logDebug,
   } = useStockAnalysis();
 
@@ -68,44 +59,56 @@ export function FsmStateDebugCard({
     return null;
   }
 
-  const globalAppFsmTuple: GlobalFsmDisplayTuple = {
-    previous: globalPreviousFsmState,
-    current: globalFsmState,
-    target: globalTargetFsmDisplayState,
-  };
-  
-  const currentMainTabFsmTuple: GlobalFsmDisplayTuple = {
-      previous: mainTabFsmPreviousState,
-      current: mainTabFsmCurrentState,
-      target: mainTabFsmTargetState
-  };
-
-  const allFsmStatesForExport = {
+  const allGlobalFsmDataForExport = {
     timestamp: new Date().toISOString(),
-    globalApplicationFSM: globalAppFsmTuple,
-    mainTabUI_FSM: currentMainTabFsmTuple,
-    chatbotUI_FSM: chatbotFsmDisplay,
-    debugConsoleMenuUI_FSM: debugConsoleMenuFsmDisplay,
+    globalApplicationFSM: {
+      previous: globalPreviousFsmState,
+      current: globalFsmState,
+      target: globalTargetFsmDisplayState,
+    },
+    globalFsmFlags: fsmFlags,
+    globalFsmContextVariables: fsmVariables,
   };
 
   const handleCopyJson = async () => {
-    logDebug('FsmStateDebugCard', 'CopyAction', 'Copying FSM states as JSON.');
-    if (await copyToClipboard(JSON.stringify(allFsmStatesForExport, null, 2))) {
-      toast({ title: 'FSM States Copied', description: 'All FSM states copied to clipboard as JSON.' });
+    logDebug('FsmStateDebugCard', 'CopyAction', 'Copying Global FSM state, flags, and variables as JSON.');
+    if (await copyToClipboard(JSON.stringify(allGlobalFsmDataForExport, null, 2))) {
+      toast({ title: 'Global FSM Data Copied', description: 'Global FSM state, flags, and variables copied as JSON.' });
     } else {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy FSM states.' });
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy Global FSM data.' });
     }
   };
 
   const handleExportJson = () => {
-    logDebug('FsmStateDebugCard', 'ExportAction', 'Exporting FSM states as JSON.');
+    logDebug('FsmStateDebugCard', 'ExportAction', 'Exporting Global FSM state, flags, and variables as JSON.');
     try {
-      downloadJson(allFsmStatesForExport, 'stocksage_fsm_states.json');
-      toast({ title: 'FSM States Exported', description: 'All FSM states downloaded as JSON.' });
+      downloadJson(allGlobalFsmDataForExport, 'stocksage_global_fsm_snapshot.json');
+      toast({ title: 'Global FSM Data Exported', description: 'Global FSM state, flags, and variables downloaded as JSON.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export FSM states.' });
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export Global FSM data.' });
     }
   };
+  
+  const renderVariables = (variables: GlobalFsmContextVariables) => {
+    return Object.entries(variables).map(([key, value]) => (
+      <TableRow key={`var-${key}`}>
+        <TableCell className="font-medium py-1 px-2 text-xs break-all">{key}</TableCell>
+        <TableCell className="py-1 px-2 text-xs break-all">
+          {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? 'null')}
+        </TableCell>
+      </TableRow>
+    ));
+  };
+
+  const renderFlags = (flags: GlobalFsmFlags) => {
+    return Object.entries(flags).map(([key, value]) => (
+      <TableRow key={`flag-${key}`}>
+        <TableCell className="font-medium py-1 px-2 text-xs break-all">{key}</TableCell>
+        <TableCell className="py-1 px-2 text-xs break-all">{String(value)}</TableCell>
+      </TableRow>
+    ));
+  };
+
 
   return (
     <Card
@@ -121,16 +124,16 @@ export function FsmStateDebugCard({
       <CardHeader className="p-2 border-b">
         <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-2 flex-shrink min-w-0">
-            <CardTitle className="text-sm truncate">FSM States Monitor</CardTitle>
+            <CardTitle className="text-sm truncate">Global FSM Monitor</CardTitle>
             <CardDescription className="text-xs whitespace-nowrap truncate">
-              Live states of all major Finite State Machines
+              State, Flags, and Variables
             </CardDescription>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={handleCopyJson} title="Copy FSM States (JSON)" className="h-7 w-7">
+            <Button variant="ghost" size="icon" onClick={handleCopyJson} title="Copy Global FSM Data (JSON)" className="h-7 w-7">
               <ClipboardCopy className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleExportJson} title="Export FSM States (JSON)" className="h-7 w-7">
+            <Button variant="ghost" size="icon" onClick={handleExportJson} title="Export Global FSM Data (JSON)" className="h-7 w-7">
               <Download className="h-4 w-4" />
             </Button>
             <Separator orientation="vertical" className="h-6 mx-1" />
@@ -143,14 +146,44 @@ export function FsmStateDebugCard({
       <CardContent className="p-0 h-[calc(100%-53px)]">
         <ScrollArea className="h-full p-2">
           <div className="space-y-2 font-code text-xs">
-            <FsmStateDisplay title="Global Application FSM" fsmDisplayTuple={globalAppFsmTuple} />
-            <FsmStateDisplay title="Main Tab UI FSM" fsmDisplayTuple={currentMainTabFsmTuple} />
-            <FsmStateDisplay title="Chatbot UI FSM" fsmDisplayTuple={chatbotFsmDisplay} />
-            <FsmStateDisplay title="Debug Console Menu FSM" fsmDisplayTuple={debugConsoleMenuFsmDisplay} />
+            <GlobalFsmStateDisplay 
+                title="Global Application FSM" 
+                previousState={globalPreviousFsmState}
+                currentState={globalFsmState}
+                targetState={globalTargetFsmDisplayState}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+              <Card className="overflow-hidden">
+                <CardHeader className="p-1.5 border-b bg-muted/40">
+                  <CardTitle className="text-xs font-semibold">Global FSM Flags</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 max-h-[80px] overflow-y-auto">
+                  <Table dense>
+                    <TableBody>{renderFlags(fsmFlags)}</TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden">
+                <CardHeader className="p-1.5 border-b bg-muted/40">
+                  <CardTitle className="text-xs font-semibold">Global FSM Variables</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 max-h-[80px] overflow-y-auto">
+                  <Table dense>
+                    <TableBody>{renderVariables(fsmVariables)}</TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </ScrollArea>
       </CardContent>
     </Card>
   );
 }
+
+// Added a 'dense' prop to Table for potentially smaller padding, not a standard ShadCN prop
+// This would require Table component modification or custom styling. For now, it's illustrative.
+// Standard TableCell padding might make the card too cramped.
+// In a real scenario, might create a <DenseTable> variant or use custom CSS for these inner tables.
+// For simplicity, just using standard Table for now, text size is already xs.
 

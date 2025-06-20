@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
 import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context";
-// Removed: import { DebugConsoleFsmProvider } from "@/contexts/debug-console-fsm-context";
 import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-debug-card";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
@@ -29,10 +28,11 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     setFsmDebugCardEnabled,
     isFsmDebugCardOpen,
     logDebug,
-    setMainTabFsmDisplay,
-    // Removed: setDebugConsoleMenuFsmDisplay, as it's handled internally by StockAnalysisContext now
+    setMainTabFsmDisplay, 
   } = useStockAnalysis();
 
+  // These local states are primarily for MainTabContent to report its local FSM state up.
+  // The FsmStateDebugCard will no longer directly use these props from PageContent.
   const [mainTabFsmPreviousState, setMainTabFsmPreviousState] = useState<string | null>(null);
   const [mainTabFsmCurrentState, setMainTabFsmCurrentState] = useState<string>('IDLE');
   const [mainTabFsmTargetState, setMainTabFsmTargetState] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
   };
 
   const updateMainTabFsmDisplayInGlobalContext = (display: FsmDisplayTuple | null) => {
-    setMainTabFsmDisplay(display);
+    setMainTabFsmDisplay(display); 
   };
 
 
@@ -98,7 +98,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
               checked={isFsmDebugCardEnabled}
               onCheckedChange={handleFsmDebugCardToggle}
             />
-            <Label htmlFor="enable-fsm-debug-card" className="flex-shrink-0">Enable & Show FSM State Debug Card</Label>
+            <Label htmlFor="enable-fsm-debug-card" className="flex-shrink-0">Enable & Show Global FSM Monitor</Label>
           </div>
         </div>
         <Tabs defaultValue="main" className="w-full">
@@ -119,12 +119,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
         </Tabs>
       </main>
-      {/* Removed DebugConsoleFsmProvider wrapper */}
-      <FsmStateDebugCard
-          mainTabFsmPreviousState={mainTabFsmPreviousState}
-          mainTabFsmCurrentState={mainTabFsmCurrentState}
-          mainTabFsmTargetState={mainTabFsmTargetState}
-      />
+      <FsmStateDebugCard />
       <DebugConsole appVersion={appVersion} />
       <Footer />
     </div>
