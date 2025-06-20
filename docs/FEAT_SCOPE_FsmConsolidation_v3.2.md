@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.13
+**Document Version:** 1.14
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** Phase 4 IN PROGRESS. Phase 3 COMPLETE.
@@ -119,20 +119,16 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *Objective: Finalize the enhanced debugging tools (FSM Debug Card, log exports) and update all project documentation to reflect the new FSM architecture. This phase focuses on coding tasks from the original "Phase 5: Documentation & Cleanup".*
 *   **Overall Phase Status:** `IN PROGRESS`
 
-*   **Task v3.2.4.0.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports (Code Touch-up if needed from Phase 3)**
+*   **Task v3.2.4.0.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports**
     *   **Status:** `COMPLETED` (Commit: `f6520642`, App Version: `v3.2.4.0.0`)
-    *   **File(s):** `src/components/fsm-state-debug-card.tsx`, `src/components/debug-console.tsx`, `src/components/page-content.tsx`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* FSM Debug Card and console exports must align with the final single global FSM structure, clearly displaying its state, flags, and variables. Remove legacy FSM displays.
-        2.  *`FsmStateDebugCard.tsx` Implementation:* Refactor to display global FSM state, all `GlobalFsmFlags`, and all `GlobalFsmContextVariables`. Remove separate displays for old local FSMs. Update local export/copy to use this global FSM data.
-        3.  *`DebugConsole.tsx` Implementation:* Update helper functions (`getFsmStatesAndTimestampForExport`, `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`) to include the full snapshot of the global FSM (state, flags, variables).
-        4.  *`PageContent.tsx` Implementation:* Remove props related to old Main Tab FSM state previously passed to `FsmStateDebugCard`.
-        5.  *Consolidation:* Ensure no redundant FSM state display logic remains from previous, separate FSMs.
-    *   **Testability:** Verify FSM Debug Card displays all global FSM info. Verify Log exports contain the complete global FSM snapshot.
-    *   **App Metadata:** Updated to `v3.2.4.0.0`.
 
-*   **Task v3.2.4.1.0: (Placeholder for next coding task in this phase, if any)**
-    *   **Status:** `PLANNED`
+*   **Task v3.2.4.1.0: FSM Debug Log Update/Remove/Consolidate/Refinement**
+    *   **Status:** `COMPLETED` (Commit: `d8686c74`, App Version: `v3.2.4.1.0`)
+    *   **AI Agent - Chain of Thought & Action:**
+        1.  *Understand:* All `logDebug` calls related to FSM state need to reflect the single global FSM.
+        2.  *Audit & Modify:* Systematically review all components and contexts. Remove logs for old local FSMs. Update logs to reference global FSM states, flags, and variables. Consolidate redundant logging. Refine messages for clarity with global FSM context. Ensure `LogSourceId` is appropriate.
+    *   **Testability:** Manually review debug console output during typical app flows to ensure logs are accurate and informative.
+    *   **App Metadata:** Updated to `v3.2.4.1.0`.
 
 ---
 
@@ -188,6 +184,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.14 (2025-06-21):** Marked Task v3.2.4.1.0 as `COMPLETED`. Commit `d8686c74`. App Version `v3.2.4.1.0`.
 *   **v1.13 (2025-06-21):** Marked Task v3.2.4.0.0 as `COMPLETED`. Re-ordered phases: Phase 4 is "Clean Up & Finalize Debugging Tools", Phase 5 is "Testing and Debugging", Phase 6 is "Documentation Updates". Phase 4 status to `IN PROGRESS`.
 *   **v1.12 (2025-06-21):** Marked Phase 3 (Tasks v3.2.3.0.0 - v3.2.3.2.0) as `COMPLETED`. Updated with Phase 3 commit hash `7f0e552b` and app version `v3.2.3.2.0`. Updated feature status.
 *   **v1.11 (2025-06-21):** Marked Task v3.2.3.2.0 as `COMPLETED` (Commit `7f0e552b`, App Version `v3.2.3.2.0`). Marked Phase 3 "Integrating Chat & Debug Console Menus" as `COMPLETED`.
