@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, useMemo } from 'react';
 import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
 import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
-import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer';
+import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
@@ -791,6 +791,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug(logPrefix as LogSourceId, 'EffectRun', `Running. Enabled: ${_isClientDebugConsoleEnabled}, IsInitialLoad: ${isInitialLoad}, ReducedLogging: ${_isReducedStartupLoggingEnabled}`);
     if (typeof window === 'undefined') { logDebug(logPrefix as LogSourceId, 'SSR_Skip', 'Skipping console interception on server.'); return; }
     const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
+    
     const interceptAndProcessLog = (type: LogType, ...args: any[]) => {
       currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
       queueMicrotask(() => {
@@ -800,6 +801,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           sourceForBuffer = args[1] as LogSourceId; messagesForBuffer = args.slice(3); typeForBuffer = 'debug';
           if (!_logSourceConfig[sourceForBuffer]) return;
         } else { if (!_logSourceConfig['NATIVE_CONSOLE']) return; }
+        
         if (isInitialLoad && _isReducedStartupLoggingEnabled) {
           const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter', 'StockAnalysisContext:GlobalFSM_Orchestrator', 'StockAnalysisContext:GlobalFSM']; let allowLog = false;
           if (sourceForBuffer && criticalSources.includes(sourceForBuffer)) { allowLog = true; }
@@ -808,9 +810,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           if (!allowLog && String(messagesForBuffer[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; } 
           if (!allowLog) { return; }
         }
+        
+        const lastLog = globalLogEntries[globalLogEntries.length - 1];
+        if (lastLog) {
+            try {
+                const isDuplicate = lastLog.source === sourceForBuffer &&
+                                  lastLog.type === typeForBuffer &&
+                                  JSON.stringify(lastLog.messages) === JSON.stringify(messagesForBuffer);
+                if (isDuplicate) {
+                    return; // Abort if it's a duplicate
+                }
+            } catch (e) {
+                // Ignore potential stringification errors in this check and proceed to log.
+            }
+        }
+        
         addEntryToGlobalLogBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
       });
     };
+
     if (_isClientDebugConsoleEnabled) {
       logDebug(logPrefix as LogSourceId, 'Status', 'APPLYING interceptors.');
       console.log = (...args) => interceptAndProcessLog('log', ...args); console.warn = (...args) => interceptAndProcessLog('warn', ...args);
@@ -951,12 +969,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
 
   }, [
-    globalFsmReducerState, isFetchDataPending, isAnalyzeTaPending, 
+    globalFsmReducerState.current, 
+    globalFsmReducerState.variables, 
+    isFetchDataPending, isAnalyzeTaPending, 
     isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending,
     _dispatchFsmEventActual, logDebug,
-    _stockSnapshotJson, _standardTasJson, _optionsChainJson, _aiAnalyzedTaJson, 
-    _marketStatusJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory,
-    fetchStockDataFormAction, analyzeTaFormAction, performAiAnalysisFormAction, performAiOptionsAnalysisFormAction,
     contextOriginals
   ]);
 
