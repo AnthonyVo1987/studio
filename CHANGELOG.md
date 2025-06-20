@@ -58,6 +58,31 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.5.0.C` (Consolidated FSM Debugging Iteration)
+**Tag:** `Phase-16_Task-3.2.5.0.C_FSM_Debugging_Consolidation` (Commit `2338c4f8`)
+**Subject:** `fix(fsm,debug,core): Consolidate FSM orchestrator, macro, logging & chat fixes (v3.2.5.0.C)`
+**Details:**
+This commit (`2338c4f8`) represents a significant bug-fixing iteration for the "FSM Consolidation & Refactor" feature (Feature `v3.2`), specifically addressing issues within the `v3.2.5.0.x` series up to `v3.2.5.0.C`. Key fixes include:
+
+*   **FSM Orchestrator & Macro Pipeline (`StockAnalysisContext.tsx`):**
+    *   Refined the main FSM orchestrator `useEffect` (dependency array and internal logic) to improve reliability for triggering and progressing through standard automated analysis pipelines and the "AI Full Stock Analysis" macro.
+    *   Corrected the sequence of chat prompt dispatches within the AI Full Analysis Macro.
+    *   Ensured `pendingChatSubmissionPayload` and macro state variables are managed and cleared appropriately.
+*   **Client-Side Logging (`StockAnalysisContext.tsx`, `global-log-buffer.ts`):**
+    *   Addressed issues causing FSM orchestrator and reducer logs to be missing from the client-side debug console by ensuring the orchestrator `useEffect` runs correctly and its logging calls are effective.
+    *   Fixed the "Enable Reduced Logging During Initial App Startup" toggle by refining the `isInitialAppStartupComplete` flag logic.
+*   **AI Flow Files (`analyze-options-chain-flow.ts`, `analyze-stock-data.ts`, `chat-flow.ts`, `analyze-ta-flow.ts`):**
+    *   Corrected minor syntax errors (e.g., template literals).
+    *   Implemented consistent caching for `ai.definePrompt` calls to resolve Genkit registry warnings.
+*   **Chat Functionality (`StockAnalysisContext.tsx`, `ChatbotFsmContext.tsx`, `Chatbot.tsx`):**
+    *   Resolved issues with example chat prompt button submissions.
+    *   Addressed duplicate manual user message submissions.
+*   **Application Metadata (`app-metadata.json`):**
+    *   Version updated to `v3.2.5.0.C`. Addressed `lastUpdatedTimestamp` validation by making it optional.
+
+This commit consolidates these fixes, improving stability for Phase 5 (Testing and Debugging) of the FSM Consolidation feature.
+
+---
 **App Version:** `v3.2.4.1.0` (Complete FSM Consolidation Phase 4)
 **Tag:** `Phase-15_Task-3.2.4.1.0_FSM_Consolidation_Phase4_Complete` (Commit `c661f9d1`)
 **Subject:** `feat(fsm,debug): Complete Phase 4 of FSM Consolidation - Debug Tooling Finalization (v3.2.4.1.0)`
@@ -645,7 +670,7 @@ This version focuses on two main areas:
     *   Enhanced the `analyzeStockDataFlow` to provide more robust default/error takeaways for all five categories (priceAction, trend, volatility, momentum, patterns) if the AI prompt fails or returns incomplete/empty data for any category. This ensures the UI (`AiKeyTakeawaysDisplay.tsx`) always receives a well-structured object, preventing parsing errors when displaying error states.
     *   The default message for missing volatility takeaways was also refined.
 2.  **AI Options Analysis Prompt Refinement (`src/ai/definitions/analyze-options-chain.json`):**
-    *   The prompt was "loosened" to encourage the AI to identify a broader range of potential Call/Put walls. Instructions were changed to focus on "noteworthy Open Interest (OI)" relative to surroundings or the overall chain, with Volume as a secondary confirming factor, rather than strictly "High and/or Clustered Concentrations."
+    *   The prompt was "loosened" to encourage the AI to identify a broader range of potential Call/Put walls. Instructions were changed to focus on "noteworthy Open Interest (OI)" relative to surroundings or that overall chain, with Volume as a secondary confirming factor, rather than strictly "High and/or Clustered Concentrations."
     *   The AI is still asked to return AT MOST 3 walls per type, ordered by perceived significance, even if that significance is now considered more moderate.
     *   This change aims to address the issue where the AI frequently returned no walls, even when some significant OI levels might have been present. The display component will continue to show "No significant walls identified by AI" if the flow successfully returns empty arrays.
 
@@ -1034,6 +1059,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 

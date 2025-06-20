@@ -25,9 +25,9 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.63
-**Application Version (from `app-metadata.json`):** v3.2.4.1.0 (Commit `c661f9d1` - Phase 4 FSM Consolidation Complete)
-**Last Updated:** 2025-06-21
+**README Document Version:** 1.64
+**Application Version (from `app-metadata.json`):** v3.2.5.0.C (Commit `2338c4f8` - FSM Debugging Consolidation)
+**Last Updated:** 2025-06-20
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -64,7 +64,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.1.2. Options Chain Display
 *   Retrieve options chain data (calls & puts) for a given stock and the next Friday expiration date.
-*   Display key options contract details: Strike, IV, % Change, Bid, Ask, Last, Volume, Open Interest, Delta, Gamma.
+*   Display key options contract details: Strike, IV, % Chg, Bid, Ask, Last, Volume, Open Interest, Delta, Gamma.
 *   Sort options chain table by strike price in descending order.
 *   Highlight the At-The-Money (ATM) strike row in the table.
 
@@ -73,6 +73,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **AI Analyzed Technical Analysis (Pivot Points):** Calculate standard daily pivot points (PP, S1-S3, R1-R3) based on previous day HLC.
 *   **AI Options Analysis:** Analyze the options chain to identify significant Call and Put "Walls" (up to 3 each) based on Open Interest and/or Volume.
 *   **AI Chatbot:** Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data (snapshot, TAs, AI analyses, options data).
+*   **AI Full Stock Analysis Macro:** A button to trigger a sequential, automated pipeline of: Data Fetch & AI TA -> AI Key Takeaways -> AI Options Analysis -> Stock Trader Chat Prompt -> Options Trader Chat Prompt -> Holistic Chat Prompt.
 *   Leverage Genkit flows for all AI functionalities.
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
@@ -100,7 +101,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Exported File Metadata:** All exported files (debug logs, data exports) will dynamically include the current application version sourced from `src/config/app-metadata.json`.
 *   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs).
 *   **Client Debug Console:** Real-time client-side log display with filtering, search, max 1000 entries, wrap indicator, and export capabilities. Exported logs include the dynamic application version and a snapshot of the global FSM (state, flags, and variables).
-*   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup.
+*   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup. Logic ensures this only affects the *first* pipeline run.
 *   **FSM State Debug Card:** Real-time display of the global FSM's state, flags, and context variables.
 
 ### 3.2. System Architecture & Components
@@ -115,136 +116,98 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis tasks.
 *   AI flows defined in `src/ai/flows/` for orchestrating LLM calls.
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
-    *   Dynamic `import()` is used in `src/ai/definition-loader.ts` and `src/ai/prompt-loader.ts` to load these JSONs, ensuring robust path resolution in deployed environments.
-    *   Prompts correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }` (or other budget values) within the `config` object for `ai.definePrompt`.
-    *   Safety settings are defined in these JSONs using fully qualified harm category names (e.g., `HARM_CATEGORY_SEXUALLY_EXPLICIT`).
-*   A `DefinitionLoader` (`src/ai/definition-loader.ts`) loads and validates these JSONs.
+    *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
+    *   Prompts correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }`.
+    *   Safety settings are defined in these JSONs.
+    *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
 #### 3.2.3. Data Sources
-*   **Polygon.io API:** Primary source for stock data (snapshot, historical aggregates for TAs) and options chain data.
-*   **Environment Variables (`.env`):** Stores API keys (Polygon, Google AI).
+*   **Polygon.io API:** Primary source for stock data and options chain data.
+*   **Environment Variables (`.env`):** Stores API keys.
 *   **Application Metadata (`src/config/app-metadata.json`):**
-    *   Stores the application version (`appVersion` - following `3.w.x.y.z` scheme) and last update timestamp (`lastUpdatedTimestamp`).
-    *   **Policy (Strictly Enforced):**
-        *   This file is the **SOLE SOURCE OF TRUTH** for the application's functional version.
-        *   The `appVersion` from this file is dynamically loaded at runtime (e.g., in `src/app/page.tsx` via `getAppConfig()`) and passed as props to components like `Header` and `DebugConsole` for UI display and inclusion in exported log/data file metadata.
-        *   The `lastUpdatedTimestamp` field **MUST ALWAYS be a real, valid ISO 8601 string** reflecting the time of the metadata update; placeholder values are strictly prohibited.
+    *   Stores `appVersion` (following `3.w.x.y.z` scheme) and `metadataSchemaVersion`. `lastUpdatedTimestamp` is optional.
+    *   **Policy (Strictly Enforced):** Sole source for `appVersion`. Dynamically loaded and used.
+    *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
 #### 3.2.4. State Management (Target Architecture for v3.2.x.y.z - FSM Consolidation)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
-    *   Fetched data JSON strings (e.g., `stockSnapshotJson`, `aiKeyTakeawaysJson`).
-    *   **Single, Enhanced Global Finite State Machine (FSM):** This FSM manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `canUserTriggerManualAnalysis`), and key context variables (e.g., `activeAnalysisTicker`, `lastErrorDetails`). It orchestrates the entire application lifecycle and UI flows.
-    *   Client-side debug logging (`logDebug` function, configuration, startup logging flags).
+    *   Fetched data JSON strings.
+    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isFullAiMacroPipelineActive`), and key context variables (e.g., `activeTicker`, `activePipelineProfile`, `currentFullAiMacroChatStep`). Orchestrates the entire application lifecycle, including the new "AI Full Stock Analysis" macro.
+    *   Client-side debug logging.
     *   Chat history.
     *   UI states for debug console and FSM debug card visibility.
-    *   The `contextValue` provided by `StockAnalysisProvider` is memoized using `useMemo`.
-*   **`useReducer` (in `StockAnalysisContext`):** Manages the single, enhanced global application FSM.
-*   **`useActionState` (React Hook):** Manages the lifecycle (pending, success, error) of server actions invoked from client components.
+*   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM.
+*   **`useActionState` (React Hook):** Manages server action lifecycles.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.4.1.0 - FSM Consolidation Phase 4 Complete)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.C - FSM Consolidation Phase 5 In Progress)
 *   **Single Global Application FSM (managed in `StockAnalysisContext`):**
-    *   Orchestrates the main application lifecycle (e.g., `APP_INITIALIZING`, `IDLE`, `PIPELINE_REQUESTED_DATA_FETCH`, `GENERATING_KEY_TAKEAWAYS`, `ANALYZING_OPTIONS`, `CHAT_MESSAGE_PENDING`).
-    *   Manages `GlobalFsmFlags` (booleans for specific conditions like `isSnapshotDataReady`, `isKeyTakeawaysDataAvailable`, `isDebugConsoleFilterMenuOpen`) and `GlobalFsmContextVariables` (data like `activeAnalysisTicker`, `lastErrorDetails`).
-    *   Drives UI enablement/disablement and conditional logic throughout the app.
-    *   **Phase 1 Completion (v3.2.1.3.0):** Automated pipeline (ticker input, data fetch, AI TA calculation) fully migrated.
-    *   **Phase 2 Completion (v3.2.2.1.0):** Manual AI actions ("Generate AI Key Takeaways", "Generate AI Options Analysis") fully migrated.
-    *   **Phase 3 Completion (v3.2.3.2.0):** Chatbot submission flow, Chatbot UI state management, and Debug Console Menu UI states fully migrated. `ChatbotFsmContext` and `DebugConsoleFsmContext` are deprecated/removed.
-    *   **Phase 4 Completion (v3.2.4.1.0):** Debugging tools (`FsmStateDebugCard`, log exports) finalized to reflect the single global FSM. All FSM-related debug logging updated.
-*   **FSM State Display:** The "FSM State Debug Card" (`FsmStateDebugCard.tsx`) displays the state, flags, and variables of the single global FSM.
+    *   Orchestrates all application pipelines: standard automated, "AI Full Stock Analysis" macro, manual AI actions, and chat interactions.
+    *   Manages `GlobalFsmFlags` and `GlobalFsmContextVariables`.
+    *   **Phase 1-4 Completion:** Foundation, manual AI actions, chat/debug menus, and debug tooling integration are complete.
+    *   **Phase 5 (Testing & Debugging):** IN PROGRESS. Tasks `v3.2.5.0.0` - `v3.2.5.0.C` addressed critical bugs in FSM orchestrator, macro pipeline execution (especially chat step sequencing), client-side logging visibility, and startup log reduction logic. The "AI Full Stock Analysis" button and its corresponding macro pipeline were introduced.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
-*   Flows (`analyze-stock-data.ts`, `analyze-options-chain-flow.ts`, `analyze-ta-flow.ts`, `chat-flow.ts`) load definitions using `src/ai/definition-loader.ts` (dynamic `import()`).
-*   All flows include error handling and execution time logging.
-*   **AI Options Analysis Flow (`analyze-options-chain-flow.ts`):** Refined prompt to encourage identification of relative OI spikes.
+*   Flows load definitions using `src/ai/definition-loader.ts`.
+*   All flows include error handling and execution time logging. Prompts are cached.
 
 ### 3.4. Error Handling & Logging
 
 #### 3.4.1. Error Handling
 *   Next.js `error.js` boundary files.
 *   `try...catch` in Server Actions and AI Flows, returning structured error states.
-*   Client display components parse and display these structured error JSONs.
 
 #### 3.4.2. Logging System
 *   **Client-Side Logging:**
-    *   Primary Method: `logDebug(source: LogSourceId, category: string, ...messages: any[])` from `useStockAnalysis()`.
-    *   Console Interception: `StockAnalysisContext` intercepts native `console.*` calls.
-    *   **Startup Logging Control:** `StockAnalysisContext` manages `isInitialAppStartupComplete` and `isReducedStartupLoggingEnabled` flags. If reduced startup logging is enabled, non-critical logs are suppressed during the initial load phase. A "StartupComplete" message is logged when full logging resumes.
-*   **Server-Side Logging (Actions & Flows):** `console.log`, `console.error`, `console.time/timeEnd` with standardized prefixes.
+    *   Primary Method: `logDebug()` from `useStockAnalysis()`.
+    *   Console Interception: `StockAnalysisContext` intercepts `console.*` calls.
+    *   **Startup Logging Control:** `isInitialAppStartupComplete` flag in `StockAnalysisContext` (set after the *first* successful full pipeline) correctly gates the "reduced startup logging" feature.
+*   **Server-Side Logging:** `console.log`, etc., with standardized prefixes.
 *   **Debug Console (`src/components/debug-console.tsx`):**
-    *   Displays client-side logs (up to 1000 entries).
-    *   Features: Filtering by type/source (driven by global FSM flags), search, visual wrap indicator message.
-    *   Export/Copy: Logs (JSON, TXT, CSV) include the **dynamic application version** and a snapshot of the global FSM's state, flags, and variables.
+    *   Displays client-side logs (up to 1000 entries). Features filtering, search, wrap indicator.
+    *   Export/Copy: Logs include dynamic `appVersion` and FSM snapshot.
 
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Client-Side `console.log` Prohibited:** Use `logDebug` from `StockAnalysisContext`.
-*   **No Commented-Out Code in Commits.**
-*   **JSDoc:** For overviews and complex functions. No inline code comments unless essential.
-*   **`package.json`:** No comments.
-*   **Metadata Timestamps (`src/config/app-metadata.json`):**
-    *   The `lastUpdatedTimestamp` field **MUST** always be a real, valid ISO 8601 timestamp.
-*   **Debugging Status (as of v3.2.4.1.0):**
+*   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
+*   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
+*   **Debugging Status (as of v3.2.5.0.C):**
     *   "Debug Log Enhancements" feature (v3.1.x.y.z) is complete.
     *   "FSM Consolidation & Refactor" (v3.2.x.y.z):
-        *   Phase 1 (Foundation & Core FSM Setup - v3.2.1.x.z) is **COMPLETE**.
-        *   Phase 2 (Integrating Manual AI Actions - v3.2.2.x.z) is **COMPLETE**.
-        *   Phase 3 (Integrating Chat & Debug Console Menus - v3.2.3.x.z) is **COMPLETE**.
-        *   Phase 4 (Clean Up & Finalize Debugging Tools - v3.2.4.x.z) is **COMPLETE**.
-        *   Phase 5 (Testing and Debugging) is **PLANNED**.
+        *   Phases 1-4 are **COMPLETE**.
+        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.C` (commit `2338c4f8`) consolidated fixes for FSM orchestration, the new "AI Full Analysis Macro" pipeline (especially chat steps), client logging, and startup log reduction.
         *   Phase 6 (Documentation Updates) is **PLANNED**.
 
 #### 3.5.2. UI/UX Conventions
-*   Consistent use of ShadCN components from `components/ui`.
-*   Use rounded corners, shadows, and drop shadows.
-*   Use Tailwind CSS with theme variables from `globals.css` for colors.
-*   Use `lucide-react` for icons (verify existence).
-*   Ensure responsiveness and accessibility (ARIA attributes).
-*   Hydration Mismatch Prevention: Defer client-specific values to `useEffect`.
+*   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
 
 #### 3.5.3. TypeScript & Data Handling
-*   TypeScript with `import type` for type imports.
-*   Zod schemas for AI flow inputs/outputs and server action payloads/results.
-*   `next/image` for images. Placeholders: `https://placehold.co/<width>x<height>.png` with `data-ai-hint`.
+*   TypeScript with `import type`. Zod schemas. `next/image`. Placeholders: `https://placehold.co/<width>x<height>.png` with `data-ai-hint`.
 
 #### 3.5.4. Server & AI Conventions (Genkit 1.x)
-*   Next.js App Router, Server Components, Server Actions.
-*   Genkit (`ai` object from `src/ai/genkit.ts`) for all AI definitions.
-*   Adhere to Genkit 1.x API syntax.
-*   Thinking Mode: `thinkingConfig: { thinkingBudget: ... }` in JSON prompt definitions.
-*   Flow Files (`src/ai/flows/*.ts`): `'use server';`, JSDoc, export async wrapper & types.
-*   Prompt Definitions (`src/ai/definitions/*.json`): Loaded via dynamic `import()` in `definition-loader.ts`. Handlebars for templating (NO logic).
-*   Tools (`ai.defineTool`): For LLM-decided actions.
+*   Next.js App Router, Server Components, Server Actions. Genkit. Genkit 1.x API. `thinkingConfig`. JSON prompt definitions with Handlebars. Tools.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.2.4.1.0 and New Versioning Scheme)
+### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.C and New Versioning Scheme)
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
-    *   The application's functional version is updated **ONLY** in `src/config/app-metadata.json` within the `appVersion` field, following the `3.w.x.y.z` scheme:
-        *   `3`: App Major Version (Fixed).
-        *   `w`: APP Phase Version (e.g., 2 for FSM Consolidation).
-        *   `x`: FEAT Phase Version (e.g., 1 for FSM Consolidation - Phase 1: Foundation, 2 for Phase 2: Manual AI Actions, 3 for Phase 3: Chat & Debug Menus, 4 for Phase 4: Debug Tooling).
-        *   `y`: FEAT Phase Task #.
-        *   `z`: Bug FEAT Phase Task # (Increment for bug fixes specific to task 'y'. Starts at 0).
-    *   The `lastUpdatedTimestamp` field in `src/config/app-metadata.json` **MUST** be updated to the current real-world ISO 8601 timestamp.
-*   **Dynamic Versioning in UI/Exports:**
-    *   `src/components/layout/header.tsx` receives `appVersion` via props (from `page.tsx` -> `app-metadata.json`).
-    *   `src/components/debug-console.tsx` receives `appVersion` via props for inclusion in log exports.
-*   **Documentation Updates:**
-    *   `CHANGELOG.md`: Update with detailed commit message for each task/fix, reflecting the new `appVersion`.
-    *   `README.md`: Update this PRD if core architecture or primary functional requirements change.
-    *   **New Feature Docs:** For entirely new features, generate `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` in the `/docs` folder as per new operating procedures.
+    *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
+    *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
+    *   `lastUpdatedTimestamp` in `app-metadata.json` updated with real ISO 8601 timestamp (or removed if optional and not set).
+*   **Dynamic Versioning in UI/Exports:** Header and Debug Console use `appVersion` prop.
+*   **Documentation Updates:** `CHANGELOG.md`, this `README.md`, and feature-specific `FEAT_SCOPE_xxx.md`, `FEAT_STATUS_xxx.md` updated.
 
 ---
 
 ## 4. Project Setup & Running Locally
+*(This section remains largely unchanged but is present for completeness)*
 
 ### 4.1. Prerequisites
-*   Node.js (latest LTS version recommended)
-*   npm (comes with Node.js)
+*   Node.js (latest LTS)
+*   npm
 
 ### 4.2. Environment Variables
-Create a `.env` file in the project root:
+Create `.env`:
 ```env
 POLYGON_API_KEY=your_polygon_api_key
 GOOGLE_API_KEY=your_google_ai_api_key
@@ -256,17 +219,8 @@ npm install
 ```
 
 ### 4.4. Running the Development Server
-1.  **Terminal 1 (Next.js Application):**
-    ```bash
-    npm run dev
-    ```
-    App: `http://localhost:9002`
-
-2.  **Terminal 2 (Genkit Flows):**
-    ```bash
-    npm run genkit:watch
-    ```
-    Genkit Dev UI: `http://localhost:3400` (usually)
+1.  Next.js: `npm run dev` (App: `http://localhost:9002`)
+2.  Genkit: `npm run genkit:watch` (Genkit Dev UI: `http://localhost:3400`)
 
 ### 4.5. Building for Production
 ```bash
@@ -277,8 +231,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.63
-*   **Current Application Version:** `v3.2.4.1.0` (Commit `c661f9d1` - Phase 4 FSM Consolidation Complete)
+*   **This README Document Version:** 1.64
+*   **Current Application Version:** `v3.2.5.0.C` (Commit `2338c4f8` - FSM Debugging Consolidation)
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.

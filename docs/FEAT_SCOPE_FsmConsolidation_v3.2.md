@@ -1,10 +1,10 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.15
-**Date:** 2025-06-21
+**Document Version:** 1.16
+**Date:** 2025-06-20
 **Target Application Version Series:** 3.2.x.y.z
-**Feature Status:** Phase 5 PLANNED. Phase 4 COMPLETE.
+**Feature Status:** Phase 5 IN PROGRESS (Bugs up to v3.2.5.0.C addressed).
 
 ## 1. Introduction & Objective
 
@@ -35,7 +35,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 1.  **Centralized State Logic:** All primary application states will be defined and managed here.
 2.  **Comprehensive State Definitions:** A new set of `GlobalFsmState` enums that are more granular and cover all significant application lifecycles and user interaction flows. Existing states will be audited, consolidated, or refined.
 3.  **Contextual Flags (`GlobalFsmFlags`):** Boolean flags managed by the FSM to indicate specific conditions or data readiness (e.g., `isSnapshotDataReady`, `canUserTriggerManualAnalysis`, `isMarketOpen`). These will drive UI enablement/disablement and conditional logic.
-4.  **Context Variables (`GlobalFsmContextVariables`):** Key pieces of data managed by or influencing the FSM (e.g., `activeAnalysisTicker`, `currentInputTicker`, `lastErrorDetails`).
+4.  **Context Variables (`GlobalFsmContextVariables`):** Key pieces of data managed by or influencing the FSM (e.g., `activeTicker`, `currentInputTicker`, `lastErrorDetails`, `activePipelineProfile`, `currentFullAiMacroChatStep`).
 5.  **Unified Event Dispatching:** Components will dispatch clearly defined events to this single FSM, which will then orchestrate state transitions, flag updates, and variable changes.
 6.  **"Single Pend Point" / Common Idle State:** The FSM will aim for a common `IDLE` state. After operations, the FSM will typically return to `IDLE`, and the combination of current flags and variables will determine the application's subsequent readiness and available actions.
 
@@ -43,7 +43,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 *   **Improved Maintainability:** Simplifies understanding and modifying application behavior by having a single source of truth for state.
 *   **Enhanced Extensibility:** Facilitates easier addition of new features by integrating new states, flags, and events into a unified structure.
-*   **Superior Debuggability:** Offers a clear, holistic view of the application's state, flags, and variables. The enhanced FSM Debug Card and log exports will provide comprehensive "Failure Snapshots."
+*   **Superior Debuggability:** Offers a clear, holistic view of the application's state, flags, and variables. The enhanced FSM Debug Card and exports provide comprehensive "Failure Snapshots."
 *   **Reduced Risk of Spaghetti Code & Race Conditions:** Promotes cleaner architecture and more predictable state transitions.
 *   **Increased Robustness & Consistency:** Leads to more reliable UI behavior and fewer state-related bugs.
 *   **Modular Disablement of Features:** New features tied to specific states/flags can be more easily toggled off if problematic.
@@ -116,7 +116,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 ---
 
 ### **Phase 4: Clean Up & Finalize Debugging Tools (FEAT Phase 'x' = 4)**
-*Objective: Finalize the enhanced debugging tools (FSM Debug Card, log exports) and update all project documentation to reflect the new FSM architecture. This phase focuses on coding tasks from the original "Phase 5: Documentation & Cleanup".*
+*Objective: Finalize the enhanced debugging tools (FSM Debug Card, log exports) and update all project documentation to reflect the new FSM architecture.*
 *   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.4.1.0`, Phase Commit `c661f9d1`)
 
 *   **Task v3.2.4.0.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports**
@@ -128,57 +128,58 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 ---
 
 ### **Phase 5: Testing and Debugging (FEAT Phase 'x' = 5)**
-*Objective: Rigorous testing of the consolidated FSM across all application features and edge cases. Focus on stability, correct state transitions, accurate flag/variable updates, and absence of regressions. (This was originally Phase 4).*
-*   **Overall Phase Status:** `PLANNED`
+*Objective: Rigorous testing of the consolidated FSM across all application features and edge cases. Focus on stability, correct state transitions, accurate flag/variable updates, and absence of regressions.*
+*   **Overall Phase Status:** `IN PROGRESS` (Specific bug fixes up to `v3.2.5.0.C` committed. Further debugging may be required.)
 
-*   **Task v3.2.5.0.z: Comprehensive End-to-End Testing - Scenario 1 (Happy Paths)**
-    *   **Status:** `PLANNED`
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The goal is to verify all primary user flows work correctly with the new single FSM.
-        2.  *Test Plan Execution Guidance:* Test initial app load, successful "Analyze Stock," successful manual AI actions, multiple chat interactions, changing tickers, and all Debug Console/FSM Card functionalities.
-        3.  *Verification Criteria:* Monitor FSM states, flags, variables. Ensure UI elements behave correctly. Verify context data updates.
-        4.  *Code Changes:* Only minor tweaks directly related to FSM behavior identified during this testing. (Each bug fix gets its own '.z' sub-task version).
-    *   **App Metadata:** `v3.2.5.0.z` (update 'z' for each bug fix sub-task).
+*   **Task v3.2.5.0.0: Initial Comprehensive Testing & Introduce "AI Full Stock Analysis" Macro Button**
+    *   **Status:** `COMPLETED` (Commit: `(previous_commit_for_3.2.5.0.0)`, App Version: `v3.2.5.0.0`)
+    *   **Details:** Implemented the "AI Full Stock Analysis" button and associated FSM logic for macro pipeline execution. Initial testing revealed issues with macro progression and logging.
 
-*   **Task v3.2.5.1.z: Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases)**
-    *   **Status:** `PLANNED`
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Verify robust error handling and graceful recovery.
-        2.  *Test Plan Execution Guidance:* Test invalid ticker, simulate API/AI flow failures, rapid clicks, actions with unmet prerequisites, network interruptions (if possible).
-        3.  *Verification Criteria:* FSM transitions to `ERROR_...` states. `variables.lastError` populated. UI shows errors. App recovers gracefully. No crashes/hangs.
-        4.  *Code Changes:* Implement fixes for identified issues. (Each bug fix gets its own '.z' sub-task version).
-    *   **App Metadata:** `v3.2.5.1.z` (update 'z' for each bug fix sub-task).
+*   **Task v3.2.5.0.1 - v3.2.5.0.C: Iterative Bug Fixing for FSM Orchestrator, Macro, Logging & Chat**
+    *   **Status:** `COMPLETED` (Culminating Commit: `2338c4f8`, App Version: `v3.2.5.0.C`)
+    *   **Details:** A series of bug fixes addressing:
+        *   FSM orchestrator not reliably driving automated pipelines or the AI macro.
+        *   AI macro halting, particularly during chat sequences.
+        *   Missing client-side FSM logs.
+        *   Incorrect behavior of the "Reduced Startup Logging" feature.
+        *   Duplicate chat message submissions.
+        *   Genkit prompt re-definition warnings and minor syntax errors in AI flows.
+        *   `lastUpdatedTimestamp` validation issues in `app-metadata.json`.
 
-*   **Task v3.2.5.2.z: Log Review & Final Refinements**
+*   **Task v3.2.5.1.z (Future): Comprehensive End-to-End Testing - Scenario 1 (Happy Paths - Post `v3.2.5.0.C` fixes)**
     *   **Status:** `PLANNED`
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Final check of logs and FSM behavior.
-        2.  *Action:* Review all client/server logs from comprehensive testing.
-        3.  *Identify & Address:* Anomalies, incorrect flag/variable settings, missing/excessive logs. Ensure "Failure Snapshot" is complete.
-        4.  *Considerations:* Are states entered/exited unexpectedly? Flags reset correctly? `lastError` cleared? Subtle race conditions?
-        5.  *Code Changes:* Implement final small tweaks. (Each bug fix gets its own '.z' sub-task version).
-    *   **App Metadata:** `v3.2.5.2.z` (update 'z' for each bug fix sub-task).
+    *   **AI Agent - Chain of Thought & Action:** Verify all primary user flows (standard analysis, full AI macro, manual actions, chat) work correctly. Monitor FSM states, flags, variables.
+    *   **App Metadata:** `v3.2.5.1.z`
+
+*   **Task v3.2.5.2.z (Future): Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases - Post `v3.2.5.0.C` fixes)**
+    *   **Status:** `PLANNED`
+    *   **AI Agent - Chain of Thought & Action:** Test invalid inputs, API/AI failures, rapid interactions. Verify error handling and graceful recovery.
+    *   **App Metadata:** `v3.2.5.2.z`
+
+*   **Task v3.2.5.3.z (Future): Final Log Review & Refinements**
+    *   **Status:** `PLANNED`
+    *   **AI Agent - Chain of Thought & Action:** Review client/server logs from comprehensive testing. Address anomalies, ensure "Failure Snapshot" is complete.
+    *   **App Metadata:** `v3.2.5.3.z`
 
 ---
 
 ### **Phase 6: Documentation Updates (FEAT Phase 'x' = 6)**
-*Objective: Update all project documentation to reflect the fully completed and tested FSM architecture. (This was originally part of Phase 5).*
+*Objective: Update all project documentation to reflect the fully completed and tested FSM architecture.*
 *   **Overall Phase Status:** `PLANNED`
 
 *   **Task v3.2.6.0.0: Update All Project Documentation (README.md, CHANGELOG.md, FEAT docs)**
     *   **Status:** `PLANNED`
-    *   **File(s):** `README.md`, `CHANGELOG.md`, `docs/FEAT_SCOPE_FsmConsolidation_v3.2.md`, `docs/FEAT_STATUS_FsmConsolidation_v3.2.md`.
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* All documentation must reflect the new single FSM architecture and feature completion.
-        2.  *`README.md` Update:* Rewrite/update State Management, FSM architecture, component interactions sections. Describe enhanced FSM Debug Card and exports. Update commit procedures (reflecting the new versioning scheme and phase structure).
+        2.  *`README.md` Update:* Rewrite/update State Management, FSM architecture, component interactions sections. Describe enhanced FSM Debug Card and exports. Update commit procedures.
         3.  *`CHANGELOG.md` Update:* Add consolidated entry for `v3.2.x.y.z` feature completion.
         4.  *`FEAT_STATUS_FsmConsolidation_v3.2.md` Update:* Mark feature and all phases/tasks as `COMPLETED`. Add final commit details for the entire feature.
         5.  *`FEAT_SCOPE_FsmConsolidation_v3.2.md` Update:* Mark as `COMPLETED`. Ensure "Implementation Plan" reflects tasks undertaken and the final phase structure.
-    *   **Testability:** Review all updated documents for accuracy and clarity.
-    *   **App Metadata:** (Typically no code change here, version reflects last coding task of Phase 5 or a dedicated documentation version bump if desired).
+    *   **App Metadata:** (No code change here, version reflects last coding task of Phase 5 or a dedicated documentation version bump).
 
 ## 7. Document Changelog
 
+*   **v1.16 (2025-06-20):** Updated Phase 5 status to `IN PROGRESS`. Marked tasks `v3.2.5.0.0` through `v3.2.5.0.C` (commit `2338c4f8`) as `COMPLETED`, summarizing the iterative bug fixes for FSM orchestrator, macro, logging, and chat. App Version `v3.2.5.0.C`.
 *   **v1.15 (2025-06-21):** Marked Phase 4 (Tasks v3.2.4.0.0, v3.2.4.1.0) as `COMPLETED`. Phase Commit `c661f9d1`. App Version `v3.2.4.1.0`.
 *   **v1.14 (2025-06-21):** Marked Task v3.2.4.1.0 as `COMPLETED`. Commit `d8686c74`. App Version `v3.2.4.1.0`.
 *   **v1.13 (2025-06-21):** Marked Task v3.2.4.0.0 as `COMPLETED`. Re-ordered phases: Phase 4 is "Clean Up & Finalize Debugging Tools", Phase 5 is "Testing and Debugging", Phase 6 is "Documentation Updates". Phase 4 status to `IN PROGRESS`.
