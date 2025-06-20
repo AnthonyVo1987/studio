@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -9,6 +8,7 @@ import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
+import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
 import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context";
 import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-debug-card";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
@@ -90,15 +90,19 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </div>
         </div>
         <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="main">Main</TabsTrigger>
             <TabsTrigger value="debug">Debug</TabsTrigger>
+            <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
             <MainTabContent /> 
           </TabsContent>
           <TabsContent value="debug">
             <DebugTabContent />
+          </TabsContent>
+          <TabsContent value="fsm-debug">
+            <FsmDebugTabContent />
           </TabsContent>
         </Tabs>
       </main>
