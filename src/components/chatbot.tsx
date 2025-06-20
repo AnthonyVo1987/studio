@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
@@ -26,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { copyToClipboard, downloadJson } from '@/lib/export-utils';
-import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context';
+import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context'; // Local FSM context retained for UI input
 
 interface ChatbotProps {
   isAnyAnalysisInProgress: boolean; 
@@ -41,20 +42,20 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
     logDebug: globalLogDebug,
-    fsmState: globalFsmState, 
+    fsmState: globalFsmState, // To know if chat is globally pending
   } = useStockAnalysis();
 
   const {
-    fsmState: chatbotFsmState, 
+    fsmState: chatbotFsmState, // Local FSM state for UI input handling
     userInput: fsmUserInput,
     dispatchChatbotFsmEvent,
   } = useChatbotFsm();
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const logDebug = globalLogDebug;
+  const logDebug = globalLogDebug; // Use global logDebug
 
-  logDebug('Chatbot', 'Render', `GlobalFSM State: ${globalFsmState}, LocalChatbotFSM State: ${chatbotFsmState}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+  logDebug('Chatbot', 'Render', `GlobalFSMState: ${globalFsmState}, LocalChatbotFSM_UIState: ${chatbotFsmState}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -64,53 +65,53 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
 
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    logDebug('Chatbot', 'handleFormSubmit', `Submit requested. GlobalFSM State: ${globalFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
-    // isAnyAnalysisInProgress already covers globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING
-    if (!fsmUserInput.trim() || isAnyAnalysisInProgress) {
-      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty or analysis/chat is in progress.');
+    logDebug('Chatbot', 'UserAction_Submit', `GlobalFSM: ${globalFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+    if (!fsmUserInput.trim() || isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING) {
+      logDebug('Chatbot', 'UserAction_Submit_Prevented', 'Input empty or analysis/chat is globally in progress.');
       return;
     }
+    // Dispatch to local FSM, which then triggers global FSM event
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   }, [fsmUserInput, globalFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
 
   const handleExamplePromptClick = (promptTemplate: string) => {
-    // isAnyAnalysisInProgress already covers globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING
-    if (isAnyAnalysisInProgress) return;
+    if (isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING) return;
     
     const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
-    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Dispatching USER_INPUT_CHANGED then SUBMIT_MESSAGE_REQUESTED to local FSM.`);
+    logDebug('Chatbot', 'UserAction_ExamplePrompt', `Prompt set to: "${filledPrompt}". Dispatching to local FSM then global.`);
         
     dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
+    // The SUBMIT_MESSAGE_REQUESTED event to local FSM will trigger the global FSM dispatch
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   };
 
   const handleCopyChat = async () => {
     if (globalChatHistory.length === 0) {
-        logDebug('Chatbot', 'CopyChat', 'No history to copy.');
+        logDebug('Chatbot', 'UserAction_CopyChat', 'No history to copy.');
         return;
     }
     const success = await copyToClipboard(JSON.stringify(globalChatHistory, null, 2));
     toast({ title: success ? 'Chat Copied' : 'Copy Failed', description: success ? 'Chat history copied as JSON.' : 'Could not copy chat history.'});
-    logDebug('Chatbot', 'CopyChat', success ? 'Success.' : 'Failed.');
+    logDebug('Chatbot', 'UserAction_CopyChat_Result', success ? 'Success.' : 'Failed.');
   };
 
   const handleExportChat = () => {
     if (globalChatHistory.length === 0) {
-        logDebug('Chatbot', 'ExportChat', 'No history to export.');
+        logDebug('Chatbot', 'UserAction_ExportChat', 'No history to export.');
         return;
     }
     try {
       downloadJson(globalChatHistory, `${currentTickerForDisplay || 'stocksage'}_chat_history.json`);
       toast({ title: 'Chat Exported', description: 'Chat history downloaded as JSON.' });
-      logDebug('Chatbot', 'ExportChat', 'Success.');
+      logDebug('Chatbot', 'UserAction_ExportChat_Result', 'Success.');
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export chat history.' });
-      logDebug('Chatbot', 'ExportChat', 'Error:', error);
+      logDebug('Chatbot', 'UserAction_ExportChat_Result', 'Error:', error);
     }
   };
 
-  // Simplified: isAnyAnalysisInProgress prop is now the single source of truth for disabling UI.
-  const isProcessing = isAnyAnalysisInProgress;
+  // isProcessing is now solely determined by the prop from MainTabContent, which reflects global FSM state
+  const isProcessing = isAnyAnalysisInProgress; 
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -175,7 +176,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
                 </ReactMarkdown>
               </div>
             ))}
-            {isProcessing && globalChatHistory.length > 0 && globalChatHistory[globalChatHistory.length-1].role === 'user' && (
+            {isProcessing && globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING && globalChatHistory.length > 0 && globalChatHistory[globalChatHistory.length-1].role === 'user' && (
                  <div className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> 
                     <div className="flex items-center space-x-2">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -193,7 +194,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
               variant="outline"
               size="sm"
               onClick={() => handleExamplePromptClick(p.promptTemplate)}
-              disabled={isProcessing}
+              disabled={isProcessing} // This now correctly reflects overall pending state
               className="text-xs px-2 py-1 h-auto"
             >
               <HelpCircle className="mr-1.5 h-3 w-3" />
@@ -207,12 +208,12 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             value={fsmUserInput}
             onChange={(e) => dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: e.target.value })}
             placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`}
-            disabled={isProcessing}
+            disabled={isProcessing} // This now correctly reflects overall pending state
             className="flex-grow"
             onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}}
           />
           <Button type="submit" disabled={isProcessing || !fsmUserInput.trim()}>
-            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isProcessing && globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
         </form>

@@ -9,7 +9,7 @@ import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
-import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context"; // Removed DebugConsoleFsmMenuState
 import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-debug-card";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
@@ -28,22 +28,17 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     setFsmDebugCardEnabled,
     isFsmDebugCardOpen,
     logDebug,
-    setMainTabFsmDisplay, 
+    // Removed: setMainTabFsmDisplay - No longer used by FsmStateDebugCard directly
+    // No need for local FSM state reporting from MainTabContent to PageContent anymore
   } = useStockAnalysis();
 
-  // These local states are primarily for MainTabContent to report its local FSM state up.
-  // The FsmStateDebugCard will no longer directly use these props from PageContent.
-  const [mainTabFsmPreviousState, setMainTabFsmPreviousState] = useState<string | null>(null);
-  const [mainTabFsmCurrentState, setMainTabFsmCurrentState] = useState<string>('IDLE');
-  const [mainTabFsmTargetState, setMainTabFsmTargetState] = useState<string | null>(null);
-
   const handleDebugConsoleToggle = (checked: boolean) => {
-    logDebug('PageContent', `Main debug console switch toggled by user to: ${checked}`);
+    logDebug('PageContent', 'UserAction_DebugConsoleToggle', `Main debug console switch toggled by user to: ${checked}`);
     setClientDebugConsoleEnabled(checked);
   };
 
   const handleFsmDebugCardToggle = (checked: boolean) => {
-    logDebug('PageContent', `FSM debug card switch toggled by user to: ${checked}`);
+    logDebug('PageContent', 'UserAction_FsmDebugCardToggle', `FSM debug card switch toggled by user to: ${checked}`);
     setFsmDebugCardEnabled(checked);
   };
 
@@ -68,11 +63,9 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     }
     return `${padding}px`;
   };
-
-  const updateMainTabFsmDisplayInGlobalContext = (display: FsmDisplayTuple | null) => {
-    setMainTabFsmDisplay(display); 
-  };
-
+  
+  // Removed setMainTabFsmDisplay and related state variables from PageContent
+  // FsmStateDebugCard now gets all global FSM data directly from useStockAnalysis()
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -107,12 +100,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
             <TabsTrigger value="debug">Debug</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
-            <MainTabContent
-              setMainTabFsmPreviousState={setMainTabFsmPreviousState}
-              setMainTabFsmCurrentState={setMainTabFsmCurrentState}
-              setMainTabFsmTargetState={setMainTabFsmTargetState}
-              setMainTabFsmDisplayState={updateMainTabFsmDisplayInGlobalContext}
-            />
+            <MainTabContent /> 
           </TabsContent>
           <TabsContent value="debug">
             <DebugTabContent />
@@ -125,5 +113,3 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     </div>
   );
 }
-
-    

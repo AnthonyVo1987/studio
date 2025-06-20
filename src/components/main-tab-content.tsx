@@ -18,7 +18,7 @@ import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot } from "@/components/chatbot";
-import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
+import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context"; // Retain for now for local chat UI FSM
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
@@ -45,16 +45,14 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson,
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson,
-    // Removed: setChatbotRequestJson, setChatbotResponseJson as global FSM handles these now
     logDebug,
     fsmState: globalFsmStateFromContext,
     fsmVariables: globalFsmVariables,
     fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent,
     chatHistory: contextChatHistory, 
-    addChatMessage: addChatMessageToGlobalContext, // Still needed by global FSM
-    setChatbotFsmDisplay, // For ChatbotFsmProvider to report its state
-    // No need to pass down setMainTabFsmDisplay from here.
+    setChatbotFsmDisplay, 
+    // Removed setMainTabFsmDisplay - no longer needed as it's not a separate FSM being debugged here
   } = useStockAnalysis();
 
   const contextChatHistoryRef = useRef<ChatMessage[]>([]);
@@ -65,10 +63,8 @@ export function MainTabContent() {
   const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
-    const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect_v3221';
-    // This effect remains the same as it handles guards for manual AI actions.
-    // No changes needed for chat integration here.
-    logDebug(logPrefixEff as LogSourceId, 'ENTRY', `Global: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, Guard: ${JSON.stringify(globalDispatchGuardRef.current)}`);
+    const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect';
+    logDebug(logPrefixEff as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, GuardRef: ${JSON.stringify(globalDispatchGuardRef.current)}`);
   
     const activeTickerForGuardReset = globalFsmVariables.activeTicker; 
   
@@ -76,7 +72,7 @@ export function MainTabContent() {
     if (guardKeyForManualKT && globalDispatchGuardRef.current[guardKeyForManualKT] &&
         (globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)
     ) {
-      logDebug(logPrefixEff as LogSourceId, 'ResettingGuard_ManualKTDoneOrIdle', `Resetting guard: ${guardKeyForManualKT}. FSM state: ${globalFsmStateFromContext}`);
+      logDebug(logPrefixEff as LogSourceId, 'GuardReset', `Resetting guard for KT: ${guardKeyForManualKT}. FSM state: ${globalFsmStateFromContext}`);
       globalDispatchGuardRef.current[guardKeyForManualKT] = false;
     }
   
@@ -84,15 +80,11 @@ export function MainTabContent() {
     if (guardKeyForManualOpt && globalDispatchGuardRef.current[guardKeyForManualOpt] &&
         (globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)
     ) {
-      logDebug(logPrefixEff as LogSourceId, 'ResettingGuard_ManualOptDoneOrIdle', `Resetting guard: ${guardKeyForManualOpt}. FSM state: ${globalFsmStateFromContext}`);
+      logDebug(logPrefixEff as LogSourceId, 'GuardReset', `Resetting guard for Options: ${guardKeyForManualOpt}. FSM state: ${globalFsmStateFromContext}`);
       globalDispatchGuardRef.current[guardKeyForManualOpt] = false;
     }
   
-  }, [
-    globalFsmStateFromContext,
-    globalFsmVariables.activeTicker,
-    logDebug,
-  ]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, logDebug]);
 
 
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(
@@ -100,22 +92,17 @@ export function MainTabContent() {
     initialLocalChatActionState
   );
 
-  // Effect to dispatch results of chatServerAction to Global FSM
   useEffect(() => {
-    const logPrefix = 'MainTabContent:ChatActionStateEffect_v3230';
-    if (chatActionState.status === 'idle') return; // Ignore initial state
+    const logPrefix = 'MainTabContent:ChatActionStateEffect';
+    if (chatActionState.status === 'idle') return; 
 
-    // Only process if the global FSM *was* in CHAT_MESSAGE_PENDING, implying this action result is relevant
-    // This check might need refinement if MainTabContent doesn't have access to *previous* global FSM state.
-    // For now, we assume if this effect fires, it's because chatFormAction was called.
-
-    logDebug(logPrefix as LogSourceId, 'ChatActionStateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
+    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
 
     if (chatActionState.status === 'success' && chatActionState.data) {
-      logDebug(logPrefix as LogSourceId, 'Dispatching_CHAT_MESSAGE_ACTION_SUCCESS', 'Dispatching to Global FSM.');
+      logDebug(logPrefix as LogSourceId, 'GlobalDispatch', 'Dispatching CHAT_MESSAGE_ACTION_SUCCESS to Global FSM.');
       dispatchGlobalFsmEvent({ type: 'CHAT_MESSAGE_ACTION_SUCCESS', payload: chatActionState.data });
     } else if (chatActionState.status === 'error') {
-      logDebug(logPrefix as LogSourceId, 'Dispatching_CHAT_MESSAGE_ACTION_ERROR', `Error: ${chatActionState.error}. Dispatching to Global FSM.`);
+      logDebug(logPrefix as LogSourceId, 'GlobalDispatch', `Dispatching CHAT_MESSAGE_ACTION_ERROR to Global FSM. Error: ${chatActionState.error}`);
       dispatchGlobalFsmEvent({
         type: 'CHAT_MESSAGE_ACTION_ERROR',
         payload: {
@@ -128,35 +115,26 @@ export function MainTabContent() {
     }
   }, [chatActionState, dispatchGlobalFsmEvent, logDebug]);
 
-  // Effect to trigger chatFormAction when Global FSM indicates a pending chat submission
   useEffect(() => {
-    const logPrefix = 'MainTabContent:GlobalFsmChatTriggerEffect_v3230';
+    const logPrefix = 'MainTabContent:GlobalFsmChatTriggerEffect';
     if (
       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING &&
       globalFsmVariables.pendingChatSubmissionPayload &&
-      !isChatPending // Ensure local action state is not already pending
+      !isChatPending 
     ) {
-      logDebug(logPrefix as LogSourceId, 'TriggeringChatServerAction', 'Global FSM is CHAT_MESSAGE_PENDING with payload. Calling chatFormAction.');
-      // Use startTransition if chatFormAction updates state that affects rendering outside this immediate flow
+      logDebug(logPrefix as LogSourceId, 'ActionTrigger', 'Global FSM is CHAT_MESSAGE_PENDING with payload. Calling chatFormAction.');
       startTransition(() => {
         chatFormAction(globalFsmVariables.pendingChatSubmissionPayload!);
       });
-      // Notify global FSM that the pending payload has been actioned
       dispatchGlobalFsmEvent({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
     }
-  }, [
-    globalFsmStateFromContext,
-    globalFsmVariables.pendingChatSubmissionPayload,
-    isChatPending,
-    chatFormAction,
-    dispatchGlobalFsmEvent,
-    logDebug
-  ]);
+  }, [globalFsmStateFromContext, globalFsmVariables.pendingChatSubmissionPayload, isChatPending, chatFormAction, dispatchGlobalFsmEvent, logDebug]);
 
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTicker = e.target.value.toUpperCase();
     setTickerInput(newTicker);
+    // No local FSM dispatch needed for input change related to global FSM
   };
 
   const handleAnalyzeStockSubmit = (e?: FormEvent<HTMLFormElement>) => {
@@ -165,7 +143,7 @@ export function MainTabContent() {
       toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
       return;
     }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_AnalyzeStock_CLICKED', `Button clicked for ${tickerInput}. Dispatching START_FULL_ANALYSIS to global FSM.`);
+    logDebug('MainTabContent' as LogSourceId, 'UserAction', `Analyze Stock CLICKED for ${tickerInput}. Dispatching START_FULL_ANALYSIS to global FSM.`);
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
   };
 
@@ -173,15 +151,16 @@ export function MainTabContent() {
     const currentActiveTicker = globalFsmVariables.activeTicker;
     if (!currentActiveTicker) {
       toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
+      logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', 'Prevented: No active ticker.');
       return;
     }
     const guardKey = `TRIGGER_MANUAL_KEY_TAKEAWAYS_FOR_${currentActiveTicker}`;
     if (globalDispatchGuardRef.current[guardKey]) {
-      logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT_BlockedByGuard', `KT generation for ${currentActiveTicker} blocked by dispatch guard.`);
+      logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', `Blocked by dispatch guard for ${currentActiveTicker}.`);
       toast({ title: "Processing...", description: "Key Takeaways generation already in progress or recently completed.", variant: "default" });
       return;
     }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT_CLICKED', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS.`);
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS to global FSM.`);
     globalDispatchGuardRef.current[guardKey] = true;
     dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: currentActiveTicker } });
   };
@@ -190,15 +169,16 @@ export function MainTabContent() {
     const currentActiveTicker = globalFsmVariables.activeTicker;
      if (!currentActiveTicker) {
       toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
+      logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', 'Prevented: No active ticker.');
       return;
     }
     const guardKey = `TRIGGER_MANUAL_OPTIONS_ANALYSIS_FOR_${currentActiveTicker}`;
     if (globalDispatchGuardRef.current[guardKey]) {
-        logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt_BlockedByGuard', `Options Analysis generation for ${currentActiveTicker} blocked by dispatch guard.`);
+        logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', `Blocked by dispatch guard for ${currentActiveTicker}.`);
         toast({ title: "Processing...", description: "Options Analysis generation already in progress or recently completed.", variant: "default" });
         return;
     }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt_CLICKED', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS.`);
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM.`);
     globalDispatchGuardRef.current[guardKey] = true;
     dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: currentActiveTicker } });
   };
@@ -227,22 +207,21 @@ export function MainTabContent() {
     GlobalFsmState.KEY_TAKEAWAYS_FAILED,
     GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED,
     GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
-    GlobalFsmState.CHAT_MESSAGE_SUCCESS, // Chat done
-    GlobalFsmState.CHAT_MESSAGE_ERROR,   // Chat failed
+    GlobalFsmState.CHAT_MESSAGE_SUCCESS, 
+    GlobalFsmState.CHAT_MESSAGE_ERROR,   
     GlobalFsmState.ERROR_STALE_DATA,
     GlobalFsmState.DATA_FETCH_FAILED,
     GlobalFsmState.AI_TA_CALCULATION_FAILED,
   ].includes(globalFsmStateFromContext);
 
-  // Updated: isChatPending (from useActionState) now also considered for overall pending state
-  const isChatActionHookPending = isChatPending; // from useActionState for chatServerAction
+  const isChatActionHookPending = isChatPending; 
   const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING;
   const isOverallAnalysisPending = isGlobalPipelineActive || isChatActionHookPending || isGlobalChatFsmPending;
 
 
   useEffect(() => {
-    const logPrefixDC = 'MainTabContent:ButtonStateEffect_v3221';
-    logDebug(logPrefixDC as LogSourceId, 'ButtonStateEffect_Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${tickerInput}`);
+    const logPrefixButtonState = 'MainTabContent:ButtonStateEffect';
+    logDebug(logPrefixButtonState as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${tickerInput}`);
 
     const manualActionsPossibleOverall = 
       (globalFsmStateFromContext === GlobalFsmState.IDLE ||
@@ -252,44 +231,47 @@ export function MainTabContent() {
        globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
        globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || 
        globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
-       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || // Can trigger manual AI after chat
-       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR   // Can trigger manual AI after chat
+       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || 
+       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR   
       ) &&
       !!globalFsmVariables.activeTicker && 
       globalFsmVariables.activeTicker === tickerInput; 
 
-    logDebug(logPrefixDC as LogSourceId, 'ButtonStateChecks', `manualActionsPossibleOverall: ${manualActionsPossibleOverall}, isGlobalPipelineActive: ${isGlobalPipelineActive}`);
+    logDebug(logPrefixButtonState as LogSourceId, 'Check', `ManualActionsPossibleOverall: ${manualActionsPossibleOverall}, IsGlobalPipelineActive: ${isGlobalPipelineActive}`);
     
-    // Key Takeaways Button Logic
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'KT_Snapshot');
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixDC as LogSourceId, 'KT_StdTA');
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixDC as LogSourceId, 'KT_AiAnalyzedTA');
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixDC as LogSourceId, 'KT_MarketStatus');
+    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_Snapshot');
+    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_StdTA');
+    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_AiAnalyzedTA');
+    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_MarketStatus');
     const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
     
     const shouldKtButtonBeEnabled = manualActionsPossibleOverall && 
                                     !keyTakeawaysButtonLoading && 
                                     !analyzeButtonLoading && 
-                                    !isGlobalPipelineActive && // Existing check
-                                    !isGlobalChatFsmPending && // New: Don't allow if chat is pending
+                                    !isGlobalPipelineActive && 
+                                    !isGlobalChatFsmPending && 
                                     ktPrereqsMet;
     
-    logDebug(logPrefixDC as LogSourceId, 'KTButtonChecks', `ktPrereqsMet: ${ktPrereqsMet}, keyTakeawaysButtonLoading: ${keyTakeawaysButtonLoading}, analyzeButtonLoading: ${analyzeButtonLoading}, isGlobalChatFsmPending: ${isGlobalChatFsmPending}, shouldKtBeEnabled: ${shouldKtButtonBeEnabled}`);
+    logDebug(logPrefixButtonState as LogSourceId, 'KT_ButtonLogic', `ktPrereqsMet: ${ktPrereqsMet}, ktLoading: ${keyTakeawaysButtonLoading}, analyzeLoading: ${analyzeButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldKtButtonBeEnabled}`);
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
 
-    // Options Analysis Button Logic
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Snapshot');
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Chain');
+    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixButtonState as LogSourceId, 'Opt_Snapshot');
+    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixButtonState as LogSourceId, 'Opt_Chain');
     const optPrereqsMet = optSnapshotReady && optChainReady;
 
     const shouldOptButtonBeEnabled = manualActionsPossibleOverall && 
                                      !optionsAnalysisButtonLoading && 
                                      !analyzeButtonLoading && 
-                                     !isGlobalPipelineActive && // Existing check
-                                     !isGlobalChatFsmPending && // New: Don't allow if chat is pending
+                                     !isGlobalPipelineActive && 
+                                     !isGlobalChatFsmPending && 
                                      optPrereqsMet;
-    logDebug(logPrefixDC as LogSourceId, 'OptButtonChecks', `optPrereqsMet: ${optPrereqsMet}, optionsAnalysisButtonLoading: ${optionsAnalysisButtonLoading}, isGlobalChatFsmPending: ${isGlobalChatFsmPending}, shouldOptBeEnabled: ${shouldOptButtonBeEnabled}`);
+    logDebug(logPrefixButtonState as LogSourceId, 'Opt_ButtonLogic', `optPrereqsMet: ${optPrereqsMet}, optLoading: ${optionsAnalysisButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldOptButtonBeEnabled}`);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
+
+    // Log active ticker for verification against FSM
+    if (globalFsmVariables.activeTicker) {
+        logDebug(logPrefixButtonState as LogSourceId, 'ActiveAnalysisTickerInfo', `Current active analysis ticker in global FSM: ${globalFsmVariables.activeTicker}`);
+    }
 
   }, [
       globalFsmStateFromContext, globalFsmVariables.activeTicker, tickerInput,
@@ -307,13 +289,13 @@ export function MainTabContent() {
       aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'),
     };
 
-    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'CombinedExportCheck' as LogSourceId, 'AiKeyTakeaways')) {
+    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_AiKeyTakeaways')) {
       baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}');
     }
-    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'CombinedExportCheck' as LogSourceId, 'AiOptionsAnalysis')) {
+    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_AiOptionsAnalysis')) {
       baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}');
     }
-    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'CombinedExportCheck' as LogSourceId, 'OptionsChain')) {
+    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_OptionsChain')) {
       baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}');
     }
     return baseData;
@@ -325,22 +307,22 @@ export function MainTabContent() {
     ]);
 
   const isBaseDataReadyForCombinedExport =
-    isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'ExportCheck' as LogSourceId, 'MarketStatus') &&
-    isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'ExportCheck' as LogSourceId, 'StockSnapshot') &&
-    isDataReadyForProcessing(contextStandardTasJson, logDebug, 'ExportCheck' as LogSourceId, 'StandardTAs') &&
-    isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'ExportCheck' as LogSourceId, 'AiAnalyzedTA');
+    isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_MarketStatus') &&
+    isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_StockSnapshot') &&
+    isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_StandardTAs') &&
+    isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_AiAnalyzedTA');
 
   const combinedExportButtonsDisabled =
     !isBaseDataReadyForCombinedExport ||
     analyzeButtonLoading ||
     keyTakeawaysButtonLoading ||
     optionsAnalysisButtonLoading ||
-    isGlobalPipelineActive || // Existing
-    isGlobalChatFsmPending; // New: Disable export if chat is pending
+    isGlobalPipelineActive || 
+    isGlobalChatFsmPending; 
 
 
   const handleExportAllToJson = useCallback(async () => {
-    logDebug('MainTabContent' as LogSourceId, 'Export_All', 'Export All to JSON clicked.');
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_ExportAll', 'Export All to JSON clicked.');
     if (!isBaseDataReadyForCombinedExport) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Core data sections are not available for export.' });
       return;
@@ -356,7 +338,7 @@ export function MainTabContent() {
   }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
 
   const handleCopyAllToJson = useCallback(async () => {
-    logDebug('MainTabContent' as LogSourceId, 'Copy_All', 'Copy All to JSON clicked.');
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_CopyAll', 'Copy All to JSON clicked.');
      if (!isBaseDataReadyForCombinedExport) {
       toast({ variant: 'destructive', title: 'Copy Failed', description: 'Core data sections are not available for copy.' });
       return;
@@ -474,18 +456,16 @@ export function MainTabContent() {
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider
-            // Removed: chatFormAction, addChatMessageToGlobalContext
-            // Global FSM handles these now. ChatbotFsmProvider will use dispatchGlobalFsmEvent
-            dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} // Pass this down
+            dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
             currentTicker={globalFsmVariables.activeTicker || tickerInput}
             stockSnapshotJson={contextStockSnapshotJson || '{}'}
             aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'}
             aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'}
             aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'}
-            currentGlobalChatHistory={contextChatHistory} // For context, if ChatbotFsm needs it for SUBMIT_CHAT_MESSAGE
+            currentGlobalChatHistory={contextChatHistory} 
             logDebug={logDebug}
-            setChatbotFsmDisplayState={setChatbotFsmDisplay}
-            isGlobalChatPending={isGlobalChatFsmPending} // Pass global pending state
+            setChatbotFsmDisplayState={setChatbotFsmDisplay} // Retain for local FSM display tuple
+            isGlobalChatPending={isGlobalChatFsmPending} 
           >
             <Chatbot
               isAnyAnalysisInProgress={isOverallAnalysisPending}
@@ -498,4 +478,3 @@ export function MainTabContent() {
     </Card>
   );
 }
-
