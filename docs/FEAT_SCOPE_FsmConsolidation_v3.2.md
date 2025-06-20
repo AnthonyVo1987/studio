@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.7
+**Document Version:** 1.8
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** IN PROGRESS
@@ -95,33 +95,15 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ### **Phase 2: Integrating Manual AI Actions (FEAT Phase 'x' = 2)**
 *Objective: Migrate the "Generate AI Key Takeaways" and "Generate AI Options Analysis" buttons to use the single FSM.*
+*   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.2.1.0`, Phase Commit `0a0ba41c`)
 
 *   **Task v3.2.2.0.0: Integrate "Generate AI Key Takeaways" Button**
     *   **Status:** `COMPLETED` (Commit: `55fcc0c2`)
-    *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* Manual Key Takeaways should only be possible after a successful automated pipeline for the `variables.activeTicker`.
-        2.  *`MainTabContent.tsx` Button Logic:*
-            *   Disable state derived from `fsmState.current` (e.g., must be `IDLE` or `PIPELINE_AUTOMATED_COMPLETE`), `fsmFlags.isKeyTakeawaysDataAvailable` (to prevent re-generation if already present, or handle it), `fsmFlags.isSnapshotDataReady`, `fsmFlags.isStandardTADataReady`, `fsmFlags.isCalculatedTADataReady`, and whether global pipeline is busy.
-            *   `onClick`: Dispatch `TRIGGER_MANUAL_KEY_TAKEAWAYS` event (payload: `{ ticker: fsmVariables.activeTicker }`).
-        3.  *`StockAnalysisContext.tsx` (Reducer & Orchestration):*
-            *   Reducer handles `TRIGGER_MANUAL_KEY_TAKEAWAYS`: Set relevant AI Key Takeaways JSONs to pending. Transition to `GENERATING_KEY_TAKEAWAYS`.
-            *   Orchestrator `useEffect` triggers `performAiAnalysisAction` when in `GENERATING_KEY_TAKEAWAYS`.
-            *   `useEffect` for `performAiAnalysisActionState` handles result: Update `aiKeyTakeawaysJson`, set `flags.isKeyTakeawaysDataAvailable`, `variables.lastError`. Dispatch `KEY_TAKEAWAYS_SUCCESS` or `KEY_TAKEAWAYS_FAILURE`.
-            *   Reducer handles `KEY_TAKEAWAYS_SUCCESS` / `KEY_TAKEAWAYS_FAILURE`: Transition to a terminal state for this manual action (e.g., `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`).
-            *   Orchestrator handles these terminal states by dispatching `PROCEED_TO_IDLE` to return to an idle state.
-    *   **Testability:** Button enables/disables correctly. Key takeaways are generated. FSM transitions correctly.
     *   **App Metadata:** `v3.2.2.0.0`.
 
 *   **Task v3.2.2.1.0: Integrate "Generate AI Options Analysis" Button**
-    *   **Status:** `PLANNED`
-    *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
-    *   **AI Agent - Chain of Thought & Action:** Similar to Key Takeaways:
-        1.  Button logic based on global FSM state, flags (`isOptionsAnalysisDataAvailable`, `isOptionsChainDataReady`, `isSnapshotDataReady`).
-        2.  `onClick` dispatches `TRIGGER_MANUAL_OPTIONS_ANALYSIS`.
-        3.  Global FSM: Reducer transitions to `ANALYZING_OPTIONS`. Orchestrator calls `performAiOptionsAnalysisAction`. Action result handler dispatches success/failure. Reducer transitions to terminal state. Orchestrator returns to `IDLE`.
-    *   **Testability:** Button enables/disables correctly. Options analysis generated. FSM transitions.
-    *   **App Metadata:** Update to `v3.2.2.1.0`.
+    *   **Status:** `COMPLETED` (Commit: `0a0ba41c`)
+    *   **App Metadata:** `v3.2.2.1.0`.
 
 ---
 
@@ -216,6 +198,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.8 (2025-06-21):** Marked Phase 2 (Tasks v3.2.2.0.0 & v3.2.2.1.0) as `COMPLETED`. App Version `v3.2.2.1.0`, Commit `0a0ba41c`.
 *   **v1.7 (2025-06-21):** Updated Task v3.2.2.0.0 status to `COMPLETED` (Commit: `55fcc0c2`). App Version `v3.2.2.0.0`.
 *   **v1.6 (2025-06-20):** Marked Phase 1 (Tasks v3.2.1.0.0 - v3.2.1.3.0) as `COMPLETED`. Updated with Phase 1 commit hash `57c7e8b0` and app version `v3.2.1.3.0`.
 *   **v1.5 (2025-06-20):** Updated Task v3.2.1.3.0 status to `COMPLETED` (Commit: `2f0acd35`).

@@ -58,6 +58,31 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.2.1.0` (Complete FSM Consolidation Phase 2)
+**Tag:** `Phase-13_Task-3.2.2.1.0_FSM_Consolidation_Phase2_Complete` (Illustrative Tag for Phase Completion)
+**Commit Hash:** `0a0ba41c` (as provided by user for overall Phase 2 completion)
+**Subject:** `feat(fsm): Complete Phase 2 of FSM Consolidation - Manual AI Actions (v3.2.2.1.0)`
+**Details:**
+This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated the manual "Generate AI Key Takeaways" and "Generate AI Options Analysis" functionalities to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
+
+**Key Changes in Phase 2 (Tasks v3.2.2.0.0 through v3.2.2.1.0):**
+*   **Integrated "Generate AI Key Takeaways" Button (Task v3.2.2.0.0 - Commit `55fcc0c2`):**
+    *   The "Generate AI Key Takeaways" button's state (enabled/disabled) and action are now driven by the global FSM.
+    *   Clicking the button dispatches `TRIGGER_MANUAL_KEY_TAKEAWAYS` to the global FSM, which orchestrates the call to `performAiAnalysisAction`.
+    *   The FSM manages states like `GENERATING_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCEEDED` / `KEY_TAKEAWAYS_FAILED`, and updates `flags.isKeyTakeawaysDataAvailable`.
+*   **Integrated "Generate AI Options Analysis" Button (Task v3.2.2.1.0 - Commit `0a0ba41c`):**
+    *   The "Generate AI Options Analysis" button's state and action are now driven by the global FSM.
+    *   Clicking the button dispatches `TRIGGER_MANUAL_OPTIONS_ANALYSIS` to the global FSM, which orchestrates the call to `performAiOptionsAnalysisAction`.
+    *   The FSM manages states like `ANALYZING_OPTIONS`, `OPTIONS_ANALYSIS_SUCCEEDED` / `OPTIONS_ANALYSIS_FAILED`, and updates `flags.isOptionsAnalysisDataAvailable`.
+    *   The `globalDispatchGuardRef` logic in `MainTabContent.tsx` was refined to correctly manage guards for both manual AI actions, ensuring they can be re-triggered after completion or failure.
+
+**Outcome of Phase 2:**
+*   Both manual AI analysis functionalities (Key Takeaways and Options Analysis) are now fully managed by the single global FSM.
+*   State management for these user-triggered AI actions is centralized, improving UI consistency for button enablement and action feedback.
+*   The application version is now consistently `v3.2.2.1.0`.
+*   The FSM consolidation feature is progressing, with the automated pipeline and manual AI actions now integrated. The next phase will focus on integrating Chat and Debug Console menu states.
+
+---
 **App Version:** `v3.2.1.3.0` (Complete FSM Consolidation Phase 1)
 **Tag:** `Phase-12_Task-3.2.1.3.0_FSM_Consolidation_Phase1_Complete` (Illustrative Tag for Phase Completion)
 **Commit Hash:** `57c7e8b0` (as provided by user for overall Phase 1 completion)
@@ -456,7 +481,7 @@ This version (`v2.9.D.9`) was a focused attempt to confirm if `logDebug` is call
         *   In the `useEffect` hook (log prefix `MainTabContent_FSM:ButtonStateEffect_D9`):
             *   Added `console.log` to check `typeof logDebug`.
             *   Attempted a very simple `logDebug` call immediately after the `console.log` checks.
-            *   Logged key initial state variables (`localFsm.localState`, `activeAnalysisTicker`, `globalFsmStateFromContext`) using `console.log`.
+            *   Logged key initial state variables (`localFsm.localState`, `activeAnalysisTicker`, `currentInputTicker`, `globalFsmStateFromContext`) using `console.log`.
             *   Temporarily commented out ALL other detailed `logDebug` calls from D8 within this `useEffect`.
             *   The dependency array was reviewed and deemed correct for this stage.
     *   Application version updated to `v2.9.D.9`.
