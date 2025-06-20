@@ -1,8 +1,7 @@
 
 "use client";
 
-import type { FormEvent } from 'react';
-import React, { useState, useEffect, useRef, useCallback } from "react"; 
+import React, { useState, useEffect, useRef, useCallback, useActionState, startTransition, type FormEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +24,6 @@ import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { useStockAnalysis, type ChatMessage, GlobalFsmState, type FsmDisplayTuple, type LogSourceId, type FsmEvent } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig } from "lucide-react";
-import { useActionState } from 'react';
 import { chatServerAction, type ChatActionState, type ChatActionInputs, type ChatActionResult } from '@/actions/chat-server-action';
 
 
@@ -50,8 +48,8 @@ export function MainTabContent() {
     fsmVariables: globalFsmVariables,
     fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent,
-    chatHistory: contextChatHistory, 
-    setChatbotFsmDisplay, 
+    chatHistory: contextChatHistory,
+    setChatbotFsmDisplay,
     // Removed setMainTabFsmDisplay - no longer needed as it's not a separate FSM being debugged here
   } = useStockAnalysis();
 
@@ -65,9 +63,9 @@ export function MainTabContent() {
   useEffect(() => {
     const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect';
     logDebug(logPrefixEff as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, GuardRef: ${JSON.stringify(globalDispatchGuardRef.current)}`);
-  
-    const activeTickerForGuardReset = globalFsmVariables.activeTicker; 
-  
+
+    const activeTickerForGuardReset = globalFsmVariables.activeTicker;
+
     const guardKeyForManualKT = activeTickerForGuardReset ? `TRIGGER_MANUAL_KEY_TAKEAWAYS_FOR_${activeTickerForGuardReset}` : null;
     if (guardKeyForManualKT && globalDispatchGuardRef.current[guardKeyForManualKT] &&
         (globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)
@@ -75,7 +73,7 @@ export function MainTabContent() {
       logDebug(logPrefixEff as LogSourceId, 'GuardReset', `Resetting guard for KT: ${guardKeyForManualKT}. FSM state: ${globalFsmStateFromContext}`);
       globalDispatchGuardRef.current[guardKeyForManualKT] = false;
     }
-  
+
     const guardKeyForManualOpt = activeTickerForGuardReset ? `TRIGGER_MANUAL_OPTIONS_ANALYSIS_FOR_${activeTickerForGuardReset}` : null;
     if (guardKeyForManualOpt && globalDispatchGuardRef.current[guardKeyForManualOpt] &&
         (globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)
@@ -83,7 +81,7 @@ export function MainTabContent() {
       logDebug(logPrefixEff as LogSourceId, 'GuardReset', `Resetting guard for Options: ${guardKeyForManualOpt}. FSM state: ${globalFsmStateFromContext}`);
       globalDispatchGuardRef.current[guardKeyForManualOpt] = false;
     }
-  
+
   }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, logDebug]);
 
 
@@ -94,7 +92,7 @@ export function MainTabContent() {
 
   useEffect(() => {
     const logPrefix = 'MainTabContent:ChatActionStateEffect';
-    if (chatActionState.status === 'idle') return; 
+    if (chatActionState.status === 'idle') return;
 
     logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
 
@@ -120,7 +118,7 @@ export function MainTabContent() {
     if (
       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING &&
       globalFsmVariables.pendingChatSubmissionPayload &&
-      !isChatPending 
+      !isChatPending
     ) {
       logDebug(logPrefix as LogSourceId, 'ActionTrigger', 'Global FSM is CHAT_MESSAGE_PENDING with payload. Calling chatFormAction.');
       startTransition(() => {
@@ -184,7 +182,7 @@ export function MainTabContent() {
   };
 
   const analyzeButtonLoading = [
-    GlobalFsmState.APP_INITIALIZING, 
+    GlobalFsmState.APP_INITIALIZING,
     GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH,
     GlobalFsmState.DATA_FETCH_IN_PROGRESS,
     GlobalFsmState.CALCULATING_AI_TA
@@ -197,7 +195,7 @@ export function MainTabContent() {
 
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
-  
+
   const isGlobalPipelineActive = ![
     GlobalFsmState.IDLE,
     GlobalFsmState.AWAITING_TICKER_INPUT,
@@ -207,14 +205,14 @@ export function MainTabContent() {
     GlobalFsmState.KEY_TAKEAWAYS_FAILED,
     GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED,
     GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
-    GlobalFsmState.CHAT_MESSAGE_SUCCESS, 
-    GlobalFsmState.CHAT_MESSAGE_ERROR,   
+    GlobalFsmState.CHAT_MESSAGE_SUCCESS,
+    GlobalFsmState.CHAT_MESSAGE_ERROR,
     GlobalFsmState.ERROR_STALE_DATA,
     GlobalFsmState.DATA_FETCH_FAILED,
     GlobalFsmState.AI_TA_CALCULATION_FAILED,
   ].includes(globalFsmStateFromContext);
 
-  const isChatActionHookPending = isChatPending; 
+  const isChatActionHookPending = isChatPending;
   const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING;
   const isOverallAnalysisPending = isGlobalPipelineActive || isChatActionHookPending || isGlobalChatFsmPending;
 
@@ -223,35 +221,35 @@ export function MainTabContent() {
     const logPrefixButtonState = 'MainTabContent:ButtonStateEffect';
     logDebug(logPrefixButtonState as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${tickerInput}`);
 
-    const manualActionsPossibleOverall = 
+    const manualActionsPossibleOverall =
       (globalFsmStateFromContext === GlobalFsmState.IDLE ||
-       globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || 
+       globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED ||
        globalFsmStateFromContext === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE ||
        globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED ||
        globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
-       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || 
+       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED ||
        globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
-       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || 
-       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR   
+       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS ||
+       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR
       ) &&
-      !!globalFsmVariables.activeTicker && 
-      globalFsmVariables.activeTicker === tickerInput; 
+      !!globalFsmVariables.activeTicker &&
+      globalFsmVariables.activeTicker === tickerInput;
 
     logDebug(logPrefixButtonState as LogSourceId, 'Check', `ManualActionsPossibleOverall: ${manualActionsPossibleOverall}, IsGlobalPipelineActive: ${isGlobalPipelineActive}`);
-    
+
     const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_Snapshot');
     const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_StdTA');
     const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_AiAnalyzedTA');
     const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_MarketStatus');
     const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
-    
-    const shouldKtButtonBeEnabled = manualActionsPossibleOverall && 
-                                    !keyTakeawaysButtonLoading && 
-                                    !analyzeButtonLoading && 
-                                    !isGlobalPipelineActive && 
-                                    !isGlobalChatFsmPending && 
+
+    const shouldKtButtonBeEnabled = manualActionsPossibleOverall &&
+                                    !keyTakeawaysButtonLoading &&
+                                    !analyzeButtonLoading &&
+                                    !isGlobalPipelineActive &&
+                                    !isGlobalChatFsmPending &&
                                     ktPrereqsMet;
-    
+
     logDebug(logPrefixButtonState as LogSourceId, 'KT_ButtonLogic', `ktPrereqsMet: ${ktPrereqsMet}, ktLoading: ${keyTakeawaysButtonLoading}, analyzeLoading: ${analyzeButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldKtButtonBeEnabled}`);
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
 
@@ -259,11 +257,11 @@ export function MainTabContent() {
     const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixButtonState as LogSourceId, 'Opt_Chain');
     const optPrereqsMet = optSnapshotReady && optChainReady;
 
-    const shouldOptButtonBeEnabled = manualActionsPossibleOverall && 
-                                     !optionsAnalysisButtonLoading && 
-                                     !analyzeButtonLoading && 
-                                     !isGlobalPipelineActive && 
-                                     !isGlobalChatFsmPending && 
+    const shouldOptButtonBeEnabled = manualActionsPossibleOverall &&
+                                     !optionsAnalysisButtonLoading &&
+                                     !analyzeButtonLoading &&
+                                     !isGlobalPipelineActive &&
+                                     !isGlobalChatFsmPending &&
                                      optPrereqsMet;
     logDebug(logPrefixButtonState as LogSourceId, 'Opt_ButtonLogic', `optPrereqsMet: ${optPrereqsMet}, optLoading: ${optionsAnalysisButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldOptButtonBeEnabled}`);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
@@ -317,8 +315,8 @@ export function MainTabContent() {
     analyzeButtonLoading ||
     keyTakeawaysButtonLoading ||
     optionsAnalysisButtonLoading ||
-    isGlobalPipelineActive || 
-    isGlobalChatFsmPending; 
+    isGlobalPipelineActive ||
+    isGlobalChatFsmPending;
 
 
   const handleExportAllToJson = useCallback(async () => {
@@ -456,16 +454,16 @@ export function MainTabContent() {
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider
-            dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
+            dispatchGlobalFsmEvent={dispatchGlobalFsmEvent}
             currentTicker={globalFsmVariables.activeTicker || tickerInput}
             stockSnapshotJson={contextStockSnapshotJson || '{}'}
             aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'}
             aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'}
             aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'}
-            currentGlobalChatHistory={contextChatHistory} 
+            currentGlobalChatHistory={contextChatHistory}
             logDebug={logDebug}
             setChatbotFsmDisplayState={setChatbotFsmDisplay} // Retain for local FSM display tuple
-            isGlobalChatPending={isGlobalChatFsmPending} 
+            isGlobalChatPending={isGlobalChatFsmPending}
           >
             <Chatbot
               isAnyAnalysisInProgress={isOverallAnalysisPending}
@@ -478,3 +476,4 @@ export function MainTabContent() {
     </Card>
   );
 }
+
