@@ -15,7 +15,7 @@ export enum ChatbotFsmInternalState {
 // FSM Events for Chatbot UI
 export type ChatbotFsmEvent =
   | { type: 'USER_INPUT_CHANGED'; payload: string }
-  | { type: 'SUBMIT_MESSAGE_REQUESTED' };
+  | { type: 'SUBMIT_MESSAGE_REQUESTED'; payload?: string }; // payload is optional for direct input
 
 interface ChatbotFsmManagedState {
   fsmState: ChatbotFsmInternalState;
@@ -75,33 +75,38 @@ export function ChatbotFsmProvider({
     const previousState = state.fsmState;
     logDebug(componentLogSource, 'LocalFSM_Event', `Event: ${event.type}, CurrentLocalState: ${state.fsmState}`);
     let nextState: ChatbotFsmInternalState = state.fsmState;
+    let nextUserInput = state.userInput;
 
     switch (event.type) {
       case 'USER_INPUT_CHANGED':
         nextState = ChatbotFsmInternalState.PROCESSING_USER_INPUT;
+        nextUserInput = event.payload;
         logDebug(componentLogSource, 'LocalFSM_Transition', `USER_INPUT_CHANGED: To ${nextState}. New input: "${event.payload.substring(0,20)}"`);
         return {
           ...state,
-          userInput: event.payload,
+          userInput: nextUserInput,
           fsmState: nextState,
           previousFsmState: previousState,
         };
       case 'SUBMIT_MESSAGE_REQUESTED':
-        if (!state.userInput.trim()) {
+        // Input for submission is either from payload (example prompt) or current state (manual typing)
+        const inputToSubmit = event.payload || state.userInput;
+        if (!inputToSubmit.trim()) {
           logDebug(componentLogSource, 'LocalFSM_Action', 'SUBMIT_MESSAGE_REQUESTED: User input empty, no change.');
           return { ...state, previousFsmState: previousState };
         }
         // Local FSM resets its input state, global FSM handles submission
         nextState = ChatbotFsmInternalState.IDLE; 
-        logDebug(componentLogSource, 'LocalFSM_Transition', `SUBMIT_MESSAGE_REQUESTED: Input cleared. Transitioning to ${nextState}. Global FSM will handle actual submission.`);
+        nextUserInput = ''; // Clear input field after submission is requested
+        logDebug(componentLogSource, 'LocalFSM_Transition', `SUBMIT_MESSAGE_REQUESTED: Input cleared. Transitioning to ${nextState}. Global FSM will handle actual submission with input: "${inputToSubmit.substring(0,30)}"`);
         return {
           ...state,
-          userInput: '', // Clear input after requesting submission
+          userInput: nextUserInput, 
           fsmState: nextState, 
           previousFsmState: previousState,
         };
       default:
-         logDebug(componentLogSource, 'LocalFSM_UnhandledEvent', `Unhandled event type: ${event.type}`);
+         logDebug(componentLogSource, 'LocalFSM_UnhandledEvent', `Unhandled event type: ${(event as any).type}`);
         return { ...state, previousFsmState: previousState };
     }
   };
@@ -115,7 +120,6 @@ export function ChatbotFsmProvider({
       current: state.fsmState,
       target: targetChatbotFsmDisplayState,
     });
-    // Removed direct logDebug here to reduce noise; global FSM will log its states
   }, [state.fsmState, state.previousFsmState, targetChatbotFsmDisplayState, setChatbotFsmDisplayState]);
 
   const dispatchChatbotFsmEventWithTarget = useCallback((event: ChatbotFsmEvent) => {
@@ -127,7 +131,9 @@ export function ChatbotFsmProvider({
         case ChatbotFsmInternalState.IDLE:
         case ChatbotFsmInternalState.PROCESSING_USER_INPUT:
             if (event.type === 'USER_INPUT_CHANGED') targetState = ChatbotFsmInternalState.PROCESSING_USER_INPUT;
-            else if (event.type === 'SUBMIT_MESSAGE_REQUESTED' && state.userInput.trim()) targetState = ChatbotFsmInternalState.IDLE; 
+            else if (event.type === 'SUBMIT_MESSAGE_REQUESTED' && (event.payload || state.userInput.trim())) {
+                 targetState = ChatbotFsmInternalState.IDLE; 
+            }
             break;
     }
 
@@ -147,9 +153,10 @@ export function ChatbotFsmProvider({
     }
   }, [state.fsmState, targetChatbotFsmDisplayState, logDebug]);
 
-  const handleLocalFsmSubmitRequest = useCallback(() => {
-    if (state.userInput.trim() && !isGlobalChatPending) {
-      logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', 'Local FSM requests global chat submission.');
+  const handleLocalFsmSubmitRequest = useCallback((directInput?: string) => {
+    const inputForSubmission = directInput || state.userInput;
+    if (inputForSubmission.trim() && !isGlobalChatPending) {
+      logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Local FSM requests global chat submission with input: "${inputForSubmission.substring(0,30)}"`);
       const chatPayloadForGlobalFsm: ChatActionInputs = {
         ticker: currentTicker,
         stockSnapshotJson,
@@ -157,11 +164,11 @@ export function ChatbotFsmProvider({
         aiAnalyzedTaJson,
         aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
         chatHistory: currentGlobalChatHistory, 
-        userInput: state.userInput.trim(),
+        userInput: inputForSubmission.trim(),
       };
       dispatchGlobalFsmEvent({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
     } else {
-      logDebug(componentLogSource, 'GlobalFSM_DispatchBlocked', `Submission blocked. Input: "${state.userInput.trim()}", GlobalChatPending: ${isGlobalChatPending}`);
+      logDebug(componentLogSource, 'GlobalFSM_DispatchBlocked', `Submission blocked. Input: "${inputForSubmission.trim()}", GlobalChatPending: ${isGlobalChatPending}`);
     }
   }, [
     state.userInput, isGlobalChatPending, currentTicker, stockSnapshotJson, aiKeyTakeawaysJson, 
@@ -170,9 +177,8 @@ export function ChatbotFsmProvider({
 
   const interceptingDispatch = useCallback((event: ChatbotFsmEvent) => {
     if (event.type === 'SUBMIT_MESSAGE_REQUESTED') {
-      handleLocalFsmSubmitRequest(); // This now dispatches to Global FSM
-      // Original local dispatch to clear input and return to IDLE
-      dispatchChatbotFsmEventWithTarget(event); 
+      handleLocalFsmSubmitRequest(event.payload); // Pass direct input if available
+      dispatchChatbotFsmEventWithTarget(event); // Local FSM still handles its state (like clearing input)
     } else {
       dispatchChatbotFsmEventWithTarget(event);
     }
@@ -201,3 +207,4 @@ export function useChatbotFsm() {
   }
   return context;
 }
+

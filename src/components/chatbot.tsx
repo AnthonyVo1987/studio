@@ -27,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { copyToClipboard, downloadJson } from '@/lib/export-utils';
-import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context'; // Local FSM context retained for UI input
+import { useChatbotFsm, ChatbotFsmInternalState, type ChatbotFsmEvent } from '@/contexts/chatbot-fsm-context'; 
 
 interface ChatbotProps {
   isAnyAnalysisInProgress: boolean; 
@@ -42,18 +42,18 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
     logDebug: globalLogDebug,
-    fsmState: globalFsmState, // To know if chat is globally pending
+    fsmState: globalFsmState, 
   } = useStockAnalysis();
 
   const {
-    fsmState: chatbotFsmState, // Local FSM state for UI input handling
+    fsmState: chatbotFsmState, 
     userInput: fsmUserInput,
     dispatchChatbotFsmEvent,
   } = useChatbotFsm();
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const logDebug = globalLogDebug; // Use global logDebug
+  const logDebug = globalLogDebug; 
 
   logDebug('Chatbot', 'Render', `GlobalFSMState: ${globalFsmState}, LocalChatbotFSM_UIState: ${chatbotFsmState}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
@@ -70,19 +70,16 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
       logDebug('Chatbot', 'UserAction_Submit_Prevented', 'Input empty or analysis/chat is globally in progress.');
       return;
     }
-    // Dispatch to local FSM, which then triggers global FSM event
-    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
+    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' }); 
   }, [fsmUserInput, globalFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
 
   const handleExamplePromptClick = (promptTemplate: string) => {
     if (isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING) return;
     
     const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
-    logDebug('Chatbot', 'UserAction_ExamplePrompt', `Prompt set to: "${filledPrompt}". Dispatching to local FSM then global.`);
+    logDebug('Chatbot', 'UserAction_ExamplePrompt', `Prompt set to: "${filledPrompt}". Dispatching SUBMIT_MESSAGE_REQUESTED with payload.`);
         
-    dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
-    // The SUBMIT_MESSAGE_REQUESTED event to local FSM will trigger the global FSM dispatch
-    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
+    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED', payload: filledPrompt });
   };
 
   const handleCopyChat = async () => {
@@ -110,7 +107,6 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     }
   };
 
-  // isProcessing is now solely determined by the prop from MainTabContent, which reflects global FSM state
   const isProcessing = isAnyAnalysisInProgress; 
 
   return (
@@ -194,7 +190,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
               variant="outline"
               size="sm"
               onClick={() => handleExamplePromptClick(p.promptTemplate)}
-              disabled={isProcessing} // This now correctly reflects overall pending state
+              disabled={isProcessing} 
               className="text-xs px-2 py-1 h-auto"
             >
               <HelpCircle className="mr-1.5 h-3 w-3" />
@@ -208,7 +204,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             value={fsmUserInput}
             onChange={(e) => dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: e.target.value })}
             placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`}
-            disabled={isProcessing} // This now correctly reflects overall pending state
+            disabled={isProcessing} 
             className="flex-grow"
             onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}}
           />
@@ -221,3 +217,4 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     </Card>
   );
 }
+

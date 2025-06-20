@@ -318,7 +318,7 @@ const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionS
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
 
-let chatMessageIdCounter = 0; // Counter for unique chat message IDs
+let chatMessageIdCounter = 0; 
 
 export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   if (typeof window !== 'undefined' && !(console as any).__stockSageContextOriginals) {
@@ -409,20 +409,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setLogSourceConfig, logDebug]);
 
   const addChatMessage = useCallback((message: ChatMessage) => {
-    chatMessageIdCounter++;
-    const uniqueMessage: ChatMessage = {
-      ...message,
-      id: `${Date.now()}_${chatMessageIdCounter}_${message.role}`,
-    };
     _setChatHistory(prev => {
-      // Prevent adding the exact same message content from the same role consecutively
       if (prev.length > 0) {
         const lastMessage = prev[prev.length - 1];
-        if (lastMessage.role === uniqueMessage.role && lastMessage.content === uniqueMessage.content) {
-          logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate', `Skipped adding duplicate chat message from ${uniqueMessage.role}.`);
+        if (lastMessage.role === message.role && lastMessage.content === message.content) {
+          logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate', `Skipped adding duplicate chat message from ${message.role} with content: "${message.content.substring(0,30)}..."`);
           return prev;
         }
       }
+      const uniqueMessage: ChatMessage = {
+        ...message,
+        id: message.id || `${Date.now()}_${chatMessageIdCounter++}_${message.role}_adhoc`, 
+      };
       logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate', `Added interactive chat message from ${uniqueMessage.role} with ID ${uniqueMessage.id}:`, uniqueMessage.content.substring(0, 50));
       return [...prev, uniqueMessage];
     });
@@ -627,10 +625,28 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                  logDebug(logPrefixFsmReducer as LogSourceId, 'ActionInvalid', `TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker} ignored. Active ticker is ${state.variables.activeTicker}.`);
             }
         } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
-            if (nextVariables.activeTicker) { 
-                const userMessage: ChatMessage = { id: `${Date.now()}_${chatMessageIdCounter++}_user_global`, role: 'user', content: event.payload.userInput };
-                _setChatHistory(prev => [...prev, userMessage]); 
-                nextVariables.pendingChatSubmissionPayload = { ...event.payload, chatHistory: [...chatHistory, userMessage] }; 
+            if (nextVariables.activeTicker) {
+                 if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING &&
+                    nextVariables.pendingChatSubmissionPayload?.userInput === event.payload.userInput) {
+                    logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateSubmission', `SUBMIT_CHAT_MESSAGE for "${event.payload.userInput.substring(0,20)}" ignored, already pending with same input.`);
+                    return { ...state, previous: previousState }; 
+                }
+
+                const userMessage: ChatMessage = { 
+                    id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`,
+                    role: 'user', 
+                    content: event.payload.userInput 
+                };
+                
+                _setChatHistory(prev => {
+                    if (prev.length > 0 && prev[prev.length - 1].role === 'user' && prev[prev.length - 1].content === userMessage.content) {
+                        logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateUserMsgRender', `Skipping add user message, content identical to last user msg. Current ID: ${userMessage.id}`);
+                        return prev;
+                    }
+                    return [...prev, userMessage];
+                });
+                
+                nextVariables.pendingChatSubmissionPayload = { ...event.payload }; 
                 nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
                 contextSetters.setChatbotRequestJson(chatPendingJson); 
                 contextSetters.setChatbotResponseJson(chatPendingJson);
@@ -684,20 +700,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextVariables.pendingChatSubmissionPayload = null; 
             logDebug(logPrefixFsmReducer as LogSourceId, 'InternalUpdate', `CHAT_MESSAGE_PENDING -> PENDING_CHAT_SUBMISSION_TRIGGERED. Pending payload cleared. State remains CHAT_MESSAGE_PENDING.`);
         } else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') {
-            if (state.variables.pendingChatSubmissionPayload === null && _chatbotRequestJson !== chatPendingJson && _chatbotResponseJson !== chatPendingJson && _chatbotResponseJson === event.payload.chatbotResponseJson) {
-                logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateChatSuccess', `Skipping CHAT_MESSAGE_ACTION_SUCCESS. Already processed response: ${_chatbotResponseJson.substring(0,50)}...`);
+            if (_chatbotResponseJson !== chatPendingJson && _chatbotResponseJson === event.payload.chatbotResponseJson) {
+                 logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateChatSuccess', `Skipping CHAT_MESSAGE_ACTION_SUCCESS. Already processed this response: ${_chatbotResponseJson.substring(0,50)}...`);
             } else {
                 contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
                 contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
                 try {
                     const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
                     if (modelResponse.response) {
-                        addChatMessage({ id: 'placeholder_model_id', role: 'model', content: modelResponse.response }); // ID will be replaced in addChatMessage
+                        addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_gbl_fsm`, role: 'model', content: modelResponse.response });
                     } else if (modelResponse.error) { 
-                        addChatMessage({ id: 'placeholder_model_error_id', role: 'model', content: `Chatbot Error: ${modelResponse.error}` });
+                        addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_gbl_fsm_err`, role: 'model', content: `Chatbot Error: ${modelResponse.error}` });
                     }
                 } catch (e) {
-                     addChatMessage({ id: 'placeholder_model_parse_error_id', role: 'model', content: "Error parsing chatbot response." });
+                     addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_gbl_fsm_parse_err`, role: 'model', content: "Error parsing chatbot response." });
                 }
                 nextVariables.lastError = null;
                 nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS; 
@@ -708,7 +724,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             const errMsg = errPayload.message || 'Chat failed';
             contextSetters.setChatbotRequestJson(errPayload.chatbotRequestJson || errorJsonWithDetails("Chat request data unavailable on error", null));
             contextSetters.setChatbotResponseJson(errPayload.chatbotResponseJson || errorJsonWithDetails(errMsg, errPayload.error));
-            addChatMessage({ id: 'placeholder_model_action_error_id', role: 'model', content: `Error: ${errMsg}` });
+            addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_gbl_fsm_act_err`, role: 'model', content: `Error: ${errMsg}` });
             nextVariables.lastError = { message: errMsg, source: 'ChatAction', details: errPayload.error };
             nextCurrentState = GlobalFsmState.CHAT_MESSAGE_ERROR; 
             logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_ERROR. Error: ${errMsg}. To ${nextCurrentState}.`);
@@ -1058,7 +1074,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const currentGlobalFsmState = fsmStateRef.current.current; 
     const currentVars = fsmStateRef.current.variables;
-    const logPrefixOrchestrator = 'StockAnalysisContext:FSM_Orchestrator';
+    const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
     logDebug(logPrefixOrchestrator as LogSourceId, 'Entry', `State: ${currentGlobalFsmState}, ActiveTicker: ${currentVars.activeTicker}, InitialLoad: ${currentVars.isInitialLoad}`);
 
     if (currentGlobalFsmState === GlobalFsmState.APP_INITIALIZING && !initializationDispatchedRef.current) {
