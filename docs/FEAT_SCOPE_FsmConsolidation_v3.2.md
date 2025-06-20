@@ -1,8 +1,8 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.6
-**Date:** 2025-06-20
+**Document Version:** 1.7
+**Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** IN PROGRESS
 
@@ -74,85 +74,21 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 *   **Task v3.2.1.0.0: Define Initial Single FSM Structure & Core States**
     *   **Status:** `COMPLETED` (Commit: `919db9f2`)
-    *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The goal is to create the foundational types/enums for the new single FSM and adapt the reducer.
-        2.  *Define `GlobalFsmState` Enum:* Create a new enum with initial core states: `APP_INITIALIZING`, `IDLE`, `AWAITING_TICKER_INPUT`, `VALID_TICKER_ENTERED`, `PIPELINE_REQUESTED_DATA_FETCH`, `DATA_FETCH_IN_PROGRESS`, `DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`, `CALCULATING_AI_TA`, `AI_TA_CALCULATION_SUCCEEDED`, `AI_TA_CALCULATION_FAILED`, `PIPELINE_AUTOMATED_COMPLETE`, plus placeholders for future `GENERATING_KEY_TAKEAWAYS`, `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`, `ANALYZING_OPTIONS`, `OPTIONS_ANALYSIS_SUCCEEDED`, `OPTIONS_ANALYSIS_FAILED`, and `ERROR_STALE_DATA`.
-        3.  *Define `GlobalFsmContextVariables` Interface:* Initial variables: `activeTicker: string | null`, `userInputTicker: string`, `isInitialLoad: boolean`, `lastError: { message: string, source: string, details?: any } | null`.
-        4.  *Define `GlobalFsmFlags` Interface:* Initial flags: `canAnalyzeStock: boolean`, `isMarketDataReady: boolean`, `isSnapshotDataReady: boolean`, `isStandardTADataReady: boolean`, `isOptionsChainDataReady: boolean`, `isCalculatedTADataReady: boolean`, `isKeyTakeawaysDataAvailable: boolean`, `isOptionsAnalysisDataAvailable: boolean`.
-        5.  *Update FSM State Object in `StockAnalysisState`:* Modify the `globalFsmState` (previously `fsmState`) to be of type `GlobalFsmReducerManagedState` which includes `{ current: GlobalFsmState, previous: GlobalFsmState | null, variables: GlobalFsmContextVariables, flags: GlobalFsmFlags }`. Update `defaultState` and initializers.
-        6.  *Adapt Reducer:* Modify the main `fsmReducer` in `StockAnalysisContext` to use the new `GlobalFsmState` enum and manage the new `variables` and `flags` as part of its state updates. Map existing global FSM logic broadly to these new states, initializing flags and variables correctly on transitions (e.g., on `START_FULL_ANALYSIS`, reset data flags, set `activeTicker`).
-        7.  *Update Orchestrator and Action Handlers:* Adapt the orchestrator `useEffect` and server action result `useEffect`s to work with the new FSM state structure, dispatch new FSM events, and update new flags/variables.
-    *   **Testability:** App should load. The FSM Debug Card (though not yet updated for flags/vars) should reflect the new initial FSM state. Automated pipeline for "Analyze Stock" should still broadly function, with the new FSM states being logged.
     *   **App Metadata:** `v3.2.1.0.0`.
     *   **Bug Fix Task v3.2.1.0.1: Resolve Repeated `INITIALIZATION_COMPLETE` Dispatch**
         *   **Status:** `COMPLETED` (Commit: `1aefabe1`)
-        *   **Details:** Added `useRef` guard (`initializationDispatchedRef`) to `StockAnalysisContext` orchestrator `useEffect` to prevent repeated `INITIALIZATION_COMPLETE` dispatches.
         *   **App Metadata:** `v3.2.1.0.1`.
 
 *   **Task v3.2.1.1.0: Integrate "Analyze Stock" Button & Input Handling**
     *   **Status:** `COMPLETED` (Commit: `1d1342aa`)
-    *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The local FSM in `MainTabContent` for ticker input and automated analysis submission needs to be removed. This logic will move to the global FSM.
-        2.  *`MainTabContent.tsx` Changes:*
-            *   Remove its local FSM reducer and states related to `INPUT_VALID`, `AUTOMATED_PIPELINE_REQUESTED`, etc.
-            *   The `tickerInput` can remain a local `useState` in `MainTabContent`.
-            *   The "Analyze Stock" button's `disabled` attribute should now be derived from `useStockAnalysis().fsmFlags.canAnalyzeStock` and potentially if `useStockAnalysis().fsmState.current` indicates a busy pipeline.
-            *   The `onSubmit` handler for the form (and thus the "Analyze Stock" button) will dispatch a global event: `START_FULL_ANALYSIS` with `{ ticker: tickerInput }` as payload.
-        3.  *`StockAnalysisContext.tsx` (Reducer) Changes:*
-            *   Handle `START_FULL_ANALYSIS`:
-                *   Set `variables.userInputTicker = event.payload.ticker`.
-                *   Set `variables.activeTicker = event.payload.ticker`.
-                *   Set `flags.canAnalyzeStock = false`.
-                *   Transition to `PIPELINE_REQUESTED_DATA_FETCH`.
-                *   Reset all data availability flags (`isMarketDataReady`, `isSnapshotDataReady`, etc.) to `false`.
-                *   Reset `variables.lastError = null`.
-                *   Invoke `setAllPlaceholdersInternal` to reset context JSON strings.
-            *   Update derivation logic for `flags.canAnalyzeStock`: It should be true if FSM current state is `IDLE`, `AWAITING_TICKER_INPUT`, or `VALID_TICKER_ENTERED` and `variables.userInputTicker` is valid.
-    *   **Testability:** "Analyze Stock" button enables/disables based on global FSM state/flags. Clicking it updates `activeTicker` in the global FSM, resets relevant flags/JSONs, and transitions the global FSM to `PIPELINE_REQUESTED_DATA_FETCH`.
     *   **App Metadata:** `v3.2.1.1.0`.
 
 *   **Task v3.2.1.2.0: Migrate Data Fetching Pipeline to New FSM**
     *   **Status:** `COMPLETED` (Commit: `368c85ab`)
-    *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The sequence of fetching market data, snapshot, TAs, and options (currently orchestrated by `useEffect` hooks listening to old FSM states) needs to be driven by the new single FSM.
-        2.  *FSM State Progression & Orchestration:*
-            *   From `PIPELINE_REQUESTED_DATA_FETCH`: The orchestrator effect will dispatch `TRIGGER_DATA_FETCH`.
-            *   Reducer handles `TRIGGER_DATA_FETCH`: Transition to `DATA_FETCH_IN_PROGRESS`. (Orchestrator will then call `fetchStockDataAction`).
-        3.  *Server Action Result Handling (`useEffect` for `fetchDataActionState`):*
-            *   On success: Update context JSONs. Set flags: `isMarketDataReady=true`, `isSnapshotDataReady=true`, `isStandardTADataReady=true`, `isOptionsChainDataReady=true`. Dispatch `FETCH_DATA_SUCCESS` to FSM.
-            *   On error: Update context JSONs with error. Set `variables.lastError`. Set relevant data readiness flags to `false`. Dispatch `FETCH_DATA_FAILURE`.
-            *   Handle `Stale data detected` specifically by dispatching `STALE_DATA_FROM_ACTION`.
-        4.  *FSM Reducer Handling:*
-            *   `FETCH_DATA_SUCCESS`: Transition to `DATA_FETCH_SUCCEEDED`.
-            *   `FETCH_DATA_FAILURE`: Transition to `DATA_FETCH_FAILED`.
-            *   `STALE_DATA_FROM_ACTION`: Transition to `ERROR_STALE_DATA`.
-    *   **Testability:** The full data fetching sequence completes. All relevant data JSONs in context are populated. FSM moves through `PIPELINE_REQUESTED_DATA_FETCH` -> `DATA_FETCH_IN_PROGRESS` -> (`DATA_FETCH_SUCCEEDED`, `DATA_FETCH_FAILED`, or `ERROR_STALE_DATA`). Data readiness flags are set correctly.
     *   **App Metadata:** `v3.2.1.2.0`.
 
 *   **Task v3.2.1.3.0: Migrate AI TA Calculation to New FSM (Automated Pipeline)**
     *   **Status:** `COMPLETED` (Commit: `2f0acd35`)
-    *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* AI TA calculation is the next step in the automated pipeline.
-        2.  *FSM State Progression & Orchestration:*
-            *   From `DATA_FETCH_SUCCEEDED`: The orchestrator effect will dispatch `INITIATE_AI_TA_SEQUENCE`.
-            *   Reducer handles `INITIATE_AI_TA_SEQUENCE`: Set AI TA JSONs to pending. Transition to `CALCULATING_AI_TA`. (Orchestrator will then call `analyzeTaAction`).
-        3.  *Server Action Result Handling (`useEffect` for `analyzeTaActionState`):*
-            *   On success: Update `aiAnalyzedTaJson` and `aiAnalyzedTaRequestJson`. Set `flags.isCalculatedTADataReady = true`. Dispatch `AI_TA_SUCCESS`.
-            *   On error: Update JSONs with error. Set `variables.lastError`. Set `flags.isCalculatedTADataReady = false`. Dispatch `AI_TA_FAILURE`.
-        4.  *FSM Reducer Handling:*
-            *   `AI_TA_SUCCESS`: Transition to `AI_TA_CALCULATION_SUCCEEDED`.
-            *   `AI_TA_FAILURE`: Transition to `AI_TA_CALCULATION_FAILED`.
-        5.  *Finalize Automated Pipeline (Orchestrator):*
-            *   From `AI_TA_CALCULATION_SUCCEEDED` or `AI_TA_CALCULATION_FAILED`: Orchestrator dispatches `FINALIZE_AUTOMATED_PIPELINE`.
-            *   Reducer handles `FINALIZE_AUTOMATED_PIPELINE`: Transition to `PIPELINE_AUTOMATED_COMPLETE`. If success, set `variables.isInitialLoad = false`.
-        6.  *Return to Idle (Orchestrator):*
-            *   From `PIPELINE_AUTOMATED_COMPLETE`, `DATA_FETCH_FAILED`, `ERROR_STALE_DATA`: Orchestrator dispatches `PROCEED_TO_IDLE`.
-            *   Reducer handles `PROCEED_TO_IDLE`: Transition to `IDLE` (or `VALID_TICKER_ENTERED`). Reset `flags.canAnalyzeStock = true`. Clear `variables.lastError`.
-    *   **Testability:** AI TA is calculated after data fetch. `aiAnalyzedTaJson` is populated. FSM transitions correctly through states, eventually returning to `IDLE`. Relevant flags updated.
     *   **App Metadata:** `v3.2.1.3.0`.
 
 ---
@@ -161,7 +97,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *Objective: Migrate the "Generate AI Key Takeaways" and "Generate AI Options Analysis" buttons to use the single FSM.*
 
 *   **Task v3.2.2.0.0: Integrate "Generate AI Key Takeaways" Button**
-    *   **Status:** `PLANNED`
+    *   **Status:** `COMPLETED` (Commit: `55fcc0c2`)
     *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
         1.  *Understand:* Manual Key Takeaways should only be possible after a successful automated pipeline for the `variables.activeTicker`.
@@ -175,7 +111,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
             *   Reducer handles `KEY_TAKEAWAYS_SUCCESS` / `KEY_TAKEAWAYS_FAILURE`: Transition to a terminal state for this manual action (e.g., `KEY_TAKEAWAYS_SUCCEEDED`, `KEY_TAKEAWAYS_FAILED`).
             *   Orchestrator handles these terminal states by dispatching `PROCEED_TO_IDLE` to return to an idle state.
     *   **Testability:** Button enables/disables correctly. Key takeaways are generated. FSM transitions correctly.
-    *   **App Metadata:** Update to `v3.2.2.0.0`.
+    *   **App Metadata:** `v3.2.2.0.0`.
 
 *   **Task v3.2.2.1.0: Integrate "Generate AI Options Analysis" Button**
     *   **Status:** `PLANNED`
@@ -280,6 +216,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.7 (2025-06-21):** Updated Task v3.2.2.0.0 status to `COMPLETED` (Commit: `55fcc0c2`). App Version `v3.2.2.0.0`.
 *   **v1.6 (2025-06-20):** Marked Phase 1 (Tasks v3.2.1.0.0 - v3.2.1.3.0) as `COMPLETED`. Updated with Phase 1 commit hash `57c7e8b0` and app version `v3.2.1.3.0`.
 *   **v1.5 (2025-06-20):** Updated Task v3.2.1.3.0 status to `COMPLETED` (Commit: `2f0acd35`).
 *   **v1.4 (2025-06-20):** Updated Task v3.2.1.2.0 status to `COMPLETED` (Commit: `368c85ab`).
