@@ -9,7 +9,7 @@ import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
-import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context"; // Removed DebugConsoleFsmMenuState
+import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context";
 import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-debug-card";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     setFsmDebugCardEnabled,
     isFsmDebugCardOpen,
     logDebug,
-    // Removed: setMainTabFsmDisplay - No longer used by FsmStateDebugCard directly
-    // No need for local FSM state reporting from MainTabContent to PageContent anymore
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
@@ -64,9 +62,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     return `${padding}px`;
   };
   
-  // Removed setMainTabFsmDisplay and related state variables from PageContent
-  // FsmStateDebugCard now gets all global FSM data directly from useStockAnalysis()
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header appVersion={appVersion} lastUpdatedTimestamp={lastUpdatedTimestamp} />

@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 const AppConfigSchema = z.object({
   appVersion: z.string().describe("The current version of the application."),
-  lastUpdatedTimestamp: z.string().datetime().describe("The ISO 8601 timestamp of when the metadata was last updated."),
+  lastUpdatedTimestamp: z.string().datetime().optional().describe("The ISO 8601 timestamp of when the metadata was last updated."),
   metadataSchemaVersion: z.string().describe("The version of the metadata schema itself, for future migrations/compatibility.")
 });
 
@@ -60,7 +60,7 @@ export async function getAppConfig(): Promise<AppConfig> {
     }
     
     loadedConfig = validationResult.data;
-    console.log(`${logPrefix} ZOD_VALIDATE_SUCCESS: Successfully loaded and validated app-metadata.json. Version: ${loadedConfig.appVersion}, Timestamp: ${loadedConfig.lastUpdatedTimestamp}`);
+    console.log(`${logPrefix} ZOD_VALIDATE_SUCCESS: Successfully loaded and validated app-metadata.json. Version: ${loadedConfig.appVersion}, Timestamp: ${loadedConfig.lastUpdatedTimestamp || 'N/A'}`);
     return loadedConfig;
   } catch (error: any) {
     console.error(`${logPrefix} CRITICAL_ERROR_LOAD_PARSE: Error during loading or parsing app-metadata.json. Error Type: ${error.name}, Message: ${error.message}, Stack: ${error.stack ? error.stack.substring(0, 300) : 'No stack'}`);

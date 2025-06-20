@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Moon, Sun } from "lucide-react";
@@ -14,10 +15,10 @@ import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   appVersion: string;
-  lastUpdatedTimestamp?: string; // Optional for now
+  lastUpdatedTimestamp?: string; 
 }
 
-export function Header({ appVersion }: HeaderProps) {
+export function Header({ appVersion, lastUpdatedTimestamp }: HeaderProps) {
   const { setTheme } = useTheme();
   const {
     fsmState: globalFsmState,
