@@ -185,8 +185,8 @@ interface StockAnalysisState {
   isFsmDebugCardEnabled: boolean;
   isFsmDebugCardOpen: boolean;
   
-  mainTabFsmDisplay: FsmDisplayTuple | null; // Will be removed if not used by other debug tools
-  chatbotFsmDisplay: FsmDisplayTuple | null; // Will be removed if not used by other debug tools
+  mainTabFsmDisplay: FsmDisplayTuple | null; 
+  chatbotFsmDisplay: FsmDisplayTuple | null; 
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
 
   isInitialAppStartupComplete: boolean;
@@ -231,12 +231,9 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   setFsmDebugCardEnabled: (enabled: boolean) => void;
   setFsmDebugCardOpen: (open: boolean) => void;
 
-  // These setters are retained if FSM Debug Card or other tools might still show aggregated display tuples
-  // but their primary update source is now internal to this context based on global FSM flags/state.
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void; 
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void; 
-  // setDebugConsoleMenuFsmDisplay is handled internally by this context for its FsmDisplayTuple
-
+  
   setReducedStartupLoggingEnabled: (enabled: boolean) => void;
 }
 
@@ -297,9 +294,9 @@ const defaultState: StockAnalysisState = {
   isFsmDebugCardEnabled: true,
   isFsmDebugCardOpen: true,
   
-  mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: GlobalFsmState.IDLE.toString() }, // Default to IDLE
-  chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' }, // Chatbot local FSM starts IDLE
-  debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' }, // Menus start IDLE
+  mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: GlobalFsmState.IDLE.toString() }, 
+  chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' }, 
+  debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' }, 
 
   isInitialAppStartupComplete: false,
   isReducedStartupLoggingEnabled: true,
@@ -320,6 +317,8 @@ const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionS
 
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
+
+let chatMessageIdCounter = 0; // Counter for unique chat message IDs
 
 export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   if (typeof window !== 'undefined' && !(console as any).__stockSageContextOriginals) {
@@ -374,7 +373,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
-    // Removed direct logDebug here to prevent log spam on every setter. FSM will log changes.
     setter(value);
   }, []);
 
@@ -411,8 +409,23 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setLogSourceConfig, logDebug]);
 
   const addChatMessage = useCallback((message: ChatMessage) => {
-    _setChatHistory(prev => [...prev, message]);
-    logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate', `Added interactive chat message from ${message.role}:`, message.content.substring(0, 50));
+    chatMessageIdCounter++;
+    const uniqueMessage: ChatMessage = {
+      ...message,
+      id: `${Date.now()}_${chatMessageIdCounter}_${message.role}`,
+    };
+    _setChatHistory(prev => {
+      // Prevent adding the exact same message content from the same role consecutively
+      if (prev.length > 0) {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage.role === uniqueMessage.role && lastMessage.content === uniqueMessage.content) {
+          logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate', `Skipped adding duplicate chat message from ${uniqueMessage.role}.`);
+          return prev;
+        }
+      }
+      logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate', `Added interactive chat message from ${uniqueMessage.role} with ID ${uniqueMessage.id}:`, uniqueMessage.content.substring(0, 50));
+      return [...prev, uniqueMessage];
+    });
   }, [_setChatHistory, logDebug]);
 
   const clearChatHistory = useCallback(() => {
@@ -530,12 +543,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., HistoryLen: ${event.payload.chatHistory?.length}`);
     }
 
-
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
     let nextFlags: GlobalFsmFlags = { ...state.flags };
     let currentDebugConsoleMenuFsmStateForDisplay = _debugConsoleMenuFsmDisplayInternal?.current || 'IDLE';
-
 
     const errorJsonWithDetails = (message: string, details: string | null | undefined) =>
         `{ "status": "error", "message": "${message.replace(/"/g, '\\"')}", "details": "${(details || '').replace(/"/g, '\\"')}" }`;
@@ -548,7 +559,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextFlags.isDebugConsoleFilterMenuOpen = menu === 'filter';
             nextFlags.isDebugConsoleCopyMenuOpen = menu === 'copy';
             nextFlags.isDebugConsoleExportMenuOpen = menu === 'export';
-            if (menu === 'filter') newMenuDisplayState = 'FILTER_MENU_OPEN'; // Using a more generic state for the display tuple
+            if (menu === 'filter') newMenuDisplayState = 'FILTER_MENU_OPEN'; 
             if (menu === 'copy') newMenuDisplayState = 'COPY_MENU_OPEN';
             if (menu === 'export') newMenuDisplayState = 'EXPORT_MENU_OPEN';
         } else {
@@ -567,7 +578,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       }
     }
 
-
     switch (previousState) {
       case GlobalFsmState.IDLE:
       case GlobalFsmState.AWAITING_TICKER_INPUT: 
@@ -579,13 +589,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case GlobalFsmState.OPTIONS_ANALYSIS_FAILED:
       case GlobalFsmState.CHAT_MESSAGE_SUCCESS: 
       case GlobalFsmState.CHAT_MESSAGE_ERROR:   
-      case GlobalFsmState.DATA_FETCH_FAILED: // Allow re-analysis from these error states
+      case GlobalFsmState.DATA_FETCH_FAILED: 
       case GlobalFsmState.ERROR_STALE_DATA:
       case GlobalFsmState.AI_TA_CALCULATION_FAILED:
         if (event.type === 'START_FULL_ANALYSIS') {
           nextVariables.activeTicker = event.payload.ticker;
           nextVariables.userInputTicker = event.payload.ticker; 
-          nextFlags.canAnalyzeStock = false; // Disable while fetching
+          nextFlags.canAnalyzeStock = false; 
           nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
           nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
           nextFlags.isCalculatedTADataReady = false; nextFlags.isKeyTakeawaysDataAvailable = false;
@@ -618,7 +628,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             }
         } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
             if (nextVariables.activeTicker) { 
-                const userMessage: ChatMessage = { id: Date.now().toString() + '_user_global', role: 'user', content: event.payload.userInput };
+                const userMessage: ChatMessage = { id: `${Date.now()}_${chatMessageIdCounter++}_user_global`, role: 'user', content: event.payload.userInput };
                 _setChatHistory(prev => [...prev, userMessage]); 
                 nextVariables.pendingChatSubmissionPayload = { ...event.payload, chatHistory: [...chatHistory, userMessage] }; 
                 nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
@@ -674,27 +684,31 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextVariables.pendingChatSubmissionPayload = null; 
             logDebug(logPrefixFsmReducer as LogSourceId, 'InternalUpdate', `CHAT_MESSAGE_PENDING -> PENDING_CHAT_SUBMISSION_TRIGGERED. Pending payload cleared. State remains CHAT_MESSAGE_PENDING.`);
         } else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') {
-            contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
-            contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
-            try {
-                const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
-                if (modelResponse.response) {
-                    addChatMessage({ id: Date.now().toString() + '_model_global', role: 'model', content: modelResponse.response });
-                } else if (modelResponse.error) { // Handle error within successful action response
-                    addChatMessage({ id: Date.now().toString() + '_model_global_error', role: 'model', content: `Chatbot Error: ${modelResponse.error}` });
+            if (state.variables.pendingChatSubmissionPayload === null && _chatbotRequestJson !== chatPendingJson && _chatbotResponseJson !== chatPendingJson && _chatbotResponseJson === event.payload.chatbotResponseJson) {
+                logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateChatSuccess', `Skipping CHAT_MESSAGE_ACTION_SUCCESS. Already processed response: ${_chatbotResponseJson.substring(0,50)}...`);
+            } else {
+                contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
+                contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
+                try {
+                    const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
+                    if (modelResponse.response) {
+                        addChatMessage({ id: 'placeholder_model_id', role: 'model', content: modelResponse.response }); // ID will be replaced in addChatMessage
+                    } else if (modelResponse.error) { 
+                        addChatMessage({ id: 'placeholder_model_error_id', role: 'model', content: `Chatbot Error: ${modelResponse.error}` });
+                    }
+                } catch (e) {
+                     addChatMessage({ id: 'placeholder_model_parse_error_id', role: 'model', content: "Error parsing chatbot response." });
                 }
-            } catch (e) {
-                 addChatMessage({ id: Date.now().toString() + '_model_global_parse_error', role: 'model', content: "Error parsing chatbot response." });
+                nextVariables.lastError = null;
+                nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS; 
+                logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_SUCCESS. To ${nextCurrentState}.`);
             }
-            nextVariables.lastError = null;
-            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS; 
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_SUCCESS. To ${nextCurrentState}.`);
         } else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') {
             const errPayload = event.payload;
             const errMsg = errPayload.message || 'Chat failed';
             contextSetters.setChatbotRequestJson(errPayload.chatbotRequestJson || errorJsonWithDetails("Chat request data unavailable on error", null));
             contextSetters.setChatbotResponseJson(errPayload.chatbotResponseJson || errorJsonWithDetails(errMsg, errPayload.error));
-            addChatMessage({ id: Date.now().toString() + '_model_global_action_error', role: 'model', content: `Error: ${errMsg}` });
+            addChatMessage({ id: 'placeholder_model_action_error_id', role: 'model', content: `Error: ${errMsg}` });
             nextVariables.lastError = { message: errMsg, source: 'ChatAction', details: errPayload.error };
             nextCurrentState = GlobalFsmState.CHAT_MESSAGE_ERROR; 
             logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_ERROR. Error: ${errMsg}. To ${nextCurrentState}.`);
@@ -796,7 +810,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
 
       case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED:
-      // Removed: case GlobalFsmState.AI_TA_CALCULATION_FAILED from here, handled by IDLE transition
         if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') {
           nextCurrentState = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
           nextVariables.isInitialLoad = false; 
@@ -804,16 +817,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         break;
       
-      // Removed: DATA_FETCH_FAILED and ERROR_STALE_DATA as separate cases here.
-      // Their PROCEED_TO_IDLE or START_FULL_ANALYSIS is handled by the initial block of permissive states.
-      // AI_TA_CALCULATION_FAILED also transitions to IDLE from the permissive block.
-
       default:
         logDebug(logPrefixFsmReducer as LogSourceId, 'UnhandledEventInState', `Unhandled event ${event.type} in state ${previousState}`);
         break;
     }
     
-    // Update canAnalyzeStock flag based on the new state
     if (nextCurrentState === GlobalFsmState.IDLE || 
         nextCurrentState === GlobalFsmState.VALID_TICKER_ENTERED ||
         nextCurrentState === GlobalFsmState.AWAITING_TICKER_INPUT ||
@@ -824,9 +832,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
         nextCurrentState === GlobalFsmState.CHAT_MESSAGE_SUCCESS ||
         nextCurrentState === GlobalFsmState.CHAT_MESSAGE_ERROR ||
-        nextCurrentState === GlobalFsmState.DATA_FETCH_FAILED || // Can re-analyze from error
-        nextCurrentState === GlobalFsmState.ERROR_STALE_DATA || // Can re-analyze from error
-        nextCurrentState === GlobalFsmState.AI_TA_CALCULATION_FAILED // Can re-analyze from error
+        nextCurrentState === GlobalFsmState.DATA_FETCH_FAILED || 
+        nextCurrentState === GlobalFsmState.ERROR_STALE_DATA || 
+        nextCurrentState === GlobalFsmState.AI_TA_CALCULATION_FAILED 
     ) {
         nextFlags.canAnalyzeStock = true;
     } else {
@@ -854,7 +862,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fsmStateRef.current = globalFsmReducerState;
-    logDebug('StockAnalysisContext', 'GlobalFSM_StateChange', `Actual state updated. Prev: ${globalFsmReducerState.previous}, Curr: ${globalFsmReducerState.current}.`);
+    logDebug('StockAnalysisContext:GlobalFSM', 'StateChange', `Actual state updated. Prev: ${globalFsmReducerState.previous}, Curr: ${globalFsmReducerState.current}.`);
   }, [globalFsmReducerState, logDebug]);
 
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
@@ -1355,3 +1363,5 @@ export function useStockAnalysis() {
   }
   return context;
 }
+
+    
