@@ -222,7 +222,7 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
   previous: null,
   variables: {
     activeTicker: null,
-    userInputTicker: "NVDA",
+    userInputTicker: "NVDA", // Default for initial state
     isInitialLoad: true,
     lastError: null,
     pendingChatSubmissionPayload: null,
@@ -284,7 +284,7 @@ const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionS
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
 
-let chatMessageIdCounter = 0;
+let chatMessageIdCounter = 0; // Ensure this is at module level
 
 const STOCK_TRADER_CHAT_PROMPT_TEMPLATE = "Based on all currently available data for {TICKER} (including snapshot, pivot points, MAs, RSI, MACD, key takeaways, and options analysis if present), provide 3 concise key takeaways specifically for a stock trader. Focus on: 1. Actionable insights for short-to-medium term price action. 2. Potential entry or exit points considering support/resistance and key levels. 3. Overall trend and momentum considerations.";
 const OPTIONS_TRADER_CHAT_PROMPT_TEMPLATE = "Based on all currently available data for {TICKER} (snapshot, TAs, AI Key Takeaways, and especially options analysis like Call/Put Walls), provide 3 concise key takeaways for an options trader. Focus on: 1. Volatility assessment and its implications. 2. Key support/resistance levels (from TAs and Options Walls) for strike selection. 3. Suggest one or two example directional option trade ideas (e.g., 'Consider buying {TICKER} $XXX Calls expiring YYY based on Z' or 'A Put spread around $ABC might be interesting if D happens') with brief rationale based *only* on the provided data. Do NOT invent expiration dates or exact strike prices if not deducible; speak in general terms if necessary.";
@@ -405,14 +405,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', 'LogConfigChange', 'Enable All Log Sources button clicked.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
     logSourceIds.forEach(id => { newConfig[id] = true; });
-    newConfig.DebugConsole = true;
+    newConfig.DebugConsole = true; // Ensure DebugConsole itself stays enabled for its own logs
     _setLogSourceConfig(newConfig);
   }, [_setLogSourceConfig, logDebug]);
 
   const disableAllLogSources = useCallback(() => {
     logDebug('StockAnalysisContext', 'LogConfigChange', 'Disable All Log Sources button clicked.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
-    logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; });
+    logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; }); // Only DebugConsole stays enabled
     _setLogSourceConfig(newConfig);
   }, [_setLogSourceConfig, logDebug]);
 
@@ -420,12 +420,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', 'DebugConsoleToggle', `ClientDebugConsoleEnabled toggled to: ${enabled}.`);
     _setClientDebugConsoleEnabled(enabled);
     if (enabled) {
-        enableAllLogSources();
-        _setLogSourceConfig(prevConfig => ({ ...prevConfig, OptionsChainTable: false }));
+        enableAllLogSources(); // Enable all when console is turned on
+        _setLogSourceConfig(prevConfig => ({ ...prevConfig, OptionsChainTable: false })); // Then specifically disable OptionsChainTable
         logDebug('StockAnalysisContext', 'LogConfigChange', `OptionsChainTable log source explicitly DISABLED after enabling all.`);
-        _setClientDebugConsoleOpen(true);
-    } else { _setClientDebugConsoleOpen(false); }
+        _setClientDebugConsoleOpen(true); // Open it
+    } else {
+      _setClientDebugConsoleOpen(false); // Close it if disabled
+    }
   }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
+
 
   const setFsmDebugCardEnabled = useCallback((enabled: boolean) => {
     logDebug('StockAnalysisContext', 'FsmDebugCardToggle', `FSM Debug Card Enabled toggled to: ${enabled}`);
@@ -454,14 +457,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setIsReducedStartupLoggingEnabled(enabled);
   }, [logDebug]);
 
+
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
     const previousState = state.current;
     const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
-    logDebug(logPrefixFsmReducer as LogSourceId, 'EventReceived', `Type: ${event.type}, FromState: ${previousState}`);
-    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE') { logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150)); }
-    else if (event.type === 'SUBMIT_CHAT_MESSAGE') { logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., HistoryLen: ${event.payload.chatHistory?.length}`); }
-    else if (event.type === 'INTERNAL_MACRO_STEP_UPDATE') { logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_MacroStep', `For INTERNAL_MACRO_STEP_UPDATE: Macro Step: ${event.payload.currentFullAiMacroChatStep}`); }
+    logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntryTest', `Event: ${event.type}, FromState: ${previousState}`); // Test log
 
+    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE') {
+      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
+    } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
+      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., HistoryLen: ${event.payload.chatHistory?.length}`);
+    } else if (event.type === 'INTERNAL_MACRO_STEP_UPDATE') {
+      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_MacroStep', `For INTERNAL_MACRO_STEP_UPDATE: Macro Step: ${event.payload.currentFullAiMacroChatStep}`);
+    }
 
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
@@ -474,14 +482,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextVariables.lastError = null;
         nextVariables.pendingChatSubmissionPayload = null;
         nextVariables.activePipelineProfile = pipelineProfile;
-        nextVariables.currentFullAiMacroChatStep = pipelineProfile === 'full_ai_macro' ? 'key_takeaways' : null; // Initial macro step
+        nextVariables.currentFullAiMacroChatStep = pipelineProfile === 'full_ai_macro' ? 'key_takeaways' : null;
         nextFlags.canAnalyzeStock = false;
         nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
         nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
         nextFlags.isCalculatedTADataReady = false; nextFlags.isKeyTakeawaysDataAvailable = false;
         nextFlags.isOptionsAnalysisDataAvailable = false;
         nextFlags.isFullAiMacroPipelineActive = pipelineProfile === 'full_ai_macro';
-        setAllPlaceholdersInternal(ticker, true); // True for full analysis to reset chat too
+        setAllPlaceholdersInternal(ticker, true);
     };
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
@@ -629,27 +637,29 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                  logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateUserMsgAdd', `Skipped adding duplicate user message to history. Content: ${userMessage.content.substring(0,30)}...`);
                  return prev;
               }
+              logDebug(logPrefixFsmReducer as LogSourceId, 'AddUserMsgToHistory', `Adding user message. Content: ${userMessage.content.substring(0,30)}...`);
               return [...prev, userMessage];
             });
-            nextVariables.pendingChatSubmissionPayload = { ...event.payload }; // Store the full payload
+            nextVariables.pendingChatSubmissionPayload = { ...event.payload };
             nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
             contextSetters.setChatbotRequestJson(chatPendingJson); contextSetters.setChatbotResponseJson(chatPendingJson);
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_PENDING for ${nextVariables.activeTicker}.`);
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_PENDING for ${nextVariables.activeTicker}. Payload set.`);
           }
         } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `SUBMIT_CHAT_MESSAGE ignored. No active ticker.`); }
         break;
       case 'PENDING_CHAT_SUBMISSION_TRIGGERED':
-        nextVariables.pendingChatSubmissionPayload = null; // Crucial reset
+        nextVariables.pendingChatSubmissionPayload = null;
         logDebug(logPrefixFsmReducer as LogSourceId, 'InternalUpdate', `Pending chat payload cleared. State remains CHAT_MESSAGE_PENDING.`);
         break;
       case 'CHAT_MESSAGE_ACTION_SUCCESS':
-        if (_chatbotResponseJson === chatPendingJson) { // Check if we were expecting this response
+        if (_chatbotResponseJson === chatPendingJson || nextVariables.activePipelineProfile === 'full_ai_macro') {
           contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
           contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
           try {
             const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
-            if (modelResponse.response) { addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx`, role: 'model', content: modelResponse.response }); }
-            else if (modelResponse.error) { addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_err`, role: 'model', content: `Chatbot Error: ${modelResponse.error}` }); }
+            const messageId = `${Date.now()}_${chatMessageIdCounter++}_model_ctx`;
+            if (modelResponse.response) { addChatMessage({ id: messageId, role: 'model', content: modelResponse.response }); }
+            else if (modelResponse.error) { addChatMessage({ id: `${messageId}_err`, role: 'model', content: `Chatbot Error: ${modelResponse.error}` }); }
           } catch (e) { addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_parse_err`, role: 'model', content: "Error parsing chatbot response." }); }
           nextVariables.lastError = null;
           nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS;
@@ -670,14 +680,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           nextVariables.currentFullAiMacroChatStep = event.payload.currentFullAiMacroChatStep;
           logDebug(logPrefixFsmReducer as LogSourceId, 'MacroStepUpdate', `currentFullAiMacroChatStep updated to: ${event.payload.currentFullAiMacroChatStep}`);
         }
-        nextCurrentState = previousState; // No actual FSM state transition, just variable update
+        nextCurrentState = previousState;
         break;
       case 'PROCEED_TO_IDLE':
         nextCurrentState = GlobalFsmState.IDLE;
         nextVariables.activePipelineProfile = null;
         nextVariables.currentFullAiMacroChatStep = null;
         nextFlags.isFullAiMacroPipelineActive = false;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Event PROCEED_TO_IDLE. To IDLE. Macro state reset.`);
+        nextVariables.pendingChatSubmissionPayload = null; // Clear any pending chat if we are forced to IDLE
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Event PROCEED_TO_IDLE. To IDLE. Macro state & pending chat reset.`);
         break;
       case 'TOGGLE_DEBUG_CONSOLE_MENU':
         const { menu, isOpen } = event.payload;
@@ -733,12 +744,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             else if (event.type === 'OPTIONS_ANALYSIS_FAILURE') determinedTarget = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
             break;
         case GlobalFsmState.CHAT_MESSAGE_PENDING:
-            if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') determinedTarget = currentActualState;
+            if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') determinedTarget = currentActualState; // No state change expected, internal var update
             else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') determinedTarget = GlobalFsmState.CHAT_MESSAGE_SUCCESS;
             else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') determinedTarget = GlobalFsmState.CHAT_MESSAGE_ERROR;
             break;
         case GlobalFsmState.APP_INITIALIZING:
-            if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = GlobalFsmState.AWAITING_TICKER_INPUT; // Or VALID_TICKER_ENTERED depending on input
+            if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = fsmStateRef.current.variables.userInputTicker.trim() !== "" ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
             break;
         case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH:
             if (event.type === 'TRIGGER_DATA_FETCH') determinedTarget = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
@@ -758,11 +769,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED: case GlobalFsmState.AI_TA_CALCULATION_FAILED:
              if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') determinedTarget = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
             break;
-        // No default case: if no target determined, it's likely an internal update or no state change needed by this event from this state
     }
     if (event.type === 'PROCEED_TO_IDLE') { determinedTarget = GlobalFsmState.IDLE; }
-    if (event.type === 'TOGGLE_DEBUG_CONSOLE_MENU') { determinedTarget = currentActualState; } // No state change, flag update only
-    if (event.type === 'INTERNAL_MACRO_STEP_UPDATE') { determinedTarget = currentActualState; } // No state change, var update only
+    if (event.type === 'TOGGLE_DEBUG_CONSOLE_MENU') { determinedTarget = currentActualState; }
+    if (event.type === 'INTERNAL_MACRO_STEP_UPDATE') { determinedTarget = currentActualState; }
 
 
     logDebug('StockAnalysisContext:GlobalFSM' as LogSourceId, 'DispatchAttempt', `Event: ${event.type}, CurrentActual: ${currentActualState}, DeterminedTarget: ${determinedTarget || 'N/A'}`);
@@ -792,10 +802,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           if (!_logSourceConfig[sourceForBuffer]) return;
         } else { if (!_logSourceConfig['NATIVE_CONSOLE']) return; }
         if (!_isInitialAppStartupComplete && _isReducedStartupLoggingEnabled) {
-          const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter']; let allowLog = false;
+          const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter', 'StockAnalysisContext:GlobalFSM_Orchestrator', 'StockAnalysisContext:GlobalFSM']; let allowLog = false;
           if (sourceForBuffer && criticalSources.includes(sourceForBuffer)) { allowLog = true; }
           else if (typeForBuffer === 'error' || typeForBuffer === 'warn') { allowLog = true; }
           if (sourceForBuffer === 'NATIVE_CONSOLE' && typeForBuffer !== 'error' && typeForBuffer !== 'warn' && !criticalSources.includes('NATIVE_CONSOLE')) { allowLog = false; }
+          if (!allowLog && String(messagesForBuffer[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; } // Always allow orchestrator entry log
           if (!allowLog) { currentOriginalsForInterceptor.debug(`[${logPrefix}_SUPPRESSED_STARTUP_LOG] Type: ${typeForBuffer}, Source: ${sourceForBuffer}, Msg: ${String(messagesForBuffer[0]).substring(0,50)}...`); return; }
         }
         addEntryToGlobalLogBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
@@ -830,42 +841,43 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string }>(performAiOptionsAnalysisAction, localInitialPerformAiOptionsAnalysisState);
 
   useEffect(() => {
-    const state = fsmStateRef.current;
+    contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', globalFsmReducerState.current, 'Active Ticker:', globalFsmReducerState.variables.activeTicker, 'Profile:', globalFsmReducerState.variables.activePipelineProfile, 'MacroStep:', globalFsmReducerState.variables.currentFullAiMacroChatStep, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', globalFsmReducerState.variables.isInitialLoad);
+
+    const state = fsmStateRef.current; // Use current state from ref for decisions
     const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
-    logDebug(logPrefixOrchestrator as LogSourceId, 'EffectRun_Entry', `FSM State: ${state.current}, ActiveTicker: ${state.variables.activeTicker}, isInitialLoad: ${state.variables.isInitialLoad}, FetchPending: ${isFetchDataPending}, TaPending: ${isAnalyzeTaPending}, KtPending: ${isPerformAiAnalysisPending}, OptPending: ${isPerformAiOptionsAnalysisPending}, MacroProfile: ${state.variables.activePipelineProfile}, MacroStep: ${state.variables.currentFullAiMacroChatStep}`);
 
     if (state.current === GlobalFsmState.APP_INITIALIZING && !initialInitializationDispatchedRef.current) {
         logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Init]', 'Dispatching INITIALIZATION_COMPLETE.');
         _dispatchFsmEventActual({ type: 'INITIALIZATION_COMPLETE' });
         initialInitializationDispatchedRef.current = true;
     } else if (state.current === GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH && state.variables.activeTicker) {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline]', `Dispatching TRIGGER_DATA_FETCH for ${state.variables.activeTicker}.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline_Step1]', `Dispatching TRIGGER_DATA_FETCH for ${state.variables.activeTicker}.`);
         _dispatchFsmEventActual({ type: 'TRIGGER_DATA_FETCH' });
     } else if (state.current === GlobalFsmState.DATA_FETCH_IN_PROGRESS && state.variables.activeTicker && !isFetchDataPending) {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline]', `Calling fetchStockDataFormAction for ${state.variables.activeTicker}.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline_Step2]', `Calling fetchStockDataFormAction for ${state.variables.activeTicker}.`);
         startTransition(() => { fetchStockDataFormAction({ ticker: state.variables.activeTicker! }); });
     } else if (state.current === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline]', `Dispatching INITIATE_AI_TA_SEQUENCE.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline_Step3]', `Dispatching INITIATE_AI_TA_SEQUENCE.`);
         _dispatchFsmEventActual({ type: 'INITIATE_AI_TA_SEQUENCE' });
     } else if (state.current === GlobalFsmState.CALCULATING_AI_TA && state.variables.activeTicker && !isAnalyzeTaPending) {
         if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'SnapshotForAITACalc')) {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline]', `Calling analyzeTaFormAction for ${state.variables.activeTicker}.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline_Step4]', `Calling analyzeTaFormAction for ${state.variables.activeTicker}.`);
             startTransition(() => { analyzeTaFormAction({ stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! }); });
         } else {
             const errorMsg = `Snapshot data missing/error for AI TA of ${state.variables.activeTicker}.`;
-            logDebug(logPrefixOrchestrator as LogSourceId, 'Error:PreconditionFail', errorMsg);
+            logDebug(logPrefixOrchestrator as LogSourceId, 'Error:PreconditionFail_AITA', errorMsg);
             _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: errorMsg, error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({error: errorMsg, ticker: state.variables.activeTicker}) } });
         }
     } else if ((state.current === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED || state.current === GlobalFsmState.AI_TA_CALCULATION_FAILED)) {
         if (state.variables.activePipelineProfile === 'standard') {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline]', `Dispatching FINALIZE_AUTOMATED_PIPELINE (standard) from ${state.current}.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline_StandardComplete]', `Dispatching FINALIZE_AUTOMATED_PIPELINE from ${state.current}.`);
             _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
         } else if (state.variables.activePipelineProfile === 'full_ai_macro' && state.current === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED) {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro]', `Macro: AI TA Succeeded. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS for ${state.variables.activeTicker}. Updating macro step to key_takeaways.`);
-            _dispatchFsmEventActual({ type: 'INTERNAL_MACRO_STEP_UPDATE', payload: { currentFullAiMacroChatStep: 'key_takeaways' }});
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_AITASuccess]', `Macro: AI TA Succeeded. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS for ${state.variables.activeTicker}. Updating macro step to key_takeaways.`);
+             _dispatchFsmEventActual({ type: 'INTERNAL_MACRO_STEP_UPDATE', payload: { currentFullAiMacroChatStep: 'key_takeaways' }}); // Ensure step is updated first
             _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: state.variables.activeTicker! } });
         } else if (state.variables.activePipelineProfile === 'full_ai_macro' && state.current === GlobalFsmState.AI_TA_CALCULATION_FAILED) {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error]', `Macro: AI TA Failed. Halting macro. Dispatching PROCEED_TO_IDLE.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error_AITAFail]', `Macro: AI TA Failed. Halting macro. Dispatching PROCEED_TO_IDLE.`);
             _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
         }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
@@ -879,15 +891,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
     } else if (state.current === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED) {
         if (state.variables.activePipelineProfile === 'full_ai_macro') {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro]', `Macro: Key Takeaways Succeeded. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${state.variables.activeTicker}. Updating macro step to options_analysis.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_KTSuccess]', `Macro: Key Takeaways Succeeded. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${state.variables.activeTicker}. Updating macro step to options_analysis.`);
             _dispatchFsmEventActual({ type: 'INTERNAL_MACRO_STEP_UPDATE', payload: { currentFullAiMacroChatStep: 'options_analysis' }});
             _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: state.variables.activeTicker! } });
         } else {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Manual]', `Manual KT Succeeded. Dispatching PROCEED_TO_IDLE.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Manual_KTSuccess]', `Manual KT Succeeded. Dispatching PROCEED_TO_IDLE.`);
             _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
         }
     } else if (state.current === GlobalFsmState.KEY_TAKEAWAYS_FAILED && state.variables.activePipelineProfile === 'full_ai_macro') {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error]', `Macro: Key Takeaways Failed. Halting macro. Dispatching PROCEED_TO_IDLE.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error_KTFail]', `Macro: Key Takeaways Failed. Halting macro. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     } else if (state.current === GlobalFsmState.ANALYZING_OPTIONS && state.variables.activeTicker && !isPerformAiOptionsAnalysisPending) {
         if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'SnapshotForOptAI') && isDataReadyForProcessing(_optionsChainJson, logDebug, logPrefixOrchestrator as LogSourceId, 'OptionsChainForOptAI')) {
@@ -900,16 +912,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
     } else if (state.current === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED) {
         if (state.variables.activePipelineProfile === 'full_ai_macro' && state.variables.activeTicker) {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro]', `Macro: Options Analysis Succeeded. Dispatching first CHAT (Stock Trader) for ${state.variables.activeTicker}. Updating macro step to stock_trader_chat.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_OptionsSuccess]', `Macro: Options Analysis Succeeded. Dispatching first CHAT (Stock Trader) for ${state.variables.activeTicker}. Updating macro step to stock_trader_chat.`);
             _dispatchFsmEventActual({ type: 'INTERNAL_MACRO_STEP_UPDATE', payload: { currentFullAiMacroChatStep: 'stock_trader_chat' }});
             const chatPayload: ChatActionInputs = { ticker: state.variables.activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson, chatHistory: [], userInput: STOCK_TRADER_CHAT_PROMPT_TEMPLATE.replace(/{TICKER}/g, state.variables.activeTicker) };
             _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayload });
         } else {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Manual]', `Manual Options Analysis Succeeded. Dispatching PROCEED_TO_IDLE.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Manual_OptionsSuccess]', `Manual Options Analysis Succeeded. Dispatching PROCEED_TO_IDLE.`);
             _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
         }
     } else if (state.current === GlobalFsmState.OPTIONS_ANALYSIS_FAILED && state.variables.activePipelineProfile === 'full_ai_macro') {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error]', `Macro: Options Analysis Failed. Halting macro. Dispatching PROCEED_TO_IDLE.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error_OptionsFail]', `Macro: Options Analysis Failed. Halting macro. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     } else if (state.current === GlobalFsmState.CHAT_MESSAGE_SUCCESS && state.variables.activePipelineProfile === 'full_ai_macro' && state.variables.activeTicker) {
         const currentMacroStep = state.variables.currentFullAiMacroChatStep;
@@ -921,27 +933,27 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextChatPrompt = HOLISTIC_CHAT_PROMPT_TEMPLATE.replace(/{TICKER}/g, state.variables.activeTicker);
             nextMacroStep = 'holistic_chat';
         } else if (currentMacroStep === 'holistic_chat') {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro]', `Macro: Holistic Chat Succeeded. Full AI Macro Pipeline COMPLETE. Dispatching PROCEED_TO_IDLE.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_ChatComplete]', `Macro: Holistic Chat Succeeded. Full AI Macro Pipeline COMPLETE. Dispatching PROCEED_TO_IDLE.`);
             _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
             return;
         }
 
         if (nextChatPrompt && nextMacroStep) {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro]', `Macro: Chat Succeeded (prev step: ${currentMacroStep}). Dispatching next chat for ${nextMacroStep}.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_NextChat]', `Macro: Chat Succeeded (prev step: ${currentMacroStep}). Dispatching next chat for ${nextMacroStep}.`);
             _dispatchFsmEventActual({ type: 'INTERNAL_MACRO_STEP_UPDATE', payload: { currentFullAiMacroChatStep: nextMacroStep }});
-            const chatPayload: ChatActionInputs = { ticker: state.variables.activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson, chatHistory: [], userInput: nextChatPrompt };
+            const chatPayload: ChatActionInputs = { ticker: state.variables.activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson, chatHistory: _chatHistory, userInput: nextChatPrompt }; // Use _chatHistory here for continuity if needed
             _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayload });
         }
     } else if (state.current === GlobalFsmState.CHAT_MESSAGE_ERROR && state.variables.activePipelineProfile === 'full_ai_macro') {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error]', `Macro: Chat Message Error during macro step ${state.variables.currentFullAiMacroChatStep}. Halting macro. Dispatching PROCEED_TO_IDLE.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_Error_ChatFail]', `Macro: Chat Message Error during macro step ${state.variables.currentFullAiMacroChatStep}. Halting macro. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     } else if (state.current === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE && state.variables.activePipelineProfile === 'standard') {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Standard]', `Standard automated pipeline complete. Dispatching PROCEED_TO_IDLE.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Standard_PipelineFinallyComplete]', `Standard automated pipeline complete. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     }
 
     if (state.current === GlobalFsmState.IDLE && state.variables.isInitialLoad === false && !initialStartupFlaggedRef.current) {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_System]', `Initial automated pipeline concluded. Setting isInitialAppStartupComplete to true.`);
+        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_System_StartupFlag]', `Initial automated pipeline concluded. Setting isInitialAppStartupComplete to true.`);
         _setIsInitialAppStartupComplete(true); initialStartupFlaggedRef.current = true;
         logDebug('StockAnalysisContext:StartupComplete' as LogSourceId, 'Info', 'Initial application startup sequence complete. Full debug logging is now active.');
     }
@@ -949,9 +961,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     globalFsmReducerState.current, globalFsmReducerState.variables.activeTicker, globalFsmReducerState.variables.isInitialLoad,
     globalFsmReducerState.variables.activePipelineProfile, globalFsmReducerState.variables.currentFullAiMacroChatStep,
     _dispatchFsmEventActual, logDebug, _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson,
-    _optionsChainJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson,
+    _optionsChainJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, // Added _chatHistory
     fetchStockDataFormAction, analyzeTaFormAction, performAiAnalysisFormAction, performAiOptionsAnalysisFormAction,
-    isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending
+    isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending,
+    contextOriginals // Added contextOriginals to deps
   ]);
 
   useEffect(() => {
@@ -1042,3 +1055,4 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
+
