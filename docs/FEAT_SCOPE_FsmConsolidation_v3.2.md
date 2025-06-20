@@ -1,10 +1,10 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.16
-**Date:** 2025-06-20
+**Document Version:** 1.17
+**Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
-**Feature Status:** Phase 5 IN PROGRESS (Bugs up to v3.2.5.0.C addressed).
+**Feature Status:** Phase 5 IN PROGRESS (Bugs up to v3.2.5.0.F addressed).
 
 ## 1. Introduction & Objective
 
@@ -129,7 +129,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ### **Phase 5: Testing and Debugging (FEAT Phase 'x' = 5)**
 *Objective: Rigorous testing of the consolidated FSM across all application features and edge cases. Focus on stability, correct state transitions, accurate flag/variable updates, and absence of regressions.*
-*   **Overall Phase Status:** `IN PROGRESS` (Specific bug fixes up to `v3.2.5.0.C` committed. Further debugging may be required.)
+*   **Overall Phase Status:** `IN PROGRESS` (Specific bug fixes up to `v3.2.5.0.F` committed. Further debugging may be required.)
 
 *   **Task v3.2.5.0.0: Initial Comprehensive Testing & Introduce "AI Full Stock Analysis" Macro Button**
     *   **Status:** `COMPLETED` (Commit: `(previous_commit_for_3.2.5.0.0)`, App Version: `v3.2.5.0.0`)
@@ -137,21 +137,21 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 *   **Task v3.2.5.0.1 - v3.2.5.0.C: Iterative Bug Fixing for FSM Orchestrator, Macro, Logging & Chat**
     *   **Status:** `COMPLETED` (Culminating Commit: `2338c4f8`, App Version: `v3.2.5.0.C`)
-    *   **Details:** A series of bug fixes addressing:
-        *   FSM orchestrator not reliably driving automated pipelines or the AI macro.
-        *   AI macro halting, particularly during chat sequences.
-        *   Missing client-side FSM logs.
-        *   Incorrect behavior of the "Reduced Startup Logging" feature.
-        *   Duplicate chat message submissions.
-        *   Genkit prompt re-definition warnings and minor syntax errors in AI flows.
-        *   `lastUpdatedTimestamp` validation issues in `app-metadata.json`.
+    *   **Details:** A series of bug fixes addressing: FSM orchestrator execution reliability, AI macro pipeline progression (especially chat steps), missing client-side FSM logs, duplicate chat messages, and Genkit prompt re-definition warnings.
 
-*   **Task v3.2.5.1.z (Future): Comprehensive End-to-End Testing - Scenario 1 (Happy Paths - Post `v3.2.5.0.C` fixes)**
+*   **Task v3.2.5.0.D - v3.2.5.0.F: Iterative Bug Fixing for Logging System & FSM Orchestrator**
+    *   **Status:** `COMPLETED` (Culminating Commit: `f34f5128`, App Version: `v3.2.5.0.F`)
+    *   **Details:** A series of bug fixes addressing:
+        *   `v3.2.5.0.D`: Fixed startup logging logic by correctly setting `isInitialLoad` after the first AI TA calculation.
+        *   `v3.2.5.0.E`: Fixed an infinite render loop by correcting the FSM orchestrator `useEffect` dependency array.
+        *   `v3.2.5.0.F`: Fixed a stale state closure issue in the console log interceptor `useEffect` by adding `isInitialLoad` to its dependency array, resolving the persistent incorrect log suppression.
+
+*   **Task v3.2.5.1.z (Future): Comprehensive End-to-End Testing - Scenario 1 (Happy Paths - Post `v3.2.5.0.F` fixes)**
     *   **Status:** `PLANNED`
     *   **AI Agent - Chain of Thought & Action:** Verify all primary user flows (standard analysis, full AI macro, manual actions, chat) work correctly. Monitor FSM states, flags, variables.
     *   **App Metadata:** `v3.2.5.1.z`
 
-*   **Task v3.2.5.2.z (Future): Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases - Post `v3.2.5.0.C` fixes)**
+*   **Task v3.2.5.2.z (Future): Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases - Post `v3.2.5.0.F` fixes)**
     *   **Status:** `PLANNED`
     *   **AI Agent - Chain of Thought & Action:** Test invalid inputs, API/AI failures, rapid interactions. Verify error handling and graceful recovery.
     *   **App Metadata:** `v3.2.5.2.z`
@@ -179,6 +179,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.17 (2025-06-21):** Marked tasks `v3.2.5.0.D` through `v3.2.5.0.F` (commit `f34f5128`) as `COMPLETED`. Summarized the iterative bug fixes for the logging system and FSM orchestrator. App Version `v3.2.5.0.F`.
 *   **v1.16 (2025-06-20):** Updated Phase 5 status to `IN PROGRESS`. Marked tasks `v3.2.5.0.0` through `v3.2.5.0.C` (commit `2338c4f8`) as `COMPLETED`, summarizing the iterative bug fixes for FSM orchestrator, macro, logging, and chat. App Version `v3.2.5.0.C`.
 *   **v1.15 (2025-06-21):** Marked Phase 4 (Tasks v3.2.4.0.0, v3.2.4.1.0) as `COMPLETED`. Phase Commit `c661f9d1`. App Version `v3.2.4.1.0`.
 *   **v1.14 (2025-06-21):** Marked Task v3.2.4.1.0 as `COMPLETED`. Commit `d8686c74`. App Version `v3.2.4.1.0`.
@@ -200,3 +201,4 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 ---
 This document will be updated as the feature progresses through its implementation phases.
     
+

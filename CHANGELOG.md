@@ -58,6 +58,30 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.5.0.F` (Consolidated FSM & Logging Fixes)
+**Tag:** `Phase-17_Task-3.2.5.0.F_ConsolidatedLoggingFixes` (Commit `f34f5128`)
+**Subject:** `fix(fsm,debug): Consolidate FSM orchestrator, logging & startup fixes (v3.2.5.0.F)`
+**Details:**
+This commit (`f34f5128`) represents the consolidation of bug fixes for the "FSM Consolidation & Refactor" feature (Feature `v3.2`), specifically addressing issues within the `v3.2.5.0.D` through `v3.2.5.0.F` series. These fixes significantly improve the stability of the FSM orchestrator and the client-side logging system.
+
+**Key Changes in the v3.2.5.0.D/E/F Series (Consolidated):**
+*   **Corrected "Reduced Startup Logging" Logic (v3.2.5.0.D, v3.2.5.0.F):**
+    *   Fixed a critical bug where the "Reduced Startup Logging" toggle was incorrectly suppressing logs even after the initial application pipeline had finished.
+    *   The root cause was twofold:
+        1.  The FSM's `isInitialLoad` variable was not being set to `false` when running the "AI Full Stock Analysis" macro, preventing the startup completion flag from ever being set (`v3.2.5.0.D` fix).
+        2.  The console interceptor `useEffect` in `StockAnalysisContext` held a stale closure over the startup flag. This was resolved by adding the relevant FSM variable (`isInitialLoad`) to its dependency array, ensuring the interceptor re-initializes with the correct state (`v3.2.5.0.F` fix).
+    *   The startup logging feature now correctly deactivates after the very first data pipeline completes, ensuring full logging for all subsequent user actions.
+*   **Resolved FSM `useEffect` Infinite Loop (v3.2.5.0.E):**
+    *   Fixed a critical bug causing an infinite render loop by correcting the dependency array of the main FSM orchestrator `useEffect` in `StockAnalysisContext`. Data state variables (like `_stockSnapshotJson`) were removed, and the array now correctly depends only on control state variables (FSM state, server action pending flags, etc.), breaking the loop.
+*   **Application Metadata:** Version updated to `v3.2.5.0.F` to reflect these consolidated fixes.
+
+**Outcome of v3.2.5.0.F:**
+*   The FSM orchestrator is more stable and no longer prone to the identified infinite loop.
+*   The "Reduced Startup Logging" feature now functions as intended, only affecting the initial app load.
+*   Client-side debug logging is more reliable and accurately reflects the application's state throughout its lifecycle.
+*   Phase 5 (Testing & Debugging) of the FSM consolidation feature can now proceed on a more stable foundation.
+
+---
 **App Version:** `v3.2.5.0.C` (Consolidated FSM Debugging Iteration)
 **Tag:** `Phase-16_Task-3.2.5.0.C_FSM_Debugging_Consolidation` (Commit `2338c4f8`)
 **Subject:** `fix(fsm,debug,core): Consolidate FSM orchestrator, macro, logging & chat fixes (v3.2.5.0.C)`
@@ -516,7 +540,7 @@ This version (`v2.9.D.B`) focused on creating the absolute minimal test case for
     *   **`src/lib/debug-log-types.ts`:** Added log source ID and label for `MainTabContent_FSM:ButtonStateEffect_DB`.
     *   Application version updated to `v2.9.D.B`.
 
-**Outcome of v2.9.D.B Test (Analyzed in v2.9.D.C):**
+**Outcome of v2.9.D.B Test (Analyzed in v2.9.D.C - note: task names were out of sync with analysis):**
 *   The minimal `logDebug` call *did* appear in the client debug console.
 *   The `useEffect` *did* run to completion with the minimal logic.
 *   The temporary `setIsKtButtonDisabled(false)` calls *did* result in the buttons becoming clickable, and the subsequent `onClick` handlers and FSM dispatches for manual AI actions worked correctly.
@@ -797,7 +821,7 @@ This version reverts the AI Options Analysis to allow for up to 3 Call/Put walls
 - **`src/ai/flows/analyze-options-chain-flow.ts` (and its JSON prompt post v2.9.C.S):**
     - Prompt (`analyzeOptionsChainPrompt`) updated to request "AT MOST 3" significant walls per type, ordered by significance.
     - Added a pre-check in `analyzeOptionsChainFlow` to return empty walls if `input.optionsChainJson` is unparsable or contains insufficient contracts (less than 3), avoiding an unnecessary LLM call.
-    - Flow logic updated to return up to 3 walls per type as provided by the AI, conforming to the updated schema.
+    - Flow logic updated to slice output to ensure only one wall per type is returned.
 - Application version updated to `v2.9.C.M`.
 ---
 **App Version:** `v2.9.C.L` (Refine AI Displays, Chat Formatting & Options Analysis)
@@ -857,7 +881,7 @@ Key changes included in v2.9.C.I:
         - Handles `status: 'error'`: Logs the error and adds an appropriate error message to the chat history.
         - Updates debug JSONs (`chatbotRequestJson`, `chatbotResponseJson`) in both success and error cases.
     - Ensured `chatFormAction` (the dispatcher from `useActionState`) is correctly passed as a prop to `ChatbotFsmProvider`.
-    - Ensured `contextChatHistoryRef` is used within the `useEffect` for `chatActionState` to prevent duplicate message dispatches if the effect re-runs.
+    - Ensured `contextChatHistoryRef` is used within the `useEffect` for `chatActionState` to prevent duplicate message dispatches to the FSM if the effect re-runs.
 - Application version updated to `v2.9.C.I` in `src/components/layout/header.tsx`.
 - `README.md` and `CHANGELOG.md` updated to reflect the new version and completed task.
 
@@ -1059,6 +1083,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 
