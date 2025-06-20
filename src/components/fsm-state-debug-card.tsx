@@ -156,7 +156,7 @@ export function FsmStateDebugCard() {
                   <CardTitle className="text-xs font-semibold">Global FSM Flags</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 max-h-[80px] overflow-y-auto">
-                  <Table> {/* Removed dense prop */}
+                  <Table>
                     <TableBody>{renderFlags(fsmFlags)}</TableBody>
                   </Table>
                 </CardContent>
@@ -166,7 +166,7 @@ export function FsmStateDebugCard() {
                   <CardTitle className="text-xs font-semibold">Global FSM Variables</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 max-h-[80px] overflow-y-auto">
-                  <Table> {/* Removed dense prop */}
+                  <Table>
                     <TableBody>{renderVariables(fsmVariables)}</TableBody>
                   </Table>
                 </CardContent>

@@ -1,6 +1,5 @@
-
 {
-  "appVersion": "v3.2.5.0.1",
+  "appVersion": "v3.2.5.0.2",
   "lastUpdatedTimestamp": "${new Date().toISOString()}",
   "metadataSchemaVersion": "1.0.0"
 }
