@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { useStockAnalysis, type ChatMessage, GlobalFsmState } from '@/contexts/stock-analysis-context'; // Added GlobalFsmState
+import { useStockAnalysis, type ChatMessage, GlobalFsmState } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,7 @@ import { copyToClipboard, downloadJson } from '@/lib/export-utils';
 import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context';
 
 interface ChatbotProps {
-  isAnyAnalysisInProgress: boolean; // This prop remains important for overall UI disabling
+  isAnyAnalysisInProgress: boolean; 
   currentTickerForDisplay: string;
 }
 
@@ -42,15 +41,13 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
     logDebug: globalLogDebug,
-    fsmState: globalFsmState, // Get global FSM state
+    fsmState: globalFsmState, 
   } = useStockAnalysis();
 
   const {
-    fsmState: chatbotFsmState, // Local chatbot FSM state (IDLE, PROCESSING_USER_INPUT)
+    fsmState: chatbotFsmState, 
     userInput: fsmUserInput,
     dispatchChatbotFsmEvent,
-    previousChatbotFsmState,
-    targetChatbotFsmDisplayState
   } = useChatbotFsm();
 
   const { toast } = useToast();
@@ -65,28 +62,25 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     }
   }, [globalChatHistory]);
 
-  // Removed: useEffect that listened to isAnyAnalysisInProgress to dispatch SUBMISSION_CONCLUDED
-  // This is now handled by the global FSM.
-
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     logDebug('Chatbot', 'handleFormSubmit', `Submit requested. GlobalFSM State: ${globalFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
-    if (!fsmUserInput.trim() || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING || isAnyAnalysisInProgress) {
-      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty, global chat pending, or another analysis is in progress.');
+    // isAnyAnalysisInProgress already covers globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING
+    if (!fsmUserInput.trim() || isAnyAnalysisInProgress) {
+      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty or analysis/chat is in progress.');
       return;
     }
-    // This now dispatches to ChatbotFsmContext, which in turn will dispatch to GlobalFSM
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   }, [fsmUserInput, globalFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
 
   const handleExamplePromptClick = (promptTemplate: string) => {
-    if (globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING || isAnyAnalysisInProgress) return;
+    // isAnyAnalysisInProgress already covers globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING
+    if (isAnyAnalysisInProgress) return;
     
     const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
     logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Dispatching USER_INPUT_CHANGED then SUBMIT_MESSAGE_REQUESTED to local FSM.`);
         
     dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
-    // Let the local FSM handle the submission request, which then dispatches to global.
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   };
 
@@ -115,8 +109,8 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     }
   };
 
-  // Updated: isProcessing now primarily depends on global FSM state and isAnyAnalysisInProgress
-  const isProcessing = globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING || isAnyAnalysisInProgress;
+  // Simplified: isAnyAnalysisInProgress prop is now the single source of truth for disabling UI.
+  const isProcessing = isAnyAnalysisInProgress;
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -226,4 +220,3 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     </Card>
   );
 }
-
