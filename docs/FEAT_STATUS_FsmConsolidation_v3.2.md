@@ -1,20 +1,21 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y.z)
 
-**Document Version:** 1.12
+**Document Version:** 1.13
 **Date:** 2025-06-21
 **Feature Target Application Version Series:** 3.2.x.y.z
-**Current App Version (End of Phase 3):** `v3.2.3.2.0` (Commit: `7f0e552b`)
+**Current App Version (End of Task v3.2.4.0.0):** `v3.2.4.0.0` (Commit: `f6520642`)
 
 ## 1. Overall Feature Status
 
-**Current Status:** `Phase 3 COMPLETE. Awaiting Phase 4 (Testing & Debugging).`
+**Current Status:** `Phase 4 IN PROGRESS. Phase 3 COMPLETE.`
 **Last Updated:** 2025-06-21
 
 **Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM.
 *   **Phase 1: Foundation & Core FSM Setup is COMPLETE.** (App Version `v3.2.1.3.0`, Commit `57c7e8b0`)
 *   **Phase 2: Integrating Manual AI Actions is COMPLETE.** (App Version `v3.2.2.1.0`, Commit `0a0ba41c`)
-*   **Phase 3: Integrating Chat & Debug Console Menus is COMPLETE.** (App Version `v3.2.3.2.0`, Commit `7f0e552b`) This involved integrating Chatbot submission flow, Chatbot UI state management, and Debug Console menu UI states into the global FSM, successfully deprecating the `DebugConsoleFsmContext`.
+*   **Phase 3: Integrating Chat & Debug Console Menus is COMPLETE.** (App Version `v3.2.3.2.0`, Commit `7f0e552b`)
+*   **Phase 4: Clean Up & Finalize Debugging Tools is IN PROGRESS.** (Current task v3.2.4.0.0 complete).
 
 ## 2. Phase & Task Status
 
@@ -40,23 +41,30 @@
     *   **Task v3.2.3.1.0: Chatbot UI State Management (Loading/Disabled)** - `COMPLETED` (Commit: `c296d6dc`, App Version: `v3.2.3.1.0`)
     *   **Task v3.2.3.2.0: Integrate Debug Console Menu UI States** - `COMPLETED` (Commit: `7f0e552b`, App Version: `v3.2.3.2.0`)
 
-### **Phase 4: Testing and Debugging (FEAT Phase 'x' = 4)**
-*   **Overall Phase Status:** `PLANNED`
+### **Phase 4: Clean Up & Finalize Debugging Tools (FEAT Phase 'x' = 4)**
+*   **Overall Phase Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **Task v3.2.4.0.z: Comprehensive End-to-End Testing - Scenario 1 (Happy Paths)** - `PLANNED`
-    *   **Task v3.2.4.1.z: Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases)** - `PLANNED`
-    *   **Task v3.2.4.2.z: Log Review & Final Refinements** - `PLANNED`
+    *   **Task v3.2.4.0.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports** - `COMPLETED` (Commit: `f6520642`, App Version: `v3.2.4.0.0`)
+    *   **Task v3.2.4.1.0: (Placeholder for next coding task in this phase, if any)** - `PLANNED`
 
-### **Phase 5: Documentation & Cleanup (FEAT Phase 'x' = 5)**
+### **Phase 5: Testing and Debugging (FEAT Phase 'x' = 5)**
 *   **Overall Phase Status:** `PLANNED`
 *   **Tasks:**
-    *   **Task v3.2.5.0.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports** - `PLANNED`
-    *   **Task v3.2.5.1.0: Update All Project Documentation (README.md, CHANGELOG.md, FEAT docs)** - `PLANNED`
+    *   **Task v3.2.5.0.z: Comprehensive End-to-End Testing - Scenario 1 (Happy Paths)** - `PLANNED`
+    *   **Task v3.2.5.1.z: Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases)** - `PLANNED`
+    *   **Task v3.2.5.2.z: Log Review & Final Refinements** - `PLANNED`
+
+### **Phase 6: Documentation Updates (FEAT Phase 'x' = 6)**
+*   **Overall Phase Status:** `PLANNED`
+*   **Tasks:**
+    *   **Task v3.2.6.0.0: Update All Project Documentation (README.md, CHANGELOG.md, FEAT docs)** - `PLANNED`
+
 
 ## 3. Feature Changelog & Commit History
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                                                                                                                           | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
+| 2025-06-21 | `v3.2.4.0.0`                             | `f6520642`                  | **Task v3.2.4.0.0 COMPLETE.** Finalized FSM Debug Card to show global FSM state/flags/vars. Updated Debug Console exports to include full global FSM snapshot. Removed legacy FSM state displays. App metadata: `v3.2.4.0.0`. Phase 4 IN PROGRESS.                  | COMPLETED   |
 | 2025-06-21 | `v3.2.3.2.0` (Phase 3 Complete)          | `7f0e552b`                  | **Phase 3: Integrating Chat & Debug Console Menus COMPLETE.** Integrated Debug Console menu UI states into global FSM (Task v3.2.3.2.0). Deprecated `DebugConsoleFsmContext`. App metadata: `v3.2.3.2.0`.                                                                 | COMPLETED   |
 | 2025-06-21 | `v3.2.3.1.0`                             | `c296d6dc`                  | Simplified Chatbot UI `isProcessing` logic to directly use `isAnyAnalysisInProgress` prop. App metadata: `v3.2.3.1.0`. Task v3.2.3.1.0 complete. Phase 3 IN PROGRESS.                                                                                       | COMPLETED   |
 | 2025-06-21 | `v3.2.3.0.0`                             | `5e688769`                  | Integrated Chatbot submission flow into the global FSM. `ChatbotFsmContext` now dispatches to global FSM. `MainTabContent` handles server action call based on global FSM state. App metadata: `v3.2.3.0.0`. Task v3.2.3.0.0 complete. Phase 3 IN PROGRESS. | COMPLETED   |
@@ -72,6 +80,7 @@
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v1.13 (2025-06-21):** Marked Task v3.2.4.0.0 as `COMPLETED`. Commit hash `f6520642`. App Version `v3.2.4.0.0`. Updated phase structure and overall feature status.
 *   **v1.12 (2025-06-21):** Marked Phase 3 (Tasks v3.2.3.0.0 - v3.2.3.2.0) as `COMPLETED`. Commit hash `7f0e552b`. Current App Version `v3.2.3.2.0`. Updated overall feature status summary.
 *   **v1.11 (2025-06-21):** Marked Task v3.2.3.2.0 as `COMPLETED`. Commit hash `7f0e552b`. App Version `v3.2.3.2.0`. Phase 3 status updated to `COMPLETED`. Overall feature status updated.
 *   **v1.10 (2025-06-21):** Marked Task v3.2.3.1.0 as `COMPLETED`. Commit hash `c296d6dc`. App Version `v3.2.3.1.0`.
