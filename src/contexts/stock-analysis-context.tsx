@@ -43,8 +43,8 @@ export enum GlobalFsmState {
   OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
 
   CHAT_MESSAGE_PENDING = 'CHAT_MESSAGE_PENDING',
-  CHAT_MESSAGE_SUCCESS = 'CHAT_MESSAGE_SUCCESS', // Optional terminal state if needed, or direct to IDLE
-  CHAT_MESSAGE_ERROR = 'CHAT_MESSAGE_ERROR',     // Optional terminal state
+  CHAT_MESSAGE_SUCCESS = 'CHAT_MESSAGE_SUCCESS', 
+  CHAT_MESSAGE_ERROR = 'CHAT_MESSAGE_ERROR',     
 
   ERROR_STALE_DATA = 'ERROR_STALE_DATA', 
 }
@@ -54,7 +54,7 @@ export interface GlobalFsmContextVariables {
   userInputTicker: string; 
   isInitialLoad: boolean; 
   lastError: { message: string; source: string; details?: any } | null; 
-  pendingChatSubmissionPayload: ChatActionInputs | null; // New for chat
+  pendingChatSubmissionPayload: ChatActionInputs | null; 
 }
 
 export interface GlobalFsmFlags {
@@ -66,6 +66,9 @@ export interface GlobalFsmFlags {
   isCalculatedTADataReady: boolean; 
   isKeyTakeawaysDataAvailable: boolean; 
   isOptionsAnalysisDataAvailable: boolean; 
+  isDebugConsoleFilterMenuOpen: boolean;
+  isDebugConsoleCopyMenuOpen: boolean;
+  isDebugConsoleExportMenuOpen: boolean;
 }
 
 interface GlobalFsmReducerManagedState {
@@ -101,9 +104,11 @@ interface AiKeyTakeawaysSuccessPayload extends PerformAiAnalysisResult {}
 interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; } 
 interface AiOptionsAnalysisSuccessPayload extends PerformAiOptionsAnalysisResult {} 
 interface AiOptionsAnalysisFailurePayload { error?: string | null; message?: string | null; aiOptionsAnalysisRequestJson?: string; } 
-interface SubmitChatMessagePayload extends ChatActionInputs {} // Re-using ChatActionInputs as payload
+interface SubmitChatMessagePayload extends ChatActionInputs {} 
 interface ChatMessageActionSuccessPayload extends ChatActionResult {}
 interface ChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; }
+type DebugConsoleMenuType = 'filter' | 'copy' | 'export';
+interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: boolean; }
 
 
 export type FsmEvent =
@@ -128,9 +133,11 @@ export type FsmEvent =
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload } 
   
   | { type: 'SUBMIT_CHAT_MESSAGE'; payload: SubmitChatMessagePayload }
-  | { type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' } // Internal: MainTabContent triggered the action
+  | { type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' } 
   | { type: 'CHAT_MESSAGE_ACTION_SUCCESS'; payload: ChatMessageActionSuccessPayload }
   | { type: 'CHAT_MESSAGE_ACTION_ERROR'; payload: ChatMessageActionErrorPayload }
+
+  | { type: 'TOGGLE_DEBUG_CONSOLE_MENU'; payload: ToggleDebugConsoleMenuPayload }
 
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' } 
   | { type: 'PROCEED_TO_IDLE' };
@@ -226,14 +233,14 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
 
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
-  setDebugConsoleMenuFsmDisplay: (display: FsmDisplayTuple | null) => void;
+  // setDebugConsoleMenuFsmDisplay is now internal to this context
 
   setReducedStartupLoggingEnabled: (enabled: boolean) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
 const pendingJson = '{ "status": "pending..." }';
-const chatPendingJson = '{ "status": "chat_pending..." }'; // Specific for chat
+const chatPendingJson = '{ "status": "chat_pending..." }'; 
 
 const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
   current: GlobalFsmState.APP_INITIALIZING,
@@ -243,7 +250,7 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     userInputTicker: "NVDA", 
     isInitialLoad: true,
     lastError: null,
-    pendingChatSubmissionPayload: null, // Initialize new variable
+    pendingChatSubmissionPayload: null, 
   },
   flags: {
     canAnalyzeStock: false, 
@@ -254,6 +261,9 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isCalculatedTADataReady: false,
     isKeyTakeawaysDataAvailable: false, 
     isOptionsAnalysisDataAvailable: false, 
+    isDebugConsoleFilterMenuOpen: false,
+    isDebugConsoleCopyMenuOpen: false,
+    isDebugConsoleExportMenuOpen: false,
   },
 };
 
@@ -349,7 +359,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
   const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
-  const [_debugConsoleMenuFsmDisplay, _setDebugConsoleMenuFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
+  const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
 
   const [_isInitialAppStartupComplete, _setIsInitialAppStartupComplete] = useState<boolean>(defaultState.isInitialAppStartupComplete);
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
@@ -499,21 +509,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     });
   }, [_setChatbotFsmDisplay, logDebug]);
 
-  const setDebugConsoleMenuFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
-    _setDebugConsoleMenuFsmDisplay(prevDisplay => {
-      const hasChanged = !(
-        prevDisplay?.current === display?.current &&
-        prevDisplay?.previous === display?.previous &&
-        prevDisplay?.target === display?.target
-      );
-      if (hasChanged) {
-        logDebug('StockAnalysisContext', 'FSMDisplayUpdate', 'DebugConsoleMenuFsmDisplay updated.', display);
-        return display;
-      }
-      return prevDisplay;
-    });
-  }, [_setDebugConsoleMenuFsmDisplay, logDebug]);
-
   const setReducedStartupLoggingEnabled = useCallback((enabled: boolean) => {
     logDebug('StockAnalysisContext', 'StartupLogToggle', `ReducedStartupLoggingEnabled set to: ${enabled}.`);
     _setIsReducedStartupLoggingEnabled(enabled);
@@ -535,9 +530,41 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
     let nextFlags: GlobalFsmFlags = { ...state.flags };
+    let currentDebugConsoleMenuFsmStateForDisplay = _debugConsoleMenuFsmDisplayInternal?.current || 'IDLE';
+
 
     const errorJsonWithDetails = (message: string, details: string | null | undefined) =>
         `{ "status": "error", "message": "${message.replace(/"/g, '\\"')}", "details": "${(details || '').replace(/"/g, '\\"')}" }`;
+
+    switch (event.type) {
+      case 'TOGGLE_DEBUG_CONSOLE_MENU': {
+        const { menu, isOpen } = event.payload;
+        let newMenuDisplayState = 'IDLE';
+        if (isOpen) {
+            nextFlags.isDebugConsoleFilterMenuOpen = menu === 'filter';
+            nextFlags.isDebugConsoleCopyMenuOpen = menu === 'copy';
+            nextFlags.isDebugConsoleExportMenuOpen = menu === 'export';
+            if (menu === 'filter') newMenuDisplayState = 'FILTER_MENU_OPEN';
+            if (menu === 'copy') newMenuDisplayState = 'COPY_MENU_OPEN';
+            if (menu === 'export') newMenuDisplayState = 'EXPORT_MENU_OPEN';
+        } else {
+            if (menu === 'filter') nextFlags.isDebugConsoleFilterMenuOpen = false;
+            if (menu === 'copy') nextFlags.isDebugConsoleCopyMenuOpen = false;
+            if (menu === 'export') nextFlags.isDebugConsoleExportMenuOpen = false;
+            // newMenuDisplayState remains 'IDLE' if the specific menu being closed was the one open
+        }
+        logDebug('StockAnalysisContext', 'GlobalFSM_Action', `TOGGLE_DEBUG_CONSOLE_MENU: ${menu}, isOpen: ${isOpen}. Filter: ${nextFlags.isDebugConsoleFilterMenuOpen}, Copy: ${nextFlags.isDebugConsoleCopyMenuOpen}, Export: ${nextFlags.isDebugConsoleExportMenuOpen}`);
+        _setDebugConsoleMenuFsmDisplayInternal(prev => ({
+            previous: prev?.current || 'IDLE',
+            current: newMenuDisplayState,
+            target: null,
+        }));
+        currentDebugConsoleMenuFsmStateForDisplay = newMenuDisplayState; // Update for current cycle
+        // No change to global FSM state itself, only flags and display tuple
+        return { ...state, flags: nextFlags, previous: previousState }; 
+      }
+    }
+
 
     switch (previousState) {
       case GlobalFsmState.IDLE:
@@ -548,8 +575,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case GlobalFsmState.KEY_TAKEAWAYS_FAILED:
       case GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED:
       case GlobalFsmState.OPTIONS_ANALYSIS_FAILED:
-      case GlobalFsmState.CHAT_MESSAGE_SUCCESS: // Added for chat
-      case GlobalFsmState.CHAT_MESSAGE_ERROR:   // Added for chat
+      case GlobalFsmState.CHAT_MESSAGE_SUCCESS: 
+      case GlobalFsmState.CHAT_MESSAGE_ERROR:   
         if (event.type === 'START_FULL_ANALYSIS') {
           nextVariables.activeTicker = event.payload.ticker;
           nextVariables.userInputTicker = event.payload.ticker; 
@@ -562,7 +589,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           nextFlags.isKeyTakeawaysDataAvailable = false;
           nextFlags.isOptionsAnalysisDataAvailable = false;
           nextVariables.lastError = null;
-          nextVariables.pendingChatSubmissionPayload = null; // Clear pending chat on new full analysis
+          nextVariables.pendingChatSubmissionPayload = null; 
           setAllPlaceholdersInternal(event.payload.ticker, true); 
           nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH; 
           logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> START_FULL_ANALYSIS for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
@@ -591,12 +618,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                  logDebug('StockAnalysisContext', 'GlobalFSM_ActionInvalid', `TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker} ignored. Active ticker is ${state.variables.activeTicker}.`);
             }
         } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
-            if (nextVariables.activeTicker) { // Only allow chat if there's an active analysis context
+            if (nextVariables.activeTicker) { 
                 const userMessage: ChatMessage = { id: Date.now().toString() + '_user_global', role: 'user', content: event.payload.userInput };
-                _setChatHistory(prev => [...prev, userMessage]); // Optimistic update of chat history
-                nextVariables.pendingChatSubmissionPayload = { ...event.payload, chatHistory: [...chatHistory, userMessage] }; // Store full payload for MainTabContent
+                _setChatHistory(prev => [...prev, userMessage]); 
+                nextVariables.pendingChatSubmissionPayload = { ...event.payload, chatHistory: [...chatHistory, userMessage] }; 
                 nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
-                contextSetters.setChatbotRequestJson(chatPendingJson); // Visual feedback
+                contextSetters.setChatbotRequestJson(chatPendingJson); 
                 contextSetters.setChatbotResponseJson(chatPendingJson);
                 logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> SUBMIT_CHAT_MESSAGE for ${nextVariables.activeTicker}. To CHAT_MESSAGE_PENDING. User input stored in pending payload.`);
             } else {
@@ -645,9 +672,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       case GlobalFsmState.CHAT_MESSAGE_PENDING:
         if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') {
-            nextVariables.pendingChatSubmissionPayload = null; // Clear payload as action is now in flight
+            nextVariables.pendingChatSubmissionPayload = null; 
             logDebug('StockAnalysisContext', 'GlobalFSM_Internal', `CHAT_MESSAGE_PENDING -> PENDING_CHAT_SUBMISSION_TRIGGERED. Pending payload cleared.`);
-            // Stay in CHAT_MESSAGE_PENDING
         } else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') {
             contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
             contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
@@ -662,7 +688,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                  addChatMessage({ id: Date.now().toString() + '_model_global_parse_error', role: 'model', content: "Error parsing chatbot response." });
             }
             nextVariables.lastError = null;
-            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS; // Or directly to IDLE
+            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS; 
             logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_SUCCESS. To ${nextCurrentState}.`);
         } else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') {
             const errPayload = event.payload;
@@ -671,7 +697,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             contextSetters.setChatbotResponseJson(errPayload.chatbotResponseJson || errorJsonWithDetails(errMsg, errPayload.error));
             addChatMessage({ id: Date.now().toString() + '_model_global_action_error', role: 'model', content: `Error: ${errMsg}` });
             nextVariables.lastError = { message: errMsg, source: 'ChatAction', details: errPayload.error };
-            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_ERROR; // Or directly to IDLE
+            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_ERROR; 
             logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_ERROR. Error: ${errMsg}. To ${nextCurrentState}.`);
         }
         break;
@@ -811,6 +837,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug('StockAnalysisContext', 'GlobalFSM_UnhandledEvent', `Unhandled event ${event.type} in state ${previousState}`);
         break;
     }
+    
+    // Update Debug Console Menu FSM Display based on flags after main FSM logic
+    let newDebugConsoleMenuDisplayStateValue = 'IDLE';
+    if (nextFlags.isDebugConsoleFilterMenuOpen) newDebugConsoleMenuDisplayStateValue = 'FILTER_MENU_OPEN';
+    else if (nextFlags.isDebugConsoleCopyMenuOpen) newDebugConsoleMenuDisplayStateValue = 'COPY_MENU_OPEN';
+    else if (nextFlags.isDebugConsoleExportMenuOpen) newDebugConsoleMenuDisplayStateValue = 'EXPORT_MENU_OPEN';
+
+    if (newDebugConsoleMenuDisplayStateValue !== currentDebugConsoleMenuFsmStateForDisplay) {
+        _setDebugConsoleMenuFsmDisplayInternal(prev => ({
+            previous: prev?.current || 'IDLE',
+            current: newDebugConsoleMenuDisplayStateValue,
+            target: null, 
+        }));
+    }
 
     return { current: nextCurrentState, previous: previousState, variables: nextVariables, flags: nextFlags };
   };
@@ -852,9 +892,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             else if (event.type === 'OPTIONS_ANALYSIS_FAILURE') determinedTarget = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
             break;
         case GlobalFsmState.CHAT_MESSAGE_PENDING:
-            if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') determinedTarget = currentActualState; // Stays pending
-            else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') determinedTarget = GlobalFsmState.CHAT_MESSAGE_SUCCESS; // Or IDLE
-            else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') determinedTarget = GlobalFsmState.CHAT_MESSAGE_ERROR; // Or IDLE
+            if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') determinedTarget = currentActualState; 
+            else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') determinedTarget = GlobalFsmState.CHAT_MESSAGE_SUCCESS; 
+            else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') determinedTarget = GlobalFsmState.CHAT_MESSAGE_ERROR; 
             break;
         case GlobalFsmState.APP_INITIALIZING:
             if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = GlobalFsmState.AWAITING_TICKER_INPUT; 
@@ -885,8 +925,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             break;
     }
 
+    // For TOGGLE_DEBUG_CONSOLE_MENU, the target state is not a GlobalFsmState, but an internal flag change.
+    // The reducer handles flag updates directly for this event. No change to global FSM state itself.
+    if (event.type === 'TOGGLE_DEBUG_CONSOLE_MENU') {
+        determinedTarget = currentActualState; // Stays in current global FSM state
+    }
+
     logDebug('StockAnalysisContext', 'FSM_Dispatch', `Dispatching event: ${event.type}. Current actual state: ${currentActualState}. Determined target: ${determinedTarget || 'N/A'}`);
-    if (determinedTarget) {
+    if (determinedTarget && event.type !== 'TOGGLE_DEBUG_CONSOLE_MENU') {
         _setTargetFsmDisplayState(determinedTarget);
     }
     _dispatchFsmEventActual(event);
@@ -1108,8 +1154,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         currentGlobalFsmState === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
         currentGlobalFsmState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED ||
         currentGlobalFsmState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
-        currentGlobalFsmState === GlobalFsmState.CHAT_MESSAGE_SUCCESS || // Added for chat
-        currentGlobalFsmState === GlobalFsmState.CHAT_MESSAGE_ERROR    // Added for chat
+        currentGlobalFsmState === GlobalFsmState.CHAT_MESSAGE_SUCCESS || 
+        currentGlobalFsmState === GlobalFsmState.CHAT_MESSAGE_ERROR    
     ) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState}. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
@@ -1280,10 +1326,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isFsmDebugCardOpen: _isFsmDebugCardOpen, setFsmDebugCardOpen: _setIsFsmDebugCardOpen,
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay, 
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
-    debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay,
+    debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplayInternal, // Use internal state here
+    setReducedStartupLoggingEnabled,
     isInitialAppStartupComplete: _isInitialAppStartupComplete,
     isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
-    setReducedStartupLoggingEnabled,
   }), [
     _polygonApiRequestLogJson, setPolygonApiRequestLogJson,
     _polygonApiResponseLogJson, setPolygonApiResponseLogJson,
@@ -1310,7 +1356,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _isFsmDebugCardOpen, _setIsFsmDebugCardOpen,
     _mainTabFsmDisplay, setMainTabFsmDisplay,
     _chatbotFsmDisplay, setChatbotFsmDisplay,
-    _debugConsoleMenuFsmDisplay, setDebugConsoleMenuFsmDisplay,
+    _debugConsoleMenuFsmDisplayInternal, // Use internal state here
     _isInitialAppStartupComplete, _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled
   ]);
 
@@ -1329,3 +1375,5 @@ export function useStockAnalysis() {
   return context;
 }
 
+
+    

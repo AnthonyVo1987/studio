@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
 import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context";
-import { DebugConsoleFsmProvider } from "@/contexts/debug-console-fsm-context";
+// Removed: import { DebugConsoleFsmProvider } from "@/contexts/debug-console-fsm-context";
 import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-debug-card";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     isFsmDebugCardOpen,
     logDebug,
     setMainTabFsmDisplay,
-    setDebugConsoleMenuFsmDisplay,
+    // Removed: setDebugConsoleMenuFsmDisplay, as it's handled internally by StockAnalysisContext now
   } = useStockAnalysis();
 
   const [mainTabFsmPreviousState, setMainTabFsmPreviousState] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
   };
 
   const calculatePaddingBottom = () => {
-    let padding = 32; // Base padding
+    let padding = 32; 
     let consoleEffectiveHeight = 0;
     let fsmCardEffectiveHeight = 0;
 
@@ -60,13 +60,10 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     }
 
     if (fsmCardEffectiveHeight > 0 && consoleEffectiveHeight > 0) {
-      // Both are open, FSM card is above console
-      padding = fsmCardEffectiveHeight + consoleEffectiveHeight + 16 + 16; // card + gap + console + base_clearance
+      padding = fsmCardEffectiveHeight + consoleEffectiveHeight + 16 + 16; 
     } else if (fsmCardEffectiveHeight > 0) {
-      // Only FSM card is open
       padding = fsmCardEffectiveHeight + 16;
     } else if (consoleEffectiveHeight > 0) {
-      // Only console is open
       padding = consoleEffectiveHeight + 16;
     }
     return `${padding}px`;
@@ -122,21 +119,16 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
         </Tabs>
       </main>
-      <DebugConsoleFsmProvider
-        logDebug={logDebug}
-        setDebugConsoleMenuFsmDisplayState={setDebugConsoleMenuFsmDisplay}
-      >
-        <FsmStateDebugCard
-            mainTabFsmPreviousState={mainTabFsmPreviousState}
-            mainTabFsmCurrentState={mainTabFsmCurrentState}
-            mainTabFsmTargetState={mainTabFsmTargetState}
-        />
-        <DebugConsole appVersion={appVersion} />
-      </DebugConsoleFsmProvider>
+      {/* Removed DebugConsoleFsmProvider wrapper */}
+      <FsmStateDebugCard
+          mainTabFsmPreviousState={mainTabFsmPreviousState}
+          mainTabFsmCurrentState={mainTabFsmCurrentState}
+          mainTabFsmTargetState={mainTabFsmTargetState}
+      />
+      <DebugConsole appVersion={appVersion} />
       <Footer />
     </div>
   );
 }
-
 
     

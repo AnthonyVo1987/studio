@@ -17,8 +17,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
-import { useStockAnalysis, type FsmDisplayTuple } from '@/contexts/stock-analysis-context';
-import { useDebugConsoleFsm, DebugConsoleFsmMenuState } from '@/contexts/debug-console-fsm-context';
+import { useStockAnalysis, type FsmDisplayTuple, type GlobalFsmState } from '@/contexts/stock-analysis-context'; // Added GlobalFsmState
+// Removed: import { useDebugConsoleFsm, DebugConsoleFsmMenuState } from '@/contexts/debug-console-fsm-context';
 import { globalLogEntries, clearGlobalLogBuffer, type GlobalLogEntry } from '@/lib/global-log-buffer';
 import { downloadJson, copyToClipboard, downloadTxt } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
@@ -78,19 +78,19 @@ const escapeCsvField = (field: any): string => {
 };
 
 const getFsmStatesAndTimestampForExport = (
-    globalPreviousFsmState: FsmState | null,
-    globalFsmState: FsmState,
-    globalTargetFsmDisplayState: FsmState | null,
+    globalPreviousFsmState: GlobalFsmState | null,
+    globalFsmState: GlobalFsmState,
+    globalTargetFsmDisplayState: GlobalFsmState | null,
     mainTabFsmDisplay: FsmDisplayTuple | null,
     chatbotFsmDisplay: FsmDisplayTuple | null,
-    contextDebugConsoleMenuFsmDisplay: FsmDisplayTuple | null
+    contextDebugConsoleMenuFsmDisplay: FsmDisplayTuple | null 
 ) => ({
   reportTimestamp: new Date().toISOString(),
   fsmStatesSnapshot: {
     globalApplicationFSM: { previous: globalPreviousFsmState, current: globalFsmState, target: globalTargetFsmDisplayState },
     mainTabUI_FSM: mainTabFsmDisplay,
     chatbotUI_FSM: chatbotFsmDisplay,
-    debugConsoleMenuUI_FSM: contextDebugConsoleMenuFsmDisplay,
+    debugConsoleMenuUI_FSM: contextDebugConsoleMenuFsmDisplay, 
   }
 });
 
@@ -106,12 +106,12 @@ const generateLogsTxtWithMetadata = (
   metadata += `  Global Application FSM: Prev: ${fsmStates.globalApplicationFSM?.previous || 'N/A'}, Curr: ${fsmStates.globalApplicationFSM?.current || 'N/A'}, Target: ${fsmStates.globalApplicationFSM?.target || 'N/A'}\n`;
   metadata += `  Main Tab UI FSM: Prev: ${fsmStates.mainTabUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.mainTabUI_FSM?.current || 'N/A'}, Target: ${fsmStates.mainTabUI_FSM?.target || 'N/A'}\n`;
   metadata += `  Chatbot UI FSM: Prev: ${fsmStates.chatbotUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.chatbotUI_FSM?.current || 'N/A'}, Target: ${fsmStates.chatbotUI_FSM?.target || 'N/A'}\n`;
-  metadata += `  Debug Console Menu FSM: Prev: ${fsmStates.debugConsoleMenuUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.debugConsoleMenuUI_FSM?.current || 'N/A'}, Target: ${fsmStates.debugConsoleMenuUI_FSM?.target || 'N/A'}\n\n`;
+  metadata += `  Debug Console Menu UI FSM: Prev: ${fsmStates.debugConsoleMenuUI_FSM?.previous || 'N/A'}, Curr: ${fsmStates.debugConsoleMenuUI_FSM?.current || 'N/A'}, Target: ${fsmStates.debugConsoleMenuUI_FSM?.target || 'N/A'}\n\n`;
   metadata += "Client Debug Logs:\n";
   metadata += "--------------------------------------------------\n";
 
   const logLines = logs.map(log => {
-    if (log.source === 'LogBuffer' && log.type === 'system') { // Handle wrap marker
+    if (log.source === 'LogBuffer' && log.type === 'system') { 
       return `\n--- ${formatLogMessage(log.messages)} ---\n`;
     }
     const timestamp = `[${new Date(log.timestamp).toISOString()}]`;
@@ -139,7 +139,7 @@ const generateLogsCsvWithMetadata = (
   metadata += "Timestamp,Type,Source,Message\n";
 
   const logRows = logs.map(log => {
-    if (log.source === 'LogBuffer' && log.type === 'system') { // Handle wrap marker for CSV
+    if (log.source === 'LogBuffer' && log.type === 'system') { 
       return `"",system,LogBuffer,"${escapeCsvField(formatLogMessage(log.messages))}"`;
     }
     const timestamp = log.timestamp;
@@ -164,39 +164,37 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     mainTabFsmDisplay,
     chatbotFsmDisplay,
     debugConsoleMenuFsmDisplay: contextDebugConsoleMenuFsmDisplay,
+    fsmFlags, 
+    dispatchFsmEvent, 
   } = useStockAnalysis();
-
-  const {
-    uiMenuState,
-    activeFilters,
-    searchTerm,
-    dispatchDebugConsoleFsmEvent,
-  } = useDebugConsoleFsm();
 
   const { toast } = useToast();
   const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
+  
+  // Local state for filters and search term, previously in DebugConsoleFsmContext
+  const [localActiveFilters, setLocalActiveFilters] = useState<{ types: Set<LogType>; sources: Set<LogSourceId> }>({ types: new Set(), sources: new Set() });
+  const [localSearchTerm, setLocalSearchTerm] = useState<string>('');
+
 
   const processLogs = useCallback(() => {
     let logsToProcess = [...globalLogEntries];
-    const currentSearchTerm = searchTerm.toLowerCase();
+    const currentSearchTerm = localSearchTerm.toLowerCase();
 
-    if (activeFilters.types.size > 0) {
-      logsToProcess = logsToProcess.filter(log => activeFilters.types.has(log.type as LogType));
+    if (localActiveFilters.types.size > 0) {
+      logsToProcess = logsToProcess.filter(log => localActiveFilters.types.has(log.type as LogType));
     }
-    if (activeFilters.sources.size > 0) {
-      logsToProcess = logsToProcess.filter(log => log.source && activeFilters.sources.has(log.source));
+    if (localActiveFilters.sources.size > 0) {
+      logsToProcess = logsToProcess.filter(log => log.source && localActiveFilters.sources.has(log.source));
     }
 
     if (currentSearchTerm) {
       logsToProcess = logsToProcess.filter(log => {
-        // Do not filter out system LogBuffer messages by search term
         if (log.source === 'LogBuffer' && log.type === 'system') return true;
         return formatLogMessage(log.messages).toLowerCase().includes(currentSearchTerm);
       });
     }
-    // MAX_DISPLAYED_LOGS is now 1000, matching buffer size potentially
     return logsToProcess.slice(Math.max(0, logsToProcess.length - MAX_DISPLAYED_LOGS));
-  }, [activeFilters, searchTerm]);
+  }, [localActiveFilters, localSearchTerm]);
 
 
   const fetchAndUpdateLogs = useCallback(() => {
@@ -219,7 +217,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
       const intervalId = setInterval(fetchAndUpdateLogs, POLLING_INTERVAL_MS);
       return () => clearInterval(intervalId);
     }
-  }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, fetchAndUpdateLogs, activeFilters, searchTerm]);
+  }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, fetchAndUpdateLogs, localActiveFilters, localSearchTerm]);
 
   if (!isClientDebugConsoleEnabled || !isClientDebugConsoleOpen) {
     return null;
@@ -228,7 +226,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
   const handleClearLogs = () => {
     clearGlobalLogBuffer();
     setDisplayedLogs([]);
-    dispatchDebugConsoleFsmEvent({ type: 'CLEAR_SEARCH_TERM' });
+    setLocalSearchTerm(''); 
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
     stockAnalysisLogDebug('DebugConsole', 'LogClear', 'Client debug logs cleared by user. Search term also cleared.');
   };
@@ -328,16 +326,36 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     }
   };
 
-
   const handleSearchTermChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    dispatchDebugConsoleFsmEvent({ type: 'SEARCH_TERM_CHANGED', payload: event.target.value });
+    setLocalSearchTerm(event.target.value);
   };
 
   const clearSearchTerm = () => {
-    dispatchDebugConsoleFsmEvent({ type: 'CLEAR_SEARCH_TERM' });
+    setLocalSearchTerm('');
   };
 
-  const activeFilterCountFromFsm = activeFilters.types.size + activeFilters.sources.size;
+  const updateTypeFilter = (type: LogType, checked: boolean) => {
+    setLocalActiveFilters(prev => {
+        const newTypes = new Set(prev.types);
+        if (checked) newTypes.add(type); else newTypes.delete(type);
+        return { ...prev, types: newTypes };
+    });
+  };
+  const updateSourceFilter = (source: LogSourceId, checked: boolean) => {
+    setLocalActiveFilters(prev => {
+        const newSources = new Set(prev.sources);
+        if (checked) newSources.add(source); else newSources.delete(source);
+        return { ...prev, sources: newSources };
+    });
+  };
+  const setAllTypeFilters = (selectAll: boolean) => {
+    setLocalActiveFilters(prev => ({ ...prev, types: selectAll ? new Set(allLogTypes) : new Set() }));
+  };
+  const setAllSourceFilters = (selectAll: boolean) => {
+    setLocalActiveFilters(prev => ({ ...prev, sources: selectAll ? new Set(logSourceIds) : new Set() }));
+  };
+
+  const activeFilterCountFromLocalState = localActiveFilters.types.size + localActiveFilters.sources.size;
   const isUserInteractionDisabled = displayedLogs.length === 0;
 
   return (
@@ -365,11 +383,11 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
               <Input
                 type="text"
                 placeholder="Search logs..."
-                value={searchTerm}
+                value={localSearchTerm}
                 onChange={handleSearchTermChange}
                 className="h-7 pl-8 pr-7 text-xs"
               />
-              {searchTerm && (
+              {localSearchTerm && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -385,15 +403,15 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
           </div>
           <div className="flex items-center gap-1">
             <DropdownMenu
-              open={uiMenuState === DebugConsoleFsmMenuState.FILTER_TYPE_MENU_OPEN}
-              onOpenChange={(isOpen) => dispatchDebugConsoleFsmEvent({ type: 'SET_MENU_OPEN_STATE', payload: { menu: 'filterType', isOpen } })}
+              open={fsmFlags.isDebugConsoleFilterMenuOpen}
+              onOpenChange={(isOpen) => dispatchFsmEvent({ type: 'TOGGLE_DEBUG_CONSOLE_MENU', payload: { menu: 'filter', isOpen }})}
             >
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" title="Filter Logs" className="h-7 w-7">
                   <Filter className="h-4 w-4" />
-                  {activeFilterCountFromFsm > 0 && (
+                  {activeFilterCountFromLocalState > 0 && (
                     <span className="absolute -top-1 -right-1 text-xs bg-primary text-primary-foreground rounded-full h-4 w-4 flex items-center justify-center text-[10px]">
-                      {activeFilterCountFromFsm}
+                      {activeFilterCountFromLocalState}
                     </span>
                   )}
                 </Button>
@@ -401,15 +419,15 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel>Filter by Log Type</DropdownMenuLabel>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_TYPE_FILTERS', payload: { selectAll: true } })}>Select All Types</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_TYPE_FILTERS', payload: { selectAll: false } })}>Clear All Types</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setAllTypeFilters(true)}>Select All Types</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setAllTypeFilters(false)}>Clear All Types</DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {logTypes.map(type => (
                   <DropdownMenuCheckboxItem
                     key={type}
-                    checked={activeFilters.types.has(type)}
-                    onCheckedChange={(checked) => dispatchDebugConsoleFsmEvent({ type: 'UPDATE_TYPE_FILTER', payload: { type, checked } })}
+                    checked={localActiveFilters.types.has(type)}
+                    onCheckedChange={(checked) => updateTypeFilter(type, !!checked)}
                     onSelect={(e) => e.preventDefault()}
                   >
                     {type.toUpperCase()}
@@ -418,16 +436,16 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Filter by Log Source</DropdownMenuLabel>
                  <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_SOURCE_FILTERS', payload: { selectAll: true } })}>Select All Sources</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => dispatchDebugConsoleFsmEvent({ type: 'SET_ALL_SOURCE_FILTERS', payload: { selectAll: false } })}>Clear All Sources</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setAllSourceFilters(true)}>Select All Sources</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setAllSourceFilters(false)}>Clear All Sources</DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <ScrollArea className="h-[200px]">
                   {logSourceIds.map(source => (
                     <DropdownMenuCheckboxItem
                       key={source}
-                      checked={activeFilters.sources.has(source)}
-                      onCheckedChange={(checked) => dispatchDebugConsoleFsmEvent({ type: 'UPDATE_SOURCE_FILTER', payload: { source, checked } })}
+                      checked={localActiveFilters.sources.has(source)}
+                      onCheckedChange={(checked) => updateSourceFilter(source, !!checked)}
                       onSelect={(e) => e.preventDefault()}
                     >
                       {logSourceLabels[source] || source}
@@ -438,8 +456,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
             </DropdownMenu>
 
             <DropdownMenu
-              open={uiMenuState === DebugConsoleFsmMenuState.COPY_MENU_OPEN}
-              onOpenChange={(isOpen) => dispatchDebugConsoleFsmEvent({ type: 'SET_MENU_OPEN_STATE', payload: { menu: 'copy', isOpen } })}
+              open={fsmFlags.isDebugConsoleCopyMenuOpen}
+              onOpenChange={(isOpen) => dispatchFsmEvent({ type: 'TOGGLE_DEBUG_CONSOLE_MENU', payload: { menu: 'copy', isOpen }})}
             >
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" title="Copy Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
@@ -454,8 +472,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
             </DropdownMenu>
 
             <DropdownMenu
-              open={uiMenuState === DebugConsoleFsmMenuState.EXPORT_MENU_OPEN}
-              onOpenChange={(isOpen) => dispatchDebugConsoleFsmEvent({ type: 'SET_MENU_OPEN_STATE', payload: { menu: 'export', isOpen } })}
+              open={fsmFlags.isDebugConsoleExportMenuOpen}
+              onOpenChange={(isOpen) => dispatchFsmEvent({ type: 'TOGGLE_DEBUG_CONSOLE_MENU', payload: { menu: 'export', isOpen }})}
             >
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" title="Export Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
@@ -483,7 +501,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
         <ScrollArea className="h-full p-2">
           {displayedLogs.length === 0 ? (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              {searchTerm ? `No logs found for "${searchTerm}" with current filters.` : "No client logs matching current filters."}
+              {localSearchTerm ? `No logs found for "${localSearchTerm}" with current filters.` : "No client logs matching current filters."}
             </div>
           ) : (
             <div className="space-y-1 font-code text-xs">
@@ -510,7 +528,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
                         'text-red-500 dark:text-red-400': log.type === 'error',
                         'text-blue-500 dark:text-blue-400': log.type === 'info',
                         'text-purple-500 dark:text-purple-400': log.type === 'debug',
-                        'text-green-500 dark:text-green-400': log.type === 'system', // Color for system messages
+                        'text-green-500 dark:text-green-400': log.type === 'system', 
                         'text-gray-500 dark:text-gray-400': log.type === 'log',
                       })}
                     >
@@ -528,3 +546,6 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     </Card>
   );
 }
+
+
+    
