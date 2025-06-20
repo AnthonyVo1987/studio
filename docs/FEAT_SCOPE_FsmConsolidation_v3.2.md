@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.10 
+**Document Version:** 1.11
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** IN PROGRESS
@@ -109,7 +109,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ### **Phase 3: Integrating Chat & Debug Console Menus (FEAT Phase 'x' = 3)**
 *Objective: Bring Chatbot UI states and Debug Console menu states under the purview of the single FSM.*
-*   **Overall Phase Status:** `IN PROGRESS`
+*   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.3.2.0`, Phase Commit `7f0e552b`)
 
 *   **Task v3.2.3.0.0: Integrate Chatbot Submission Flow**
     *   **Status:** `COMPLETED` (Commit: `5e688769`)
@@ -118,26 +118,17 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *   **Task v3.2.3.1.0: Chatbot UI State Management (Loading/Disabled)**
     *   **Status:** `COMPLETED` (Commit: `c296d6dc`)
     *   **App Metadata:** `v3.2.3.1.0`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understood:* The `Chatbot.tsx` `isProcessing` flag needs to simply reflect the `isAnyAnalysisInProgress` prop.
-        2.  `Chatbot.tsx`: Simplified `isProcessing` to be `const isProcessing = isAnyAnalysisInProgress;`.
-    *   **Testability:** Chatbot UI elements (input, buttons) correctly disable/enable based on the comprehensive `isAnyAnalysisInProgress` prop.
 
-*   **Task v3.2.3.2.0: Integrate Debug Console Menu UI States (Optional but Recommended)**
-    *   **Status:** `PLANNED`
-    *   **File(s):** `src/components/debug-console.tsx`, `src/contexts/stock-analysis-context.tsx`. (Potentially deprecate `DebugConsoleFsmContext.tsx`).
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* The open/closed state of Debug Console menus (Filter, Copy, Export). `DebugConsoleFsmContext` will be deprecated.
-        2.  Add flags to `GlobalFsmFlags`: e.g., `isDebugConsoleFilterMenuOpen: boolean`, `isDebugConsoleCopyMenuOpen: boolean`, `isDebugConsoleExportMenuOpen: boolean`. Initialize to `false`.
-        3.  `DebugConsole.tsx`: Dropdown triggers dispatch events to global FSM like `TOGGLE_DEBUG_CONSOLE_MENU` (payload: `{ menu: 'filter' | 'copy' | 'export', currentOpenState: boolean }`).
-        4.  Reducer handles `TOGGLE_DEBUG_CONSOLE_MENU`: Updates the corresponding flag (e.g., `flags.isDebugConsoleFilterMenuOpen = !payload.currentOpenState`). If opening one menu, ensure others are closed (set their flags to `false`).
-    *   **Testability:** Debug console menus open/close correctly, driven by global FSM flags. Only one menu open at a time.
-    *   **App Metadata:** Update to `v3.2.3.2.0`.
+*   **Task v3.2.3.2.0: Integrate Debug Console Menu UI States**
+    *   **Status:** `COMPLETED` (Commit: `7f0e552b`)
+    *   **File(s):** `src/components/debug-console.tsx`, `src/contexts/stock-analysis-context.tsx`, `src/components/page-content.tsx`. `DebugConsoleFsmContext.tsx` was deprecated/removed.
+    *   **App Metadata:** Updated to `v3.2.3.2.0`.
 
 ---
 
 ### **Phase 4: Testing and Debugging (FEAT Phase 'x' = 4)**
 *Objective: Rigorous testing of the consolidated FSM across all application features and edge cases. Focus on stability, correct state transitions, accurate flag/variable updates, and absence of regressions.*
+*   **Overall Phase Status:** `PLANNED`
 
 *   **Task v3.2.4.0.z: Comprehensive End-to-End Testing - Scenario 1 (Happy Paths)**
     *   **Status:** `PLANNED`
@@ -197,6 +188,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.11 (2025-06-21):** Marked Task v3.2.3.2.0 as `COMPLETED` (Commit `7f0e552b`, App Version `v3.2.3.2.0`). Marked Phase 3 "Integrating Chat & Debug Console Menus" as `COMPLETED`.
 *   **v1.10 (2025-06-21):** Marked Task v3.2.3.1.0 as `COMPLETED` (Commit `c296d6dc`, App Version `v3.2.3.1.0`).
 *   **v1.9 (2025-06-21):** Marked Task v3.2.3.0.0 as `COMPLETED` (Commit `5e688769`, App Version `v3.2.3.0.0`). Phase 3 "Integrating Chat & Debug Console Menus" status to `IN PROGRESS`.
 *   **v1.8 (2025-06-21):** Marked Phase 2 (Tasks v3.2.2.0.0 & v3.2.2.1.0) as `COMPLETED`. App Version `v3.2.2.1.0`, Commit `0a0ba41c`.

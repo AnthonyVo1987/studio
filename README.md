@@ -24,8 +24,8 @@
     *   That way, when we start testing some changes and we encounter issues, I can just provide the debug logs which will have the version meta data so it's clear what task we are on and will help to ground us.
 
 ---
-**README Document Version:** 1.60
-**Application Version (from `app-metadata.json`):** v3.2.2.1.0 (Commit `0a0ba41c` - Phase 2 FSM Consolidation Complete)
+**README Document Version:** 1.61
+**Application Version (from `app-metadata.json`):** v3.2.3.2.0 (Commit `7f0e552b` - Phase 3 FSM Consolidation Complete)
 **Last Updated:** 2025-06-21
 
 ## 1. Introduction
@@ -98,7 +98,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Copy functionality for the above exports.
     *   **Exported File Metadata:** All exported files (debug logs, data exports) will dynamically include the current application version sourced from `src/config/app-metadata.json`.
 *   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs).
-*   **Client Debug Console:** Real-time client-side log display with filtering, search, max 1000 entries, wrap indicator, and export capabilities. Exported logs include the dynamic application version.
+*   **Client Debug Console:** Real-time client-side log display with filtering, search, max 1000 entries, wrap indicator, and export capabilities. Exported logs include the dynamic application version and a snapshot of FSM states, flags, and variables.
 *   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup.
 *   **FSM State Debug Card:** Real-time display of FSM states, flags, and context variables.
 
@@ -141,14 +141,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single, enhanced global application FSM.
 *   **`useActionState` (React Hook):** Manages the lifecycle (pending, success, error) of server actions invoked from client components.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.2.1.0 - FSM Consolidation Phase 2 Complete)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.3.2.0 - FSM Consolidation Phase 3 Complete)
 *   **Single Global Application FSM (managed in `StockAnalysisContext`):**
     *   Orchestrates the main application lifecycle (e.g., `APP_INITIALIZING`, `IDLE`, `PIPELINE_REQUESTED_DATA_FETCH`, `GENERATING_KEY_TAKEAWAYS`, `ANALYZING_OPTIONS`, `CHAT_MESSAGE_PENDING`).
-    *   Manages `GlobalFsmFlags` (booleans for specific conditions like `isSnapshotDataReady`, `isKeyTakeawaysDataAvailable`) and `GlobalFsmContextVariables` (data like `activeAnalysisTicker`).
+    *   Manages `GlobalFsmFlags` (booleans for specific conditions like `isSnapshotDataReady`, `isKeyTakeawaysDataAvailable`, `isDebugConsoleFilterMenuOpen`) and `GlobalFsmContextVariables` (data like `activeAnalysisTicker`, `lastErrorDetails`).
     *   Drives UI enablement/disablement and conditional logic throughout the app.
     *   **Phase 1 Completion:** Automated pipeline (ticker input, data fetch, AI TA calculation) fully migrated.
     *   **Phase 2 Completion:** Manual AI actions ("Generate AI Key Takeaways", "Generate AI Options Analysis") fully migrated.
-*   **Local UI FSMs (`ChatbotFsmContext`, `DebugConsoleFsmContext`):** To be addressed in Phase 3.
+    *   **Phase 3 Completion:** Chatbot submission, Chatbot UI state, and Debug Console Menu UI states fully migrated. `ChatbotFsmContext` and `DebugConsoleFsmContext` are deprecated/removed.
 *   **FSM State Display:** The "FSM State Debug Card" (`FsmStateDebugCard.tsx`) displays the state, flags, and variables of the single global FSM.
 
 ### 3.3. AI Flow & Prompt Design
@@ -172,8 +172,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Server-Side Logging (Actions & Flows):** `console.log`, `console.error`, `console.time/timeEnd` with standardized prefixes.
 *   **Debug Console (`src/components/debug-console.tsx`):**
     *   Displays client-side logs (up to 1000 entries).
-    *   Features: Filtering by type/source, search, visual wrap indicator message.
-    *   Export/Copy: Logs (JSON, TXT, CSV) include the **dynamic application version** and a snapshot of FSM states (and eventually flags/variables from the single FSM).
+    *   Features: Filtering by type/source (driven by global FSM flags), search, visual wrap indicator message.
+    *   Export/Copy: Logs (JSON, TXT, CSV) include the **dynamic application version** and a snapshot of FSM states (state, flags, variables).
 
 ### 3.5. Coding Standards & Conventions
 
@@ -184,11 +184,13 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **`package.json`:** No comments.
 *   **Metadata Timestamps (`src/config/app-metadata.json`):**
     *   The `lastUpdatedTimestamp` field **MUST** always be a real, valid ISO 8601 timestamp.
-*   **Debugging Status (as of v3.2.2.1.0):**
+*   **Debugging Status (as of v3.2.3.2.0):**
     *   "Debug Log Enhancements" feature (v3.1.x.y.z) is complete.
     *   "FSM Consolidation & Refactor" (v3.2.x.y.z):
         *   Phase 1 (Foundation & Core FSM Setup - v3.2.1.x.z) is **COMPLETE**.
         *   Phase 2 (Integrating Manual AI Actions - v3.2.2.x.z) is **COMPLETE**.
+        *   Phase 3 (Integrating Chat & Debug Console Menus - v3.2.3.x.z) is **COMPLETE**.
+        *   Phase 4 (Testing and Debugging) is **PLANNED**.
 
 #### 3.5.2. UI/UX Conventions
 *   Consistent use of ShadCN components from `components/ui`.
@@ -212,13 +214,13 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Prompt Definitions (`src/ai/definitions/*.json`): Loaded via dynamic `import()` in `definition-loader.ts`. Handlebars for templating (NO logic).
 *   Tools (`ai.defineTool`): For LLM-decided actions.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.2.2.1.0 and New Versioning Scheme)
+### 3.6. Commit & Changelog Procedures (Reflecting v3.2.3.2.0 and New Versioning Scheme)
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   The application's functional version is updated **ONLY** in `src/config/app-metadata.json` within the `appVersion` field, following the `3.w.x.y.z` scheme:
         *   `3`: App Major Version (Fixed).
         *   `w`: APP Phase Version (e.g., 2 for FSM Consolidation).
-        *   `x`: FEAT Phase Version (e.g., 1 for FSM Consolidation - Phase 1: Foundation, 2 for Phase 2: Manual AI Actions).
-        *   `y`: FEAT Phase Task # (e.g., 1 for Task v3.2.2.1 - Integrate "Generate AI Options Analysis" Button).
+        *   `x`: FEAT Phase Version (e.g., 1 for FSM Consolidation - Phase 1: Foundation, 2 for Phase 2: Manual AI Actions, 3 for Phase 3: Chat & Debug Menus).
+        *   `y`: FEAT Phase Task # (e.g., 2 for Task v3.2.3.2 - Integrate Debug Console Menus).
         *   `z`: Bug FEAT Phase Task # (Increment for bug fixes specific to task 'y'. Starts at 0).
     *   The `lastUpdatedTimestamp` field in `src/config/app-metadata.json` **MUST** be updated to the current real-world ISO 8601 timestamp.
 *   **Dynamic Versioning in UI/Exports:**
@@ -271,8 +273,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.60
-*   **Current Application Version:** `v3.2.2.1.0` (Commit `0a0ba41c` - Phase 2 FSM Consolidation Complete)
+*   **This README Document Version:** 1.61
+*   **Current Application Version:** `v3.2.3.2.0` (Commit `7f0e552b` - Phase 3 FSM Consolidation Complete)
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.

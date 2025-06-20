@@ -58,6 +58,35 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.3.2.0` (Complete FSM Consolidation Phase 3)
+**Tag:** `Phase-14_Task-3.2.3.2.0_FSM_Consolidation_Phase3_Complete` (Illustrative Tag for Phase Completion)
+**Commit Hash:** `7f0e552b` (as provided by user for overall Phase 3 completion)
+**Subject:** `feat(fsm): Complete Phase 3 of FSM Consolidation - Chat & Debug Menus (v3.2.3.2.0)`
+**Details:**
+This commit marks the completion of Phase 3 ("Integrating Chat & Debug Console Menus") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated Chatbot submission flow, Chatbot UI state management, and Debug Console menu UI states to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
+
+**Key Changes in Phase 3 (Tasks v3.2.3.0.0 through v3.2.3.2.0):**
+*   **Integrated Chatbot Submission Flow (Task v3.2.3.0.0 - Commit `5e688769`):**
+    *   The chatbot message submission process is now orchestrated by the global FSM.
+    *   `ChatbotFsmContext` dispatches `SUBMIT_CHAT_MESSAGE` to the global FSM.
+    *   The global FSM manages states like `CHAT_MESSAGE_PENDING`, `CHAT_MESSAGE_SUCCESS` / `CHAT_MESSAGE_ERROR`.
+    *   `MainTabContent` uses `useActionState` for `chatServerAction` and coordinates with the global FSM to trigger the action and report results.
+*   **Chatbot UI State Management (Loading/Disabled) (Task v3.2.3.1.0 - Commit `c296d6dc`):**
+    *   Simplified the `isProcessing` logic in `Chatbot.tsx` to directly use the `isAnyAnalysisInProgress` prop (derived from `isOverallAnalysisPending` in `MainTabContent`), which already reflects the global FSM's busy state, including chat submissions.
+*   **Integrated Debug Console Menu UI States (Task v3.2.3.2.0 - Commit `7f0e552b`):**
+    *   The `DebugConsoleFsmContext` was deprecated and its functionality absorbed into the global FSM.
+    *   New flags (`isDebugConsoleFilterMenuOpen`, `isDebugConsoleCopyMenuOpen`, `isDebugConsoleExportMenuOpen`) were added to `GlobalFsmFlags` in `StockAnalysisContext`.
+    *   The `TOGGLE_DEBUG_CONSOLE_MENU` event is handled by the global FSM to manage these flags, ensuring only one menu is open at a time.
+    *   `DebugConsole.tsx` now uses these global flags and dispatches to the global FSM for menu interactions.
+
+**Outcome of Phase 3:**
+*   Chat functionality (submission, UI state) and Debug Console menu UI states are now fully managed by the single global FSM.
+*   State management for these interactive elements is centralized, enhancing consistency and predictability.
+*   The `DebugConsoleFsmContext` has been successfully removed, simplifying the context architecture.
+*   The application version is now consistently `v3.2.3.2.0`.
+*   The FSM consolidation feature is nearing completion, with major UI interactions (automated pipeline, manual AI actions, chat, debug menus) now integrated. The next phase (Phase 4) will focus on comprehensive testing and debugging.
+
+---
 **App Version:** `v3.2.2.1.0` (Complete FSM Consolidation Phase 2)
 **Tag:** `Phase-13_Task-3.2.2.1.0_FSM_Consolidation_Phase2_Complete` (Illustrative Tag for Phase Completion)
 **Commit Hash:** `0a0ba41c` (as provided by user for overall Phase 2 completion)
@@ -982,5 +1011,6 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
