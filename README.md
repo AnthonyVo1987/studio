@@ -25,7 +25,7 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.65
+**README Document Version:** 1.66
 **Application Version (from `app-metadata.json`):** v3.2.5.0.F (Commit `f34f5128` - FSM & Logging Fixes Consolidation)
 **Last Updated:** 2025-06-21
 
@@ -163,6 +163,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Primary Method: `logDebug()` from `useStockAnalysis()`.
     *   Console Interception: `StockAnalysisContext` intercepts `console.*` calls.
     *   **Startup Logging Control:** `isReducedStartupLoggingEnabled` toggle works in conjunction with the FSM's `isInitialLoad` variable. The log interceptor now correctly depends on this variable to re-evaluate its behavior, ensuring reduced logging is *only* active during the very first pipeline run.
+    *   **Duplicate Log Prevention (Planned for v3.2.5.0.G):** A mechanism will be added to the log interceptor to prevent identical, consecutive log messages from being recorded, improving log clarity.
 *   **Server-Side Logging:** `console.log`, etc., with standardized prefixes.
 *   **Debug Console (`src/components/debug-console.tsx`):**
     *   Displays client-side logs (up to 1000 entries). Features filtering, search, wrap indicator.
@@ -177,7 +178,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   "Debug Log Enhancements" feature (v3.1.x.y.z) is complete.
     *   "FSM Consolidation & Refactor" (v3.2.x.y.z):
         *   Phases 1-4 are **COMPLETE**.
-        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.F` (commit `f34f5128`) consolidated fixes for FSM orchestration, the AI Full Analysis Macro pipeline, and the client-side logging system's startup behavior.
+        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.F` (commit `f34f5128`) consolidated fixes for FSM orchestration, the AI Full Analysis Macro pipeline, and the client-side logging system's startup behavior. A new task `v3.2.5.0.G` is planned for duplicate log prevention.
         *   Phase 6 (Documentation Updates) is **PLANNED**.
 
 #### 3.5.2. UI/UX Conventions
@@ -231,7 +232,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.65
+*   **This README Document Version:** 1.66
 *   **Current Application Version:** `v3.2.5.0.F` (Commit `f34f5128` - FSM & Logging Fixes Consolidation)
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**

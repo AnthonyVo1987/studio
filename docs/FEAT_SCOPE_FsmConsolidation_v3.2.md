@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.17
+**Document Version:** 1.18
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** Phase 5 IN PROGRESS (Bugs up to v3.2.5.0.F addressed).
@@ -146,12 +146,17 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
         *   `v3.2.5.0.E`: Fixed an infinite render loop by correcting the FSM orchestrator `useEffect` dependency array.
         *   `v3.2.5.0.F`: Fixed a stale state closure issue in the console log interceptor `useEffect` by adding `isInitialLoad` to its dependency array, resolving the persistent incorrect log suppression.
 
-*   **Task v3.2.5.1.z (Future): Comprehensive End-to-End Testing - Scenario 1 (Happy Paths - Post `v3.2.5.0.F` fixes)**
+*   **Task v3.2.5.0.G: Implement Duplicate Log Prevention Logic**
+    *   **Status:** `PLANNED`
+    *   **AI Agent - Chain of Thought & Action:** Prevent identical, consecutive log messages from being added to the debug buffer by comparing the new message against the last one.
+    *   **App Metadata:** `v3.2.5.0.G`
+
+*   **Task v3.2.5.1.z (Future): Comprehensive End-to-End Testing - Scenario 1 (Happy Paths - Post `v3.2.5.0.G` fixes)**
     *   **Status:** `PLANNED`
     *   **AI Agent - Chain of Thought & Action:** Verify all primary user flows (standard analysis, full AI macro, manual actions, chat) work correctly. Monitor FSM states, flags, variables.
     *   **App Metadata:** `v3.2.5.1.z`
 
-*   **Task v3.2.5.2.z (Future): Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases - Post `v3.2.5.0.F` fixes)**
+*   **Task v3.2.5.2.z (Future): Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases - Post `v3.2.5.0.G` fixes)**
     *   **Status:** `PLANNED`
     *   **AI Agent - Chain of Thought & Action:** Test invalid inputs, API/AI failures, rapid interactions. Verify error handling and graceful recovery.
     *   **App Metadata:** `v3.2.5.2.z`
@@ -179,6 +184,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.18 (2025-06-21):** Added planned Task `v3.2.5.0.G` for duplicate log prevention.
 *   **v1.17 (2025-06-21):** Marked tasks `v3.2.5.0.D` through `v3.2.5.0.F` (commit `f34f5128`) as `COMPLETED`. Summarized the iterative bug fixes for the logging system and FSM orchestrator. App Version `v3.2.5.0.F`.
 *   **v1.16 (2025-06-20):** Updated Phase 5 status to `IN PROGRESS`. Marked tasks `v3.2.5.0.0` through `v3.2.5.0.C` (commit `2338c4f8`) as `COMPLETED`, summarizing the iterative bug fixes for FSM orchestrator, macro, logging, and chat. App Version `v3.2.5.0.C`.
 *   **v1.15 (2025-06-21):** Marked Phase 4 (Tasks v3.2.4.0.0, v3.2.4.1.0) as `COMPLETED`. Phase Commit `c661f9d1`. App Version `v3.2.4.1.0`.
@@ -201,4 +207,3 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 ---
 This document will be updated as the feature progresses through its implementation phases.
     
-
