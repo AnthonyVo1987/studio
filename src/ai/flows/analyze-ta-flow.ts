@@ -18,11 +18,13 @@ import {
   type AnalyzeTaInput,
   AnalyzeTaOutputSchema,
   type AnalyzeTaOutput,
-} from '@/ai/schemas/ai-analyzed-ta-schemas'; 
-import { formatToTwoDecimals } from '@/lib/number-utils'; 
+} from '@/ai/schemas/ai-analyzed-ta-schemas';
+import { formatToTwoDecimals } from '@/lib/number-utils';
 import { loadDefinition, type CalculationLogicDefinition, type CalculationStep } from '@/ai/definition-loader';
 
 let taCalculationDefinition: CalculationLogicDefinition | null = null;
+// No need to cache the flow object itself for defineFlow if it's simple and stateless,
+// but the definition load can be cached.
 
 async function ensureTaCalculationDefinitionLoaded() {
   const logPrefix = '[AIFlow:ensureTaCalculationDefinitionLoaded]';
@@ -37,15 +39,19 @@ async function ensureTaCalculationDefinitionLoaded() {
     console.log(`${logPrefix} 'analyze-ta-indicators' definition loaded and validated. Logic name: ${taCalculationDefinition.logicName}`);
   }
 }
-ensureTaCalculationDefinitionLoaded();
+// Call it once at module load, subsequent calls will be no-op due to the check.
+ensureTaCalculationDefinitionLoaded().catch(err => {
+    console.error("[AIFlow:ensureTaCalculationDefinitionLoaded_ModuleLoad]", "Failed to load TA calculation definition during module initialization:", err);
+    // Depending on severity, might re-throw or set a flag
+});
 
 
-export async function analyzeTaIndicators( 
+export async function analyzeTaIndicators(
   input: AnalyzeTaInput
 ): Promise<AnalyzeTaOutput> {
   console.log('[AIFlow:analyzeTaIndicators:Entry] Received input (keys):', Object.keys(input).join(', '));
-  await ensureTaCalculationDefinitionLoaded(); // Ensure definition is available
-  return analyzeTaIndicatorsFlow(input); 
+  await ensureTaCalculationDefinitionLoaded(); // Ensure definition is available if not already loaded
+  return analyzeTaIndicatorsFlow(input);
 }
 
 // Helper function to evaluate a formula from the definition
@@ -77,9 +83,9 @@ function evaluateFormula(formula: string, context: Record<string, number>): numb
   }
 }
 
-const analyzeTaIndicatorsFlow = ai.defineFlow( 
+const analyzeTaIndicatorsFlow = ai.defineFlow(
   {
-    name: 'analyzeTaIndicatorsFlow', 
+    name: 'analyzeTaIndicatorsFlow',
     inputSchema: AnalyzeTaInputSchema,
     outputSchema: AnalyzeTaOutputSchema,
   },
@@ -89,7 +95,11 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
 
     if (!taCalculationDefinition) {
       console.error(`${logPrefix} TA Calculation Definition not loaded. Cannot proceed.`);
-      throw new Error("TA Calculation Definition not loaded.");
+      // Attempt to load it again if it failed during module initialization
+      await ensureTaCalculationDefinitionLoaded();
+      if (!taCalculationDefinition) { // If still not loaded, then throw
+          throw new Error("TA Calculation Definition could not be loaded.");
+      }
     }
     console.log(`${logPrefix} Using calculation logic: ${taCalculationDefinition.logicName} - ${taCalculationDefinition.description}`);
 

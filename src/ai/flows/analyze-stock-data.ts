@@ -21,9 +21,16 @@ import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
 let analyzeStockDataPromptDefinition: LlmPromptDefinition | null = null;
+let memoizedAnalyzeStockDataPrompt: ReturnType<typeof ai.definePrompt> | null = null;
+
 
 async function getAnalyzedStockDataPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedStockDataPrompt]';
+  if (memoizedAnalyzeStockDataPrompt) {
+    // console.log(`${logPrefix} Returning cached/memoized prompt.`);
+    return memoizedAnalyzeStockDataPrompt;
+  }
+
   if (!analyzeStockDataPromptDefinition) {
     console.log(`${logPrefix} Loading 'analyze-stock-data' definition for the first time.`);
     const genericDefinition = await loadDefinition('analyze-stock-data');
@@ -33,12 +40,12 @@ async function getAnalyzedStockDataPrompt() {
       throw new Error(errorMsg);
     }
     analyzeStockDataPromptDefinition = genericDefinition;
-    console.log(`${logPrefix} 'analyze-stock-data' definition loaded and validated. Loaded definition (keys): ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
+    console.log(`${logPrefix} 'analyze-stock-data' definition loaded and validated. Definition keys: ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
   }
 
-  const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition);
-  const modelId = analyzeStockDataPromptDefinition.modelId || DEFAULT_ANALYSIS_MODEL_ID;
-  const safetySettings = analyzeStockDataPromptDefinition.safetySettings || [
+  const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition!);
+  const modelId = analyzeStockDataPromptDefinition!.modelId || DEFAULT_ANALYSIS_MODEL_ID;
+  const safetySettings = analyzeStockDataPromptDefinition!.safetySettings || [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -52,15 +59,13 @@ async function getAnalyzedStockDataPrompt() {
     safetySettings: safetySettings,
   };
 
-  if (analyzeStockDataPromptDefinition.thinkingBudget !== undefined) {
-    promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition.thinkingBudget };
+  if (analyzeStockDataPromptDefinition!.thinkingBudget !== undefined) {
+    promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition!.thinkingBudget };
   }
   
-  console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
-  console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
-  console.log(`${logPrefix} Thinking config: thinkingBudget=${promptConfig.thinkingConfig?.thinkingBudget}`);
+  console.log(`${logPrefix} Defining prompt for the first time. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   
-  return ai.definePrompt({
+  memoizedAnalyzeStockDataPrompt = ai.definePrompt({
     name: 'analyzeStockDataPrompt', 
     input: {schema: StockAnalysisInputSchema},
     output: {schema: StockAnalysisOutputSchema},
@@ -68,6 +73,7 @@ async function getAnalyzedStockDataPrompt() {
     prompt: promptString,
     config: promptConfig,
   });
+  return memoizedAnalyzeStockDataPrompt;
 }
 
 export async function analyzeStockData(

@@ -21,9 +21,15 @@ import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
 let stockChatBotPromptDefinition: LlmPromptDefinition | null = null;
+let memoizedStockChatBotPrompt: ReturnType<typeof ai.definePrompt> | null = null;
 
 async function getStockChatBotPrompt() {
   const logPrefix = '[AIFlow:getStockChatBotPrompt]';
+  if (memoizedStockChatBotPrompt) {
+    // console.log(`${logPrefix} Returning cached/memoized prompt.`);
+    return memoizedStockChatBotPrompt;
+  }
+
   if (!stockChatBotPromptDefinition) {
     console.log(`${logPrefix} Loading 'stock-chatbot' definition for the first time.`);
     const genericDefinition = await loadDefinition('stock-chatbot');
@@ -33,12 +39,12 @@ async function getStockChatBotPrompt() {
       throw new Error(errorMsg);
     }
     stockChatBotPromptDefinition = genericDefinition;
-    console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated. Loaded definition (keys): ${Object.keys(stockChatBotPromptDefinition).join(', ')}`);
+    console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated. Definition keys: ${Object.keys(stockChatBotPromptDefinition).join(', ')}`);
   }
 
-  const promptString = buildPromptStringFromLlmDefinition(stockChatBotPromptDefinition);
-  const modelId = stockChatBotPromptDefinition.modelId || DEFAULT_CHAT_MODEL_ID;
-  const safetySettings = stockChatBotPromptDefinition.safetySettings || [
+  const promptString = buildPromptStringFromLlmDefinition(stockChatBotPromptDefinition!);
+  const modelId = stockChatBotPromptDefinition!.modelId || DEFAULT_CHAT_MODEL_ID;
+  const safetySettings = stockChatBotPromptDefinition!.safetySettings || [
       {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH'},
       {category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH'},
@@ -53,16 +59,13 @@ async function getStockChatBotPrompt() {
     safetySettings: safetySettings,
   };
 
-  if (stockChatBotPromptDefinition.thinkingBudget !== undefined) {
-    promptConfig.thinkingConfig = { thinkingBudget: stockChatBotPromptDefinition.thinkingBudget };
+  if (stockChatBotPromptDefinition!.thinkingBudget !== undefined) {
+    promptConfig.thinkingConfig = { thinkingBudget: stockChatBotPromptDefinition!.thinkingBudget };
   }
 
-  console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
-  console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
-  console.log(`${logPrefix} Thinking config: thinkingBudget=${promptConfig.thinkingConfig?.thinkingBudget}`);
+  console.log(`${logPrefix} Defining prompt for the first time. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
 
-
-  return ai.definePrompt({
+  memoizedStockChatBotPrompt = ai.definePrompt({
     name: 'stockChatBotPrompt',
     input: {schema: ChatInputSchema},
     output: {schema: ChatOutputSchema},
@@ -70,6 +73,7 @@ async function getStockChatBotPrompt() {
     prompt: promptString,
     config: promptConfig,
   });
+  return memoizedStockChatBotPrompt;
 }
 
 

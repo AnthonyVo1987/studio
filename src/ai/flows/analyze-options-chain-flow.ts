@@ -21,11 +21,18 @@ import type { OptionsChainData } from '@/services/data-sources/types';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
 let analyzeOptionsChainPromptDefinition: LlmPromptDefinition | null = null;
+let memoizedAnalyzeOptionsChainPrompt: ReturnType<typeof ai.definePrompt> | null = null;
+
 
 async function getAnalyzedOptionsChainPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedOptionsChainPrompt]';
+  if (memoizedAnalyzeOptionsChainPrompt) {
+    // console.log(`${logPrefix} Returning cached/memoized prompt.`);
+    return memoizedAnalyzeOptionsChainPrompt;
+  }
+
   if (!analyzeOptionsChainPromptDefinition) {
-    console.log(`${logPrefix} Loading 'analyze-options-chain' definition for the first time.`);
+    console.log(`${logPrefix} Loading 'analyze-options-chain' definition for the first time.`); // Corrected line
     const genericDefinition = await loadDefinition('analyze-options-chain');
     if (genericDefinition.definitionType !== 'llm-prompt') {
       const errorMsg = `Loaded definition for 'analyze-options-chain' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
@@ -33,12 +40,12 @@ async function getAnalyzedOptionsChainPrompt() {
       throw new Error(errorMsg);
     }
     analyzeOptionsChainPromptDefinition = genericDefinition;
-    console.log(`${logPrefix} 'analyze-options-chain' definition loaded and validated. Loaded definition (keys): ${Object.keys(analyzeOptionsChainPromptDefinition).join(', ')}`);
+    console.log(`${logPrefix} 'analyze-options-chain' definition loaded and validated. Definition keys: ${Object.keys(analyzeOptionsChainPromptDefinition).join(', ')}`);
   }
 
-  const promptString = buildPromptStringFromLlmDefinition(analyzeOptionsChainPromptDefinition);
-  const modelId = analyzeOptionsChainPromptDefinition.modelId || DEFAULT_ANALYSIS_MODEL_ID;
-  const safetySettings = analyzeOptionsChainPromptDefinition.safetySettings || [
+  const promptString = buildPromptStringFromLlmDefinition(analyzeOptionsChainPromptDefinition!);
+  const modelId = analyzeOptionsChainPromptDefinition!.modelId || DEFAULT_ANALYSIS_MODEL_ID;
+  const safetySettings = analyzeOptionsChainPromptDefinition!.safetySettings || [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -52,15 +59,13 @@ async function getAnalyzedOptionsChainPrompt() {
     safetySettings: safetySettings,
   };
 
-  if (analyzeOptionsChainPromptDefinition.thinkingBudget !== undefined) {
-    promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition.thinkingBudget };
+  if (analyzeOptionsChainPromptDefinition!.thinkingBudget !== undefined) {
+    promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition!.thinkingBudget };
   }
 
-  console.log(`${logPrefix} Using Model: ${modelId}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
-  console.log(`${logPrefix} Safety settings configuration (count): ${safetySettings.length}. First setting category (if any): ${safetySettings[0]?.category}`);
-  console.log(`${logPrefix} Thinking config: thinkingBudget=${promptConfig.thinkingConfig?.thinkingBudget}`);
-
-  return ai.definePrompt({
+  console.log(`${logPrefix} Defining prompt for the first time. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
+  
+  memoizedAnalyzeOptionsChainPrompt = ai.definePrompt({
     name: 'analyzeOptionsChainPrompt', 
     input: {schema: AiOptionsAnalysisInputSchema},
     output: {schema: AiOptionsAnalysisOutputSchema},
@@ -68,6 +73,7 @@ async function getAnalyzedOptionsChainPrompt() {
     prompt: promptString,
     config: promptConfig,
   });
+  return memoizedAnalyzeOptionsChainPrompt;
 }
 
 
@@ -111,7 +117,6 @@ const analyzeOptionsChainFlow = ai.defineFlow(
         console.warn(`${logPrefix} Pre-check: Options chain data seems insufficient (less than 3 contracts). Contracts length: ${parsedOptionsData.contracts?.length}. Returning empty walls.`);
         return emptyOutputOnError; 
       }
-      // Removed: Pre-check for totalOI === 0 && totalVolume === 0. Let AI attempt if contracts exist.
       console.log(`${logPrefix} Pre-check passed. Contract Count: ${parsedOptionsData.contracts.length}`);
     } catch (e: any) {
       console.error(`${logPrefix} Pre-check: Failed to parse optionsChainJson or basic validation failed. Error: ${e.message}. Returning empty walls.`);
@@ -147,4 +152,3 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   }
 );
     
-
