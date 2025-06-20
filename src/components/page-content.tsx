@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -9,8 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
-import { useStockAnalysis, type FsmDisplayTuple } from "@/contexts/stock-analysis-context";
-import { FsmStateDebugCard, FSM_CARD_HEIGHT_PX } from "@/components/fsm-state-debug-card";
+import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +24,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     isClientDebugConsoleEnabled,
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
-    isFsmDebugCardEnabled,
-    setFsmDebugCardEnabled,
-    isFsmDebugCardOpen,
     logDebug,
   } = useStockAnalysis();
 
@@ -35,28 +32,15 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     setClientDebugConsoleEnabled(checked);
   };
 
-  const handleFsmDebugCardToggle = (checked: boolean) => {
-    logDebug('PageContent', 'UserAction_FsmDebugCardToggle', `FSM debug card switch toggled by user to: ${checked}`);
-    setFsmDebugCardEnabled(checked);
-  };
-
   const calculatePaddingBottom = () => {
     let padding = 32; 
     let consoleEffectiveHeight = 0;
-    let fsmCardEffectiveHeight = 0;
 
     if (isClientDebugConsoleEnabled && isClientDebugConsoleOpen) {
       consoleEffectiveHeight = CONSOLE_HEIGHT_PX;
     }
-    if (isFsmDebugCardEnabled && isFsmDebugCardOpen) {
-      fsmCardEffectiveHeight = FSM_CARD_HEIGHT_PX;
-    }
-
-    if (fsmCardEffectiveHeight > 0 && consoleEffectiveHeight > 0) {
-      padding = fsmCardEffectiveHeight + consoleEffectiveHeight + 16 + 16; 
-    } else if (fsmCardEffectiveHeight > 0) {
-      padding = fsmCardEffectiveHeight + 16;
-    } else if (consoleEffectiveHeight > 0) {
+    
+    if (consoleEffectiveHeight > 0) {
       padding = consoleEffectiveHeight + 16;
     }
     return `${padding}px`;
@@ -80,14 +64,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
             />
             <Label htmlFor="enable-debug-console" className="flex-shrink-0">Enable & Show Client Debug Console</Label>
           </div>
-          <div className="flex items-center space-x-2">
-             <Switch
-              id="enable-fsm-debug-card"
-              checked={isFsmDebugCardEnabled}
-              onCheckedChange={handleFsmDebugCardToggle}
-            />
-            <Label htmlFor="enable-fsm-debug-card" className="flex-shrink-0">Enable & Show Global FSM Monitor</Label>
-          </div>
         </div>
         <Tabs defaultValue="main" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -106,7 +82,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
         </Tabs>
       </main>
-      <FsmStateDebugCard />
       <DebugConsole appVersion={appVersion} />
       <Footer />
     </div>

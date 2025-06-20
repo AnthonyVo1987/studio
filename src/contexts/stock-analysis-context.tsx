@@ -166,8 +166,6 @@ interface StockAnalysisState {
   logSourceConfig: LogSourceConfig;
   globalFsmState: GlobalFsmReducerManagedState;
   targetFsmDisplayState: GlobalFsmState | null;
-  isFsmDebugCardEnabled: boolean;
-  isFsmDebugCardOpen: boolean;
   mainTabFsmDisplay: FsmDisplayTuple | null;
   chatbotFsmDisplay: FsmDisplayTuple | null;
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
@@ -205,8 +203,6 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   disableAllLogSources: () => void;
   logDebug: (source: LogSourceId, category: string, ...messages: any[]) => void;
   dispatchFsmEvent: (event: FsmEvent) => void;
-  setFsmDebugCardEnabled: (enabled: boolean) => void;
-  setFsmDebugCardOpen: (open: boolean) => void;
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setReducedStartupLoggingEnabled: (enabled: boolean) => void;
@@ -267,8 +263,6 @@ const defaultState: StockAnalysisState = {
   logSourceConfig: defaultLogSourceConfig,
   globalFsmState: initialGlobalFsmReducerState,
   targetFsmDisplayState: null,
-  isFsmDebugCardEnabled: true,
-  isFsmDebugCardOpen: true,
   mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: GlobalFsmState.IDLE.toString() },
   chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
@@ -318,8 +312,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
   const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<GlobalFsmState | null>(defaultState.targetFsmDisplayState);
-  const [_isFsmDebugCardEnabled, _setIsFsmDebugCardEnabled] = useState<boolean>(defaultState.isFsmDebugCardEnabled);
-  const [_isFsmDebugCardOpen, _setIsFsmDebugCardOpen] = useState<boolean>(defaultState.isFsmDebugCardOpen);
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
   const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
   const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
@@ -425,13 +417,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       _setClientDebugConsoleOpen(false); 
     }
   }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
-
-
-  const setFsmDebugCardEnabled = useCallback((enabled: boolean) => {
-    logDebug('StockAnalysisContext', 'FsmDebugCardToggle', `FSM Debug Card Enabled toggled to: ${enabled}`);
-    _setIsFsmDebugCardEnabled(enabled);
-    if (enabled) { _setIsFsmDebugCardOpen(true); } else { _setIsFsmDebugCardOpen(false); }
-  }, [logDebug]);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -1030,8 +1015,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     fsmState: globalFsmReducerState.current, previousFsmState: globalFsmReducerState.previous,
     fsmVariables: globalFsmReducerState.variables, fsmFlags: globalFsmReducerState.flags,
     targetFsmDisplayState: _targetFsmDisplayState, dispatchFsmEvent,
-    isFsmDebugCardEnabled: _isFsmDebugCardEnabled, setFsmDebugCardEnabled,
-    isFsmDebugCardOpen: _isFsmDebugCardOpen, setFsmDebugCardOpen: _setIsFsmDebugCardOpen,
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
     debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplayInternal,
@@ -1047,7 +1030,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
-    _isFsmDebugCardEnabled, setFsmDebugCardEnabled, _isFsmDebugCardOpen,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
     _debugConsoleMenuFsmDisplayInternal, 
     _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled,
