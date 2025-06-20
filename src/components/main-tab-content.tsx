@@ -26,7 +26,7 @@ import { useStockAnalysis, type ChatMessage, GlobalFsmState, type FsmDisplayTupl
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig } from "lucide-react";
 import { useActionState } from 'react';
-import { chatServerAction, type ChatActionState, type ChatActionInputs } from '@/actions/chat-server-action';
+import { chatServerAction, type ChatActionState, type ChatActionInputs, type ChatActionResult } from '@/actions/chat-server-action';
 
 
 const initialLocalChatActionState: ChatActionState = {
@@ -45,16 +45,16 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson,
     aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson,
-    setChatbotRequestJson,
-    setChatbotResponseJson,
+    // Removed: setChatbotRequestJson, setChatbotResponseJson as global FSM handles these now
     logDebug,
     fsmState: globalFsmStateFromContext,
     fsmVariables: globalFsmVariables,
     fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent,
-    chatHistory: contextChatHistory,
-    addChatMessage: addChatMessageToGlobalContext,
-    setChatbotFsmDisplay,
+    chatHistory: contextChatHistory, 
+    addChatMessage: addChatMessageToGlobalContext, // Still needed by global FSM
+    setChatbotFsmDisplay, // For ChatbotFsmProvider to report its state
+    // No need to pass down setMainTabFsmDisplay from here.
   } = useStockAnalysis();
 
   const contextChatHistoryRef = useRef<ChatMessage[]>([]);
@@ -66,6 +66,8 @@ export function MainTabContent() {
 
   useEffect(() => {
     const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect_v3221';
+    // This effect remains the same as it handles guards for manual AI actions.
+    // No changes needed for chat integration here.
     logDebug(logPrefixEff as LogSourceId, 'ENTRY', `Global: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, Guard: ${JSON.stringify(globalDispatchGuardRef.current)}`);
   
     const activeTickerForGuardReset = globalFsmVariables.activeTicker; 
@@ -98,59 +100,58 @@ export function MainTabContent() {
     initialLocalChatActionState
   );
 
+  // Effect to dispatch results of chatServerAction to Global FSM
   useEffect(() => {
+    const logPrefix = 'MainTabContent:ChatActionStateEffect_v3230';
+    if (chatActionState.status === 'idle') return; // Ignore initial state
+
+    // Only process if the global FSM *was* in CHAT_MESSAGE_PENDING, implying this action result is relevant
+    // This check might need refinement if MainTabContent doesn't have access to *previous* global FSM state.
+    // For now, we assume if this effect fires, it's because chatFormAction was called.
+
+    logDebug(logPrefix as LogSourceId, 'ChatActionStateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
+
     if (chatActionState.status === 'success' && chatActionState.data) {
-        logDebug('MainTabContent:chatActionState' as LogSourceId, 'ChatActionResultObserved:SUCCESS', `Chat action server call succeeded. Message: ${chatActionState.message}`);
-        setChatbotRequestJson(chatActionState.data.chatbotRequestJson);
-        setChatbotResponseJson(chatActionState.data.chatbotResponseJson);
-        try {
-            const modelResponse = JSON.parse(chatActionState.data.chatbotResponseJson);
-            if (modelResponse.error) {
-                logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseWithErrorField', 'Chatbot flow indicated an error:', modelResponse.error);
-                addChatMessageToGlobalContext({
-                    id: Date.now().toString() + '_model_flow_error_main',
-                    role: 'model',
-                    content: modelResponse.message || modelResponse.error || "Sorry, the chatbot encountered an issue.",
-                });
-            } else if (modelResponse.response) {
-                const lastMessageInHistory = contextChatHistoryRef.current[contextChatHistoryRef.current.length -1];
-                if (lastMessageInHistory?.role !== 'model' || lastMessageInHistory?.content !== modelResponse.response) {
-                    addChatMessageToGlobalContext({
-                        id: Date.now().toString() + '_model_main',
-                        role: 'model',
-                        content: modelResponse.response,
-                    });
-                    logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseAdded', 'Model response added to global chat history.');
-                } else {
-                    logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseDuplicate', 'Duplicate model response detected, not adding to history.');
-                }
-            } else {
-                 logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseMissing', 'Model response content missing in successful action state data.');
-                 addChatMessageToGlobalContext({
-                    id: Date.now().toString() + '_model_malformed_main',
-                    role: 'model',
-                    content: "Sorry, I received an unclear response. Please try again.",
-                });
-            }
-        } catch (e) {
-            logDebug('MainTabContent:chatActionState' as LogSourceId, 'ModelResponseParseError', 'Failed to parse chatbotResponseJson.', e);
-             addChatMessageToGlobalContext({
-                id: Date.now().toString() + '_model_parse_error_main',
-                role: 'model',
-                content: "Sorry, I had trouble understanding that response. Please try again.",
-            });
-        }
+      logDebug(logPrefix as LogSourceId, 'Dispatching_CHAT_MESSAGE_ACTION_SUCCESS', 'Dispatching to Global FSM.');
+      dispatchGlobalFsmEvent({ type: 'CHAT_MESSAGE_ACTION_SUCCESS', payload: chatActionState.data });
     } else if (chatActionState.status === 'error') {
-        logDebug('MainTabContent:chatActionState' as LogSourceId, 'ChatActionResultObserved:ERROR', `Chat action server call failed. Error: ${chatActionState.error}, Message: ${chatActionState.message}`);
-        setChatbotRequestJson(chatActionState.data?.chatbotRequestJson || JSON.stringify({ error: chatActionState.error, message: chatActionState.message }, null, 2));
-        setChatbotResponseJson(chatActionState.data?.chatbotResponseJson || JSON.stringify({ error: chatActionState.error, details: "Server action failed directly." }, null, 2));
-        addChatMessageToGlobalContext({
-            id: Date.now().toString() + '_model_action_error_main',
-            role: 'model',
-            content: chatActionState.message || "Sorry, an error occurred. Please try again.",
-        });
+      logDebug(logPrefix as LogSourceId, 'Dispatching_CHAT_MESSAGE_ACTION_ERROR', `Error: ${chatActionState.error}. Dispatching to Global FSM.`);
+      dispatchGlobalFsmEvent({
+        type: 'CHAT_MESSAGE_ACTION_ERROR',
+        payload: {
+          error: chatActionState.error,
+          message: chatActionState.message,
+          chatbotRequestJson: chatActionState.data?.chatbotRequestJson,
+          chatbotResponseJson: chatActionState.data?.chatbotResponseJson,
+        }
+      });
     }
-  }, [chatActionState, addChatMessageToGlobalContext, logDebug, setChatbotRequestJson, setChatbotResponseJson]);
+  }, [chatActionState, dispatchGlobalFsmEvent, logDebug]);
+
+  // Effect to trigger chatFormAction when Global FSM indicates a pending chat submission
+  useEffect(() => {
+    const logPrefix = 'MainTabContent:GlobalFsmChatTriggerEffect_v3230';
+    if (
+      globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING &&
+      globalFsmVariables.pendingChatSubmissionPayload &&
+      !isChatPending // Ensure local action state is not already pending
+    ) {
+      logDebug(logPrefix as LogSourceId, 'TriggeringChatServerAction', 'Global FSM is CHAT_MESSAGE_PENDING with payload. Calling chatFormAction.');
+      // Use startTransition if chatFormAction updates state that affects rendering outside this immediate flow
+      startTransition(() => {
+        chatFormAction(globalFsmVariables.pendingChatSubmissionPayload!);
+      });
+      // Notify global FSM that the pending payload has been actioned
+      dispatchGlobalFsmEvent({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
+    }
+  }, [
+    globalFsmStateFromContext,
+    globalFsmVariables.pendingChatSubmissionPayload,
+    isChatPending,
+    chatFormAction,
+    dispatchGlobalFsmEvent,
+    logDebug
+  ]);
 
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,12 +227,17 @@ export function MainTabContent() {
     GlobalFsmState.KEY_TAKEAWAYS_FAILED,
     GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED,
     GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
+    GlobalFsmState.CHAT_MESSAGE_SUCCESS, // Chat done
+    GlobalFsmState.CHAT_MESSAGE_ERROR,   // Chat failed
     GlobalFsmState.ERROR_STALE_DATA,
     GlobalFsmState.DATA_FETCH_FAILED,
     GlobalFsmState.AI_TA_CALCULATION_FAILED,
   ].includes(globalFsmStateFromContext);
 
-  const isOverallAnalysisPending = isGlobalPipelineActive || isChatPending;
+  // Updated: isChatPending (from useActionState) now also considered for overall pending state
+  const isChatActionHookPending = isChatPending; // from useActionState for chatServerAction
+  const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING;
+  const isOverallAnalysisPending = isGlobalPipelineActive || isChatActionHookPending || isGlobalChatFsmPending;
 
 
   useEffect(() => {
@@ -245,7 +251,9 @@ export function MainTabContent() {
        globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED ||
        globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
        globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || 
-       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED
+       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
+       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || // Can trigger manual AI after chat
+       globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR   // Can trigger manual AI after chat
       ) &&
       !!globalFsmVariables.activeTicker && 
       globalFsmVariables.activeTicker === tickerInput; 
@@ -262,10 +270,11 @@ export function MainTabContent() {
     const shouldKtButtonBeEnabled = manualActionsPossibleOverall && 
                                     !keyTakeawaysButtonLoading && 
                                     !analyzeButtonLoading && 
-                                    !isGlobalPipelineActive && 
+                                    !isGlobalPipelineActive && // Existing check
+                                    !isGlobalChatFsmPending && // New: Don't allow if chat is pending
                                     ktPrereqsMet;
     
-    logDebug(logPrefixDC as LogSourceId, 'KTButtonChecks', `ktPrereqsMet: ${ktPrereqsMet}, keyTakeawaysButtonLoading: ${keyTakeawaysButtonLoading}, analyzeButtonLoading: ${analyzeButtonLoading}, shouldKtBeEnabled: ${shouldKtButtonBeEnabled}`);
+    logDebug(logPrefixDC as LogSourceId, 'KTButtonChecks', `ktPrereqsMet: ${ktPrereqsMet}, keyTakeawaysButtonLoading: ${keyTakeawaysButtonLoading}, analyzeButtonLoading: ${analyzeButtonLoading}, isGlobalChatFsmPending: ${isGlobalChatFsmPending}, shouldKtBeEnabled: ${shouldKtButtonBeEnabled}`);
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
 
     // Options Analysis Button Logic
@@ -276,15 +285,16 @@ export function MainTabContent() {
     const shouldOptButtonBeEnabled = manualActionsPossibleOverall && 
                                      !optionsAnalysisButtonLoading && 
                                      !analyzeButtonLoading && 
-                                     !isGlobalPipelineActive && 
+                                     !isGlobalPipelineActive && // Existing check
+                                     !isGlobalChatFsmPending && // New: Don't allow if chat is pending
                                      optPrereqsMet;
-    logDebug(logPrefixDC as LogSourceId, 'OptButtonChecks', `optPrereqsMet: ${optPrereqsMet}, optionsAnalysisButtonLoading: ${optionsAnalysisButtonLoading}, shouldOptBeEnabled: ${shouldOptButtonBeEnabled}`);
+    logDebug(logPrefixDC as LogSourceId, 'OptButtonChecks', `optPrereqsMet: ${optPrereqsMet}, optionsAnalysisButtonLoading: ${optionsAnalysisButtonLoading}, isGlobalChatFsmPending: ${isGlobalChatFsmPending}, shouldOptBeEnabled: ${shouldOptButtonBeEnabled}`);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
 
   }, [
       globalFsmStateFromContext, globalFsmVariables.activeTicker, tickerInput,
       contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson,
-      analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isGlobalPipelineActive, logDebug
+      analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isGlobalPipelineActive, isGlobalChatFsmPending, logDebug
     ]);
 
 
@@ -325,7 +335,8 @@ export function MainTabContent() {
     analyzeButtonLoading ||
     keyTakeawaysButtonLoading ||
     optionsAnalysisButtonLoading ||
-    isGlobalPipelineActive;
+    isGlobalPipelineActive || // Existing
+    isGlobalChatFsmPending; // New: Disable export if chat is pending
 
 
   const handleExportAllToJson = useCallback(async () => {
@@ -368,7 +379,7 @@ export function MainTabContent() {
       <CardHeader>
         <CardTitle>Stock Analysis Input</CardTitle>
         <CardDescription>
-          Enter ticker for Data Fetch & AI TA. Manual AI actions available after.
+          Enter ticker for Data Fetch & AI TA. Manual AI actions available after. Chat integrated with global FSM.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -381,13 +392,13 @@ export function MainTabContent() {
                 value={tickerInput}
                 onChange={handleTickerInputChange}
                 placeholder="e.g., AAPL, MSFT"
-                disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalPipelineActive}
+                disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalPipelineActive || isGlobalChatFsmPending}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataSource">Data Source</Label>
               <Select defaultValue="polygon" disabled>
-                <SelectTrigger id="dataSource" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalPipelineActive}>
+                <SelectTrigger id="dataSource" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalPipelineActive || isGlobalChatFsmPending}>
                   <SelectValue placeholder="Select data source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -399,7 +410,7 @@ export function MainTabContent() {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Button type="submit" className="w-full sm:w-auto"
-              disabled={analyzeButtonDisabled}>
+              disabled={analyzeButtonDisabled || isGlobalChatFsmPending}>
               { analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
               <Zap className="mr-2 h-4 w-4" /> Analyze Stock (Data & AI TA)
             </Button>
@@ -463,16 +474,18 @@ export function MainTabContent() {
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider
-            chatFormAction={chatFormAction}
-            addChatMessageToGlobalContext={addChatMessageToGlobalContext}
+            // Removed: chatFormAction, addChatMessageToGlobalContext
+            // Global FSM handles these now. ChatbotFsmProvider will use dispatchGlobalFsmEvent
+            dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} // Pass this down
             currentTicker={globalFsmVariables.activeTicker || tickerInput}
             stockSnapshotJson={contextStockSnapshotJson || '{}'}
             aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'}
             aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'}
             aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'}
-            currentGlobalChatHistory={contextChatHistory}
+            currentGlobalChatHistory={contextChatHistory} // For context, if ChatbotFsm needs it for SUBMIT_CHAT_MESSAGE
             logDebug={logDebug}
             setChatbotFsmDisplayState={setChatbotFsmDisplay}
+            isGlobalChatPending={isGlobalChatFsmPending} // Pass global pending state
           >
             <Chatbot
               isAnyAnalysisInProgress={isOverallAnalysisPending}

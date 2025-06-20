@@ -3,22 +3,22 @@
 
 import type { ReactNode} from 'react';
 import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
-import type { ChatMessage, FsmDisplayTuple } from './stock-analysis-context'; 
+import type { ChatMessage, FsmDisplayTuple, FsmEvent } from './stock-analysis-context'; 
 import type { ChatActionInputs } from '@/actions/chat-server-action';
-import { startTransition } from 'react';
+// Removed: import { startTransition } from 'react'; // No longer directly calling server action here
 
 // FSM States for Chatbot UI
 export enum ChatbotFsmInternalState {
   IDLE = 'IDLE', 
   PROCESSING_USER_INPUT = 'PROCESSING_USER_INPUT', 
-  SUBMITTING_MESSAGE = 'SUBMITTING_MESSAGE', 
+  // REMOVED: SUBMITTING_MESSAGE - Global FSM handles submission lifecycle
 }
 
 // FSM Events for Chatbot UI
 export type ChatbotFsmEvent =
   | { type: 'USER_INPUT_CHANGED'; payload: string }
-  | { type: 'SUBMIT_MESSAGE_REQUESTED' }
-  | { type: 'SUBMISSION_CONCLUDED' }; 
+  | { type: 'SUBMIT_MESSAGE_REQUESTED' };
+  // REMOVED: | { type: 'SUBMISSION_CONCLUDED' };
 
 interface ChatbotFsmManagedState {
   fsmState: ChatbotFsmInternalState;
@@ -44,22 +44,21 @@ const ChatbotFsmContext = createContext<ChatbotFsmContextType | undefined>(undef
 
 interface ChatbotFsmProviderProps {
   children: ReactNode;
-  chatFormAction: (payload: ChatActionInputs) => void;
-  addChatMessageToGlobalContext: (message: ChatMessage) => void;
+  dispatchGlobalFsmEvent: (event: FsmEvent) => void; // To dispatch SUBMIT_CHAT_MESSAGE
   currentTicker: string;
   stockSnapshotJson: string;
   aiKeyTakeawaysJson: string;
   aiAnalyzedTaJson: string;
   aiOptionsAnalysisJson?: string;
-  currentGlobalChatHistory: ChatMessage[];
+  currentGlobalChatHistory: ChatMessage[]; // Needed for context in SUBMIT_CHAT_MESSAGE
   logDebug: (source: string, category: string, ...messages: any[]) => void;
-  setChatbotFsmDisplayState: (display: FsmDisplayTuple | null) => void; // For reporting to global context
+  setChatbotFsmDisplayState: (display: FsmDisplayTuple | null) => void;
+  isGlobalChatPending: boolean; // To disable input if global FSM is busy with chat
 }
 
 export function ChatbotFsmProvider({
   children,
-  chatFormAction,
-  addChatMessageToGlobalContext,
+  dispatchGlobalFsmEvent,
   currentTicker,
   stockSnapshotJson,
   aiKeyTakeawaysJson,
@@ -68,8 +67,9 @@ export function ChatbotFsmProvider({
   currentGlobalChatHistory,
   logDebug,
   setChatbotFsmDisplayState,
+  isGlobalChatPending, // Receive this prop
 }: ChatbotFsmProviderProps) {
-  const componentLogSource = 'ChatbotFsmContext'; // Consistent source for logs from this context
+  const componentLogSource = 'ChatbotFsmContext';
 
   const chatbotFsmReducer = (
     state: ChatbotFsmManagedState,
@@ -81,7 +81,8 @@ export function ChatbotFsmProvider({
 
     switch (event.type) {
       case 'USER_INPUT_CHANGED':
-        nextState = state.fsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE ? state.fsmState : ChatbotFsmInternalState.PROCESSING_USER_INPUT;
+        // Allow input change even if global chat is pending, UI will disable actual submission
+        nextState = ChatbotFsmInternalState.PROCESSING_USER_INPUT;
         logDebug(componentLogSource, 'Reducer_Transition', `USER_INPUT_CHANGED: Transitioning to ${nextState}. New input: "${event.payload.substring(0,20)}"`);
         return {
           ...state,
@@ -94,19 +95,15 @@ export function ChatbotFsmProvider({
           logDebug(componentLogSource, 'Reducer_Action', 'SUBMIT_MESSAGE_REQUESTED: User input empty, no change.');
           return { ...state, previousFsmState: previousState };
         }
-        logDebug(componentLogSource, 'Reducer_Transition', 'SUBMIT_MESSAGE_REQUESTED: Transitioning to SUBMITTING_MESSAGE.');
-        nextState = ChatbotFsmInternalState.SUBMITTING_MESSAGE;
+        // This FSM no longer goes to SUBMITTING_MESSAGE. It just signals intent.
+        // The actual submission and pending state are handled by Global FSM.
+        logDebug(componentLogSource, 'Reducer_Action', 'SUBMIT_MESSAGE_REQUESTED: Requesting global chat submission.');
+        // Return to IDLE or PROCESSING_USER_INPUT, ready for next input
+        // The actual submission logic is moved to the useEffect below.
+        nextState = state.userInput ? ChatbotFsmInternalState.PROCESSING_USER_INPUT : ChatbotFsmInternalState.IDLE;
         return {
           ...state,
-          fsmState: nextState,
-          previousFsmState: previousState,
-        };
-      case 'SUBMISSION_CONCLUDED':
-        logDebug(componentLogSource, 'Reducer_Transition', 'SUBMISSION_CONCLUDED: Transitioning to IDLE.');
-        nextState = ChatbotFsmInternalState.IDLE;
-        return {
-          ...state,
-          fsmState: nextState,
+          fsmState: nextState, // Or IDLE if input is cleared after submission request
           previousFsmState: previousState,
         };
       default:
@@ -136,22 +133,17 @@ export function ChatbotFsmProvider({
         case ChatbotFsmInternalState.IDLE:
         case ChatbotFsmInternalState.PROCESSING_USER_INPUT:
             if (event.type === 'USER_INPUT_CHANGED') targetState = ChatbotFsmInternalState.PROCESSING_USER_INPUT;
-            else if (event.type === 'SUBMIT_MESSAGE_REQUESTED' && state.userInput.trim()) targetState = ChatbotFsmInternalState.SUBMITTING_MESSAGE;
-            break;
-        case ChatbotFsmInternalState.SUBMITTING_MESSAGE:
-            if (event.type === 'SUBMISSION_CONCLUDED') targetState = ChatbotFsmInternalState.IDLE;
-            else if (event.type === 'USER_INPUT_CHANGED') targetState = currentState; 
+            // SUBMIT_MESSAGE_REQUESTED no longer changes local FSM state to SUBMITTING
+            else if (event.type === 'SUBMIT_MESSAGE_REQUESTED' && state.userInput.trim()) targetState = ChatbotFsmInternalState.IDLE; // Or PROCESSING_USER_INPUT if input isn't cleared immediately
             break;
     }
 
     if (targetState && targetState !== currentState) {
       logDebug(componentLogSource, 'Dispatch_TargetSet', `Event ${event.type} from ${currentState} targeting ${targetState}.`);
       setTargetChatbotFsmDisplayState(targetState);
-    } else if (targetState === currentState && event.type !== 'USER_INPUT_CHANGED') { // Avoid clearing target if only input changed within same conceptual state
-      logDebug(componentLogSource, 'Dispatch_TargetClear', `Event ${event.type} from ${currentState} resulted in same target. Clearing target display.`);
+    } else {
+      logDebug(componentLogSource, 'Dispatch_TargetClear', `Event ${event.type} from ${currentState} resulted in same target or no target change. Clearing target display.`);
       setTargetChatbotFsmDisplayState(null);
-    } else if (targetState === currentState && event.type === 'USER_INPUT_CHANGED'){
-      // No change to target display if only user input changes within PROCESSING_USER_INPUT
     }
     dispatch(event);
   }, [state.fsmState, state.userInput, logDebug]);
@@ -163,53 +155,67 @@ export function ChatbotFsmProvider({
     }
   }, [state.fsmState, targetChatbotFsmDisplayState, logDebug]);
 
+  // Effect to handle SUBMIT_MESSAGE_REQUESTED from the local FSM
+  // This effect will now dispatch to the GLOBAL FSM
   useEffect(() => {
-    if (state.fsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && state.userInput.trim()) {
-      logDebug(componentLogSource, 'Effect_SubmitMessage', 'SUBMITTING_MESSAGE state detected. Preparing to call actions.');
+    // This check should ideally be managed by the reducer setting a flag or the component directly calling.
+    // For simplicity, if the user input is present and a "submit" conceptually happened (even if local FSM state reset),
+    // we check if we should dispatch to global.
+    // This logic might be better placed in the dispatchChatbotFsmEventWithTarget or component if SUBMIT_MESSAGE_REQUESTED doesn't change local state.
+    // Let's assume the component will call a submit function that directly dispatches to global FSM.
+    // So, this specific useEffect reacting to SUBMITTING_MESSAGE state is removed.
+    // The dispatch to global FSM will happen in response to the SUBMIT_MESSAGE_REQUESTED event.
+  }, [
+    /* dependencies removed as this effect's old logic is moved */
+  ]);
 
-      const userMessageContent = state.userInput.trim();
-      const userMessage: ChatMessage = {
-        id: Date.now().toString() + '_user_fsm',
-        role: 'user',
-        content: userMessageContent
-      };
-
-      addChatMessageToGlobalContext(userMessage);
-      logDebug(componentLogSource, 'Effect_SubmitMessage', 'User message added to global context.');
-
-      const chatPayload: ChatActionInputs = {
+  const handleLocalFsmSubmitRequest = useCallback(() => {
+    // This function is called when the local FSM decides a submission is ready.
+    if (state.userInput.trim() && !isGlobalChatPending) {
+      logDebug(componentLogSource, 'GlobalSubmitTrigger', 'Local FSM requests global chat submission.');
+      const chatPayloadForGlobalFsm: ChatActionInputs = {
         ticker: currentTicker,
         stockSnapshotJson,
         aiKeyTakeawaysJson,
         aiAnalyzedTaJson,
         aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
-        chatHistory: [...currentGlobalChatHistory, userMessage],
-        userInput: userMessageContent,
+        // Global FSM will add its own user message to history, so use currentGlobalChatHistory
+        chatHistory: currentGlobalChatHistory, 
+        userInput: state.userInput.trim(),
       };
-      logDebug(componentLogSource, 'Effect_SubmitMessage_Payload', 'Chat payload prepared:', { ticker: currentTicker, historyLength: chatPayload.chatHistory.length, userInputSnippet: userMessageContent.substring(0,30) });
-
-      logDebug(componentLogSource, 'Effect_SubmitMessage', 'Calling server action chatFormAction within startTransition.');
-      startTransition(() => {
-        chatFormAction(chatPayload);
-      });
-
+      dispatchGlobalFsmEvent({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
+      // Clear local user input after dispatching to global FSM
       dispatchChatbotFsmEventWithTarget({ type: 'USER_INPUT_CHANGED', payload: '' });
-      logDebug(componentLogSource, 'Effect_SubmitMessage', 'User input cleared in FSM, server action initiated.');
+    } else {
+      logDebug(componentLogSource, 'GlobalSubmitTrigger_Blocked', `Submission blocked. Input: "${state.userInput.trim()}", GlobalChatPending: ${isGlobalChatPending}`);
     }
   }, [
-    state.fsmState,
-    state.userInput,
-    addChatMessageToGlobalContext,
-    chatFormAction,
-    currentTicker,
-    stockSnapshotJson,
-    aiKeyTakeawaysJson,
-    aiAnalyzedTaJson,
-    aiOptionsAnalysisJson,
+    state.userInput, 
+    isGlobalChatPending, 
+    currentTicker, 
+    stockSnapshotJson, 
+    aiKeyTakeawaysJson, 
+    aiAnalyzedTaJson, 
+    aiOptionsAnalysisJson, 
     currentGlobalChatHistory,
-    logDebug,
-    dispatchChatbotFsmEventWithTarget 
+    dispatchGlobalFsmEvent, 
+    dispatchChatbotFsmEventWithTarget, 
+    logDebug, 
+    componentLogSource
   ]);
+
+  // Modify the context's dispatch to intercept SUBMIT_MESSAGE_REQUESTED
+  const interceptingDispatch = useCallback((event: ChatbotFsmEvent) => {
+    if (event.type === 'SUBMIT_MESSAGE_REQUESTED') {
+      handleLocalFsmSubmitRequest();
+      // Original dispatch might still be needed to update local state if necessary (e.g., to IDLE)
+      // but the primary action is now handleLocalFsmSubmitRequest.
+      // For now, let's let the original reducer handle local state updates from SUBMIT_MESSAGE_REQUESTED.
+      dispatchChatbotFsmEventWithTarget(event); 
+    } else {
+      dispatchChatbotFsmEventWithTarget(event);
+    }
+  }, [dispatchChatbotFsmEventWithTarget, handleLocalFsmSubmitRequest]);
 
 
   const contextValue: ChatbotFsmContextType = {
@@ -217,7 +223,7 @@ export function ChatbotFsmProvider({
     previousChatbotFsmState: state.previousFsmState,
     targetChatbotFsmDisplayState,
     userInput: state.userInput,
-    dispatchChatbotFsmEvent: dispatchChatbotFsmEventWithTarget,
+    dispatchChatbotFsmEvent: interceptingDispatch, // Use the intercepting dispatch
   };
 
   return (

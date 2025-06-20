@@ -3,13 +3,14 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, startTransition, useMemo } from 'react';
-import type { LogSourceId, LogSourceConfig, LogType } from '@/lib/debug-log-types'; // Keep existing imports from debug-log-types
-import { logSourceIds, defaultLogSourceConfig, logTypes as allLogTypes } from '@/lib/debug-log-types'; // For enabling/disabling all
+import type { LogSourceId, LogSourceConfig, LogType } from '@/lib/debug-log-types'; 
+import { logSourceIds, defaultLogSourceConfig, logTypes as allLogTypes } from '@/lib/debug-log-types'; 
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer } from '@/lib/global-log-buffer';
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
+import type { ChatActionInputs, ChatActionResult } from '@/actions/chat-server-action'; // For payload type
 import { useActionState } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
@@ -41,8 +42,11 @@ export enum GlobalFsmState {
   OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED',
   OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
 
+  CHAT_MESSAGE_PENDING = 'CHAT_MESSAGE_PENDING',
+  CHAT_MESSAGE_SUCCESS = 'CHAT_MESSAGE_SUCCESS', // Optional terminal state if needed, or direct to IDLE
+  CHAT_MESSAGE_ERROR = 'CHAT_MESSAGE_ERROR',     // Optional terminal state
+
   ERROR_STALE_DATA = 'ERROR_STALE_DATA', 
-  // CHAT_MESSAGE_PENDING = 'CHAT_MESSAGE_PENDING' // Placeholder
 }
 
 export interface GlobalFsmContextVariables {
@@ -50,6 +54,7 @@ export interface GlobalFsmContextVariables {
   userInputTicker: string; 
   isInitialLoad: boolean; 
   lastError: { message: string; source: string; details?: any } | null; 
+  pendingChatSubmissionPayload: ChatActionInputs | null; // New for chat
 }
 
 export interface GlobalFsmFlags {
@@ -96,6 +101,9 @@ interface AiKeyTakeawaysSuccessPayload extends PerformAiAnalysisResult {}
 interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; } 
 interface AiOptionsAnalysisSuccessPayload extends PerformAiOptionsAnalysisResult {} 
 interface AiOptionsAnalysisFailurePayload { error?: string | null; message?: string | null; aiOptionsAnalysisRequestJson?: string; } 
+interface SubmitChatMessagePayload extends ChatActionInputs {} // Re-using ChatActionInputs as payload
+interface ChatMessageActionSuccessPayload extends ChatActionResult {}
+interface ChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; }
 
 
 export type FsmEvent =
@@ -119,9 +127,13 @@ export type FsmEvent =
   | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: AiOptionsAnalysisSuccessPayload } 
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload } 
   
+  | { type: 'SUBMIT_CHAT_MESSAGE'; payload: SubmitChatMessagePayload }
+  | { type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' } // Internal: MainTabContent triggered the action
+  | { type: 'CHAT_MESSAGE_ACTION_SUCCESS'; payload: ChatMessageActionSuccessPayload }
+  | { type: 'CHAT_MESSAGE_ACTION_ERROR'; payload: ChatMessageActionErrorPayload }
+
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' } 
-  | { type: 'PROCEED_TO_IDLE' } 
-  | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage };
+  | { type: 'PROCEED_TO_IDLE' };
 
 
 export interface ChatMessage {
@@ -221,6 +233,7 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
 const pendingJson = '{ "status": "pending..." }';
+const chatPendingJson = '{ "status": "chat_pending..." }'; // Specific for chat
 
 const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
   current: GlobalFsmState.APP_INITIALIZING,
@@ -230,6 +243,7 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     userInputTicker: "NVDA", 
     isInitialLoad: true,
     lastError: null,
+    pendingChatSubmissionPayload: null, // Initialize new variable
   },
   flags: {
     canAnalyzeStock: false, 
@@ -409,8 +423,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setAiOptionsAnalysisRequestJson(pendingJson);
     _setAiOptionsAnalysisJson(pendingJson);
     if (isFullAnalysis) {
-        _setChatbotRequestJson(pendingJson); 
-        _setChatbotResponseJson(pendingJson); 
+        _setChatbotRequestJson(chatPendingJson); 
+        _setChatbotResponseJson(chatPendingJson); 
     }
   }, [logDebug]);
 
@@ -511,9 +525,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   ): GlobalFsmReducerManagedState => {
     const previousState = state.current;
     logDebug('StockAnalysisContext', 'GlobalFSM_Event', `Event: ${event.type}, Current State: ${previousState}`);
-    if ('payload' in event && event.type !== 'ADD_CHAT_MESSAGE') { 
+    if ('payload' in event && event.type !== 'ADD_CHAT_MESSAGE' && event.type !== 'SUBMIT_CHAT_MESSAGE') { 
         logDebug('StockAnalysisContext', 'GlobalFSM_Payload', `Payload for ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
+    } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
+        logDebug('StockAnalysisContext', 'GlobalFSM_Payload', `Payload for SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}... HistoryLen: ${event.payload.chatHistory?.length}`);
     }
+
 
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
@@ -531,6 +548,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case GlobalFsmState.KEY_TAKEAWAYS_FAILED:
       case GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED:
       case GlobalFsmState.OPTIONS_ANALYSIS_FAILED:
+      case GlobalFsmState.CHAT_MESSAGE_SUCCESS: // Added for chat
+      case GlobalFsmState.CHAT_MESSAGE_ERROR:   // Added for chat
         if (event.type === 'START_FULL_ANALYSIS') {
           nextVariables.activeTicker = event.payload.ticker;
           nextVariables.userInputTicker = event.payload.ticker; 
@@ -543,6 +562,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           nextFlags.isKeyTakeawaysDataAvailable = false;
           nextFlags.isOptionsAnalysisDataAvailable = false;
           nextVariables.lastError = null;
+          nextVariables.pendingChatSubmissionPayload = null; // Clear pending chat on new full analysis
           setAllPlaceholdersInternal(event.payload.ticker, true); 
           nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH; 
           logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> START_FULL_ANALYSIS for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
@@ -552,6 +572,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 contextSetters.setAiKeyTakeawaysJson(pendingJson);
                 nextFlags.isKeyTakeawaysDataAvailable = false;
                 nextVariables.lastError = null; 
+                nextVariables.pendingChatSubmissionPayload = null;
                 nextCurrentState = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
                 logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> TRIGGER_MANUAL_KEY_TAKEAWAYS for ${event.payload.ticker}. To GENERATING_KEY_TAKEAWAYS.`);
             } else {
@@ -563,10 +584,23 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 contextSetters.setAiOptionsAnalysisJson(pendingJson);
                 nextFlags.isOptionsAnalysisDataAvailable = false;
                 nextVariables.lastError = null;
+                nextVariables.pendingChatSubmissionPayload = null;
                 nextCurrentState = GlobalFsmState.ANALYZING_OPTIONS;
                 logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker}. To ANALYZING_OPTIONS.`);
             } else {
                  logDebug('StockAnalysisContext', 'GlobalFSM_ActionInvalid', `TRIGGER_MANUAL_OPTIONS_ANALYSIS for ${event.payload.ticker} ignored. Active ticker is ${state.variables.activeTicker}.`);
+            }
+        } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
+            if (nextVariables.activeTicker) { // Only allow chat if there's an active analysis context
+                const userMessage: ChatMessage = { id: Date.now().toString() + '_user_global', role: 'user', content: event.payload.userInput };
+                _setChatHistory(prev => [...prev, userMessage]); // Optimistic update of chat history
+                nextVariables.pendingChatSubmissionPayload = { ...event.payload, chatHistory: [...chatHistory, userMessage] }; // Store full payload for MainTabContent
+                nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
+                contextSetters.setChatbotRequestJson(chatPendingJson); // Visual feedback
+                contextSetters.setChatbotResponseJson(chatPendingJson);
+                logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> SUBMIT_CHAT_MESSAGE for ${nextVariables.activeTicker}. To CHAT_MESSAGE_PENDING. User input stored in pending payload.`);
+            } else {
+                logDebug('StockAnalysisContext', 'GlobalFSM_ActionInvalid', `SUBMIT_CHAT_MESSAGE ignored. No active analysis ticker.`);
             }
         }
         break;
@@ -606,6 +640,39 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           nextVariables.lastError = { message: errorMsgOpt, source: 'OptionsAnalysis', details: errorPayloadOpt.error };
           nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
           logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `ANALYZING_OPTIONS -> OPTIONS_ANALYSIS_FAILURE. Error: ${errorMsgOpt}. To OPTIONS_ANALYSIS_FAILED.`);
+        }
+        break;
+
+      case GlobalFsmState.CHAT_MESSAGE_PENDING:
+        if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') {
+            nextVariables.pendingChatSubmissionPayload = null; // Clear payload as action is now in flight
+            logDebug('StockAnalysisContext', 'GlobalFSM_Internal', `CHAT_MESSAGE_PENDING -> PENDING_CHAT_SUBMISSION_TRIGGERED. Pending payload cleared.`);
+            // Stay in CHAT_MESSAGE_PENDING
+        } else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') {
+            contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
+            contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
+            try {
+                const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
+                if (modelResponse.response) {
+                    addChatMessage({ id: Date.now().toString() + '_model_global', role: 'model', content: modelResponse.response });
+                } else if (modelResponse.error) {
+                    addChatMessage({ id: Date.now().toString() + '_model_global_error', role: 'model', content: `Chatbot Error: ${modelResponse.error}` });
+                }
+            } catch (e) {
+                 addChatMessage({ id: Date.now().toString() + '_model_global_parse_error', role: 'model', content: "Error parsing chatbot response." });
+            }
+            nextVariables.lastError = null;
+            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS; // Or directly to IDLE
+            logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_SUCCESS. To ${nextCurrentState}.`);
+        } else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') {
+            const errPayload = event.payload;
+            const errMsg = errPayload.message || 'Chat failed';
+            contextSetters.setChatbotRequestJson(errPayload.chatbotRequestJson || errorJsonWithDetails("Chat request data unavailable on error", null));
+            contextSetters.setChatbotResponseJson(errPayload.chatbotResponseJson || errorJsonWithDetails(errMsg, errPayload.error));
+            addChatMessage({ id: Date.now().toString() + '_model_global_action_error', role: 'model', content: `Error: ${errMsg}` });
+            nextVariables.lastError = { message: errMsg, source: 'ChatAction', details: errPayload.error };
+            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_ERROR; // Or directly to IDLE
+            logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `CHAT_MESSAGE_PENDING -> CHAT_MESSAGE_ACTION_ERROR. Error: ${errMsg}. To ${nextCurrentState}.`);
         }
         break;
 
@@ -733,6 +800,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextFlags.isCalculatedTADataReady = false; nextFlags.isKeyTakeawaysDataAvailable = false;
             nextFlags.isOptionsAnalysisDataAvailable = false;
             nextVariables.lastError = null;
+            nextVariables.pendingChatSubmissionPayload = null;
             setAllPlaceholdersInternal(event.payload.ticker, true);
             nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             logDebug('StockAnalysisContext', 'GlobalFSM_Transition', `${previousState} -> START_FULL_ANALYSIS (re-analysis) for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
@@ -768,9 +836,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.KEY_TAKEAWAYS_FAILED:
         case GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED:
         case GlobalFsmState.OPTIONS_ANALYSIS_FAILED:
+        case GlobalFsmState.CHAT_MESSAGE_SUCCESS:
+        case GlobalFsmState.CHAT_MESSAGE_ERROR:
             if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
             else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = GlobalFsmState.ANALYZING_OPTIONS;
+            else if (event.type === 'SUBMIT_CHAT_MESSAGE') determinedTarget = GlobalFsmState.CHAT_MESSAGE_PENDING;
             break;
         case GlobalFsmState.GENERATING_KEY_TAKEAWAYS:
             if (event.type === 'KEY_TAKEAWAYS_SUCCESS') determinedTarget = GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED;
@@ -779,6 +850,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.ANALYZING_OPTIONS:
             if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') determinedTarget = GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED;
             else if (event.type === 'OPTIONS_ANALYSIS_FAILURE') determinedTarget = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
+            break;
+        case GlobalFsmState.CHAT_MESSAGE_PENDING:
+            if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') determinedTarget = currentActualState; // Stays pending
+            else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') determinedTarget = GlobalFsmState.CHAT_MESSAGE_SUCCESS; // Or IDLE
+            else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') determinedTarget = GlobalFsmState.CHAT_MESSAGE_ERROR; // Or IDLE
             break;
         case GlobalFsmState.APP_INITIALIZING:
             if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = GlobalFsmState.AWAITING_TICKER_INPUT; 
@@ -1031,7 +1107,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         currentGlobalFsmState === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED ||
         currentGlobalFsmState === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
         currentGlobalFsmState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED ||
-        currentGlobalFsmState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED
+        currentGlobalFsmState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
+        currentGlobalFsmState === GlobalFsmState.CHAT_MESSAGE_SUCCESS || // Added for chat
+        currentGlobalFsmState === GlobalFsmState.CHAT_MESSAGE_ERROR    // Added for chat
     ) {
         logDebug('StockAnalysisContext', 'FSM_Orchestrator_Action', `State is ${currentGlobalFsmState}. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });

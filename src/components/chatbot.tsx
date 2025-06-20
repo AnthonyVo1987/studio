@@ -2,12 +2,11 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { useStockAnalysis, type ChatMessage } from '@/contexts/stock-analysis-context';
+import { useStockAnalysis, type ChatMessage, GlobalFsmState } from '@/contexts/stock-analysis-context'; // Added GlobalFsmState
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-// Example prompts will be loaded from JSON
 import exampleChatPromptsData from '@/ai/prompts/example-chat-prompts.json';
 import type { ExampleChatPrompt, ExampleChatPromptsFile } from '@/ai/prompt-loader';
 
@@ -31,11 +30,10 @@ import { copyToClipboard, downloadJson } from '@/lib/export-utils';
 import { useChatbotFsm, ChatbotFsmInternalState } from '@/contexts/chatbot-fsm-context';
 
 interface ChatbotProps {
-  isAnyAnalysisInProgress: boolean;
+  isAnyAnalysisInProgress: boolean; // This prop remains important for overall UI disabling
   currentTickerForDisplay: string;
 }
 
-// Cast the imported JSON data to the correct type
 const exampleChatPrompts: ExampleChatPromptsFile = exampleChatPromptsData as ExampleChatPromptsFile;
 
 
@@ -44,10 +42,11 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
     logDebug: globalLogDebug,
+    fsmState: globalFsmState, // Get global FSM state
   } = useStockAnalysis();
 
   const {
-    fsmState: chatbotFsmState,
+    fsmState: chatbotFsmState, // Local chatbot FSM state (IDLE, PROCESSING_USER_INPUT)
     userInput: fsmUserInput,
     dispatchChatbotFsmEvent,
     previousChatbotFsmState,
@@ -58,7 +57,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const logDebug = globalLogDebug;
 
-  logDebug('Chatbot', 'Render', `ChatbotFSM State: Prev: ${previousChatbotFsmState || 'N/A'} | Curr: ${chatbotFsmState} | Target: ${targetChatbotFsmDisplayState || 'N/A'}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+  logDebug('Chatbot', 'Render', `GlobalFSM State: ${globalFsmState}, LocalChatbotFSM State: ${chatbotFsmState}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -66,33 +65,29 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     }
   }, [globalChatHistory]);
 
-  useEffect(() => {
-    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE && !isAnyAnalysisInProgress) {
-      logDebug('Chatbot', 'EffectOnIsAnyAnalysisInProgress', `isAnyAnalysisInProgress became false while FSM was SUBMITTING_MESSAGE. Dispatching SUBMISSION_CONCLUDED.`);
-      dispatchChatbotFsmEvent({ type: 'SUBMISSION_CONCLUDED' });
-    }
-  }, [isAnyAnalysisInProgress, chatbotFsmState, dispatchChatbotFsmEvent, logDebug]);
+  // Removed: useEffect that listened to isAnyAnalysisInProgress to dispatch SUBMISSION_CONCLUDED
+  // This is now handled by the global FSM.
 
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    logDebug('Chatbot', 'handleFormSubmit', `Submit requested. ChatbotFSM State: ${chatbotFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
-    if (!fsmUserInput.trim() || chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isAnyAnalysisInProgress) {
-      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty, already submitting, or another analysis is in progress.');
+    logDebug('Chatbot', 'handleFormSubmit', `Submit requested. GlobalFSM State: ${globalFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+    if (!fsmUserInput.trim() || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING || isAnyAnalysisInProgress) {
+      logDebug('Chatbot', 'handleFormSubmit', 'Submit prevented: input empty, global chat pending, or another analysis is in progress.');
       return;
     }
+    // This now dispatches to ChatbotFsmContext, which in turn will dispatch to GlobalFSM
     dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
-  }, [fsmUserInput, chatbotFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
+  }, [fsmUserInput, globalFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
 
   const handleExamplePromptClick = (promptTemplate: string) => {
-    if (chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isAnyAnalysisInProgress) return;
-    const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
+    if (globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING || isAnyAnalysisInProgress) return;
     
-    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Dispatching USER_INPUT_CHANGED then SUBMIT_MESSAGE_REQUESTED.`);
+    const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
+    logDebug('Chatbot', 'ExamplePromptClicked', `Prompt set to: "${filledPrompt}". Dispatching USER_INPUT_CHANGED then SUBMIT_MESSAGE_REQUESTED to local FSM.`);
         
     dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: filledPrompt });
-    // Small timeout to allow state update before submitting, if necessary, though direct dispatch is usually fine
-    // setTimeout(() => dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' }), 50);
-    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' }); // Direct submission
+    // Let the local FSM handle the submission request, which then dispatches to global.
+    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' });
   };
 
   const handleCopyChat = async () => {
@@ -120,7 +115,8 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     }
   };
 
-  const isProcessing = chatbotFsmState === ChatbotFsmInternalState.SUBMITTING_MESSAGE || isAnyAnalysisInProgress;
+  // Updated: isProcessing now primarily depends on global FSM state and isAnyAnalysisInProgress
+  const isProcessing = globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING || isAnyAnalysisInProgress;
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -131,7 +127,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             StockSage AI Chat
           </CardTitle>
           <CardDescription className="text-xs mt-1">
-            Ask about {currentTickerForDisplay || "the stock"}. (Inputs disabled during analysis)
+            Ask about {currentTickerForDisplay || "the stock"}. (Inputs disabled during analysis or chat processing)
           </CardDescription>
         </div>
         <div className="flex items-center gap-1">
@@ -230,3 +226,4 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     </Card>
   );
 }
+
