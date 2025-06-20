@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { ClipboardCopy, Download, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export const CONSOLE_HEIGHT_PX = 250; 
+export const CONSOLE_HEIGHT_PX = 250;
 export const FSM_CARD_HEIGHT_PX = 200;
 
 interface FsmStateDisplayProps {
@@ -36,8 +36,6 @@ function GlobalFsmStateDisplay({ title, previousState, currentState, targetState
   );
 }
 
-// Removed FsmStateDebugCardProps interface as props are no longer passed directly
-
 export function FsmStateDebugCard() {
   const {
     isFsmDebugCardEnabled,
@@ -48,8 +46,8 @@ export function FsmStateDebugCard() {
     targetFsmDisplayState: globalTargetFsmDisplayState,
     fsmFlags,
     fsmVariables,
-    isClientDebugConsoleEnabled, 
-    isClientDebugConsoleOpen,   
+    isClientDebugConsoleEnabled,
+    isClientDebugConsoleOpen,
     logDebug,
   } = useStockAnalysis();
 
@@ -88,7 +86,7 @@ export function FsmStateDebugCard() {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export Global FSM data.' });
     }
   };
-  
+
   const renderVariables = (variables: GlobalFsmContextVariables) => {
     return Object.entries(variables).map(([key, value]) => (
       <TableRow key={`var-${key}`}>
@@ -116,9 +114,9 @@ export function FsmStateDebugCard() {
         'fixed bottom-0 left-0 right-0 z-40 border-t-2 shadow-xl bg-background/95 backdrop-blur-sm',
         'transition-all duration-300 ease-in-out'
       )}
-      style={{ 
-        transform: (isClientDebugConsoleEnabled && isClientDebugConsoleOpen) ? `translateY(-${CONSOLE_HEIGHT_PX}px)` : `translateY(0px)`, 
-        height: `${FSM_CARD_HEIGHT_PX}px` 
+      style={{
+        transform: (isClientDebugConsoleEnabled && isClientDebugConsoleOpen) ? `translateY(-${CONSOLE_HEIGHT_PX}px)` : `translateY(0px)`,
+        height: `${FSM_CARD_HEIGHT_PX}px`
       }}
     >
       <CardHeader className="p-2 border-b">
@@ -146,8 +144,8 @@ export function FsmStateDebugCard() {
       <CardContent className="p-0 h-[calc(100%-53px)]">
         <ScrollArea className="h-full p-2">
           <div className="space-y-2 font-code text-xs">
-            <GlobalFsmStateDisplay 
-                title="Global Application FSM" 
+            <GlobalFsmStateDisplay
+                title="Global Application FSM"
                 previousState={globalPreviousFsmState}
                 currentState={globalFsmState}
                 targetState={globalTargetFsmDisplayState}
@@ -158,7 +156,7 @@ export function FsmStateDebugCard() {
                   <CardTitle className="text-xs font-semibold">Global FSM Flags</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 max-h-[80px] overflow-y-auto">
-                  <Table dense>
+                  <Table> {/* Removed dense prop */}
                     <TableBody>{renderFlags(fsmFlags)}</TableBody>
                   </Table>
                 </CardContent>
@@ -168,7 +166,7 @@ export function FsmStateDebugCard() {
                   <CardTitle className="text-xs font-semibold">Global FSM Variables</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 max-h-[80px] overflow-y-auto">
-                  <Table dense>
+                  <Table> {/* Removed dense prop */}
                     <TableBody>{renderVariables(fsmVariables)}</TableBody>
                   </Table>
                 </CardContent>
@@ -180,10 +178,3 @@ export function FsmStateDebugCard() {
     </Card>
   );
 }
-
-// Added a 'dense' prop to Table for potentially smaller padding, not a standard ShadCN prop
-// This would require Table component modification or custom styling. For now, it's illustrative.
-// Standard TableCell padding might make the card too cramped.
-// In a real scenario, might create a <DenseTable> variant or use custom CSS for these inner tables.
-// For simplicity, just using standard Table for now, text size is already xs.
-
