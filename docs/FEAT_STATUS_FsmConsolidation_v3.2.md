@@ -1,15 +1,15 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y.z)
 
-**Document Version:** 1.18
-**Date:** 2025-06-21
+**Document Version:** 1.19
+**Date:** 2025-06-22
 **Feature Target Application Version Series:** 3.2.x.y.z
-**Current App Version (Consolidated Logging Fixes):** `v3.2.5.0.F` (Commit: `f34f5128`)
+**Current App Version (FSM Debug Tab Migration):** `v3.2.5.0.L` (Commit: `36cfe3d5`)
 
 ## 1. Overall Feature Status
 
-**Current Status:** `Phase 5 IN PROGRESS` (Iterative bug fixing up to `v3.2.5.0.F` completed. Further debugging planned.)
-**Last Updated:** 2025-06-21
+**Current Status:** `Phase 5 IN PROGRESS`
+**Last Updated:** 2025-06-22
 
 **Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM.
 *   **Phase 1: Foundation & Core FSM Setup is COMPLETE.** (App Version `v3.2.1.3.0`, Commit `57c7e8b0`)
@@ -17,9 +17,9 @@
 *   **Phase 3: Integrating Chat & Debug Console Menus is COMPLETE.** (App Version `v3.2.3.2.0`, Commit `7f0e552b`)
 *   **Phase 4: Clean Up & Finalize Debugging Tools is COMPLETE.** (App Version `v3.2.4.1.0`, Phase Commit `c661f9d1`)
 *   **Phase 5: Testing and Debugging is IN PROGRESS.**
-    *   Sub-tasks `v3.2.5.0.0` through `v3.2.5.0.C` (commit `2338c4f8`) addressed critical bugs in FSM orchestration and the AI macro pipeline.
-    *   Sub-tasks `v3.2.5.0.D` through `v3.2.5.0.F` (commit `f34f5128`) resolved persistent issues with the client-side logging system, including incorrect log suppression and a `useEffect` infinite loop.
-    *   **Next Task:** `v3.2.5.0.G` is planned to address duplicate log entries.
+    *   Sub-tasks up to `v3.2.5.0.F` (commit `f34f5128`) addressed critical bugs in FSM orchestration and logging.
+    *   The duplicate log investigation (`v3.2.5.0.G-K`) has been **shelved** due to complexity.
+    *   **Latest Completion:** Task `v3.2.5.0.L` (commit `36cfe3d5`) migrated the FSM monitor to a dedicated debug tab.
 
 ## 2. Phase & Task Status
 
@@ -42,13 +42,10 @@
 ### **Phase 5: Testing and Debugging (FEAT Phase 'x' = 5)**
 *   **Overall Phase Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **Task v3.2.5.0.0: Initial Comprehensive Testing & Introduce "AI Full Stock Analysis" Macro Button** - `COMPLETED` (Commit `(previous_commit_for_3.2.5.0.0)`, App Version `v3.2.5.0.0`)
-    *   **Task v3.2.5.0.1 - v3.2.5.0.C: Iterative Bug Fixing for FSM Orchestrator, Macro, Logging & Chat** - `COMPLETED` (Culminating App Version: `v3.2.5.0.C`, Commit: `2338c4f8`)
-    *   **Task v3.2.5.0.D - v3.2.5.0.F: Iterative Bug Fixing for Logging System & FSM Orchestrator** - `COMPLETED` (Culminating App Version: `v3.2.5.0.F`, Commit: `f34f5128`)
-    *   **Task v3.2.5.0.G: Implement Duplicate Log Prevention Logic** - `PLANNED`
-    *   **Task v3.2.5.1.z (Future): Comprehensive End-to-End Testing - Scenario 1 (Happy Paths - Post `v3.2.5.0.G` fixes)** - `PLANNED`
-    *   **Task v3.2.5.2.z (Future): Comprehensive End-to-End Testing - Scenario 2 (Error & Edge Cases - Post `v3.2.5.0.G` fixes)** - `PLANNED`
-    *   **Task v3.2.5.3.z (Future): Final Log Review & Refinements** - `PLANNED`
+    *   **Task v3.2.5.0.C (Consolidated Bug Fixes):** - `COMPLETED` (Commit: `2338c4f8`)
+    *   **Task v3.2.5.0.F (Consolidated Logging Fixes):** - `COMPLETED` (Commit: `f34f5128`)
+    *   **Task v3.2.5.0.G - v3.2.5.0.K (Duplicate Log Investigation):** - `SHELVED`
+    *   **Task v3.2.5.0.L (FSM Debug Tab Migration):** - `COMPLETED` (Commit: `36cfe3d5`)
 
 ### **Phase 6: Documentation Updates (FEAT Phase 'x' = 6)**
 *   **Overall Phase Status:** `PLANNED`
@@ -60,7 +57,8 @@
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                                                                                                                                                         | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
-| 2025-06-21 | `v3.2.5.0.G` (Scope Log Prevention)      | N/A                         | **New Task Scoped.** A new task, `v3.2.5.0.G`, has been scoped to implement a de-duplication mechanism to prevent identical, consecutive log messages.                                                                                   | PLANNED     |
+| 2025-06-22 | `v3.2.5.0.L` (FSM Debug Tab)             | `36cfe3d5`                  | **FSM Debug Tab Migration (Phase 5).** Replaced the floating FSM monitor with a dedicated "FSM Debug" tab for improved UI/UX. Migrated display and export logic to the new tab and removed the old component and its state. App metadata: `v3.2.5.0.L`. | COMPLETED   |
+| 2025-06-21 | `v3.2.5.0.G` (Shelve Log Debugging)      | `2333f096` (Revert)         | **Shelved Duplicate Log Investigation.** Reverted codebase to a stable state (`v3.2.5.0.G` codebase). The investigation into duplicate client-side logs (`v3.2.5.0.G` through `v3.2.5.0.K`) is paused.                                                              | SHELVED     |
 | 2025-06-21 | `v3.2.5.0.F`                             | `f34f5128`                  | **Consolidated Logging Fixes (Phase 5 Iteration).** Fixed "Reduced Startup Logging" by tying it to the FSM's `isInitialLoad` variable. Resolved a `useEffect` infinite loop in the FSM orchestrator. App metadata: `v3.2.5.0.F`.                                                   | COMPLETED   |
 | 2025-06-20 | `v3.2.5.0.C`                             | `2338c4f8`                  | **Consolidated Bug Fixes (Phase 5 Iteration).** Addressed FSM orchestrator reliability for automated & macro pipelines, macro chat progression, missing client FSM logs, duplicate chat messages, and Genkit prompt caching. Phase 5 IN PROGRESS. App metadata: `v3.2.5.0.C`. | COMPLETED   |
 | 2025-06-21 | `v3.2.4.1.0` (Phase 4 Complete)          | `c661f9d1`                  | **Phase 4: Clean Up & Finalize Debugging Tools COMPLETE.** Consolidated debug card, log exports, and FSM debug logging. Culminating App Version `v3.2.4.1.0`.                                                                        | COMPLETED   |
@@ -71,7 +69,8 @@
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
-*   **v1.18 (2025-06-21):** Added planned Task `v3.2.5.0.G` for duplicate log prevention.
+*   **v1.19 (2025-06-22):** Marked Task `v3.2.5.0.L` (FSM Debug Tab Migration) as `COMPLETED`.
+*   **v1.18 (2025-06-21):** Added planned Task `v3.2.5.0.G` for duplicate log prevention. Subsequently updated status of `v3.2.5.0.G-K` series to `SHELVED`.
 *   **v1.17 (2025-06-21):** Marked tasks `v3.2.5.0.D` through `v3.2.5.0.F` as `COMPLETED`. Added consolidated commit entry for `f34f5128`. Current App Version `v3.2.5.0.F`.
 *   **v1.16 (2025-06-20):** Updated Phase 5 status to `IN PROGRESS`. Added consolidated entry for tasks `v3.2.5.0.0` through `v3.2.5.0.C` (Commit `2338c4f8`), marking them as `COMPLETED`. Current App Version `v3.2.5.0.C`.
 *   **v1.15 (2025-06-21):** Marked Phase 4 as `COMPLETED`. Commit hash `c661f9d1`. App Version `v3.2.4.1.0`. Updated overall feature status.

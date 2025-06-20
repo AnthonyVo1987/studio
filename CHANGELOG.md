@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.5.0.L` (FSM Debug Tab Migration)
+**Tag:** `Phase-18_Task-3.2.5.0.L_FSM_DebugTabMigration` (Commit `36cfe3d5`)
+**Subject:** `feat(debug,fsm): Migrate FSM monitor to dedicated tab, deprecate old UI (v3.2.5.0.L)`
+**Details:**
+This commit (`36cfe3d5`) completes the "FSM Debug Tab Migration" task series (`v3.2.5.0.L.0` through `v3.2.5.0.L.2`), which is part of the broader "FSM Consolidation & Refactor" feature (`v3.2`). The floating FSM monitor has been successfully replaced with a more integrated and user-friendly dedicated "FSM Debug" tab.
+
+**Key Changes in v3.2.5.0.L Series (Consolidated):**
+*   **New "FSM Debug" Tab (Task v3.2.5.0.L.0):** Added a new "FSM Debug" tab trigger and content placeholder to the main `Tabs` component in `page-content.tsx`.
+*   **Implemented Display Logic (Task v3.2.5.0.L.1):** Created a new `fsm-debug-tab-content.tsx` component to display the Global FSM state, flags, and variables within distinct UI cards. Migrated copy/export functionality to this new component.
+*   **Deprecated Old UI (Task v3.2.5.0.L.2):** Removed the old floating `FsmStateDebugCard` component and its associated "Enable & Show Global FSM Monitor" toggle switch from `page-content.tsx`. Removed the corresponding state management (`isFsmDebugCardEnabled`, etc.) from `StockAnalysisContext`, simplifying the context. The file `src/components/fsm-state-debug-card.tsx` was removed.
+
+**Outcome of v3.2.5.0.L:**
+*   The FSM monitor is now a first-class citizen of the UI in its own tab.
+*   UI/UX for debugging the FSM is improved and less cluttered.
+*   The codebase is cleaner with the removal of the old floating card and its state.
+*   Application version is now consistently `v3.2.5.0.L`.
+---
 **App Version:** `v3.2.5.0.F` (Consolidated FSM & Logging Fixes)
 **Tag:** `Phase-17_Task-3.2.5.0.F_ConsolidatedLoggingFixes` (Commit `f34f5128`)
 **Subject:** `fix(fsm,debug): Consolidate FSM orchestrator, logging & startup fixes (v3.2.5.0.F)`
@@ -373,7 +390,7 @@ This version (`v2.9.D.M`) implements cleanup and hardening measures following th
 *   The codebase is cleaner, with unnecessary button debugging artifacts removed.
 *   All AI flows now have more explicit error throwing for critical AI prompt failures and include execution time logging.
 *   Server actions consistently log calls to AI flows and provide standardized error JSONs to the client.
-*   Client-side display components for AI-generated data are more robust in parsing and displaying error states.
+*   Client-side display components for AI-generated content are more robust in parsing and displaying error states.
 *   The application is now in a more stable and observable state regarding its AI functionalities.
 ---
 **App Version:** `v2.9.D.L` (Fix AI Prompt Safety Settings & Client Error Display)
@@ -1083,6 +1100,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 
