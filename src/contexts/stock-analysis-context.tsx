@@ -171,7 +171,6 @@ interface StockAnalysisState {
   mainTabFsmDisplay: FsmDisplayTuple | null;
   chatbotFsmDisplay: FsmDisplayTuple | null;
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
-  isInitialAppStartupComplete: boolean;
   isReducedStartupLoggingEnabled: boolean;
 }
 
@@ -273,7 +272,6 @@ const defaultState: StockAnalysisState = {
   mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: GlobalFsmState.IDLE.toString() },
   chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
-  isInitialAppStartupComplete: false,
   isReducedStartupLoggingEnabled: true,
 };
 
@@ -325,10 +323,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
   const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
   const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
-  const [_isInitialAppStartupComplete, _setIsInitialAppStartupComplete] = useState<boolean>(defaultState.isInitialAppStartupComplete);
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
-  const initialStartupFlaggedRef = useRef(false);
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
@@ -566,9 +562,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
         nextFlags.isCalculatedTADataReady = true;
+        nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
         nextVariables.isInitialLoad = false;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED. isInitialLoad set to false.`);
-        nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
         break;
       case 'AI_TA_FAILURE':
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
@@ -790,8 +786,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [globalFsmReducerState.current, _targetFsmDisplayState, logDebug]);
 
   useEffect(() => {
+    const { isInitialLoad } = globalFsmReducerState.variables;
     const logPrefix = 'StockAnalysisContext:ConsoleInterceptor';
-    logDebug(logPrefix as LogSourceId, 'EffectRun', `Running. Enabled: ${_isClientDebugConsoleEnabled}, StartupComplete: ${_isInitialAppStartupComplete}, ReducedLogging: ${_isReducedStartupLoggingEnabled}`);
+    logDebug(logPrefix as LogSourceId, 'EffectRun', `Running. Enabled: ${_isClientDebugConsoleEnabled}, IsInitialLoad: ${isInitialLoad}, ReducedLogging: ${_isReducedStartupLoggingEnabled}`);
     if (typeof window === 'undefined') { logDebug(logPrefix as LogSourceId, 'SSR_Skip', 'Skipping console interception on server.'); return; }
     const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
     const interceptAndProcessLog = (type: LogType, ...args: any[]) => {
@@ -803,13 +800,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           sourceForBuffer = args[1] as LogSourceId; messagesForBuffer = args.slice(3); typeForBuffer = 'debug';
           if (!_logSourceConfig[sourceForBuffer]) return;
         } else { if (!_logSourceConfig['NATIVE_CONSOLE']) return; }
-        if (!_isInitialAppStartupComplete && _isReducedStartupLoggingEnabled) {
+        if (isInitialLoad && _isReducedStartupLoggingEnabled) {
           const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter', 'StockAnalysisContext:GlobalFSM_Orchestrator', 'StockAnalysisContext:GlobalFSM']; let allowLog = false;
           if (sourceForBuffer && criticalSources.includes(sourceForBuffer)) { allowLog = true; }
           else if (typeForBuffer === 'error' || typeForBuffer === 'warn') { allowLog = true; }
           if (sourceForBuffer === 'NATIVE_CONSOLE' && typeForBuffer !== 'error' && typeForBuffer !== 'warn' && !criticalSources.includes('NATIVE_CONSOLE')) { allowLog = false; }
           if (!allowLog && String(messagesForBuffer[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; } 
-          if (!allowLog) { currentOriginalsForInterceptor.debug(`[${logPrefix}_SUPPRESSED_STARTUP_LOG] Type: ${typeForBuffer}, Source: ${sourceForBuffer}, Msg: ${String(messagesForBuffer[0]).substring(0,50)}...`); return; }
+          if (!allowLog) { return; }
         }
         addEntryToGlobalLogBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
       });
@@ -829,7 +826,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
       else { contextOriginals.warn(`[${logPrefix}] Cleanup: No context originals found to restore!`); }
     };
-  }, [_isClientDebugConsoleEnabled, _logSourceConfig, contextOriginals, logDebug, _isInitialAppStartupComplete, _isReducedStartupLoggingEnabled]);
+  }, [_isClientDebugConsoleEnabled, _logSourceConfig, contextOriginals, logDebug, globalFsmReducerState.variables.isInitialLoad, _isReducedStartupLoggingEnabled]);
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
     logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', `ClientDebugConsoleOpen will be set to: ${open}. Current isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
@@ -843,7 +840,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string }>(performAiOptionsAnalysisAction, localInitialPerformAiOptionsAnalysisState);
 
   useEffect(() => {
-    contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', globalFsmReducerState.current, 'Active Ticker:', globalFsmReducerState.variables.activeTicker, 'Profile:', globalFsmReducerState.variables.activePipelineProfile, 'MacroStep:', globalFsmReducerState.variables.currentFullAiMacroChatStep, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', globalFsmReducerState.variables.isInitialLoad, 'isInitialAppStartupComplete:', _isInitialAppStartupComplete);
+    contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', globalFsmReducerState.current, 'Active Ticker:', globalFsmReducerState.variables.activeTicker, 'Profile:', globalFsmReducerState.variables.activePipelineProfile, 'MacroStep:', globalFsmReducerState.variables.currentFullAiMacroChatStep, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', globalFsmReducerState.variables.isInitialLoad);
 
     const state = fsmStateRef.current; 
     const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
@@ -953,18 +950,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     }
 
-    if (state.current === GlobalFsmState.IDLE && state.variables.isInitialLoad === false && !initialStartupFlaggedRef.current) {
-        logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_System_StartupFlag]', `Initial automated pipeline concluded. Setting isInitialAppStartupComplete to true.`);
-        _setIsInitialAppStartupComplete(true); initialStartupFlaggedRef.current = true;
-        logDebug('StockAnalysisContext:StartupComplete' as LogSourceId, 'Info', 'Initial application startup sequence complete. Full debug logging is now active.');
-    }
   }, [
-    globalFsmReducerState.current, globalFsmReducerState.variables, _dispatchFsmEventActual, logDebug,
+    globalFsmReducerState, isFetchDataPending, isAnalyzeTaPending, 
+    isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending,
+    _dispatchFsmEventActual, logDebug,
     _stockSnapshotJson, _standardTasJson, _optionsChainJson, _aiAnalyzedTaJson, 
     _marketStatusJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory,
     fetchStockDataFormAction, analyzeTaFormAction, performAiAnalysisFormAction, performAiOptionsAnalysisFormAction,
-    isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending,
-    contextOriginals, _isInitialAppStartupComplete
+    contextOriginals
   ]);
 
   useEffect(() => {
@@ -1025,7 +1018,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
     debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplayInternal,
-    setReducedStartupLoggingEnabled, isInitialAppStartupComplete: _isInitialAppStartupComplete,
+    setReducedStartupLoggingEnabled, 
     isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
   }), [
     _polygonApiRequestLogJson, contextSetters, _polygonApiResponseLogJson,
@@ -1039,7 +1032,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _isFsmDebugCardEnabled, setFsmDebugCardEnabled, _isFsmDebugCardOpen,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
-    _debugConsoleMenuFsmDisplayInternal, _isInitialAppStartupComplete,
+    _debugConsoleMenuFsmDisplayInternal, 
     _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled,
   ]);
 
