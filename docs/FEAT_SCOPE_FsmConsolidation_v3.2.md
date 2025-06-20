@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.5
+**Document Version:** 1.6
 **Date:** 2025-06-20
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** IN PROGRESS
@@ -70,6 +70,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ### **Phase 1: Foundation & Core FSM Setup (FEAT Phase 'x' = 1)**
 *Objective: Establish the basic structure of the new single FSM, define initial core states, flags, and context variables. Integrate the existing automated "Analyze Stock" pipeline (data fetch + TA calculation) into this new FSM as a pilot.*
+*   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.1.3.0`, Phase Commit `57c7e8b0`)
 
 *   **Task v3.2.1.0.0: Define Initial Single FSM Structure & Core States**
     *   **Status:** `COMPLETED` (Commit: `919db9f2`)
@@ -84,12 +85,12 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
         7.  *Update Orchestrator and Action Handlers:* Adapt the orchestrator `useEffect` and server action result `useEffect`s to work with the new FSM state structure, dispatch new FSM events, and update new flags/variables.
     *   **Testability:** App should load. The FSM Debug Card (though not yet updated for flags/vars) should reflect the new initial FSM state. Automated pipeline for "Analyze Stock" should still broadly function, with the new FSM states being logged.
     *   **App Metadata:** `v3.2.1.0.0`.
-    *   **Bug Fix Task v3.2.1.0.1 (was v3.2.1.1): Resolve Repeated `INITIALIZATION_COMPLETE` Dispatch**
+    *   **Bug Fix Task v3.2.1.0.1: Resolve Repeated `INITIALIZATION_COMPLETE` Dispatch**
         *   **Status:** `COMPLETED` (Commit: `1aefabe1`)
         *   **Details:** Added `useRef` guard (`initializationDispatchedRef`) to `StockAnalysisContext` orchestrator `useEffect` to prevent repeated `INITIALIZATION_COMPLETE` dispatches.
         *   **App Metadata:** `v3.2.1.0.1`.
 
-*   **Task v3.2.1.1.0 (was v3.2.1.2): Integrate "Analyze Stock" Button & Input Handling**
+*   **Task v3.2.1.1.0: Integrate "Analyze Stock" Button & Input Handling**
     *   **Status:** `COMPLETED` (Commit: `1d1342aa`)
     *   **File(s):** `src/components/main-tab-content.tsx`, `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
@@ -112,7 +113,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
     *   **Testability:** "Analyze Stock" button enables/disables based on global FSM state/flags. Clicking it updates `activeTicker` in the global FSM, resets relevant flags/JSONs, and transitions the global FSM to `PIPELINE_REQUESTED_DATA_FETCH`.
     *   **App Metadata:** `v3.2.1.1.0`.
 
-*   **Task v3.2.1.2.0 (was v3.2.1.3): Migrate Data Fetching Pipeline to New FSM**
+*   **Task v3.2.1.2.0: Migrate Data Fetching Pipeline to New FSM**
     *   **Status:** `COMPLETED` (Commit: `368c85ab`)
     *   **File(s):** `src/contexts/stock-analysis-context.tsx`.
     *   **AI Agent - Chain of Thought & Action:**
@@ -279,10 +280,11 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.6 (2025-06-20):** Marked Phase 1 (Tasks v3.2.1.0.0 - v3.2.1.3.0) as `COMPLETED`. Updated with Phase 1 commit hash `57c7e8b0` and app version `v3.2.1.3.0`.
 *   **v1.5 (2025-06-20):** Updated Task v3.2.1.3.0 status to `COMPLETED` (Commit: `2f0acd35`).
-*   **v1.4 (2025-06-20):** Updated Task v3.2.1.2.0 status to `COMPLETED` (Commit: `368c85ab`). (Formerly v3.2.1.3).
-*   **v1.3 (2025-06-20):** Updated Task v3.2.1.1.0 (formerly v3.2.1.2) status to `COMPLETED` (Commit: `1d1342aa`). Updated versioning to `3.w.x.y.z`.
-*   **v1.2 (2025-06-20):** Updated Task v3.2.1.0 Bug Fix Task (v3.2.1.0.1, formerly v3.2.1.1) to `COMPLETED` (Commit: `1aefabe1`). Adjusted subsequent task numbering in Phase 1. Updated Implementation Plan to be a 5-phase plan with dedicated Testing (Phase 4) and Documentation/Cleanup (Phase 5).
+*   **v1.4 (2025-06-20):** Updated Task v3.2.1.2.0 status to `COMPLETED` (Commit: `368c85ab`).
+*   **v1.3 (2025-06-20):** Updated Task v3.2.1.1.0 status to `COMPLETED` (Commit: `1d1342aa`). Updated versioning to `3.w.x.y.z`.
+*   **v1.2 (2025-06-20):** Updated Task v3.2.1.0 Bug Fix Task (v3.2.1.0.1) to `COMPLETED` (Commit: `1aefabe1`). Adjusted subsequent task numbering in Phase 1. Updated Implementation Plan to be a 5-phase plan with dedicated Testing (Phase 4) and Documentation/Cleanup (Phase 5).
 *   **v1.1 (2025-06-20):** Updated Task v3.2.1.0.0 status to `COMPLETED` (Commit: `919db9f2`). Added bug fix sub-task v3.2.1.0.1.
 *   **v1.0 (2025-06-20):** Initial document creation. Includes full scope, analysis, risks, and revised 5-phase implementation plan for FSM Consolidation & Refactor feature (v3.2.x.y.z).
 

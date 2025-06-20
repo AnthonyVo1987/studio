@@ -2,7 +2,7 @@
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
-*   **Version 1.57 (Task v3.1.3.4 Docs):** 2025-06-20 - Firebase Studio (AI Prototyper)
+*   **Version 1.58 (Task v3.1.3.4 Docs):** 2025-06-20 - Firebase Studio (AI Prototyper)
     *   Finalized documentation for the "Debug Log Enhancements" feature (v3.1.x.y series, culminating in App Version `v3.1.3.4` / commit `9aef8261`).
     *   Updated `docs/FEAT_SCOPE_DebugLogEnhancements_v3.1.md` and `docs/FEAT_STATUS_DebugLogEnhancements_v3.1.md` to mark all phases and tasks as complete.
     *   Updated `README.md` to `v1.57`, prepending new AI Coding Agent Operating Procedures and reflecting the current application state (PRD, Design, Architecture) as of App Version `v3.1.3.4`.
@@ -56,6 +56,37 @@
 ## StockSage Application Commit Log (v3.x.x.x and v2.x.y.z)
 
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
+
+---
+**App Version:** `v3.2.1.3.0` (Complete FSM Consolidation Phase 1)
+**Tag:** `Phase-12_Task-3.2.1.3.0_FSM_Consolidation_Phase1_Complete` (Illustrative Tag for Phase Completion)
+**Commit Hash:** `57c7e8b0` (as provided by user for overall Phase 1 completion)
+**Subject:** `feat(fsm): Complete Phase 1 of FSM Consolidation (v3.2.1.3.0)`
+**Details:**
+This commit marks the completion of Phase 1 ("Foundation & Core FSM Setup") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase established the foundational structure of the new single global Finite State Machine (FSM) within `StockAnalysisContext` and successfully migrated the entire automated "Analyze Stock" pipeline (ticker input, data fetching, and AI TA calculation) to be driven by this new FSM.
+
+**Key Changes in Phase 1 (Tasks v3.2.1.0.0 through v3.2.1.3.0):**
+*   **Defined Single FSM Structure (Task v3.2.1.0.0 - Commit `919db9f2`):**
+    *   Introduced `GlobalFsmState` enum, `GlobalFsmContextVariables`, and `GlobalFsmFlags` interfaces in `src/contexts/stock-analysis-context.tsx`.
+    *   Adapted the main FSM reducer (`fsmReducer`) in `StockAnalysisContext` to manage the new state structure, including variables and flags.
+    *   **Bug Fix (Task v3.2.1.0.1 - Commit `1aefabe1`):** Resolved an issue with repeated `INITIALIZATION_COMPLETE` dispatches from the FSM orchestrator by implementing a `useRef` guard (`initializationDispatchedRef`).
+*   **Integrated "Analyze Stock" Button & Input Handling (Task v3.2.1.1.0 - Commit `1d1342aa`):**
+    *   Removed the local FSM from `src/components/main-tab-content.tsx` that previously managed ticker input and automated analysis submission.
+    *   The "Analyze Stock" button's state (enabled/disabled) and action are now driven by the global FSM. Clicking the button dispatches `START_FULL_ANALYSIS` to the global FSM.
+*   **Migrated Data Fetching Pipeline to New FSM (Task v3.2.1.2.0 - Commit `368c85ab`):**
+    *   The sequence of fetching market data, stock snapshot, standard TAs, and options chain data is now orchestrated by the new single global FSM.
+    *   The FSM transitions through states like `PIPELINE_REQUESTED_DATA_FETCH`, `DATA_FETCH_IN_PROGRESS`, and `DATA_FETCH_SUCCEEDED` / `DATA_FETCH_FAILED` / `ERROR_STALE_DATA`.
+    *   Data readiness flags (`isMarketDataReady`, `isSnapshotDataReady`, etc.) are updated by the FSM based on server action outcomes.
+*   **Migrated AI TA Calculation to New FSM (Automated Pipeline) (Task v3.2.1.3.0 - Commit `2f0acd35`):**
+    *   The AI-driven Technical Analysis (pivot points) calculation is now triggered by the FSM after successful data fetch.
+    *   The FSM manages states like `CALCULATING_AI_TA`, `AI_TA_CALCULATION_SUCCEEDED` / `AI_TA_CALCULATION_FAILED`.
+    *   The full automated pipeline now completes by transitioning through `PIPELINE_AUTOMATED_COMPLETE` and then back to an `IDLE` or `VALID_TICKER_ENTERED` state, ready for further user interaction or new analysis.
+
+**Outcome of Phase 1:**
+*   The core automated analysis pipeline (from ticker input to AI TA calculation) is now fully managed by the new single global FSM in `StockAnalysisContext`.
+*   State management for this critical pipeline is centralized, improving clarity, reducing complexity by removing a local FSM from `MainTabContent`, and enhancing predictability.
+*   The foundation is now solidly laid for migrating manual AI actions (Key Takeaways, Options Analysis) and other UI state logic (Chat, Debug Console Menus) to this consolidated FSM in subsequent phases of Feature `v3.2`.
+*   The application version is now consistently `v3.2.1.3.0`.
 
 ---
 **App Version:** `v3.1.3.4` (Complete Debug Log Enhancements Feature)
@@ -926,4 +957,5 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 

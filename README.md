@@ -24,8 +24,8 @@
     *   That way, when we start testing some changes and we encounter issues, I can just provide the debug logs which will have the version meta data so it's clear what task we are on and will help to ground us.
 
 ---
-**README Document Version:** 1.58
-**Application Version (from `app-metadata.json`):** v3.2.1.1.0 (Commit `1d1342aa`)
+**README Document Version:** 1.59
+**Application Version (from `app-metadata.json`):** v3.2.1.3.0 (Commit `57c7e8b0` - Phase 1 FSM Consolidation Complete)
 **Last Updated:** 2025-06-20
 
 ## 1. Introduction
@@ -146,7 +146,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Orchestrates the main application lifecycle (e.g., `APP_INITIALIZING`, `IDLE`, `PIPELINE_REQUESTED_DATA_FETCH`, `MANUAL_ACTION_PENDING_KEY_TAKEAWAYS`, `CHAT_MESSAGE_PENDING`).
     *   Manages `GlobalFsmFlags` (booleans for specific conditions like `isSnapshotDataReady`) and `GlobalFsmContextVariables` (data like `activeTicker`).
     *   Drives UI enablement/disablement and conditional logic throughout the app.
-*   **Local UI FSMs (MainTabContent, ChatbotFsmContext, DebugConsoleFsmContext):** To be deprecated or their roles significantly reduced/absorbed by the single global FSM. UI components will primarily react to the global FSM's state, flags, and variables.
+*   **Local UI FSMs (MainTabContent, ChatbotFsmContext, DebugConsoleFsmContext):** To be deprecated or their roles significantly reduced/absorbed by the single global FSM. UI components will primarily react to the global FSM's state, flags, and variables. (Note: `MainTabContent` local FSM for automated pipeline removed in v3.2.1.1.0).
 *   **FSM State Display:** The "FSM State Debug Card" (`FsmStateDebugCard.tsx`) will be enhanced to display the state, flags, and variables of the single global FSM.
 
 ### 3.3. AI Flow & Prompt Design
@@ -182,9 +182,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **`package.json`:** No comments.
 *   **Metadata Timestamps (`src/config/app-metadata.json`):**
     *   The `lastUpdatedTimestamp` field **MUST** always be a real, valid ISO 8601 timestamp.
-*   **Debugging Status (as of v3.2.1.1.0):**
+*   **Debugging Status (as of v3.2.1.3.0):**
     *   "Debug Log Enhancements" feature (v3.1.x.y.z) is complete.
-    *   "FSM Consolidation & Refactor" (v3.2.x.y.z) is IN PROGRESS. Phase 1, Task 1 (v3.2.1.1.0 - Integrate Analyze Stock Button) is complete.
+    *   "FSM Consolidation & Refactor" (v3.2.x.y.z): Phase 1 (Foundation & Core FSM Setup - v3.2.1.x.z) is **COMPLETE**. This includes migrating the full automated analysis pipeline (ticker input, data fetch, AI TA calculation) to the new single global FSM.
 
 #### 3.5.2. UI/UX Conventions
 *   Consistent use of ShadCN components from `components/ui`.
@@ -208,7 +208,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Prompt Definitions (`src/ai/definitions/*.json`): Loaded via dynamic `import()` in `definition-loader.ts`. Handlebars for templating (NO logic).
 *   Tools (`ai.defineTool`): For LLM-decided actions.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.2.1.1.0 and New Versioning Scheme)
+### 3.6. Commit & Changelog Procedures (Reflecting v3.2.1.3.0 and New Versioning Scheme)
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   The application's functional version is updated **ONLY** in `src/config/app-metadata.json` within the `appVersion` field, following the `3.w.x.y.z` scheme:
         *   `3`: App Major Version (Fixed).
@@ -267,8 +267,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.58
-*   **Current Application Version:** `v3.2.1.1.0` (Commit `1d1342aa`)
+*   **This README Document Version:** 1.59
+*   **Current Application Version:** `v3.2.1.3.0` (Commit `57c7e8b0` - Phase 1 FSM Consolidation Complete)
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
