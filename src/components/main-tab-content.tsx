@@ -65,7 +65,7 @@ export function MainTabContent() {
   const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
-    const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect_v3220';
+    const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect_v3221';
     logDebug(logPrefixEff as LogSourceId, 'ENTRY', `Global: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, Guard: ${JSON.stringify(globalDispatchGuardRef.current)}`);
   
     const activeTickerForGuardReset = globalFsmVariables.activeTicker; 
@@ -74,7 +74,6 @@ export function MainTabContent() {
     if (guardKeyForManualKT && globalDispatchGuardRef.current[guardKeyForManualKT] &&
         (globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)
     ) {
-      // If the FSM is in a terminal state for KT or back to IDLE, and the guard was active, reset it.
       logDebug(logPrefixEff as LogSourceId, 'ResettingGuard_ManualKTDoneOrIdle', `Resetting guard: ${guardKeyForManualKT}. FSM state: ${globalFsmStateFromContext}`);
       globalDispatchGuardRef.current[guardKeyForManualKT] = false;
     }
@@ -187,12 +186,20 @@ export function MainTabContent() {
   };
 
   const handleGenerateOptionsAnalysis = () => {
-     if (!globalFsmVariables.activeTicker) {
+    const currentActiveTicker = globalFsmVariables.activeTicker;
+     if (!currentActiveTicker) {
       toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
       return;
     }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt_CLICKED', `Button clicked for ${globalFsmVariables.activeTicker}. Manual Options dispatch TBD (Phase 2 Task).`);
-    // dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: globalFsmVariables.activeTicker } }); // To be implemented in later task
+    const guardKey = `TRIGGER_MANUAL_OPTIONS_ANALYSIS_FOR_${currentActiveTicker}`;
+    if (globalDispatchGuardRef.current[guardKey]) {
+        logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt_BlockedByGuard', `Options Analysis generation for ${currentActiveTicker} blocked by dispatch guard.`);
+        toast({ title: "Processing...", description: "Options Analysis generation already in progress or recently completed.", variant: "default" });
+        return;
+    }
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt_CLICKED', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS.`);
+    globalDispatchGuardRef.current[guardKey] = true;
+    dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: currentActiveTicker } });
   };
 
   const analyzeButtonLoading = [
@@ -228,20 +235,20 @@ export function MainTabContent() {
 
 
   useEffect(() => {
-    const logPrefixDC = 'MainTabContent:ButtonStateEffect_v3220';
+    const logPrefixDC = 'MainTabContent:ButtonStateEffect_v3221';
     logDebug(logPrefixDC as LogSourceId, 'ButtonStateEffect_Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${tickerInput}`);
 
     const manualActionsPossibleOverall = 
       (globalFsmStateFromContext === GlobalFsmState.IDLE ||
-       globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || // After init if default ticker is valid
+       globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || 
        globalFsmStateFromContext === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE ||
        globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED ||
        globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
-       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || // Future use
-       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED   // Future use
+       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || 
+       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED
       ) &&
-      !!globalFsmVariables.activeTicker && // Must have an analyzed ticker
-      globalFsmVariables.activeTicker === tickerInput; // Ensure manual action is for the currently displayed/analyzed ticker
+      !!globalFsmVariables.activeTicker && 
+      globalFsmVariables.activeTicker === tickerInput; 
 
     logDebug(logPrefixDC as LogSourceId, 'ButtonStateChecks', `manualActionsPossibleOverall: ${manualActionsPossibleOverall}, isGlobalPipelineActive: ${isGlobalPipelineActive}`);
     
@@ -261,7 +268,7 @@ export function MainTabContent() {
     logDebug(logPrefixDC as LogSourceId, 'KTButtonChecks', `ktPrereqsMet: ${ktPrereqsMet}, keyTakeawaysButtonLoading: ${keyTakeawaysButtonLoading}, analyzeButtonLoading: ${analyzeButtonLoading}, shouldKtBeEnabled: ${shouldKtButtonBeEnabled}`);
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
 
-    // Options Analysis Button Logic (placeholder for now, actual prereqs similar to KT but with OptionsChain)
+    // Options Analysis Button Logic
     const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Snapshot');
     const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Chain');
     const optPrereqsMet = optSnapshotReady && optChainReady;
