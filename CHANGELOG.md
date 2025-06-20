@@ -59,8 +59,7 @@ This section tracks the commit history of the StockSage application. Latest comm
 
 ---
 **App Version:** `v3.2.3.2.0` (Complete FSM Consolidation Phase 3)
-**Tag:** `Phase-14_Task-3.2.3.2.0_FSM_Consolidation_Phase3_Complete` (Illustrative Tag for Phase Completion)
-**Commit Hash:** `7f0e552b` (as provided by user for overall Phase 3 completion)
+**Tag:** `Phase-14_Task-3.2.3.2.0_FSM_Consolidation_Phase3_Complete` (Commit `7f0e552b`)
 **Subject:** `feat(fsm): Complete Phase 3 of FSM Consolidation - Chat & Debug Menus (v3.2.3.2.0)`
 **Details:**
 This commit marks the completion of Phase 3 ("Integrating Chat & Debug Console Menus") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated Chatbot submission flow, Chatbot UI state management, and Debug Console menu UI states to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
@@ -88,8 +87,7 @@ This commit marks the completion of Phase 3 ("Integrating Chat & Debug Console M
 
 ---
 **App Version:** `v3.2.2.1.0` (Complete FSM Consolidation Phase 2)
-**Tag:** `Phase-13_Task-3.2.2.1.0_FSM_Consolidation_Phase2_Complete` (Illustrative Tag for Phase Completion)
-**Commit Hash:** `0a0ba41c` (as provided by user for overall Phase 2 completion)
+**Tag:** `Phase-13_Task-3.2.2.1.0_FSM_Consolidation_Phase2_Complete` (Commit `0a0ba41c`)
 **Subject:** `feat(fsm): Complete Phase 2 of FSM Consolidation - Manual AI Actions (v3.2.2.1.0)`
 **Details:**
 This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated the manual "Generate AI Key Takeaways" and "Generate AI Options Analysis" functionalities to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
@@ -113,8 +111,7 @@ This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") fo
 
 ---
 **App Version:** `v3.2.1.3.0` (Complete FSM Consolidation Phase 1)
-**Tag:** `Phase-12_Task-3.2.1.3.0_FSM_Consolidation_Phase1_Complete` (Illustrative Tag for Phase Completion)
-**Commit Hash:** `57c7e8b0` (as provided by user for overall Phase 1 completion)
+**Tag:** `Phase-12_Task-3.2.1.3.0_FSM_Consolidation_Phase1_Complete` (Commit `57c7e8b0`)
 **Subject:** `feat(fsm): Complete Phase 1 of FSM Consolidation (v3.2.1.3.0)`
 **Details:**
 This commit marks the completion of Phase 1 ("Foundation & Core FSM Setup") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase established the foundational structure of the new single global Finite State Machine (FSM) within `StockAnalysisContext` and successfully migrated the entire automated "Analyze Stock" pipeline (ticker input, data fetching, and AI TA calculation) to be driven by this new FSM.
@@ -144,8 +141,7 @@ This commit marks the completion of Phase 1 ("Foundation & Core FSM Setup") for 
 
 ---
 **App Version:** `v3.1.3.4` (Complete Debug Log Enhancements Feature)
-**Tag:** `Phase-11_Task-3.1.3.4_CompleteDebugLogEnhancements` (Illustrative Tag)
-**Commit Hash:** `9aef8261` (as provided by user for the final sub-task of this feature)
+**Tag:** `Phase-11_Task-3.1.3.4_CompleteDebugLogEnhancements` (Commit `9aef8261`)
 **Subject:** `feat(debug,core): Complete Debug Log Enhancements feature (v3.1.3.4)`
 **Details:**
 This commit marks the full completion of the "Debug Log Enhancements" feature, which spanned application versions `v3.1.1.1` through `v3.1.3.4`. This feature significantly improves the client-side debugging experience and overall application stability through refined logging mechanisms and FSM behavior.
@@ -1011,6 +1007,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 

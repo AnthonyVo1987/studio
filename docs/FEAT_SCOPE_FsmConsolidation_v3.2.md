@@ -1,10 +1,10 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.11
+**Document Version:** 1.12
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
-**Feature Status:** IN PROGRESS
+**Feature Status:** Phase 3 COMPLETE. Awaiting Phase 4 (Testing & Debugging).
 
 ## 1. Introduction & Objective
 
@@ -73,23 +73,18 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.1.3.0`, Phase Commit `57c7e8b0`)
 
 *   **Task v3.2.1.0.0: Define Initial Single FSM Structure & Core States**
-    *   **Status:** `COMPLETED` (Commit: `919db9f2`)
-    *   **App Metadata:** `v3.2.1.0.0`.
+    *   **Status:** `COMPLETED` (Commit: `919db9f2`, App Version: `v3.2.1.0.0`)
     *   **Bug Fix Task v3.2.1.0.1: Resolve Repeated `INITIALIZATION_COMPLETE` Dispatch**
-        *   **Status:** `COMPLETED` (Commit: `1aefabe1`)
-        *   **App Metadata:** `v3.2.1.0.1`.
+        *   **Status:** `COMPLETED` (Commit: `1aefabe1`, App Version: `v3.2.1.0.1`)
 
 *   **Task v3.2.1.1.0: Integrate "Analyze Stock" Button & Input Handling**
-    *   **Status:** `COMPLETED` (Commit: `1d1342aa`)
-    *   **App Metadata:** `v3.2.1.1.0`.
+    *   **Status:** `COMPLETED` (Commit: `1d1342aa`, App Version: `v3.2.1.1.0`)
 
 *   **Task v3.2.1.2.0: Migrate Data Fetching Pipeline to New FSM**
-    *   **Status:** `COMPLETED` (Commit: `368c85ab`)
-    *   **App Metadata:** `v3.2.1.2.0`.
+    *   **Status:** `COMPLETED` (Commit: `368c85ab`, App Version: `v3.2.1.2.0`)
 
 *   **Task v3.2.1.3.0: Migrate AI TA Calculation to New FSM (Automated Pipeline)**
-    *   **Status:** `COMPLETED` (Commit: `2f0acd35`)
-    *   **App Metadata:** `v3.2.1.3.0`.
+    *   **Status:** `COMPLETED` (Commit: `2f0acd35`, App Version: `v3.2.1.3.0`)
 
 ---
 
@@ -98,12 +93,10 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.2.1.0`, Phase Commit `0a0ba41c`)
 
 *   **Task v3.2.2.0.0: Integrate "Generate AI Key Takeaways" Button**
-    *   **Status:** `COMPLETED` (Commit: `55fcc0c2`)
-    *   **App Metadata:** `v3.2.2.0.0`.
+    *   **Status:** `COMPLETED` (Commit: `55fcc0c2`, App Version: `v3.2.2.0.0`)
 
 *   **Task v3.2.2.1.0: Integrate "Generate AI Options Analysis" Button**
-    *   **Status:** `COMPLETED` (Commit: `0a0ba41c`)
-    *   **App Metadata:** `v3.2.2.1.0`.
+    *   **Status:** `COMPLETED` (Commit: `0a0ba41c`, App Version: `v3.2.2.1.0`)
 
 ---
 
@@ -112,17 +105,13 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.3.2.0`, Phase Commit `7f0e552b`)
 
 *   **Task v3.2.3.0.0: Integrate Chatbot Submission Flow**
-    *   **Status:** `COMPLETED` (Commit: `5e688769`)
-    *   **App Metadata:** `v3.2.3.0.0`.
+    *   **Status:** `COMPLETED` (Commit: `5e688769`, App Version: `v3.2.3.0.0`)
 
 *   **Task v3.2.3.1.0: Chatbot UI State Management (Loading/Disabled)**
-    *   **Status:** `COMPLETED` (Commit: `c296d6dc`)
-    *   **App Metadata:** `v3.2.3.1.0`.
+    *   **Status:** `COMPLETED` (Commit: `c296d6dc`, App Version: `v3.2.3.1.0`)
 
 *   **Task v3.2.3.2.0: Integrate Debug Console Menu UI States**
-    *   **Status:** `COMPLETED` (Commit: `7f0e552b`)
-    *   **File(s):** `src/components/debug-console.tsx`, `src/contexts/stock-analysis-context.tsx`, `src/components/page-content.tsx`. `DebugConsoleFsmContext.tsx` was deprecated/removed.
-    *   **App Metadata:** Updated to `v3.2.3.2.0`.
+    *   **Status:** `COMPLETED` (Commit: `7f0e552b`, App Version: `v3.2.3.2.0`)
 
 ---
 
@@ -188,6 +177,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.12 (2025-06-21):** Marked Phase 3 (Tasks v3.2.3.0.0 - v3.2.3.2.0) as `COMPLETED`. Updated with Phase 3 commit hash `7f0e552b` and app version `v3.2.3.2.0`. Updated feature status.
 *   **v1.11 (2025-06-21):** Marked Task v3.2.3.2.0 as `COMPLETED` (Commit `7f0e552b`, App Version `v3.2.3.2.0`). Marked Phase 3 "Integrating Chat & Debug Console Menus" as `COMPLETED`.
 *   **v1.10 (2025-06-21):** Marked Task v3.2.3.1.0 as `COMPLETED` (Commit `c296d6dc`, App Version `v3.2.3.1.0`).
 *   **v1.9 (2025-06-21):** Marked Task v3.2.3.0.0 as `COMPLETED` (Commit `5e688769`, App Version `v3.2.3.0.0`). Phase 3 "Integrating Chat & Debug Console Menus" status to `IN PROGRESS`.

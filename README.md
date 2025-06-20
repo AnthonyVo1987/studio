@@ -6,7 +6,6 @@
     *   FEAT Phase Version (x): Represents the phase within the specific feature being implemented (e.g., for FSM Refactor, Phase 1 might be 'Foundation', Phase 2 'Manual Actions Integration').
     *   FEAT Phase Task # (y): The specific task number within the feature's phase.
     *   Bug FEAT Phase Task # (z): Increment for bug fix iterations related to a specific FEAT Phase Task # (y). Starts at 0 for the initial implementation.
-###
 2.  All new features need to provide the following documentation:
     *   Generate a brand new ‘FEAT_SCOPE_xxx.md” markdown file in docs folder and it needs to contain:
         *   The ‘FEAT_SCOPE_xxx.md” markdown file needs to utilize “chain of thought” prompting techniques to guide an AI Coding Agent to implement the full feature from scoping details.
@@ -18,13 +17,14 @@
         *   Changelog details whenever a Phase, Task is complete, and commit details.
         *   Add document version/changelog tracking for changes to this doc.
     *   Note: Any new phase/task code changes/implementation needs to have the app meta data version updated as well automatically along with code changes. This will allow us automatic and dynamic tracking of the current app version while we are still testing and coding. That way, when we start testing some changes and we encounter issues, I can just provide the debug logs which will have the version meta data so it's clear what task we are on and will help to ground us.
-###
 3.  Any new phase/task code changes/implementation needs to have the app meta data version updated as well automatically along with code changes.
     *   This will allow us automatic and dynamic tracking of the current app version while we are still testing and coding.
     *   That way, when we start testing some changes and we encounter issues, I can just provide the debug logs which will have the version meta data so it's clear what task we are on and will help to ground us.
-
+4.  **XML Output Mandate & Confirmation:** All code changes proposed by the AI Coding Agent MUST be provided exclusively in the specified XML format. The Agent will explicitly confirm its understanding and adherence to this format at the beginning of new tasks or phases.
+5.  **Context Reset Confirmation:** At the beginning of new Phases or when explicitly requested, the AI Coding Agent will confirm that its internal context, stale cache, and operating state have been purged, cleared, and reset to ensure it is operating on the latest information.
+###
 ---
-**README Document Version:** 1.61
+**README Document Version:** 1.62
 **Application Version (from `app-metadata.json`):** v3.2.3.2.0 (Commit `7f0e552b` - Phase 3 FSM Consolidation Complete)
 **Last Updated:** 2025-06-21
 
@@ -146,9 +146,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Orchestrates the main application lifecycle (e.g., `APP_INITIALIZING`, `IDLE`, `PIPELINE_REQUESTED_DATA_FETCH`, `GENERATING_KEY_TAKEAWAYS`, `ANALYZING_OPTIONS`, `CHAT_MESSAGE_PENDING`).
     *   Manages `GlobalFsmFlags` (booleans for specific conditions like `isSnapshotDataReady`, `isKeyTakeawaysDataAvailable`, `isDebugConsoleFilterMenuOpen`) and `GlobalFsmContextVariables` (data like `activeAnalysisTicker`, `lastErrorDetails`).
     *   Drives UI enablement/disablement and conditional logic throughout the app.
-    *   **Phase 1 Completion:** Automated pipeline (ticker input, data fetch, AI TA calculation) fully migrated.
-    *   **Phase 2 Completion:** Manual AI actions ("Generate AI Key Takeaways", "Generate AI Options Analysis") fully migrated.
-    *   **Phase 3 Completion:** Chatbot submission, Chatbot UI state, and Debug Console Menu UI states fully migrated. `ChatbotFsmContext` and `DebugConsoleFsmContext` are deprecated/removed.
+    *   **Phase 1 Completion (v3.2.1.3.0):** Automated pipeline (ticker input, data fetch, AI TA calculation) fully migrated.
+    *   **Phase 2 Completion (v3.2.2.1.0):** Manual AI actions ("Generate AI Key Takeaways", "Generate AI Options Analysis") fully migrated.
+    *   **Phase 3 Completion (v3.2.3.2.0):** Chatbot submission flow, Chatbot UI state management, and Debug Console Menu UI states fully migrated. `ChatbotFsmContext` and `DebugConsoleFsmContext` are deprecated/removed.
 *   **FSM State Display:** The "FSM State Debug Card" (`FsmStateDebugCard.tsx`) displays the state, flags, and variables of the single global FSM.
 
 ### 3.3. AI Flow & Prompt Design
@@ -273,7 +273,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.61
+*   **This README Document Version:** 1.62
 *   **Current Application Version:** `v3.2.3.2.0` (Commit `7f0e552b` - Phase 3 FSM Consolidation Complete)
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
