@@ -58,6 +58,33 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.4.1.0` (Complete FSM Consolidation Phase 4)
+**Tag:** `Phase-15_Task-3.2.4.1.0_FSM_Consolidation_Phase4_Complete` (Commit `c661f9d1`)
+**Subject:** `feat(fsm,debug): Complete Phase 4 of FSM Consolidation - Debug Tooling Finalization (v3.2.4.1.0)`
+**Details:**
+This commit marks the completion of Phase 4 ("Clean Up & Finalize Debugging Tools") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully refined the FSM Debug Card, enhanced client debug log exports to include a comprehensive global FSM snapshot, and thoroughly audited/updated all FSM-related debug logging throughout the application.
+
+**Key Changes in Phase 4 (Tasks v3.2.4.0.0 through v3.2.4.1.0):**
+*   **Finalized Enhanced FSM Debug Card & Client Debug Console Exports (Task v3.2.4.0.0 - Commit `f6520642`):**
+    *   `FsmStateDebugCard.tsx` was refactored to display the global FSM's state, all `GlobalFsmFlags`, and all `GlobalFsmContextVariables`.
+    *   Removed separate display sections for legacy local FSMs from the `FsmStateDebugCard`.
+    *   Export/copy functions within `FsmStateDebugCard` updated to capture the full global FSM snapshot.
+    *   `DebugConsole.tsx` export functions (`generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`) were updated to include the comprehensive global FSM state, flags, and variables in exported log files.
+*   **FSM Debug Log Update/Remove/Consolidate/Refinement (Task v3.2.4.1.0 - Commit `d8686c74`):**
+    *   Systematically audited and refined all `logDebug` calls related to FSM state and transitions across the codebase.
+    *   Removed logs pertaining to deprecated local FSMs.
+    *   Updated existing logs to accurately reflect the single global FSM's states, flags, and variables.
+    *   Consolidated redundant logging and improved log message clarity and `LogSourceId` consistency.
+    *   Ensured components interacting with or driven by the FSM provide relevant diagnostic logging.
+
+**Outcome of Phase 4:**
+*   The `FsmStateDebugCard` now provides a clear and comprehensive view of the single global FSM's operational state.
+*   Client debug log exports are significantly more informative, including a full snapshot of the global FSM (state, flags, variables).
+*   All FSM-related debug logging throughout the application is now consistent with the single global FSM architecture, enhancing debuggability and traceability.
+*   The application version is now consistently `v3.2.4.1.0`.
+*   The FSM consolidation feature is now in its final stages, with Phase 5 (Testing & Debugging) and Phase 6 (Documentation) remaining.
+
+---
 **App Version:** `v3.2.3.2.0` (Complete FSM Consolidation Phase 3)
 **Tag:** `Phase-14_Task-3.2.3.2.0_FSM_Consolidation_Phase3_Complete` (Commit `7f0e552b`)
 **Subject:** `feat(fsm): Complete Phase 3 of FSM Consolidation - Chat & Debug Menus (v3.2.3.2.0)`
@@ -745,7 +772,7 @@ This version reverts the AI Options Analysis to allow for up to 3 Call/Put walls
 - **`src/ai/flows/analyze-options-chain-flow.ts` (and its JSON prompt post v2.9.C.S):**
     - Prompt (`analyzeOptionsChainPrompt`) updated to request "AT MOST 3" significant walls per type, ordered by significance.
     - Added a pre-check in `analyzeOptionsChainFlow` to return empty walls if `input.optionsChainJson` is unparsable or contains insufficient contracts (less than 3), avoiding an unnecessary LLM call.
-    - The flow logic updated to return up to 3 walls per type as provided by the AI, conforming to the updated schema.
+    - Flow logic updated to return up to 3 walls per type as provided by the AI, conforming to the updated schema.
 - Application version updated to `v2.9.C.M`.
 ---
 **App Version:** `v2.9.C.L` (Refine AI Displays, Chat Formatting & Options Analysis)
@@ -823,10 +850,10 @@ This version addresses multiple UI/UX issues and adds new export functionality:
     - The "Export All to JSON" and "Copy All to JSON" buttons are now disabled if any core analysis pipeline (automated, manual key takeaways, manual options analysis) is active, preventing data inconsistencies during export/copy.
     - `isAllDataReadyForCombinedExport` (now `isBaseDataReadyForCombinedExport`) was updated to only check the readiness of the base data components for enabling these buttons.
 - **Options Chain Table - JSON Export/Copy (`src/components/options-chain-table.tsx`):**
-    - Added "Export JSON" and "Copy JSON" buttons to the Options Chain Table card header.
-    - Implemented `handleExportOptionsJson` to download the full `parsedData` (options chain data) as a JSON file.
-    - Implemented `handleCopyOptionsJson` to copy the `parsedData` as a JSON string to the clipboard.
-    - These new buttons are disabled if the options chain data is not ready for export.
+    *   Added "Export JSON" and "Copy JSON" buttons to the Options Chain Table card header.
+    *   Implemented `handleExportOptionsJson` to download the full `parsedData` (options chain data) as a JSON file.
+    *   Implemented `handleCopyOptionsJson` to copy the `parsedData` as a JSON string to the clipboard.
+    *   These new buttons are disabled if the options chain data is not ready for export.
 - Application version updated to `v2.9.C.H` in `src/components/layout/header.tsx`.
 ---
 **App Version:** `v2.9.C.G` (AI Options Analysis Fix & Simplification, Restore Options Table)
@@ -1007,6 +1034,7 @@ This commit includes changes intended to address two critical issues:
 UI Header updated to `v2.9.A.Z`. `README.md` updated.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 

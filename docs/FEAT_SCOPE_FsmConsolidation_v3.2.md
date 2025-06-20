@@ -1,10 +1,10 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.14
+**Document Version:** 1.15
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
-**Feature Status:** Phase 4 IN PROGRESS. Phase 3 COMPLETE.
+**Feature Status:** Phase 5 PLANNED. Phase 4 COMPLETE.
 
 ## 1. Introduction & Objective
 
@@ -117,18 +117,13 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ### **Phase 4: Clean Up & Finalize Debugging Tools (FEAT Phase 'x' = 4)**
 *Objective: Finalize the enhanced debugging tools (FSM Debug Card, log exports) and update all project documentation to reflect the new FSM architecture. This phase focuses on coding tasks from the original "Phase 5: Documentation & Cleanup".*
-*   **Overall Phase Status:** `IN PROGRESS`
+*   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.2.4.1.0`, Phase Commit `c661f9d1`)
 
 *   **Task v3.2.4.0.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports**
     *   **Status:** `COMPLETED` (Commit: `f6520642`, App Version: `v3.2.4.0.0`)
 
 *   **Task v3.2.4.1.0: FSM Debug Log Update/Remove/Consolidate/Refinement**
     *   **Status:** `COMPLETED` (Commit: `d8686c74`, App Version: `v3.2.4.1.0`)
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understand:* All `logDebug` calls related to FSM state need to reflect the single global FSM.
-        2.  *Audit & Modify:* Systematically review all components and contexts. Remove logs for old local FSMs. Update logs to reference global FSM states, flags, and variables. Consolidate redundant logging. Refine messages for clarity with global FSM context. Ensure `LogSourceId` is appropriate.
-    *   **Testability:** Manually review debug console output during typical app flows to ensure logs are accurate and informative.
-    *   **App Metadata:** Updated to `v3.2.4.1.0`.
 
 ---
 
@@ -184,6 +179,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.15 (2025-06-21):** Marked Phase 4 (Tasks v3.2.4.0.0, v3.2.4.1.0) as `COMPLETED`. Phase Commit `c661f9d1`. App Version `v3.2.4.1.0`.
 *   **v1.14 (2025-06-21):** Marked Task v3.2.4.1.0 as `COMPLETED`. Commit `d8686c74`. App Version `v3.2.4.1.0`.
 *   **v1.13 (2025-06-21):** Marked Task v3.2.4.0.0 as `COMPLETED`. Re-ordered phases: Phase 4 is "Clean Up & Finalize Debugging Tools", Phase 5 is "Testing and Debugging", Phase 6 is "Documentation Updates". Phase 4 status to `IN PROGRESS`.
 *   **v1.12 (2025-06-21):** Marked Phase 3 (Tasks v3.2.3.0.0 - v3.2.3.2.0) as `COMPLETED`. Updated with Phase 3 commit hash `7f0e552b` and app version `v3.2.3.2.0`. Updated feature status.

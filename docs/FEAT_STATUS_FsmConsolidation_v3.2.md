@@ -1,21 +1,21 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y.z)
 
-**Document Version:** 1.14
+**Document Version:** 1.15
 **Date:** 2025-06-21
 **Feature Target Application Version Series:** 3.2.x.y.z
-**Current App Version (End of Task v3.2.4.1.0):** `v3.2.4.1.0` (Commit: `d8686c74`)
+**Current App Version (End of Phase 4):** `v3.2.4.1.0` (Phase 4 Commit: `c661f9d1`)
 
 ## 1. Overall Feature Status
 
-**Current Status:** `Phase 4 IN PROGRESS. Phase 3 COMPLETE.`
+**Current Status:** `Phase 5 PLANNED. Phase 4 COMPLETE.`
 **Last Updated:** 2025-06-21
 
 **Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM.
 *   **Phase 1: Foundation & Core FSM Setup is COMPLETE.** (App Version `v3.2.1.3.0`, Commit `57c7e8b0`)
 *   **Phase 2: Integrating Manual AI Actions is COMPLETE.** (App Version `v3.2.2.1.0`, Commit `0a0ba41c`)
 *   **Phase 3: Integrating Chat & Debug Console Menus is COMPLETE.** (App Version `v3.2.3.2.0`, Commit `7f0e552b`)
-*   **Phase 4: Clean Up & Finalize Debugging Tools is IN PROGRESS.** (Current task v3.2.4.1.0 complete).
+*   **Phase 4: Clean Up & Finalize Debugging Tools is COMPLETE.** (App Version `v3.2.4.1.0`, Phase Commit `c661f9d1`)
 
 ## 2. Phase & Task Status
 
@@ -42,7 +42,7 @@
     *   **Task v3.2.3.2.0: Integrate Debug Console Menu UI States** - `COMPLETED` (Commit: `7f0e552b`, App Version: `v3.2.3.2.0`)
 
 ### **Phase 4: Clean Up & Finalize Debugging Tools (FEAT Phase 'x' = 4)**
-*   **Overall Phase Status:** `IN PROGRESS`
+*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.4.1.0`, Phase Commit: `c661f9d1`)
 *   **Tasks:**
     *   **Task v3.2.4.0.0: Finalize Enhanced FSM Debug Card & Client Debug Console Exports** - `COMPLETED` (Commit: `f6520642`, App Version: `v3.2.4.0.0`)
     *   **Task v3.2.4.1.0: FSM Debug Log Update/Remove/Consolidate/Refinement** - `COMPLETED` (Commit: `d8686c74`, App Version: `v3.2.4.1.0`)
@@ -64,6 +64,7 @@
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                                                                                                                           | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
+| 2025-06-21 | `v3.2.4.1.0` (Phase 4 Complete)          | `c661f9d1`                  | **Phase 4: Clean Up & Finalize Debugging Tools COMPLETE.** Consolidated debug card, log exports, and FSM debug logging. Culminating App Version `v3.2.4.1.0`. Phase ready for Testing (Phase 5).                                                                        | COMPLETED   |
 | 2025-06-21 | `v3.2.4.1.0`                             | `d8686c74`                  | **Task v3.2.4.1.0 COMPLETE.** Audited and refined all FSM-related debug logs across codebase to align with single global FSM. Updated LogSourceIds and log messages for clarity. App metadata: `v3.2.4.1.0`. Phase 4 IN PROGRESS.                      | COMPLETED   |
 | 2025-06-21 | `v3.2.4.0.0`                             | `f6520642`                  | **Task v3.2.4.0.0 COMPLETE.** Finalized FSM Debug Card to show global FSM state/flags/vars. Updated Debug Console exports to include full global FSM snapshot. Removed legacy FSM state displays. App metadata: `v3.2.4.0.0`. Phase 4 IN PROGRESS.                  | COMPLETED   |
 | 2025-06-21 | `v3.2.3.2.0` (Phase 3 Complete)          | `7f0e552b`                  | **Phase 3: Integrating Chat & Debug Console Menus COMPLETE.** Integrated Debug Console menu UI states into global FSM (Task v3.2.3.2.0). Deprecated `DebugConsoleFsmContext`. App metadata: `v3.2.3.2.0`.                                                                 | COMPLETED   |
@@ -81,6 +82,7 @@
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v1.15 (2025-06-21):** Marked Phase 4 as `COMPLETED`. Commit hash `c661f9d1`. App Version `v3.2.4.1.0`. Updated overall feature status.
 *   **v1.14 (2025-06-21):** Marked Task v3.2.4.1.0 as `COMPLETED`. Commit `d8686c74`. App Version `v3.2.4.1.0`.
 *   **v1.13 (2025-06-21):** Marked Task v3.2.4.0.0 as `COMPLETED`. Commit hash `f6520642`. App Version `v3.2.4.0.0`. Updated phase structure and overall feature status.
 *   **v1.12 (2025-06-21):** Marked Phase 3 (Tasks v3.2.3.0.0 - v3.2.3.2.0) as `COMPLETED`. Commit hash `7f0e552b`. Current App Version `v3.2.3.2.0`. Updated overall feature status summary.
