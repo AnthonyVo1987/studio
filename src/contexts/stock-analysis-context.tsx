@@ -566,6 +566,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
         nextFlags.isCalculatedTADataReady = true;
+        nextVariables.isInitialLoad = false; // Mark initial load complete after base data+TA
+        logDebug(logPrefixFsmReducer as LogSourceId, 'StateUpdate', `isInitialLoad flag set to false.`);
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED.`);
         break;
@@ -580,8 +582,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'FINALIZE_AUTOMATED_PIPELINE':
         if (previousState === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED || previousState === GlobalFsmState.AI_TA_CALCULATION_FAILED) {
             nextCurrentState = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
-            nextVariables.isInitialLoad = false;
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_AUTOMATED_COMPLETE. Initial load set to false.`);
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_AUTOMATED_COMPLETE.`);
         }
         break;
       case 'TRIGGER_MANUAL_KEY_TAKEAWAYS':
