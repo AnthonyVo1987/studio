@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.9
+**Document Version:** 1.10 
 **Date:** 2025-06-21
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** IN PROGRESS
@@ -114,21 +114,16 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *   **Task v3.2.3.0.0: Integrate Chatbot Submission Flow**
     *   **Status:** `COMPLETED` (Commit: `5e688769`)
     *   **App Metadata:** `v3.2.3.0.0`.
-    *   **AI Agent - Chain of Thought & Action:**
-        1.  *Understood:* Chat submission is an asynchronous action. `ChatbotFsmContext` will be deprecated or its role significantly reduced.
-        2.  `StockAnalysisContext.tsx`:
-            *   Reducer handles `SUBMIT_CHAT_MESSAGE`: Adds user message to `chatHistory`, sets `pendingChatSubmissionPayload`, transitions to `CHAT_MESSAGE_PENDING`.
-            *   Reducer handles `PENDING_CHAT_SUBMISSION_TRIGGERED`: Clears `pendingChatSubmissionPayload`. Stays in `CHAT_MESSAGE_PENDING`.
-            *   Reducer handles `CHAT_MESSAGE_ACTION_SUCCESS`: Updates `chatbotRequestJson`/`chatbotResponseJson`, adds model response to `chatHistory`, transitions to `IDLE`.
-            *   Reducer handles `CHAT_MESSAGE_ACTION_ERROR`: Updates JSONs with error, adds error to `chatHistory`, sets `lastError`, transitions to `IDLE`.
-        3.  `MainTabContent.tsx`:
-            *   `useEffect` for `globalFsmState` and `pendingChatSubmissionPayload`: If `CHAT_MESSAGE_PENDING` and payload exists, calls `chatFormAction` (from local `useActionState`) and dispatches `PENDING_CHAT_SUBMISSION_TRIGGERED`.
-            *   `useEffect` for `chatActionState` (local): Dispatches `CHAT_MESSAGE_ACTION_SUCCESS` or `CHAT_MESSAGE_ACTION_ERROR` to global FSM.
-        4.  `ChatbotFsmContext.tsx`: On `SUBMIT_MESSAGE_REQUESTED`, now dispatches `SUBMIT_CHAT_MESSAGE` to global FSM. Local `SUBMITTING_MESSAGE` state removed.
-        5.  `Chatbot.tsx`: UI disabling driven by global FSM state `CHAT_MESSAGE_PENDING` and `isAnyAnalysisInProgress` prop.
-    *   **Testability:** Chat messages can be submitted. Global FSM reflects pending/completion. Chat history updates. Chat input disabled during pending.
 
-*   **Task v3.2.3.1.0: Integrate Debug Console Menu UI States (Optional but Recommended)**
+*   **Task v3.2.3.1.0: Chatbot UI State Management (Loading/Disabled)**
+    *   **Status:** `COMPLETED` (Commit: `c296d6dc`)
+    *   **App Metadata:** `v3.2.3.1.0`.
+    *   **AI Agent - Chain of Thought & Action:**
+        1.  *Understood:* The `Chatbot.tsx` `isProcessing` flag needs to simply reflect the `isAnyAnalysisInProgress` prop.
+        2.  `Chatbot.tsx`: Simplified `isProcessing` to be `const isProcessing = isAnyAnalysisInProgress;`.
+    *   **Testability:** Chatbot UI elements (input, buttons) correctly disable/enable based on the comprehensive `isAnyAnalysisInProgress` prop.
+
+*   **Task v3.2.3.2.0: Integrate Debug Console Menu UI States (Optional but Recommended)**
     *   **Status:** `PLANNED`
     *   **File(s):** `src/components/debug-console.tsx`, `src/contexts/stock-analysis-context.tsx`. (Potentially deprecate `DebugConsoleFsmContext.tsx`).
     *   **AI Agent - Chain of Thought & Action:**
@@ -137,7 +132,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
         3.  `DebugConsole.tsx`: Dropdown triggers dispatch events to global FSM like `TOGGLE_DEBUG_CONSOLE_MENU` (payload: `{ menu: 'filter' | 'copy' | 'export', currentOpenState: boolean }`).
         4.  Reducer handles `TOGGLE_DEBUG_CONSOLE_MENU`: Updates the corresponding flag (e.g., `flags.isDebugConsoleFilterMenuOpen = !payload.currentOpenState`). If opening one menu, ensure others are closed (set their flags to `false`).
     *   **Testability:** Debug console menus open/close correctly, driven by global FSM flags. Only one menu open at a time.
-    *   **App Metadata:** Update to `v3.2.3.1.0`.
+    *   **App Metadata:** Update to `v3.2.3.2.0`.
 
 ---
 
@@ -202,6 +197,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.10 (2025-06-21):** Marked Task v3.2.3.1.0 as `COMPLETED` (Commit `c296d6dc`, App Version `v3.2.3.1.0`).
 *   **v1.9 (2025-06-21):** Marked Task v3.2.3.0.0 as `COMPLETED` (Commit `5e688769`, App Version `v3.2.3.0.0`). Phase 3 "Integrating Chat & Debug Console Menus" status to `IN PROGRESS`.
 *   **v1.8 (2025-06-21):** Marked Phase 2 (Tasks v3.2.2.0.0 & v3.2.2.1.0) as `COMPLETED`. App Version `v3.2.2.1.0`, Commit `0a0ba41c`.
 *   **v1.7 (2025-06-21):** Updated Task v3.2.2.0.0 status to `COMPLETED` (Commit: `55fcc0c2`). App Version `v3.2.2.0.0`.

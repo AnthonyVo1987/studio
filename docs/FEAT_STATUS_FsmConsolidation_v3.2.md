@@ -1,10 +1,10 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y.z)
 
-**Document Version:** 1.9
+**Document Version:** 1.10
 **Date:** 2025-06-21
 **Feature Target Application Version Series:** 3.2.x.y.z
-**Current App Version (End of Task v3.2.3.0.0):** `v3.2.3.0.0` (Commit: `5e688769`)
+**Current App Version (End of Task v3.2.3.1.0):** `v3.2.3.1.0` (Commit: `c296d6dc`)
 
 ## 1. Overall Feature Status
 
@@ -14,7 +14,7 @@
 **Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM.
 *   **Phase 1: Foundation & Core FSM Setup is COMPLETE.** (App Version `v3.2.1.3.0`, Commit `57c7e8b0`) This involved defining the new FSM structure and migrating the entire automated "Analyze Stock" pipeline (ticker input, data fetching, and AI TA calculation) to this new global FSM.
 *   **Phase 2: Integrating Manual AI Actions is COMPLETE.** (App Version `v3.2.2.1.0`, Commit `0a0ba41c`) This involved migrating the "Generate AI Key Takeaways" and "Generate AI Options Analysis" button functionalities to be driven by the global FSM.
-*   **Phase 3: Integrating Chat & Debug Console Menus is IN PROGRESS.** Task v3.2.3.0.0 (Integrate Chatbot Submission Flow) is complete.
+*   **Phase 3: Integrating Chat & Debug Console Menus is IN PROGRESS.** Task v3.2.3.0.0 (Integrate Chatbot Submission Flow) and Task v3.2.3.1.0 (Chatbot UI State Management) are complete.
 
 ## 2. Phase & Task Status
 
@@ -46,7 +46,11 @@
         *   **Status:** `COMPLETED`
         *   **Commit Hash:** `5e688769`
         *   **App Version Tag:** `v3.2.3.0.0`
-    *   **Task v3.2.3.1.0: Integrate Debug Console Menu UI States (Optional Refactor)**
+    *   **Task v3.2.3.1.0: Chatbot UI State Management (Loading/Disabled)**
+        *   **Status:** `COMPLETED`
+        *   **Commit Hash:** `c296d6dc`
+        *   **App Version Tag:** `v3.2.3.1.0`
+    *   **Task v3.2.3.2.0: Integrate Debug Console Menu UI States (Optional Refactor)**
         *   **Status:** `PLANNED`
 
 ### **Phase 4: Testing and Debugging (FEAT Phase 'x' = 4)**
@@ -71,6 +75,7 @@
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                                                                                            | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------- |
+| 2025-06-21 | `v3.2.3.1.0`                             | `c296d6dc`                  | Simplified Chatbot UI `isProcessing` logic to directly use `isAnyAnalysisInProgress` prop. App metadata: `v3.2.3.1.0`. Task v3.2.3.1.0 complete. Phase 3 IN PROGRESS.                                                                       | COMPLETED   |
 | 2025-06-21 | `v3.2.3.0.0`                             | `5e688769`                  | Integrated Chatbot submission flow into the global FSM. `ChatbotFsmContext` now dispatches to global FSM. `MainTabContent` handles server action call based on global FSM state. App metadata: `v3.2.3.0.0`. Task v3.2.3.0.0 complete. Phase 3 IN PROGRESS. | COMPLETED   |
 | 2025-06-21 | `v3.2.2.1.0` (Phase 2 Complete)          | `0a0ba41c`                  | **Phase 2: Integrating Manual AI Actions COMPLETE.** Integrated "Generate AI Options Analysis" button (Task v3.2.2.1.0). App metadata: `v3.2.2.1.0`.                                                                                       | COMPLETED   |
 | 2025-06-21 | `v3.2.2.0.0`                             | `55fcc0c2`                  | Integrated "Generate AI Key Takeaways" button and logic into the global FSM. App metadata: `v3.2.2.0.0`. Task v3.2.2.0.0 complete.                                                                                                       | COMPLETED   |
@@ -84,6 +89,7 @@
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v1.10 (2025-06-21):** Marked Task v3.2.3.1.0 as `COMPLETED`. Commit hash `c296d6dc`. App Version `v3.2.3.1.0`.
 *   **v1.9 (2025-06-21):** Marked Task v3.2.3.0.0 as `COMPLETED`. Commit hash `5e688769`. App Version `v3.2.3.0.0`. Phase 3 status updated to `IN PROGRESS`.
 *   **v1.8 (2025-06-21):** Marked Phase 2 as `COMPLETED`. Commit hash `0a0ba41c` for Task v3.2.2.1.0. Current App Version `v3.2.2.1.0`. Updated overall feature status summary.
 *   **v1.7 (2025-06-21):** Updated Task v3.2.2.0.0 status to `COMPLETED`. Commit hash `55fcc0c2`. Current App Version `v3.2.2.0.0`. Phase 2 marked as `IN PROGRESS`.
