@@ -2,7 +2,7 @@
 "use client";
 
 import type { FormEvent } from 'react';
-import React, { useState, useEffect, useRef, useCallback } from "react"; // Removed useReducer
+import React, { useState, useEffect, useRef, useCallback } from "react"; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,54 +20,21 @@ import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot } from "@/components/chatbot";
 import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
+import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
 import { useStockAnalysis, type ChatMessage, GlobalFsmState, type FsmDisplayTuple, type LogSourceId, type FsmEvent } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig } from "lucide-react";
-// Removed: StockSnapshotData import, it's used internally in context or other components
 import { useActionState } from 'react';
 import { chatServerAction, type ChatActionState, type ChatActionInputs } from '@/actions/chat-server-action';
 
-
-// Removed: All MainTabLocalFsm related enums, types, initial state, and reducer
 
 const initialLocalChatActionState: ChatActionState = {
   status: 'idle', data: undefined, error: null, message: null,
 };
 
-function isDataReadyForProcessing(jsonString: string | null | undefined, logDebugFn?: Function, sourceComponent?: string, dataName?: string): boolean {
-  const callContext = `${sourceComponent || 'isDataReadyForProcessingCheck'}:${dataName || 'data'}`;
-  if (!jsonString || jsonString === '{}' || jsonString.trim() === '{ "status": "pending..." }' || jsonString.trim() === '{ "status": "no_analysis_run_yet" }' || jsonString.trim() === '{ "status": "initializing..." }') {
-    logDebugFn?.(sourceComponent as LogSourceId, 'Result:NotReady(EmptyOrGenericPending)', `${callContext} JSON: '${jsonString?.substring(0,50)}...'`);
-    return false;
-  }
-  try {
-    const parsed = JSON.parse(jsonString.trim());
-    if (parsed && typeof parsed === 'object') {
-      if (parsed.status && (parsed.status.includes('error') || parsed.status.includes('skipped') || parsed.status.includes('pending') || parsed.status.includes('initializing'))) {
-        logDebugFn?.(sourceComponent as LogSourceId,'Result:NotReady(StatusField)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
-        return false;
-      }
-      if (parsed.error) {
-        logDebugFn?.(sourceComponent as LogSourceId,'Result:NotReady(ErrorField)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
-        return false;
-      }
-    }
-  } catch(e) {
-    logDebugFn?.(sourceComponent as LogSourceId,'Result:NotReady(ParseFailed)', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
-    return false;
-  }
-  logDebugFn?.(sourceComponent as LogSourceId,'Result:Ready', `${callContext} JSON: '${jsonString.trim().substring(0,100)}...'`);
-  return true;
-}
 
-interface MainTabContentProps {
-  // Props related to local FSM display reporting removed
-}
-
-export function MainTabContent({
-  // Props removed
-}: MainTabContentProps) {
+export function MainTabContent() {
   const [tickerInput, setTickerInput] = useState("NVDA");
   const { toast } = useToast();
   const {
@@ -88,7 +55,6 @@ export function MainTabContent({
     chatHistory: contextChatHistory,
     addChatMessage: addChatMessageToGlobalContext,
     setChatbotFsmDisplay,
-    // Removed: previousGlobalFsmStateFromContext from destructuring as it's not directly used here for guard logic anymore
   } = useStockAnalysis();
 
   const contextChatHistoryRef = useRef<ChatMessage[]>([]);
@@ -98,42 +64,32 @@ export function MainTabContent({
 
   const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
 
-  // Simplified useEffect for globalDispatchGuardRef. 
-  // Its primary role for automated pipeline is now handled by button disablement.
-  // This effect remains for potential use with manual actions later.
   useEffect(() => {
-    const logPrefixEff = 'MainTabContent:GlobalDispatchEffect_v3211';
-    logDebug(logPrefixEff as LogSourceId, 'ENTRY_Simplified', `Global: ${globalFsmStateFromContext}, Guard: ${JSON.stringify(globalDispatchGuardRef.current)}`);
-
-    const keyTakeawaysTerminalStates: GlobalFsmState[] = [GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED];
-    const optionsAnalysisTerminalStates: GlobalFsmState[] = [GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED];
-    
+    const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect_v3220';
+    logDebug(logPrefixEff as LogSourceId, 'ENTRY', `Global: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, Guard: ${JSON.stringify(globalDispatchGuardRef.current)}`);
+  
     const activeTickerForGuardReset = globalFsmVariables.activeTicker; 
-
+  
     const guardKeyForManualKT = activeTickerForGuardReset ? `TRIGGER_MANUAL_KEY_TAKEAWAYS_FOR_${activeTickerForGuardReset}` : null;
     if (guardKeyForManualKT && globalDispatchGuardRef.current[guardKeyForManualKT] &&
-        globalFsmStateFromContext === GlobalFsmState.IDLE &&
-        // Simplified check; assumes if FSM is IDLE and guard was active, the action completed or failed.
-        // More precise check on previousGlobalFsmState might be needed if guards for manual actions become complex.
-        (globalFsmVariables.lastError?.source === 'KeyTakeaways' || !globalFsmVariables.lastError) 
+        (globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)
     ) {
-      logDebug(logPrefixEff as LogSourceId, 'ResettingGuard_ManualKTDone', `Resetting guard: ${guardKeyForManualKT}.`);
+      // If the FSM is in a terminal state for KT or back to IDLE, and the guard was active, reset it.
+      logDebug(logPrefixEff as LogSourceId, 'ResettingGuard_ManualKTDoneOrIdle', `Resetting guard: ${guardKeyForManualKT}. FSM state: ${globalFsmStateFromContext}`);
       globalDispatchGuardRef.current[guardKeyForManualKT] = false;
     }
   
     const guardKeyForManualOpt = activeTickerForGuardReset ? `TRIGGER_MANUAL_OPTIONS_ANALYSIS_FOR_${activeTickerForGuardReset}` : null;
     if (guardKeyForManualOpt && globalDispatchGuardRef.current[guardKeyForManualOpt] &&
-        globalFsmStateFromContext === GlobalFsmState.IDLE &&
-        (globalFsmVariables.lastError?.source === 'OptionsAnalysis' || !globalFsmVariables.lastError)
+        (globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)
     ) {
-      logDebug(logPrefixEff as LogSourceId, 'ResettingGuard_ManualOptDone', `Resetting guard: ${guardKeyForManualOpt}.`);
+      logDebug(logPrefixEff as LogSourceId, 'ResettingGuard_ManualOptDoneOrIdle', `Resetting guard: ${guardKeyForManualOpt}. FSM state: ${globalFsmStateFromContext}`);
       globalDispatchGuardRef.current[guardKeyForManualOpt] = false;
     }
   
   }, [
     globalFsmStateFromContext,
     globalFsmVariables.activeTicker,
-    globalFsmVariables.lastError,
     logDebug,
   ]);
 
@@ -214,12 +170,20 @@ export function MainTabContent({
   };
 
   const handleGenerateKeyTakeaways = () => {
-    if (!globalFsmVariables.activeTicker) {
+    const currentActiveTicker = globalFsmVariables.activeTicker;
+    if (!currentActiveTicker) {
       toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
       return;
     }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT_CLICKED', `Button clicked for ${globalFsmVariables.activeTicker}. Manual KT dispatch TBD.`);
-    // dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: globalFsmVariables.activeTicker } }); // To be implemented in later task
+    const guardKey = `TRIGGER_MANUAL_KEY_TAKEAWAYS_FOR_${currentActiveTicker}`;
+    if (globalDispatchGuardRef.current[guardKey]) {
+      logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT_BlockedByGuard', `KT generation for ${currentActiveTicker} blocked by dispatch guard.`);
+      toast({ title: "Processing...", description: "Key Takeaways generation already in progress or recently completed.", variant: "default" });
+      return;
+    }
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT_CLICKED', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS.`);
+    globalDispatchGuardRef.current[guardKey] = true;
+    dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: currentActiveTicker } });
   };
 
   const handleGenerateOptionsAnalysis = () => {
@@ -227,12 +191,12 @@ export function MainTabContent({
       toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
       return;
     }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt_CLICKED', `Button clicked for ${globalFsmVariables.activeTicker}. Manual Options dispatch TBD.`);
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt_CLICKED', `Button clicked for ${globalFsmVariables.activeTicker}. Manual Options dispatch TBD (Phase 2 Task).`);
     // dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: globalFsmVariables.activeTicker } }); // To be implemented in later task
   };
 
   const analyzeButtonLoading = [
-    GlobalFsmState.APP_INITIALIZING, // Technically, canAnalyzeStock should be false here anyway
+    GlobalFsmState.APP_INITIALIZING, 
     GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH,
     GlobalFsmState.DATA_FETCH_IN_PROGRESS,
     GlobalFsmState.CALCULATING_AI_TA
@@ -264,32 +228,50 @@ export function MainTabContent({
 
 
   useEffect(() => {
-    const logPrefixDC = 'MainTabContent:ButtonStateEffect_v3211';
+    const logPrefixDC = 'MainTabContent:ButtonStateEffect_v3220';
+    logDebug(logPrefixDC as LogSourceId, 'ButtonStateEffect_Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${tickerInput}`);
 
-    const manualActionsPossible = [
-        GlobalFsmState.IDLE, 
-        GlobalFsmState.VALID_TICKER_ENTERED, 
-        GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE,
-        GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED,
-        GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
-      ].includes(globalFsmStateFromContext) &&
-      !!globalFsmVariables.activeTicker &&
-      globalFsmVariables.activeTicker === tickerInput; // Ensure current input matches active analysis
+    const manualActionsPossibleOverall = 
+      (globalFsmStateFromContext === GlobalFsmState.IDLE ||
+       globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || // After init if default ticker is valid
+       globalFsmStateFromContext === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE ||
+       globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED ||
+       globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
+       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || // Future use
+       globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED   // Future use
+      ) &&
+      !!globalFsmVariables.activeTicker && // Must have an analyzed ticker
+      globalFsmVariables.activeTicker === tickerInput; // Ensure manual action is for the currently displayed/analyzed ticker
 
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'KT_Snapshot_DC');
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixDC as LogSourceId, 'KT_StdTA_DC');
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixDC as LogSourceId, 'KT_AiTA_DC');
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixDC as LogSourceId, 'KT_MarketStatus_DC');
+    logDebug(logPrefixDC as LogSourceId, 'ButtonStateChecks', `manualActionsPossibleOverall: ${manualActionsPossibleOverall}, isGlobalPipelineActive: ${isGlobalPipelineActive}`);
+    
+    // Key Takeaways Button Logic
+    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'KT_Snapshot');
+    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixDC as LogSourceId, 'KT_StdTA');
+    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixDC as LogSourceId, 'KT_AiAnalyzedTA');
+    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixDC as LogSourceId, 'KT_MarketStatus');
     const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
+    
+    const shouldKtButtonBeEnabled = manualActionsPossibleOverall && 
+                                    !keyTakeawaysButtonLoading && 
+                                    !analyzeButtonLoading && 
+                                    !isGlobalPipelineActive && 
+                                    ktPrereqsMet;
+    
+    logDebug(logPrefixDC as LogSourceId, 'KTButtonChecks', `ktPrereqsMet: ${ktPrereqsMet}, keyTakeawaysButtonLoading: ${keyTakeawaysButtonLoading}, analyzeButtonLoading: ${analyzeButtonLoading}, shouldKtBeEnabled: ${shouldKtButtonBeEnabled}`);
+    setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
 
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Snapshot_DC');
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Chain_DC');
+    // Options Analysis Button Logic (placeholder for now, actual prereqs similar to KT but with OptionsChain)
+    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Snapshot');
+    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixDC as LogSourceId, 'Opt_Chain');
     const optPrereqsMet = optSnapshotReady && optChainReady;
 
-    const shouldKtButtonBeEnabled = manualActionsPossible && !keyTakeawaysButtonLoading && !analyzeButtonLoading && !isGlobalPipelineActive && ktPrereqsMet;
-    const shouldOptButtonBeEnabled = manualActionsPossible && !optionsAnalysisButtonLoading && !analyzeButtonLoading && !isGlobalPipelineActive && optPrereqsMet;
-
-    setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
+    const shouldOptButtonBeEnabled = manualActionsPossibleOverall && 
+                                     !optionsAnalysisButtonLoading && 
+                                     !analyzeButtonLoading && 
+                                     !isGlobalPipelineActive && 
+                                     optPrereqsMet;
+    logDebug(logPrefixDC as LogSourceId, 'OptButtonChecks', `optPrereqsMet: ${optPrereqsMet}, optionsAnalysisButtonLoading: ${optionsAnalysisButtonLoading}, shouldOptBeEnabled: ${shouldOptButtonBeEnabled}`);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
 
   }, [
