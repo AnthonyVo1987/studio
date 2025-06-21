@@ -654,7 +654,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'SUBMIT_CHAT_MESSAGE':
         if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING && state.variables.pendingChatSubmissionPayload?.userInput === event.payload.userInput) {
           logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateSubmission', `SUBMIT_CHAT_MESSAGE for "${event.payload.userInput.substring(0,20)}" ignored, already pending with same input.`);
-        } else if (nextVariables.activeTicker) {
+        } else if (nextVariables.activeTicker || event.payload.isChatGroundingEnabled) {
             _setChatHistory(prev => {
               const userMessage: ChatMessage = { id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput };
               if (prev.length > 0 && prev[prev.length - 1].role === 'user' && prev[prev.length -1].content === userMessage.content) {
@@ -667,8 +667,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextVariables.pendingChatSubmissionPayload = { ...event.payload };
             nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
             contextSetters.setChatbotRequestJson(chatPendingJson); contextSetters.setChatbotResponseJson(chatPendingJson);
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_PENDING for ${nextVariables.activeTicker}. Payload set.`);
-        } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `SUBMIT_CHAT_MESSAGE ignored. No active ticker.`); }
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_PENDING for ${nextVariables.activeTicker || 'grounded query'}. Payload set.`);
+        } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `SUBMIT_CHAT_MESSAGE ignored. No active ticker and grounding is disabled.`); }
         break;
       case 'PENDING_CHAT_SUBMISSION_TRIGGERED':
         nextVariables.pendingChatSubmissionPayload = null;
