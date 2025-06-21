@@ -1,3 +1,5 @@
+
+      
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useActionState, startTransition, type FormEvent } from "react";
@@ -28,7 +30,6 @@ import { chatServerAction, type ChatActionState, type ChatActionInputs } from '@
 const initialLocalChatActionState: ChatActionState = { status: 'idle', data: undefined, error: null, message: null };
 
 export function MainTabContent() {
-  const [tickerInput, setTickerInput] = useState("NVDA");
   const { toast } = useToast();
   const {
     marketStatusJson: contextMarketStatusJson, stockSnapshotJson: contextStockSnapshotJson,
@@ -39,6 +40,8 @@ export function MainTabContent() {
     dispatchFsmEvent: dispatchGlobalFsmEvent, chatHistory: contextChatHistory,
     setChatbotFsmDisplay,
   } = useStockAnalysis();
+
+  const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
 
   const contextChatHistoryRef = useRef<ChatMessage[]>([]);
   useEffect(() => { contextChatHistoryRef.current = contextChatHistory; }, [contextChatHistory]);
@@ -100,21 +103,21 @@ export function MainTabContent() {
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTicker = e.target.value.toUpperCase();
-    setTickerInput(newTicker);
+    dispatchGlobalFsmEvent({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: newTicker } });
   };
 
   const handleAnalyzeStockSubmit = (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (!tickerInput.trim()) { toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" }); return; }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction', `Analyze Stock CLICKED for ${tickerInput}. Dispatching START_FULL_ANALYSIS to global FSM.`);
-    dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: tickerInput } });
+    if (!globalUserInputTicker.trim()) { toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" }); return; }
+    logDebug('MainTabContent' as LogSourceId, 'UserAction', `Analyze Stock CLICKED for ${globalUserInputTicker}. Dispatching START_FULL_ANALYSIS to global FSM.`);
+    dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: globalUserInputTicker } });
   };
 
   const handleFullAiAnalysisSubmit = (e?: FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault();
-    if (!tickerInput.trim()) { toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" }); return; }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_FullAIMacro', `AI Full Stock Analysis CLICKED for ${tickerInput}. Dispatching START_FULL_AI_MACRO_ANALYSIS to global FSM.`);
-    dispatchGlobalFsmEvent({ type: 'START_FULL_AI_MACRO_ANALYSIS', payload: { ticker: tickerInput } });
+    if (!globalUserInputTicker.trim()) { toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" }); return; }
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_FullAIMacro', `AI Full Stock Analysis CLICKED for ${globalUserInputTicker}. Dispatching START_FULL_AI_MACRO_ANALYSIS to global FSM.`);
+    dispatchGlobalFsmEvent({ type: 'START_FULL_AI_MACRO_ANALYSIS', payload: { ticker: globalUserInputTicker } });
   };
 
   const handleGenerateKeyTakeaways = () => {
@@ -138,7 +141,7 @@ export function MainTabContent() {
   };
 
   const analyzeButtonLoading = [GlobalFsmState.APP_INITIALIZING, GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
-  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !tickerInput.trim() || globalFsmFlags.isFullAiMacroPipelineActive;
+  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim() || globalFsmFlags.isFullAiMacroPipelineActive;
   const fullAiMacroButtonDisabled = analyzeButtonDisabled || globalFsmFlags.isFullAiMacroPipelineActive;
 
   const [isKtButtonDisabled, setIsKtButtonDisabled] = useState(true);
@@ -155,8 +158,8 @@ export function MainTabContent() {
 
   useEffect(() => {
     const logPrefixButtonState = 'MainTabContent:ButtonStateEffect';
-    logDebug(logPrefixButtonState as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${tickerInput}, isFullAiMacroActive: ${globalFsmFlags.isFullAiMacroPipelineActive}`);
-    const manualActionsPossibleOverall = (globalFsmStateFromContext === GlobalFsmState.IDLE || globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || globalFsmStateFromContext === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR) && !!globalFsmVariables.activeTicker && globalFsmVariables.activeTicker === tickerInput && !globalFsmFlags.isFullAiMacroPipelineActive;
+    logDebug(logPrefixButtonState as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${globalUserInputTicker}, isFullAiMacroActive: ${globalFsmFlags.isFullAiMacroPipelineActive}`);
+    const manualActionsPossibleOverall = (globalFsmStateFromContext === GlobalFsmState.IDLE || globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || globalFsmStateFromContext === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR) && !!globalFsmVariables.activeTicker && globalFsmVariables.activeTicker === globalUserInputTicker && !globalFsmFlags.isFullAiMacroPipelineActive;
     logDebug(logPrefixButtonState as LogSourceId, 'Check', `ManualActionsPossibleOverall: ${manualActionsPossibleOverall}, isStandardPipelineActive: ${isStandardPipelineActive}`);
     const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_Snapshot');
     const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_StdTA');
@@ -173,15 +176,15 @@ export function MainTabContent() {
     logDebug(logPrefixButtonState as LogSourceId, 'Opt_ButtonLogic', `optPrereqsMet: ${optPrereqsMet}, optLoading: ${optionsAnalysisButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldOptButtonBeEnabled}`);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
     if (globalFsmVariables.activeTicker) { logDebug(logPrefixButtonState as LogSourceId, 'ActiveAnalysisTickerInfo', `Current active analysis ticker in global FSM: ${globalFsmVariables.activeTicker}`); }
-  }, [ globalFsmStateFromContext, globalFsmVariables.activeTicker, globalFsmFlags.isFullAiMacroPipelineActive, tickerInput, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isStandardPipelineActive, isGlobalChatFsmPending, logDebug ]);
+  }, [ globalFsmStateFromContext, globalFsmVariables.activeTicker, globalFsmFlags.isFullAiMacroPipelineActive, globalUserInputTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isStandardPipelineActive, isGlobalChatFsmPending, logDebug ]);
 
   const getCombinedDataForExport = useCallback(() => {
-    const baseData: any = { ticker: globalFsmVariables.activeTicker || tickerInput, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
+    const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
     if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_AiKeyTakeaways')) { baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}'); }
     if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_AiOptionsAnalysis')) { baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}'); }
     if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_OptionsChain')) { baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}'); }
     return baseData;
-  }, [ globalFsmVariables.activeTicker, tickerInput, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
+  }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
 
   const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_MarketStatus') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_StockSnapshot') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_StandardTAs') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_AiAnalyzedTA');
   const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isStandardPipelineActive || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
@@ -218,7 +221,7 @@ export function MainTabContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
             <div className="space-y-2">
               <Label htmlFor="ticker">Stock Ticker</Label>
-              <Input id="ticker" value={tickerInput} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isStandardPipelineActive || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive}/>
+              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isStandardPipelineActive || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataSource">Data Source</Label>
@@ -266,8 +269,8 @@ export function MainTabContent() {
         <Separator />
         <div className="space-y-6">
           <KeyMetricsDisplay /> <StockSnapshotDetailsDisplay /> <StandardTaDisplay /> <AiAnalyzedTaDisplay /> <AiKeyTakeawaysDisplay /> <OptionsChainTable /> <AiOptionsAnalysisDisplay />
-          <ChatbotFsmProvider dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} currentTicker={globalFsmVariables.activeTicker || tickerInput} stockSnapshotJson={contextStockSnapshotJson || '{}'} aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} currentGlobalChatHistory={contextChatHistory} logDebug={logDebug} setChatbotFsmDisplayState={setChatbotFsmDisplay} isGlobalChatPending={isGlobalChatFsmPending}>
-            <Chatbot isAnyAnalysisInProgress={isOverallAnalysisPending} currentTickerForDisplay={globalFsmVariables.activeTicker || tickerInput} />
+          <ChatbotFsmProvider dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} stockSnapshotJson={contextStockSnapshotJson || '{}'} aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} currentGlobalChatHistory={contextChatHistory} logDebug={logDebug} setChatbotFsmDisplayState={setChatbotFsmDisplay} isGlobalChatPending={isGlobalChatFsmPending}>
+            <Chatbot isAnyAnalysisInProgress={isOverallAnalysisPending} currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker} />
           </ChatbotFsmProvider>
           <MarketStatusDisplay />
         </div>
@@ -275,3 +278,5 @@ export function MainTabContent() {
     </Card>
   );
 }
+
+    

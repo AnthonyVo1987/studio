@@ -1,4 +1,5 @@
 
+      
 'use client';
 
 import type { ReactNode } from 'react';
@@ -109,6 +110,7 @@ export type FsmEvent =
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'START_FULL_AI_MACRO_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
+  | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
   | { type: 'TRIGGER_DATA_FETCH' }
   | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
   | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
@@ -446,12 +448,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}, ActiveProfile: ${state.variables.activePipelineProfile}, MacroStep: ${state.variables.currentFullAiMacroChatStep}`);
 
 
-    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE') {
+    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE' && event.type !== 'USER_INPUT_TICKER_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
     } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., HistoryLen: ${event.payload.chatHistory?.length}`);
     } else if (event.type === 'INTERNAL_MACRO_STEP_UPDATE') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_MacroStep', `For INTERNAL_MACRO_STEP_UPDATE: Macro Step: ${event.payload.currentFullAiMacroChatStep}`);
+    } else if (event.type === 'USER_INPUT_TICKER_CHANGED') {
+      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_TickerInput', `For USER_INPUT_TICKER_CHANGED: Ticker: ${event.payload.ticker}`);
     }
 
     let nextCurrentState: GlobalFsmState = previousState;
@@ -499,6 +503,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             nextFlags.canAnalyzeStock = nextCurrentState === GlobalFsmState.VALID_TICKER_ENTERED;
             logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `APP_INITIALIZING -> INITIALIZATION_COMPLETE. To ${nextCurrentState}.`);
         } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `Ignoring INITIALIZATION_COMPLETE, not in APP_INITIALIZING state.`); }
+        break;
+      case 'USER_INPUT_TICKER_CHANGED':
+        const newTicker = event.payload.ticker;
+        nextVariables.userInputTicker = newTicker;
+        if (newTicker.trim()) {
+            nextCurrentState = GlobalFsmState.VALID_TICKER_ENTERED;
+            nextFlags.canAnalyzeStock = true;
+        } else {
+            nextCurrentState = GlobalFsmState.AWAITING_TICKER_INPUT;
+            nextFlags.canAnalyzeStock = false;
+        }
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `USER_INPUT_TICKER_CHANGED. To ${nextCurrentState}.`);
         break;
       case 'TRIGGER_DATA_FETCH':
         if (previousState === GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH) {
@@ -717,6 +733,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
             else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = GlobalFsmState.ANALYZING_OPTIONS;
             else if (event.type === 'SUBMIT_CHAT_MESSAGE') determinedTarget = GlobalFsmState.CHAT_MESSAGE_PENDING;
+            else if (event.type === 'USER_INPUT_TICKER_CHANGED') determinedTarget = event.payload.ticker.trim() ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
             break;
         case GlobalFsmState.GENERATING_KEY_TAKEAWAYS:
             if (event.type === 'KEY_TAKEAWAYS_SUCCESS') determinedTarget = GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED;
@@ -759,7 +776,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
 
     logDebug('StockAnalysisContext:GlobalFSM' as LogSourceId, 'DispatchAttempt', `Event: ${event.type}, CurrentActual: ${currentActualState}, DeterminedTarget: ${determinedTarget || 'N/A'}`);
-    if (determinedTarget && event.type !== 'TOGGLE_DEBUG_CONSOLE_MENU' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE') { _setTargetFsmDisplayState(determinedTarget); }
+    if (determinedTarget && event.type !== 'TOGGLE_DEBUG_CONSOLE_MENU' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE' && event.type !== 'USER_INPUT_TICKER_CHANGED') { _setTargetFsmDisplayState(determinedTarget); }
     _dispatchFsmEventActual(event);
   }, [_dispatchFsmEventActual, _setTargetFsmDisplayState, logDebug]);
 
@@ -1043,3 +1060,5 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
+
+    
