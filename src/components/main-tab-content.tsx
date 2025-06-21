@@ -1,8 +1,6 @@
+'use client';
 
-      
-"use client";
-
-import React, { useState, useEffect, useRef, useCallback, useActionState, startTransition, type FormEvent } from "react";
+import React, { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,12 +20,10 @@ import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
-import { useStockAnalysis, type ChatMessage, GlobalFsmState, type FsmDisplayTuple, type LogSourceId, type FsmEvent } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, GlobalFsmState, type LogSourceId } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig, WandSparkles } from "lucide-react";
-import { chatServerAction, type ChatActionState, type ChatActionInputs } from '@/actions/chat-server-action';
 
-const initialLocalChatActionState: ChatActionState = { status: 'idle', data: undefined, error: null, message: null };
 
 export function MainTabContent() {
   const { toast } = useToast();
@@ -39,16 +35,11 @@ export function MainTabContent() {
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent, chatHistory: contextChatHistory,
     setChatbotFsmDisplay,
+    isChatPending, // Get from context now
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
-
-  const contextChatHistoryRef = useRef<ChatMessage[]>([]);
-  useEffect(() => { contextChatHistoryRef.current = contextChatHistory; }, [contextChatHistory]);
-
   const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
-  const lastProcessedChatActionIdRef = useRef<string | null>(null);
-
 
   useEffect(() => {
     const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect';
@@ -65,41 +56,6 @@ export function MainTabContent() {
       globalDispatchGuardRef.current[guardKeyForManualOpt] = false;
     }
   }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, logDebug]);
-
-  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, initialLocalChatActionState);
-
-  useEffect(() => {
-    const logPrefix = 'MainTabContent:ChatActionStateEffect';
-    if (chatActionState.status === 'idle') return;
-
-    const actionDataString = chatActionState.data ? JSON.stringify(chatActionState.data) : null;
-    const uniqueActionIdentifier = `${chatActionState.status}_${actionDataString}`;
-
-    if (lastProcessedChatActionIdRef.current === uniqueActionIdentifier) {
-      logDebug(logPrefix as LogSourceId, 'GuardDuplicateChatAction', `Skipping already processed chat action: ${uniqueActionIdentifier.substring(0, 50)}...`);
-      return;
-    }
-
-    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
-    if (chatActionState.status === 'success' && chatActionState.data) {
-      logDebug(logPrefix as LogSourceId, 'GlobalDispatch', 'Dispatching CHAT_MESSAGE_ACTION_SUCCESS to Global FSM.');
-      dispatchGlobalFsmEvent({ type: 'CHAT_MESSAGE_ACTION_SUCCESS', payload: chatActionState.data });
-      lastProcessedChatActionIdRef.current = uniqueActionIdentifier;
-    } else if (chatActionState.status === 'error') {
-      logDebug(logPrefix as LogSourceId, 'GlobalDispatch', `Dispatching CHAT_MESSAGE_ACTION_ERROR to Global FSM. Error: ${chatActionState.error}`);
-      dispatchGlobalFsmEvent({ type: 'CHAT_MESSAGE_ACTION_ERROR', payload: { error: chatActionState.error, message: chatActionState.message, chatbotRequestJson: chatActionState.data?.chatbotRequestJson, chatbotResponseJson: chatActionState.data?.chatbotResponseJson }});
-      lastProcessedChatActionIdRef.current = uniqueActionIdentifier;
-    }
-  }, [chatActionState, dispatchGlobalFsmEvent, logDebug]);
-
-  useEffect(() => {
-    const logPrefix = 'MainTabContent:GlobalFsmChatTriggerEffect';
-    if (globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING && globalFsmVariables.pendingChatSubmissionPayload && !isChatPending) {
-      logDebug(logPrefix as LogSourceId, 'ActionTrigger', 'Global FSM is CHAT_MESSAGE_PENDING with payload. Calling chatFormAction.');
-      startTransition(() => { chatFormAction(globalFsmVariables.pendingChatSubmissionPayload!); });
-      dispatchGlobalFsmEvent({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
-    }
-  }, [globalFsmStateFromContext, globalFsmVariables.pendingChatSubmissionPayload, isChatPending, chatFormAction, dispatchGlobalFsmEvent, logDebug]);
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTicker = e.target.value.toUpperCase();
@@ -152,9 +108,8 @@ export function MainTabContent() {
 
   const isStandardPipelineActive = [GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
   const isAnyManualAIActionActive = keyTakeawaysButtonLoading || optionsAnalysisButtonLoading;
-  const isChatActionHookPending = isChatPending;
   const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING;
-  const isOverallAnalysisPending = isStandardPipelineActive || isAnyManualAIActionActive || isChatActionHookPending || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
+  const isOverallAnalysisPending = isStandardPipelineActive || isAnyManualAIActionActive || isChatPending || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
 
   useEffect(() => {
     const logPrefixButtonState = 'MainTabContent';
@@ -278,5 +233,3 @@ export function MainTabContent() {
     </Card>
   );
 }
-
-    

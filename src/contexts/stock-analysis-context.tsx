@@ -1,5 +1,4 @@
 
-      
 'use client';
 
 import type { ReactNode } from 'react';
@@ -11,7 +10,7 @@ import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDat
 import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
-import type { ChatActionInputs, ChatActionResult } from '@/actions/chat-server-action';
+import { chatServerAction, type ChatActionState, type ChatActionInputs, type ChatActionResult } from '@/actions/chat-server-action';
 import { useActionState, startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
@@ -210,6 +209,7 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setReducedStartupLoggingEnabled: (enabled: boolean) => void;
   setUiRenderLoggingEnabled: (enabled: boolean) => void;
+  isChatPending: boolean; // Add this
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -278,6 +278,8 @@ const localInitialStockDataFetchResult: AnalyzeStockServerActionState = { status
 const localInitialAnalyzeTaState: AnalyzeTaActionState = { status: 'idle', data: undefined, error: null, message: null };
 const localInitialPerformAiAnalysisState: PerformAiAnalysisActionState = { status: 'idle', data: undefined, error: null, message: null };
 const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = { status: 'idle', data: undefined, error: null, message: null };
+const localInitialChatActionState: ChatActionState = { status: 'idle', data: undefined, error: null, message: null };
+
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
 
@@ -323,6 +325,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
+  const lastProcessedChatActionIdRef = useRef<string | null>(null);
+
+  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, localInitialChatActionState);
+
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
@@ -878,6 +884,31 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string }>(performAiOptionsAnalysisAction, localInitialPerformAiOptionsAnalysisState);
 
   useEffect(() => {
+    const logPrefix = 'StockAnalysisContext:ChatActionStateEffect';
+    if (chatActionState.status === 'idle') return;
+
+    const actionDataString = chatActionState.data ? JSON.stringify(chatActionState.data) : null;
+    const uniqueActionIdentifier = `${chatActionState.status}_${actionDataString}`;
+
+    if (lastProcessedChatActionIdRef.current === uniqueActionIdentifier) {
+      logDebug(logPrefix as LogSourceId, 'GuardDuplicateChatAction', `Skipping already processed chat action: ${uniqueActionIdentifier.substring(0, 50)}...`);
+      return;
+    }
+
+    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
+    if (chatActionState.status === 'success' && chatActionState.data) {
+      logDebug(logPrefix as LogSourceId, 'GlobalDispatch', 'Dispatching CHAT_MESSAGE_ACTION_SUCCESS to Global FSM.');
+      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_SUCCESS', payload: chatActionState.data });
+      lastProcessedChatActionIdRef.current = uniqueActionIdentifier;
+    } else if (chatActionState.status === 'error') {
+      logDebug(logPrefix as LogSourceId, 'GlobalDispatch', `Dispatching CHAT_MESSAGE_ACTION_ERROR to Global FSM. Error: ${chatActionState.error}`);
+      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_ERROR', payload: { error: chatActionState.error, message: chatActionState.message, chatbotRequestJson: chatActionState.data?.chatbotRequestJson, chatbotResponseJson: chatActionState.data?.chatbotResponseJson }});
+      lastProcessedChatActionIdRef.current = uniqueActionIdentifier;
+    }
+  }, [chatActionState, dispatchFsmEvent, logDebug]);
+
+
+  useEffect(() => {
     contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', globalFsmReducerState.current, 'Active Ticker:', globalFsmReducerState.variables.activeTicker, 'Profile:', globalFsmReducerState.variables.activePipelineProfile, 'MacroStep:', globalFsmReducerState.variables.currentFullAiMacroChatStep, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', globalFsmReducerState.variables.isInitialLoad);
 
     const state = fsmStateRef.current; 
@@ -986,15 +1017,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     } else if (state.current === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE && state.variables.activePipelineProfile === 'standard') {
         logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Standard_PipelineFinallyComplete]', `Standard automated pipeline complete. Dispatching PROCEED_TO_IDLE.`);
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
+    } else if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING && state.variables.pendingChatSubmissionPayload && !isChatPending) {
+        logDebug(logPrefixOrchestrator as LogSourceId, 'ActionTrigger', 'Global FSM is CHAT_MESSAGE_PENDING with payload. Calling chatFormAction.');
+        startTransition(() => { chatFormAction(state.variables.pendingChatSubmissionPayload!); });
+        _dispatchFsmEventActual({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
     }
+
 
   }, [
     globalFsmReducerState.current, 
     globalFsmReducerState.variables, 
     isFetchDataPending, isAnalyzeTaPending, 
     isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending,
+    isChatPending, // Added
     _dispatchFsmEventActual, logDebug,
-    contextOriginals
+    contextOriginals, chatFormAction,
+    _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory
   ]);
 
   useEffect(() => {
@@ -1057,6 +1095,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
     setUiRenderLoggingEnabled,
     isUiRenderLoggingEnabled: _isUiRenderLoggingEnabled,
+    isChatPending, // Expose this
   }), [
     _polygonApiRequestLogJson, contextSetters, _polygonApiResponseLogJson,
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
@@ -1071,6 +1110,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _debugConsoleMenuFsmDisplayInternal, 
     _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled,
     _isUiRenderLoggingEnabled, setUiRenderLoggingEnabled,
+    isChatPending, // Add to dependency array
   ]);
 
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
@@ -1081,7 +1121,3 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
-
-    
-
-    
