@@ -20,28 +20,18 @@ import {
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
-let analyzeStockDataPromptDefinition: LlmPromptDefinition | null = null;
-let memoizedAnalyzeStockDataPrompt: ReturnType<typeof ai.definePrompt> | null = null;
-
-
 async function getAnalyzedStockDataPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedStockDataPrompt]';
-  if (memoizedAnalyzeStockDataPrompt) {
-    // console.log(`${logPrefix} Returning cached/memoized prompt.`);
-    return memoizedAnalyzeStockDataPrompt;
-  }
 
-  if (!analyzeStockDataPromptDefinition) {
-    console.log(`${logPrefix} Loading 'analyze-stock-data' definition for the first time.`);
-    const genericDefinition = await loadDefinition('analyze-stock-data');
-    if (genericDefinition.definitionType !== 'llm-prompt') {
-      const errorMsg = `Loaded definition for 'analyze-stock-data' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
-      console.error(`${logPrefix} ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-    analyzeStockDataPromptDefinition = genericDefinition;
-    console.log(`${logPrefix} 'analyze-stock-data' definition loaded and validated. Definition keys: ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
+  console.log(`${logPrefix} Loading 'analyze-stock-data' definition.`);
+  const genericDefinition = await loadDefinition('analyze-stock-data');
+  if (genericDefinition.definitionType !== 'llm-prompt') {
+    const errorMsg = `Loaded definition for 'analyze-stock-data' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
+    console.error(`${logPrefix} ${errorMsg}`);
+    throw new Error(errorMsg);
   }
+  const analyzeStockDataPromptDefinition = genericDefinition;
+  console.log(`${logPrefix} 'analyze-stock-data' definition loaded and validated. Definition keys: ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
 
   const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition!);
   const modelId = analyzeStockDataPromptDefinition!.modelId || DEFAULT_ANALYSIS_MODEL_ID;
@@ -63,9 +53,9 @@ async function getAnalyzedStockDataPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition!.thinkingBudget };
   }
   
-  console.log(`${logPrefix} Defining prompt for the first time. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
+  console.log(`${logPrefix} Defining prompt. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   
-  memoizedAnalyzeStockDataPrompt = ai.definePrompt({
+  const prompt = ai.definePrompt({
     name: 'analyzeStockDataPrompt', 
     input: {schema: StockAnalysisInputSchema},
     output: {schema: StockAnalysisOutputSchema},
@@ -73,7 +63,7 @@ async function getAnalyzedStockDataPrompt() {
     prompt: promptString,
     config: promptConfig,
   });
-  return memoizedAnalyzeStockDataPrompt;
+  return prompt;
 }
 
 export async function analyzeStockData(

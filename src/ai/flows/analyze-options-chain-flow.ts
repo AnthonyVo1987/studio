@@ -20,28 +20,17 @@ import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import type { OptionsChainData } from '@/services/data-sources/types';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
-let analyzeOptionsChainPromptDefinition: LlmPromptDefinition | null = null;
-let memoizedAnalyzeOptionsChainPrompt: ReturnType<typeof ai.definePrompt> | null = null;
-
-
 async function getAnalyzedOptionsChainPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedOptionsChainPrompt]';
-  if (memoizedAnalyzeOptionsChainPrompt) {
-    // console.log(`${logPrefix} Returning cached/memoized prompt.`);
-    return memoizedAnalyzeOptionsChainPrompt;
+  console.log(`${logPrefix} Loading 'analyze-options-chain' definition.`);
+  const genericDefinition = await loadDefinition('analyze-options-chain');
+  if (genericDefinition.definitionType !== 'llm-prompt') {
+    const errorMsg = `Loaded definition for 'analyze-options-chain' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
+    console.error(`${logPrefix} ${errorMsg}`);
+    throw new Error(errorMsg);
   }
-
-  if (!analyzeOptionsChainPromptDefinition) {
-    console.log(`${logPrefix} Loading 'analyze-options-chain' definition for the first time.`); // Corrected line
-    const genericDefinition = await loadDefinition('analyze-options-chain');
-    if (genericDefinition.definitionType !== 'llm-prompt') {
-      const errorMsg = `Loaded definition for 'analyze-options-chain' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
-      console.error(`${logPrefix} ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-    analyzeOptionsChainPromptDefinition = genericDefinition;
-    console.log(`${logPrefix} 'analyze-options-chain' definition loaded and validated. Definition keys: ${Object.keys(analyzeOptionsChainPromptDefinition).join(', ')}`);
-  }
+  const analyzeOptionsChainPromptDefinition = genericDefinition;
+  console.log(`${logPrefix} 'analyze-options-chain' definition loaded and validated. Definition keys: ${Object.keys(analyzeOptionsChainPromptDefinition).join(', ')}`);
 
   const promptString = buildPromptStringFromLlmDefinition(analyzeOptionsChainPromptDefinition!);
   const modelId = analyzeOptionsChainPromptDefinition!.modelId || DEFAULT_ANALYSIS_MODEL_ID;
@@ -63,9 +52,9 @@ async function getAnalyzedOptionsChainPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition!.thinkingBudget };
   }
 
-  console.log(`${logPrefix} Defining prompt for the first time. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
+  console.log(`${logPrefix} Defining prompt. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
   
-  memoizedAnalyzeOptionsChainPrompt = ai.definePrompt({
+  const prompt = ai.definePrompt({
     name: 'analyzeOptionsChainPrompt', 
     input: {schema: AiOptionsAnalysisInputSchema},
     output: {schema: AiOptionsAnalysisOutputSchema},
@@ -73,7 +62,7 @@ async function getAnalyzedOptionsChainPrompt() {
     prompt: promptString,
     config: promptConfig,
   });
-  return memoizedAnalyzeOptionsChainPrompt;
+  return prompt;
 }
 
 

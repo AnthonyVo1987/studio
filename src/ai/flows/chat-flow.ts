@@ -21,35 +21,19 @@ import {
 import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
-type PromptVariant = 'standard' | 'grounded';
-
-let stockChatBotPromptDefinition: LlmPromptDefinition | null = null;
-let memoizedPrompts: Record<PromptVariant, ReturnType<typeof ai.definePrompt> | null> = {
-  standard: null,
-  grounded: null,
-};
-
 async function getChatPrompt(isGrounded: boolean) {
   const logPrefix = '[AIFlow:getChatPrompt]';
-  const promptType: PromptVariant = isGrounded ? 'grounded' : 'standard';
+  const promptType: 'standard' | 'grounded' = isGrounded ? 'grounded' : 'standard';
 
-  if (memoizedPrompts[promptType]) {
-    return memoizedPrompts[promptType];
+  console.log(`${logPrefix} Defining prompt. Type: ${promptType}.`);
+  const genericDefinition = await loadDefinition('stock-chatbot');
+  if (genericDefinition.definitionType !== 'llm-prompt') {
+    const errorMsg = `Loaded definition for 'stock-chatbot' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
+    console.error(`${logPrefix} ${errorMsg}`);
+    throw new Error(errorMsg);
   }
-  
-  console.log(`${logPrefix} Defining prompt for the first time. Type: ${promptType}.`);
-
-  if (!stockChatBotPromptDefinition) {
-    console.log(`${logPrefix} Loading 'stock-chatbot' definition for the first time.`);
-    const genericDefinition = await loadDefinition('stock-chatbot');
-    if (genericDefinition.definitionType !== 'llm-prompt') {
-      const errorMsg = `Loaded definition for 'stock-chatbot' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
-      console.error(`${logPrefix} ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-    stockChatBotPromptDefinition = genericDefinition;
-    console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated.`);
-  }
+  const stockChatBotPromptDefinition = genericDefinition;
+  console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated.`);
 
   const promptString = buildPromptStringFromLlmDefinition(stockChatBotPromptDefinition!);
   const modelId = stockChatBotPromptDefinition!.modelId || DEFAULT_CHAT_MODEL_ID;
@@ -92,8 +76,6 @@ async function getChatPrompt(isGrounded: boolean) {
   console.log(`${logPrefix} Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}.`);
 
   const prompt = ai.definePrompt(promptOptions);
-
-  memoizedPrompts[promptType] = prompt;
   return prompt;
 }
 
