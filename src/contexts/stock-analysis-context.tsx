@@ -809,8 +809,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (!_isClientDebugConsoleEnabled) return;
         let sourceForBuffer: LogSourceId = 'NATIVE_CONSOLE'; let messagesForBuffer = args; let typeForBuffer = type;
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
-          sourceForBuffer = args[1] as LogSourceId; messagesForBuffer = args.slice(3); typeForBuffer = 'debug';
+          sourceForBuffer = args[1] as LogSourceId;
+          const category = args[2] as string;
+          messagesForBuffer = args.slice(3);
+          
+          const noisyUiCategories = ['RenderState', 'PropsReceived'];
+          if (!_isUiRenderLoggingEnabled && noisyUiCategories.includes(category)) {
+              return; 
+          }
+
           if (!_logSourceConfig[sourceForBuffer]) return;
+          typeForBuffer = 'debug';
         } else { if (!_logSourceConfig['NATIVE_CONSOLE']) return; }
         
         if (isInitialLoad && _isReducedStartupLoggingEnabled) {
@@ -855,7 +864,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
       else { contextOriginals.warn(`[${logPrefix}] Cleanup: No context originals found to restore!`); }
     };
-  }, [_isClientDebugConsoleEnabled, _logSourceConfig, contextOriginals, logDebug, globalFsmReducerState.variables.isInitialLoad, _isReducedStartupLoggingEnabled]);
+  }, [_isClientDebugConsoleEnabled, _isUiRenderLoggingEnabled, _logSourceConfig, contextOriginals, logDebug, globalFsmReducerState.variables.isInitialLoad, _isReducedStartupLoggingEnabled]);
 
   const setClientDebugConsoleOpen = useCallback((open: boolean) => {
     logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', `ClientDebugConsoleOpen will be set to: ${open}. Current isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
