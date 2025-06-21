@@ -132,12 +132,12 @@ export function OptionsChainTable() {
     let snapshotChanged = false;
 
     if (currentOptionsJson !== prevOptionsJsonRef.current) {
-      logDebug(componentName, "PropsReceived:Options", "optionsChainJson prop changed. New Length:", currentOptionsJson?.length);
+      logDebug(componentName, "PropsReceived", "optionsChainJson prop changed. New Length:", currentOptionsJson?.length);
       prevOptionsJsonRef.current = currentOptionsJson;
       optionsChanged = true;
     }
     if (currentSnapshotJson !== prevSnapshotJsonRef.current) {
-      logDebug(componentName, "PropsReceived:Snapshot", "stockSnapshotJson prop changed. New Length:", currentSnapshotJson?.length);
+      logDebug(componentName, "PropsReceived", "stockSnapshotJson prop changed. New Length:", currentSnapshotJson?.length);
       prevSnapshotJsonRef.current = currentSnapshotJson;
       snapshotChanged = true;
     }

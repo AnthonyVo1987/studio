@@ -55,7 +55,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const logDebug = globalLogDebug; 
 
-  logDebug('Chatbot', 'Render', `GlobalFSMState: ${globalFsmState}, LocalChatbotFSM_UIState: ${chatbotFsmState}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
+  logDebug('Chatbot', 'RenderState', `GlobalFSM: ${globalFsmState}, LocalChatbotFSM_UIState: ${chatbotFsmState}, isAnyAnalysisInProgress (prop): ${isAnyAnalysisInProgress}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -217,4 +217,3 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     </Card>
   );
 }
-
