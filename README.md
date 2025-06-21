@@ -25,8 +25,8 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.67
-**Application Version (from `app-metadata.json`):** v3.2.5.0.L (Commit `36cfe3d5` - FSM Debug Tab Migration)
+**README Document Version:** 1.68
+**Application Version (from `app-metadata.json`):** v3.2.5.0.Q (Commit `4fe5a570` - FSM Button State Integration)
 **Last Updated:** 2025-06-22
 
 ## 1. Introduction
@@ -102,6 +102,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs).
 *   **Client Debug Console:** Real-time client-side log display with filtering, search, max 1000 entries, wrap indicator, and export capabilities. Exported logs include the dynamic application version and a snapshot of the global FSM (state, flags, and variables).
 *   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup. Logic ensures this only affects the *first* pipeline run, determined by the FSM's `isInitialLoad` variable.
+*   **UI/Render Log Spam Toggle:** A user-configurable setting (disabled by default) to control high-frequency logs from UI components related to re-renders and prop changes.
 *   **FSM Debug Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables within organized UI cards. Includes copy/export functionality for the full FSM snapshot.
 
 ### 3.2. System Architecture & Components
@@ -133,19 +134,19 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.2.4. State Management (Target Architecture for v3.2.x.y.z - FSM Consolidation)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
     *   Fetched data JSON strings.
-    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isFullAiMacroPipelineActive`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `currentFullAiMacroChatStep`). Orchestrates the entire application lifecycle, including the new "AI Full Stock Analysis" macro.
+    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the new "AI Full Stock Analysis" macro.
     *   Client-side debug logging.
-    *   Chat history.
+    *   Chat history and server action state (`useActionState`) for the chatbot.
     *   UI states for debug console and FSM debug card visibility.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM.
 *   **`useActionState` (React Hook):** Manages server action lifecycles.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.L - FSM Consolidation Phase 5 In Progress)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.Q - FSM Consolidation Phase 5 In Progress)
 *   **Single Global Application FSM (managed in `StockAnalysisContext`):**
     *   Orchestrates all application pipelines: standard automated, "AI Full Stock Analysis" macro, manual AI actions, and chat interactions.
     *   Manages `GlobalFsmFlags` and `GlobalFsmContextVariables`.
-    *   **Phase 1-4 Completion:** Foundation, manual AI actions, chat/debug menus, and debug tooling integration are complete.
-    *   **Phase 5 (Testing & Debugging):** IN PROGRESS. Task `v3.2.5.0.L` (commit `36cfe3d5`) migrated the floating FSM monitor into a dedicated "FSM Debug" tab, improving UI/UX for debugging.
+    *   **Phases 1-4 Completion:** Foundation, manual AI actions, chat/debug menus, and debug tooling integration are complete.
+    *   **Phase 5 (Testing & Debugging):** IN PROGRESS. Iterations up to `v3.2.5.0.Q` (commit `4fe5a570`) have fixed tab-switching bugs, integrated UI log suppression toggles, and fully centralized manual AI button state logic into the FSM.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -163,7 +164,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Primary Method: `logDebug()` from `useStockAnalysis()`.
     *   Console Interception: `StockAnalysisContext` intercepts `console.*` calls.
     *   **Startup Logging Control:** `isReducedStartupLoggingEnabled` toggle works in conjunction with the FSM's `isInitialLoad` variable. The log interceptor now correctly depends on this variable to re-evaluate its behavior, ensuring reduced logging is *only* active during the very first pipeline run.
-    *   **Duplicate Log Prevention (Shelved):** The investigation into duplicate log entries (`v3.2.5.0.G-K`) has been shelved due to complexity. The de-duplication logic has been reverted.
+    *   **UI/Render Log Spam Control:** A dedicated `isUiRenderLoggingEnabled` toggle (disabled by default) suppresses high-frequency logs from UI components related to re-renders and prop changes (logs categorized as 'RenderState', 'PropsReceived', 'Validation').
 *   **Server-Side Logging:** `console.log`, etc., with standardized prefixes.
 *   **Debug Console (`src/components/debug-console.tsx`):**
     *   Displays client-side logs (up to 1000 entries). Features filtering, search, wrap indicator.
@@ -174,12 +175,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Debugging Status (as of v3.2.5.0.L):**
-    *   "Debug Log Enhancements" feature (v3.1.x.y.z) is complete.
+*   **Debugging Status (as of v3.2.5.0.Q):**
     *   "FSM Consolidation & Refactor" (v3.2.x.y.z):
         *   Phases 1-4 are **COMPLETE**.
-        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.L` (commit `36cfe3d5`) migrated the FSM monitor into a dedicated debug tab. The investigation into duplicate logs has been temporarily shelved.
-        *   Phase 6 (Documentation Updates) is **PLANNED**.
+        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.Q` (commit `4fe5a570`) finalized the integration of manual AI button state into the global FSM.
+        *   The investigation into duplicate logs remains temporarily shelved.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -190,7 +190,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.4. Server & AI Conventions (Genkit 1.x)
 *   Next.js App Router, Server Components, Server Actions. Genkit. Genkit 1.x API. `thinkingConfig`. JSON prompt definitions with Handlebars. Tools.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.L and New Versioning Scheme)
+### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.Q and New Versioning Scheme)
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
@@ -232,8 +232,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.67
-*   **Current Application Version:** `v3.2.5.0.L` (Commit `36cfe3d5` - FSM Debug Tab Migration)
+*   **This README Document Version:** 1.68
+*   **Current Application Version:** `v3.2.5.0.Q` (Commit `4fe5a570` - FSM Button State Integration)
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
@@ -242,3 +242,4 @@ npm run start
 ---
 
     
+

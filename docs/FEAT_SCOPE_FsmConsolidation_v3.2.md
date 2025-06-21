@@ -1,7 +1,7 @@
 
 # Feature Scope: FSM Consolidation & Refactor (StockSage v3.2.x.y)
 
-**Document Version:** 1.19
+**Document Version:** 1.20
 **Date:** 2025-06-22
 **Target Application Version Series:** 3.2.x.y.z
 **Feature Status:** Phase 5 IN PROGRESS
@@ -131,19 +131,32 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 *Objective: Rigorous testing of the consolidated FSM across all application features and edge cases. Focus on stability, correct state transitions, accurate flag/variable updates, and absence of regressions.*
 *   **Overall Phase Status:** `IN PROGRESS`
 
-*   **Task v3.2.5.0.0 - v3.2.5.0.C: Iterative Bug Fixing for FSM Orchestrator, Macro, Logging & Chat**
-    *   **Status:** `COMPLETED` (Culminating Commit: `2338c4f8`, App Version: `v3.2.5.0.C`)
+*   **Task v3.2.5.0.C: Consolidated Bug Fixes for FSM Orchestrator, Macro, Logging & Chat**
+    *   **Status:** `COMPLETED` (Commit: `2338c4f8`, App Version: `v3.2.5.0.C`)
 
-*   **Task v3.2.5.0.D - v3.2.5.0.F: Iterative Bug Fixing for Logging System & FSM Orchestrator**
-    *   **Status:** `COMPLETED` (Culminating Commit: `f34f5128`, App Version: `v3.2.5.0.F`)
+*   **Task v3.2.5.0.F: Consolidated Bug Fixes for Logging System & FSM Orchestrator**
+    *   **Status:** `COMPLETED` (Commit: `f34f5128`, App Version: `v3.2.5.0.F`)
 
 *   **Task v3.2.5.0.G - v3.2.5.0.K: Debugging Duplicate Client-Side Logs**
     *   **Status:** `SHELVED`
-    *   **Details:** This series of tasks attempted to diagnose and fix a persistent duplicate logging issue. The diagnostic attempts (`v3.2.5.0.H`, `v3.2.5.0.J`) introduced critical infinite loop bugs. The investigation has been shelved to prioritize other fixes. The codebase was reverted to the last stable state (`v3.2.5.0.G` codebase, with a new version tag for the next task).
 
 *   **Task v3.2.5.0.L: Migrate FSM Monitor to Dedicated Debug Tab**
     *   **Status:** `COMPLETED` (Commit: `36cfe3d5`, App Version: `v3.2.5.0.L`)
-    *   **Details:** Replaced the floating `FsmStateDebugCard` and its toggle with a dedicated "FSM Debug" tab. Created a new `fsm-debug-tab-content.tsx` component to display FSM state, flags, and variables in UI cards. Removed old component and associated state from `StockAnalysisContext`.
+
+*   **Task v3.2.5.0.M: Fix Tab Switching State Reset**
+    *   **Status:** `COMPLETED` (Commit: `f8e8a609`, App Version: `v3.2.5.0.M`)
+
+*   **Task v3.2.5.0.N: UI/Render Log Toggle Feature**
+    *   **Status:** `COMPLETED` (Commit: `37a75908`, App Version: `v3.2.5.0.N`)
+
+*   **Task v3.2.5.0.O: Fix UI Log Spam Suppression**
+    *   **Status:** `COMPLETED` (Commit: `99a0f7e1`, App Version: `v3.2.5.0.O`)
+
+*   **Task v3.2.5.0.P: Fix Stuck Chat Macro**
+    *   **Status:** `COMPLETED` (Commit: `f2e8c257`, App Version: `v3.2.5.0.P`)
+
+*   **Task v3.2.5.0.Q: Integrate On-Demand AI Button State into Global FSM**
+    *   **Status:** `COMPLETED` (Commit: `4fe5a570`, App Version: `v3.2.5.0.Q`)
 
 ---
 
@@ -163,6 +176,7 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 
 ## 7. Document Changelog
 
+*   **v1.20 (2025-06-22):** Marked Task `v3.2.5.0.Q` (FSM Button State Integration) as `COMPLETED`.
 *   **v1.19 (2025-06-22):** Marked Task `v3.2.5.0.L` (FSM Debug Tab Migration) as `COMPLETED`. Updated status of duplicate log debugging task series to `SHELVED`.
 *   **v1.18 (2025-06-21):** Added planned Task `v3.2.5.0.G` for duplicate log prevention.
 *   **v1.17 (2025-06-21):** Marked tasks `v3.2.5.0.D` through `v3.2.5.0.F` (commit `f34f5128`) as `COMPLETED`. Summarized the iterative bug fixes for the logging system and FSM orchestrator. App Version `v3.2.5.0.F`.
@@ -187,3 +201,4 @@ The proposed solution involves creating a single, robust FSM, likely managed wit
 ---
 This document will be updated as the feature progresses through its implementation phases.
     
+

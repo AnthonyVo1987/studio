@@ -1,10 +1,10 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y.z)
 
-**Document Version:** 1.19
+**Document Version:** 1.20
 **Date:** 2025-06-22
 **Feature Target Application Version Series:** 3.2.x.y.z
-**Current App Version (FSM Debug Tab Migration):** `v3.2.5.0.L` (Commit: `36cfe3d5`)
+**Current App Version (FSM Button State Integration):** `v3.2.5.0.Q` (Commit: `4fe5a570`)
 
 ## 1. Overall Feature Status
 
@@ -12,14 +12,8 @@
 **Last Updated:** 2025-06-22
 
 **Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM.
-*   **Phase 1: Foundation & Core FSM Setup is COMPLETE.** (App Version `v3.2.1.3.0`, Commit `57c7e8b0`)
-*   **Phase 2: Integrating Manual AI Actions is COMPLETE.** (App Version `v3.2.2.1.0`, Commit `0a0ba41c`)
-*   **Phase 3: Integrating Chat & Debug Console Menus is COMPLETE.** (App Version `v3.2.3.2.0`, Commit `7f0e552b`)
-*   **Phase 4: Clean Up & Finalize Debugging Tools is COMPLETE.** (App Version `v3.2.4.1.0`, Phase Commit `c661f9d1`)
-*   **Phase 5: Testing and Debugging is IN PROGRESS.**
-    *   Sub-tasks up to `v3.2.5.0.F` (commit `f34f5128`) addressed critical bugs in FSM orchestration and logging.
-    *   The duplicate log investigation (`v3.2.5.0.G-K`) has been **shelved** due to complexity.
-    *   **Latest Completion:** Task `v3.2.5.0.L` (commit `36cfe3d5`) migrated the FSM monitor to a dedicated debug tab.
+*   **Phase 1-4:** COMPLETE.
+*   **Phase 5 (Testing & Debugging):** IN PROGRESS. Iterations up to `v3.2.5.0.Q` have fixed tab-switching state persistence, introduced UI log suppression toggles, fixed a critical bug with the AI Chat Macro getting stuck, and centralized the state management for the manual AI analysis buttons, removing the final piece of straggler logic from client components.
 
 ## 2. Phase & Task Status
 
@@ -46,6 +40,11 @@
     *   **Task v3.2.5.0.F (Consolidated Logging Fixes):** - `COMPLETED` (Commit: `f34f5128`)
     *   **Task v3.2.5.0.G - v3.2.5.0.K (Duplicate Log Investigation):** - `SHELVED`
     *   **Task v3.2.5.0.L (FSM Debug Tab Migration):** - `COMPLETED` (Commit: `36cfe3d5`)
+    *   **Task v3.2.5.0.M (Fix Tab Switching State Reset):** - `COMPLETED` (Commit: `f8e8a609`)
+    *   **Task v3.2.5.0.N (UI/Render Log Toggle Feature):** - `COMPLETED` (Commit: `37a75908`)
+    *   **Task v3.2.5.0.O (Fix UI Log Spam Suppression):** - `COMPLETED` (Commit: `99a0f7e1`)
+    *   **Task v3.2.5.0.P (Fix Stuck Chat Macro):** - `COMPLETED` (Commit: `f2e8c257`)
+    *   **Task v3.2.5.0.Q (Integrate On-Demand AI Button State):** - `COMPLETED` (Commit: `4fe5a570`)
 
 ### **Phase 6: Documentation Updates (FEAT Phase 'x' = 6)**
 *   **Overall Phase Status:** `PLANNED`
@@ -57,6 +56,11 @@
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                                                                                                                                                         | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
+| 2025-06-22 | `v3.2.5.0.Q` (FSM Button State)          | `4fe5a570`                  | **Centralized Manual AI Button State (Phase 5).** Migrated logic for enabling/disabling on-demand AI buttons into the global FSM, adding new flags (`isManualKeyTakeawaysActionPossible`, etc.) and removing local state from `MainTabContent`. App metadata: `v3.2.5.0.Q`. | COMPLETED   |
+| 2025-06-22 | `v3.2.5.0.P` (Fix Stuck Chat Macro)      | `f2e8c257`                  | **Fixed Stuck Chat Macro (Phase 5).** Moved `useActionState` for chat action into the persistent `StockAnalysisContext` to prevent state loss on tab switch, fixing a critical bug where the AI analysis macro would get stuck. App metadata: `v3.2.5.0.P`.    | COMPLETED   |
+| 2025-06-22 | `v3.2.5.0.O` (Fix Log Spam)              | `99a0f7e1`                  | **Fixed UI Log Spam Suppression (Phase 5).** Correctly categorized validation logs from `isDataReadyForProcessing` utility so that the "Enable UI/Render Log Spam" toggle now correctly suppresses them. App metadata: `v3.2.5.0.O`.                            | COMPLETED   |
+| 2025-06-22 | `v3.2.5.0.N` (UI Log Toggle)             | `37a75908`                  | **Implemented UI Log Toggle (Phase 5).** Added state and a UI toggle (disabled by default) to suppress high-frequency UI component render/prop logs, cleaning up the debug console. App metadata: `v3.2.5.0.N`.                                               | COMPLETED   |
+| 2025-06-22 | `v3.2.5.0.M` (Fix Tab Switch Reset)      | `f8e8a609`                  | **Fixed Tab Switch State Reset (Phase 5).** Migrated the ticker input field's state to the global FSM, preventing it from resetting to default when switching tabs. App metadata: `v3.2.5.0.M`.                                                                | COMPLETED   |
 | 2025-06-22 | `v3.2.5.0.L` (FSM Debug Tab)             | `36cfe3d5`                  | **FSM Debug Tab Migration (Phase 5).** Replaced the floating FSM monitor with a dedicated "FSM Debug" tab for improved UI/UX. Migrated display and export logic to the new tab and removed the old component and its state. App metadata: `v3.2.5.0.L`. | COMPLETED   |
 | 2025-06-21 | `v3.2.5.0.G` (Shelve Log Debugging)      | `2333f096` (Revert)         | **Shelved Duplicate Log Investigation.** Reverted codebase to a stable state (`v3.2.5.0.G` codebase). The investigation into duplicate client-side logs (`v3.2.5.0.G` through `v3.2.5.0.K`) is paused.                                                              | SHELVED     |
 | 2025-06-21 | `v3.2.5.0.F`                             | `f34f5128`                  | **Consolidated Logging Fixes (Phase 5 Iteration).** Fixed "Reduced Startup Logging" by tying it to the FSM's `isInitialLoad` variable. Resolved a `useEffect` infinite loop in the FSM orchestrator. App metadata: `v3.2.5.0.F`.                                                   | COMPLETED   |
@@ -69,6 +73,7 @@
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v1.20 (2025-06-22):** Marked Task `v3.2.5.0.Q` as `COMPLETED`. Updated changelog table and summary.
 *   **v1.19 (2025-06-22):** Marked Task `v3.2.5.0.L` (FSM Debug Tab Migration) as `COMPLETED`.
 *   **v1.18 (2025-06-21):** Added planned Task `v3.2.5.0.G` for duplicate log prevention. Subsequently updated status of `v3.2.5.0.G-K` series to `SHELVED`.
 *   **v1.17 (2025-06-21):** Marked tasks `v3.2.5.0.D` through `v3.2.5.0.F` as `COMPLETED`. Added consolidated commit entry for `f34f5128`. Current App Version `v3.2.5.0.F`.
@@ -94,3 +99,4 @@
 This status report will be updated as tasks are completed and committed.
 
     
+
