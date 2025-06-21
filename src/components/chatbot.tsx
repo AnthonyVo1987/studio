@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import exampleChatPromptsData from '@/ai/prompts/example-chat-prompts.json';
+import exampleChatPromptsData from '@/ai/definitions/example-chat-prompts.json';
 import type { ExampleChatPrompt, ExampleChatPromptsFile } from '@/ai/prompt-loader';
 
 import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle, Globe } from 'lucide-react';
@@ -235,3 +234,5 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     </Card>
   );
 }
+
+    
