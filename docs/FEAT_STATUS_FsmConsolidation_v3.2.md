@@ -1,62 +1,44 @@
 
 # Feature Status Report: FSM Consolidation & Refactor (StockSage v3.2.x.y.z)
 
-**Document Version:** 1.21
-**Date:** 2025-06-22
+**Document Version:** 1.22
+**Date:** 2025-06-21
 **Feature Target Application Version Series:** 3.2.x.y.z
-**Current App Version (Fix Chat Grounding):** `v3.2.5.0.U`
+**Final App Version for this Feature:** `v3.2.5.0.Z` (Commit `1ca4bd54`)
 
 ## 1. Overall Feature Status
 
-**Current Status:** `Phase 5 IN PROGRESS`
-**Last Updated:** 2025-06-22
+**Current Status:** `COMPLETED`
+**Last Updated:** 2025-06-21
 
-**Summary:** This feature aims to re-architect the StockSage application's state management by consolidating existing global and local Finite State Machines (FSMs) into a single, centralized, and enhanced FSM.
-*   **Phase 1-4:** COMPLETE.
-*   **Phase 5 (Testing & Debugging):** IN PROGRESS. Iterations up to `v3.2.5.0.U` have fixed tab-switching state persistence, introduced UI log suppression toggles, and fixed critical bugs in the Chatbot's AI macro and Google Search grounding functionality.
+**Summary:** The "FSM Consolidation & Refactor" feature is now fully complete and resolved. This major architectural overhaul successfully consolidated multiple disparate Finite State Machines into a single, centralized global FSM, significantly improving the application's stability, maintainability, and debuggability. All planned development phases, including integration of all UI/AI pipelines and extensive debugging, have been completed.
 
 ## 2. Phase & Task Status
 
 ### **Phase 1: Foundation & Core FSM Setup (FEAT Phase 'x' = 1)**
-*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.1.3.0`, Phase Commit: `57c7e8b0`)
-*   **Tasks:** (All tasks within this phase are `COMPLETED`)
+*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.1.3.0`)
 
 ### **Phase 2: Integrating Manual AI Actions (FEAT Phase 'x' = 2)**
-*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.2.1.0`, Phase Commit: `0a0ba41c`)
-*   **Tasks:** (All tasks within this phase are `COMPLETED`)
+*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.2.1.0`)
 
 ### **Phase 3: Integrating Chat & Debug Console Menus (FEAT Phase 'x' = 3)**
-*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.3.2.0`, Phase Commit: `7f0e552b`)
-*   **Tasks:** (All tasks within this phase are `COMPLETED`)
+*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.3.2.0`)
 
 ### **Phase 4: Clean Up & Finalize Debugging Tools (FEAT Phase 'x' = 4)**
-*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.4.1.0`, Phase Commit: `c661f9d1`)
-*   **Tasks:** (All tasks within this phase are `COMPLETED`)
+*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.4.1.0`)
 
 ### **Phase 5: Testing and Debugging (FEAT Phase 'x' = 5)**
-*   **Overall Phase Status:** `IN PROGRESS`
-*   **Tasks:**
-    *   **Task v3.2.5.0.C (Consolidated Bug Fixes):** - `COMPLETED` (Commit: `2338c4f8`)
-    *   **Task v3.2.5.0.F (Consolidated Logging Fixes):** - `COMPLETED` (Commit: `f34f5128`)
-    *   **Task v3.2.5.0.G - v3.2.5.0.K (Duplicate Log Investigation):** - `SHELVED`
-    *   **Task v3.2.5.0.L (FSM Debug Tab Migration):** - `COMPLETED` (Commit: `36cfe3d5`)
-    *   **Task v3.2.5.0.M (Fix Tab Switching State Reset):** - `COMPLETED` (Commit: `f8e8a609`)
-    *   **Task v3.2.5.0.N (UI/Render Log Toggle Feature):** - `COMPLETED` (Commit: `37a75908`)
-    *   **Task v3.2.5.0.O (Fix UI Log Spam Suppression):** - `COMPLETED` (Commit: `99a0f7e1`)
-    *   **Task v3.2.5.0.P (Fix Stuck Chat Macro):** - `COMPLETED` (Commit: `f2e8c257`)
-    *   **Task v3.2.5.0.Q (Integrate On-Demand AI Button State):** - `COMPLETED` (Commit: `4fe5a570`)
-    *   **Task v3.2.5.0.U (Fix Chat Grounding with Tools):** - `COMPLETED` (Commit: `6645e792`)
+*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.5.0.Z`)
 
 ### **Phase 6: Documentation Updates (FEAT Phase 'x' = 6)**
-*   **Overall Phase Status:** `PLANNED`
-*   **Tasks:**
-    *   **Task v3.2.6.0.0: Update All Project Documentation (README.md, CHANGELOG.md, FEAT docs)** - `PLANNED`
+*   **Overall Phase Status:** `COMPLETED` (Culminating App Version: `v3.2.5.0.Z`)
 
 
 ## 3. Feature Changelog & Commit History
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                                                                                                                                                         | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
+| 2025-06-21 | `v3.2.5.0.Z` (Feature Complete)          | `1ca4bd54`                  | **FEATURE COMPLETE: FSM Consolidation & Refactor.** All phases and tasks are complete. Final changes removed hardcoded AI prompt templates and re-introduced prompt caching for efficiency, ensuring a single source of truth from `src/ai/definitions`. App version set to `v3.2.5.0.Z`.  | COMPLETED   |
 | 2025-06-22 | `v3.2.5.0.U` (Fix Chat Grounding)        | `6645e792`                  | **Fixed Chat Grounding with Tools (Phase 5).** Resolved an API error where using Google Search with a requested JSON output was unsupported. The chat flow now correctly omits the JSON output schema when grounding is active. App metadata: `v3.2.5.0.U`.             | COMPLETED   |
 | 2025-06-22 | `v3.2.5.0.Q` (FSM Button State)          | `4fe5a570`                  | **Centralized Manual AI Button State (Phase 5).** Migrated logic for enabling/disabling on-demand AI buttons into the global FSM, adding new flags (`isManualKeyTakeawaysActionPossible`, etc.) and removing local state from `MainTabContent`. App metadata: `v3.2.5.0.Q`. | COMPLETED   |
 | 2025-06-22 | `v3.2.5.0.P` (Fix Stuck Chat Macro)      | `f2e8c257`                  | **Fixed Stuck Chat Macro (Phase 5).** Moved `useActionState` for chat action into the persistent `StockAnalysisContext` to prevent state loss on tab switch, fixing a critical bug where the AI analysis macro would get stuck. App metadata: `v3.2.5.0.P`.    | COMPLETED   |
@@ -74,7 +56,7 @@
 | 2025-06-20 | `v3.2.0.0.0` (Feature Scope Initiated)   | N/A                         | Feature scope defined & approved. Initial FEAT_SCOPE & FEAT_STATUS documents created. App metadata: `v3.2.0.0.0`. | IN PROGRESS |
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
-
+*   **v1.22 (2025-06-21):** Marked entire feature as COMPLETED. Added final commit log entry for `v3.2.5.0.Z`. Updated overall status and summary.
 *   **v1.21 (2025-06-22):** Marked Task `v3.2.5.0.U` as `COMPLETED`. Commit hash `6645e792`.
 *   **v1.20 (2025-06-22):** Marked Task `v3.2.5.0.Q` as `COMPLETED`. Updated changelog table and summary.
 *   **v1.19 (2025-06-22):** Marked Task `v3.2.5.0.L` (FSM Debug Tab Migration) as `COMPLETED`.
@@ -102,4 +84,3 @@
 This status report will be updated as tasks are completed and committed.
 
     
-

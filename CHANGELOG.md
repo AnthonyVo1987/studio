@@ -58,6 +58,25 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.5.0.Z` (Complete FSM Consolidation)
+**Tag:** `Phase-24_Task-3.2.5.0.Z_CompleteFsmConsolidation` (Commit `1ca4bd54`)
+**Subject:** `feat(fsm,core): Complete FSM Consolidation & Refactor feature (v3.2.5.0.Z)`
+**Details:**
+This commit (`1ca4bd54`) marks the full and successful completion of the **"FSM Consolidation & Refactor"** feature (v3.2.x.y.z series). This major architectural enhancement involved migrating all primary application state and UI logic—previously managed by multiple disparate FSMs—into a single, robust, and centralized Finite State Machine in `StockAnalysisContext`.
+
+**Key Achievements in the FSM Consolidation & Refactor (v3.2) Feature:**
+*   **Single Source of Truth:** The application now operates on a single global FSM. This orchestrates all major pipelines, including automated data analysis, on-demand AI actions (Key Takeaways, Options Analysis), and the full AI Chatbot lifecycle (interactive queries, macro-driven prompts, and Google Search grounding).
+*   **Architectural Simplification:** Local FSMs in `MainTabContent`, `ChatbotFsmContext`, and `DebugConsoleFsmContext` were successfully deprecated and their logic absorbed by the global FSM. This has significantly reduced state management complexity and improved code maintainability.
+*   **Enhanced State Management:** The new FSM utilizes a comprehensive set of states (`GlobalFsmState`), flags (`GlobalFsmFlags`), and context variables (`GlobalFsmContextVariables`), providing granular and predictable control over the application's behavior and UI state.
+*   **Improved Debuggability:** FSM-related debug tooling was enhanced. The `FsmDebugTabContent` provides a clear, real-time view of the single FSM's state, flags, and variables. Log exports were updated to include this snapshot, greatly aiding in troubleshooting.
+*   **Bug Fixes & Stability:** Throughout the refactoring process, numerous bugs related to state synchronization, race conditions, and UI inconsistencies were resolved. This includes critical fixes for tab-switching bugs that caused state loss, stuck AI macros, and broken chat grounding.
+*   **AI Prompt Integrity:** As part of the final debugging phase (`v3.2.5.0.Z`), all lingering hardcoded/deprecated AI prompt templates were removed from the codebase, ensuring that all AI actions correctly source their logic from the JSON definitions in `src/ai/definitions/`.
+
+**Outcome of v3.2.5.0.Z:**
+*   The application is more stable, predictable, and easier to debug.
+*   The state management architecture is now scalable and prepared for future feature development.
+*   The application version is consistently `v3.2.5.0.Z`, reflecting the completion of this major refactoring effort.
+---
 **App Version:** `v3.2.5.0.U` (Fix Chat Grounding with Tools)
 **Tag:** `Phase-23_Task-3.2.5.0.U_FixChatGroundingWithTools` (Commit `6645e792`)
 **Subject:** `fix(ai,chat): Resolve unsupported tool use error for chat grounding (v3.2.5.0.U)`
@@ -688,6 +707,8 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
+
 
 
 

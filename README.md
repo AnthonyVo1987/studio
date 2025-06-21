@@ -25,9 +25,9 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.69
-**Application Version (from `app-metadata.json`):** v3.2.5.0.U
-**Last Updated:** 2025-06-22
+**README Document Version:** 1.70
+**Application Version (from `app-metadata.json`):** v3.2.5.0.Z
+**Last Updated:** 2025-06-21
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -122,7 +122,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
     *   Prompts correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }`.
     *   Safety settings are defined in these JSONs.
-    *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings.
+    *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
     *   **Grounding with Google Search:** The chat flow conditionally enables grounding by adding `{ googleSearch: {} }` to the `tools` array in the prompt definition. It also correctly omits the `output` schema when grounding is active, as this is an API requirement.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
@@ -134,27 +134,24 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Policy (Strictly Enforced):** Sole source for `appVersion`. Dynamically loaded and used.
     *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
-#### 3.2.4. State Management (Target Architecture for v3.2.x.y.z - FSM Consolidation)
+#### 3.2.4. State Management (as of v3.2.5.0.Z)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
     *   Fetched data JSON strings.
-    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the new "AI Full Stock Analysis" macro.
-    *   Client-side debug logging.
-    *   Chat history and server action state (`useActionState`) for the chatbot.
-    *   UI states for debug console and FSM debug card visibility.
-*   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM.
-*   **`useActionState` (React Hook):** Manages server action lifecycles. The `chatServerAction`'s state is correctly managed within the persistent `StockAnalysisContext` to prevent state loss on tab switches.
+    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the "AI Full Stock Analysis" macro.
+    *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
+    *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
+*   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.U)
-*   **Single Global Application FSM (managed in `StockAnalysisContext`):**
-    *   Orchestrates all application pipelines: standard automated, "AI Full Stock Analysis" macro, manual AI actions, and chat interactions.
-    *   Manages `GlobalFsmFlags` and `GlobalFsmContextVariables`.
-    *   **Phases 1-4 Completion:** Foundation, manual AI actions, chat/debug menus, and debug tooling integration are complete.
-    *   **Phase 5 (Testing & Debugging):** IN PROGRESS. Iterations up to `v3.2.5.0.U` have fixed tab-switching bugs, integrated UI log suppression toggles, and fixed critical bugs in the Chatbot's AI macro and Google Search grounding functionality.
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.Z)
+*   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
+*   **Lifecycle Management:** This FSM orchestrates all application pipelines: the standard automated analysis, the "AI Full Stock Analysis" macro, all on-demand AI actions, and all chat interactions (including grounded queries).
+*   **Deprecated FSMs:** Local FSMs previously in `MainTabContent`, `ChatbotFsmContext`, and `DebugConsoleFsmContext` have been removed, and their logic has been fully absorbed by the global FSM.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
 *   Flows load definitions using `src/ai/definition-loader.ts`.
-*   All flows include error handling and execution time logging. Prompts are cached.
+*   All flows include error handling and execution time logging. Prompts are cached for performance.
+*   Example chat prompts for the UI are sourced from `src/ai/definitions/example-chat-prompts.json`.
 
 ### 3.4. Error Handling & Logging
 
@@ -166,8 +163,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Client-Side Logging:**
     *   Primary Method: `logDebug()` from `useStockAnalysis()`.
     *   Console Interception: `StockAnalysisContext` intercepts `console.*` calls.
-    *   **Startup Logging Control:** `isReducedStartupLoggingEnabled` toggle works in conjunction with the FSM's `isInitialLoad` variable. The log interceptor now correctly depends on this variable to re-evaluate its behavior, ensuring reduced logging is *only* active during the very first pipeline run.
-    *   **UI/Render Log Spam Control:** A dedicated `isUiRenderLoggingEnabled` toggle (disabled by default) suppresses high-frequency logs from UI components related to re-renders and prop changes (logs categorized as 'RenderState', 'PropsReceived', 'Validation').
+    *   **Startup Logging Control:** `isReducedStartupLoggingEnabled` toggle works in conjunction with the FSM's `isInitialLoad` variable.
+    *   **UI/Render Log Spam Control:** A dedicated `isUiRenderLoggingEnabled` toggle (disabled by default) suppresses high-frequency logs from UI components.
 *   **Server-Side Logging:** `console.log`, etc., with standardized prefixes.
 *   **Debug Console (`src/components/debug-console.tsx`):**
     *   Displays client-side logs (up to 1000 entries). Features filtering, search, wrap indicator.
@@ -178,10 +175,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Debugging Status (as of v3.2.5.0.U):**
-    *   "FSM Consolidation & Refactor" (v3.2.x.y.z):
-        *   Phases 1-4 are **COMPLETE**.
-        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.U` (commit `6645e792`) fixed critical bugs with the Chatbot's AI macro getting stuck on tab switch and the "Grounding with Google Search" feature failing due to an API constraint.
+*   **Debugging Status (as of v3.2.5.0.Z):**
+    *   **"FSM Consolidation & Refactor" (v3.2.x.y.z): COMPLETE.** The feature is fully implemented, tested, and documented as of commit `1ca4bd54`.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -192,7 +187,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.4. Server & AI Conventions (Genkit 1.x)
 *   Next.js App Router, Server Components, Server Actions. Genkit. Genkit 1.x API. `thinkingConfig`. JSON prompt definitions with Handlebars. Tools.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.U and New Versioning Scheme)
+### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.Z and New Versioning Scheme)
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
@@ -234,8 +229,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.69
-*   **Current Application Version:** `v3.2.5.0.U`
+*   **This README Document Version:** 1.70
+*   **Current Application Version:** `v3.2.5.0.Z`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
@@ -244,4 +239,3 @@ npm run start
 ---
 
     
-
