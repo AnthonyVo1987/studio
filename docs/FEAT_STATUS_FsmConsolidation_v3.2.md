@@ -45,7 +45,7 @@
     *   **Task v3.2.5.0.O (Fix UI Log Spam Suppression):** - `COMPLETED` (Commit: `99a0f7e1`)
     *   **Task v3.2.5.0.P (Fix Stuck Chat Macro):** - `COMPLETED` (Commit: `f2e8c257`)
     *   **Task v3.2.5.0.Q (Integrate On-Demand AI Button State):** - `COMPLETED` (Commit: `4fe5a570`)
-    *   **Task v3.2.5.0.U (Fix Chat Grounding with Tools):** - `COMPLETED`
+    *   **Task v3.2.5.0.U (Fix Chat Grounding with Tools):** - `COMPLETED` (Commit: `6645e792`)
 
 ### **Phase 6: Documentation Updates (FEAT Phase 'x' = 6)**
 *   **Overall Phase Status:** `PLANNED`
@@ -57,7 +57,7 @@
 
 | Date       | App Version Tag (FEAT Task ID.BugFix#) | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                                                                                                                                                         | Status      |
 | :--------- | :--------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
-| 2025-06-22 | `v3.2.5.0.U` (Fix Chat Grounding)        |                             | **Fixed Chat Grounding with Tools (Phase 5).** Resolved an API error where using Google Search with a requested JSON output was unsupported. The chat flow now correctly omits the JSON output schema when grounding is active. App metadata: `v3.2.5.0.U`.             | COMPLETED   |
+| 2025-06-22 | `v3.2.5.0.U` (Fix Chat Grounding)        | `6645e792`                  | **Fixed Chat Grounding with Tools (Phase 5).** Resolved an API error where using Google Search with a requested JSON output was unsupported. The chat flow now correctly omits the JSON output schema when grounding is active. App metadata: `v3.2.5.0.U`.             | COMPLETED   |
 | 2025-06-22 | `v3.2.5.0.Q` (FSM Button State)          | `4fe5a570`                  | **Centralized Manual AI Button State (Phase 5).** Migrated logic for enabling/disabling on-demand AI buttons into the global FSM, adding new flags (`isManualKeyTakeawaysActionPossible`, etc.) and removing local state from `MainTabContent`. App metadata: `v3.2.5.0.Q`. | COMPLETED   |
 | 2025-06-22 | `v3.2.5.0.P` (Fix Stuck Chat Macro)      | `f2e8c257`                  | **Fixed Stuck Chat Macro (Phase 5).** Moved `useActionState` for chat action into the persistent `StockAnalysisContext` to prevent state loss on tab switch, fixing a critical bug where the AI analysis macro would get stuck. App metadata: `v3.2.5.0.P`.    | COMPLETED   |
 | 2025-06-22 | `v3.2.5.0.O` (Fix Log Spam)              | `99a0f7e1`                  | **Fixed UI Log Spam Suppression (Phase 5).** Correctly categorized validation logs from `isDataReadyForProcessing` utility so that the "Enable UI/Render Log Spam" toggle now correctly suppresses them. App metadata: `v3.2.5.0.O`.                            | COMPLETED   |
@@ -75,7 +75,7 @@
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
-*   **v1.21 (2025-06-22):** Marked Task `v3.2.5.0.U` as `COMPLETED`.
+*   **v1.21 (2025-06-22):** Marked Task `v3.2.5.0.U` as `COMPLETED`. Commit hash `6645e792`.
 *   **v1.20 (2025-06-22):** Marked Task `v3.2.5.0.Q` as `COMPLETED`. Updated changelog table and summary.
 *   **v1.19 (2025-06-22):** Marked Task `v3.2.5.0.L` (FSM Debug Tab Migration) as `COMPLETED`.
 *   **v1.18 (2025-06-21):** Added planned Task `v3.2.5.0.G` for duplicate log prevention. Subsequently updated status of `v3.2.5.0.G-K` series to `SHELVED`.
@@ -102,3 +102,4 @@
 This status report will be updated as tasks are completed and committed.
 
     
+

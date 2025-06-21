@@ -181,7 +181,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Debugging Status (as of v3.2.5.0.U):**
     *   "FSM Consolidation & Refactor" (v3.2.x.y.z):
         *   Phases 1-4 are **COMPLETE**.
-        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.U` fixed critical bugs with the Chatbot's AI macro getting stuck on tab switch and the "Grounding with Google Search" feature failing due to an API constraint.
+        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.U` (commit `6645e792`) fixed critical bugs with the Chatbot's AI macro getting stuck on tab switch and the "Grounding with Google Search" feature failing due to an API constraint.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -244,3 +244,4 @@ npm run start
 ---
 
     
+

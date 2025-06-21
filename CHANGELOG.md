@@ -58,6 +58,24 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.2.5.0.U` (Fix Chat Grounding with Tools)
+**Tag:** `Phase-23_Task-3.2.5.0.U_FixChatGroundingWithTools` (Commit `6645e792`)
+**Subject:** `fix(ai,chat): Resolve unsupported tool use error for chat grounding (v3.2.5.0.U)`
+**Details:**
+This commit (`6645e792`) fixes a critical bug where the "Grounding with Google Search" feature in the chatbot would fail immediately. The root cause was an API limitation: the Google Generative AI API does not support using tools (like Google Search) when a structured JSON output (`output: {schema: ...}`) is also requested in the same prompt.
+
+**Key Changes in v3.2.5.0.U:**
+*   **`src/ai/flows/chat-flow.ts`:**
+    *   The `getChatPrompt` helper function was updated to conditionally configure the prompt.
+    *   **If grounding is DISABLED**, the prompt is defined with `output: {schema: ChatOutputSchema}` as before to get a structured JSON response.
+    *   **If grounding is ENABLED**, the `output` property is **omitted** from the prompt definition, and `tools: [{ googleSearch: {} }]` is added. This tells the API to expect a simple text response, which is compatible with tool use.
+    *   The main `chatFlow` logic was updated to handle both response types. It checks if grounding was enabled and extracts the response from either `result.text` (for grounded queries) or `result.output.response` (for standard queries), then returns it in the expected `ChatOutput` format.
+*   **Application Metadata:** Version updated to `v3.2.5.0.U`.
+
+**Outcome of v3.2.5.0.U:**
+*   The "Grounding with Google Search" feature is now fully functional.
+*   Users can enable the toggle to ask real-time questions, and the AI will correctly use Google Search to generate a response without causing an API error.
+---
 **App Version:** `v3.2.5.0.Q` (FSM Button State Integration)
 **Tag:** `Phase-19_Task-3.2.5.0.Q_FSM_ButtonStateIntegration` (Commit `4fe5a570`)
 **Subject:** `feat(fsm,ui): Centralize on-demand AI button state in global FSM (v3.2.5.0.Q)`
@@ -670,6 +688,8 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
+
 
 
 

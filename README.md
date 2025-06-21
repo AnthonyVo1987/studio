@@ -25,8 +25,8 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.68
-**Application Version (from `app-metadata.json`):** v3.2.5.0.Q (Commit `4fe5a570` - FSM Button State Integration)
+**README Document Version:** 1.69
+**Application Version (from `app-metadata.json`):** v3.2.5.0.U
 **Last Updated:** 2025-06-22
 
 ## 1. Introduction
@@ -72,7 +72,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **AI Key Takeaways:** Generate five key takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with associated sentiment, based on stock data.
 *   **AI Analyzed Technical Analysis (Pivot Points):** Calculate standard daily pivot points (PP, S1-S3, R1-R3) based on previous day HLC.
 *   **AI Options Analysis:** Analyze the options chain to identify significant Call and Put "Walls" (up to 3 each) based on Open Interest and/or Volume.
-*   **AI Chatbot:** Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data (snapshot, TAs, AI analyses, options data).
+*   **AI Chatbot:**
+    *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
+    *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot. When enabled, the chatbot can answer questions about real-time news, events, and other information beyond the application's static data. This mode is independent of whether a stock has been analyzed.
 *   **AI Full Stock Analysis Macro:** A button to trigger a sequential, automated pipeline of: Data Fetch & AI TA -> AI Key Takeaways -> AI Options Analysis -> Stock Trader Chat Prompt -> Options Trader Chat Prompt -> Holistic Chat Prompt.
 *   Leverage Genkit flows for all AI functionalities.
 
@@ -121,6 +123,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Prompts correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }`.
     *   Safety settings are defined in these JSONs.
     *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings.
+    *   **Grounding with Google Search:** The chat flow conditionally enables grounding by adding `{ googleSearch: {} }` to the `tools` array in the prompt definition. It also correctly omits the `output` schema when grounding is active, as this is an API requirement.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
 #### 3.2.3. Data Sources
@@ -139,14 +142,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and server action state (`useActionState`) for the chatbot.
     *   UI states for debug console and FSM debug card visibility.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM.
-*   **`useActionState` (React Hook):** Manages server action lifecycles.
+*   **`useActionState` (React Hook):** Manages server action lifecycles. The `chatServerAction`'s state is correctly managed within the persistent `StockAnalysisContext` to prevent state loss on tab switches.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.Q - FSM Consolidation Phase 5 In Progress)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.U)
 *   **Single Global Application FSM (managed in `StockAnalysisContext`):**
     *   Orchestrates all application pipelines: standard automated, "AI Full Stock Analysis" macro, manual AI actions, and chat interactions.
     *   Manages `GlobalFsmFlags` and `GlobalFsmContextVariables`.
     *   **Phases 1-4 Completion:** Foundation, manual AI actions, chat/debug menus, and debug tooling integration are complete.
-    *   **Phase 5 (Testing & Debugging):** IN PROGRESS. Iterations up to `v3.2.5.0.Q` (commit `4fe5a570`) have fixed tab-switching bugs, integrated UI log suppression toggles, and fully centralized manual AI button state logic into the FSM.
+    *   **Phase 5 (Testing & Debugging):** IN PROGRESS. Iterations up to `v3.2.5.0.U` have fixed tab-switching bugs, integrated UI log suppression toggles, and fixed critical bugs in the Chatbot's AI macro and Google Search grounding functionality.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -175,11 +178,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Debugging Status (as of v3.2.5.0.Q):**
+*   **Debugging Status (as of v3.2.5.0.U):**
     *   "FSM Consolidation & Refactor" (v3.2.x.y.z):
         *   Phases 1-4 are **COMPLETE**.
-        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.Q` (commit `4fe5a570`) finalized the integration of manual AI button state into the global FSM.
-        *   The investigation into duplicate logs remains temporarily shelved.
+        *   Phase 5 (Testing & Debugging) is **IN PROGRESS**. Iteration `v3.2.5.0.U` (commit `6645e792`) fixed critical bugs with the Chatbot's AI macro getting stuck on tab switch and the "Grounding with Google Search" feature failing due to an API constraint.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -190,7 +192,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.4. Server & AI Conventions (Genkit 1.x)
 *   Next.js App Router, Server Components, Server Actions. Genkit. Genkit 1.x API. `thinkingConfig`. JSON prompt definitions with Handlebars. Tools.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.Q and New Versioning Scheme)
+### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.U and New Versioning Scheme)
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
@@ -232,8 +234,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.68
-*   **Current Application Version:** `v3.2.5.0.Q` (Commit `4fe5a570` - FSM Button State Integration)
+*   **This README Document Version:** 1.69
+*   **Current Application Version:** `v3.2.5.0.U`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
