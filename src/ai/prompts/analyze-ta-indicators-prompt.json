@@ -1,6 +1,3 @@
-
 {
-  "promptName": "analyze-ta-indicators",
-  "description": "Configuration for calculating technical analysis indicators. Currently supports pivot points.",
-  "calculationType": "pivotPoints_v1"
+  "error": "This file is deprecated and should not be used. Please reference definitions from src/ai/definitions/."
 }
