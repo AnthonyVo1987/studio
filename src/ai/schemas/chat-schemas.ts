@@ -27,6 +27,7 @@ export const ChatInputSchema = z.object({
       content: z.string(),
     })).optional().describe('Previous turns in the conversation. Optional.'),
   userInput: z.string().describe('The latest question or statement from the user.'),
+  isChatGroundingEnabled: z.boolean().optional().describe('When true, the model should use Google Search to ground its response with real-time information.'),
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 

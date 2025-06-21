@@ -27,6 +27,7 @@ export interface ChatActionInputs {
   aiOptionsAnalysisJson?: string;
   chatHistory?: Array<{ role: 'user' | 'model'; content: string }>;
   userInput: string;
+  isChatGroundingEnabled?: boolean;
 }
 
 export async function chatServerAction(
@@ -40,10 +41,11 @@ export async function chatServerAction(
     aiAnalyzedTaJson,
     aiOptionsAnalysisJson,
     chatHistory,
-    userInput
+    userInput,
+    isChatGroundingEnabled
   } = payload;
   const actionLogPrefix = `[ServerAction:chatServerAction:Ticker:${ticker}]`;
-  console.log(`${actionLogPrefix} Action_Entry - Received request. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}. PrevState status: ${prevState.status}`);
+  console.log(`${actionLogPrefix} Action_Entry - Received request. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}. Grounding: ${isChatGroundingEnabled}. PrevState status: ${prevState.status}`);
 
 
   if (!userInput || userInput.trim() === '') {
@@ -83,10 +85,11 @@ export async function chatServerAction(
     aiOptionsAnalysisJson: aiOptionsAnalysisJson || "{}",
     chatHistory: chatHistory || [],
     userInput,
+    isChatGroundingEnabled: isChatGroundingEnabled || false,
   };
 
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
-  console.log(`${actionLogPrefix} Action_PreFlowCall - Calling chatWithBot flow. Input keys: ${Object.keys(flowInput).join(', ')}. History length: ${flowInput.chatHistory.length}.`);
+  console.log(`${actionLogPrefix} Action_PreFlowCall - Calling chatWithBot flow. Grounding enabled: ${flowInput.isChatGroundingEnabled}. Input keys: ${Object.keys(flowInput).join(', ')}. History length: ${flowInput.chatHistory.length}.`);
 
   try {
     const flowOutput: ChatOutput = await chatWithBot(flowInput);
@@ -115,4 +118,3 @@ export async function chatServerAction(
     };
   }
 }
-

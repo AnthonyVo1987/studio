@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import exampleChatPromptsData from '@/ai/prompts/example-chat-prompts.json';
 import type { ExampleChatPrompt, ExampleChatPromptsFile } from '@/ai/prompt-loader';
 
-import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle, Globe } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +44,9 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     chatHistory: globalChatHistory,
     clearChatHistory: clearGlobalChatHistory,
     logDebug: globalLogDebug,
-    fsmState: globalFsmState, 
+    fsmState: globalFsmState,
+    isChatGroundingEnabled,
+    setChatGroundingEnabled,
   } = useStockAnalysis();
 
   const {
@@ -110,44 +114,58 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
   const isProcessing = isAnyAnalysisInProgress; 
 
   return (
-    <Card className="flex flex-col h-[600px]">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div>
-          <CardTitle className="flex items-center text-lg">
-            <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-            StockSage AI Chat
-          </CardTitle>
-          <CardDescription className="text-xs mt-1">
-            Ask about {currentTickerForDisplay || "the stock"}. (Inputs disabled during analysis or chat processing)
-          </CardDescription>
+    <Card className="flex flex-col h-[650px]">
+      <CardHeader className="flex flex-col gap-4 pb-2">
+        <div className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center text-lg">
+                <MessageSquare className="mr-2 h-5 w-5 text-primary" />
+                StockSage AI Chat
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">
+                Ask about {currentTickerForDisplay || "the stock"}. (Inputs disabled during analysis or chat processing)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-1">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" title="Clear Chat History" disabled={globalChatHistory.length === 0 || isProcessing}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete the current chat history. This action cannot be undone.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { clearGlobalChatHistory(); toast({title: "Chat Cleared"}); }}>Continue</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+              <Button variant="ghost" size="icon" onClick={handleCopyChat} title="Copy Chat (JSON)" disabled={globalChatHistory.length === 0 || isProcessing}>
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleExportChat} title="Export Chat (JSON)" disabled={globalChatHistory.length === 0 || isProcessing}>
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
         </div>
-        <div className="flex items-center gap-1">
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" title="Clear Chat History" disabled={globalChatHistory.length === 0 || isProcessing}>
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will permanently delete the current chat history. This action cannot be undone.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { clearGlobalChatHistory(); toast({title: "Chat Cleared"}); }}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-          <Button variant="ghost" size="icon" onClick={handleCopyChat} title="Copy Chat (JSON)" disabled={globalChatHistory.length === 0 || isProcessing}>
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleExportChat} title="Export Chat (JSON)" disabled={globalChatHistory.length === 0 || isProcessing}>
-            <Download className="h-4 w-4" />
-          </Button>
-        </div>
+        <div className="flex items-center space-x-2 p-2 border rounded-md bg-muted/30">
+            <Globe className="h-4 w-4 text-muted-foreground"/>
+            <Label htmlFor="grounding-toggle" className="flex-grow text-xs font-medium">
+              Enable Google Search for Chat
+            </Label>
+            <Switch
+              id="grounding-toggle"
+              checked={isChatGroundingEnabled}
+              onCheckedChange={setChatGroundingEnabled}
+              disabled={isProcessing}
+            />
+          </div>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col p-4 space-y-4 overflow-hidden">
         <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>

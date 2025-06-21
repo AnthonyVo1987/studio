@@ -4,6 +4,7 @@
  * @fileOverview Implements a contextual chatbot flow for stock-related questions.
  * This flow uses provided stock data, AI analysis, and chat history to respond to user queries.
  * Prompt definition is now loaded from a JSON file.
+ * This flow now supports conditional grounding with Google Search.
  *
  * - chatWithBot - The main function for the chatbot flow.
  * - ChatInput (from schemas) - The input type for the chatWithBot function.
@@ -20,15 +21,23 @@ import {
 import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
-let stockChatBotPromptDefinition: LlmPromptDefinition | null = null;
-let memoizedStockChatBotPrompt: ReturnType<typeof ai.definePrompt> | null = null;
+type PromptVariant = 'standard' | 'grounded';
 
-async function getStockChatBotPrompt() {
-  const logPrefix = '[AIFlow:getStockChatBotPrompt]';
-  if (memoizedStockChatBotPrompt) {
-    // console.log(`${logPrefix} Returning cached/memoized prompt.`);
-    return memoizedStockChatBotPrompt;
+let stockChatBotPromptDefinition: LlmPromptDefinition | null = null;
+let memoizedPrompts: Record<PromptVariant, ReturnType<typeof ai.definePrompt> | null> = {
+  standard: null,
+  grounded: null,
+};
+
+async function getChatPrompt(isGrounded: boolean) {
+  const logPrefix = '[AIFlow:getChatPrompt]';
+  const promptType: PromptVariant = isGrounded ? 'grounded' : 'standard';
+
+  if (memoizedPrompts[promptType]) {
+    return memoizedPrompts[promptType];
   }
+  
+  console.log(`${logPrefix} Defining prompt for the first time. Type: ${promptType}.`);
 
   if (!stockChatBotPromptDefinition) {
     console.log(`${logPrefix} Loading 'stock-chatbot' definition for the first time.`);
@@ -39,7 +48,7 @@ async function getStockChatBotPrompt() {
       throw new Error(errorMsg);
     }
     stockChatBotPromptDefinition = genericDefinition;
-    console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated. Definition keys: ${Object.keys(stockChatBotPromptDefinition).join(', ')}`);
+    console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated.`);
   }
 
   const promptString = buildPromptStringFromLlmDefinition(stockChatBotPromptDefinition!);
@@ -55,6 +64,7 @@ async function getStockChatBotPrompt() {
   const promptConfig: {
     safetySettings: any[];
     thinkingConfig?: { thinkingBudget?: number };
+    tools?: any[];
   } = {
     safetySettings: safetySettings,
   };
@@ -63,24 +73,31 @@ async function getStockChatBotPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: stockChatBotPromptDefinition!.thinkingBudget };
   }
 
-  console.log(`${logPrefix} Defining prompt for the first time. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
+  if (isGrounded) {
+    promptConfig.tools = [{ googleSearch: {} }];
+    console.log(`${logPrefix} Google Search grounding tool ENABLED for this prompt definition.`);
+  }
 
-  memoizedStockChatBotPrompt = ai.definePrompt({
-    name: 'stockChatBotPrompt',
+  console.log(`${logPrefix} Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}.`);
+
+  const prompt = ai.definePrompt({
+    name: `stockChatBotPrompt_${promptType}`,
     input: {schema: ChatInputSchema},
     output: {schema: ChatOutputSchema},
     model: modelId,
     prompt: promptString,
     config: promptConfig,
   });
-  return memoizedStockChatBotPrompt;
+
+  memoizedPrompts[promptType] = prompt;
+  return prompt;
 }
 
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
   console.time('chatFlowExecutionTime');
   const logPrefix = `[AIFlow:chatWithBot:Ticker:${input.ticker}:Entry]`;
-  console.log(`${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}`);
+  console.log(`${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}. Grounding Enabled: ${!!input.isChatGroundingEnabled}`);
   try {
     const result = await chatFlow(input);
     console.timeEnd('chatFlowExecutionTime');
@@ -99,15 +116,16 @@ const chatFlow = ai.defineFlow(
   },
   async (input: ChatInput): Promise<ChatOutput> => {
     const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker}]`;
-    console.log(`${logPrefix} Flow execution started. User input (first 50 chars): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}.`);
+    const isGrounded = input.isChatGroundingEnabled || false;
+    console.log(`${logPrefix} Flow execution started. Grounding: ${isGrounded}. User input (first 50 chars): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}.`);
 
     try {
-      const promptToUse = await getStockChatBotPrompt();
-      console.log(`${logPrefix} Executing stockChatBotPrompt for ticker ${input.ticker}. User input (first 50): "${input.userInput.substring(0,50)}..."`);
+      const promptToUse = await getChatPrompt(isGrounded);
+      console.log(`${logPrefix} Executing stockChatBotPrompt for ticker ${input.ticker}.`);
       const result = await promptToUse(input);
       const outputFromPrompt = result.output;
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
-
+      console.log(`${logPrefix} [Grounding] Search Entries: ${result.usageMetadata?.search?.searchEntries?.length ?? 0}`);
 
       if (!outputFromPrompt) {
           console.error(`${logPrefix} Chatbot AI prompt for ticker ${input.ticker} did not return an output structure.`);
@@ -125,4 +143,3 @@ const chatFlow = ai.defineFlow(
     }
   }
 );
-

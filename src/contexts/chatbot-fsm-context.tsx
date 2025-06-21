@@ -50,7 +50,7 @@ interface ChatbotFsmProviderProps {
   currentGlobalChatHistory: ChatMessage[]; 
   logDebug: (source: string, category: string, ...messages: any[]) => void;
   setChatbotFsmDisplayState: (display: FsmDisplayTuple | null) => void;
-  isGlobalChatPending: boolean; 
+  isChatGroundingEnabled: boolean;
 }
 
 export function ChatbotFsmProvider({
@@ -64,7 +64,7 @@ export function ChatbotFsmProvider({
   currentGlobalChatHistory,
   logDebug,
   setChatbotFsmDisplayState,
-  isGlobalChatPending, 
+  isChatGroundingEnabled,
 }: ChatbotFsmProviderProps) {
   const componentLogSource = 'ChatbotFsmContext';
 
@@ -155,7 +155,7 @@ export function ChatbotFsmProvider({
 
   const handleLocalFsmSubmitRequest = useCallback((directInput?: string) => {
     const inputForSubmission = directInput || state.userInput;
-    if (inputForSubmission.trim() && !isGlobalChatPending) {
+    if (inputForSubmission.trim()) {
       logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Local FSM requests global chat submission with input: "${inputForSubmission.substring(0,30)}"`);
       const chatPayloadForGlobalFsm: ChatActionInputs = {
         ticker: currentTicker,
@@ -165,14 +165,15 @@ export function ChatbotFsmProvider({
         aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
         chatHistory: currentGlobalChatHistory, 
         userInput: inputForSubmission.trim(),
+        isChatGroundingEnabled,
       };
       dispatchGlobalFsmEvent({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
     } else {
-      logDebug(componentLogSource, 'GlobalFSM_DispatchBlocked', `Submission blocked. Input: "${inputForSubmission.trim()}", GlobalChatPending: ${isGlobalChatPending}`);
+      logDebug(componentLogSource, 'GlobalFSM_DispatchBlocked', `Submission blocked. Input empty.`);
     }
   }, [
-    state.userInput, isGlobalChatPending, currentTicker, stockSnapshotJson, aiKeyTakeawaysJson, 
-    aiAnalyzedTaJson, aiOptionsAnalysisJson, currentGlobalChatHistory, dispatchGlobalFsmEvent, logDebug
+    state.userInput, currentTicker, stockSnapshotJson, aiKeyTakeawaysJson, 
+    aiAnalyzedTaJson, aiOptionsAnalysisJson, currentGlobalChatHistory, dispatchGlobalFsmEvent, logDebug, isChatGroundingEnabled
   ]);
 
   const interceptingDispatch = useCallback((event: ChatbotFsmEvent) => {
@@ -207,4 +208,3 @@ export function useChatbotFsm() {
   }
   return context;
 }
-

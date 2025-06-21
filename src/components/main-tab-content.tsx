@@ -35,7 +35,7 @@ export function MainTabContent() {
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, logDebug,
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent, chatHistory: contextChatHistory,
-    setChatbotFsmDisplay,
+    setChatbotFsmDisplay, isChatGroundingEnabled,
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
@@ -106,13 +106,13 @@ export function MainTabContent() {
 
   const getCombinedDataForExport = useCallback(() => {
     const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
-    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent', 'CombinedExport_AiKeyTakeaways', 'RenderState')) { baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}'); }
-    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent', 'CombinedExport_AiOptionsAnalysis', 'RenderState')) { baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}'); }
-    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent', 'CombinedExport_OptionsChain', 'RenderState')) { baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}'); }
+    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent', 'CombinedExport_AiKeyTakeaways', 'Validation')) { baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}'); }
+    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent', 'CombinedExport_AiOptionsAnalysis', 'Validation')) { baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}'); }
+    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent', 'CombinedExport_OptionsChain', 'Validation')) { baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}'); }
     return baseData;
   }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
 
-  const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'RenderState') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'RenderState') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'RenderState') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'RenderState');
+  const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'Validation') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'Validation') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'Validation') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'Validation');
   const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
 
   const handleExportAllToJson = useCallback(async () => {
@@ -198,7 +198,18 @@ export function MainTabContent() {
         <Separator />
         <div className="space-y-6">
           <KeyMetricsDisplay /> <StockSnapshotDetailsDisplay /> <StandardTaDisplay /> <AiAnalyzedTaDisplay /> <AiKeyTakeawaysDisplay /> <OptionsChainTable /> <AiOptionsAnalysisDisplay />
-          <ChatbotFsmProvider dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} stockSnapshotJson={contextStockSnapshotJson || '{}'} aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} currentGlobalChatHistory={contextChatHistory} logDebug={logDebug} setChatbotFsmDisplayState={setChatbotFsmDisplay}>
+          <ChatbotFsmProvider 
+            dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
+            currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
+            stockSnapshotJson={contextStockSnapshotJson || '{}'} 
+            aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} 
+            aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} 
+            aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} 
+            currentGlobalChatHistory={contextChatHistory} 
+            logDebug={logDebug} 
+            setChatbotFsmDisplayState={setChatbotFsmDisplay}
+            isChatGroundingEnabled={isChatGroundingEnabled}
+          >
             <Chatbot isAnyAnalysisInProgress={isAnyAnalysisInProgress} currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker} />
           </ChatbotFsmProvider>
           <MarketStatusDisplay />

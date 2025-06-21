@@ -176,6 +176,7 @@ interface StockAnalysisState {
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
   isReducedStartupLoggingEnabled: boolean;
   isUiRenderLoggingEnabled: boolean;
+  isChatGroundingEnabled: boolean;
 }
 
 interface StockAnalysisContextSetters {
@@ -213,6 +214,7 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setReducedStartupLoggingEnabled: (enabled: boolean) => void;
   setUiRenderLoggingEnabled: (enabled: boolean) => void;
+  setChatGroundingEnabled: (enabled: boolean) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -277,6 +279,7 @@ const defaultState: StockAnalysisState = {
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   isReducedStartupLoggingEnabled: true,
   isUiRenderLoggingEnabled: false,
+  isChatGroundingEnabled: false,
 };
 
 const localInitialStockDataFetchResult: AnalyzeStockServerActionState = { status: 'idle', data: undefined, error: null, message: null };
@@ -328,6 +331,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
+  const [_isChatGroundingEnabled, _setIsChatGroundingEnabled] = useState<boolean>(defaultState.isChatGroundingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
 
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, localInitialStockDataFetchResult);
@@ -457,6 +461,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const setUiRenderLoggingEnabled = useCallback((enabled: boolean) => {
     logDebug('DebugSettingsCard', 'UI Render log spam toggled to: ${enabled}');
     _setIsUiRenderLoggingEnabled(enabled);
+  }, [logDebug]);
+
+  const setChatGroundingEnabled = useCallback((enabled: boolean) => {
+    logDebug('StockAnalysisContext', 'ChatGroundingToggle', `Chat grounding with Google Search toggled to: ${enabled}.`);
+    _setIsChatGroundingEnabled(enabled);
   }, [logDebug]);
 
 
@@ -1138,6 +1147,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
     setUiRenderLoggingEnabled,
     isUiRenderLoggingEnabled: _isUiRenderLoggingEnabled,
+    setChatGroundingEnabled,
+    isChatGroundingEnabled: _isChatGroundingEnabled,
   }), [
     _polygonApiRequestLogJson, contextSetters, _polygonApiResponseLogJson,
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
@@ -1152,6 +1163,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _debugConsoleMenuFsmDisplayInternal, 
     _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled,
     _isUiRenderLoggingEnabled, setUiRenderLoggingEnabled,
+    _isChatGroundingEnabled, setChatGroundingEnabled,
   ]);
 
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
