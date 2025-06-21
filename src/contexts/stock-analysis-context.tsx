@@ -13,6 +13,8 @@ import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionStat
 import { chatServerAction, type ChatActionState, type ChatActionInputs, type ChatActionResult } from '@/actions/chat-server-action';
 import { useActionState, startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
+import exampleChatPromptsData from '@/ai/definitions/example-chat-prompts.json';
+import type { ExampleChatPromptsFile } from '@/ai/definition-loader';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
@@ -290,12 +292,9 @@ const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionS
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
 
-let chatMessageIdCounter = 0; 
+let chatMessageIdCounter = 0;
 
-const STOCK_TRADER_CHAT_PROMPT_TEMPLATE = "Based on all currently available data for {TICKER} (including snapshot, pivot points, MAs, RSI, MACD, key takeaways, and options analysis if present), provide 3 concise key takeaways specifically for a stock trader. Focus on: 1. Actionable insights for short-to-medium term price action. 2. Potential entry or exit points considering support/resistance and key levels. 3. Overall trend and momentum considerations.";
-const OPTIONS_TRADER_CHAT_PROMPT_TEMPLATE = "Based on all currently available data for {TICKER} (snapshot, TAs, AI Key Takeaways, and especially options analysis like Call/Put Walls), provide 3 concise key takeaways for an options trader. Focus on: 1. Volatility assessment and its implications. 2. Key support/resistance levels (from TAs and Options Walls) for strike selection. 3. Suggest one or two example directional option trade ideas (e.g., 'Consider buying {TICKER} $XXX Calls expiring YYY based on Z' or 'A Put spread around $ABC might be interesting if D happens') with brief rationale based *only* on the provided data. Do NOT invent expiration dates or exact strike prices if not deducible; speak in general terms if necessary.";
-const HOLISTIC_CHAT_PROMPT_TEMPLATE = "Provide 3 additional holistic key takeaways for {TICKER} that are distinct from typical price/trend/indicator summaries and not redundant with other AI analyses already displayed. Consider overall market sentiment reflected in the data, unique patterns in the provided JSONs, or broader implications if context allows. Ensure you provide three full, distinct takeaways. Focus on insights a human analyst might highlight beyond pure numbers.";
-
+const macroPrompts: ExampleChatPromptsFile = exampleChatPromptsData;
 
 export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   if (typeof window !== 'undefined' && !(console as any).__stockSageContextOriginals) {
@@ -979,8 +978,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     } else if (state.current === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED) {
         if (state.variables.activePipelineProfile === 'full_ai_macro' && state.variables.activeTicker) {
             logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_OptionsSuccess]', `Macro: Options Analysis Succeeded. Dispatching first CHAT (Stock Trader) for ${state.variables.activeTicker}. Updating macro step from ${state.variables.currentFullAiMacroChatStep} to stock_trader_chat.`);
+            const stockTraderPromptTemplate = macroPrompts.find(p => p.title.includes("Stock Trader"))?.promptTemplate || "";
             _dispatchFsmEventActual({ type: 'INTERNAL_MACRO_STEP_UPDATE', payload: { currentFullAiMacroChatStep: 'stock_trader_chat' }});
-            const chatPayload: ChatActionInputs = { ticker: state.variables.activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson, chatHistory: _chatHistory, userInput: STOCK_TRADER_CHAT_PROMPT_TEMPLATE.replace(/{TICKER}/g, state.variables.activeTicker) };
+            const chatPayload: ChatActionInputs = { ticker: state.variables.activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson, chatHistory: _chatHistory, userInput: stockTraderPromptTemplate.replace(/{TICKER}/g, state.variables.activeTicker) };
             _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayload });
         } else {
             logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Manual_OptionsSuccess]', `Manual Options Analysis Succeeded. Dispatching PROCEED_TO_IDLE.`);
@@ -993,10 +993,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const currentMacroStep = state.variables.currentFullAiMacroChatStep;
         let nextChatPrompt = ""; let nextMacroStep: FullAiMacroChatStep = null;
         if (currentMacroStep === 'stock_trader_chat') {
-            nextChatPrompt = OPTIONS_TRADER_CHAT_PROMPT_TEMPLATE.replace(/{TICKER}/g, state.variables.activeTicker);
+            const optionsTraderPromptTemplate = macroPrompts.find(p => p.title.includes("Options Trader"))?.promptTemplate || "";
+            nextChatPrompt = optionsTraderPromptTemplate.replace(/{TICKER}/g, state.variables.activeTicker);
             nextMacroStep = 'options_trader_chat';
         } else if (currentMacroStep === 'options_trader_chat') {
-            nextChatPrompt = HOLISTIC_CHAT_PROMPT_TEMPLATE.replace(/{TICKER}/g, state.variables.activeTicker);
+            const holisticPromptTemplate = macroPrompts.find(p => p.title.includes("Holistic Takeaways"))?.promptTemplate || "";
+            nextChatPrompt = holisticPromptTemplate.replace(/{TICKER}/g, state.variables.activeTicker);
             nextMacroStep = 'holistic_chat';
         } else if (currentMacroStep === 'holistic_chat') {
             logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_ChatComplete]', `Macro: Holistic Chat Succeeded. Full AI Macro Pipeline COMPLETE. Dispatching PROCEED_TO_IDLE.`);
