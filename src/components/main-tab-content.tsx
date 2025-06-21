@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
@@ -35,7 +36,6 @@ export function MainTabContent() {
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent, chatHistory: contextChatHistory,
     setChatbotFsmDisplay,
-    isChatPending, // Get from context now
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
@@ -100,38 +100,9 @@ export function MainTabContent() {
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim() || globalFsmFlags.isFullAiMacroPipelineActive;
   const fullAiMacroButtonDisabled = analyzeButtonDisabled || globalFsmFlags.isFullAiMacroPipelineActive;
 
-  const [isKtButtonDisabled, setIsKtButtonDisabled] = useState(true);
-  const [isOptButtonDisabled, setIsOptButtonDisabled] = useState(true);
-
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
-
-  const isStandardPipelineActive = [GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
-  const isAnyManualAIActionActive = keyTakeawaysButtonLoading || optionsAnalysisButtonLoading;
   const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING;
-  const isOverallAnalysisPending = isStandardPipelineActive || isAnyManualAIActionActive || isChatPending || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
-
-  useEffect(() => {
-    const logPrefixButtonState = 'MainTabContent';
-    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${globalUserInputTicker}, isFullAiMacroActive: ${globalFsmFlags.isFullAiMacroPipelineActive}`);
-    const manualActionsPossibleOverall = (globalFsmStateFromContext === GlobalFsmState.IDLE || globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || globalFsmStateFromContext === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR) && !!globalFsmVariables.activeTicker && globalFsmVariables.activeTicker === globalUserInputTicker && !globalFsmFlags.isFullAiMacroPipelineActive;
-    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `ManualActionsPossibleOverall: ${manualActionsPossibleOverall}, isStandardPipelineActive: ${isStandardPipelineActive}`);
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'KT_Snapshot', 'RenderState');
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'KT_StdTA', 'RenderState');
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'KT_AiAnalyzedTA', 'RenderState');
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'KT_MarketStatus', 'RenderState');
-    const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
-    const shouldKtButtonBeEnabled = manualActionsPossibleOverall && !keyTakeawaysButtonLoading && !analyzeButtonLoading && !isStandardPipelineActive && !isGlobalChatFsmPending && ktPrereqsMet;
-    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `ktPrereqsMet: ${ktPrereqsMet}, ktLoading: ${keyTakeawaysButtonLoading}, analyzeLoading: ${analyzeButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldKtButtonBeEnabled}`);
-    setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'Opt_Snapshot', 'RenderState');
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent', 'Opt_Chain', 'RenderState');
-    const optPrereqsMet = optSnapshotReady && optChainReady;
-    const shouldOptButtonBeEnabled = manualActionsPossibleOverall && !optionsAnalysisButtonLoading && !analyzeButtonLoading && !isStandardPipelineActive && !isGlobalChatFsmPending && optPrereqsMet;
-    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `optPrereqsMet: ${optPrereqsMet}, optLoading: ${optionsAnalysisButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldOptButtonBeEnabled}`);
-    setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
-    if (globalFsmVariables.activeTicker) { logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `Current active analysis ticker in global FSM: ${globalFsmVariables.activeTicker}`); }
-  }, [ globalFsmStateFromContext, globalFsmVariables.activeTicker, globalFsmFlags.isFullAiMacroPipelineActive, globalUserInputTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isStandardPipelineActive, isGlobalChatFsmPending, logDebug ]);
 
   const getCombinedDataForExport = useCallback(() => {
     const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
@@ -142,7 +113,7 @@ export function MainTabContent() {
   }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
 
   const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'RenderState') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'RenderState') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'RenderState') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'RenderState');
-  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isStandardPipelineActive || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
+  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
 
   const handleExportAllToJson = useCallback(async () => {
     logDebug('MainTabContent' as LogSourceId, 'UserAction_ExportAll', 'Export All to JSON clicked.');
@@ -165,6 +136,9 @@ export function MainTabContent() {
     } catch (e: any) { toast({ variant: 'destructive', title: 'Copy Error', description: `Could not copy data: ${e.message}` }); }
   }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
 
+  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
+
+
   return (
     <Card>
       <CardHeader>
@@ -176,12 +150,12 @@ export function MainTabContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
             <div className="space-y-2">
               <Label htmlFor="ticker">Stock Ticker</Label>
-              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isStandardPipelineActive || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive}/>
+              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={isAnyAnalysisInProgress}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataSource">Data Source</Label>
               <Select defaultValue="polygon" disabled>
-                <SelectTrigger id="dataSource" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isStandardPipelineActive || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive}><SelectValue placeholder="Select data source" /></SelectTrigger>
+                <SelectTrigger id="dataSource" disabled={isAnyAnalysisInProgress}><SelectValue placeholder="Select data source" /></SelectTrigger>
                 <SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent>
               </Select>
             </div>
@@ -203,10 +177,10 @@ export function MainTabContent() {
           </CardHeader>
           <CardContent className="pt-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={handleGenerateKeyTakeaways} className="w-full sm:w-auto" disabled={isKtButtonDisabled}>
+              <Button onClick={handleGenerateKeyTakeaways} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualKeyTakeawaysActionPossible || keyTakeawaysButtonLoading || isAnyAnalysisInProgress}>
                 {keyTakeawaysButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Brain className="mr-2 h-4 w-4" /> Generate AI Key Takeaways
               </Button>
-              <Button onClick={handleGenerateOptionsAnalysis} className="w-full sm:w-auto" disabled={isOptButtonDisabled}>
+              <Button onClick={handleGenerateOptionsAnalysis} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualOptionsAnalysisActionPossible || optionsAnalysisButtonLoading || isAnyAnalysisInProgress}>
                 {optionsAnalysisButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <BarChartBig className="mr-2 h-4 w-4" /> Generate AI Options Analysis
               </Button>
             </div>
@@ -224,8 +198,8 @@ export function MainTabContent() {
         <Separator />
         <div className="space-y-6">
           <KeyMetricsDisplay /> <StockSnapshotDetailsDisplay /> <StandardTaDisplay /> <AiAnalyzedTaDisplay /> <AiKeyTakeawaysDisplay /> <OptionsChainTable /> <AiOptionsAnalysisDisplay />
-          <ChatbotFsmProvider dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} stockSnapshotJson={contextStockSnapshotJson || '{}'} aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} currentGlobalChatHistory={contextChatHistory} logDebug={logDebug} setChatbotFsmDisplayState={setChatbotFsmDisplay} isGlobalChatPending={isGlobalChatFsmPending}>
-            <Chatbot isAnyAnalysisInProgress={isOverallAnalysisPending} currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker} />
+          <ChatbotFsmProvider dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} stockSnapshotJson={contextStockSnapshotJson || '{}'} aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} currentGlobalChatHistory={contextChatHistory} logDebug={logDebug} setChatbotFsmDisplayState={setChatbotFsmDisplay}>
+            <Chatbot isAnyAnalysisInProgress={isAnyAnalysisInProgress} currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker} />
           </ChatbotFsmProvider>
           <MarketStatusDisplay />
         </div>
