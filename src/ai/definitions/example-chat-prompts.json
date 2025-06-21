@@ -1,15 +1,15 @@
 
 [
   {
-    "title": "Stock Trader's 3 Takeaways",
-    "promptTemplate": "Based on all currently available data for {TICKER} (including snapshot, pivot points, MAs, RSI, MACD, key takeaways, and options analysis if present), provide 3 concise key takeaways specifically for a stock trader. Focus on: 1. Actionable insights for short-to-medium term price action. 2. Potential entry or exit points considering support/resistance and key levels. 3. Overall trend and momentum considerations."
+    "title": "Stock Trader's Takeaways",
+    "promptTemplate": "**Stock Trader's Takeaways for {TICKER}**\n\nBased on a holistic view of all provided data, provide 3-5 concise, single-sentence takeaways as bullet points. Then, based on the same data, provide recommended stock buy/sell entry and exit points. If the current data and environment are not favorable for trading, you MUST include a clear disclaimer/warning explaining why before providing any hypothetical levels.\n\n**Example Format:**\n\n- Takeaway 1 as a single sentence.\n\n- Takeaway 2 as a single sentence.\n\n**Trading Levels:**\n- **Entry Points:** [Provide specific price levels or ranges]\n- **Exit Points (Profit Taking):** [Provide specific price levels or ranges]\n- **Stop-Loss:** [Provide a suggested stop-loss level]\n\n**(If applicable) Warning:** [Your disclaimer text here]"
   },
   {
-    "title": "Options Trader's 3 Takeaways",
-    "promptTemplate": "Based on all currently available data for {TICKER} (snapshot, TAs, AI Key Takeaways, and especially options analysis like Call/Put Walls), provide 3 concise key takeaways for an options trader. Focus on: 1. Volatility assessment and its implications. 2. Key support/resistance levels (from TAs and Options Walls) for strike selection. 3. Suggest one or two example directional option trade ideas (e.g., 'Consider buying {TICKER} $XXX Calls expiring YYY based on Z' or 'A Put spread around $ABC might be interesting if D happens') with brief rationale based *only* on the provided data. Do NOT invent expiration dates or exact strike prices if not deducible; speak in general terms if necessary."
+    "title": "Options Trader's Takeaways",
+    "promptTemplate": "**Options Trader's Takeaways for {TICKER}**\n\nBased on a holistic view of all provided data, provide 3-5 concise, single-sentence takeaways as bullet points, focusing on volatility and key levels from TAs and Options Walls. Then, provide recommended trade setups for **Covered Calls (CCs)** and **Cash-Secured Puts (CSPs)** with exact strike prices. If the current data/environment is not ideal for these strategies, you MUST include a clear disclaimer/warning explaining why.\n\n**Example Format:**\n\n- Takeaway 1 as a single sentence.\n\n- Takeaway 2 as a single sentence.\n\n**Recommended Setups:**\n- **Covered Call:** [Suggest a strike, e.g., 'Sell {TICKER} $XXX Call']\n- **Cash-Secured Put:** [Suggest a strike, e.g., 'Sell {TICKER} $YYY Put']\n\n**(If applicable) Warning:** [Your disclaimer text here]"
   },
   {
-    "title": "Additional 3 Holistic Takeaways",
-    "promptTemplate": "Provide 3 additional holistic key takeaways for {TICKER} that are distinct from typical price/trend/indicator summaries and not redundant with other AI analyses already displayed. Consider overall market sentiment reflected in the data, unique patterns in the provided JSONs, or broader implications if context allows. Ensure you provide three full, distinct takeaways. Focus on insights a human analyst might highlight beyond pure numbers."
+    "title": "Additional Holistic Takeaways",
+    "promptTemplate": "**Additional Holistic Takeaways for {TICKER}**\n\nProvide 3-5 additional holistic key takeaways as concise, single-sentence bullet points. These should be distinct from typical price/trend summaries. Then, if viable, provide one alternative or additional stock/options trading strategy (e.g., Straddle, Strangle, Collar) based on the current data and environment.\n\n**Example Format:**\n\n- Holistic takeaway 1 as a single sentence.\n\n- Holistic takeaway 2 as a single sentence.\n\n**Alternative Strategy:**\n- [Describe the strategy and rationale, e.g., 'A straddle at the $XXX strike could be considered to play a potential volatility expansion.']"
   }
 ]
