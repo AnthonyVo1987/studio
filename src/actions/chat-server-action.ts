@@ -44,7 +44,7 @@ export async function chatServerAction(
     userInput,
     isChatGroundingEnabled
   } = payload;
-  const actionLogPrefix = `[ServerAction:chatServerAction:Ticker:${ticker}]`;
+  const actionLogPrefix = `[ServerAction:chatServerAction:Ticker:${ticker || 'N/A'}]`;
   console.log(`${actionLogPrefix} Action_Entry - Received request. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}. Grounding: ${isChatGroundingEnabled}. PrevState status: ${prevState.status}`);
 
 
@@ -61,20 +61,25 @@ export async function chatServerAction(
       },
     };
   }
-  if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' ||
-      !aiKeyTakeawaysJson || aiKeyTakeawaysJson === '{}' ||
-      !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') {
-     const errorMsg = 'Contextual stock data is missing for the chat.';
-     console.warn(`${actionLogPrefix} Action_ValidationError - ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, Analyzed TA empty: ${aiAnalyzedTaJson === '{}'}`);
-     return {
-      status: 'error',
-      error: errorMsg,
-      message: 'Cannot process chat without full stock context.',
-      data: {
-        chatbotRequestJson: JSON.stringify({ error: errorMsg, payloadSnapshot: { ticker, userInput, chatHistoryLength: chatHistory?.length || 0 } }, null, 2),
-        chatbotResponseJson: JSON.stringify({ error: errorMsg, details: "Missing contextual stock data for chat." }, null, 2),
-      },
-    };
+
+  // If grounding is NOT enabled, we enforce the requirement for contextual data.
+  // If grounding IS enabled, we bypass this check and allow the flow to proceed.
+  if (!isChatGroundingEnabled) {
+    if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' ||
+        !aiKeyTakeawaysJson || aiKeyTakeawaysJson === '{}' ||
+        !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') {
+       const errorMsg = 'Contextual stock data is missing for the chat.';
+       console.warn(`${actionLogPrefix} Action_ValidationError (Grounding OFF) - ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, Analyzed TA empty: ${aiAnalyzedTaJson === '{}'}`);
+       return {
+        status: 'error',
+        error: errorMsg,
+        message: 'Cannot process chat without full stock context. Analyze a stock first or enable Google Search.',
+        data: {
+          chatbotRequestJson: JSON.stringify({ error: errorMsg, payloadSnapshot: { ticker, userInput, chatHistoryLength: chatHistory?.length || 0 } }, null, 2),
+          chatbotResponseJson: JSON.stringify({ error: errorMsg, details: "Missing contextual stock data for chat." }, null, 2),
+        },
+      };
+    }
   }
 
   const flowInput: ChatInput = {

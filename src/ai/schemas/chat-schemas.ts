@@ -8,20 +8,23 @@
 import {z} from 'zod'; // CRITICAL: Use direct 'zod' import
 
 export const ChatInputSchema = z.object({
-  ticker: z.string().describe('The stock ticker symbol relevant to the chat context.'),
+  ticker: z.string().optional().describe('The stock ticker symbol relevant to the chat context. Optional if grounding is used for general queries.'),
   stockSnapshotJson: z
     .string()
-    .describe('A JSON string of the latest stock snapshot data (current day, prev day, etc.). This provides numerical context.'),
+    .optional()
+    .describe('A JSON string of the latest stock snapshot data (current day, prev day, etc.). Optional.'),
   aiKeyTakeawaysJson: z
     .string()
-    .describe('A JSON string of AI-generated key takeaways (price action, trend, volatility, momentum, patterns with sentiment). This provides analytical context.'),
+    .optional()
+    .describe('A JSON string of AI-generated key takeaways (price action, trend, volatility, momentum, patterns with sentiment). Optional.'),
   aiAnalyzedTaJson: z 
     .string()
-    .describe('A JSON string of AI-analyzed technical analysis (e.g., pivot points). This provides technical context.'),
+    .optional()
+    .describe('A JSON string of AI-analyzed technical analysis (e.g., pivot points). Optional.'),
   aiOptionsAnalysisJson: z 
     .string()
     .optional()
-    .describe('An optional JSON string of AI-analyzed options chain data (e.g., call/put walls). This provides options context.'),
+    .describe('An optional JSON string of AI-analyzed options chain data (e.g., call/put walls).'),
   chatHistory: z.array(z.object({
       role: z.enum(['user', 'model']),
       content: z.string(),
