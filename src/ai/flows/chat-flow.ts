@@ -21,9 +21,23 @@ import {
 import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
+// Caches for the prompt objects
+let standardChatPrompt: any = null;
+let groundedChatPrompt: any = null;
+
 async function getChatPrompt(isGrounded: boolean) {
   const logPrefix = '[AIFlow:getChatPrompt]';
   const promptType: 'standard' | 'grounded' = isGrounded ? 'grounded' : 'standard';
+
+  // Return cached prompt if available
+  if (isGrounded && groundedChatPrompt) {
+    console.log(`${logPrefix} Returning cached grounded prompt object.`);
+    return groundedChatPrompt;
+  }
+  if (!isGrounded && standardChatPrompt) {
+    console.log(`${logPrefix} Returning cached standard prompt object.`);
+    return standardChatPrompt;
+  }
 
   console.log(`${logPrefix} Defining prompt. Type: ${promptType}.`);
   const genericDefinition = await loadDefinition('stock-chatbot');
@@ -76,6 +90,16 @@ async function getChatPrompt(isGrounded: boolean) {
   console.log(`${logPrefix} Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}.`);
 
   const prompt = ai.definePrompt(promptOptions);
+
+  // Cache the newly created prompt
+  if (isGrounded) {
+    groundedChatPrompt = prompt;
+    console.log(`${logPrefix} Grounded prompt object defined and cached.`);
+  } else {
+    standardChatPrompt = prompt;
+    console.log(`${logPrefix} Standard prompt object defined and cached.`);
+  }
+
   return prompt;
 }
 

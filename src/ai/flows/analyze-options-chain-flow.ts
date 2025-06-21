@@ -20,8 +20,16 @@ import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import type { OptionsChainData } from '@/services/data-sources/types';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
+// Cache for the prompt object
+let analyzeOptionsChainPrompt: any = null;
+
 async function getAnalyzedOptionsChainPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedOptionsChainPrompt]';
+  if (analyzeOptionsChainPrompt) {
+    logPrefix && console.log(`${logPrefix} Returning cached prompt object.`);
+    return analyzeOptionsChainPrompt;
+  }
+  
   console.log(`${logPrefix} Loading 'analyze-options-chain' definition.`);
   const genericDefinition = await loadDefinition('analyze-options-chain');
   if (genericDefinition.definitionType !== 'llm-prompt') {
@@ -62,7 +70,10 @@ async function getAnalyzedOptionsChainPrompt() {
     prompt: promptString,
     config: promptConfig,
   });
-  return prompt;
+
+  analyzeOptionsChainPrompt = prompt; // Cache the prompt object
+  console.log(`${logPrefix} Prompt object defined and cached.`);
+  return analyzeOptionsChainPrompt;
 }
 
 
@@ -92,7 +103,6 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
     const logPrefix = `[AIFlow:analyzeOptionsChainFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started. Current underlying: ${input.currentUnderlyingPrice}`);
-    console.log(`${logPrefix} Flow_Log_DJ_Input - optionsChainJson (len: ${input.optionsChainJson.length}): ${input.optionsChainJson.substring(0,100)}...`);
     
     const emptyOutputOnError: AiOptionsAnalysisOutput = {
       callWalls: [],
@@ -113,13 +123,13 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     }
 
     let outputFromPrompt: AiOptionsAnalysisOutput | undefined;
-    console.log(`${logPrefix} Flow_Log_DJ_PrePromptCall_Options - Executing analyzeOptionsChainPrompt.`);
+    console.log(`${logPrefix} Executing analyzeOptionsChainPrompt.`);
     try {
         const promptToUse = await getAnalyzedOptionsChainPrompt();
         const result = await promptToUse(input); 
         outputFromPrompt = result.output;
         console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
-        console.log(`${logPrefix} Flow_Log_DJ_PostPromptCall_Options - Prompt execution completed. Output from AI (first 500 chars): ${outputFromPrompt ? JSON.stringify(outputFromPrompt).substring(0,500) : 'undefined'}`);
+        console.log(`${logPrefix} Prompt execution completed. Output from AI (first 500 chars): ${outputFromPrompt ? JSON.stringify(outputFromPrompt).substring(0,500) : 'undefined'}`);
 
         if (!outputFromPrompt || !Array.isArray(outputFromPrompt.callWalls) || !Array.isArray(outputFromPrompt.putWalls)) {
           console.error(`${logPrefix} AI options analysis flow did not return a valid output structure. Received output: ${JSON.stringify(outputFromPrompt)}. Throwing error.`);
