@@ -52,7 +52,7 @@ export function MainTabContent() {
 
   useEffect(() => {
     const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect';
-    logDebug(logPrefixEff as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, GuardRef: ${JSON.stringify(globalDispatchGuardRef.current)}`);
+    logDebug(logPrefixEff as LogSourceId, 'RenderState', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, GuardRef: ${JSON.stringify(globalDispatchGuardRef.current)}`);
     const activeTickerForGuardReset = globalFsmVariables.activeTicker;
     const guardKeyForManualKT = activeTickerForGuardReset ? `TRIGGER_MANUAL_KEY_TAKEAWAYS_FOR_${activeTickerForGuardReset}` : null;
     if (guardKeyForManualKT && globalDispatchGuardRef.current[guardKeyForManualKT] && (globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)) {
@@ -157,36 +157,36 @@ export function MainTabContent() {
   const isOverallAnalysisPending = isStandardPipelineActive || isAnyManualAIActionActive || isChatActionHookPending || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
 
   useEffect(() => {
-    const logPrefixButtonState = 'MainTabContent:ButtonStateEffect';
-    logDebug(logPrefixButtonState as LogSourceId, 'Entry', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${globalUserInputTicker}, isFullAiMacroActive: ${globalFsmFlags.isFullAiMacroPipelineActive}`);
+    const logPrefixButtonState = 'MainTabContent';
+    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, CurrentInput: ${globalUserInputTicker}, isFullAiMacroActive: ${globalFsmFlags.isFullAiMacroPipelineActive}`);
     const manualActionsPossibleOverall = (globalFsmStateFromContext === GlobalFsmState.IDLE || globalFsmStateFromContext === GlobalFsmState.VALID_TICKER_ENTERED || globalFsmStateFromContext === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_SUCCESS || globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_ERROR) && !!globalFsmVariables.activeTicker && globalFsmVariables.activeTicker === globalUserInputTicker && !globalFsmFlags.isFullAiMacroPipelineActive;
-    logDebug(logPrefixButtonState as LogSourceId, 'Check', `ManualActionsPossibleOverall: ${manualActionsPossibleOverall}, isStandardPipelineActive: ${isStandardPipelineActive}`);
-    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_Snapshot');
-    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_StdTA');
-    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_AiAnalyzedTA');
-    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, logPrefixButtonState as LogSourceId, 'KT_MarketStatus');
+    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `ManualActionsPossibleOverall: ${manualActionsPossibleOverall}, isStandardPipelineActive: ${isStandardPipelineActive}`);
+    const ktSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'KT_Snapshot', 'RenderState');
+    const ktStdTaReady = isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'KT_StdTA', 'RenderState');
+    const ktAiTaReady = isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'KT_AiAnalyzedTA', 'RenderState');
+    const ktMarketStatusReady = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'KT_MarketStatus', 'RenderState');
     const ktPrereqsMet = ktSnapshotReady && ktStdTaReady && ktAiTaReady && ktMarketStatusReady;
     const shouldKtButtonBeEnabled = manualActionsPossibleOverall && !keyTakeawaysButtonLoading && !analyzeButtonLoading && !isStandardPipelineActive && !isGlobalChatFsmPending && ktPrereqsMet;
-    logDebug(logPrefixButtonState as LogSourceId, 'KT_ButtonLogic', `ktPrereqsMet: ${ktPrereqsMet}, ktLoading: ${keyTakeawaysButtonLoading}, analyzeLoading: ${analyzeButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldKtButtonBeEnabled}`);
+    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `ktPrereqsMet: ${ktPrereqsMet}, ktLoading: ${keyTakeawaysButtonLoading}, analyzeLoading: ${analyzeButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldKtButtonBeEnabled}`);
     setIsKtButtonDisabled(!shouldKtButtonBeEnabled);
-    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, logPrefixButtonState as LogSourceId, 'Opt_Snapshot');
-    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, logPrefixButtonState as LogSourceId, 'Opt_Chain');
+    const optSnapshotReady = isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'Opt_Snapshot', 'RenderState');
+    const optChainReady = isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent', 'Opt_Chain', 'RenderState');
     const optPrereqsMet = optSnapshotReady && optChainReady;
     const shouldOptButtonBeEnabled = manualActionsPossibleOverall && !optionsAnalysisButtonLoading && !analyzeButtonLoading && !isStandardPipelineActive && !isGlobalChatFsmPending && optPrereqsMet;
-    logDebug(logPrefixButtonState as LogSourceId, 'Opt_ButtonLogic', `optPrereqsMet: ${optPrereqsMet}, optLoading: ${optionsAnalysisButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldOptButtonBeEnabled}`);
+    logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `optPrereqsMet: ${optPrereqsMet}, optLoading: ${optionsAnalysisButtonLoading}, chatPending: ${isGlobalChatFsmPending}, shouldBeEnabled: ${shouldOptButtonBeEnabled}`);
     setIsOptButtonDisabled(!shouldOptButtonBeEnabled);
-    if (globalFsmVariables.activeTicker) { logDebug(logPrefixButtonState as LogSourceId, 'ActiveAnalysisTickerInfo', `Current active analysis ticker in global FSM: ${globalFsmVariables.activeTicker}`); }
+    if (globalFsmVariables.activeTicker) { logDebug(logPrefixButtonState as LogSourceId, 'RenderState', `Current active analysis ticker in global FSM: ${globalFsmVariables.activeTicker}`); }
   }, [ globalFsmStateFromContext, globalFsmVariables.activeTicker, globalFsmFlags.isFullAiMacroPipelineActive, globalUserInputTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, analyzeButtonLoading, keyTakeawaysButtonLoading, optionsAnalysisButtonLoading, isStandardPipelineActive, isGlobalChatFsmPending, logDebug ]);
 
   const getCombinedDataForExport = useCallback(() => {
     const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
-    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_AiKeyTakeaways')) { baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}'); }
-    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_AiOptionsAnalysis')) { baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}'); }
-    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent' as LogSourceId, 'CombinedExport_OptionsChain')) { baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}'); }
+    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent', 'CombinedExport_AiKeyTakeaways', 'RenderState')) { baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}'); }
+    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent', 'CombinedExport_AiOptionsAnalysis', 'RenderState')) { baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}'); }
+    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent', 'CombinedExport_OptionsChain', 'RenderState')) { baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}'); }
     return baseData;
   }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
 
-  const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_MarketStatus') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_StockSnapshot') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_StandardTAs') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent' as LogSourceId, 'ExportCheck_AiAnalyzedTA');
+  const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'RenderState') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'RenderState') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'RenderState') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'RenderState');
   const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isStandardPipelineActive || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
 
   const handleExportAllToJson = useCallback(async () => {
