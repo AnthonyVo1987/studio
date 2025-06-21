@@ -73,21 +73,25 @@ async function getChatPrompt(isGrounded: boolean) {
     promptConfig.thinkingConfig = { thinkingBudget: stockChatBotPromptDefinition!.thinkingBudget };
   }
 
+  const promptOptions: any = {
+    name: `stockChatBotPrompt_${promptType}`,
+    input: {schema: ChatInputSchema},
+    model: modelId,
+    prompt: promptString,
+    config: promptConfig,
+  };
+
   if (isGrounded) {
     promptConfig.tools = [{ googleSearch: {} }];
-    console.log(`${logPrefix} Google Search grounding tool ENABLED for this prompt definition.`);
+    console.log(`${logPrefix} Google Search grounding tool ENABLED for this prompt definition. JSON output schema is DISABLED.`);
+  } else {
+    promptOptions.output = {schema: ChatOutputSchema};
+    console.log(`${logPrefix} Standard (non-grounded) prompt. JSON output schema is ENABLED.`);
   }
 
   console.log(`${logPrefix} Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}.`);
 
-  const prompt = ai.definePrompt({
-    name: `stockChatBotPrompt_${promptType}`,
-    input: {schema: ChatInputSchema},
-    output: {schema: ChatOutputSchema},
-    model: modelId,
-    prompt: promptString,
-    config: promptConfig,
-  });
+  const prompt = ai.definePrompt(promptOptions);
 
   memoizedPrompts[promptType] = prompt;
   return prompt;
@@ -115,28 +119,36 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input: ChatInput): Promise<ChatOutput> => {
-    const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker}]`;
+    const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker || 'N/A'}]`;
     const isGrounded = input.isChatGroundingEnabled || false;
     console.log(`${logPrefix} Flow execution started. Grounding: ${isGrounded}. User input (first 50 chars): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}.`);
 
     try {
       const promptToUse = await getChatPrompt(isGrounded);
-      console.log(`${logPrefix} Executing stockChatBotPrompt for ticker ${input.ticker}.`);
+      console.log(`${logPrefix} Executing stockChatBotPrompt (type: ${isGrounded ? 'grounded' : 'standard'}) for ticker ${input.ticker}.`);
       const result = await promptToUse(input);
-      const outputFromPrompt = result.output;
+      
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
-      console.log(`${logPrefix} [Grounding] Search Entries: ${result.usageMetadata?.search?.searchEntries?.length ?? 0}`);
+      if(isGrounded) {
+        console.log(`${logPrefix} [Grounding] Search Entries: ${result.usageMetadata?.search?.searchEntries?.length ?? 0}`);
+      }
 
-      if (!outputFromPrompt) {
-          console.error(`${logPrefix} Chatbot AI prompt for ticker ${input.ticker} did not return an output structure.`);
-          throw new Error('Chatbot AI prompt failed to return any output structure.');
+      let responseText: string | undefined;
+
+      if (isGrounded) {
+        responseText = result.text; // For grounded prompts, the response is simple text
+      } else {
+        responseText = result.output?.response; // For standard prompts, it's in the structured output
       }
-      if (!outputFromPrompt.response || typeof outputFromPrompt.response !== 'string') {
-          console.error(`${logPrefix} Chatbot AI prompt output for ticker ${input.ticker} is malformed (missing response string or not a string). Output (first 200): ${JSON.stringify(outputFromPrompt).substring(0,200)}`);
-          throw new Error('Chatbot AI prompt returned a malformed response (e.g., response not a string).');
+
+      if (!responseText || typeof responseText !== 'string' || responseText.trim() === '') {
+          console.error(`${logPrefix} Chatbot AI prompt output for ticker ${input.ticker} is malformed or empty. Full result object (first 500 chars): ${JSON.stringify(result).substring(0,500)}`);
+          throw new Error('Chatbot AI prompt returned a malformed or empty response.');
       }
-      console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${outputFromPrompt.response.substring(0,50)}..."`);
-      return outputFromPrompt;
+      
+      console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${responseText.substring(0,50)}..."`);
+      return { response: responseText }; // Manually construct the valid output object
+
     } catch (error: any) {
       console.error(`${logPrefix} CRITICAL ERROR during stockChatBotPrompt execution for ticker ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}. Throwing error further.`);
       throw error; // Re-throw the error
