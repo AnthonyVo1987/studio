@@ -98,7 +98,6 @@ export function MainTabContent() {
 
   const analyzeButtonLoading = [GlobalFsmState.APP_INITIALIZING, GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim() || globalFsmFlags.isFullAiMacroPipelineActive;
-  const fullAiMacroButtonDisabled = analyzeButtonDisabled || globalFsmFlags.isFullAiMacroPipelineActive;
 
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
@@ -163,9 +162,6 @@ export function MainTabContent() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isGlobalChatFsmPending}>
               {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock (Data & AI TA)
-            </Button>
-            <Button type="button" onClick={handleFullAiAnalysisSubmit} className="w-full sm:w-auto" variant="secondary" disabled={fullAiMacroButtonDisabled || isGlobalChatFsmPending}>
-              {globalFsmFlags.isFullAiMacroPipelineActive && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <WandSparkles className="mr-2 h-4 w-4" /> AI Full Analysis Macro
             </Button>
           </div>
         </form>
