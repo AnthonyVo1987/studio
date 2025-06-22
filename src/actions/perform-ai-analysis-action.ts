@@ -25,8 +25,6 @@ interface PerformAiAnalysisActionInputs {
   standardTasJson: string;
   aiAnalyzedTaJson: string;
   marketStatusJson: string;
-  augmentedTaSearchJson?: string;
-  augmentedOptionsSearchJson?: string;
 }
 
 export async function performAiAnalysisAction(
@@ -39,8 +37,6 @@ export async function performAiAnalysisAction(
     standardTasJson,
     aiAnalyzedTaJson,
     marketStatusJson,
-    augmentedTaSearchJson,
-    augmentedOptionsSearchJson,
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiAnalysisAction:Ticker:${ticker}]`; // Simplified log prefix
   console.log(`${actionLogPrefix} Action_Entry - Received request. PrevState status: ${prevState.status}. Payload keys: ${Object.keys(payload).join(', ')}.`);
@@ -69,8 +65,6 @@ export async function performAiAnalysisAction(
     standardTasJson,
     aiAnalyzedTaJson,
     marketStatusJson,
-    augmentedTaSearchJson,
-    augmentedOptionsSearchJson,
   };
 
   const aiKeyTakeawaysRequestJson = JSON.stringify(flowInput, null, 2);

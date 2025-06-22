@@ -31,14 +31,6 @@
       ]
     },
     {
-      "role": "AugmentedDataContextPresentation",
-      "parts": [
-        {
-          "text": "{{#if augmentedTaSearchJson}}\n**Augmented Technical Analysis Data (from Web Search):** You also have access to additional, real-time technical indicators. Use this to enrich your analysis. Data: {{{augmentedTaSearchJson}}}\n{{/if}}\n{{#if augmentedOptionsSearchJson}}\n**Augmented Options Flow Data (from Web Search):** You also have access to real-time options flow metrics. Use this to contextualize your analysis. Data: {{{augmentedOptionsSearchJson}}}\n{{/if}}"
-        }
-      ]
-    },
-    {
       "role": "HistoryContext",
       "parts": [
         {

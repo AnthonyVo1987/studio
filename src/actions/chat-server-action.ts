@@ -25,8 +25,6 @@ export interface ChatActionInputs {
   aiKeyTakeawaysJson: string;
   aiAnalyzedTaJson: string;
   aiOptionsAnalysisJson?: string;
-  augmentedTaSearchJson?: string;
-  augmentedOptionsSearchJson?: string;
   chatHistory?: Array<{ role: 'user' | 'model'; content: string }>;
   userInput: string;
   isChatGroundingEnabled?: boolean;
@@ -42,8 +40,6 @@ export async function chatServerAction(
     aiKeyTakeawaysJson,
     aiAnalyzedTaJson,
     aiOptionsAnalysisJson,
-    augmentedTaSearchJson,
-    augmentedOptionsSearchJson,
     chatHistory,
     userInput,
     isChatGroundingEnabled
@@ -92,8 +88,6 @@ export async function chatServerAction(
     aiKeyTakeawaysJson,
     aiAnalyzedTaJson,
     aiOptionsAnalysisJson: aiOptionsAnalysisJson || "{}",
-    augmentedTaSearchJson,
-    augmentedOptionsSearchJson,
     chatHistory: chatHistory || [],
     userInput,
     isChatGroundingEnabled: isChatGroundingEnabled || false,
