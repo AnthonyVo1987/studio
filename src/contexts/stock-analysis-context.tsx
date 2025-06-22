@@ -77,6 +77,14 @@ export interface GlobalFsmFlags {
   isDebugConsoleCopyMenuOpen: boolean;
   isDebugConsoleExportMenuOpen: boolean;
   isFullAiMacroPipelineActive: boolean;
+  // --- Customizable Analysis Flags (v3.3) ---
+  isAiKeyTakeawaysSelected: boolean;
+  isAiOptionsAnalysisSelected: boolean;
+  isAiChatStockTraderTakeawaysSelected: boolean;
+  isAiChatOptionsTraderTakeawaysSelected: boolean;
+  isAiChatHolisticTakeawaysSelected: boolean;
+  isAugmentedTaSearchEnabled: boolean;
+  isAugmentedOptionsSearchEnabled: boolean;
 }
 
 interface GlobalFsmReducerManagedState {
@@ -250,6 +258,14 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isDebugConsoleCopyMenuOpen: false,
     isDebugConsoleExportMenuOpen: false,
     isFullAiMacroPipelineActive: false,
+    // --- Customizable Analysis Flag Defaults (v3.3) ---
+    isAiKeyTakeawaysSelected: true,
+    isAiOptionsAnalysisSelected: true,
+    isAiChatStockTraderTakeawaysSelected: true,
+    isAiChatOptionsTraderTakeawaysSelected: true,
+    isAiChatHolisticTakeawaysSelected: true,
+    isAugmentedTaSearchEnabled: false,
+    isAugmentedOptionsSearchEnabled: false,
   },
 };
 
