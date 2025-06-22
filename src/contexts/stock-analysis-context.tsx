@@ -183,6 +183,7 @@ interface StockAnalysisState {
   aiOptionsAnalysisJson: string;
   aiKeyTakeawaysRequestJson: string;
   aiKeyTakeawaysJson: string;
+  augmentedTaSearchJson: string;
   chatbotRequestJson: string;
   chatbotResponseJson: string;
   chatHistory: ChatMessage[];
@@ -212,6 +213,7 @@ interface StockAnalysisContextSetters {
   setAiOptionsAnalysisJson: (json: string) => void;
   setAiKeyTakeawaysRequestJson: (json: string) => void;
   setAiKeyTakeawaysJson: (json: string) => void;
+  setAugmentedTaSearchJson: (json: string) => void;
   setChatbotRequestJson: (json: string) => void;
   setChatbotResponseJson: (json: string) => void;
 }
@@ -292,6 +294,7 @@ const defaultState: StockAnalysisState = {
   aiOptionsAnalysisJson: initialJsonPlaceholder,
   aiKeyTakeawaysRequestJson: initialJsonPlaceholder,
   aiKeyTakeawaysJson: initialJsonPlaceholder,
+  augmentedTaSearchJson: initialJsonPlaceholder,
   chatbotRequestJson: initialJsonPlaceholder,
   chatbotResponseJson: initialJsonPlaceholder,
   chatHistory: [],
@@ -342,6 +345,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_aiOptionsAnalysisJson, _setAiOptionsAnalysisJson] = useState<string>(defaultState.aiOptionsAnalysisJson);
   const [_aiKeyTakeawaysRequestJson, _setAiKeyTakeawaysRequestJson] = useState<string>(defaultState.aiKeyTakeawaysRequestJson);
   const [_aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
+  const [_augmentedTaSearchJson, _setAugmentedTaSearchJson] = useState<string>(defaultState.augmentedTaSearchJson);
   const [_chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
   const [_chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
   const [_chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
@@ -381,6 +385,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setAiOptionsAnalysisJson: (json: string) => setAndLogJson(_setAiOptionsAnalysisJson, 'aiOptionsAnalysisJson', json),
     setAiKeyTakeawaysRequestJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json),
     setAiKeyTakeawaysJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json),
+    setAugmentedTaSearchJson: (json: string) => setAndLogJson(_setAugmentedTaSearchJson, 'augmentedTaSearchJson', json),
     setChatbotRequestJson: (json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson (Interactive)', json),
     setChatbotResponseJson: (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson (Interactive)', json),
   }), [setAndLogJson]);
@@ -426,6 +431,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     contextSetters.setAiKeyTakeawaysJson(pendingJson);
     contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
     contextSetters.setAiOptionsAnalysisJson(pendingJson);
+    contextSetters.setAugmentedTaSearchJson(pendingJson);
     if (isFullAnalysis) {
         contextSetters.setChatbotRequestJson(chatPendingJson);
         contextSetters.setChatbotResponseJson(chatPendingJson);
@@ -1019,7 +1025,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
       }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
-      if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'SnapshotForKT') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'StdTAForKT') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'AITaForKT') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'MarketStatusForKT')) {
+      if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
         logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Manual_KT]', `Calling performAiAnalysisFormAction for ${state.variables.activeTicker}.`);
         startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson }); });
       } else {
@@ -1176,6 +1182,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiOptionsAnalysisJson: _aiOptionsAnalysisJson, setAiOptionsAnalysisJson: contextSetters.setAiOptionsAnalysisJson,
     aiKeyTakeawaysRequestJson: _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson: contextSetters.setAiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson: contextSetters.setAiKeyTakeawaysJson,
+    augmentedTaSearchJson: _augmentedTaSearchJson, setAugmentedTaSearchJson: contextSetters.setAugmentedTaSearchJson,
     chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson: contextSetters.setChatbotRequestJson,
     chatbotResponseJson: _chatbotResponseJson, setChatbotResponseJson: contextSetters.setChatbotResponseJson,
     chatHistory: _chatHistory, addChatMessage, clearChatHistory,
@@ -1199,7 +1206,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
     _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
     _aiOptionsAnalysisJson, _aiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson,
-    _chatbotRequestJson, _chatbotResponseJson, _chatHistory, addChatMessage,
+    _augmentedTaSearchJson, _chatbotRequestJson, _chatbotResponseJson, _chatHistory, addChatMessage,
     clearChatHistory, _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
     _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,

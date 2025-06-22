@@ -14,6 +14,7 @@ import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details
 import { MarketStatusDisplay } from "@/components/market-status-display";
 import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiAnalyzedTaDisplay } from "@/components/ai-analyzed-ta-display";
+import { AugmentedTaDisplay } from "@/components/augmented-ta-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
@@ -98,7 +99,7 @@ export function MainTabContent() {
   };
 
   const analyzeButtonLoading = [GlobalFsmState.APP_INITIALIZING, GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
-  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim() || globalFsmFlags.isFullAiMacroPipelineActive;
+  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
 
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
@@ -113,7 +114,7 @@ export function MainTabContent() {
   }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
 
   const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'Validation') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'Validation') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'Validation') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'Validation');
-  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
+  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending;
 
   const handleExportAllToJson = useCallback(async () => {
     logDebug('MainTabContent' as LogSourceId, 'UserAction_ExportAll', 'Export All to JSON clicked.');
@@ -136,7 +137,7 @@ export function MainTabContent() {
     } catch (e: any) { toast({ variant: 'destructive', title: 'Copy Error', description: `Could not copy data: ${e.message}` }); }
   }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
 
-  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending || globalFsmFlags.isFullAiMacroPipelineActive;
+  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending;
 
 
   return (
@@ -162,7 +163,7 @@ export function MainTabContent() {
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
             <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isGlobalChatFsmPending}>
-              {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock (Data & AI TA)
+              {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock
             </Button>
           </div>
         </form>
@@ -240,7 +241,7 @@ export function MainTabContent() {
         </div>
         <Separator />
         <div className="space-y-6">
-          <KeyMetricsDisplay /> <StockSnapshotDetailsDisplay /> <StandardTaDisplay /> <AiAnalyzedTaDisplay /> <AiKeyTakeawaysDisplay /> <OptionsChainTable /> <AiOptionsAnalysisDisplay />
+          <KeyMetricsDisplay /> <StockSnapshotDetailsDisplay /> <StandardTaDisplay /> <AiAnalyzedTaDisplay /> <AugmentedTaDisplay /> <AiKeyTakeawaysDisplay /> <OptionsChainTable /> <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider 
             dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
             currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
