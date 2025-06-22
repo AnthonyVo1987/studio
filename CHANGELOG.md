@@ -58,6 +58,46 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.2.2.0` (Complete Customizable Analysis Phase 2)
+**Tag:** `Phase-27_Task-3.3.2.2.0_FsmIntegrationComplete` (Commit `316f3e78`)
+**Subject:** `feat(fsm,ui): Complete Phase 2 of Customizable Analysis - FSM Integration (v3.3.2.2.0)`
+**Details:**
+This commit (`316f3e78`) marks the successful completion of **Phase 2: FSM & State Management Integration** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase established the critical link between the new UI toggles and the application's central nervous system, the global Finite State Machine.
+
+**Key Changes in Phase 2 (Tasks v3.3.2.0.0 through v3.3.2.2.0):**
+*   **New FSM Flags (`src/contexts/stock-analysis-context.tsx`):**
+    *   Added seven new boolean flags to `GlobalFsmFlags` to represent the on/off state of each new analysis toggle (e.g., `isAiKeyTakeawaysSelected`, `isAugmentedTaSearchEnabled`).
+*   **New FSM Event & Reducer Logic (`src/contexts/stock-analysis-context.tsx`):**
+    *   Created a new `ANALYSIS_TOGGLE_CHANGED` event type.
+    *   Updated the `fsmReducer` to handle this event, allowing it to dynamically update the new flags based on user interaction.
+*   **UI to FSM Connection (`src/components/main-tab-content.tsx`):**
+    *   The `checked` property of each of the seven new `<Switch />` components is now bound directly to its corresponding flag in the global FSM.
+    *   The `onCheckedChange` handler for each switch now dispatches the `ANALYSIS_TOGGLE_CHANGED` event to the global FSM with the correct payload.
+
+**Outcome:**
+*   The UI toggles for customizing the analysis pipeline are now fully state-managed by the single global FSM.
+*   The application is now prepared for Phase 3, where the FSM orchestrator will be updated to read these new flags and execute the analysis pipeline conditionally.
+*   The application version is consistently `v3.3.2.2.0`.
+---
+**App Version:** `v3.3.1.2.0` (UI Foundation for Customizable Analysis)
+**Tag:** `Phase-26_Task-3.3.1.2.0_IntermediatePhaseComplete` (Commit `8f345a34`)
+**Subject:** `feat(ui,docs): Implement UI foundation for Customizable Analysis feature (v3.3.1.2.0)`
+**Details:**
+This commit (`8f345a34`) marks the completion of the initial UI setup tasks (`v3.3.1.0.0` through `v3.3.1.2.0`) for the new **"Customizable Analysis & AI Augmented Web Search"** feature (v3.3 series). This is a checkpoint commit that lays the visual groundwork for the feature before integrating FSM logic.
+
+**Key Changes in v3.3.1.0.0 - v3.3.1.2.0 (Consolidated):**
+*   **`src/components/main-tab-content.tsx`:**
+    *   **Removed "AI Full Analysis Macro" Button:** The hardcoded macro button and its associated logic trigger have been removed to make way for the new customizable pipeline.
+    *   **Added "Customizable Analysis" Toggles:** Five new `Switch` components have been added for `AI Key Takeaways`, `AI Analyzed Options Chain`, and the three `AI Chat` takeaways. These are grouped in a new UI card and are enabled by default.
+    *   **Added "Augmented Intelligence" Toggles:** Two new `Switch` components have been added for `Augmented Technical Analysis` and `Augmented Options Flow Analysis`. These are grouped in a new UI card and are disabled by default.
+*   **`src/config/app-metadata.json`:** Application version updated incrementally to `v3.3.1.2.0`.
+*   **Documentation:** All relevant feature documents (`FEAT_SCOPE_CustomizableAnalysis_v3.3.md`, `FEAT_STATUS_CustomizableAnalysis_v3.3.md`) and the main `README.md` have been updated to reflect the completion of these initial UI tasks.
+
+**Outcome:**
+*   The main UI has been successfully updated with the new toggle controls for the customizable analysis pipeline.
+*   At this stage, the toggles are present visually but have no backend logic or FSM state connection.
+*   The application is now prepared for Phase 2 of the feature: FSM & State Management Integration.
+---
 **App Version:** `v3.3.0.0.0` (Feature Scoping)
 **Tag:** `Phase-25_Task-3.3.0.0.0_ScopeCustomizableAnalysis`
 **Subject:** `feat(docs): Scope Customizable Analysis & AI Augmented Web Search feature (v3.3)`
@@ -648,7 +688,7 @@ This version (`v2.9.D.I`) is an intermediate step in debugging non-functional ma
         *   The Google Gemini model used for AI flows has been updated to `googleai/gemini-2.5-flash-lite-preview-06-17`. This change, initially made manually by the user, is now codified in:
             *   `src/ai/models.ts`: `DEFAULT_CHAT_MODEL_ID` and `DEFAULT_ANALYSIS_MODEL_ID` updated.
             *   `src/ai/genkit.ts`: Default model for `ai.genkit()` configuration now reflects the new model via `DEFAULT_ANALYSIS_MODEL_ID`.
-            *   `src/ai/definitions/analyze-options-chain.json`, `src/ai/definitions/stock-chatbot.json`, `src/ai/definitions/analyze-stock-data.json`: `modelId` field updated to `googleai/gemini-2.5-flash-lite-preview-06-17`.
+            *   `src/ai/definitions/analyze-options-chain.json`, `src/ai/definitions/analyze-stock-data.json`, `src/ai/definitions/stock-chatbot.json`: `modelId` field updated to `googleai/gemini-2.5-flash-lite-preview-06-17`.
     *   **Documentation Updates:**
         *   `README.md`: Updated to version 1.51. Reflects app version `v2.9.D.I`. Section 3.2.2 (Genkit AI Backend) and 3.3 (AI Flow & Prompt Design) updated to mention `googleai/gemini-2.5-flash-lite-preview-06-17`. Logging section (3.4.3) updated regarding `APP_VERSION_FOR_EXPORT` in debug console. Debugging focus note (3.5.0) maintained.
         *   `CHANGELOG.md` (this file): Updated to reflect this v2.9.D.I commit and its changes.
@@ -720,6 +760,7 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 

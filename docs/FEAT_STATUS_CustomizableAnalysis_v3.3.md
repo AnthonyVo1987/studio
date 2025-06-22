@@ -1,7 +1,7 @@
 
 # Feature Status Report: Customizable Analysis & AI Augmented Web Search (v3.3)
 
-**Document Version:** 2.0
+**Document Version:** 3.0
 **Date:** 2025-06-22
 **Feature Target Application Version Series:** 3.3.x.y.z
 
@@ -10,12 +10,12 @@
 **Current Status:** `IN PROGRESS`
 **Last Updated:** 2025-06-22
 
-**Summary:** This feature is in progress. The initial UI foundation tasks are complete, replacing the old macro button with the new customizable analysis toggles. The next step is to integrate these UI controls with the global FSM.
+**Summary:** This feature is in progress. Phase 1 (UI Foundation) and Phase 2 (FSM & State Management Integration) are now complete. The new UI toggles for customizing analysis are fully connected to the Global FSM. The next step is Phase 3, which will implement the conditional pipeline logic in the FSM orchestrator.
 
 ## 2. Phase & Task Status
 
 ### Phase 1: UI Foundation (Target: v3.3.1.y.z)
-*   **Overall Phase Status:** `IN PROGRESS`
+*   **Overall Phase Status:** `COMPLETED` (as of commit `8f345a34`)
 *   **Tasks:**
     *   **v3.3.1.0.0:** Remove "AI Full Analysis Macro" button. (`COMPLETED`)
     *   **v3.3.1.1.0:** Add primary analysis toggles. (`COMPLETED`)
@@ -23,11 +23,11 @@
     *   **v3.3.1.3.0:** (Testing) Verify UI rendering. (`PLANNED`)
 
 ### Phase 2: FSM & State Management Integration (Target: v3.3.2.y.z)
-*   **Overall Phase Status:** `PLANNED`
+*   **Overall Phase Status:** `COMPLETED` (as of commit `316f3e78`)
 *   **Tasks:**
-    *   **v3.3.2.0.0:** Add new flags to `GlobalFsmFlags`. (`PLANNED`)
-    *   **v3.3.2.1.0:** Create `ANALYSIS_TOGGLE_CHANGED` FSM event. (`PLANNED`)
-    *   **v3.3.2.2.0:** Connect UI toggles to FSM. (`PLANNED`)
+    *   **v3.3.2.0.0:** Add new flags to `GlobalFsmFlags`. (`COMPLETED`)
+    *   **v3.3.2.1.0:** Create `ANALYSIS_TOGGLE_CHANGED` FSM event. (`COMPLETED`)
+    *   **v3.3.2.2.0:** Connect UI toggles to FSM. (`COMPLETED`)
     *   **v3.3.2.3.0:** (Testing) Verify flag updates in FSM Debug tab. (`PLANNED`)
 
 ### Phase 3: Conditional Pipeline Logic Integration (Target: v3.3.3.y.z)
@@ -72,15 +72,14 @@
 
 ## 3. Feature Changelog & Commit History
 
-| Date       | Version Tag (Task ID)                  | Commit Hash (if applicable) | Summary of Changes                                                                | Status       |
-| :--------- | :------------------------------------- | :-------------------------- | :-------------------------------------------------------------------------------- | :----------- |
-| 2025-06-22 | `v3.3.1.2.0` (UI Foundation Complete)  | `8f345a34`                  | Completed initial UI setup tasks (v3.3.1.0.0 - v3.3.1.2.0).                       | IN PROGRESS  |
-| 2025-06-22 | `v3.3.1.2.0` (Implement Augment Toggles) |                             | Added UI toggles for Augmented Intelligence.                                        | COMPLETED    |
-| 2025-06-22 | `v3.3.1.1.0` (Implement Analysis Toggles)|                             | Added UI toggles for Customizable Analysis pipeline.                                | COMPLETED    |
-| 2025-06-22 | `v3.3.1.0.0` (Remove Macro Button)     |                             | Removed the "AI Full Analysis Macro" button.                                      | COMPLETED    |
-| 2025-06-22 | `v3.3.0.0.0` (Feature Scoped)          | TBD                         | Feature scope and implementation plan approved. Documents generated.                | IN PROGRESS  |
+| Date       | Version Tag (Task ID)                  | Commit Hash (if applicable) | Summary of Changes                                                                                              | Status       |
+| :--------- | :------------------------------------- | :-------------------------- | :-------------------------------------------------------------------------------------------------------------- | :----------- |
+| 2025-06-22 | `v3.3.2.2.0` (FSM Integration Complete)| `316f3e78`                  | Completed FSM integration tasks (v3.3.2.0.0 - v3.3.2.2.0). Toggles now update global FSM state.             | IN PROGRESS  |
+| 2025-06-22 | `v3.3.1.2.0` (UI Foundation Complete)  | `8f345a34`                  | Completed initial UI setup tasks (v3.3.1.0.0 - v3.3.1.2.0).                                                     | COMPLETED    |
+| 2025-06-22 | `v3.3.0.0.0` (Feature Scoped)          | TBD                         | Feature scope and implementation plan approved. Documents generated.                                            | IN PROGRESS  |
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v3.0 (2025-06-22):** Marked Phase 2 as COMPLETE. Updated summary and changelog table.
 *   **v2.0 (2025-06-22):** Updated status for UI foundation tasks to `COMPLETED`. Added commit entry for intermediate phase completion.
 *   **v1.0 (2025-06-22):** Initial document creation.

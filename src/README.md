@@ -25,8 +25,8 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.72
-**Application Version (from `app-metadata.json`):** v3.3.1.2.0
+**README Document Version:** 1.73
+**Application Version (from `app-metadata.json`):** v3.3.2.2.0
 **Last Updated:** 2025-06-22
 
 ## 1. Introduction
@@ -181,8 +181,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.1.2.0):**
-    *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** IN PROGRESS. The UI foundation (Phase 1) is partially complete.
+*   **Current Feature Focus (as of v3.3.2.2.0):**
+    *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** IN PROGRESS. Phase 1 (UI Foundation) and Phase 2 (FSM Integration) are complete.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -235,8 +235,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.72
-*   **Current Application Version:** `v3.3.1.2.0`
+*   **This README Document Version:** 1.73
+*   **Current Application Version:** `v3.3.2.2.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.

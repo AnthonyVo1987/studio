@@ -96,9 +96,9 @@ This component introduces a new layer of intelligence by using Google Search as 
 ### Phase 2: FSM & State Management Integration (Target: v3.3.2.y.z)
 *   **Objective:** Integrate the state of the new UI toggles with the global FSM.
 *   **Tasks:**
-    *   **Task v3.3.2.0.0:** In `src/contexts/stock-analysis-context.tsx`, add new boolean flags to `GlobalFsmFlags` for each of the seven new toggles (e.g., `isAiKeyTakeawaysSelected`, `isAugmentedTaSearchEnabled`). Set their default values. (`PLANNED`)
-    *   **Task v3.3.2.1.0:** In the same file, create a new FSM event (e.g., `ANALYSIS_TOGGLE_CHANGED`) and update the `fsmReducer` to handle this event, allowing it to update the new flags. (`PLANNED`)
-    *   **Task v3.3.2.2.0:** In `src/components/main-tab-content.tsx`, connect the `onCheckedChange` handler of each toggle to dispatch the new FSM event. Bind the `checked` prop of each toggle to its corresponding flag in the global FSM. (`PLANNED`)
+    *   **Task v3.3.2.0.0:** In `src/contexts/stock-analysis-context.tsx`, add new boolean flags to `GlobalFsmFlags` for each of the seven new toggles (e.g., `isAiKeyTakeawaysSelected`, `isAugmentedTaSearchEnabled`). Set their default values. (`COMPLETED`)
+    *   **Task v3.3.2.1.0:** In the same file, create a new FSM event (e.g., `ANALYSIS_TOGGLE_CHANGED`) and update the `fsmReducer` to handle this event, allowing it to update the new flags. (`COMPLETED`)
+    *   **Task v3.3.2.2.0:** In `src/components/main-tab-content.tsx`, connect the `onCheckedChange` handler of each toggle to dispatch the new FSM event. Bind the `checked` prop of each toggle to its corresponding flag in the global FSM. (`COMPLETED`)
     *   **Task v3.3.2.3.0:** **(Phase 2 Testing)** - Verify in the "FSM Debug" tab that interacting with the UI toggles correctly updates their corresponding flags in the global FSM. (`PLANNED`)
 
 ### Phase 3: Conditional Pipeline Logic Integration (Target: v3.3.3.y.z)

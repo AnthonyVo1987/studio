@@ -58,6 +58,27 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.2.2.0` (Complete Customizable Analysis Phase 2)
+**Tag:** `Phase-27_Task-3.3.2.2.0_FsmIntegrationComplete` (Commit `316f3e78`)
+**Subject:** `feat(fsm,ui): Complete Phase 2 of Customizable Analysis - FSM Integration (v3.3.2.2.0)`
+**Details:**
+This commit (`316f3e78`) marks the successful completion of **Phase 2: FSM & State Management Integration** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase established the critical link between the new UI toggles and the application's central nervous system, the global Finite State Machine.
+
+**Key Changes in Phase 2 (Tasks v3.3.2.0.0 through v3.3.2.2.0):**
+*   **New FSM Flags (`src/contexts/stock-analysis-context.tsx`):**
+    *   Added seven new boolean flags to `GlobalFsmFlags` to represent the on/off state of each new analysis toggle (e.g., `isAiKeyTakeawaysSelected`, `isAugmentedTaSearchEnabled`).
+*   **New FSM Event & Reducer Logic (`src/contexts/stock-analysis-context.tsx`):**
+    *   Created a new `ANALYSIS_TOGGLE_CHANGED` event type.
+    *   Updated the `fsmReducer` to handle this event, allowing it to dynamically update the new flags based on user interaction.
+*   **UI to FSM Connection (`src/components/main-tab-content.tsx`):**
+    *   The `checked` property of each of the seven new `<Switch />` components is now bound directly to its corresponding flag in the global FSM.
+    *   The `onCheckedChange` handler for each switch now dispatches the `ANALYSIS_TOGGLE_CHANGED` event to the global FSM with the correct payload.
+
+**Outcome:**
+*   The UI toggles for customizing the analysis pipeline are now fully state-managed by the single global FSM.
+*   The application is now prepared for Phase 3, where the FSM orchestrator will be updated to read these new flags and execute the analysis pipeline conditionally.
+*   The application version is consistently `v3.3.2.2.0`.
+---
 **App Version:** `v3.3.1.2.0` (UI Foundation for Customizable Analysis)
 **Tag:** `Phase-26_Task-3.3.1.2.0_IntermediatePhaseComplete` (Commit `8f345a34`)
 **Subject:** `feat(ui,docs): Implement UI foundation for Customizable Analysis feature (v3.3.1.2.0)`
@@ -739,6 +760,7 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 
