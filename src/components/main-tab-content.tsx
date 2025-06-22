@@ -22,7 +22,7 @@ import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
-import { useStockAnalysis, GlobalFsmState, type LogSourceId } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Copy, Zap, Brain, BarChartBig, WandSparkles } from "lucide-react";
 
@@ -88,6 +88,13 @@ export function MainTabContent() {
     logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM.`);
     globalDispatchGuardRef.current[guardKey] = true;
     dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: currentActiveTicker } });
+  };
+
+  const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
+    dispatchGlobalFsmEvent({
+      type: 'ANALYSIS_TOGGLE_CHANGED',
+      payload: { toggleType, isEnabled },
+    });
   };
 
   const analyzeButtonLoading = [GlobalFsmState.APP_INITIALIZING, GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
@@ -168,23 +175,23 @@ export function MainTabContent() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-key-takeaways" className="flex-grow text-sm">AI Key Takeaways</Label>
-              <Switch id="toggle-key-takeaways" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+              <Switch id="toggle-key-takeaways" checked={globalFsmFlags.isAiKeyTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_key_takeaways', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
-              <Switch id="toggle-options-analysis" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+              <Switch id="toggle-options-analysis" checked={globalFsmFlags.isAiOptionsAnalysisSelected} onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-chat-stock-trader" className="flex-grow text-sm">AI Chat: Stock Trader's Takeaways</Label>
-              <Switch id="toggle-chat-stock-trader" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+              <Switch id="toggle-chat-stock-trader" checked={globalFsmFlags.isAiChatStockTraderTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_chat_stock_trader', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-chat-options-trader" className="flex-grow text-sm">AI Chat: Options Trader's Takeaways</Label>
-              <Switch id="toggle-chat-options-trader" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+              <Switch id="toggle-chat-options-trader" checked={globalFsmFlags.isAiChatOptionsTraderTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_chat_options_trader', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-chat-holistic" className="flex-grow text-sm">AI Chat: Additional Holistic Takeaways</Label>
-              <Switch id="toggle-chat-holistic" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+              <Switch id="toggle-chat-holistic" checked={globalFsmFlags.isAiChatHolisticTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_chat_holistic', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
           </CardContent>
         </Card>
@@ -197,11 +204,11 @@ export function MainTabContent() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-aug-ta" className="flex-grow text-sm">Augmented Technical Analysis Indicators</Label>
-              <Switch id="toggle-aug-ta" defaultChecked={false} disabled={isAnyAnalysisInProgress} />
+              <Switch id="toggle-aug-ta" checked={globalFsmFlags.isAugmentedTaSearchEnabled} onCheckedChange={(checked) => handleToggleChange('augmented_ta_search', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-aug-options" className="flex-grow text-sm">Augmented Options Flow Analysis</Label>
-              <Switch id="toggle-aug-options" defaultChecked={false} disabled={isAnyAnalysisInProgress} />
+              <Switch id="toggle-aug-options" checked={globalFsmFlags.isAugmentedOptionsSearchEnabled} onCheckedChange={(checked) => handleToggleChange('augmented_options_search', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
           </CardContent>
         </Card>
