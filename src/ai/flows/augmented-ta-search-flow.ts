@@ -10,6 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { DEFAULT_ANALYSIS_MODEL_ID } from '@/ai/models';
 import {
   AugmentedTaSearchInputSchema,

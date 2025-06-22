@@ -12,6 +12,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import {
   ChatInputSchema,
   type ChatInput,
