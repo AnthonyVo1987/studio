@@ -26,8 +26,8 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.83
-**Application Version (from `app-metadata.json`):** v3.3.7.0.3
+**README Document Version:** 1.84
+**Application Version (from `app-metadata.json`):** v3.3.7.0.4
 **Last Updated:** 2025-06-29
 
 ## 1. Introduction
@@ -130,7 +130,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Architectural Mandate:** Dynamic Thinking (`thinkingConfig: { thinkingBudget: -1 }`) is enforced by default on all AI prompts for analysis and chat.
     *   Safety settings are defined in these JSONs.
     *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
-    *   **"Grounding with Google Search" Pattern (Mandatory for Web-Augmented AI):** For reliable AI web searches (as used in Augmented TA/Options Search and Chat), prompts are configured to use the `googleSearch` tool **without** an `output` schema. The prompt must instruct the AI to return a plain text response containing a single, valid JSON string. The flow logic will then parse this string to get structured data. This is the mandated pattern for all web-augmented AI tasks.
+*   **"Grounding with Google Search" Pattern (Mandatory for Web-Augmented AI):** For all AI web searches (e.g., Augmented TA/Options Search, Chat), the application enforces a mandatory architectural pattern to ensure reliable tool use. This involves configuring the prompt with the `googleSearch` tool while omitting a structured `output` schema, and having the flow logic parse a JSON string from the AI's plain text response. This pattern is the mandated architectural approach and is detailed in the new official reference guide: `docs/Gemini_AI_Grounding_Google_Search.md`.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
 #### 3.2.3. Data Sources
@@ -149,7 +149,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.7.0.3)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.7.0.4)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
@@ -184,7 +184,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.7.0.3):**
+*   **Current Feature Focus (as of v3.3.7.0.4):**
     *   **"Customizable Analysis &amp; AI Augmented Web Search" (v3.3.x.y.z):** Initial development complete. Currently in **Phase 7: Final Testing & Debugging**.
 
 #### 3.5.2. UI/UX Conventions
@@ -238,14 +238,12 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.83
-*   **Current Application Version:** `v3.3.7.0.3`
+*   **This README Document Version:** 1.84
+*   **Current Application Version:** `v3.3.7.0.4`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
     *   For pre-v3.0.0.0 history: Refer to `CHANGELOG.md`.
 
 ---
-
-    
-    
+```

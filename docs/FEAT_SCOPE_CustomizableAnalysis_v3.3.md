@@ -1,7 +1,7 @@
 
 # Feature Scope: Customizable Analysis & AI Augmented Web Search (StockSage v3.3.x.y.z)
 
-**Document Version:** 8.0
+**Document Version:** 9.0
 **Date:** 2025-06-29
 **Target Application Version Series:** 3.3.x.y.z
 **Feature Status:** IN PROGRESS
@@ -41,19 +41,21 @@ The "AI Full Analysis Macro" button and its associated hardcoded pipeline logic 
 
 This component introduces a new layer of intelligence by using the **"Grounding with Google Search"** pattern to fetch financial metrics not available via the Polygon API. This augmentation will be controlled by new toggles.
 
-*   **Architectural Pattern for Augmented Search (Mandatory):** To ensure the AI reliably uses the search tool, all augmented search flows will use the established "Grounding with Google Search" pattern. This involves:
-    1.  Defining the Genkit prompt with the `googleSearch` tool enabled.
-    2.  **Omitting** the `output: { schema: ... }` property from the prompt definition.
-    3.  Instructing the AI in the prompt text to format its entire response as a single, valid JSON string.
-    4.  The flow logic will then receive a plain text response from the AI, extract the JSON block, parse it, and validate it against a Zod schema.
+*   **Architectural Pattern for Augmented Search (Mandatory):**
+    *   **This pattern is the mandated architectural approach for all web-augmented AI tasks. For detailed implementation, error handling, and lessons learned, this section is superseded by and must adhere to the new official reference guide: `docs/Gemini_AI_Grounding_Google_Search.md`.**
+    *   To ensure the AI reliably uses the search tool, all augmented search flows will use the established "Grounded JSON-in-Text" pattern. This involves:
+        1.  Defining the Genkit prompt with the `googleSearch` tool enabled.
+        2.  **Omitting** the `output: { schema: ... }` property from the prompt definition.
+        3.  Instructing the AI in the prompt text to format its entire response as a single, valid JSON string.
+        4.  The flow logic will then receive a plain text response from the AI, extract the JSON block, parse it, and validate it against a Zod schema.
 
 *   **[Toggle] AI Augmented Web Search: Technical Analysis Indicators:**
-    *   **Behavior:** When enabled, a new AI flow will use the "Grounding with Google Search" pattern to find the latest values for ATR-14, Support/Resistance Levels, Bollinger Bands, and Fibonacci Retracement Levels.
+    *   **Behavior:** When enabled, a new AI flow will use the "Grounded JSON-in-Text" pattern to find the latest values for ATR-14, Support/Resistance Levels, Bollinger Bands, and Fibonacci Retracement Levels.
     *   **UI Impact:** A new display card will show the raw data retrieved from the web search.
     *   **Logic Impact:** When this toggle is **ON**, the data retrieved **MUST** be passed as additional context to the AI prompts for "AI Key Takeaways" and all three "AI Chat" modules, enriching their analysis.
 
 *   **[Toggle] AI Augmented Web Search: Options Chain Flow Analysis:**
-    *   **Behavior:** When enabled, a new AI flow uses the "Grounding with Google Search" pattern to find metrics like Max Pain, GEX, and Put/Call Ratio.
+    *   **Behavior:** When enabled, a new AI flow uses the "Grounded JSON-in-Text" pattern to find metrics like Max Pain, GEX, and Put/Call Ratio.
     *   **UI Impact:** A new display card will show the raw data retrieved from the web search.
     *   **Logic Impact:** When this toggle is **ON**, the data retrieved **MUST** be passed as additional context to the prompts for "AI Analyzed Options Chain", "AI Chat Stock Trader's Takeaways", and "AI Chat Options Trader's Takeaways".
 
@@ -91,7 +93,7 @@ This component introduces a new layer of intelligence by using the **"Grounding 
 *   **Status:** `COMPLETED`
 
 ### Phase 4: AI Augmented Web Search - Technical Analysis (Target: v3.3.4.y.z)
-*   **Objective:** Implement the AI-driven web search for augmented technical indicators using the "Grounding with Google Search" pattern.
+*   **Objective:** Implement the AI-driven web search for augmented technical indicators using the "Grounded JSON-in-Text" pattern.
 *   **Status:** `COMPLETED`
 
 ### Phase 5: AI Augmented Web Search - Options Flow (Target: v3.3.5.y.z)
@@ -115,12 +117,13 @@ This component introduces a new layer of intelligence by using the **"Grounding 
 
 ## 6. Document Changelog
 
+*   **v9.0 (2025-06-29):** Updated "Architectural Pattern for Augmented Search" section to reference the new `docs/Gemini_AI_Grounding_Google_Search.md` guide as the single source of truth.
 *   **v8.0 (2025-06-29):** Updated Phase 7 to add task v3.3.7.0.3 and marked as complete. Re-numbered subsequent planned tasks.
 *   **v7.0 (2025-06-28):** Updated Phase 7 to "IN PROGRESS". Added tasks v3.3.7.0.0, v3.3.7.0.1, v3.3.7.0.2 and marked as complete to reflect debugging progress. Re-numbered subsequent planned tasks.
 *   **v6.0 (2025-06-28):** Marked Phase 6 and all its tasks as `COMPLETED`. Updated status of Phase 7 to `PLANNED`.
 *   **v5.0 (2025-06-27):** Marked Phase 5 and all its tasks as `COMPLETED`.
-*   **v4.2 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounding with Google Search" pattern correction. Updated "Architectural Pattern for Augmented Search" to reflect mandatory use of the corrected pattern.
-*   **v4.1 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounding with Google Search" pattern correction.
+*   **v4.2 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounded JSON-in-Text" pattern correction. Updated "Architectural Pattern for Augmented Search" to reflect mandatory use of the corrected pattern.
+*   **v4.1 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounded JSON-in-Text" pattern correction.
 *   **v4.0 (2025-06-25):** Marked Phase 4 as COMPLETE.
 *   **v3.0 (2025-06-23):** Marked Phase 3 as COMPLETE.
 *   **v2.0 (2025-06-22):** Added detailed, phased implementation plan with testing tasks per phase.
@@ -128,6 +131,4 @@ This component introduces a new layer of intelligence by using the **"Grounding 
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
-
-
-    
+```
