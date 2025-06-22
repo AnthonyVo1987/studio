@@ -26,7 +26,7 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.85
+**README Document Version:** 1.86
 **Application Version (from `app-metadata.json`):** v3.3.7.0.7
 **Last Updated:** 2025-06-30
 
@@ -78,9 +78,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Stock Trader's Takeaways (with Buy/Sell levels).
         *   AI Chat: Options Trader's Takeaways (with CC/CSP setups).
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
-*   **AI Augmented Web Search (as of v3.3):**
-    *   **[Toggle] Augmented Technical Analysis:** Uses "Grounding with Google Search" to fetch additional indicators (ATR, Bollinger Bands, Support/Resistance, etc.) and displays them in a new, dedicated card. When this toggle is **ON**, the retrieved data is passed as additional context to enrich the AI Key Takeaways and Chat prompts.
-    *   **[Toggle] Augmented Options Flow Analysis:** Uses "Grounding with Google Search" to fetch advanced options metrics (Max Pain, GEX, Put/Call Ratio, etc.) and displays them in a new, dedicated card. When this toggle is **ON**, the retrieved data is passed as additional context to enrich the AI Options Analysis and Chat prompts.
+*   **AI Augmented Web Search (as of v3.3.7.0.7):**
+    *   **[Under Re-Architecture]** This feature is currently undergoing a major re-architecture to decouple its functionality from the main analysis pipeline. The objective is to restore core application stability and enable isolated, non-blocking debugging.
+    *   For the full scope and implementation plan of this refactor, see `docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
     *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot.
@@ -186,6 +186,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
 *   **Current Feature Focus (as of v3.3.7.0.7):**
     *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** Currently undergoing a major re-architecture to decouple the augmented search functionality for isolated debugging. See `docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`.
+*   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -238,7 +239,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.85
+*   **This README Document Version:** 1.86
 *   **Current Application Version:** `v3.3.7.0.7`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
@@ -246,3 +247,4 @@ npm run start
     *   For pre-v3.0.0.0 history: Refer to `CHANGELOG.md`.
 
 ---
+

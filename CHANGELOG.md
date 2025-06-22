@@ -58,21 +58,21 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
-**App Version:** `v3.3.7.0.7` (Re-Architecture Scoping)
-**Tag:** `Phase-32_Task-3.3.7.0.7_ScopeAugmentedSearchRefactor`
-**Subject:** `docs(scope): Scope augmented search re-architecture to decouple from main pipeline (v3.3.7.0.7)`
+**App Version:** `v3.3.7.0.7` (Re-Architecture Scoping & Planning)
+**Tag:** `Phase-32_Task-3.3.7.0.7_DefineAugmentedSearchRefactorPlan`
+**Subject:** `docs(all): Define detailed implementation plan for augmented search re-architecture (v3.3.7.0.7)`
 **Details:**
-This commit (`TBD`) is a **scoping and documentation-only** task that defines a new re-architecture for the "AI Augmented Web Search" feature. Due to persistent integration issues, this new plan involves completely decoupling the augmented search functionality from the main analysis pipeline to allow for isolated, non-blocking debugging and development.
+This commit (`TBD`) is a **documentation-only** task that defines a detailed, phased implementation plan for the "AI Augmented Web Search" re-architecture. The objective is to decouple the augmented search functionality from the main analysis pipeline to restore stability and enable isolated debugging. This commit updates all relevant documentation with the new plan.
 
-**Key Changes:**
-*   **`docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`:** A new feature scope document was created to outline the new phased plan for decoupling the augmented search. This includes reverting changes to the main AI prompts/flows, replacing the parsed UI displays with raw text boxes for direct output observation, and refactoring the FSM to run the augmented searches in a non-blocking, parallel manner.
-*   **`docs/FEAT_STATUS_AugmentedSearchRefactor_v3.3.7.0.7.md`:** A corresponding feature status document was created to track the progress of this new refactoring effort.
-*   **`src/config/app-metadata.json`:** Application version updated to `v3.3.7.0.7` to mark the initiation of this new plan.
-*   **`README.md`, `CHANGELOG.md`:** Updated to reflect the start of this new re-architecture task.
+**Key Documentation Changes:**
+*   **`docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`:** The scope document has been updated with a new "Implementation Phased Plan" section, detailing four phases (Data Layer Decoupling, UI Isolation, FSM Refactoring, Final Testing) and their corresponding tasks.
+*   **`docs/FEAT_STATUS_AugmentedSearchRefactor_v3.3.7.0.7.md`:** The status document has been updated to reflect the newly defined implementation plan, with all new tasks marked as `PLANNED`.
+*   **`README.md`:** The main PRD has been updated to reflect the new application version (`v3.3.7.0.7`) and to note that the Augmented Search feature is currently undergoing this re-architecture.
+*   **`CHANGELOG.md` (this file):** Updated with this commit log.
+*   **`src/config/app-metadata.json`:** Remains at `v3.3.7.0.7` as established in the prior scoping task. No source code was changed.
 
 **Outcome:**
-*   The application is now prepared for a more stable, iterative approach to developing the augmented search feature.
-*   No application source code was changed in this commit. All changes are to documentation and planning files.
+*   The project now has a clear, actionable, and documented plan for implementing the augmented search re-architecture.
 ---
 **App Version:** `v3.3.7.0.6` (Debug Fix)
 **Tag:** `Phase-31_Task-3.3.7.0.6_FixAugmentedFlowArchitecture_Final` (Commit `TBD`)
@@ -919,3 +919,4 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
