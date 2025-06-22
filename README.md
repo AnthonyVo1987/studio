@@ -26,9 +26,9 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.79
-**Application Version (from `app-metadata.json`):** v3.3.4.3.0
-**Last Updated:** 2025-06-26
+**README Document Version:** 1.80
+**Application Version (from `app-metadata.json`):** v3.3.5.3.0
+**Last Updated:** 2025-06-27
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -80,7 +80,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
 *   **AI Augmented Web Search (as of v3.3):**
     *   **[Toggle] Augmented Technical Analysis:** Uses "Grounding with Google Search" to fetch additional indicators (ATR, Bollinger Bands, Support/Resistance, etc.) and displays them in a new, dedicated card. This data enriches the core AI analyses when enabled.
-    *   **[Toggle] Augmented Options Flow Analysis:** (Planned) Uses "Grounding with Google Search" to fetch advanced options metrics (Max Pain, GEX, etc.) and displays them in a new card, enriching the options-related AI analyses.
+    *   **[Toggle] Augmented Options Flow Analysis:** Uses "Grounding with Google Search" to fetch advanced options metrics (Max Pain, GEX, Put/Call Ratio, etc.) and displays them in a new, dedicated card, enriching the options-related AI analyses.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
     *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot.
@@ -130,7 +130,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Architectural Mandate:** Dynamic Thinking (`thinkingConfig: { thinkingBudget: -1 }`) is enforced by default on all AI prompts for analysis and chat.
     *   Safety settings are defined in these JSONs.
     *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
-    *   **"Grounding with Google Search" Pattern (Mandatory for Web-Augmented AI):** For reliable AI web searches (as used in Augmented TA and Chat), prompts are configured to use the `googleSearch` tool **without** an `output` schema. The prompt must instruct the AI to return a plain text response containing a single, valid JSON string. The flow logic will then parse this string to get structured data. This is the mandated pattern for all web-augmented AI tasks.
+    *   **"Grounding with Google Search" Pattern (Mandatory for Web-Augmented AI):** For reliable AI web searches (as used in Augmented TA/Options Search and Chat), prompts are configured to use the `googleSearch` tool **without** an `output` schema. The prompt must instruct the AI to return a plain text response containing a single, valid JSON string. The flow logic will then parse this string to get structured data. This is the mandated pattern for all web-augmented AI tasks.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
 #### 3.2.3. Data Sources
@@ -143,17 +143,17 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.4. State Management (as of v3.2.5.0.Z)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
-    *   Fetched data JSON strings (including `augmentedTaSearchJson`).
+    *   Fetched data JSON strings (including `augmentedTaSearchJson`, `augmentedOptionsSearchJson`).
     *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the "AI Full Stock Analysis" macro.
     *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.4.3.0)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.5.3.0)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
-    *   The new customizable analysis pipeline, which conditionally triggers on-demand AI actions (Key Takeaways, Options Analysis), augmented searches (TA Search), and chat prompts based on user-selected toggles.
+    *   The new customizable analysis pipeline, which conditionally triggers on-demand AI actions (Key Takeaways, Options Analysis), augmented searches (TA and Options Search), and chat prompts based on user-selected toggles.
 *   **Deprecated FSMs:** Local FSMs previously in `MainTabContent`, `ChatbotFsmContext`, and `DebugConsoleFsmContext` have been removed, and their logic has been fully absorbed by the global FSM.
 
 ### 3.3. AI Flow & Prompt Design
@@ -184,8 +184,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.4.3.0):**
-    *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** IN PROGRESS. Phase 1, 2, 3, and 4 are complete.
+*   **Current Feature Focus (as of v3.3.5.3.0):**
+    *   **"Customizable Analysis &amp; AI Augmented Web Search" (v3.3.x.y.z):** IN PROGRESS. Phase 1, 2, 3, 4, and 5 are complete.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -238,8 +238,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.79
-*   **Current Application Version:** `v3.3.4.3.0`
+*   **This README Document Version:** 1.80
+*   **Current Application Version:** `v3.3.5.3.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
