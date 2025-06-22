@@ -15,6 +15,7 @@ import { MarketStatusDisplay } from "@/components/market-status-display";
 import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiAnalyzedTaDisplay } from "@/components/ai-analyzed-ta-display";
 import { AugmentedTaDisplay } from "@/components/augmented-ta-display";
+import { AugmentedOptionsDisplay } from "@/components/augmented-options-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
@@ -241,7 +242,7 @@ export function MainTabContent() {
         </div>
         <Separator />
         <div className="space-y-6">
-          <KeyMetricsDisplay /> <StockSnapshotDetailsDisplay /> <StandardTaDisplay /> <AiAnalyzedTaDisplay /> <AugmentedTaDisplay /> <AiKeyTakeawaysDisplay /> <OptionsChainTable /> <AiOptionsAnalysisDisplay />
+          <KeyMetricsDisplay /> <StockSnapshotDetailsDisplay /> <StandardTaDisplay /> <AiAnalyzedTaDisplay /> <AugmentedTaDisplay /> <AugmentedOptionsDisplay /> <AiKeyTakeawaysDisplay /> <OptionsChainTable /> <AiOptionsAnalysisDisplay />
           <ChatbotFsmProvider 
             dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
             currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
