@@ -38,10 +38,18 @@
       ]
     },
     {
+      "role": "AugmentedDataContext",
+      "parts": [
+        {
+          "text": "{{#if augmentedTaSearchJson}}\n**Augmented Technical Analysis Data (from Web Search):** You have additional real-time TA data. Use these support/resistance levels to inform where significant OI concentrations might be more or less impactful. Data: {{{augmentedTaSearchJson}}}\n{{/if}}\n{{#if augmentedOptionsSearchJson}}\n**Augmented Options Flow Data (from Web Search):** You have additional real-time options flow metrics. Use Max Pain as a potential magnet for price action and GEX/Put-Call Ratio to understand dealer positioning and market sentiment. This should heavily influence your interpretation of OI/Volume walls. Data: {{{augmentedOptionsSearchJson}}}\n{{/if}}"
+        }
+      ]
+    },
+    {
       "role": "AnalysisCriteria",
       "parts": [
         {
-          "text": "Identify strikes that show potentially significant Open Interest (OI) that *might* act as support/resistance. Consider OI levels that are elevated compared to their immediate surroundings or that appear noteworthy within the context of the overall options chain for {{{ticker}}}. Also, consider strikes where Open Interest shows a notable increase relative to immediately adjacent strikes, even if the absolute OI is not exceptionally high across the entire chain. High volume at these strikes can be a confirming factor but is not strictly required if OI itself is notable. The goal is to highlight areas of interest, not just extreme concentrations. You should make every reasonable effort to find candidates."
+          "text": "Identify strikes that show potentially significant Open Interest (OI) that *might* act as support/resistance. Consider OI levels that are elevated compared to their immediate surroundings or that appear noteworthy within the context of the overall options chain for {{{ticker}}}. Also, consider strikes where Open Interest shows a notable increase relative to immediately adjacent strikes, even if the absolute OI is not exceptionally high across the entire chain. High volume at these strikes can be a confirming factor but is not strictly required if OI itself is notable. **If augmented data is available, use it to refine your analysis.** For example, an OI wall that aligns with a web-sourced support/resistance level or is near Max Pain is much more significant. The goal is to highlight areas of interest, not just extreme concentrations. You should make every reasonable effort to find candidates."
         }
       ]
     },
@@ -63,5 +71,3 @@
     }
   ]
 }
-
-    

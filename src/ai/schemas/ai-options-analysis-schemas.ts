@@ -17,6 +17,8 @@ export const AiOptionsAnalysisInputSchema = z.object({
   ticker: z
     .string()
     .describe('The stock ticker symbol for which the options chain is being analyzed.'),
+  augmentedTaSearchJson: z.string().optional().describe('Optional JSON string of augmented TA data from a web search (ATR, S/R levels, etc.).'),
+  augmentedOptionsSearchJson: z.string().optional().describe('Optional JSON string of augmented options data from a web search (Max Pain, GEX, etc.).'),
 });
 export type AiOptionsAnalysisInput = z.infer<typeof AiOptionsAnalysisInputSchema>;
 
@@ -41,5 +43,3 @@ export const AiOptionsAnalysisOutputSchema = z.object({
     .describe('An array of identified put walls, ordered by significance. Max 3. Can be empty if none meet criteria.'),
 });
 export type AiOptionsAnalysisOutput = z.infer<typeof AiOptionsAnalysisOutputSchema>;
-
-    

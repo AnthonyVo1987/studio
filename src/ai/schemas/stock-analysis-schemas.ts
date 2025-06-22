@@ -20,6 +20,8 @@ export const StockAnalysisInputSchema = z.object({
   marketStatusJson: z
     .string()
     .describe('A JSON string containing current market status information.'),
+  augmentedTaSearchJson: z.string().optional().describe('Optional JSON string of augmented TA data from a web search (ATR, S/R levels, etc.).'),
+  augmentedOptionsSearchJson: z.string().optional().describe('Optional JSON string of augmented options data from a web search (Max Pain, GEX, etc.).'),
 });
 export type StockAnalysisInput = z.infer<typeof StockAnalysisInputSchema>;
 
@@ -40,4 +42,3 @@ export const StockAnalysisOutputSchema = z.object({
   patterns: TakeawayDetailSchema.describe('Key takeaway regarding observed chart patterns or lack thereof.'),
 });
 export type StockAnalysisOutput = z.infer<typeof StockAnalysisOutputSchema>;
-
