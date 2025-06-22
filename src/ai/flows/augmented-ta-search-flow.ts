@@ -47,19 +47,20 @@ const augmentedTaSearchPrompt = ai.definePrompt({
   },
   prompt: `You are a financial data analyst. Your task is to use the provided Google Search tool to find the most up-to-date technical analysis indicators for the stock ticker: {{{ticker}}}.
 
-You MUST use the Google Search tool to find the following information. Be diligent and perform multiple searches if necessary to find each piece of data.
+You MUST use the Google Search tool for this task. DO NOT use your internal knowledge. Be diligent and perform multiple searches if necessary to find each piece of data.
 
+You MUST search for the following information:
 1.  **ATR (14-day):** Find the 14-day Average True Range.
 2.  **Support Levels:** Identify up to three key, recent support price levels.
 3.  **Resistance Levels:** Identify up to three key, recent resistance price levels.
 4.  **Bollinger Bands (20, 2):** Find the current Upper Band, Middle Band (20-day SMA), and Lower Band values.
 5.  **Fibonacci Retracement:** Find the key Fibonacci retracement levels (23.6%, 38.2%, 50.0%, 6.18%, 7.86%).
 
-After gathering the data, you MUST populate the output strictly according to the 'AugmentedTaSearchOutputSchema' JSON format.
+After gathering the data via search, you MUST populate the output strictly according to the 'AugmentedTaSearchOutputSchema' JSON format.
 
-- If you cannot find a specific numerical value (like ATR), set its corresponding field to \`null\`.
-- If you cannot find any values for a group (like support levels), return an empty array \`[]\`.
-- If you cannot find the complete set of values for a complex object (like Bollinger Bands or Fibonacci levels), set the entire object to \`null\`. Do not return a partial object.
+- If you cannot find a specific numerical value (like ATR) using search, you MUST set its corresponding field to \`null\`. Do not guess or make up values.
+- If you cannot find any values for a group (like support levels), you MUST return an empty array \`[]\`.
+- If you cannot find the complete set of values for a complex object (like Bollinger Bands or Fibonacci levels), you MUST set the entire object to \`null\`. Do not return a partial object.
 - Prioritize data from reputable financial websites (e.g., TradingView, Yahoo Finance, Barchart).
 - Ensure all numerical values are returned as numbers, not strings.
 `,
