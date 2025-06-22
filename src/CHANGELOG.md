@@ -58,11 +58,62 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.1.2.0` (UI Foundation for Customizable Analysis)
+**Tag:** `Phase-26_Task-3.3.1.2.0_IntermediatePhaseComplete` (Commit `8f345a34`)
+**Subject:** `feat(ui,docs): Implement UI foundation for Customizable Analysis feature (v3.3.1.2.0)`
+**Details:**
+This commit (`8f345a34`) marks the completion of the initial UI setup tasks (`v3.3.1.0.0` through `v3.3.1.2.0`) for the new **"Customizable Analysis & AI Augmented Web Search"** feature (v3.3 series). This is a checkpoint commit that lays the visual groundwork for the feature before integrating FSM logic.
+
+**Key Changes in v3.3.1.0.0 - v3.3.1.2.0 (Consolidated):**
+*   **`src/components/main-tab-content.tsx`:**
+    *   **Removed "AI Full Analysis Macro" Button:** The hardcoded macro button and its associated logic trigger have been removed to make way for the new customizable pipeline.
+    *   **Added "Customizable Analysis" Toggles:** Five new `Switch` components have been added for `AI Key Takeaways`, `AI Analyzed Options Chain`, and the three `AI Chat` takeaways. These are grouped in a new UI card and are enabled by default.
+    *   **Added "Augmented Intelligence" Toggles:** Two new `Switch` components have been added for `Augmented Technical Analysis` and `Augmented Options Flow Analysis`. These are grouped in a new UI card and are disabled by default.
+*   **`src/config/app-metadata.json`:** Application version updated incrementally to `v3.3.1.2.0`.
+*   **Documentation:** All relevant feature documents (`FEAT_SCOPE_CustomizableAnalysis_v3.3.md`, `FEAT_STATUS_CustomizableAnalysis_v3.3.md`) and the main `README.md` have been updated to reflect the completion of these initial UI tasks.
+
+**Outcome:**
+*   The main UI has been successfully updated with the new toggle controls for the customizable analysis pipeline.
+*   At this stage, the toggles are present visually but have no backend logic or FSM state connection.
+*   The application is now prepared for Phase 2 of the feature: FSM & State Management Integration.
+---
+**App Version:** `v3.3.0.0.0` (Feature Scoping)
+**Tag:** `Phase-25_Task-3.3.0.0.0_ScopeCustomizableAnalysis`
+**Subject:** `feat(docs): Scope Customizable Analysis & AI Augmented Web Search feature (v3.3)`
+**Details:**
+This commit (`TBD`) prepares all documentation for the new **"Customizable Analysis & AI Augmented Web Search"** feature, version series `v3.3.x.y.z`. This is a documentation and planning commit that sets the stage for implementation.
+
+**Key Changes:**
+*   **`docs/FEAT_SCOPE_CustomizableAnalysis_v3.3.md`:** A new, comprehensive feature scope document was created, outlining the objectives, detailed requirements, and a full, multi-phase implementation plan for the new feature.
+*   **`docs/FEAT_STATUS_CustomizableAnalysis_v3.3.md`:** A new feature status report was created to track the progress of the v3.3 feature through its planned phases.
+*   **`README.md`:** The main PRD was updated to include the new "Customizable Analysis & AI Augmented Web Search" functionality in its feature list.
+*   **`CHANGELOG.md` (this file):** Updated with this commit log to mark the official start of the new feature.
+*   **`src/config/app-metadata.json`:** Application version updated to `v3.3.0.0.0`.
+---
+**App Version:** `v3.2.5.0.Z` (Complete FSM Consolidation)
+**Tag:** `Phase-24_Task-3.2.5.0.Z_CompleteFsmConsolidation` (Commit `1ca4bd54`)
+**Subject:** `feat(fsm,core): Complete FSM Consolidation & Refactor feature (v3.2.5.0.Z)`
+**Details:**
+This commit (`1ca4bd54`) marks the full and successful completion of the **"FSM Consolidation & Refactor"** feature (v3.2.x.y.z series). This major architectural enhancement involved migrating all primary application state and UI logic—previously managed by multiple disparate FSMs—into a single, robust, and centralized Finite State Machine in `StockAnalysisContext`.
+
+**Key Achievements in the FSM Consolidation & Refactor (v3.2) Feature:**
+*   **Single Source of Truth:** The application now operates on a single global FSM. This orchestrates all major pipelines, including automated data analysis, on-demand AI actions (Key Takeaways, Options Analysis), and the full AI Chatbot lifecycle (interactive queries, macro-driven prompts, and Google Search grounding).
+*   **Architectural Simplification:** Local FSMs in `MainTabContent`, `ChatbotFsmContext`, and `DebugConsoleFsmContext` were successfully deprecated and their logic absorbed by the global FSM. This has significantly reduced state management complexity and improved code maintainability.
+*   **Enhanced State Management:** The new FSM utilizes a comprehensive set of states (`GlobalFsmState`), flags (`GlobalFsmFlags`), and context variables (`GlobalFsmContextVariables`), providing granular and predictable control over the application's behavior and UI state.
+*   **Improved Debuggability:** FSM-related debug tooling was enhanced. The `FsmDebugTabContent` provides a clear, real-time view of the single FSM's state, flags, and variables. Log exports were updated to include this snapshot, greatly aiding in troubleshooting.
+*   **Bug Fixes & Stability:** Throughout the refactoring process, numerous bugs related to state synchronization, race conditions, and UI inconsistencies were resolved. This includes critical fixes for tab-switching bugs that caused state loss, stuck AI macros, and broken chat grounding.
+*   **AI Prompt Integrity:** As part of the final debugging phase (`v3.2.5.0.Z`), all lingering hardcoded/deprecated AI prompt templates were removed from the codebase, ensuring that all AI actions correctly source their logic from the JSON definitions in `src/ai/definitions/`.
+
+**Outcome of v3.2.5.0.Z:**
+*   The application is more stable, predictable, and easier to debug.
+*   The state management architecture is now scalable and prepared for future feature development.
+*   The application version is consistently `v3.2.5.0.Z`, reflecting the completion of this major refactoring effort.
+---
 **App Version:** `v3.2.5.0.U` (Fix Chat Grounding with Tools)
-**Tag:** `Phase-23_Task-3.2.5.0.U_FixChatGroundingWithTools`
+**Tag:** `Phase-23_Task-3.2.5.0.U_FixChatGroundingWithTools` (Commit `6645e792`)
 **Subject:** `fix(ai,chat): Resolve unsupported tool use error for chat grounding (v3.2.5.0.U)`
 **Details:**
-This commit (`v3.2.5.0.U`) fixes a critical bug where the "Grounding with Google Search" feature in the chatbot would fail immediately. The root cause was an API limitation: the Google Generative AI API does not support using tools (like Google Search) when a structured JSON output (`output: {schema: ...}`) is also requested in the same prompt.
+This commit (`6645e792`) fixes a critical bug where the "Grounding with Google Search" feature in the chatbot would fail immediately. The root cause was an API limitation: the Google Generative AI API does not support using tools (like Google Search) when a structured JSON output (`output: {schema: ...}`) is also requested in the same prompt.
 
 **Key Changes in v3.2.5.0.U:**
 *   **`src/ai/flows/chat-flow.ts`:**
@@ -493,7 +544,7 @@ This version (`v2.9.D.M`) implements cleanup and hardening measures following th
         *   `src/ai/flows/analyze-stock-data.ts`: Preserved explicit error throwing if `outputFromPrompt` is undefined (from v2.9.D.K). Added `console.time/timeEnd` for `analyzeStockDataFlowExecutionTime`.
         *   `src/ai/flows/analyze-options-chain-flow.ts`: Implemented explicit error throwing if the AI prompt call returns `undefined` output or if `output.callWalls`/`output.putWalls` are not arrays. Added `console.time/timeEnd` for `analyzeOptionsChainFlowExecutionTime`.
         *   `src/ai/flows/chat-flow.ts`: Modified to throw an error if `output` or `output.response` from the AI prompt is undefined or not a string. Added `console.time/timeEnd` for `chatFlowExecutionTime`.
-        *   Server Actions (`performAiAnalysisAction.ts`, `performAiOptionsAnalysisAction.ts`, `chatServerAction.ts`): Added `console.log` statements before and after calls to their respective AI flows. Ensured `catch` blocks consistently return a JSON object with `{ error: "...", details: "..." }` structure in the primary data field of the action's response when a flow throws an error.
+        *   Server Actions (`performAiAnalysisAction.ts`, `performAiOptionsAnalysisAction.ts`, `chatServerAction.ts`): Added `console.log` statements before and after calls to their respective AI flows. Ensured `catch` blocks consistently return a JSON object with `{ error: "...", details": "..." }` structure in the primary data field of the action's response when a flow throws an error.
     *   **Client-Side Error Display Standardization (Task 4 of D.M):**
         *   `src/components/ai-options-analysis-display.tsx`: Updated parsing logic to correctly check for and display messages from `aiOptionsAnalysisJson` when it contains a direct `error` field from the server action.
         *   `src/components/main-tab-content.tsx`: Reviewed and confirmed logic for handling `chatActionState` to ensure error messages from `chatbotResponseJson` (if `error` field is present) are added to the chat history.
@@ -688,6 +739,7 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 
