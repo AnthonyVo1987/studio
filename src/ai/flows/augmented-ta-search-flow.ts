@@ -74,9 +74,9 @@ const augmentedTaSearchFlow = ai.defineFlow(
   {
     name: 'augmentedTaSearchFlow',
     inputSchema: AugmentedTaSearchInputSchema,
-    outputSchema: AugmentedTaSearchOutputSchema,
+    // REMOVED: outputSchema to align with the "Grounding with Google Search" pattern and prevent tool conflicts.
   },
-  async (input) => {
+  async (input): Promise<AugmentedTaSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedTaSearchFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started using Grounding pattern.`);
 

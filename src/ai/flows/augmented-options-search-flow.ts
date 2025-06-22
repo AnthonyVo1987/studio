@@ -71,9 +71,9 @@ const augmentedOptionsSearchFlow = ai.defineFlow(
   {
     name: 'augmentedOptionsSearchFlow',
     inputSchema: AugmentedOptionsSearchInputSchema,
-    outputSchema: AugmentedOptionsSearchOutputSchema,
+    // REMOVED: outputSchema to align with the "Grounding with Google Search" pattern and prevent tool conflicts.
   },
-  async (input) => {
+  async (input): Promise<AugmentedOptionsSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedOptionsSearchFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started using Grounding pattern.`);
 
