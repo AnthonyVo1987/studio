@@ -8,36 +8,16 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
 import { DEFAULT_ANALYSIS_MODEL_ID } from '@/ai/models';
+import {
+  AugmentedTaSearchInputSchema,
+  type AugmentedTaSearchInput,
+  AugmentedTaSearchOutputSchema,
+  type AugmentedTaSearchOutput,
+} from '@/ai/schemas/augmented-ta-search-schemas';
 
-// --- Zod Schemas for Input and Output ---
-
-export const AugmentedTaSearchInputSchema = z.object({
-  ticker: z.string().describe('The stock ticker symbol to search for, e.g., "NVDA".'),
-});
-export type AugmentedTaSearchInput = z.infer<typeof AugmentedTaSearchInputSchema>;
-
-export const AugmentedTaSearchOutputSchema = z.object({
-  atr14: z.number().nullable().describe('The 14-day Average True Range (ATR). Null if not found.'),
-  supportLevels: z.array(z.number()).max(3).describe('Up to three key support price levels. Empty array if none found.'),
-  resistanceLevels: z.array(z.number()).max(3).describe('Up to three key resistance price levels. Empty array if none found.'),
-  bollingerBands: z.object({
-    upper: z.number().describe('The upper Bollinger Band value.'),
-    middle: z.number().describe('The middle Bollinger Band value (typically a 20-period SMA).'),
-    lower: z.number().describe('The lower Bollinger Band value.'),
-  }).nullable().describe('The Bollinger Bands values. Null if not found.'),
-  fibonacciRetracement: z.object({
-    '0.236': z.number().describe('The 23.6% Fibonacci retracement level.'),
-    '0.382': z.number().describe('The 38.2% Fibonacci retracement level.'),
-    '0.500': z.number().describe('The 50.0% Fibonacci retracement level.'),
-    '0.618': z.number().describe('The 61.8% Fibonacci retracement level.'),
-    '0.786': z.number().describe('The 78.6% Fibonacci retracement level.'),
-  }).nullable().describe('Key Fibonacci retracement levels. Null if the entire set cannot be determined.'),
-});
-export type AugmentedTaSearchOutput = z.infer<typeof AugmentedTaSearchOutputSchema>;
-
-// --- Exported Main Function ---
+// Re-export types for consumer convenience
+export type { AugmentedTaSearchInput, AugmentedTaSearchOutput };
 
 /**
  * Executes the augmented TA search flow.
@@ -73,7 +53,7 @@ You MUST use the Google Search tool to find the following information. Be dilige
 2.  **Support Levels:** Identify up to three key, recent support price levels.
 3.  **Resistance Levels:** Identify up to three key, recent resistance price levels.
 4.  **Bollinger Bands (20, 2):** Find the current Upper Band, Middle Band (20-day SMA), and Lower Band values.
-5.  **Fibonacci Retracement:** Find the key Fibonacci retracement levels (23.6%, 38.2%, 50.0%, 61.8%, 78.6%).
+5.  **Fibonacci Retracement:** Find the key Fibonacci retracement levels (23.6%, 38.2%, 50.0%, 6.18%, 7.86%).
 
 After gathering the data, you MUST populate the output strictly according to the 'AugmentedTaSearchOutputSchema' JSON format.
 
