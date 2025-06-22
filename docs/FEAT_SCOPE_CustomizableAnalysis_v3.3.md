@@ -1,8 +1,8 @@
 
 # Feature Scope: Customizable Analysis & AI Augmented Web Search (StockSage v3.3.x.y.z)
 
-**Document Version:** 2.0
-**Date:** 2025-06-22
+**Document Version:** 3.0
+**Date:** 2025-06-23
 **Target Application Version Series:** 3.3.x.y.z
 **Feature Status:** IN PROGRESS
 
@@ -68,14 +68,14 @@ This component introduces a new layer of intelligence by using Google Search as 
 *   **Enforced Dynamic Thinking:** All AI prompts (`ai.definePrompt`) involved in this feature must have dynamic thinking enabled by default (`thinkingConfig: { thinkingBudget: -1 }`). This should be architecturally enforced to prevent it from being accidentally disabled.
 *   **FSM & Debuggability:** The global FSM must be updated to manage the state of all new toggles and to orchestrate the highly conditional analysis pipeline. Debug logs must be added to trace which pipeline steps are being executed based on user selections.
 
-## 3. Value Added Proposition
+## 4. Value Added Proposition
 
 *   **User Empowerment:** Gives users direct control over the depth, scope, and cost of the analysis they wish to perform.
 *   **Deeper Insights:** Enriches AI analysis by grounding it with real-time, web-sourced data points not available in the base API, leading to more sophisticated and accurate takeaways.
 *   **Enhanced Performance & Cost-Efficiency:** Allows users to disable computationally expensive or unnecessary AI steps, resulting in faster analysis and reduced token consumption.
 *   **Improved Transparency:** The new display cards for augmented search results show the user the exact data the AI is using for its deeper analysis.
 
-## 4. Risks Assessment & Potential Pain Points
+## 5. Risks Assessment & Potential Pain Points
 
 *   **High Risk - Prompt Reliability for Web Search:** Crafting AI prompts that can reliably use a search tool to find *specific, structured numerical data* (like ATR-14 or Max Pain) is very challenging. The AI may fail to find the data, find incorrect data, or hallucinate values. The flows must be highly robust to handle "not found" scenarios gracefully.
 *   **UI/UX Complexity:** The addition of seven new toggles could clutter the main input card. Careful design is needed to group them logically (e.g., in an accordion or a separate settings area) to avoid overwhelming the user.
@@ -83,7 +83,7 @@ This component introduces a new layer of intelligence by using Google Search as 
 *   **Performance Latency:** Each web search-augmented analysis will introduce additional latency due to the multiple tool calls required by the AI. The user experience must be managed with clear loading indicators.
 *   **Data Mismatches:** There's a risk of inconsistency between real-time data from the Polygon API and data found via Google Search (e.g., from different sources with different update frequencies). The AI prompts must be designed to acknowledge and handle such potential discrepancies.
 
-## 5. Implementation Phased Plan & Task Breakdown
+## 6. Implementation Phased Plan & Task Breakdown
 
 ### Phase 1: UI Foundation (Target: v3.3.1.y.z)
 *   **Objective:** Replace the "AI Full Analysis Macro" button with the new set of UI toggles for customizable analysis. This phase is UI-only; the toggles will not yet have any logic.
@@ -91,7 +91,7 @@ This component introduces a new layer of intelligence by using Google Search as 
     *   **Task v3.3.1.0.0:** In `src/components/main-tab-content.tsx`, remove the "AI Full Analysis Macro" button. (`COMPLETED`)
     *   **Task v3.3.1.1.0:** In the same file, add the five new UI toggles for the selectable analysis pipeline, logically grouped under a new "Customizable Analysis" section. Ensure they are all enabled by default. (`COMPLETED`)
     *   **Task v3.3.1.2.0:** In the same file, add the two new UI toggles for "AI Augmented Web Search", grouped under a new "Augmented Intelligence" section. Ensure they are disabled by default. (`COMPLETED`)
-    *   **Task v3.3.1.3.0:** **(Phase 1 Testing)** - Visually verify that the new UI components render correctly, the old button is gone, and the toggles are in their correct default states. (`PLANNED`)
+    *   **Task v3.3.1.3.0:** **(Phase 1 Testing)** - Visually verify that the new UI components render correctly, the old button is gone, and the toggles are in their correct default states. (`COMPLETED`)
 
 ### Phase 2: FSM & State Management Integration (Target: v3.3.2.y.z)
 *   **Objective:** Integrate the state of the new UI toggles with the global FSM.
@@ -99,14 +99,14 @@ This component introduces a new layer of intelligence by using Google Search as 
     *   **Task v3.3.2.0.0:** In `src/contexts/stock-analysis-context.tsx`, add new boolean flags to `GlobalFsmFlags` for each of the seven new toggles (e.g., `isAiKeyTakeawaysSelected`, `isAugmentedTaSearchEnabled`). Set their default values. (`COMPLETED`)
     *   **Task v3.3.2.1.0:** In the same file, create a new FSM event (e.g., `ANALYSIS_TOGGLE_CHANGED`) and update the `fsmReducer` to handle this event, allowing it to update the new flags. (`COMPLETED`)
     *   **Task v3.3.2.2.0:** In `src/components/main-tab-content.tsx`, connect the `onCheckedChange` handler of each toggle to dispatch the new FSM event. Bind the `checked` prop of each toggle to its corresponding flag in the global FSM. (`COMPLETED`)
-    *   **Task v3.3.2.3.0:** **(Phase 2 Testing)** - Verify in the "FSM Debug" tab that interacting with the UI toggles correctly updates their corresponding flags in the global FSM. (`PLANNED`)
+    *   **Task v3.3.2.3.0:** **(Phase 2 Testing)** - Verify in the "FSM Debug" tab that interacting with the UI toggles correctly updates their corresponding flags in the global FSM. (`COMPLETED`)
 
 ### Phase 3: Conditional Pipeline Logic Integration (Target: v3.3.3.y.z)
 *   **Objective:** Make the primary analysis toggles functional by modifying the FSM orchestrator.
 *   **Tasks:**
-    *   **Task v3.3.3.0.0:** In `src/contexts/stock-analysis-context.tsx`, modify the main FSM orchestrator `useEffect` hook. Instead of a hardcoded macro, after `AI_TA_CALCULATION_SUCCEEDED`, it should now check the FSM flags. (`PLANNED`)
-    *   **Task v3.3.3.1.0:** Based on the flags, the orchestrator will conditionally dispatch the existing events (`TRIGGER_MANUAL_KEY_TAKEAWAYS`, `TRIGGER_MANUAL_OPTIONS_ANALYSIS`, and `SUBMIT_CHAT_MESSAGE` for the three chat prompts) in a sequence. (`PLANNED`)
-    *   **Task v3.3.3.2.0:** **(Phase 3 Testing)** - Run analyses with different combinations of the primary toggles enabled/disabled and verify that only the selected analyses are performed. (`PLANNED`)
+    *   **Task v3.3.3.0.0:** In `src/contexts/stock-analysis-context.tsx`, modify the main FSM orchestrator `useEffect` hook. Instead of a hardcoded macro, after `AI_TA_CALCULATION_SUCCEEDED`, it should now check the FSM flags. (`COMPLETED`)
+    *   **Task v3.3.3.1.0:** Based on the flags, the orchestrator will conditionally dispatch the existing events (`TRIGGER_MANUAL_KEY_TAKEAWAYS`, `TRIGGER_MANUAL_OPTIONS_ANALYSIS`, and `SUBMIT_CHAT_MESSAGE` for the three chat prompts) in a sequence. (`COMPLETED`)
+    *   **Task v3.3.3.2.0:** **(Phase 3 Testing)** - Run analyses with different combinations of the primary toggles enabled/disabled and verify that only the selected analyses are performed. (`COMPLETED`)
 
 ### Phase 4: AI Augmented Web Search - Technical Analysis (Target: v3.3.4.y.z)
 *   **Objective:** Implement the AI-driven web search for augmented technical indicators.
@@ -143,6 +143,7 @@ This component introduces a new layer of intelligence by using Google Search as 
 
 ## 6. Document Changelog
 
+*   **v3.0 (2025-06-23):** Marked Phase 3 as COMPLETE.
 *   **v2.0 (2025-06-22):** Added detailed, phased implementation plan with testing tasks per phase.
 *   **v1.0 (2025-06-22):** Initial document creation, scoping the new customizable analysis and AI augmented web search features.
 

@@ -58,6 +58,28 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.3.1.0` (Complete Customizable Analysis Phase 3)
+**Tag:** `Phase-28_Task-3.3.3.1.0_FsmPipelineLogicComplete` (Commit `109dedd5`)
+**Subject:** `feat(fsm,core): Complete Phase 3 of Customizable Analysis - Conditional Pipeline (v3.3.3.1.0)`
+**Details:**
+This commit (`109dedd5`) marks the successful completion of **Phase 3: Conditional Pipeline Logic Integration** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This crucial phase implemented the "brains" of the new feature, enabling the FSM orchestrator to dynamically execute analyses based on the user's toggle selections.
+
+**Key Changes in Phase 3 (Tasks v3.3.3.0.0 through v3.3.3.1.0):**
+*   **Refactored FSM Orchestrator (`src/contexts/stock-analysis-context.tsx`):**
+    *   The monolithic "full AI analysis macro" logic has been completely removed from the FSM orchestrator `useEffect` hook.
+    *   After the base data pipeline and AI TA calculation succeed (`AI_TA_CALCULATION_SUCCEEDED`), the orchestrator now enters a new "custom pipeline" execution sequence.
+*   **Conditional Dispatch Logic (`src/contexts/stock-analysis-context.tsx`):**
+    *   A new helper function, `dispatchNextCustomAction`, was implemented to manage the new conditional pipeline.
+    *   This function checks the `fsmFlags` (e.g., `isAiKeyTakeawaysSelected`, `isAiOptionsAnalysisSelected`) and sequentially dispatches the appropriate events (`TRIGGER_MANUAL_KEY_TAKEAWAYS`, `TRIGGER_MANUAL_OPTIONS_ANALYSIS`, and `SUBMIT_CHAT_MESSAGE` for the three chat prompts).
+    *   The orchestrator now waits for the success or failure of one custom analysis step before proceeding to check the flag for the next, ensuring a proper sequential execution.
+*   **Pipeline Completion:**
+    *   Once all selected analyses are complete, the orchestrator calls `FINALIZE_AUTOMATED_PIPELINE` to correctly transition the application back to an `IDLE` state, ready for the next user action.
+
+**Outcome:**
+*   The application's core analysis logic is no longer rigid. Users can now toggle which AI analyses they want to run, and the FSM will execute only that selected pipeline.
+*   The application is now prepared for the next major phases of the feature (Phase 4, 5, 6), which will involve building the AI-augmented web search flows and integrating their data into this new conditional pipeline.
+*   The application version is consistently `v3.3.3.1.0`.
+---
 **App Version:** `v3.3.2.2.0` (Complete Customizable Analysis Phase 2)
 **Tag:** `Phase-27_Task-3.3.2.2.0_FsmIntegrationComplete` (Commit `316f3e78`)
 **Subject:** `feat(fsm,ui): Complete Phase 2 of Customizable Analysis - FSM Integration (v3.3.2.2.0)`

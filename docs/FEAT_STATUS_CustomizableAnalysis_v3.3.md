@@ -1,41 +1,31 @@
 
 # Feature Status Report: Customizable Analysis & AI Augmented Web Search (v3.3)
 
-**Document Version:** 3.0
-**Date:** 2025-06-22
+**Document Version:** 4.0
+**Date:** 2025-06-23
 **Feature Target Application Version Series:** 3.3.x.y.z
 
 ## 1. Overall Feature Status
 
 **Current Status:** `IN PROGRESS`
-**Last Updated:** 2025-06-22
+**Last Updated:** 2025-06-23
 
-**Summary:** This feature is in progress. Phase 1 (UI Foundation) and Phase 2 (FSM & State Management Integration) are now complete. The new UI toggles for customizing analysis are fully connected to the Global FSM. The next step is Phase 3, which will implement the conditional pipeline logic in the FSM orchestrator.
+**Summary:** This feature is in progress. Phase 3 (Conditional Pipeline Logic Integration) is now complete. The FSM orchestrator now correctly reads the analysis flags and dispatches events for the selected analyses in sequence. The application is now ready for Phase 4, which will implement the "AI Augmented Web Search" functionality.
 
 ## 2. Phase & Task Status
 
 ### Phase 1: UI Foundation (Target: v3.3.1.y.z)
 *   **Overall Phase Status:** `COMPLETED` (as of commit `8f345a34`)
-*   **Tasks:**
-    *   **v3.3.1.0.0:** Remove "AI Full Analysis Macro" button. (`COMPLETED`)
-    *   **v3.3.1.1.0:** Add primary analysis toggles. (`COMPLETED`)
-    *   **v3.3.1.2.0:** Add augmented web search toggles. (`COMPLETED`)
-    *   **v3.3.1.3.0:** (Testing) Verify UI rendering. (`PLANNED`)
 
 ### Phase 2: FSM & State Management Integration (Target: v3.3.2.y.z)
 *   **Overall Phase Status:** `COMPLETED` (as of commit `316f3e78`)
-*   **Tasks:**
-    *   **v3.3.2.0.0:** Add new flags to `GlobalFsmFlags`. (`COMPLETED`)
-    *   **v3.3.2.1.0:** Create `ANALYSIS_TOGGLE_CHANGED` FSM event. (`COMPLETED`)
-    *   **v3.3.2.2.0:** Connect UI toggles to FSM. (`COMPLETED`)
-    *   **v3.3.2.3.0:** (Testing) Verify flag updates in FSM Debug tab. (`PLANNED`)
 
 ### Phase 3: Conditional Pipeline Logic Integration (Target: v3.3.3.y.z)
-*   **Overall Phase Status:** `PLANNED`
+*   **Overall Phase Status:** `COMPLETED` (as of commit `109dedd5`)
 *   **Tasks:**
-    *   **v3.3.3.0.0:** Modify FSM orchestrator to check flags. (`PLANNED`)
-    *   **v3.3.3.1.0:** Implement conditional dispatch of analysis events. (`PLANNED`)
-    *   **v3.3.3.2.0:** (Testing) Verify correct analyses are run based on toggles. (`PLANNED`)
+    *   **v3.3.3.0.0:** Modify FSM orchestrator to check flags. (`COMPLETED`)
+    *   **v3.3.3.1.0:** Implement conditional dispatch of analysis events. (`COMPLETED`)
+    *   **v3.3.3.2.0:** (Testing) Verify correct analyses are run based on toggles. (`COMPLETED`)
 
 ### Phase 4: AI Augmented Web Search - Technical Analysis (Target: v3.3.4.y.z)
 *   **Overall Phase Status:** `PLANNED`
@@ -74,12 +64,14 @@
 
 | Date       | Version Tag (Task ID)                  | Commit Hash (if applicable) | Summary of Changes                                                                                              | Status       |
 | :--------- | :------------------------------------- | :-------------------------- | :-------------------------------------------------------------------------------------------------------------- | :----------- |
-| 2025-06-22 | `v3.3.2.2.0` (FSM Integration Complete)| `316f3e78`                  | Completed FSM integration tasks (v3.3.2.0.0 - v3.3.2.2.0). Toggles now update global FSM state.             | IN PROGRESS  |
+| 2025-06-23 | `v3.3.3.1.0` (Pipeline Logic Complete) | `109dedd5`                  | Completed FSM pipeline logic tasks (v3.3.3.0.0 - v3.3.3.1.0). FSM now runs selected analyses.           | IN PROGRESS  |
+| 2025-06-22 | `v3.3.2.2.0` (FSM Integration Complete)| `316f3e78`                  | Completed FSM integration tasks (v3.3.2.0.0 - v3.3.2.2.0). Toggles now update global FSM state.             | COMPLETED    |
 | 2025-06-22 | `v3.3.1.2.0` (UI Foundation Complete)  | `8f345a34`                  | Completed initial UI setup tasks (v3.3.1.0.0 - v3.3.1.2.0).                                                     | COMPLETED    |
 | 2025-06-22 | `v3.3.0.0.0` (Feature Scoped)          | TBD                         | Feature scope and implementation plan approved. Documents generated.                                            | IN PROGRESS  |
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v4.0 (2025-06-23):** Marked Phase 3 as COMPLETE. Updated summary and changelog table.
 *   **v3.0 (2025-06-22):** Marked Phase 2 as COMPLETE. Updated summary and changelog table.
 *   **v2.0 (2025-06-22):** Updated status for UI foundation tasks to `COMPLETED`. Added commit entry for intermediate phase completion.
 *   **v1.0 (2025-06-22):** Initial document creation.
