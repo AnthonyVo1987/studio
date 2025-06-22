@@ -39,7 +39,7 @@ const augmentedTaSearchPrompt = ai.definePrompt({
   input: { schema: AugmentedTaSearchInputSchema },
   // NO output schema is defined here. This is critical for the "Grounding with Google Search" pattern.
   model: DEFAULT_ANALYSIS_MODEL_ID,
-  tools: [{ googleSearch: {} }],
+  tools: [googleAI.googleSearch],
   config: {
     safetySettings: [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
@@ -47,7 +47,6 @@ const augmentedTaSearchPrompt = ai.definePrompt({
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
     ],
-    thinkingBudget: -1,
   },
   prompt: `You are a financial data analyst. Your task is to use the provided Google Search tool to find the most up-to-date technical analysis indicators for the stock ticker: {{{ticker}}}.
 
