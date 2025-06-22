@@ -82,13 +82,18 @@ async function getChatPrompt(isGrounded: boolean) {
 
   if (isGrounded) {
     promptConfig.tools = [googleAI.googleSearch];
-    console.log(`${logPrefix} Google Search grounding tool ENABLED for this prompt definition. JSON output schema is DISABLED.`);
   } else {
     promptOptions.output = {schema: ChatOutputSchema};
-    console.log(`${logPrefix} Standard (non-grounded) prompt. JSON output schema is ENABLED.`);
   }
 
-  console.log(`${logPrefix} Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}.`);
+  console.log(
+    `${logPrefix} Defining prompt. ` +
+    `Type: ${promptType}, ` +
+    `Model: ${modelId}, ` +
+    `Grounding: ${isGrounded}, ` +
+    `ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
+    `SafetySettings: ${safetySettings.length}`
+  );
 
   const prompt = ai.definePrompt(promptOptions);
 

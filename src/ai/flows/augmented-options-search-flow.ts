@@ -47,6 +47,7 @@ const augmentedOptionsSearchPrompt = ai.definePrompt({
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
     ],
+    // thinkingConfig is not typically specified here as tool use drives the thought process.
   },
   prompt: `You are a financial data analyst specializing in options flow data. Your task is to use the provided Google Search tool to find the most up-to-date options metrics for the stock ticker: {{{ticker}}}.
 
@@ -76,6 +77,16 @@ const augmentedOptionsSearchFlow = ai.defineFlow(
   async (input): Promise<AugmentedOptionsSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedOptionsSearchFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started using Grounding pattern.`);
+    
+    // Log prompt configuration for debugging
+    const { model, tools, config } = augmentedOptionsSearchPrompt.getConfig();
+    console.log(
+      `${logPrefix} Executing prompt. ` +
+      `Model: ${model}, ` +
+      `Grounding: ${!!tools?.length}, ` +
+      `ThinkingBudget: ${config?.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
+      `SafetySettings: ${config?.safetySettings?.length}`
+    );
 
     const result = await augmentedOptionsSearchPrompt(input);
     const rawTextResponse = result.text;

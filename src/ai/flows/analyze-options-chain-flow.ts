@@ -60,7 +60,14 @@ async function getAnalyzedOptionsChainPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition!.thinkingBudget };
   }
 
-  console.log(`${logPrefix} Defining prompt. Model: ${modelId}. Safety settings count: ${safetySettings.length}. ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}. Prompt string (first 100 chars): ${promptString.substring(0,100)}...`);
+  console.log(
+    `${logPrefix} Defining prompt. ` +
+    `Model: ${modelId}, ` +
+    `Grounding: false, ` +
+    `ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
+    `SafetySettings: ${safetySettings.length}, ` +
+    `Prompt (start): "${promptString.substring(0, 50)}..."`
+  );
   
   const prompt = ai.definePrompt({
     name: 'analyzeOptionsChainPrompt', 
