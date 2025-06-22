@@ -16,6 +16,7 @@ import {
   AugmentedOptionsSearchOutputSchema,
   type AugmentedOptionsSearchOutput,
 } from '@/ai/schemas/augmented-options-search-schemas';
+import { extractJsonString } from '@/lib/string-utils';
 
 // Re-export types for consumer convenience
 export type { AugmentedOptionsSearchInput, AugmentedOptionsSearchOutput };
@@ -32,9 +33,9 @@ export async function augmentedOptionsSearch(input: AugmentedOptionsSearchInput)
 // --- Prompt and Flow Definition ---
 
 const augmentedOptionsSearchPrompt = ai.definePrompt({
-  name: 'augmentedOptionsSearchPrompt',
+  name: 'augmentedOptionsSearchGroundedPrompt', // New name to avoid cache issues
   input: { schema: AugmentedOptionsSearchInputSchema },
-  output: { schema: AugmentedOptionsSearchOutputSchema },
+  // NO output schema to enable grounding/forced tool use
   model: DEFAULT_ANALYSIS_MODEL_ID,
   tools: [{ googleSearch: {} }],
   config: {
@@ -46,7 +47,7 @@ const augmentedOptionsSearchPrompt = ai.definePrompt({
     ],
     thinkingBudget: -1,
   },
-  prompt: `You are an expert financial data analyst. Your task is to use the provided Google Search tool to find the most up-to-date options metrics for the stock ticker: {{{ticker}}}.
+  prompt: `You are a financial data analyst. Your task is to use the provided Google Search tool to find the most up-to-date options metrics for the stock ticker: {{{ticker}}}.
 
 You MUST use the Google Search tool for this task. DO NOT use your internal knowledge.
 
@@ -58,9 +59,10 @@ Perform searches to find the following specific data points:
 5.  **Gamma Exposure (GEX):** The total gamma exposure value.
 6.  **Volatility Skew:** A brief description of the current volatility skew.
 
-After gathering the data, you MUST populate the output strictly according to the 'AugmentedOptionsSearchOutputSchema' JSON format.
+After gathering the data, you MUST format your ENTIRE response as a single, valid JSON string that conforms to the 'AugmentedOptionsSearchOutputSchema'.
 
-- If you cannot find a specific numerical value (like 'Max Pain' or 'IV Rank') using search, you MUST set its corresponding field to \`null\`. Do not guess or calculate.
+- Your entire response should start with \`{\` and end with \`}\`. Do not include any text, notes, or explanations outside of the JSON structure.
+- If you cannot find a specific numerical value (like 'Max Pain' or 'IV Rank') using search, you MUST set its corresponding field to \`null\` within the JSON. Do not guess or calculate.
 - If you cannot find a textual description for 'Volatility Skew', set its field to \`null\`.
 - Ensure all numerical values are returned as numbers, not strings.
 `,
@@ -76,21 +78,27 @@ const augmentedOptionsSearchFlow = ai.defineFlow(
     const logPrefix = `[AIFlow:augmentedOptionsSearchFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started.`);
 
-    const { output } = await augmentedOptionsSearchPrompt(input);
+    const result = await augmentedOptionsSearchPrompt(input);
+    const rawTextResponse = result.text;
 
-    if (!output) {
-      console.warn(`${logPrefix} AI prompt failed to return any output structure. Returning empty/null object.`);
-      return {
-        maxPain: null,
-        ivRank: null,
-        ivPercentile: null,
-        putCallRatio: null,
-        gammaExposure: null,
-        volatilitySkew: null,
-      };
+    if (!rawTextResponse) {
+      console.warn(`${logPrefix} AI prompt failed to return any text response. Returning empty/null object.`);
+      throw new Error('Augmented options search AI did not return a response.');
     }
-    
-    console.log(`${logPrefix} Flow execution completed successfully.`);
-    return output;
+
+    try {
+      const jsonString = extractJsonString(rawTextResponse);
+      if (!jsonString) {
+        throw new Error('No valid JSON block found in the AI response.');
+      }
+      const parsedOutput = JSON.parse(jsonString);
+      const validatedOutput = AugmentedOptionsSearchOutputSchema.parse(parsedOutput);
+      console.log(`${logPrefix} Flow execution completed and response parsed successfully.`);
+      return validatedOutput;
+    } catch (error: any) {
+      console.error(`${logPrefix} Failed to parse JSON from AI response. Error: ${error.message}. Raw Response: "${rawTextResponse}"`);
+      throw new Error(`Failed to parse structured data from augmented options search: ${error.message}`);
+    }
   }
 );
+

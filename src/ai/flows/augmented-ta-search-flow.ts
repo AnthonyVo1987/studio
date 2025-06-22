@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow that uses Google Search to find additional technical analysis indicators for a stock.
@@ -15,6 +16,7 @@ import {
   AugmentedTaSearchOutputSchema,
   type AugmentedTaSearchOutput,
 } from '@/ai/schemas/augmented-ta-search-schemas';
+import { extractJsonString } from '@/lib/string-utils';
 
 // Re-export types for consumer convenience
 export type { AugmentedTaSearchInput, AugmentedTaSearchOutput };
@@ -31,9 +33,9 @@ export async function augmentedTaSearch(input: AugmentedTaSearchInput): Promise<
 // --- Prompt and Flow Definition ---
 
 const augmentedTaSearchPrompt = ai.definePrompt({
-  name: 'augmentedTaSearchPrompt',
+  name: 'augmentedTaSearchGroundedPrompt', // New name to avoid cache issues
   input: { schema: AugmentedTaSearchInputSchema },
-  output: { schema: AugmentedTaSearchOutputSchema },
+  // NO output schema to enable grounding/forced tool use
   model: DEFAULT_ANALYSIS_MODEL_ID,
   tools: [{ googleSearch: {} }],
   config: {
@@ -54,13 +56,14 @@ You MUST search for the following information:
 2.  **Support Levels:** Identify up to three key, recent support price levels.
 3.  **Resistance Levels:** Identify up to three key, recent resistance price levels.
 4.  **Bollinger Bands (20, 2):** Find the current Upper Band, Middle Band (20-day SMA), and Lower Band values.
-5.  **Fibonacci Retracement:** Find the key Fibonacci retracement levels (23.6%, 38.2%, 50.0%, 6.18%, 7.86%).
+5.  **Fibonacci Retracement:** Find the key Fibonacci retracement levels (e.g., 23.6%, 38.2%, 50.0%, 61.8%).
 
-After gathering the data via search, you MUST populate the output strictly according to the 'AugmentedTaSearchOutputSchema' JSON format.
+After gathering the data, you MUST format your ENTIRE response as a single, valid JSON string that conforms to the 'AugmentedTaSearchOutputSchema'.
 
-- If you cannot find a specific numerical value (like ATR) using search, you MUST set its corresponding field to \`null\`. Do not guess or make up values.
-- If you cannot find any values for a group (like support levels), you MUST return an empty array \`[]\`.
-- If you cannot find the complete set of values for a complex object (like Bollinger Bands or Fibonacci levels), you MUST set the entire object to \`null\`. Do not return a partial object.
+- Your entire response should start with \`{\` and end with \`}\`. Do not include any text, notes, or explanations outside of the JSON structure.
+- If you cannot find a specific numerical value (like ATR) using search, you MUST set its corresponding field to \`null\` in the JSON. Do not guess or make up values.
+- If you cannot find any values for a group (like support levels), you MUST return an empty array \`[]\` for that field in the JSON.
+- If you cannot find the complete set of values for a complex object (like Bollinger Bands or Fibonacci levels), you MUST set the entire object to \`null\` in the JSON. Do not return a partial object.
 - Prioritize data from reputable financial websites (e.g., TradingView, Yahoo Finance, Barchart).
 - Ensure all numerical values are returned as numbers, not strings.
 `,
@@ -76,20 +79,26 @@ const augmentedTaSearchFlow = ai.defineFlow(
     const logPrefix = `[AIFlow:augmentedTaSearchFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started.`);
 
-    const { output } = await augmentedTaSearchPrompt(input);
-
-    if (!output) {
-      console.warn(`${logPrefix} AI prompt failed to return any output structure. Returning empty/null object.`);
-      return {
-        atr14: null,
-        supportLevels: [],
-        resistanceLevels: [],
-        bollingerBands: null,
-        fibonacciRetracement: null,
-      };
-    }
+    const result = await augmentedTaSearchPrompt(input);
+    const rawTextResponse = result.text;
     
-    console.log(`${logPrefix} Flow execution completed successfully.`);
-    return output;
+    if (!rawTextResponse) {
+      console.warn(`${logPrefix} AI prompt failed to return any text response. Returning empty/null object.`);
+      throw new Error('Augmented TA search AI did not return a response.');
+    }
+
+    try {
+        const jsonString = extractJsonString(rawTextResponse);
+        if (!jsonString) {
+            throw new Error('No valid JSON block found in the AI response.');
+        }
+        const parsedOutput = JSON.parse(jsonString);
+        const validatedOutput = AugmentedTaSearchOutputSchema.parse(parsedOutput);
+        console.log(`${logPrefix} Flow execution completed and response parsed successfully.`);
+        return validatedOutput;
+    } catch (error: any) {
+        console.error(`${logPrefix} Failed to parse JSON from AI response. Error: ${error.message}. Raw Response: "${rawTextResponse}"`);
+        throw new Error(`Failed to parse structured data from augmented TA search: ${error.message}`);
+    }
   }
 );
