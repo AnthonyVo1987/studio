@@ -10,7 +10,6 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/googleai';
 import { DEFAULT_ANALYSIS_MODEL_ID } from '@/ai/models';
 import {
   AugmentedOptionsSearchInputSchema,
@@ -34,22 +33,23 @@ export async function augmentedOptionsSearch(input: AugmentedOptionsSearchInput)
 
 // --- Prompt and Flow Definition ---
 
-const augmentedOptionsSearchPrompt = ai.definePrompt({
-  name: 'augmentedOptionsSearchGroundedPrompt',
-  input: { schema: AugmentedOptionsSearchInputSchema },
-  // NO output schema is defined here for the "Grounding with Google Search" pattern.
-  model: DEFAULT_ANALYSIS_MODEL_ID,
-  tools: [googleAI.googleSearch],
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-    ],
-    // thinkingConfig is not typically specified here as tool use drives the thought process.
-  },
-  prompt: `You are a financial data analyst specializing in options flow data. Your task is to use the provided Google Search tool to find the most up-to-date options metrics for the stock ticker: {{{ticker}}}.
+let augmentedOptionsSearchPrompt: any = null;
+
+async function getAugmentedOptionsSearchPrompt() {
+    const logPrefix = '[AIFlow:getAugmentedOptionsSearchPrompt]';
+    if (augmentedOptionsSearchPrompt) {
+        return augmentedOptionsSearchPrompt;
+    }
+
+    const modelId = DEFAULT_ANALYSIS_MODEL_ID;
+    const tools = [{ googleSearch: {} }];
+    const safetySettings = [
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+    ];
+    const promptText = `You are a financial data analyst specializing in options flow data. Your task is to use the provided Google Search tool to find the most up-to-date options metrics for the stock ticker: {{{ticker}}}.
 
 You MUST use the Google Search tool for this task. DO NOT use your internal knowledge.
 
@@ -65,30 +65,40 @@ After gathering the data, you MUST format your ENTIRE response as a single, vali
 - If you cannot find a specific numerical value using search, you MUST set its corresponding field to \`null\` in the JSON. Do not guess or make up values.
 - Prioritize data from reputable financial websites (e.g., a source that aggregates options data).
 - Ensure all numerical values are returned as numbers, not strings.
-`,
-});
+`;
+
+    console.log(
+        `${logPrefix} Defining prompt. ` +
+        `Model: ${modelId}, ` +
+        `Grounding: ${!!tools?.length}, ` +
+        `ThinkingBudget: N/A, ` + // thinkingBudget not used with tools
+        `SafetySettings: ${safetySettings.length}`
+    );
+
+    const prompt = ai.definePrompt({
+        name: 'augmentedOptionsSearchGroundedPrompt',
+        input: { schema: AugmentedOptionsSearchInputSchema },
+        model: modelId,
+        tools: tools,
+        config: { safetySettings },
+        prompt: promptText,
+    });
+    
+    augmentedOptionsSearchPrompt = prompt;
+    return augmentedOptionsSearchPrompt;
+}
 
 const augmentedOptionsSearchFlow = ai.defineFlow(
   {
     name: 'augmentedOptionsSearchFlow',
     inputSchema: AugmentedOptionsSearchInputSchema,
-    // REMOVED: outputSchema to align with the "Grounding with Google Search" pattern and prevent tool conflicts.
   },
   async (input): Promise<AugmentedOptionsSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedOptionsSearchFlow:Ticker:${input.ticker}]`;
     console.log(`${logPrefix} Flow execution started using Grounding pattern.`);
     
-    // Log prompt configuration for debugging
-    const { model, tools, config } = augmentedOptionsSearchPrompt.getConfig();
-    console.log(
-      `${logPrefix} Executing prompt. ` +
-      `Model: ${model}, ` +
-      `Grounding: ${!!tools?.length}, ` +
-      `ThinkingBudget: ${config?.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
-      `SafetySettings: ${config?.safetySettings?.length}`
-    );
-
-    const result = await augmentedOptionsSearchPrompt(input);
+    const promptToUse = await getAugmentedOptionsSearchPrompt();
+    const result = await promptToUse(input);
     const rawTextResponse = result.text;
     
     if (!rawTextResponse) {

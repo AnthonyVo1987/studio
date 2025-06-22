@@ -12,7 +12,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/googleai';
 import {
   ChatInputSchema,
   type ChatInput,
@@ -81,7 +80,7 @@ async function getChatPrompt(isGrounded: boolean) {
   };
 
   if (isGrounded) {
-    promptConfig.tools = [googleAI.googleSearch];
+    promptConfig.tools = [{ googleSearch: {} }];
   } else {
     promptOptions.output = {schema: ChatOutputSchema};
   }
