@@ -117,6 +117,20 @@ interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: bo
 interface InternalMacroStepUpdatePayload { currentFullAiMacroChatStep: FullAiMacroChatStep }
 interface UpdateManualActionFlagsPayload { ktPossible: boolean; optPossible: boolean; }
 
+export type AnalysisToggleType =
+  | 'ai_key_takeaways'
+  | 'ai_options_analysis'
+  | 'ai_chat_stock_trader'
+  | 'ai_chat_options_trader'
+  | 'ai_chat_holistic'
+  | 'augmented_ta_search'
+  | 'augmented_options_search';
+
+interface AnalysisToggleChangedPayload {
+  toggleType: AnalysisToggleType;
+  isEnabled: boolean;
+}
+
 
 export type FsmEvent =
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
@@ -144,6 +158,7 @@ export type FsmEvent =
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' }
   | { type: 'INTERNAL_MACRO_STEP_UPDATE'; payload: InternalMacroStepUpdatePayload }
   | { type: 'UPDATE_MANUAL_ACTION_FLAGS'; payload: UpdateManualActionFlagsPayload }
+  | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
   | { type: 'PROCEED_TO_IDLE' };
 
 export interface ChatMessage {
@@ -490,7 +505,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}, ActiveProfile: ${state.variables.activePipelineProfile}, MacroStep: ${state.variables.currentFullAiMacroChatStep}`);
 
 
-    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS') {
+    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
     } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., HistoryLen: ${event.payload.chatHistory?.length}`);
@@ -500,7 +515,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_TickerInput', `For USER_INPUT_TICKER_CHANGED: Ticker: ${event.payload.ticker}`);
     } else if (event.type === 'UPDATE_MANUAL_ACTION_FLAGS') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_ManualFlags', `For UPDATE_MANUAL_ACTION_FLAGS: KT: ${event.payload.ktPossible}, Opt: ${event.payload.optPossible}`);
+    } else if (event.type === 'ANALYSIS_TOGGLE_CHANGED') {
+      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Toggle', `For ANALYSIS_TOGGLE_CHANGED: ${event.payload.toggleType} -> ${event.payload.isEnabled}`);
     }
+
 
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
@@ -530,6 +548,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
 
     switch (event.type) {
+      case 'ANALYSIS_TOGGLE_CHANGED':
+        const { toggleType, isEnabled } = event.payload;
+        switch (toggleType) {
+          case 'ai_key_takeaways': nextFlags.isAiKeyTakeawaysSelected = isEnabled; break;
+          case 'ai_options_analysis': nextFlags.isAiOptionsAnalysisSelected = isEnabled; break;
+          case 'ai_chat_stock_trader': nextFlags.isAiChatStockTraderTakeawaysSelected = isEnabled; break;
+          case 'ai_chat_options_trader': nextFlags.isAiChatOptionsTraderTakeawaysSelected = isEnabled; break;
+          case 'ai_chat_holistic': nextFlags.isAiChatHolisticTakeawaysSelected = isEnabled; break;
+          case 'augmented_ta_search': nextFlags.isAugmentedTaSearchEnabled = isEnabled; break;
+          case 'augmented_options_search': nextFlags.isAugmentedOptionsSearchEnabled = isEnabled; break;
+        }
+        logDebug(logPrefixFsmReducer as LogSourceId, 'FlagsUpdate_Toggle', `Flag '${toggleType}' set to ${isEnabled}.`);
+        nextCurrentState = previousState; // Flag only update, no state change
+        break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker, 'standard');
         nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
@@ -821,10 +853,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     if (event.type === 'TOGGLE_DEBUG_CONSOLE_MENU') { determinedTarget = currentActualState; }
     if (event.type === 'INTERNAL_MACRO_STEP_UPDATE') { determinedTarget = currentActualState; }
     if (event.type === 'UPDATE_MANUAL_ACTION_FLAGS') { determinedTarget = currentActualState; }
+    if (event.type === 'ANALYSIS_TOGGLE_CHANGED') { determinedTarget = currentActualState; }
 
 
     logDebug('StockAnalysisContext:GlobalFSM' as LogSourceId, 'DispatchAttempt', `Event: ${event.type}, CurrentActual: ${currentActualState}, DeterminedTarget: ${determinedTarget || 'N/A'}`);
-    if (determinedTarget && event.type !== 'TOGGLE_DEBUG_CONSOLE_MENU' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS') { _setTargetFsmDisplayState(determinedTarget); }
+    if (determinedTarget && event.type !== 'TOGGLE_DEBUG_CONSOLE_MENU' && event.type !== 'INTERNAL_MACRO_STEP_UPDATE' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') { _setTargetFsmDisplayState(determinedTarget); }
     _dispatchFsmEventActual(event);
   }, [_dispatchFsmEventActual, _setTargetFsmDisplayState, logDebug]);
 
@@ -952,7 +985,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
     } else if ((state.current === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED || state.current === GlobalFsmState.AI_TA_CALCULATION_FAILED)) {
         if (state.variables.activePipelineProfile === 'standard') {
-            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline_StandardComplete]', `Dispatching FINALIZE_AUTOMATED_PIPELINE from ${state.current}.`);
+            logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Pipeline_StandardComplete]', `Standard automated pipeline complete. Dispatching FINALIZE_AUTOMATED_PIPELINE from ${state.current}.`);
             _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
         } else if (state.variables.activePipelineProfile === 'full_ai_macro' && state.current === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED) {
             logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Macro_AITASuccess]', `Macro: AI TA Succeeded. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS for ${state.variables.activeTicker}. Macro step remains: ${state.variables.currentFullAiMacroChatStep}.`);
