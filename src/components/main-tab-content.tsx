@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { KeyMetricsDisplay } from "@/components/key-metrics-display";
 import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details-display";
@@ -67,13 +68,6 @@ export function MainTabContent() {
     if (!globalUserInputTicker.trim()) { toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" }); return; }
     logDebug('MainTabContent' as LogSourceId, 'UserAction', `Analyze Stock CLICKED for ${globalUserInputTicker}. Dispatching START_FULL_ANALYSIS to global FSM.`);
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: globalUserInputTicker } });
-  };
-
-  const handleFullAiAnalysisSubmit = (e?: FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
-    e?.preventDefault();
-    if (!globalUserInputTicker.trim()) { toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" }); return; }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_FullAIMacro', `AI Full Stock Analysis CLICKED for ${globalUserInputTicker}. Dispatching START_FULL_AI_MACRO_ANALYSIS to global FSM.`);
-    dispatchGlobalFsmEvent({ type: 'START_FULL_AI_MACRO_ANALYSIS', payload: { ticker: globalUserInputTicker } });
   };
 
   const handleGenerateKeyTakeaways = () => {
@@ -165,6 +159,35 @@ export function MainTabContent() {
             </Button>
           </div>
         </form>
+        <Separator />
+        <Card>
+          <CardHeader>
+            <CardTitle>Customizable Analysis Pipeline</CardTitle>
+            <CardDescription>Select which AI analyses to run when you click "Analyze Stock".</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
+              <Label htmlFor="toggle-key-takeaways" className="flex-grow text-sm">AI Key Takeaways</Label>
+              <Switch id="toggle-key-takeaways" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+            </div>
+            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
+              <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
+              <Switch id="toggle-options-analysis" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+            </div>
+            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
+              <Label htmlFor="toggle-chat-stock-trader" className="flex-grow text-sm">AI Chat: Stock Trader's Takeaways</Label>
+              <Switch id="toggle-chat-stock-trader" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+            </div>
+            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
+              <Label htmlFor="toggle-chat-options-trader" className="flex-grow text-sm">AI Chat: Options Trader's Takeaways</Label>
+              <Switch id="toggle-chat-options-trader" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+            </div>
+            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
+              <Label htmlFor="toggle-chat-holistic" className="flex-grow text-sm">AI Chat: Additional Holistic Takeaways</Label>
+              <Switch id="toggle-chat-holistic" defaultChecked={true} disabled={isAnyAnalysisInProgress} />
+            </div>
+          </CardContent>
+        </Card>
         <Separator />
         <Card>
           <CardHeader className="pb-2">
