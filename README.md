@@ -1,5 +1,6 @@
 
 ### AI Coding Agent Operating Procedure Instructions
+7.  **Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user. This ensures that changelogs and feature documents reflect a stable, completed set of work, not work-in-progress, and prevents unnecessary token usage and noise.
 1.  Features will be staged as version '3.w.x.y.z' series. Please follow this version naming convention when I request for commits later on. Do not increment versions on your own.
     *   App Major Version: 3 (Fixed)
     *   APP Phase Version (w): Represents the overall feature phase (e.g., 1 for Initial Setup, 2 for FSM Refactor, 3 for UI Enhancements).
@@ -23,12 +24,11 @@
 4.  **XML Output Mandate & Confirmation:** All code changes proposed by the AI Coding Agent MUST be provided exclusively in the specified XML format. The Agent will explicitly confirm its understanding and adherence to this format at the beginning of new tasks or phases.
 5.  **Context Reset Confirmation:** At the beginning of new Phases or when explicitly requested, the AI Coding Agent will confirm that its internal context, stale cache, and operating state have been purged, cleared, and reset to ensure it is operating on the latest information.
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
-7.  **Documentation Update Policy (Strict Prohibition):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a specific "Phase Completion Commit" is requested by the user. This ensures that changelogs and feature documents reflect a stable, completed set of work, not work-in-progress, and prevents unnecessary token usage and noise.
 ###
 ---
-**README Document Version:** 1.77
+**README Document Version:** 1.78
 **Application Version (from `app-metadata.json`):** v3.3.4.3.0
-**Last Updated:** 2025-06-25
+**Last Updated:** 2025-06-26
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -79,8 +79,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Options Trader's Takeaways (with CC/CSP setups).
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
 *   **AI Augmented Web Search (as of v3.3):**
-    *   **[Toggle] Augmented Technical Analysis:** Uses Google Search to fetch additional indicators (ATR, Bollinger Bands, Support/Resistance, etc.) and displays them in a new, dedicated card. This data enriches the core AI analyses when enabled.
-    *   **[Toggle] Augmented Options Flow Analysis:** (Planned) Uses Google Search to fetch advanced options metrics (Max Pain, GEX, etc.) and displays them in a new card, enriching the options-related AI analyses.
+    *   **[Toggle] Augmented Technical Analysis:** Uses "Grounding with Google Search" to fetch additional indicators (ATR, Bollinger Bands, Support/Resistance, etc.) and displays them in a new, dedicated card. This data enriches the core AI analyses when enabled.
+    *   **[Toggle] Augmented Options Flow Analysis:** (Planned) Uses "Grounding with Google Search" to fetch advanced options metrics (Max Pain, GEX, etc.) and displays them in a new card, enriching the options-related AI analyses.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
     *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot.
@@ -127,10 +127,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   AI flows defined in `src/ai/flows/` for orchestrating LLM calls.
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
     *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
-    *   **Architectural Mandate:** Dynamic Thinking (`thinkingBudget: -1`) is enforced by default on all AI prompts for analysis and chat.
+    *   **Architectural Mandate:** Dynamic Thinking (`thinkingConfig: { thinkingBudget: -1 }`) is enforced by default on all AI prompts for analysis and chat.
     *   Safety settings are defined in these JSONs.
     *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
-    *   **Grounding with Google Search:** The chat flow conditionally enables grounding by adding `{ googleSearch: {} }` to the `tools` array in the prompt definition. It also correctly omits the `output` schema when grounding is active, as this is an API requirement.
+    *   **"Grounding with Google Search" Pattern:** For reliable AI web searches (as used in Augmented TA and Chat), prompts are configured to use the `googleSearch` tool **without** an `output` schema. The prompt instructs the AI to return a plain text response containing a JSON string. The flow logic then parses this string to get structured data. This is the mandated pattern for all web-augmented AI tasks.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
 #### 3.2.3. Data Sources
@@ -238,7 +238,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.77
+*   **This README Document Version:** 1.78
 *   **Current Application Version:** `v3.3.4.3.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
@@ -247,3 +247,4 @@ npm run start
 
 ---
 
+    

@@ -1,8 +1,8 @@
 
 # Feature Scope: Customizable Analysis & AI Augmented Web Search (StockSage v3.3.x.y.z)
 
-**Document Version:** 4.0
-**Date:** 2025-06-25
+**Document Version:** 4.1
+**Date:** 2025-06-26
 **Target Application Version Series:** 3.3.x.y.z
 **Feature Status:** IN PROGRESS
 
@@ -39,30 +39,23 @@ The "AI Full Analysis Macro" button and its associated hardcoded pipeline logic 
 
 #### Component 2: AI Augmented Web Search
 
-This component introduces a new layer of intelligence by using Google Search as a Genkit Tool to fetch specific financial metrics that are not available via the Polygon API. This augmentation will be controlled by two new toggles.
+This component introduces a new layer of intelligence by using the **"Grounding with Google Search"** pattern to fetch financial metrics not available via the Polygon API. This augmentation will be controlled by new toggles.
+
+*   **Architectural Pattern for Augmented Search:** To ensure the AI reliably uses the search tool, all augmented search flows will use the established "Grounding with Google Search" pattern. This involves:
+    1.  Defining the Genkit prompt with the `googleSearch` tool enabled.
+    2.  **Omitting** the `output: { schema: ... }` property from the prompt definition.
+    3.  Instructing the AI in the prompt text to format its entire response as a single, valid JSON string.
+    4.  The flow logic will then receive a plain text response from the AI, extract the JSON block, parse it, and validate it against a Zod schema.
 
 *   **[Toggle] AI Augmented Web Search: Technical Analysis Indicators:**
-    *   **Behavior:** When enabled, a new AI flow will use the Google Search tool to find the latest values for the following indicators for the given ticker:
-        *   ATR-14 (Average True Range)
-        *   Support Levels (3 distinct levels)
-        *   Resistance Levels (3 distinct levels)
-        *   Bollinger Bands (Upper, Middle, Lower band values)
-        *   Fibonacci Retracement Levels (3 distinct levels)
-    *   **UI Impact:** A new display card will be added next to the "AI Analyzed Technical Analysis" card to show the raw data retrieved from the web search.
-    *   **Logic Impact:** When this toggle is **ON**, the data retrieved from the web search **MUST** be passed as additional context to the AI prompts for "AI Key Takeaways" and all three "AI Chat" modules, enriching their analysis.
+    *   **Behavior:** When enabled, a new AI flow will use the "Grounding with Google Search" pattern to find the latest values for ATR-14, Support/Resistance Levels, Bollinger Bands, and Fibonacci Retracement Levels.
+    *   **UI Impact:** A new display card will show the raw data retrieved from the web search.
+    *   **Logic Impact:** When this toggle is **ON**, the data retrieved **MUST** be passed as additional context to the AI prompts for "AI Key Takeaways" and all three "AI Chat" modules, enriching their analysis.
 
 *   **[Toggle] AI Augmented Web Search: Options Chain Flow Analysis:**
-    *   **Behavior:** When enabled, a new AI flow will use the Google Search tool to find the latest values for the following options-related metrics for the given ticker:
-        *   Max Pain
-        *   Volatility/IV Skew
-        *   Implied Volatility (ATM)
-        *   Historic Volatility
-        *   IV Rank
-        *   IV Percentile
-        *   Put/Call Ratio
-        *   Gamma Exposure (GEX)
-    *   **UI Impact:** A new display card will be added next to the "AI Analyzed Options Chain" card to show the raw data retrieved from the web search.
-    *   **Logic Impact:** When this toggle is **ON**, the data retrieved from the web search **MUST** be passed as additional context to the prompts for "AI Analyzed Options Chain", "AI Chat Stock Trader's Takeaways", and "AI Chat Options Trader's Takeaways".
+    *   **Behavior:** When enabled, a new AI flow will use the "Grounding with Google Search" pattern to find metrics like Max Pain, GEX, and Put/Call Ratio.
+    *   **UI Impact:** A new display card will show the raw data retrieved from the web search.
+    *   **Logic Impact:** When this toggle is **ON**, the data retrieved **MUST** be passed as additional context to the prompts for "AI Analyzed Options Chain", "AI Chat Stock Trader's Takeaways", and "AI Chat Options Trader's Takeaways".
 
 ### 2.3. Architectural Principles & Constraints
 *   **Enforced Dynamic Thinking:** All AI prompts (`ai.definePrompt`) involved in this feature must have dynamic thinking enabled by default (`thinkingConfig: { thinkingBudget: -1 }`). This should be architecturally enforced to prevent it from being accidentally disabled.
@@ -77,7 +70,7 @@ This component introduces a new layer of intelligence by using Google Search as 
 
 ## 5. Risks Assessment & Potential Pain Points
 
-*   **High Risk - Prompt Reliability for Web Search:** Crafting AI prompts that can reliably use a search tool to find *specific, structured numerical data* (like ATR-14 or Max Pain) is very challenging. The AI may fail to find the data, find incorrect data, or hallucinate values. The flows must be highly robust to handle "not found" scenarios gracefully.
+*   **High Risk - Prompt Reliability for Web Search & JSON Parsing:** Forcing the AI to use "Grounding with Google Search" and then return a valid JSON string within a text response is a fragile pattern. The AI may fail to find data, return malformed JSON, or add conversational text that breaks parsing. The flows must be highly robust to handle "not found" scenarios and parsing errors gracefully.
 *   **UI/UX Complexity:** The addition of seven new toggles could clutter the main input card. Careful design is needed to group them logically (e.g., in an accordion or a separate settings area) to avoid overwhelming the user.
 *   **FSM Orchestration Complexity:** The global FSM's orchestrator logic will become significantly more complex, managing a dynamic pipeline with numerous conditional branches. This increases the risk of state management bugs, race conditions, or dead-end states if not meticulously planned.
 *   **Performance Latency:** Each web search-augmented analysis will introduce additional latency due to the multiple tool calls required by the AI. The user experience must be managed with clear loading indicators.
@@ -109,18 +102,19 @@ This component introduces a new layer of intelligence by using Google Search as 
     *   **Task v3.3.3.2.0:** **(Phase 3 Testing)** - Run analyses with different combinations of the primary toggles enabled/disabled and verify that only the selected analyses are performed. (`COMPLETED`)
 
 ### Phase 4: AI Augmented Web Search - Technical Analysis (Target: v3.3.4.y.z)
-*   **Objective:** Implement the AI-driven web search for augmented technical indicators.
+*   **Objective:** Implement the AI-driven web search for augmented technical indicators using the "Grounding with Google Search" pattern.
 *   **Tasks:**
-    *   **Task v3.3.4.0.0:** Create a new AI flow file: `src/ai/flows/augmented-ta-search-flow.ts`. This flow will use the `googleSearch` tool to find the required TA indicators (ATR, Support/Resistance, etc.). Define robust input/output Zod schemas. (`COMPLETED`)
-    *   **Task v3.3.4.1.0:** Create a new display component: `src/components/augmented-ta-display.tsx` to render the results from the new flow. (`COMPLETED`)
+    *   **Task v3.3.4.0.0:** Create a new AI flow file: `src/ai/flows/augmented-ta-search-flow.ts`. (`COMPLETED`)
+    *   **Task v3.3.4.1.0:** Create a new display component: `src/components/augmented-ta-display.tsx`. (`COMPLETED`)
     *   **Task v3.3.4.2.0:** In `stock-analysis-context.tsx`, update the FSM to call this new flow when its toggle is enabled and store the resulting JSON in the context. (`COMPLETED`)
     *   **Task v3.3.4.3.0:** In `main-tab-content.tsx`, add the new `AugmentedTaDisplay` component to the UI. (`COMPLETED`)
-    *   **Task v3.3.4.4.0:** **(Phase 4 Testing)** - Enable the augmented TA toggle, run an analysis, and verify that the web search is performed and the results are correctly displayed in the new UI card. (`COMPLETED`)
+    *   **Task v3.3.4.4.0 (Correction):** Correct the search flow to use the "Grounding with Google Search" pattern (text response with JSON string) instead of a direct JSON output schema.
+    *   **Task v3.3.4.5.0:** **(Phase 4 Testing)** - Verify that the web search is performed and the results are correctly displayed in the new UI card. (`COMPLETED`)
 
 ### Phase 5: AI Augmented Web Search - Options Flow (Target: v3.3.5.y.z)
 *   **Objective:** Implement the AI-driven web search for augmented options metrics.
 *   **Tasks:**
-    *   **Task v3.3.5.0.0:** Create `src/ai/flows/augmented-options-search-flow.ts` to find metrics like Max Pain, GEX, etc., using the `googleSearch` tool. (`PLANNED`)
+    *   **Task v3.3.5.0.0:** Create `src/ai/flows/augmented-options-search-flow.ts` to find metrics like Max Pain, GEX, etc., using the "Grounding with Google Search" pattern. (`PLANNED`)
     *   **Task v3.3.5.1.0:** Create `src/components/augmented-options-display.tsx` to render the results. (`PLANNED`)
     *   **Task v3.3.5.2.0:** Update the FSM in `stock-analysis-context.tsx` to orchestrate this flow and store its results. (`PLANNED`)
     *   **Task v3.3.5.3.0:** Add the new `AugmentedOptionsDisplay` component to `main-tab-content.tsx`. (`PLANNED`)
@@ -143,6 +137,7 @@ This component introduces a new layer of intelligence by using Google Search as 
 
 ## 6. Document Changelog
 
+*   **v4.1 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounding with Google Search" pattern correction.
 *   **v4.0 (2025-06-25):** Marked Phase 4 as COMPLETE.
 *   **v3.0 (2025-06-23):** Marked Phase 3 as COMPLETE.
 *   **v2.0 (2025-06-22):** Added detailed, phased implementation plan with testing tasks per phase.
@@ -151,3 +146,4 @@ This component introduces a new layer of intelligence by using Google Search as 
 ---
 This document will be updated as the feature progresses through its implementation phases.
 
+    

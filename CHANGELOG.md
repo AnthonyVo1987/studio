@@ -58,81 +58,33 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
-**App Version:** `v3.3.4.3.0` (Add Augmented TA Display to UI)
-**Tag:** `Phase-29_Task-3.3.4.3.0_AddAugmentedTaDisplayToUi`
-**Subject:** `feat(ui): Add AugmentedTaDisplay component to the main UI (v3.3.4.3.0)`
+**App Version:** `v3.3.4.3.0` (CORRECTED - Complete Customizable Analysis Phase 4)
+**Tag:** `Phase-28_Task-3.3.4.3.0_CompleteAugmentedTa_Corrected` (Commit `cb521b27`)
+**Subject:** `feat(fsm,ui): Complete Phase 4 of Customizable Analysis - Augmented TA Search (v3.3.4.3.0)`
 **Details:**
-This commit (`TBD`) adds the newly created `AugmentedTaDisplay` component to the main application UI, making the results of the augmented TA web search visible to the user.
+This commit (`cb521b27`) marks the successful completion of **Phase 4: AI Augmented Web Search - Technical Analysis** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase implemented a new AI-driven web search capability to fetch advanced TA indicators, a UI component to display them, and the FSM logic to orchestrate this new pipeline.
+
+**Key Architectural Correction:** This phase also includes a critical correction to the AI search implementation. The initial approach incorrectly used the `googleSearch` tool with a JSON output schema. This was corrected to align with the application's established "Grounding with Google Search" pattern, which is required for reliable tool use. The corrected flows now instruct the AI to return a plain text response containing a JSON string, which the application then parses. This ensures the AI is forced to use the search tool and does not hallucinate answers from its internal knowledge.
 
 **Key Changes:**
-*   **`src/components/main-tab-content.tsx`:**
-    *   The `AugmentedTaDisplay` component is now imported and rendered.
-    *   It is placed directly after the `AiAnalyzedTaDisplay` component, keeping related technical analysis information grouped together.
+*   **New AI Flow & Server Action (`v3.3.4.0.0`, `v3.3.4.2.0`, Corrected in `v3.3.5.0.0` but consolidated here):**
+    *   Created `src/ai/flows/augmented-ta-search-flow.ts`.
+    *   Refactored the flow to use the "Grounding with Google Search" pattern: the prompt instructs the AI to return a JSON string within a plain text response, which is then parsed by the application.
+    *   Defined robust Zod schemas in a separate file (`src/ai/schemas/augmented-ta-search-schemas.ts`) to resolve a 'use server' module boundary error.
+    *   Created `src/actions/augmented-ta-search-action.ts` to wrap the new flow.
+*   **New Display Component (`v3.3.4.1.0`):**
+    *   Created `src/components/augmented-ta-display.tsx`, a new styled card component to render the search results.
+    *   Added `augmentedTaSearchJson` to the global `StockAnalysisContext`.
+*   **FSM Integration & UI Display (`v3.3.4.2.0`, `v3.3.4.3.0`):**
+    *   Updated the global FSM in `stock-analysis-context.tsx` with new states (`FETCHING_AUGMENTED_TA`, etc.) and logic to call the new server action when the `isAugmentedTaSearchEnabled` flag is true.
+    *   Added the `AugmentedTaDisplay` component to `main-tab-content.tsx`.
 *   **Documentation & Versioning:**
     *   `src/config/app-metadata.json`: Application version updated to `v3.3.4.3.0`.
-    *   `CHANGELOG.md`, `README.md`, `FEAT_STATUS_CustomizableAnalysis_v3.3.md`: All relevant documentation updated to reflect the completion of this task.
+    *   `CHANGELOG.md`, `README.md`, `FEAT_STATUS_CustomizableAnalysis_v3.3.md`: All relevant documentation updated to reflect the completion of this phase and the critical architectural correction.
 
 **Outcome:**
-*   The UI now has a dedicated card to display the results of the augmented TA web search.
-*   This completes the primary user-facing implementation for the augmented TA feature, with the final step being end-to-end testing.
----
-**App Version:** `v3.3.4.2.0` (FSM Integration for Augmented TA Search)
-**Tag:** `Phase-28_Task-3.3.4.2.0_FsmIntegrationForAugmentedTa`
-**Subject:** `feat(fsm,action): Integrate augmented TA search flow into FSM (v3.3.4.2.0)`
-**Details:**
-This commit (`TBD`) integrates the new AI-driven augmented technical analysis search flow into the global Finite State Machine, making it a functional part of the customizable analysis pipeline.
-
-**Key Changes:**
-*   **New Server Action (`src/actions/augmented-ta-search-action.ts`):** A new server action was created to act as a wrapper for the `augmentedTaSearch` flow.
-*   **FSM Updates (`src/contexts/stock-analysis-context.tsx`):**
-    *   New FSM states (`FETCHING_AUGMENTED_TA`, `AUGMENTED_TA_FETCH_SUCCEEDED`, `AUGMENTED_TA_FETCH_FAILED`) and events were added to manage the lifecycle of the search flow.
-    *   The main FSM orchestrator was updated to check the `isAugmentedTaSearchEnabled` flag and, if true, call the new server action via a `useActionState` hook.
-*   **Bug Fix:** A "use server" module boundary violation was fixed by moving Zod schemas out of the flow file and into a dedicated `src/ai/schemas/augmented-ta-search-schemas.ts` file.
-*   **Documentation & Versioning:** Application version updated to `v3.3.4.2.0`, and all relevant documentation updated to reflect these changes.
-
-**Outcome:**
-*   The "Augmented Technical Analysis" toggle is now functional. When enabled, it correctly triggers the AI web search flow via the FSM.
-*   The search results are stored in the global context, ready to be displayed by the UI.
----
-**App Version:** `v3.3.4.1.0` (Create Augmented TA Display Component)
-**Tag:** `Phase-28_Task-3.3.4.1.0_CreateAugmentedTaDisplay`
-**Subject:** `feat(ui): Create display component for augmented TA results (v3.3.4.1.0)`
-**Details:**
-This commit (`TBD`) creates the UI component responsible for rendering the data fetched by the new augmented TA search flow.
-
-**Key Changes:**
-*   **New Component (`src/components/augmented-ta-display.tsx`):**
-    *   A new client component was created to display the augmented TA data.
-    *   It features a `<Card>` layout with a `<Table>` to neatly present the fetched indicators (ATR, Support/Resistance, etc.).
-    *   It includes logic to handle loading and error states based on the `augmentedTaSearchJson` prop it will receive from the context.
-*   **Context Update (`src/contexts/stock-analysis-context.tsx`):**
-    *   Added `augmentedTaSearchJson` to the global state and context provider to hold the results from the new flow.
-*   **Documentation & Versioning:** Application version updated to `v3.3.4.1.0`.
-
-**Outcome:**
-*   A reusable and styled component now exists to visualize the augmented TA data.
-*   The application's state management is prepared to handle the results from the new search flow.
----
-**App Version:** `v3.3.4.0.0` (Augmented TA Search Flow)
-**Tag:** `Phase-28_Task-3.3.4.0.0_CreateAugmentedTaSearchFlow`
-**Subject:** `feat(ai,docs): Create AI flow for augmented TA web search (v3.3.4.0.0)`
-**Details:**
-This commit (`TBD`) marks the beginning of **Phase 4: AI Augmented Web Search - Technical Analysis** by creating the foundational AI flow responsible for this functionality.
-
-**Key Changes:**
-*   **New AI Flow (`src/ai/flows/augmented-ta-search-flow.ts`):**
-    *   A new AI flow file was created to handle web searches for augmented technical analysis data.
-    *   The flow uses the `googleSearch` tool available in Genkit to find real-time values for indicators not available through the primary API, including ATR, support/resistance levels, Bollinger Bands, and Fibonacci retracement levels.
-    *   Robust input (`AugmentedTaSearchInputSchema`) and output (`AugmentedTaSearchOutputSchema`) Zod schemas were defined to ensure type safety and to provide a clear structure for the AI to follow, with nullable fields to gracefully handle cases where data cannot be found.
-*   **Genkit Discovery (`src/ai/dev.ts`):**
-    *   The new flow file was imported into `dev.ts` to ensure it's discovered by the Genkit development server.
-*   **Documentation & Versioning:**
-    *   `src/config/app-metadata.json`: Application version updated to `v3.3.4.0.0`.
-    *   `CHANGELOG.md`, `README.md`, `FEAT_STATUS_CustomizableAnalysis_v3.3.md`: All relevant documentation updated to reflect the start of Phase 4 and the completion of this initial task.
-
-**Outcome:**
-*   The application now has a functional, albeit not yet UI-integrated, AI flow capable of searching the web for advanced TA metrics.
-*   This lays the groundwork for the next tasks in Phase 4, which will involve creating the UI to display this data and integrating the new flow into the main FSM orchestrator.
+*   The "Augmented Technical Analysis" toggle is now fully functional, using the corrected "Grounding with Google Search" pattern to reliably fetch data.
+*   The application is now ready for Phase 5, which will implement the same corrected pattern for Options Flow Analysis.
 ---
 **App Version:** `v3.3.3.1.0` (Complete Customizable Analysis Phase 3)
 **Tag:** `Phase-28_Task-3.3.3.1.0_FsmPipelineLogicComplete` (Commit `109dedd5`)
@@ -858,3 +810,5 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
+    
