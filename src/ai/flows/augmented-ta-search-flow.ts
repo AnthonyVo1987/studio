@@ -78,7 +78,6 @@ After gathering the data, you MUST format your ENTIRE response as a single, vali
         `SafetySettings: ${safetySettings.length}`
     );
 
-    // CRITICAL FIX: The 'output' property with a schema MUST be omitted when 'tools' are used.
     const prompt = ai.definePrompt({
         name: 'augmentedTaSearchGroundedPrompt',
         input: { schema: AugmentedTaSearchInputSchema },
@@ -96,7 +95,7 @@ const augmentedTaSearchFlow = ai.defineFlow(
   {
     name: 'augmentedTaSearchFlow',
     inputSchema: AugmentedTaSearchInputSchema,
-    outputSchema: AugmentedTaSearchOutputSchema,
+    // CRITICAL FIX: outputSchema removed to resolve tool conflict.
   },
   async (input): Promise<AugmentedTaSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedTaSearchFlow:Ticker:${input.ticker}]`;
