@@ -2,6 +2,7 @@
 'use server';
 /**
  * @fileOverview An AI flow that uses Google Search to find additional technical analysis indicators for a stock.
+ * This flow uses the "Grounding with Google Search" pattern to ensure reliable tool use.
  *
  * - augmentedTaSearch - A function that handles the augmented TA search process.
  * - AugmentedTaSearchInput - The input type for the augmentedTaSearch function.
@@ -33,9 +34,9 @@ export async function augmentedTaSearch(input: AugmentedTaSearchInput): Promise<
 // --- Prompt and Flow Definition ---
 
 const augmentedTaSearchPrompt = ai.definePrompt({
-  name: 'augmentedTaSearchGroundedPrompt', // New name to avoid cache issues
+  name: 'augmentedTaSearchGroundedPrompt',
   input: { schema: AugmentedTaSearchInputSchema },
-  // NO output schema to enable grounding/forced tool use
+  // NO output schema is defined here. This is critical for the "Grounding with Google Search" pattern.
   model: DEFAULT_ANALYSIS_MODEL_ID,
   tools: [{ googleSearch: {} }],
   config: {
@@ -60,7 +61,7 @@ You MUST search for the following information:
 
 After gathering the data, you MUST format your ENTIRE response as a single, valid JSON string that conforms to the 'AugmentedTaSearchOutputSchema'.
 
-- Your entire response should start with \`{\` and end with \`}\`. Do not include any text, notes, or explanations outside of the JSON structure.
+- Your entire response MUST start with \`{\` and end with \`}\`. Do not include any text, notes, or explanations outside of the JSON structure.
 - If you cannot find a specific numerical value (like ATR) using search, you MUST set its corresponding field to \`null\` in the JSON. Do not guess or make up values.
 - If you cannot find any values for a group (like support levels), you MUST return an empty array \`[]\` for that field in the JSON.
 - If you cannot find the complete set of values for a complex object (like Bollinger Bands or Fibonacci levels), you MUST set the entire object to \`null\` in the JSON. Do not return a partial object.
@@ -77,7 +78,7 @@ const augmentedTaSearchFlow = ai.defineFlow(
   },
   async (input) => {
     const logPrefix = `[AIFlow:augmentedTaSearchFlow:Ticker:${input.ticker}]`;
-    console.log(`${logPrefix} Flow execution started.`);
+    console.log(`${logPrefix} Flow execution started using Grounding pattern.`);
 
     const result = await augmentedTaSearchPrompt(input);
     const rawTextResponse = result.text;

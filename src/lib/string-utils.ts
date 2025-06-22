@@ -7,12 +7,13 @@
  * Extracts the first valid JSON object string from a larger text block.
  * It looks for the first '{' and the last '}' to determine the JSON boundaries.
  * This is useful for cleaning up responses from LLMs that might include
- * conversational text around a JSON payload.
+ * conversational text or markdown code fences around a JSON payload.
  *
  * @param {string} text The text containing the JSON string.
  * @returns {string | null} The extracted JSON string, or null if no valid JSON object is found.
  */
 export function extractJsonString(text: string): string | null {
+  // First, find the start and end of the potential JSON block
   const startIndex = text.indexOf('{');
   const endIndex = text.lastIndexOf('}');
 
