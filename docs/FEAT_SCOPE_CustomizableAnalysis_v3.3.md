@@ -1,7 +1,7 @@
 
 # Feature Scope: Customizable Analysis & AI Augmented Web Search (StockSage v3.3.x.y.z)
 
-**Document Version:** 4.1
+**Document Version:** 4.2
 **Date:** 2025-06-26
 **Target Application Version Series:** 3.3.x.y.z
 **Feature Status:** IN PROGRESS
@@ -41,7 +41,7 @@ The "AI Full Analysis Macro" button and its associated hardcoded pipeline logic 
 
 This component introduces a new layer of intelligence by using the **"Grounding with Google Search"** pattern to fetch financial metrics not available via the Polygon API. This augmentation will be controlled by new toggles.
 
-*   **Architectural Pattern for Augmented Search:** To ensure the AI reliably uses the search tool, all augmented search flows will use the established "Grounding with Google Search" pattern. This involves:
+*   **Architectural Pattern for Augmented Search (Mandatory):** To ensure the AI reliably uses the search tool, all augmented search flows will use the established "Grounding with Google Search" pattern. This involves:
     1.  Defining the Genkit prompt with the `googleSearch` tool enabled.
     2.  **Omitting** the `output: { schema: ... }` property from the prompt definition.
     3.  Instructing the AI in the prompt text to format its entire response as a single, valid JSON string.
@@ -108,7 +108,7 @@ This component introduces a new layer of intelligence by using the **"Grounding 
     *   **Task v3.3.4.1.0:** Create a new display component: `src/components/augmented-ta-display.tsx`. (`COMPLETED`)
     *   **Task v3.3.4.2.0:** In `stock-analysis-context.tsx`, update the FSM to call this new flow when its toggle is enabled and store the resulting JSON in the context. (`COMPLETED`)
     *   **Task v3.3.4.3.0:** In `main-tab-content.tsx`, add the new `AugmentedTaDisplay` component to the UI. (`COMPLETED`)
-    *   **Task v3.3.4.4.0 (Correction):** Correct the search flow to use the "Grounding with Google Search" pattern (text response with JSON string) instead of a direct JSON output schema.
+    *   **Task v3.3.4.4.0 (Correction):** Correct the search flow to use the "Grounding with Google Search" pattern (text response with JSON string) instead of a direct JSON output schema. (`COMPLETED`)
     *   **Task v3.3.4.5.0:** **(Phase 4 Testing)** - Verify that the web search is performed and the results are correctly displayed in the new UI card. (`COMPLETED`)
 
 ### Phase 5: AI Augmented Web Search - Options Flow (Target: v3.3.5.y.z)
@@ -137,6 +137,7 @@ This component introduces a new layer of intelligence by using the **"Grounding 
 
 ## 6. Document Changelog
 
+*   **v4.2 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounding with Google Search" pattern correction. Updated "Architectural Pattern for Augmented Search" to reflect mandatory use of the corrected pattern.
 *   **v4.1 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounding with Google Search" pattern correction.
 *   **v4.0 (2025-06-25):** Marked Phase 4 as COMPLETE.
 *   **v3.0 (2025-06-23):** Marked Phase 3 as COMPLETE.

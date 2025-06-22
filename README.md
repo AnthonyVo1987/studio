@@ -26,7 +26,7 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.78
+**README Document Version:** 1.79
 **Application Version (from `app-metadata.json`):** v3.3.4.3.0
 **Last Updated:** 2025-06-26
 
@@ -130,7 +130,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Architectural Mandate:** Dynamic Thinking (`thinkingConfig: { thinkingBudget: -1 }`) is enforced by default on all AI prompts for analysis and chat.
     *   Safety settings are defined in these JSONs.
     *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
-    *   **"Grounding with Google Search" Pattern:** For reliable AI web searches (as used in Augmented TA and Chat), prompts are configured to use the `googleSearch` tool **without** an `output` schema. The prompt instructs the AI to return a plain text response containing a JSON string. The flow logic then parses this string to get structured data. This is the mandated pattern for all web-augmented AI tasks.
+    *   **"Grounding with Google Search" Pattern (Mandatory for Web-Augmented AI):** For reliable AI web searches (as used in Augmented TA and Chat), prompts are configured to use the `googleSearch` tool **without** an `output` schema. The prompt must instruct the AI to return a plain text response containing a single, valid JSON string. The flow logic will then parse this string to get structured data. This is the mandated pattern for all web-augmented AI tasks.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
 #### 3.2.3. Data Sources
@@ -238,7 +238,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.78
+*   **This README Document Version:** 1.79
 *   **Current Application Version:** `v3.3.4.3.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
