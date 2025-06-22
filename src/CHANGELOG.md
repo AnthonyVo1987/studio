@@ -1,4 +1,3 @@
-
 # StockSage Change History
 
 ## Changelog (CHANGELOG.md)
@@ -57,6 +56,85 @@
 
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
+---
+**App Version:** `v3.3.7.0.3` (Enhanced AI Prompt Debug Logging)
+**Tag:** `Phase-31_Task-3.3.7.0.3_EnhanceAiPromptDebugLogging` (Commit `6b3f605c`)
+**Subject:** `feat(debug,ai): Enhance AI prompt debug logging with grounding & thinking mode flags (v3.3.7.0.3)`
+**Details:**
+This commit (`6b3f605c`) enhances the debuggability of all AI flows by adding explicit, standardized server-side logging for key AI prompt configurations. This makes it easier to trace and verify the behavior of the new customizable analysis pipeline.
+
+**Key Changes:**
+*   **`src/ai/flows/*.ts` (All AI Flows):**
+    *   The prompt definition/retrieval functions in all AI flows (`analyze-stock-data`, `analyze-options-chain`, `chat-flow`, `augmented-ta-search`, `augmented-options-search`) were updated.
+    *   Before `ai.definePrompt` is called, a new, structured `console.log` statement is now emitted.
+    *   This log explicitly states the `Model`, `Grounding` status (true if `googleSearch` tool is present), `ThinkingBudget`, and number of `SafetySettings` being used for that specific prompt definition.
+*   **`src/config/app-metadata.json`:** Version updated to `v3.3.7.0.3`.
+
+**Outcome:**
+*   Server-side logs now provide a clear, at-a-glance confirmation of the exact configuration used for every AI prompt call.
+*   This greatly simplifies debugging, especially for verifying that the "Grounding with Google Search" and "Dynamic Thinking" (`thinkingBudget: -1`) settings are being correctly applied based on user toggle selections.
+---
+**App Version:** `v3.3.7.0.2` (Debug Fix)
+**Tag:** `Phase-31_Task-3.3.7.0.2_FixAugmentedFlowArchitecture` (Commit `73d7657d`)
+**Subject:** `fix(ai): Correct augmented search flow architecture, resolve tool/output conflict (v3.3.7.0.2)`
+**Details:**
+This commit (`73d7657d`) addresses a critical architectural error identified during the **Phase 7: Final Testing & Debugging** of the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series).
+
+**Key Changes in v3.3.7.0.0 - v3.3.7.0.2 (Consolidated Debugging Fixes):**
+*   **Root Cause Identified:** An audit revealed that while the `ai.definePrompt` for the new augmented search flows (`augmented-ta-search-flow.ts`, `augmented-options-search-flow.ts`) correctly enabled the `googleSearch` tool and omitted a structured `output` schema, the `ai.defineFlow` block for these same flows *incorrectly* still declared a structured `outputSchema`. This created a conflict that caused the `Unable to determine type of tool` error, as Genkit does not support using both tools and a structured output schema simultaneously in this manner.
+*   **Architectural Correction (`v3.3.7.0.2`):**
+    *   `src/ai/flows/augmented-ta-search-flow.ts`: Removed the `outputSchema` property from the `ai.defineFlow` definition.
+    *   `src/ai/flows/augmented-options-search-flow.ts`: Removed the `outputSchema` property from the `ai.defineFlow` definition.
+*   **Previous Fix Attempts (`v3.3.7.0.0`, `v3.3.7.0.1`):** These versions involved incorrect attempts to fix the issue by modifying `import` statements for the `googleSearch` tool, which led to build errors and did not address the root architectural flaw. The changes in `v3.3.7.0.2` supersede these and implement the correct fix.
+
+**Outcome:**
+*   The new augmented search flows are now architecturally identical to the proven, working pattern of the chatbot's "Grounding with Google Search" feature.
+*   The `Unable to determine type of tool` error is resolved, and the augmented search pipelines should now function correctly.
+*   The application is now in a more stable state for continuing Phase 7 testing.
+*   The application version is consistently `v3.3.7.0.2`.
+---
+**App Version:** `v3.3.6.3.0` (Complete Customizable Analysis Phase 6)
+**Tag:** `Phase-30_Task-3.3.6.3.0_CompleteAugmentedDataIntegration` (Commit `39a84ca0`)
+**Subject:** `feat(ai,fsm): Complete Phase 6 of Customizable Analysis - Augmented Data Integration (v3.3.6.3.0)`
+**Details:**
+This commit (`39a84ca0`) marks the successful completion of **Phase 6: Augmented Data Integration** for the "Customizable Analysis &amp; AI Augmented Web Search" feature (v3.3 series). This phase completed the feature's primary objective by plumbing the new web-sourced data back into the core AI analysis prompts.
+
+**Key Changes in Phase 6 (Tasks v3.3.6.0.0 through v3.3.6.3.0):**
+*   **Updated AI Schemas & Prompts (`v3.3.6.0.0`, `v3.3.6.1.0`):**
+    *   The Zod input schemas for the core analysis flows (`analyze-stock-data-flow`, `analyze-options-chain-flow`) and the `chat-flow` were updated to accept new optional fields: `augmentedTaSearchJson` and `augmentedOptionsSearchJson`.
+    *   The corresponding JSON prompt definitions (`analyze-stock-data.json`, `analyze-options-chain.json`, `stock-chatbot.json`) were enhanced with Handlebars templating (`{{#if ...}}`) to conditionally include the new augmented data in the context provided to the AI.
+*   **Updated FSM Orchestrator (`v3.3.6.2.0`):**
+    *   The FSM orchestrator in `stock-analysis-context.tsx` was modified to pass the new `augmentedTaSearchJson` and `augmentedOptionsSearchJson` from the global state to the server actions that trigger the analysis and chat flows.
+*   **Final Audit (`v3.3.6.3.0`):**
+    *   A comprehensive code audit confirmed that all new web search flows correctly use the "Grounding with Google Search" pattern and that the data is correctly integrated into all relevant AI prompts.
+
+**Outcome:**
+*   When augmented searches are enabled, their data is now correctly used to enrich the AI's core analysis for Key Takeaways, Options Analysis, and Chat, providing deeper and more contextually aware insights.
+*   The initial implementation of the "Customizable Analysis &amp; AI Augmented Web Search" feature is now functionally complete.
+*   The application is now ready for the final phase of this feature: **Phase 7: Final Testing &amp; Debugging**.
+*   The application version is consistently `v3.3.6.3.0`.
+---
+**App Version:** `v3.3.5.3.0` (Complete Customizable Analysis Phase 5)
+**Tag:** `Phase-29_Task-3.3.5.3.0_CompleteAugmentedOptions` (Commit `5c15faf5`)
+**Subject:** `feat(fsm,ui): Complete Phase 5 of Customizable Analysis - Augmented Options Search (v3.3.5.3.0)`
+**Details:**
+This commit (`5c15faf5`) marks the successful completion of **Phase 5: AI Augmented Web Search - Options Flow** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase mirrored the architecture of Phase 4, implementing a new AI-driven web search for advanced options flow metrics (Max Pain, GEX, etc.) using the mandatory "Grounding with Google Search" pattern.
+
+**Key Changes in Phase 5 (Tasks v3.3.5.0.0 through v3.3.5.3.0):**
+*   **New AI Flow & Server Action (`v3.3.5.0.0`):**
+    *   Created `src/ai/flows/augmented-options-search-flow.ts` and `src/ai/schemas/augmented-options-search-schemas.ts`.
+    *   The flow uses the "Grounding with Google Search" pattern (text response with a JSON string) to reliably find options metrics.
+    *   Created `src/actions/augmented-options-search-action.ts` to wrap the flow for client-side use.
+*   **New Display Component (`v3.3.5.1.0`):**
+    *   Created `src/components/augmented-options-display.tsx` to render the results.
+*   **FSM Integration & UI Display (`v3.3.5.2.0`, `v3.3.5.3.0`):**
+    *   Updated the global FSM in `stock-analysis-context.tsx` with new states (`FETCHING_AUGMENTED_OPTIONS`, etc.) and logic to orchestrate the new server action when the `isAugmentedOptionsSearchEnabled` flag is true.
+    *   Added the `AugmentedOptionsDisplay` component to `main-tab-content.tsx`.
+
+**Outcome:**
+*   The "Augmented Options Flow Analysis" toggle is now fully functional, using the corrected "Grounding with Google Search" pattern to reliably fetch data.
+*   The application is now ready for Phase 6, which will integrate both new augmented data sources back into the primary AI analysis prompts.
+*   The application version is consistently `v3.3.5.3.0`.
 ---
 **App Version:** `v3.3.4.3.0` (Complete Customizable Analysis Phase 4)
 **Tag:** `Phase-28_Task-3.3.4.3.0_CompleteAugmentedTa` (Commit `5786ed18`)
@@ -805,4 +883,3 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
-

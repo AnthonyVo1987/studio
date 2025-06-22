@@ -1,8 +1,8 @@
 
 # Feature Scope: Customizable Analysis & AI Augmented Web Search (StockSage v3.3.x.y.z)
 
-**Document Version:** 7.0
-**Date:** 2025-06-28
+**Document Version:** 8.0
+**Date:** 2025-06-29
 **Target Application Version Series:** 3.3.x.y.z
 **Feature Status:** IN PROGRESS
 
@@ -109,12 +109,13 @@ This component introduces a new layer of intelligence by using the **"Grounding 
     *   **Task v3.3.7.0.0:** (Bug Fix) Resolve initial error `Unable to determine type of tool: {"googleSearch":{}}`. (`COMPLETED`)
     *   **Task v3.3.7.0.1:** (Bug Fix) Resolve `Module not found` build error for incorrect `googleSearch` tool import path. (`COMPLETED`)
     *   **Task v3.3.7.0.2:** (Architectural Fix) Re-audit all augmented search flows and correct the `ai.defineFlow` definitions by removing the `outputSchema` property, which was conflicting with the `googleSearch` tool. This aligns the flows with the proven architecture. (`COMPLETED`)
+    *   **Task v3.3.7.0.3:** Enhance AI prompt debug logging with explicit flags for grounding and thinking mode. (`COMPLETED`)
     *   **Task v3.3.7.1.0:** Conduct comprehensive testing of all new UI elements, FSM states, and conditional pipeline logic. (`PLANNED`)
     *   **Task v3.3.7.2.0:** Test edge cases: running analysis with no toggles, all toggles, and random combinations. Test for tickers where augmented search might fail. (`PLANNED`)
-    *   **Task v3.3.7.3.0:** Review and refine all new debug logs for clarity and completeness. Address any bugs found during testing. (`PLANNED`)
 
 ## 6. Document Changelog
 
+*   **v8.0 (2025-06-29):** Updated Phase 7 to add task v3.3.7.0.3 and marked as complete. Re-numbered subsequent planned tasks.
 *   **v7.0 (2025-06-28):** Updated Phase 7 to "IN PROGRESS". Added tasks v3.3.7.0.0, v3.3.7.0.1, v3.3.7.0.2 and marked as complete to reflect debugging progress. Re-numbered subsequent planned tasks.
 *   **v6.0 (2025-06-28):** Marked Phase 6 and all its tasks as `COMPLETED`. Updated status of Phase 7 to `PLANNED`.
 *   **v5.0 (2025-06-27):** Marked Phase 5 and all its tasks as `COMPLETED`.
@@ -127,5 +128,6 @@ This component introduces a new layer of intelligence by using the **"Grounding 
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
+
 
     

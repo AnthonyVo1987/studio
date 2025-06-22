@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.7.0.3` (Enhanced AI Prompt Debug Logging)
+**Tag:** `Phase-31_Task-3.3.7.0.3_EnhanceAiPromptDebugLogging` (Commit `6b3f605c`)
+**Subject:** `feat(debug,ai): Enhance AI prompt debug logging with grounding & thinking mode flags (v3.3.7.0.3)`
+**Details:**
+This commit (`6b3f605c`) enhances the debuggability of all AI flows by adding explicit, standardized server-side logging for key AI prompt configurations. This makes it easier to trace and verify the behavior of the new customizable analysis pipeline.
+
+**Key Changes:**
+*   **`src/ai/flows/*.ts` (All AI Flows):**
+    *   The prompt definition/retrieval functions in all AI flows (`analyze-stock-data`, `analyze-options-chain`, `chat-flow`, `augmented-ta-search`, `augmented-options-search`) were updated.
+    *   Before `ai.definePrompt` is called, a new, structured `console.log` statement is now emitted.
+    *   This log explicitly states the `Model`, `Grounding` status (true if `googleSearch` tool is present), `ThinkingBudget`, and number of `SafetySettings` being used for that specific prompt definition.
+*   **`src/config/app-metadata.json`:** Version updated to `v3.3.7.0.3`.
+
+**Outcome:**
+*   Server-side logs now provide a clear, at-a-glance confirmation of the exact configuration used for every AI prompt call.
+*   This greatly simplifies debugging, especially for verifying that the "Grounding with Google Search" and "Dynamic Thinking" (`thinkingBudget: -1`) settings are being correctly applied based on user toggle selections.
+---
 **App Version:** `v3.3.7.0.2` (Debug Fix)
 **Tag:** `Phase-31_Task-3.3.7.0.2_FixAugmentedFlowArchitecture` (Commit `73d7657d`)
 **Subject:** `fix(ai): Correct augmented search flow architecture, resolve tool/output conflict (v3.3.7.0.2)`
@@ -365,12 +382,12 @@ This commit (`f8e8a609`) resolves a bug where switching to another tab (e.g., "D
 **Tag:** `Phase-18_Task-3.2.5.0.L_FSM_DebugTabMigration` (Commit `36cfe3d5`)
 **Subject:** `feat(debug,fsm): Migrate FSM monitor to dedicated tab, deprecate old UI (v3.2.5.0.L)`
 **Details:**
-This commit (`36cfe3d5`) completes the "FSM Debug Tab Migration" task series (`v3.2.5.0.L.0` through `v3.2.5.0.L.2`), which is part of the broader "FSM Consolidation &amp; Refactor" feature (`v3.2`). The floating FSM monitor has been successfully replaced with a more integrated and user-friendly dedicated "FSM Debug" tab.
+This commit (`36cfe3d5`) completes the "FSM Debug Tab Migration" task series (`v3.2.5.0.L.0` through `v3.2.5.0.L.2`), which is part of the broader "FSM Consolidation & Refactor" feature (`v3.2`). The floating FSM monitor has been successfully replaced with a more integrated and user-friendly dedicated "FSM Debug" tab.
 
 **Key Changes in v3.2.5.0.L Series (Consolidated):**
 *   **New "FSM Debug" Tab (Task v3.2.5.0.L.0):** Added a new "FSM Debug" tab trigger and content placeholder to the main `Tabs` component in `page-content.tsx`.
 *   **Implemented Display Logic (Task v3.2.5.0.L.1):** Created a new `fsm-debug-tab-content.tsx` component to display the Global FSM state, flags, and variables within distinct UI cards. Migrated copy/export functionality to this new component.
-*   **Deprecated Old UI (Task v3.2.5.0.L.2):** Removed the old floating `FsmStateDebugCard` component and its associated "Enable &amp; Show Global FSM Monitor" toggle switch from `page-content.tsx`. Removed the corresponding state management (`isFsmDebugCardEnabled`, etc.) from `StockAnalysisContext`, simplifying the context. The file `src/components/fsm-state-debug-card.tsx` was removed.
+*   **Deprecated Old UI (Task v3.2.5.0.L.2):** Removed the old floating `FsmStateDebugCard` component and its associated "Enable & Show Global FSM Monitor" toggle switch from `page-content.tsx`. Removed the corresponding state management (`isFsmDebugCardEnabled`, etc.) from `StockAnalysisContext`, simplifying the context. The file `src/components/fsm-state-debug-card.tsx` was removed.
 
 **Outcome of v3.2.5.0.L:**
 *   The FSM monitor is now a first-class citizen of the UI in its own tab.
@@ -382,7 +399,7 @@ This commit (`36cfe3d5`) completes the "FSM Debug Tab Migration" task series (`v
 **Tag:** `Phase-17_Task-3.2.5.0.F_ConsolidatedLoggingFixes` (Commit `f34f5128`)
 **Subject:** `fix(fsm,debug): Consolidate FSM orchestrator, logging & startup fixes (v3.2.5.0.F)`
 **Details:**
-This commit (`f34f5128`) represents the consolidation of bug fixes for the "FSM Consolidation &amp; Refactor" feature (Feature `v3.2`), specifically addressing issues within the `v3.2.5.0.D` through `v3.2.5.0.F` series. These fixes significantly improve the stability of the FSM orchestrator and the client-side logging system.
+This commit (`f34f5128`) represents the consolidation of bug fixes for the "FSM Consolidation & Refactor" feature (Feature `v3.2`), specifically addressing issues within the `v3.2.5.0.D` through `v3.2.5.0.F` series. These fixes significantly improve the stability of the FSM orchestrator and the client-side logging system.
 
 **Key Changes in the v3.2.5.0.D/E/F Series (Consolidated):**
 *   **Corrected "Reduced Startup Logging" Logic (v3.2.5.0.D, v3.2.5.0.F):**
@@ -399,7 +416,7 @@ This commit (`f34f5128`) represents the consolidation of bug fixes for the "FSM 
 *   The FSM orchestrator is more stable and no longer prone to the identified infinite loop.
 *   The "Reduced Startup Logging" feature now functions as intended, only affecting the initial app load.
 *   Client-side debug logging is more reliable and accurately reflects the application's state throughout its lifecycle.
-*   Phase 5 (Testing &amp; Debugging) of the FSM consolidation feature can now proceed on a more stable foundation.
+*   Phase 5 (Testing & Debugging) of the FSM consolidation feature can now proceed on a more stable foundation.
 
 ---
 **App Version:** `v3.2.5.0.C` (Consolidated FSM Debugging Iteration)
@@ -431,7 +448,7 @@ This commit consolidates these fixes, improving stability for Phase 5 (Testing a
 **Tag:** `Phase-15_Task-3.2.4.1.0_FSM_Consolidation_Phase4_Complete` (Commit `c661f9d1`)
 **Subject:** `feat(fsm,debug): Complete Phase 4 of FSM Consolidation - Debug Tooling Finalization (v3.2.4.1.0)`
 **Details:**
-This commit marks the completion of Phase 4 ("Clean Up &amp; Finalize Debugging Tools") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully refined the FSM Debug Card, enhanced client debug log exports to include a comprehensive global FSM snapshot, and thoroughly audited/updated all FSM-related debug logging throughout the application.
+This commit marks the completion of Phase 4 ("Clean Up & Finalize Debugging Tools") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully refined the FSM Debug Card, enhanced client debug log exports to include a comprehensive global FSM snapshot, and thoroughly audited/updated all FSM-related debug logging throughout the application.
 
 **Key Changes in Phase 4 (Tasks v3.2.4.0.0 through v3.2.4.1.0):**
 *   **Finalized Enhanced FSM Debug Card & Client Debug Console Exports (Task v3.2.4.0.0 - Commit `f6520642`):**
@@ -451,14 +468,14 @@ This commit marks the completion of Phase 4 ("Clean Up &amp; Finalize Debugging 
 *   Client debug log exports are significantly more informative, including a full snapshot of the global FSM (state, flags, variables).
 *   All FSM-related debug logging throughout the application is now consistent with the single global FSM architecture, enhancing debuggability and traceability.
 *   The application version is now consistently `v3.2.4.1.0`.
-*   The FSM consolidation feature is now in its final stages, with Phase 5 (Testing &amp; Debugging) and Phase 6 (Documentation) remaining.
+*   The FSM consolidation feature is now in its final stages, with Phase 5 (Testing & Debugging) and Phase 6 (Documentation) remaining.
 
 ---
 **App Version:** `v3.2.3.2.0` (Complete FSM Consolidation Phase 3)
 **Tag:** `Phase-14_Task-3.2.3.2.0_FSM_Consolidation_Phase3_Complete` (Commit `7f0e552b`)
 **Subject:** `feat(fsm): Complete Phase 3 of FSM Consolidation - Chat & Debug Menus (v3.2.3.2.0)`
 **Details:**
-This commit marks the completion of Phase 3 ("Integrating Chat &amp; Debug Console Menus") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated Chatbot submission flow, Chatbot UI state management, and Debug Console menu UI states to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
+This commit marks the completion of Phase 3 ("Integrating Chat & Debug Console Menus") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated Chatbot submission flow, Chatbot UI state management, and Debug Console menu UI states to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
 
 **Key Changes in Phase 3 (Tasks v3.2.3.0.0 through v3.2.3.2.0):**
 *   **Integrated Chatbot Submission Flow (Task v3.2.3.0.0 - Commit `5e688769`):**
@@ -510,7 +527,7 @@ This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") fo
 **Tag:** `Phase-12_Task-3.2.1.3.0_FSM_Consolidation_Phase1_Complete` (Commit `57c7e8b0`)
 **Subject:** `feat(fsm): Complete Phase 1 of FSM Consolidation (v3.2.1.3.0)`
 **Details:**
-This commit marks the completion of Phase 1 ("Foundation &amp; Core FSM Setup") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase established the foundational structure of the new single global Finite State Machine (FSM) within `StockAnalysisContext` and successfully migrated the entire automated "Analyze Stock" pipeline (ticker input, data fetching, and AI TA calculation) to be driven by this new FSM.
+This commit marks the completion of Phase 1 ("Foundation & Core FSM Setup") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase established the foundational structure of the new single global Finite State Machine (FSM) within `StockAnalysisContext` and successfully migrated the entire automated "Analyze Stock" pipeline (ticker input, data fetching, and AI TA calculation) to be driven by this new FSM.
 
 **Key Changes in Phase 1 (Tasks v3.2.1.0.0 through v3.2.1.3.0):**
 *   **Defined Single FSM Structure (Task v3.2.1.0.0 - Commit `919db9f2`):**
@@ -873,5 +890,6 @@ Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsm
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
 
-    
+
+
     
