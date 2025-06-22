@@ -4,20 +4,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { Badge } from './ui/badge';
 
 export function AugmentedTaRawDisplay() {
   const { augmentedTaSearchJson, logDebug } = useStockAnalysis();
   const componentName = 'AugmentedTaRawDisplay';
 
-  if (!isDataReadyForProcessing(augmentedTaSearchJson, logDebug, componentName, 'augmentedTaSearchJson', 'Validation')) {
-    // Don't render anything if there's no ready data (initial state, pending, error, etc.)
-    // The FSM will eventually put error data in here, which will then be displayed.
-    return null;
-  }
+  // Component will now always render to be persistent on the UI for debugging.
+  // The content of augmentedTaSearchJson (placeholder, pending, error, or data)
+  // will be displayed in the Textarea directly.
 
-  logDebug(componentName, 'Render', 'Rendering with raw augmented TA data.');
+  logDebug(componentName, 'Render', 'Rendering raw augmented TA data box.');
 
   return (
     <Card>

@@ -4,19 +4,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { Badge } from './ui/badge';
 
 export function AugmentedOptionsRawDisplay() {
   const { augmentedOptionsSearchJson, logDebug } = useStockAnalysis();
   const componentName = 'AugmentedOptionsRawDisplay';
 
-  if (!isDataReadyForProcessing(augmentedOptionsSearchJson, logDebug, componentName, 'augmentedOptionsSearchJson', 'Validation')) {
-    // Don't render anything if there's no ready data (initial state, pending, error, etc.)
-    return null;
-  }
+  // Component will now always render to be persistent on the UI for debugging.
+  // The content of augmentedOptionsSearchJson (placeholder, pending, error, or data)
+  // will be displayed in the Textarea directly.
 
-  logDebug(componentName, 'Render', 'Rendering with raw augmented options data.');
+  logDebug(componentName, 'Render', 'Rendering raw augmented options data box.');
 
   return (
     <Card>
