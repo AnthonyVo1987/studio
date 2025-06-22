@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI flow that uses Google Search to find advanced options metrics for a stock.
@@ -92,7 +91,6 @@ const augmentedOptionsSearchFlow = ai.defineFlow(
   {
     name: 'augmentedOptionsSearchFlow',
     inputSchema: AugmentedOptionsSearchInputSchema,
-    outputSchema: AugmentedOptionsSearchOutputSchema,
   },
   async (input): Promise<AugmentedOptionsSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedOptionsSearchFlow:Ticker:${input.ticker}]`;

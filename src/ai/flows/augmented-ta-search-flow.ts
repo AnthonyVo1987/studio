@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI flow that uses Google Search to find additional technical analysis indicators for a stock.
@@ -95,7 +94,6 @@ const augmentedTaSearchFlow = ai.defineFlow(
   {
     name: 'augmentedTaSearchFlow',
     inputSchema: AugmentedTaSearchInputSchema,
-    outputSchema: AugmentedTaSearchOutputSchema,
   },
   async (input): Promise<AugmentedTaSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedTaSearchFlow:Ticker:${input.ticker}]`;
