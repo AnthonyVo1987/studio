@@ -58,6 +58,27 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.6.3.0` (Complete Customizable Analysis Phase 6)
+**Tag:** `Phase-30_Task-3.3.6.3.0_CompleteAugmentedDataIntegration` (Commit `39a84ca0`)
+**Subject:** `feat(ai,fsm): Complete Phase 6 of Customizable Analysis - Augmented Data Integration (v3.3.6.3.0)`
+**Details:**
+This commit (`39a84ca0`) marks the successful completion of **Phase 6: Augmented Data Integration** for the "Customizable Analysis &amp; AI Augmented Web Search" feature (v3.3 series). This phase completed the feature's primary objective by plumbing the new web-sourced data back into the core AI analysis prompts.
+
+**Key Changes in Phase 6 (Tasks v3.3.6.0.0 through v3.3.6.3.0):**
+*   **Updated AI Schemas & Prompts (`v3.3.6.0.0`, `v3.3.6.1.0`):**
+    *   The Zod input schemas for the core analysis flows (`analyze-stock-data-flow`, `analyze-options-chain-flow`) and the `chat-flow` were updated to accept new optional fields: `augmentedTaSearchJson` and `augmentedOptionsSearchJson`.
+    *   The corresponding JSON prompt definitions (`analyze-stock-data.json`, `analyze-options-chain.json`, `stock-chatbot.json`) were enhanced with Handlebars templating (`{{#if ...}}`) to conditionally include the new augmented data in the context provided to the AI.
+*   **Updated FSM Orchestrator (`v3.3.6.2.0`):**
+    *   The FSM orchestrator in `stock-analysis-context.tsx` was modified to pass the new `augmentedTaSearchJson` and `augmentedOptionsSearchJson` from the global state to the server actions that trigger the analysis and chat flows.
+*   **Final Audit (`v3.3.6.3.0`):**
+    *   A comprehensive code audit confirmed that all new web search flows correctly use the "Grounding with Google Search" pattern and that the data is correctly integrated into all relevant AI prompts.
+
+**Outcome:**
+*   When augmented searches are enabled, their data is now correctly used to enrich the AI's core analysis for Key Takeaways, Options Analysis, and Chat, providing deeper and more contextually aware insights.
+*   The initial implementation of the "Customizable Analysis &amp; AI Augmented Web Search" feature is now functionally complete.
+*   The application is now ready for the final phase of this feature: **Phase 7: Final Testing &amp; Debugging**.
+*   The application version is consistently `v3.3.6.3.0`.
+---
 **App Version:** `v3.3.5.3.0` (Complete Customizable Analysis Phase 5)
 **Tag:** `Phase-29_Task-3.3.5.3.0_CompleteAugmentedOptions` (Commit `5c15faf5`)
 **Subject:** `feat(fsm,ui): Complete Phase 5 of Customizable Analysis - Augmented Options Search (v3.3.5.3.0)`
@@ -155,7 +176,7 @@ This commit (`316f3e78`) marks the successful completion of **Phase 2: FSM &amp;
 **Tag:** `Phase-26_Task-3.3.1.2.0_IntermediatePhaseComplete` (Commit `8f345a34`)
 **Subject:** `feat(ui,docs): Implement UI foundation for Customizable Analysis feature (v3.3.1.2.0)`
 **Details:**
-This commit (`8f345a34`) marks the completion of the initial UI setup tasks (`v3.3.1.0.0` through `v3.3.1.2.0`) for the new **"Customizable Analysis &amp; AI Augmented Web Search"** feature (v3.3 series). This is a checkpoint commit that lays the visual groundwork for the feature before integrating FSM logic.
+This commit (`8f345a34`) marks the completion of the initial UI setup tasks (`v3.3.1.0.0` through `v3.3.1.2.0`) for the new **"Customizable Analysis & AI Augmented Web Search"** feature (v3.3 series). This is a checkpoint commit that lays the visual groundwork for the feature before integrating FSM logic.
 
 **Key Changes in v3.3.1.0.0 - v3.3.1.2.0 (Consolidated):**
 *   **`src/components/main-tab-content.tsx`:**
@@ -168,18 +189,18 @@ This commit (`8f345a34`) marks the completion of the initial UI setup tasks (`v3
 **Outcome:**
 *   The main UI has been successfully updated with the new toggle controls for the customizable analysis pipeline.
 *   At this stage, the toggles are present visually but have no backend logic or FSM state connection.
-*   The application is now prepared for Phase 2 of the feature: FSM &amp; State Management Integration.
+*   The application is now prepared for Phase 2 of the feature: FSM & State Management Integration.
 ---
 **App Version:** `v3.3.0.0.0` (Feature Scoping)
 **Tag:** `Phase-25_Task-3.3.0.0.0_ScopeCustomizableAnalysis`
 **Subject:** `feat(docs): Scope Customizable Analysis & AI Augmented Web Search feature (v3.3)`
 **Details:**
-This commit (`TBD`) prepares all documentation for the new **"Customizable Analysis &amp; AI Augmented Web Search"** feature, version series `v3.3.x.y.z`. This is a documentation and planning commit that sets the stage for implementation.
+This commit (`TBD`) prepares all documentation for the new **"Customizable Analysis & AI Augmented Web Search"** feature, version series `v3.3.x.y.z`. This is a documentation and planning commit that sets the stage for implementation.
 
 **Key Changes:**
 *   **`docs/FEAT_SCOPE_CustomizableAnalysis_v3.3.md`:** A new, comprehensive feature scope document was created, outlining the objectives, detailed requirements, and a full, multi-phase implementation plan for the new feature.
 *   **`docs/FEAT_STATUS_CustomizableAnalysis_v3.3.md`:** A new feature status report was created to track the progress of the v3.3 feature through its planned phases.
-*   **`README.md`:** The main PRD was updated to include the new "Customizable Analysis &amp; AI Augmented Web Search" functionality in its feature list.
+*   **`README.md`:** The main PRD was updated to include the new "Customizable Analysis & AI Augmented Web Search" functionality in its feature list.
 *   **`CHANGELOG.md` (this file):** Updated with this commit log to mark the official start of the new feature.
 *   **`src/config/app-metadata.json`:** Application version updated to `v3.3.0.0.0`.
 ---
@@ -187,7 +208,7 @@ This commit (`TBD`) prepares all documentation for the new **"Customizable Analy
 **Tag:** `Phase-24_Task-3.2.5.0.Z_CompleteFsmConsolidation` (Commit `1ca4bd54`)
 **Subject:** `feat(fsm,core): Complete FSM Consolidation & Refactor feature (v3.2.5.0.Z)`
 **Details:**
-This commit (`1ca4bd54`) marks the full and successful completion of the **"FSM Consolidation &amp; Refactor"** feature (v3.2.x.y.z series). This major architectural enhancement involved migrating all primary application state and UI logic—previously managed by multiple disparate FSMs—into a single, robust, and centralized Finite State Machine in `StockAnalysisContext`.
+This commit (`1ca4bd54`) marks the full and successful completion of the **"FSM Consolidation & Refactor"** feature (v3.2.x.y.z series). This major architectural enhancement involved migrating all primary application state and UI logic—previously managed by multiple disparate FSMs—into a single, robust, and centralized Finite State Machine in `StockAnalysisContext`.
 
 **Key Achievements in the FSM Consolidation & Refactor (v3.2) Feature:**
 *   **Single Source of Truth:** The application now operates on a single global FSM. This orchestrates all major pipelines, including automated data analysis, on-demand AI actions (Key Takeaways, Options Analysis), and the full AI Chatbot lifecycle (interactive queries, macro-driven prompts, and Google Search grounding).
@@ -224,7 +245,7 @@ This commit (`6645e792`) fixes a critical bug where the "Grounding with Google S
 **Tag:** `Phase-19_Task-3.2.5.0.Q_FSM_ButtonStateIntegration` (Commit `4fe5a570`)
 **Subject:** `feat(fsm,ui): Centralize on-demand AI button state in global FSM (v3.2.5.0.Q)`
 **Details:**
-This commit (`4fe5a570`) completes **Task v3.2.5.0.Q**, a key refinement within **Phase 5 (Testing &amp; Debugging)** of the "FSM Consolidation &amp; Refactor" feature (`v3.2`). It addresses a "straggler" piece of logic by migrating the state management for the manual AI analysis buttons entirely into the single global FSM.
+This commit (`4fe5a570`) completes **Task v3.2.5.0.Q**, a key refinement within **Phase 5 (Testing & Debugging)** of the "FSM Consolidation & Refactor" feature (`v3.2`). It addresses a "straggler" piece of logic by migrating the state management for the manual AI analysis buttons entirely into the single global FSM.
 
 **Key Changes in v3.2.5.0.Q:**
 *   **New FSM Flags (`src/contexts/stock-analysis-context.tsx`):**
@@ -418,7 +439,7 @@ This commit marks the completion of Phase 4 ("Clean Up &amp; Finalize Debugging 
 **Tag:** `Phase-14_Task-3.2.3.2.0_FSM_Consolidation_Phase3_Complete` (Commit `7f0e552b`)
 **Subject:** `feat(fsm): Complete Phase 3 of FSM Consolidation - Chat & Debug Menus (v3.2.3.2.0)`
 **Details:**
-This commit marks the completion of Phase 3 ("Integrating Chat &amp; Debug Console Menus") for the "FSM Consolidation &amp; Refactor" feature (Feature `v3.2`). This phase successfully migrated Chatbot submission flow, Chatbot UI state management, and Debug Console menu UI states to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
+This commit marks the completion of Phase 3 ("Integrating Chat &amp; Debug Console Menus") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated Chatbot submission flow, Chatbot UI state management, and Debug Console menu UI states to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
 
 **Key Changes in Phase 3 (Tasks v3.2.3.0.0 through v3.2.3.2.0):**
 *   **Integrated Chatbot Submission Flow (Task v3.2.3.0.0 - Commit `5e688769`):**
@@ -446,7 +467,7 @@ This commit marks the completion of Phase 3 ("Integrating Chat &amp; Debug Conso
 **Tag:** `Phase-13_Task-3.2.2.1.0_FSM_Consolidation_Phase2_Complete` (Commit `0a0ba41c`)
 **Subject:** `feat(fsm): Complete Phase 2 of FSM Consolidation - Manual AI Actions (v3.2.2.1.0)`
 **Details:**
-This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") for the "FSM Consolidation &amp; Refactor" feature (Feature `v3.2`). This phase successfully migrated the manual "Generate AI Key Takeaways" and "Generate AI Options Analysis" functionalities to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
+This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully migrated the manual "Generate AI Key Takeaways" and "Generate AI Options Analysis" functionalities to be driven by the new single global Finite State Machine (FSM) within `StockAnalysisContext`.
 
 **Key Changes in Phase 2 (Tasks v3.2.2.0.0 through v3.2.2.1.0):**
 *   **Integrated "Generate AI Key Takeaways" Button (Task v3.2.2.0.0 - Commit `55fcc0c2`):**
@@ -470,7 +491,7 @@ This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") fo
 **Tag:** `Phase-12_Task-3.2.1.3.0_FSM_Consolidation_Phase1_Complete` (Commit `57c7e8b0`)
 **Subject:** `feat(fsm): Complete Phase 1 of FSM Consolidation (v3.2.1.3.0)`
 **Details:**
-This commit marks the completion of Phase 1 ("Foundation &amp; Core FSM Setup") for the "FSM Consolidation &amp; Refactor" feature (Feature `v3.2`). This phase established the foundational structure of the new single global Finite State Machine (FSM) within `StockAnalysisContext` and successfully migrated the entire automated "Analyze Stock" pipeline (ticker input, data fetching, and AI TA calculation) to be driven by this new FSM.
+This commit marks the completion of Phase 1 ("Foundation &amp; Core FSM Setup") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase established the foundational structure of the new single global Finite State Machine (FSM) within `StockAnalysisContext` and successfully migrated the entire automated "Analyze Stock" pipeline (ticker input, data fetching, and AI TA calculation) to be driven by this new FSM.
 
 **Key Changes in Phase 1 (Tasks v3.2.1.0.0 through v3.2.1.3.0):**
 *   **Defined Single FSM Structure (Task v3.2.1.0.0 - Commit `919db9f2`):**
