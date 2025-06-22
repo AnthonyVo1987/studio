@@ -23,9 +23,10 @@
 4.  **XML Output Mandate & Confirmation:** All code changes proposed by the AI Coding Agent MUST be provided exclusively in the specified XML format. The Agent will explicitly confirm its understanding and adherence to this format at the beginning of new tasks or phases.
 5.  **Context Reset Confirmation:** At the beginning of new Phases or when explicitly requested, the AI Coding Agent will confirm that its internal context, stale cache, and operating state have been purged, cleared, and reset to ensure it is operating on the latest information.
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
+7.  **Documentation Update Policy (Strict Prohibition):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a specific "Phase Completion Commit" is requested by the user. This ensures that changelogs and feature documents reflect a stable, completed set of work, not work-in-progress, and prevents unnecessary token usage and noise.
 ###
 ---
-**README Document Version:** 1.76
+**README Document Version:** 1.77
 **Application Version (from `app-metadata.json`):** v3.3.4.3.0
 **Last Updated:** 2025-06-25
 
@@ -78,8 +79,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Options Trader's Takeaways (with CC/CSP setups).
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
 *   **AI Augmented Web Search (as of v3.3):**
-    *   **[Toggle] Augmented Technical Analysis:** Uses Google Search to fetch additional indicators (ATR, Bollinger Bands, etc.) and displays them in a new card. This data enriches the core AI analyses when enabled.
-    *   **[Toggle] Augmented Options Flow Analysis:** Uses Google Search to fetch advanced options metrics (Max Pain, GEX, etc.) and displays them in a new card, enriching the options-related AI analyses.
+    *   **[Toggle] Augmented Technical Analysis:** Uses Google Search to fetch additional indicators (ATR, Bollinger Bands, Support/Resistance, etc.) and displays them in a new, dedicated card. This data enriches the core AI analyses when enabled.
+    *   **[Toggle] Augmented Options Flow Analysis:** (Planned) Uses Google Search to fetch advanced options metrics (Max Pain, GEX, etc.) and displays them in a new card, enriching the options-related AI analyses.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
     *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot.
@@ -142,17 +143,17 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.4. State Management (as of v3.2.5.0.Z)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
-    *   Fetched data JSON strings.
+    *   Fetched data JSON strings (including `augmentedTaSearchJson`).
     *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the "AI Full Stock Analysis" macro.
     *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.3.1.0)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.4.3.0)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
-    *   The new customizable analysis pipeline, which conditionally triggers on-demand AI actions (Key Takeaways, Options Analysis) and chat prompts based on user-selected toggles.
+    *   The new customizable analysis pipeline, which conditionally triggers on-demand AI actions (Key Takeaways, Options Analysis), augmented searches (TA Search), and chat prompts based on user-selected toggles.
 *   **Deprecated FSMs:** Local FSMs previously in `MainTabContent`, `ChatbotFsmContext`, and `DebugConsoleFsmContext` have been removed, and their logic has been fully absorbed by the global FSM.
 
 ### 3.3. AI Flow & Prompt Design
@@ -184,7 +185,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
 *   **Current Feature Focus (as of v3.3.4.3.0):**
-    *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** IN PROGRESS. Phase 1, 2, and 3 are complete. Phase 4 is in progress.
+    *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** IN PROGRESS. Phase 1, 2, 3, and 4 are complete.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -201,7 +202,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
     *   `lastUpdatedTimestamp` in `app-metadata.json` updated with real ISO 8601 timestamp (or removed if optional and not set).
 *   **Dynamic Versioning in UI/Exports:** Header and Debug Console use `appVersion` prop.
-*   **Documentation Updates:** `CHANGELOG.md`, this `README.md`, and feature-specific `FEAT_SCOPE_xxx.md`, `FEAT_STATUS_xxx.md` updated.
+*   **Documentation Update Policy:** Documentation files (`.md`, `CHANGELOG`, etc.) are updated **only** when a "Phase Completion Commit" is explicitly requested by the user.
 
 ---
 
@@ -237,7 +238,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.76
+*   **This README Document Version:** 1.77
 *   **Current Application Version:** `v3.3.4.3.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
@@ -245,3 +246,4 @@ npm run start
     *   For pre-v3.0.0.0 history: Refer to `CHANGELOG.md`.
 
 ---
+
