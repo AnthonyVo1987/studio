@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview An AI flow that uses Google Search to find additional technical analysis indicators for a stock.
- * This flow uses the "Grounding with Google Search" pattern to ensure reliable tool use.
+ * This flow uses the "Grounded with Google Search" pattern to ensure reliable tool use.
  *
  * - augmentedTaSearch - A function that handles the augmented TA search process.
  * - AugmentedTaSearchInput - The input type for the augmentedTaSearch function.
@@ -69,12 +69,12 @@ After gathering the data, you MUST format your ENTIRE response as a single, vali
 - Prioritize data from reputable financial websites (e.g., TradingView, Yahoo Finance, Barchart).
 - Ensure all numerical values are returned as numbers, not strings.
 `;
-
+    
     console.log(
         `${logPrefix} Defining prompt. ` +
         `Model: ${modelId}, ` +
-        `Grounding: ${!!tools?.length}, ` +
-        `ThinkingBudget: N/A, ` + // thinkingBudget not used with tools
+        `Grounding: true, ` +
+        `ThinkingBudget: N/A, ` +
         `SafetySettings: ${safetySettings.length}`
     );
 
@@ -95,6 +95,7 @@ const augmentedTaSearchFlow = ai.defineFlow(
   {
     name: 'augmentedTaSearchFlow',
     inputSchema: AugmentedTaSearchInputSchema,
+    outputSchema: AugmentedTaSearchOutputSchema,
   },
   async (input): Promise<AugmentedTaSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedTaSearchFlow:Ticker:${input.ticker}]`;

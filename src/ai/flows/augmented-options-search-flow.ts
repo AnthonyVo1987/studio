@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview An AI flow that uses Google Search to find advanced options metrics for a stock.
- * This flow uses the "Grounding with Google Search" pattern to ensure reliable tool use.
+ * This flow uses the "Grounded with Google Search" pattern to ensure reliable tool use.
  *
  * - augmentedOptionsSearch - A function that handles the augmented options search process.
  * - AugmentedOptionsSearchInput - The input type for the augmentedOptionsSearch function.
@@ -70,8 +70,8 @@ After gathering the data, you MUST format your ENTIRE response as a single, vali
     console.log(
         `${logPrefix} Defining prompt. ` +
         `Model: ${modelId}, ` +
-        `Grounding: ${!!tools?.length}, ` +
-        `ThinkingBudget: N/A, ` + // thinkingBudget not used with tools
+        `Grounding: true, ` +
+        `ThinkingBudget: N/A, ` + 
         `SafetySettings: ${safetySettings.length}`
     );
 
@@ -92,6 +92,7 @@ const augmentedOptionsSearchFlow = ai.defineFlow(
   {
     name: 'augmentedOptionsSearchFlow',
     inputSchema: AugmentedOptionsSearchInputSchema,
+    outputSchema: AugmentedOptionsSearchOutputSchema,
   },
   async (input): Promise<AugmentedOptionsSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedOptionsSearchFlow:Ticker:${input.ticker}]`;

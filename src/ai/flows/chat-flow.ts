@@ -31,15 +31,12 @@ async function getChatPrompt(isGrounded: boolean) {
 
   // Return cached prompt if available
   if (isGrounded && groundedChatPrompt) {
-    console.log(`${logPrefix} Returning cached grounded prompt object.`);
     return groundedChatPrompt;
   }
   if (!isGrounded && standardChatPrompt) {
-    console.log(`${logPrefix} Returning cached standard prompt object.`);
     return standardChatPrompt;
   }
 
-  console.log(`${logPrefix} Defining prompt. Type: ${promptType}.`);
   const genericDefinition = await loadDefinition('stock-chatbot');
   if (genericDefinition.definitionType !== 'llm-prompt') {
     const errorMsg = `Loaded definition for 'stock-chatbot' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
@@ -47,7 +44,6 @@ async function getChatPrompt(isGrounded: boolean) {
     throw new Error(errorMsg);
   }
   const stockChatBotPromptDefinition = genericDefinition;
-  console.log(`${logPrefix} 'stock-chatbot' definition loaded and validated.`);
 
   const promptString = buildPromptStringFromLlmDefinition(stockChatBotPromptDefinition!);
   const modelId = stockChatBotPromptDefinition!.modelId || DEFAULT_CHAT_MODEL_ID;
@@ -84,7 +80,7 @@ async function getChatPrompt(isGrounded: boolean) {
   } else {
     promptOptions.output = {schema: ChatOutputSchema};
   }
-
+  
   console.log(
     `${logPrefix} Defining prompt. ` +
     `Type: ${promptType}, ` +
@@ -99,10 +95,8 @@ async function getChatPrompt(isGrounded: boolean) {
   // Cache the newly created prompt
   if (isGrounded) {
     groundedChatPrompt = prompt;
-    console.log(`${logPrefix} Grounded prompt object defined and cached.`);
   } else {
     standardChatPrompt = prompt;
-    console.log(`${logPrefix} Standard prompt object defined and cached.`);
   }
 
   return prompt;
