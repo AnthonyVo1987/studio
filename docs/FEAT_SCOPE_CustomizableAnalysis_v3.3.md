@@ -1,7 +1,7 @@
 
 # Feature Scope: Customizable Analysis & AI Augmented Web Search (StockSage v3.3.x.y.z)
 
-**Document Version:** 6.0
+**Document Version:** 7.0
 **Date:** 2025-06-28
 **Target Application Version Series:** 3.3.x.y.z
 **Feature Status:** IN PROGRESS
@@ -101,22 +101,21 @@ This component introduces a new layer of intelligence by using the **"Grounding 
 ### Phase 6: Augmented Data Integration (Target: v3.3.6.y.z)
 *   **Objective:** Feed the new augmented data back into the main analysis and chat prompts.
 *   **Status:** `COMPLETED`
-*   **Tasks:**
-    *   **Task v3.3.6.0.0:** Update the input schemas and prompts for `analyze-stock-data-flow.ts` and `analyze-options-chain-flow.ts` to accept the new optional augmented data JSONs. (`COMPLETED`)
-    *   **Task v3.3.6.1.0:** Update the input schema and prompt for `chat-flow.ts` to accept the new augmented data. (`COMPLETED`)
-    *   **Task v3.3.6.2.0:** In `stock-analysis-context.tsx`, modify the calls to these flows to pass the augmented data if it's available (based on the toggle flags). (`COMPLETED`)
-    *   **Task v3.3.6.3.0:** (Audit) Perform a comprehensive code Audit and Code review for all Phases and Tasks to ensure correct implementation of "Grounding with Google Search" pattern. (`COMPLETED`)
 
 ### Phase 7: Final Testing & Debugging (Target: v3.3.7.y.z)
 *   **Objective:** Perform end-to-end testing of the entire feature, checking various combinations of toggles and ensuring stability.
-*   **Status:** `PLANNED`
+*   **Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **Task v3.3.7.0.0:** Conduct comprehensive testing of all new UI elements, FSM states, and conditional pipeline logic. (`PLANNED`)
-    *   **Task v3.3.7.1.0:** Test edge cases: running analysis with no toggles, all toggles, and random combinations. Test for tickers where augmented search might fail. (`PLANNED`)
-    *   **Task v3.3.7.2.0:** Review and refine all new debug logs for clarity and completeness. Address any bugs found during testing. (`PLANNED`)
+    *   **Task v3.3.7.0.0:** (Bug Fix) Resolve initial error `Unable to determine type of tool: {"googleSearch":{}}`. (`COMPLETED`)
+    *   **Task v3.3.7.0.1:** (Bug Fix) Resolve `Module not found` build error for incorrect `googleSearch` tool import path. (`COMPLETED`)
+    *   **Task v3.3.7.0.2:** (Architectural Fix) Re-audit all augmented search flows and correct the `ai.defineFlow` definitions by removing the `outputSchema` property, which was conflicting with the `googleSearch` tool. This aligns the flows with the proven architecture. (`COMPLETED`)
+    *   **Task v3.3.7.1.0:** Conduct comprehensive testing of all new UI elements, FSM states, and conditional pipeline logic. (`PLANNED`)
+    *   **Task v3.3.7.2.0:** Test edge cases: running analysis with no toggles, all toggles, and random combinations. Test for tickers where augmented search might fail. (`PLANNED`)
+    *   **Task v3.3.7.3.0:** Review and refine all new debug logs for clarity and completeness. Address any bugs found during testing. (`PLANNED`)
 
 ## 6. Document Changelog
 
+*   **v7.0 (2025-06-28):** Updated Phase 7 to "IN PROGRESS". Added tasks v3.3.7.0.0, v3.3.7.0.1, v3.3.7.0.2 and marked as complete to reflect debugging progress. Re-numbered subsequent planned tasks.
 *   **v6.0 (2025-06-28):** Marked Phase 6 and all its tasks as `COMPLETED`. Updated status of Phase 7 to `PLANNED`.
 *   **v5.0 (2025-06-27):** Marked Phase 5 and all its tasks as `COMPLETED`.
 *   **v4.2 (2025-06-26):** Updated Phase 4 status to `COMPLETED` and added detail about the critical "Grounding with Google Search" pattern correction. Updated "Architectural Pattern for Augmented Search" to reflect mandatory use of the corrected pattern.
@@ -128,3 +127,5 @@ This component introduces a new layer of intelligence by using the **"Grounding 
 
 ---
 This document will be updated as the feature progresses through its implementation phases.
+
+    

@@ -26,8 +26,8 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.81
-**Application Version (from `app-metadata.json`):** v3.3.6.3.0
+**README Document Version:** 1.82
+**Application Version (from `app-metadata.json`):** v3.3.7.0.2
 **Last Updated:** 2025-06-28
 
 ## 1. Introduction
@@ -149,7 +149,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.6.3.0)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.7.0.2)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
@@ -184,8 +184,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.6.3.0):**
-    *   **"Customizable Analysis &amp; AI Augmented Web Search" (v3.3.x.y.z):** Initial development complete. Pending final testing and debugging phase.
+*   **Current Feature Focus (as of v3.3.7.0.2):**
+    *   **"Customizable Analysis &amp; AI Augmented Web Search" (v3.3.x.y.z):** Initial development complete. Currently in **Phase 7: Final Testing & Debugging**.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -238,11 +238,13 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.81
-*   **Current Application Version:** `v3.3.6.3.0`
+*   **This README Document Version:** 1.82
+*   **Current Application Version:** `v3.3.7.0.2`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
     *   For pre-v3.0.0.0 history: Refer to `CHANGELOG.md`.
 
 ---
+
+    

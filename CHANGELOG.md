@@ -58,6 +58,25 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.7.0.2` (Debug Fix)
+**Tag:** `Phase-31_Task-3.3.7.0.2_FixAugmentedFlowArchitecture` (Commit `73d7657d`)
+**Subject:** `fix(ai): Correct augmented search flow architecture, resolve tool/output conflict (v3.3.7.0.2)`
+**Details:**
+This commit (`73d7657d`) addresses a critical architectural error identified during the **Phase 7: Final Testing & Debugging** of the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series).
+
+**Key Changes in v3.3.7.0.0 - v3.3.7.0.2 (Consolidated Debugging Fixes):**
+*   **Root Cause Identified:** An audit revealed that while the `ai.definePrompt` for the new augmented search flows (`augmented-ta-search-flow.ts`, `augmented-options-search-flow.ts`) correctly enabled the `googleSearch` tool and omitted a structured `output` schema, the `ai.defineFlow` block for these same flows *incorrectly* still declared a structured `outputSchema`. This created a conflict that caused the `Unable to determine type of tool` error, as Genkit does not support using both tools and a structured output schema simultaneously in this manner.
+*   **Architectural Correction (`v3.3.7.0.2`):**
+    *   `src/ai/flows/augmented-ta-search-flow.ts`: Removed the `outputSchema` property from the `ai.defineFlow` definition.
+    *   `src/ai/flows/augmented-options-search-flow.ts`: Removed the `outputSchema` property from the `ai.defineFlow` definition.
+*   **Previous Fix Attempts (`v3.3.7.0.0`, `v3.3.7.0.1`):** These versions involved incorrect attempts to fix the issue by modifying `import` statements for the `googleSearch` tool, which led to build errors and did not address the root architectural flaw. The changes in `v3.3.7.0.2` supersede these and implement the correct fix.
+
+**Outcome:**
+*   The new augmented search flows are now architecturally identical to the proven, working pattern of the chatbot's "Grounding with Google Search" feature.
+*   The `Unable to determine type of tool` error is resolved, and the augmented search pipelines should now function correctly.
+*   The application is now in a more stable state for continuing Phase 7 testing.
+*   The application version is consistently `v3.3.7.0.2`.
+---
 **App Version:** `v3.3.6.3.0` (Complete Customizable Analysis Phase 6)
 **Tag:** `Phase-30_Task-3.3.6.3.0_CompleteAugmentedDataIntegration` (Commit `39a84ca0`)
 **Subject:** `feat(ai,fsm): Complete Phase 6 of Customizable Analysis - Augmented Data Integration (v3.3.6.3.0)`
@@ -83,7 +102,7 @@ This commit (`39a84ca0`) marks the successful completion of **Phase 6: Augmented
 **Tag:** `Phase-29_Task-3.3.5.3.0_CompleteAugmentedOptions` (Commit `5c15faf5`)
 **Subject:** `feat(fsm,ui): Complete Phase 5 of Customizable Analysis - Augmented Options Search (v3.3.5.3.0)`
 **Details:**
-This commit (`5c15faf5`) marks the successful completion of **Phase 5: AI Augmented Web Search - Options Flow** for the "Customizable Analysis &amp; AI Augmented Web Search" feature (v3.3 series). This phase mirrored the architecture of Phase 4, implementing a new AI-driven web search for advanced options flow metrics (Max Pain, GEX, etc.) using the mandatory "Grounding with Google Search" pattern.
+This commit (`5c15faf5`) marks the successful completion of **Phase 5: AI Augmented Web Search - Options Flow** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase mirrored the architecture of Phase 4, implementing a new AI-driven web search for advanced options flow metrics (Max Pain, GEX, etc.) using the mandatory "Grounding with Google Search" pattern.
 
 **Key Changes in Phase 5 (Tasks v3.3.5.0.0 through v3.3.5.3.0):**
 *   **New AI Flow & Server Action (`v3.3.5.0.0`):**
@@ -105,7 +124,7 @@ This commit (`5c15faf5`) marks the successful completion of **Phase 5: AI Augmen
 **Tag:** `Phase-28_Task-3.3.4.3.0_CompleteAugmentedTa_Corrected` (Commit `20d5e1f5`)
 **Subject:** `feat(fsm,ui): Complete Phase 4 of Customizable Analysis - Augmented TA Search (v3.3.4.3.0)`
 **Details:**
-This commit (`20d5e1f5`) marks the successful completion of **Phase 4: AI Augmented Web Search - Technical Analysis** for the "Customizable Analysis &amp; AI Augmented Web Search" feature (v3.3 series). This phase implemented a new AI-driven web search capability to fetch advanced TA indicators, a UI component to display them, and the FSM logic to orchestrate this new pipeline.
+This commit (`20d5e1f5`) marks the successful completion of **Phase 4: AI Augmented Web Search - Technical Analysis** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase implemented a new AI-driven web search capability to fetch advanced TA indicators, a UI component to display them, and the FSM logic to orchestrate this new pipeline.
 
 **Key Architectural Correction:** This phase also includes a critical correction to the AI search implementation. The initial approach incorrectly used the `googleSearch` tool with a JSON output schema. This was corrected to align with the application's established "Grounding with Google Search" pattern, which is required for reliable tool use. The corrected flows now instruct the AI to return a plain text response containing a JSON string, which the application then parses. This ensures the AI is forced to use the search tool and does not hallucinate answers from its internal knowledge.
 
@@ -133,7 +152,7 @@ This commit (`20d5e1f5`) marks the successful completion of **Phase 4: AI Augmen
 **Tag:** `Phase-28_Task-3.3.3.1.0_FsmPipelineLogicComplete` (Commit `109dedd5`)
 **Subject:** `feat(fsm,core): Complete Phase 3 of Customizable Analysis - Conditional Pipeline (v3.3.3.1.0)`
 **Details:**
-This commit (`109dedd5`) marks the successful completion of **Phase 3: Conditional Pipeline Logic Integration** for the "Customizable Analysis &amp; AI Augmented Web Search" feature (v3.3 series). This crucial phase implemented the "brains" of the new feature, enabling the FSM orchestrator to dynamically execute analyses based on the user's toggle selections.
+This commit (`109dedd5`) marks the successful completion of **Phase 3: Conditional Pipeline Logic Integration** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This crucial phase implemented the "brains" of the new feature, enabling the FSM orchestrator to dynamically execute analyses based on the user's toggle selections.
 
 **Key Changes in Phase 3 (Tasks v3.3.3.0.0 through v3.3.3.1.0):**
 *   **Refactored FSM Orchestrator (`src/contexts/stock-analysis-context.tsx`):**
@@ -155,7 +174,7 @@ This commit (`109dedd5`) marks the successful completion of **Phase 3: Condition
 **Tag:** `Phase-27_Task-3.3.2.2.0_FsmIntegrationComplete` (Commit `316f3e78`)
 **Subject:** `feat(fsm,ui): Complete Phase 2 of Customizable Analysis - FSM Integration (v3.3.2.2.0)`
 **Details:**
-This commit (`316f3e78`) marks the successful completion of **Phase 2: FSM &amp; State Management Integration** for the "Customizable Analysis &amp; AI Augmented Web Search" feature (v3.3 series). This phase established the critical link between the new UI toggles and the application's central nervous system, the global Finite State Machine.
+This commit (`316f3e78`) marks the successful completion of **Phase 2: FSM & State Management Integration** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase established the critical link between the new UI toggles and the application's central nervous system, the global Finite State Machine.
 
 **Key Changes in Phase 2 (Tasks v3.3.2.0.0 through v3.3.2.2.0):**
 *   **New FSM Flags (`src/contexts/stock-analysis-context.tsx`):**
@@ -387,7 +406,7 @@ This commit (`f34f5128`) represents the consolidation of bug fixes for the "FSM 
 **Tag:** `Phase-16_Task-3.2.5.0.C_FSM_Debugging_Consolidation` (Commit `2338c4f8`)
 **Subject:** `fix(fsm,debug,core): Consolidate FSM orchestrator, macro, logging & chat fixes (v3.2.5.0.C)`
 **Details:**
-This commit (`2338c4f8`) represents a significant bug-fixing iteration for the "FSM Consolidation &amp; Refactor" feature (Feature `v3.2`), specifically addressing issues within the `v3.2.5.0.x` series up to `v3.2.5.0.C`. Key fixes include:
+This commit (`2338c4f8`) represents a significant bug-fixing iteration for the "FSM Consolidation & Refactor" feature (Feature `v3.2`), specifically addressing issues within the `v3.2.5.0.x` series up to `v3.2.5.0.C`. Key fixes include:
 
 *   **FSM Orchestrator & Macro Pipeline (`StockAnalysisContext.tsx`):**
     *   Refined the main FSM orchestrator `useEffect` (dependency array and internal logic) to improve reliability for triggering and progressing through standard automated analysis pipelines and the "AI Full Stock Analysis" macro.
@@ -412,7 +431,7 @@ This commit consolidates these fixes, improving stability for Phase 5 (Testing a
 **Tag:** `Phase-15_Task-3.2.4.1.0_FSM_Consolidation_Phase4_Complete` (Commit `c661f9d1`)
 **Subject:** `feat(fsm,debug): Complete Phase 4 of FSM Consolidation - Debug Tooling Finalization (v3.2.4.1.0)`
 **Details:**
-This commit marks the completion of Phase 4 ("Clean Up &amp; Finalize Debugging Tools") for the "FSM Consolidation &amp; Refactor" feature (Feature `v3.2`). This phase successfully refined the FSM Debug Card, enhanced client debug log exports to include a comprehensive global FSM snapshot, and thoroughly audited/updated all FSM-related debug logging throughout the application.
+This commit marks the completion of Phase 4 ("Clean Up &amp; Finalize Debugging Tools") for the "FSM Consolidation & Refactor" feature (Feature `v3.2`). This phase successfully refined the FSM Debug Card, enhanced client debug log exports to include a comprehensive global FSM snapshot, and thoroughly audited/updated all FSM-related debug logging throughout the application.
 
 **Key Changes in Phase 4 (Tasks v3.2.4.0.0 through v3.2.4.1.0):**
 *   **Finalized Enhanced FSM Debug Card & Client Debug Console Exports (Task v3.2.4.0.0 - Commit `f6520642`):**
@@ -854,4 +873,5 @@ Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsm
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
 
+    
     
