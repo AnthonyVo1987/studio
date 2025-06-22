@@ -26,9 +26,9 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.84
-**Application Version (from `app-metadata.json`):** v3.3.7.0.4
-**Last Updated:** 2025-06-29
+**README Document Version:** 1.85
+**Application Version (from `app-metadata.json`):** v3.3.7.0.7
+**Last Updated:** 2025-06-30
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -149,7 +149,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.7.0.4)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.7.0.7)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
@@ -184,8 +184,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.7.0.4):**
-    *   **"Customizable Analysis &amp; AI Augmented Web Search" (v3.3.x.y.z):** Initial development complete. Currently in **Phase 7: Final Testing & Debugging**.
+*   **Current Feature Focus (as of v3.3.7.0.7):**
+    *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** Currently undergoing a major re-architecture to decouple the augmented search functionality for isolated debugging. See `docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -202,7 +202,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
     *   `lastUpdatedTimestamp` in `app-metadata.json` updated with real ISO 8601 timestamp (or removed if optional and not set).
 *   **Dynamic Versioning in UI/Exports:** Header and Debug Console use `appVersion` prop.
-*   **Documentation Update Policy:** Documentation files (`.md`, `CHANGELOG`, etc.) are updated **only** when a "Phase Completion Commit" is explicitly requested by the user.
+*   **Documentation Update Policy (Strictly Enforced):** The AI is prohibited from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
 
 ---
 
@@ -238,12 +238,11 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.84
-*   **Current Application Version:** `v3.3.7.0.4`
+*   **This README Document Version:** 1.85
+*   **Current Application Version:** `v3.3.7.0.7`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
     *   For pre-v3.0.0.0 history: Refer to `CHANGELOG.md`.
 
 ---
-```

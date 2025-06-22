@@ -58,6 +58,36 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.7.0.7` (Re-Architecture Scoping)
+**Tag:** `Phase-32_Task-3.3.7.0.7_ScopeAugmentedSearchRefactor`
+**Subject:** `docs(scope): Scope augmented search re-architecture to decouple from main pipeline (v3.3.7.0.7)`
+**Details:**
+This commit (`TBD`) is a **scoping and documentation-only** task that defines a new re-architecture for the "AI Augmented Web Search" feature. Due to persistent integration issues, this new plan involves completely decoupling the augmented search functionality from the main analysis pipeline to allow for isolated, non-blocking debugging and development.
+
+**Key Changes:**
+*   **`docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`:** A new feature scope document was created to outline the new phased plan for decoupling the augmented search. This includes reverting changes to the main AI prompts/flows, replacing the parsed UI displays with raw text boxes for direct output observation, and refactoring the FSM to run the augmented searches in a non-blocking, parallel manner.
+*   **`docs/FEAT_STATUS_AugmentedSearchRefactor_v3.3.7.0.7.md`:** A corresponding feature status document was created to track the progress of this new refactoring effort.
+*   **`src/config/app-metadata.json`:** Application version updated to `v3.3.7.0.7` to mark the initiation of this new plan.
+*   **`README.md`, `CHANGELOG.md`:** Updated to reflect the start of this new re-architecture task.
+
+**Outcome:**
+*   The application is now prepared for a more stable, iterative approach to developing the augmented search feature.
+*   No application source code was changed in this commit. All changes are to documentation and planning files.
+---
+**App Version:** `v3.3.7.0.6` (Debug Fix)
+**Tag:** `Phase-31_Task-3.3.7.0.6_FixAugmentedFlowArchitecture_Final` (Commit `TBD`)
+**Subject:** `fix(ai): Correct augmented search flow architecture, resolve tool/output conflict (v3.3.7.0.6)`
+**Details:**
+This commit (`TBD`) addresses a critical architectural error identified during the **Phase 7: Final Testing & Debugging** of the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series).
+
+**Key Architectural Correction:**
+*   An audit revealed that while the `ai.definePrompt` for the new augmented search flows (`augmented-ta-search-flow.ts`, `augmented-options-search-flow.ts`) correctly enabled the `googleSearch` tool and omitted a structured `output` schema, the `ai.defineFlow` block for these same flows *incorrectly* still declared a structured `outputSchema`. This created a conflict that caused the `Unable to determine type of tool` error, as Genkit does not support using both tools and a structured output schema simultaneously in this manner.
+*   The fix involved removing the `outputSchema` property from the `ai.defineFlow` definition in both `augmented-ta-search-flow.ts` and `augmented-options-search-flow.ts`.
+
+**Outcome:**
+*   The new augmented search flows are now architecturally identical to the proven, working pattern of the chatbot's "Grounding with Google Search" feature.
+*   The `Unable to determine type of tool` error is resolved, and the augmented search pipelines should now function correctly.
+---
 **App Version:** `v3.3.7.0.3` (Enhanced AI Prompt Debug Logging)
 **Tag:** `Phase-31_Task-3.3.7.0.3_EnhanceAiPromptDebugLogging` (Commit `6b3f605c`)
 **Subject:** `feat(debug,ai): Enhance AI prompt debug logging with grounding & thinking mode flags (v3.3.7.0.3)`
@@ -889,7 +919,3 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
-
-
-
-    
