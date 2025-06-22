@@ -17,8 +17,6 @@ export const AiOptionsAnalysisInputSchema = z.object({
   ticker: z
     .string()
     .describe('The stock ticker symbol for which the options chain is being analyzed.'),
-  augmentedTaSearchJson: z.string().optional().describe('Optional JSON string of augmented TA data from a web search (ATR, S/R levels, etc.).'),
-  augmentedOptionsSearchJson: z.string().optional().describe('Optional JSON string of augmented options data from a web search (Max Pain, GEX, etc.).'),
 });
 export type AiOptionsAnalysisInput = z.infer<typeof AiOptionsAnalysisInputSchema>;
 

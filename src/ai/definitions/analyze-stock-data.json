@@ -33,7 +33,7 @@
       "role": "CoreTask",
       "parts": [
         {
-          "text": "Analyze all the provided data comprehensively, including the augmented data from the web search if it is available. Your goal is to generate 5 distinct key takeaways, each with a concise statement and an associated sentiment. The categories for these takeaways are:\n1.  **Price Action:** Observations about the stock's recent price movements, support/resistance interactions with MAs or pivot points, and insights from augmented S/R levels.\n2.  **Trend:** The prevailing direction (or lack thereof) of the stock's price over a relevant period, considering MAs and augmented data.\n3.  **Volatility:** For Volatility, describe the stock's recent price variation characteristics (e.g., daily range, percentage change significance, ATR from augmented data). **You MUST provide a meaningful textual description (at least 10-15 words) for this category, even if volatility is low or typical.** For example: 'Volatility is currently low, with {{{ticker}}} trading in a narrow range of X% over the past Y period, suggesting consolidation.' or 'Volatility for {{{ticker}}} is elevated, with significant price swings observed, indicating market uncertainty around recent events.'\n4.  **Momentum:** The speed or rate of price changes for the stock, considering RSI and MACD.\n5.  **Patterns:** Any significant chart patterns observed or noteworthy absence of clear patterns."
+          "text": "Analyze all the provided data comprehensively. Your goal is to generate 5 distinct key takeaways, each with a concise statement and an associated sentiment. The categories for these takeaways are:\n1.  **Price Action:** Observations about the stock's recent price movements, support/resistance interactions with MAs or pivot points.\n2.  **Trend:** The prevailing direction (or lack thereof) of the stock's price over a relevant period, considering MAs.\n3.  **Volatility:** For Volatility, describe the stock's recent price variation characteristics (e.g., daily range, percentage change significance). **You MUST provide a meaningful textual description (at least 10-15 words) for this category, even if volatility is low or typical.** For example: 'Volatility is currently low, with {{{ticker}}} trading in a narrow range of X% over the past Y period, suggesting consolidation.' or 'Volatility for {{{ticker}}} is elevated, with significant price swings observed, indicating market uncertainty around recent events.'\n4.  **Momentum:** The speed or rate of price changes for the stock, considering RSI and MACD.\n5.  **Patterns:** Any significant chart patterns observed or noteworthy absence of clear patterns."
         }
       ]
     },
@@ -50,14 +50,6 @@
       "parts": [
         {
           "text": "Contextual Data:\nTicker: {{{ticker}}}\nStock Snapshot (current & prev day data, incl. minute VWAP in 'min' field): {{{stockSnapshotJson}}}\nStandard Technical Indicators (RSI, MACD, VWAP, EMA, SMA with multiple windows): {{{standardTasJson}}}\nAI Analyzed Technical Analysis (Pivot Points): {{{aiAnalyzedTaJson}}}\nMarket Status: {{{marketStatusJson}}}"
-        }
-      ]
-    },
-    {
-      "role": "AugmentedDataContext",
-      "parts": [
-        {
-          "text": "{{#if augmentedTaSearchJson}}\n\n**Augmented Technical Analysis Data (from Web Search):** You also have access to additional, real-time technical indicators from a web search. Use this data to enrich your analysis, especially for Price Action, Trend, and Patterns. Data: {{{augmentedTaSearchJson}}}\n{{/if}}\n{{#if augmentedOptionsSearchJson}}\n\n**Augmented Options Flow Data (from Web Search):** You also have access to real-time options flow metrics. Use this data to contextualize overall market sentiment. Data: {{{augmentedOptionsSearchJson}}}\n{{/if}}"
         }
       ]
     },

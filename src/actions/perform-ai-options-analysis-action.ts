@@ -24,8 +24,6 @@ interface PerformAiOptionsAnalysisActionInputs {
   ticker: string;
   optionsChainJson: string;
   stockSnapshotJson: string;
-  augmentedTaSearchJson?: string;
-  augmentedOptionsSearchJson?: string;
 }
 
 export async function performAiOptionsAnalysisAction(
@@ -36,8 +34,6 @@ export async function performAiOptionsAnalysisAction(
     ticker,
     optionsChainJson,
     stockSnapshotJson,
-    augmentedTaSearchJson,
-    augmentedOptionsSearchJson,
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiOptionsAnalysisAction:Ticker:${ticker}]`;
   console.log(`${actionLogPrefix} Action_Entry - Received request. PrevState status: ${prevState.status}. Payload keys: ${Object.keys(payload).join(', ')}.`);
@@ -87,8 +83,6 @@ export async function performAiOptionsAnalysisAction(
       ticker,
       optionsChainJson,
       currentUnderlyingPrice,
-      augmentedTaSearchJson,
-      augmentedOptionsSearchJson,
     };
     aiOptionsAnalysisRequestJson = JSON.stringify(flowInput, null, 2);
 

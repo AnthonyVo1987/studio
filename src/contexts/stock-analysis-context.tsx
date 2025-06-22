@@ -1062,16 +1062,33 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   
       for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
         const nextStep = stepOrder[i];
-        if (nextStep === 'augmented_ta' && state.flags.isAugmentedTaSearchEnabled) { _dispatchFsmEventActual({ type: 'TRIGGER_AUGMENTED_TA_FETCH', payload: { ticker: activeTicker } }); return; }
-        if (nextStep === 'augmented_options' && state.flags.isAugmentedOptionsSearchEnabled) { _dispatchFsmEventActual({ type: 'TRIGGER_AUGMENTED_OPTIONS_FETCH', payload: { ticker: activeTicker } }); return; }
-        if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
-        if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
-        if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("Stock Trader", "AI Chat: Stock Trader's Takeaways"); return; }
-        if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchChat("Options Trader", "AI Chat: Options Trader's Takeaways"); return; }
-        if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchChat("Additional Holistic", "AI Chat: Additional Holistic Takeaways"); return; }
+        if (nextStep === 'augmented_ta' && state.flags.isAugmentedTaSearchEnabled) {
+          logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_TriggerParallel', `Triggering AUGMENTED_TA_FETCH for ${activeTicker}. Will continue checking other steps.`);
+          _dispatchFsmEventActual({ type: 'TRIGGER_AUGMENTED_TA_FETCH', payload: { ticker: activeTicker } });
+          // DO NOT RETURN: Allow loop to continue for main pipeline steps
+        } else if (nextStep === 'augmented_options' && state.flags.isAugmentedOptionsSearchEnabled) {
+          logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_TriggerParallel', `Triggering AUGMENTED_OPTIONS_FETCH for ${activeTicker}. Will continue checking other steps.`);
+          _dispatchFsmEventActual({ type: 'TRIGGER_AUGMENTED_OPTIONS_FETCH', payload: { ticker: activeTicker } });
+          // DO NOT RETURN: Allow loop to continue for main pipeline steps
+        } else if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) {
+          _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } });
+          return;
+        } else if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) {
+          _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } });
+          return;
+        } else if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) {
+          dispatchChat("Stock Trader", "AI Chat: Stock Trader's Takeaways");
+          return;
+        } else if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) {
+          dispatchChat("Options Trader", "AI Chat: Options Trader's Takeaways");
+          return;
+        } else if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) {
+          dispatchChat("Additional Holistic", "AI Chat: Additional Holistic Takeaways");
+          return;
+        }
       }
   
-      logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `No more custom analyses selected after '${lastCompletedStep}'. Finalizing.`);
+      logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `No more blocking custom analyses selected after '${lastCompletedStep}'. Finalizing.`);
       _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     };
   
@@ -1096,20 +1113,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         dispatchNextCustomAction('base');
       }
     } else if (state.current === GlobalFsmState.FETCHING_AUGMENTED_TA && state.variables.activeTicker && !isAugmentedTaSearchPending) {
+        logDebug(logPrefixOrchestrator as LogSourceId, 'Orchestrator_ActionDispatch', `Dispatching augmentedTaSearchFormAction for ${state.variables.activeTicker}.`);
         startTransition(() => { augmentedTaSearchFormAction({ ticker: state.variables.activeTicker! }); });
     } else if (state.current === GlobalFsmState.AUGMENTED_TA_FETCH_SUCCEEDED || state.current === GlobalFsmState.AUGMENTED_TA_FETCH_FAILED) {
+      logDebug(logPrefixOrchestrator as LogSourceId, 'Orchestrator_AugTAOutcome', `Augmented TA fetch completed (State: ${state.current}). Active profile: ${state.variables.activePipelineProfile}. Calling dispatchNextCustomAction('augmented_ta'). This may not advance main pipeline if it's further ahead.`);
       if (state.variables.activePipelineProfile === 'standard') {
         dispatchNextCustomAction('augmented_ta');
       }
     } else if (state.current === GlobalFsmState.FETCHING_AUGMENTED_OPTIONS && state.variables.activeTicker && !isAugmentedOptionsSearchPending) {
+        logDebug(logPrefixOrchestrator as LogSourceId, 'Orchestrator_ActionDispatch', `Dispatching augmentedOptionsSearchFormAction for ${state.variables.activeTicker}.`);
         startTransition(() => { augmentedOptionsSearchFormAction({ ticker: state.variables.activeTicker! }); });
     } else if (state.current === GlobalFsmState.AUGMENTED_OPTIONS_FETCH_SUCCEEDED || state.current === GlobalFsmState.AUGMENTED_OPTIONS_FETCH_FAILED) {
+      logDebug(logPrefixOrchestrator as LogSourceId, 'Orchestrator_AugOptsOutcome', `Augmented Options fetch completed (State: ${state.current}). Active profile: ${state.variables.activePipelineProfile}. Calling dispatchNextCustomAction('augmented_options'). This may not advance main pipeline if it's further ahead.`);
       if (state.variables.activePipelineProfile === 'standard') {
         dispatchNextCustomAction('augmented_options');
       }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
+      logDebug(logPrefixOrchestrator as LogSourceId, 'Orchestrator_ActionDispatch', `Attempting to dispatch performAiAnalysisFormAction for ${state.variables.activeTicker}.`);
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
-        startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson, augmentedTaSearchJson: isDataReadyForProcessing(_augmentedTaSearchJson) ? _augmentedTaSearchJson : undefined, augmentedOptionsSearchJson: isDataReadyForProcessing(_augmentedOptionsSearchJson) ? _augmentedOptionsSearchJson : undefined }); });
+        startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson }); });
       } else {
         _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: `Prerequisite data for Key Takeaways of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
       }
