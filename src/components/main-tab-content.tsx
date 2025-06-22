@@ -190,6 +190,23 @@ export function MainTabContent() {
         </Card>
         <Separator />
         <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center"><WandSparkles className="mr-2 h-5 w-5 text-primary" />Augmented Intelligence</CardTitle>
+            <CardDescription>Enhance analysis with real-time data from Google Search (slower, requires more tokens).</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
+              <Label htmlFor="toggle-aug-ta" className="flex-grow text-sm">Augmented Technical Analysis Indicators</Label>
+              <Switch id="toggle-aug-ta" defaultChecked={false} disabled={isAnyAnalysisInProgress} />
+            </div>
+            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
+              <Label htmlFor="toggle-aug-options" className="flex-grow text-sm">Augmented Options Flow Analysis</Label>
+              <Switch id="toggle-aug-options" defaultChecked={false} disabled={isAnyAnalysisInProgress} />
+            </div>
+          </CardContent>
+        </Card>
+        <Separator />
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">On-Demand AI Analysis</CardTitle>
             <CardDescription>Generate specific AI insights for {globalFsmVariables.activeTicker || "the analyzed stock"}. Available after "Analyze Stock" is complete and no macro is active.</CardDescription>
