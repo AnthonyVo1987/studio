@@ -1000,8 +1000,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [analyzeTaActionState, analyzeTaFormAction, isAnalyzeTaPending] = useActionState<AnalyzeTaActionState, { stockSnapshotJson: string, ticker?: string }>(analyzeTaAction, localInitialAnalyzeTaState);
   const [augmentedTaSearchActionState, augmentedTaSearchFormAction, isAugmentedTaSearchPending] = useActionState<AugmentedTaSearchActionState, { ticker: string }>(augmentedTaSearchAction, localInitialAugmentedTaSearchState);
   const [augmentedOptionsSearchActionState, augmentedOptionsSearchFormAction, isAugmentedOptionsSearchPending] = useActionState<AugmentedOptionsSearchActionState, { ticker: string }>(augmentedOptionsSearchAction, localInitialAugmentedOptionsSearchState);
-  const [performAiAnalysisActionState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, { ticker: string, stockSnapshotJson: string, standardTasJson: string, aiAnalyzedTaJson: string, marketStatusJson: string }>(performAiAnalysisAction, localInitialPerformAiAnalysisState);
-  const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string }>(performAiOptionsAnalysisAction, localInitialPerformAiOptionsAnalysisState);
+  const [performAiAnalysisActionState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, { ticker: string, stockSnapshotJson: string, standardTasJson: string, aiAnalyzedTaJson: string, marketStatusJson: string, augmentedTaSearchJson?: string, augmentedOptionsSearchJson?: string }>(performAiAnalysisAction, localInitialPerformAiAnalysisState);
+  const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string, augmentedTaSearchJson?: string, augmentedOptionsSearchJson?: string }>(performAiOptionsAnalysisAction, localInitialPerformAiOptionsAnalysisState);
   
   useEffect(() => {
     const logPrefix = 'StockAnalysisContext:ChatActionStateEffect';
@@ -1039,6 +1039,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           const payload: ChatActionInputs = {
             ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
             aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
+            augmentedTaSearchJson: isDataReadyForProcessing(_augmentedTaSearchJson) ? _augmentedTaSearchJson : undefined,
+            augmentedOptionsSearchJson: isDataReadyForProcessing(_augmentedOptionsSearchJson) ? _augmentedOptionsSearchJson : undefined,
             chatHistory: _chatHistory, userInput: promptTemplate.replace(/{TICKER}/g, activeTicker),
             isChatGroundingEnabled: _isChatGroundingEnabled,
           };
@@ -1107,7 +1109,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
-        startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson }); });
+        startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson, augmentedTaSearchJson: isDataReadyForProcessing(_augmentedTaSearchJson) ? _augmentedTaSearchJson : undefined, augmentedOptionsSearchJson: isDataReadyForProcessing(_augmentedOptionsSearchJson) ? _augmentedOptionsSearchJson : undefined }); });
       } else {
         _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: `Prerequisite data for Key Takeaways of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
       }
@@ -1119,7 +1121,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       }
     } else if (state.current === GlobalFsmState.ANALYZING_OPTIONS && state.variables.activeTicker && !isPerformAiOptionsAnalysisPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Snapshot', 'Validation') && isDataReadyForProcessing(_optionsChainJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Chain', 'Validation')) {
-        startTransition(() => { performAiOptionsAnalysisFormAction({ ticker: state.variables.activeTicker!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson }); });
+        startTransition(() => { performAiOptionsAnalysisFormAction({ ticker: state.variables.activeTicker!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson, augmentedTaSearchJson: isDataReadyForProcessing(_augmentedTaSearchJson) ? _augmentedTaSearchJson : undefined, augmentedOptionsSearchJson: isDataReadyForProcessing(_augmentedOptionsSearchJson) ? _augmentedOptionsSearchJson : undefined }); });
       } else {
         _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: `Prerequisite data for Options Analysis of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
       }
@@ -1155,7 +1157,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isChatPending, 
     _dispatchFsmEventActual, logDebug, contextOriginals, 
     _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson,
-    _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, _isChatGroundingEnabled, _chatbotRequestJson
+    _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, _isChatGroundingEnabled, _chatbotRequestJson,
+    _augmentedTaSearchJson, _augmentedOptionsSearchJson
   ]);
 
   useEffect(() => {
