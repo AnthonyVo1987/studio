@@ -12,6 +12,7 @@ import { performAiAnalysisAction, type PerformAiAnalysisActionState, type Perfor
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
 import { chatServerAction, type ChatActionState, type ChatActionInputs, type ChatActionResult } from '@/actions/chat-server-action';
 import { augmentedTaSearchAction, type AugmentedTaSearchActionState, type AugmentedTaSearchResult } from '@/actions/augmented-ta-search-action';
+import { augmentedOptionsSearchAction, type AugmentedOptionsSearchActionState, type AugmentedOptionsSearchResult } from '@/actions/augmented-options-search-action';
 import { useActionState, startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import exampleChatPromptsData from '@/ai/definitions/example-chat-prompts.json';
@@ -37,6 +38,10 @@ export enum GlobalFsmState {
   FETCHING_AUGMENTED_TA = 'FETCHING_AUGMENTED_TA',
   AUGMENTED_TA_FETCH_SUCCEEDED = 'AUGMENTED_TA_FETCH_SUCCEEDED',
   AUGMENTED_TA_FETCH_FAILED = 'AUGMENTED_TA_FETCH_FAILED',
+  
+  FETCHING_AUGMENTED_OPTIONS = 'FETCHING_AUGMENTED_OPTIONS',
+  AUGMENTED_OPTIONS_FETCH_SUCCEEDED = 'AUGMENTED_OPTIONS_FETCH_SUCCEEDED',
+  AUGMENTED_OPTIONS_FETCH_FAILED = 'AUGMENTED_OPTIONS_FETCH_FAILED',
 
   PIPELINE_AUTOMATED_COMPLETE = 'PIPELINE_AUTOMATED_COMPLETE',
 
@@ -109,6 +114,8 @@ interface AiTaSuccessPayload extends AnalyzeTaResult {}
 interface AiTaFailurePayload { error?: string | null; message?: string | null; aiAnalyzedTaRequestJson?: string; }
 interface AugmentedTaFetchSuccessPayload extends AugmentedTaSearchResult {}
 interface AugmentedTaFetchFailurePayload { error?: string | null; message?: string | null; augmentedTaSearchJson?: string; }
+interface AugmentedOptionsFetchSuccessPayload extends AugmentedOptionsSearchResult {}
+interface AugmentedOptionsFetchFailurePayload { error?: string | null; message?: string | null; augmentedOptionsSearchJson?: string; }
 interface AiKeyTakeawaysSuccessPayload extends PerformAiAnalysisResult {}
 interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; }
 interface AiOptionsAnalysisSuccessPayload extends PerformAiOptionsAnalysisResult {}
@@ -149,6 +156,9 @@ export type FsmEvent =
   | { type: 'TRIGGER_AUGMENTED_TA_FETCH'; payload: { ticker: string } }
   | { type: 'AUGMENTED_TA_FETCH_SUCCESS'; payload: AugmentedTaFetchSuccessPayload }
   | { type: 'AUGMENTED_TA_FETCH_FAILURE'; payload: AugmentedTaFetchFailurePayload }
+  | { type: 'TRIGGER_AUGMENTED_OPTIONS_FETCH'; payload: { ticker: string } }
+  | { type: 'AUGMENTED_OPTIONS_FETCH_SUCCESS'; payload: AugmentedOptionsFetchSuccessPayload }
+  | { type: 'AUGMENTED_OPTIONS_FETCH_FAILURE'; payload: AugmentedOptionsFetchFailurePayload }
   | { type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS'; payload: { ticker: string } }
   | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: AiKeyTakeawaysSuccessPayload }
   | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: AiKeyTakeawaysFailurePayload }
@@ -193,6 +203,7 @@ interface StockAnalysisState {
   aiKeyTakeawaysRequestJson: string;
   aiKeyTakeawaysJson: string;
   augmentedTaSearchJson: string;
+  augmentedOptionsSearchJson: string;
   chatbotRequestJson: string;
   chatbotResponseJson: string;
   chatHistory: ChatMessage[];
@@ -223,6 +234,7 @@ interface StockAnalysisContextSetters {
   setAiKeyTakeawaysRequestJson: (json: string) => void;
   setAiKeyTakeawaysJson: (json: string) => void;
   setAugmentedTaSearchJson: (json: string) => void;
+  setAugmentedOptionsSearchJson: (json: string) => void;
   setChatbotRequestJson: (json: string) => void;
   setChatbotResponseJson: (json: string) => void;
 }
@@ -303,6 +315,7 @@ const defaultState: StockAnalysisState = {
   aiKeyTakeawaysRequestJson: initialJsonPlaceholder,
   aiKeyTakeawaysJson: initialJsonPlaceholder,
   augmentedTaSearchJson: initialJsonPlaceholder,
+  augmentedOptionsSearchJson: initialJsonPlaceholder,
   chatbotRequestJson: initialJsonPlaceholder,
   chatbotResponseJson: initialJsonPlaceholder,
   chatHistory: [],
@@ -324,6 +337,7 @@ const localInitialAnalyzeTaState: AnalyzeTaActionState = { status: 'idle', data:
 const localInitialPerformAiAnalysisState: PerformAiAnalysisActionState = { status: 'idle', data: undefined, error: null, message: null };
 const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = { status: 'idle', data: undefined, error: null, message: null };
 const localInitialAugmentedTaSearchState: AugmentedTaSearchActionState = { status: 'idle', data: undefined, error: null, message: null };
+const localInitialAugmentedOptionsSearchState: AugmentedOptionsSearchActionState = { status: 'idle', data: undefined, error: null, message: null };
 
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -355,6 +369,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_aiKeyTakeawaysRequestJson, _setAiKeyTakeawaysRequestJson] = useState<string>(defaultState.aiKeyTakeawaysRequestJson);
   const [_aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
   const [_augmentedTaSearchJson, _setAugmentedTaSearchJson] = useState<string>(defaultState.augmentedTaSearchJson);
+  const [_augmentedOptionsSearchJson, _setAugmentedOptionsSearchJson] = useState<string>(defaultState.augmentedOptionsSearchJson);
   const [_chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
   const [_chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
   const [_chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
@@ -395,6 +410,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setAiKeyTakeawaysRequestJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json),
     setAiKeyTakeawaysJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json),
     setAugmentedTaSearchJson: (json: string) => setAndLogJson(_setAugmentedTaSearchJson, 'augmentedTaSearchJson', json),
+    setAugmentedOptionsSearchJson: (json: string) => setAndLogJson(_setAugmentedOptionsSearchJson, 'augmentedOptionsSearchJson', json),
     setChatbotRequestJson: (json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson (Interactive)', json),
     setChatbotResponseJson: (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson (Interactive)', json),
   }), [setAndLogJson]);
@@ -441,6 +457,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
     contextSetters.setAiOptionsAnalysisJson(pendingJson);
     contextSetters.setAugmentedTaSearchJson(pendingJson);
+    contextSetters.setAugmentedOptionsSearchJson(pendingJson);
     if (isFullAnalysis) {
         contextSetters.setChatbotRequestJson(chatPendingJson);
         contextSetters.setChatbotResponseJson(chatPendingJson);
@@ -661,6 +678,23 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = GlobalFsmState.AUGMENTED_TA_FETCH_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AUGMENTED_TA_FETCH_FAILED. Error: ${augTaErrMsg}.`);
         break;
+      case 'TRIGGER_AUGMENTED_OPTIONS_FETCH':
+        contextSetters.setAugmentedOptionsSearchJson(pendingJson);
+        nextCurrentState = GlobalFsmState.FETCHING_AUGMENTED_OPTIONS;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FETCHING_AUGMENTED_OPTIONS for ${event.payload.ticker}.`);
+        break;
+      case 'AUGMENTED_OPTIONS_FETCH_SUCCESS':
+        contextSetters.setAugmentedOptionsSearchJson(event.payload.augmentedOptionsSearchJson);
+        nextCurrentState = GlobalFsmState.AUGMENTED_OPTIONS_FETCH_SUCCEEDED;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AUGMENTED_OPTIONS_FETCH_SUCCEEDED.`);
+        break;
+      case 'AUGMENTED_OPTIONS_FETCH_FAILURE':
+        const augOptErr = event.payload; const augOptErrMsg = augOptErr.message || 'Augmented Options search failed';
+        contextSetters.setAugmentedOptionsSearchJson(augOptErr.augmentedOptionsSearchJson || errorJsonWithDetails(augOptErrMsg, augOptErr.error));
+        handlePipelineError('AugmentedOptionsSearch', augOptErrMsg, augOptErr.error);
+        nextCurrentState = GlobalFsmState.AUGMENTED_OPTIONS_FETCH_FAILED;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AUGMENTED_OPTIONS_FETCH_FAILED. Error: ${augOptErrMsg}.`);
+        break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
         if (
             previousState === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED ||
@@ -671,6 +705,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             previousState === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
             previousState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED ||
             previousState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
+            previousState === GlobalFsmState.AUGMENTED_OPTIONS_FETCH_SUCCEEDED ||
+            previousState === GlobalFsmState.AUGMENTED_OPTIONS_FETCH_FAILED ||
             previousState === GlobalFsmState.CHAT_MESSAGE_SUCCESS ||
             previousState === GlobalFsmState.CHAT_MESSAGE_ERROR
         ) {
@@ -863,10 +899,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED: 
              if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') determinedTarget = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
              else if (event.type === 'TRIGGER_AUGMENTED_TA_FETCH') determinedTarget = GlobalFsmState.FETCHING_AUGMENTED_TA;
+             else if (event.type === 'TRIGGER_AUGMENTED_OPTIONS_FETCH') determinedTarget = GlobalFsmState.FETCHING_AUGMENTED_OPTIONS;
             break;
         case GlobalFsmState.FETCHING_AUGMENTED_TA:
             if (event.type === 'AUGMENTED_TA_FETCH_SUCCESS') determinedTarget = GlobalFsmState.AUGMENTED_TA_FETCH_SUCCEEDED;
             else if (event.type === 'AUGMENTED_TA_FETCH_FAILURE') determinedTarget = GlobalFsmState.AUGMENTED_TA_FETCH_FAILED;
+            break;
+        case GlobalFsmState.FETCHING_AUGMENTED_OPTIONS:
+            if (event.type === 'AUGMENTED_OPTIONS_FETCH_SUCCESS') determinedTarget = GlobalFsmState.AUGMENTED_OPTIONS_FETCH_SUCCEEDED;
+            else if (event.type === 'AUGMENTED_OPTIONS_FETCH_FAILURE') determinedTarget = GlobalFsmState.AUGMENTED_OPTIONS_FETCH_FAILED;
             break;
     }
     if (event.type === 'PROCEED_TO_IDLE') { determinedTarget = GlobalFsmState.IDLE; }
@@ -958,6 +999,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [fetchDataActionState, fetchStockDataFormAction, isFetchDataPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(fetchStockDataAction, localInitialStockDataFetchResult);
   const [analyzeTaActionState, analyzeTaFormAction, isAnalyzeTaPending] = useActionState<AnalyzeTaActionState, { stockSnapshotJson: string, ticker?: string }>(analyzeTaAction, localInitialAnalyzeTaState);
   const [augmentedTaSearchActionState, augmentedTaSearchFormAction, isAugmentedTaSearchPending] = useActionState<AugmentedTaSearchActionState, { ticker: string }>(augmentedTaSearchAction, localInitialAugmentedTaSearchState);
+  const [augmentedOptionsSearchActionState, augmentedOptionsSearchFormAction, isAugmentedOptionsSearchPending] = useActionState<AugmentedOptionsSearchActionState, { ticker: string }>(augmentedOptionsSearchAction, localInitialAugmentedOptionsSearchState);
   const [performAiAnalysisActionState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, { ticker: string, stockSnapshotJson: string, standardTasJson: string, aiAnalyzedTaJson: string, marketStatusJson: string }>(performAiAnalysisAction, localInitialPerformAiAnalysisState);
   const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string }>(performAiOptionsAnalysisAction, localInitialPerformAiOptionsAnalysisState);
   
@@ -981,7 +1023,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const state = fsmStateRef.current;
     const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
   
-    type PipelineStep = 'base' | 'augmented_ta' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'chat_holistic';
+    type PipelineStep = 'base' | 'augmented_ta' | 'augmented_options' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'chat_holistic';
     const dispatchNextCustomAction = (lastCompletedStep: PipelineStep) => {
       const activeTicker = state.variables.activeTicker;
       if (!activeTicker) {
@@ -1007,7 +1049,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
       };
       
-      const stepOrder: PipelineStep[] = ['base', 'augmented_ta', 'key_takeaways', 'options_analysis', 'chat_stock', 'chat_options', 'chat_holistic'];
+      const stepOrder: PipelineStep[] = ['base', 'augmented_ta', 'augmented_options', 'key_takeaways', 'options_analysis', 'chat_stock', 'chat_options', 'chat_holistic'];
       const currentStepIndex = stepOrder.indexOf(lastCompletedStep);
   
       if (currentStepIndex === -1) {
@@ -1019,6 +1061,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
         const nextStep = stepOrder[i];
         if (nextStep === 'augmented_ta' && state.flags.isAugmentedTaSearchEnabled) { _dispatchFsmEventActual({ type: 'TRIGGER_AUGMENTED_TA_FETCH', payload: { ticker: activeTicker } }); return; }
+        if (nextStep === 'augmented_options' && state.flags.isAugmentedOptionsSearchEnabled) { _dispatchFsmEventActual({ type: 'TRIGGER_AUGMENTED_OPTIONS_FETCH', payload: { ticker: activeTicker } }); return; }
         if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
         if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
         if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("Stock Trader", "AI Chat: Stock Trader's Takeaways"); return; }
@@ -1055,6 +1098,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     } else if (state.current === GlobalFsmState.AUGMENTED_TA_FETCH_SUCCEEDED || state.current === GlobalFsmState.AUGMENTED_TA_FETCH_FAILED) {
       if (state.variables.activePipelineProfile === 'standard') {
         dispatchNextCustomAction('augmented_ta');
+      }
+    } else if (state.current === GlobalFsmState.FETCHING_AUGMENTED_OPTIONS && state.variables.activeTicker && !isAugmentedOptionsSearchPending) {
+        startTransition(() => { augmentedOptionsSearchFormAction({ ticker: state.variables.activeTicker! }); });
+    } else if (state.current === GlobalFsmState.AUGMENTED_OPTIONS_FETCH_SUCCEEDED || state.current === GlobalFsmState.AUGMENTED_OPTIONS_FETCH_FAILED) {
+      if (state.variables.activePipelineProfile === 'standard') {
+        dispatchNextCustomAction('augmented_options');
       }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
@@ -1101,7 +1150,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   
   }, [
     globalFsmReducerState.current, globalFsmReducerState.variables, globalFsmReducerState.flags,
-    isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending, isAugmentedTaSearchPending,
+    isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending, 
+    isAugmentedTaSearchPending, isAugmentedOptionsSearchPending,
     isChatPending, 
     _dispatchFsmEventActual, logDebug, contextOriginals, 
     _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson,
@@ -1131,6 +1181,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     if (augmentedTaSearchActionState.status === 'success' && augmentedTaSearchActionState.data) { dispatchFsmEvent({ type: 'AUGMENTED_TA_FETCH_SUCCESS', payload: augmentedTaSearchActionState.data }); }
     else if (augmentedTaSearchActionState.status === 'error') { dispatchFsmEvent({ type: 'AUGMENTED_TA_FETCH_FAILURE', payload: { error: augmentedTaSearchActionState.error, message: augmentedTaSearchActionState.message, augmentedTaSearchJson: augmentedTaSearchActionState.data?.augmentedTaSearchJson }}); }
   }, [augmentedTaSearchActionState, dispatchFsmEvent, logDebug]);
+
+  useEffect(() => {
+    const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_AugmentedOptions';
+    if (currentFsmState !== GlobalFsmState.FETCHING_AUGMENTED_OPTIONS) { if (augmentedOptionsSearchActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not FETCHING_AUGMENTED_OPTIONS. Ignoring update.`); } return; }
+    if (augmentedOptionsSearchActionState.status === 'success' && augmentedOptionsSearchActionState.data) { dispatchFsmEvent({ type: 'AUGMENTED_OPTIONS_FETCH_SUCCESS', payload: augmentedOptionsSearchActionState.data }); }
+    else if (augmentedOptionsSearchActionState.status === 'error') { dispatchFsmEvent({ type: 'AUGMENTED_OPTIONS_FETCH_FAILURE', payload: { error: augmentedOptionsSearchActionState.error, message: augmentedOptionsSearchActionState.message, augmentedOptionsSearchJson: augmentedOptionsSearchActionState.data?.augmentedOptionsSearchJson }}); }
+  }, [augmentedOptionsSearchActionState, dispatchFsmEvent, logDebug]);
 
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_PerformAiAnalysis';
@@ -1214,6 +1271,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiKeyTakeawaysRequestJson: _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson: contextSetters.setAiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson: contextSetters.setAiKeyTakeawaysJson,
     augmentedTaSearchJson: _augmentedTaSearchJson, setAugmentedTaSearchJson: contextSetters.setAugmentedTaSearchJson,
+    augmentedOptionsSearchJson: _augmentedOptionsSearchJson, setAugmentedOptionsSearchJson: contextSetters.setAugmentedOptionsSearchJson,
     chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson: contextSetters.setChatbotRequestJson,
     chatbotResponseJson: _chatbotResponseJson, setChatbotResponseJson: contextSetters.setChatbotResponseJson,
     chatHistory: _chatHistory, addChatMessage, clearChatHistory,
@@ -1237,7 +1295,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
     _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
     _aiOptionsAnalysisJson, _aiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson,
-    _augmentedTaSearchJson, _chatbotRequestJson, _chatbotResponseJson, _chatHistory, addChatMessage,
+    _augmentedTaSearchJson, _augmentedOptionsSearchJson, _chatbotRequestJson, 
+    _chatbotResponseJson, _chatHistory, addChatMessage,
     clearChatHistory, _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
     _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
