@@ -58,6 +58,19 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.0.0.0` (Feature Scoping)
+**Tag:** `Phase-25_Task-3.3.0.0.0_ScopeCustomizableAnalysis`
+**Subject:** `feat(docs): Scope Customizable Analysis & AI Augmented Web Search feature (v3.3)`
+**Details:**
+This commit (`TBD`) prepares all documentation for the new **"Customizable Analysis & AI Augmented Web Search"** feature, version series `v3.3.x.y.z`. This is a documentation and planning commit that sets the stage for implementation.
+
+**Key Changes:**
+*   **`docs/FEAT_SCOPE_CustomizableAnalysis_v3.3.md`:** A new, comprehensive feature scope document was created, outlining the objectives, detailed requirements, and a full, multi-phase implementation plan for the new feature.
+*   **`docs/FEAT_STATUS_CustomizableAnalysis_v3.3.md`:** A new feature status report was created to track the progress of the v3.3 feature through its planned phases.
+*   **`README.md`:** The main PRD was updated to include the new "Customizable Analysis & AI Augmented Web Search" functionality in its feature list.
+*   **`CHANGELOG.md` (this file):** Updated with this commit log to mark the official start of the new feature.
+*   **`src/config/app-metadata.json`:** Application version updated to `v3.3.0.0.0`.
+---
 **App Version:** `v3.2.5.0.Z` (Complete FSM Consolidation)
 **Tag:** `Phase-24_Task-3.2.5.0.Z_CompleteFsmConsolidation` (Commit `1ca4bd54`)
 **Subject:** `feat(fsm,core): Complete FSM Consolidation & Refactor feature (v3.2.5.0.Z)`
@@ -512,7 +525,7 @@ This version (`v2.9.D.M`) implements cleanup and hardening measures following th
         *   `src/ai/flows/analyze-stock-data.ts`: Preserved explicit error throwing if `outputFromPrompt` is undefined (from v2.9.D.K). Added `console.time/timeEnd` for `analyzeStockDataFlowExecutionTime`.
         *   `src/ai/flows/analyze-options-chain-flow.ts`: Implemented explicit error throwing if the AI prompt call returns `undefined` output or if `output.callWalls`/`output.putWalls` are not arrays. Added `console.time/timeEnd` for `analyzeOptionsChainFlowExecutionTime`.
         *   `src/ai/flows/chat-flow.ts`: Modified to throw an error if `output` or `output.response` from the AI prompt is undefined or not a string. Added `console.time/timeEnd` for `chatFlowExecutionTime`.
-        *   Server Actions (`performAiAnalysisAction.ts`, `performAiOptionsAnalysisAction.ts`, `chatServerAction.ts`): Added `console.log` statements before and after calls to their respective AI flows. Ensured `catch` blocks consistently return a JSON object with `{ error: "...", details: "..." }` structure in the primary data field of the action's response when a flow throws an error.
+        *   Server Actions (`performAiAnalysisAction.ts`, `performAiOptionsAnalysisAction.ts`, `chatServerAction.ts`): Added `console.log` statements before and after calls to their respective AI flows. Ensured `catch` blocks consistently return a JSON object with `{ error: "...", details": "..." }` structure in the primary data field of the action's response when a flow throws an error.
     *   **Client-Side Error Display Standardization (Task 4 of D.M):**
         *   `src/components/ai-options-analysis-display.tsx`: Updated parsing logic to correctly check for and display messages from `aiOptionsAnalysisJson` when it contains a direct `error` field from the server action.
         *   `src/components/main-tab-content.tsx`: Reviewed and confirmed logic for handling `chatActionState` to ensure error messages from `chatbotResponseJson` (if `error` field is present) are added to the chat history.
@@ -635,7 +648,7 @@ This version (`v2.9.D.I`) is an intermediate step in debugging non-functional ma
         *   The Google Gemini model used for AI flows has been updated to `googleai/gemini-2.5-flash-lite-preview-06-17`. This change, initially made manually by the user, is now codified in:
             *   `src/ai/models.ts`: `DEFAULT_CHAT_MODEL_ID` and `DEFAULT_ANALYSIS_MODEL_ID` updated.
             *   `src/ai/genkit.ts`: Default model for `ai.genkit()` configuration now reflects the new model via `DEFAULT_ANALYSIS_MODEL_ID`.
-            *   `src/ai/definitions/analyze-options-chain.json`, `src/ai/definitions/analyze-stock-data.json`, `src/ai/definitions/stock-chatbot.json`: `modelId` field updated to `googleai/gemini-2.5-flash-lite-preview-06-17`.
+            *   `src/ai/definitions/analyze-options-chain.json`, `src/ai/definitions/stock-chatbot.json`, `src/ai/definitions/analyze-stock-data.json`: `modelId` field updated to `googleai/gemini-2.5-flash-lite-preview-06-17`.
     *   **Documentation Updates:**
         *   `README.md`: Updated to version 1.51. Reflects app version `v2.9.D.I`. Section 3.2.2 (Genkit AI Backend) and 3.3 (AI Flow & Prompt Design) updated to mention `googleai/gemini-2.5-flash-lite-preview-06-17`. Logging section (3.4.3) updated regarding `APP_VERSION_FOR_EXPORT` in debug console. Debugging focus note (3.5.0) maintained.
         *   `CHANGELOG.md` (this file): Updated to reflect this v2.9.D.I commit and its changes.
@@ -707,6 +720,7 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
 
 
 

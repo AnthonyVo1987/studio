@@ -25,9 +25,9 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.70
-**Application Version (from `app-metadata.json`):** v3.2.5.0.Z
-**Last Updated:** 2025-06-21
+**README Document Version:** 1.71
+**Application Version (from `app-metadata.json`):** v3.3.0.0.0
+**Last Updated:** 2025-06-22
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -69,14 +69,20 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Highlight the At-The-Money (ATM) strike row in the table.
 
 #### 3.1.3. AI-Powered Insights & Analysis
-*   **AI Key Takeaways:** Generate five key takeaways (Price Action, Trend, Volatility, Momentum, Patterns) with associated sentiment, based on stock data.
-*   **AI Analyzed Technical Analysis (Pivot Points):** Calculate standard daily pivot points (PP, S1-S3, R1-R3) based on previous day HLC.
-*   **AI Options Analysis:** Analyze the options chain to identify significant Call and Put "Walls" (up to 3 each) based on Open Interest and/or Volume.
+*   **Customizable Analysis Pipeline (as of v3.3):**
+    *   **Base Pipeline (Always-On):** Fetches Stock Snapshot, Standard TAs, and calculates AI Analyzed Pivot Points.
+    *   **Selectable AI Analyses (Toggles, default ON):**
+        *   AI Key Takeaways (Price Action, Trend, Volatility, Momentum, Patterns).
+        *   AI Analyzed Options Chain (Call/Put Walls).
+        *   AI Chat: Stock Trader's Takeaways (with Buy/Sell levels).
+        *   AI Chat: Options Trader's Takeaways (with CC/CSP setups).
+        *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
+*   **AI Augmented Web Search (as of v3.3):**
+    *   **[Toggle] Augmented Technical Analysis:** Uses Google Search to fetch additional indicators (ATR, Bollinger Bands, etc.) and displays them in a new card. This data enriches the core AI analyses when enabled.
+    *   **[Toggle] Augmented Options Flow Analysis:** Uses Google Search to fetch advanced options metrics (Max Pain, GEX, etc.) and displays them in a new card, enriching the options-related AI analyses.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
-    *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot. When enabled, the chatbot can answer questions about real-time news, events, and other information beyond the application's static data. This mode is independent of whether a stock has been analyzed.
-*   **AI Full Stock Analysis Macro:** A button to trigger a sequential, automated pipeline of: Data Fetch & AI TA -> AI Key Takeaways -> AI Options Analysis -> Stock Trader Chat Prompt -> Options Trader Chat Prompt -> Holistic Chat Prompt.
-*   Leverage Genkit flows for all AI functionalities.
+    *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot.
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
@@ -120,7 +126,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   AI flows defined in `src/ai/flows/` for orchestrating LLM calls.
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
     *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
-    *   Prompts correctly configure "Dynamic Thinking" using `thinkingConfig: { thinkingBudget: -1 }`.
+    *   **Architectural Mandate:** Dynamic Thinking (`thinkingBudget: -1`) is enforced by default on all AI prompts for analysis and chat.
     *   Safety settings are defined in these JSONs.
     *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
     *   **Grounding with Google Search:** The chat flow conditionally enables grounding by adding `{ googleSearch: {} }` to the `tools` array in the prompt definition. It also correctly omits the `output` schema when grounding is active, as this is an API requirement.
@@ -144,7 +150,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.2.5.0.Z)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
-*   **Lifecycle Management:** This FSM orchestrates all application pipelines: the standard automated analysis, the "AI Full Stock Analysis" macro, all on-demand AI actions, and all chat interactions (including grounded queries).
+*   **Lifecycle Management:** This FSM orchestrates all application pipelines: the standard automated analysis, the (now deprecated) "AI Full Stock Analysis" macro, all on-demand AI actions, and all chat interactions (including grounded queries).
 *   **Deprecated FSMs:** Local FSMs previously in `MainTabContent`, `ChatbotFsmContext`, and `DebugConsoleFsmContext` have been removed, and their logic has been fully absorbed by the global FSM.
 
 ### 3.3. AI Flow & Prompt Design
@@ -175,8 +181,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Debugging Status (as of v3.2.5.0.Z):**
-    *   **"FSM Consolidation & Refactor" (v3.2.x.y.z): COMPLETE.** The feature is fully implemented, tested, and documented as of commit `1ca4bd54`.
+*   **Current Feature Focus (as of v3.3.0.0.0):**
+    *   **"Customizable Analysis & AI Augmented Web Search" (v3.3.x.y.z):** PLANNED. This is the next major feature.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -187,7 +193,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.4. Server & AI Conventions (Genkit 1.x)
 *   Next.js App Router, Server Components, Server Actions. Genkit. Genkit 1.x API. `thinkingConfig`. JSON prompt definitions with Handlebars. Tools.
 
-### 3.6. Commit & Changelog Procedures (Reflecting v3.2.5.0.Z and New Versioning Scheme)
+### 3.6. Commit & Changelog Procedures (Reflecting v3.3.0.0.0 and New Versioning Scheme)
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
@@ -229,8 +235,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.70
-*   **Current Application Version:** `v3.2.5.0.Z`
+*   **This README Document Version:** 1.71
+*   **Current Application Version:** `v3.3.0.0.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
