@@ -58,6 +58,27 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.4.0.0` (Augmented TA Search Flow)
+**Tag:** `Phase-28_Task-3.3.4.0.0_CreateAugmentedTaSearchFlow`
+**Subject:** `feat(ai,docs): Create AI flow for augmented TA web search (v3.3.4.0.0)`
+**Details:**
+This commit (`TBD`) marks the beginning of **Phase 4: AI Augmented Web Search - Technical Analysis** by creating the foundational AI flow responsible for this functionality.
+
+**Key Changes:**
+*   **New AI Flow (`src/ai/flows/augmented-ta-search-flow.ts`):**
+    *   A new AI flow file was created to handle web searches for augmented technical analysis data.
+    *   The flow uses the `googleSearch` tool available in Genkit to find real-time values for indicators not available through the primary API, including ATR, support/resistance levels, Bollinger Bands, and Fibonacci retracement levels.
+    *   Robust input (`AugmentedTaSearchInputSchema`) and output (`AugmentedTaSearchOutputSchema`) Zod schemas were defined to ensure type safety and to provide a clear structure for the AI to follow, with nullable fields to gracefully handle cases where data cannot be found.
+*   **Genkit Discovery (`src/ai/dev.ts`):**
+    *   The new flow file was imported into `dev.ts` to ensure it's discovered by the Genkit development server.
+*   **Documentation & Versioning:**
+    *   `src/config/app-metadata.json`: Application version updated to `v3.3.4.0.0`.
+    *   `CHANGELOG.md`, `README.md`, `FEAT_STATUS_CustomizableAnalysis_v3.3.md`: All relevant documentation updated to reflect the start of Phase 4 and the completion of this initial task.
+
+**Outcome:**
+*   The application now has a functional, albeit not yet UI-integrated, AI flow capable of searching the web for advanced TA metrics.
+*   This lays the groundwork for the next tasks in Phase 4, which will involve creating the UI to display this data and integrating the new flow into the main FSM orchestrator.
+---
 **App Version:** `v3.3.3.1.0` (Complete Customizable Analysis Phase 3)
 **Tag:** `Phase-28_Task-3.3.3.1.0_FsmPipelineLogicComplete` (Commit `109dedd5`)
 **Subject:** `feat(fsm,core): Complete Phase 3 of Customizable Analysis - Conditional Pipeline (v3.3.3.1.0)`
@@ -782,19 +803,3 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
