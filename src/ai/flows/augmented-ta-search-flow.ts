@@ -65,7 +65,7 @@ After gathering the data, you MUST format your ENTIRE response as a single, vali
 - Your entire response MUST start with \`{\` and end with \`}\`. Do not include any text, notes, or explanations outside of the JSON structure.
 - If you cannot find a specific numerical value (like ATR) using search, you MUST set its corresponding field to \`null\` in the JSON. Do not guess or make up values.
 - If you cannot find any values for a group (like support levels), you MUST return an empty array \`[]\` for that field in the JSON.
-- If you cannot find the complete set of values for a complex object (like Bollinger Bands or Fibonacci levels), you MUST set the entire object to \`null\` in the JSON. Do not return a partial object.
+- If you cannot find the complete set of values for a complex object (like Bollinger Bands or Fibonacci levels), you MUST set the entire object to \`null\` in the JSON.
 - Prioritize data from reputable financial websites (e.g., TradingView, Yahoo Finance, Barchart).
 - Ensure all numerical values are returned as numbers, not strings.
 `;
@@ -78,6 +78,7 @@ After gathering the data, you MUST format your ENTIRE response as a single, vali
         `SafetySettings: ${safetySettings.length}`
     );
 
+    // CRITICAL FIX: The 'output' property with a schema MUST be omitted when 'tools' are used.
     const prompt = ai.definePrompt({
         name: 'augmentedTaSearchGroundedPrompt',
         input: { schema: AugmentedTaSearchInputSchema },
@@ -95,6 +96,7 @@ const augmentedTaSearchFlow = ai.defineFlow(
   {
     name: 'augmentedTaSearchFlow',
     inputSchema: AugmentedTaSearchInputSchema,
+    outputSchema: AugmentedTaSearchOutputSchema,
   },
   async (input): Promise<AugmentedTaSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedTaSearchFlow:Ticker:${input.ticker}]`;

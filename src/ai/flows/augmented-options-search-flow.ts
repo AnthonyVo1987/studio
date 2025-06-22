@@ -75,6 +75,7 @@ After gathering the data, you MUST format your ENTIRE response as a single, vali
         `SafetySettings: ${safetySettings.length}`
     );
 
+    // CRITICAL FIX: The 'output' property with a schema MUST be omitted when 'tools' are used.
     const prompt = ai.definePrompt({
         name: 'augmentedOptionsSearchGroundedPrompt',
         input: { schema: AugmentedOptionsSearchInputSchema },
@@ -92,6 +93,7 @@ const augmentedOptionsSearchFlow = ai.defineFlow(
   {
     name: 'augmentedOptionsSearchFlow',
     inputSchema: AugmentedOptionsSearchInputSchema,
+    outputSchema: AugmentedOptionsSearchOutputSchema,
   },
   async (input): Promise<AugmentedOptionsSearchOutput> => {
     const logPrefix = `[AIFlow:augmentedOptionsSearchFlow:Ticker:${input.ticker}]`;
