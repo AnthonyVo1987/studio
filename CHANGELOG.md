@@ -58,6 +58,33 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.10.1.0` (Complete Augmented Search Re-Architecture Implementation)
+**Tag:** `Phase-34_Task-3.3.10.1.0_CompleteAugmentedSearchRefactor_Phases1-3` (Commit `bd8655d1`)
+**Subject:** `feat(core,ai,fsm,ui): Complete initial implementation of Augmented Search Re-Architecture (v3.3.10.1.0)`
+**Details:**
+This commit (`bd8655d1`) marks the successful completion of the initial implementation phases (1-3) of the **"Augmented Search Re-Architecture"** feature. The core objective of this refactor—to decouple the experimental augmented search functionality from the main analysis pipeline—has been achieved. This provides a stable foundation for isolated debugging and future development.
+
+**Key Changes in this Re-Architecture (Phases 1-3, v3.3.8.x.z to v3.3.10.x.z):**
+*   **Phase 1: Data & AI Layer Decoupling (Tasks v3.3.8.0.0 - v3.3.8.2.0):**
+    *   The input schemas for all core AI analysis flows (`analyze-stock-data`, `analyze-options-chain`, `chat-flow`) were reverted. They no longer accept `augmentedTaSearchJson` or `augmentedOptionsSearchJson`.
+    *   The corresponding JSON prompt definitions were stripped of all conditional Handlebars logic related to augmented data, simplifying the prompts.
+    *   The server actions that call these flows were updated to no longer pass the augmented data variables.
+*   **Phase 2: UI Isolation (Tasks v3.3.9.0.0 - v3.3.9.2.0):**
+    *   The previous parsed display components (`AugmentedTaDisplay`, `AugmentedOptionsDisplay`) were removed.
+    *   Two new, simpler components (`AugmentedTaRawDisplay`, `AugmentedOptionsRawDisplay`) were created. Each renders a read-only `<Textarea>` to show the raw, unparsed JSON string returned by its respective search flow.
+    *   These new "raw display" components were integrated into `main-tab-content.tsx`, placed directly after the standard analysis cards for easy comparison and debugging.
+*   **Phase 3: FSM & Orchestrator Refactoring (Tasks v3.3.10.0.0 - v3.3.10.1.0):**
+    *   The global FSM orchestrator in `stock-analysis-context.tsx` was significantly refactored.
+    *   It now triggers the augmented search server actions in a non-blocking, parallel manner after the base data pipeline succeeds.
+    *   The success or failure of an augmented search now only affects its own state (`augmentedTaSearchJson`, `augmentedOptionsSearchJson`) and no longer halts or influences the main analysis pipeline.
+    *   The obsolete FSM states for augmented search fetching (`FETCHING_AUGMENTED_TA`, `AUGMENTED_TA_SUCCEEDED`, etc.) were removed, simplifying the FSM.
+
+**Outcome:**
+*   The application is now stable, as the experimental augmented search feature is fully isolated.
+*   Debugging of the search flows can proceed without impacting the core user experience.
+*   The application is ready for **Phase 4: Final Testing & Documentation** of this re-architecture.
+*   The application version is consistently `v3.3.10.1.0`.
+---
 **App Version:** `v3.3.7.0.7` (Re-Architecture Scoping & Planning)
 **Tag:** `Phase-32_Task-3.3.7.0.7_DefineAugmentedSearchRefactorPlan`
 **Subject:** `docs(all): Define detailed implementation plan for augmented search re-architecture (v3.3.7.0.7)`
@@ -794,7 +821,7 @@ This version (`v2.9.D.K`) focused on making the AI Key Takeaways flow (`analyzeS
     *   `src/components/debug-console.tsx`: `APP_VERSION_FOR_EXPORT` updated to `v2.9.D.K`.
 
 **Debugging Status & Outcome:**
-*   Server logs from the `v2.9.D.K` run (provided for task D.L) revealed a `[400 Bad Request] Invalid value at 'safety_settings[3].category'` error from the Google Generative AI API for *both* the Key Takeaways and Options Analysis flows. This was due to using `"SEXUALLY_EXPLICIT"` instead of the correct `"HARM_CATEGORY_SEXUALLY_EXPLICIT"`.
+*   Server logs from the `v2.9.D.K` run (provided for task D.L) revealed a `[400 Bad Request]` API error related to safety settings in the AI prompt definitions. This was due to using `"SEXUALLY_EXPLICIT"` instead of the correct `"HARM_CATEGORY_SEXUALLY_EXPLICIT"`.
 *   The D.K change in `analyzeStockDataFlow` (throwing an error on undefined AI output) worked as intended: the flow threw an error due to the API failure, this was caught by `performAiAnalysisAction`, and an error-structured JSON was sent to the client.
 *   The client-side `AiKeyTakeawaysDisplay` then showed an error message, "Failed to parse status message from error/skipped JSON...", highlighting a need to improve its parsing of raw error objects from the action.
 *   Crucially, the server logs also showed that the manual AI button clicks *were* triggering the server actions and subsequently the AI flows, which was a key piece of information often obscured in earlier debugging.
@@ -919,4 +946,3 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
-
