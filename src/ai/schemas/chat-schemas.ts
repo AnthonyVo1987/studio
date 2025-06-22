@@ -25,6 +25,8 @@ export const ChatInputSchema = z.object({
     .string()
     .optional()
     .describe('An optional JSON string of AI-analyzed options chain data (e.g., call/put walls).'),
+  augmentedTaSearchJson: z.string().optional().describe('Optional JSON string of augmented TA data from a web search (ATR, S/R levels, etc.).'),
+  augmentedOptionsSearchJson: z.string().optional().describe('Optional JSON string of augmented options data from a web search (Max Pain, GEX, etc.).'),
   chatHistory: z.array(z.object({
       role: z.enum(['user', 'model']),
       content: z.string(),
