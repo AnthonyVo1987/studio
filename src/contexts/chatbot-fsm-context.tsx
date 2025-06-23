@@ -39,6 +39,9 @@ const initialChatbotFsmState: ChatbotFsmManagedState = {
 
 const ChatbotFsmContext = createContext<ChatbotFsmContextType | undefined>(undefined);
 
+const AUGMENTED_TA_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_TA_SEARCH";
+const AUGMENTED_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_OPTIONS_SEARCH";
+
 interface ChatbotFsmProviderProps {
   children: ReactNode;
   dispatchGlobalFsmEvent: (event: FsmEvent) => void; 
@@ -178,12 +181,22 @@ export function ChatbotFsmProvider({
 
   const interceptingDispatch = useCallback((event: ChatbotFsmEvent) => {
     if (event.type === 'SUBMIT_MESSAGE_REQUESTED') {
-      handleLocalFsmSubmitRequest(event.payload); // Pass direct input if available
-      dispatchChatbotFsmEventWithTarget(event); // Local FSM still handles its state (like clearing input)
+      const input = event.payload || state.userInput;
+      if (input === AUGMENTED_TA_PROMPT_KEY) {
+        logDebug(componentLogSource, 'DispatchOverride', 'Intercepted augmented TA search. Dispatching TRIGGER_AUGMENTED_TA_SEARCH to global FSM.');
+        dispatchGlobalFsmEvent({ type: 'TRIGGER_AUGMENTED_TA_SEARCH', payload: { ticker: currentTicker } });
+      } else if (input === AUGMENTED_OPTIONS_PROMPT_KEY) {
+        logDebug(componentLogSource, 'DispatchOverride', 'Intercepted augmented options search. Dispatching TRIGGER_AUGMENTED_OPTIONS_SEARCH to global FSM.');
+        dispatchGlobalFsmEvent({ type: 'TRIGGER_AUGMENTED_OPTIONS_SEARCH', payload: { ticker: currentTicker } });
+      } else {
+        handleLocalFsmSubmitRequest(event.payload);
+      }
+      // Always dispatch locally to clear input etc.
+      dispatchChatbotFsmEventWithTarget(event);
     } else {
       dispatchChatbotFsmEventWithTarget(event);
     }
-  }, [dispatchChatbotFsmEventWithTarget, handleLocalFsmSubmitRequest]);
+  }, [dispatchChatbotFsmEventWithTarget, handleLocalFsmSubmitRequest, dispatchGlobalFsmEvent, currentTicker, state.userInput, logDebug]);
 
 
   const contextValue: ChatbotFsmContextType = {
