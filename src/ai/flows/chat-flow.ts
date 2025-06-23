@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Implements a contextual chatbot flow for stock-related questions.
@@ -78,9 +77,8 @@ async function getChatPrompt(isGrounded: boolean) {
 
   if (isGrounded) {
     promptConfig.tools = [{ googleSearch: {} }];
-    // For grounded search, we expect a raw response, so no output schema is defined here.
-    // The flow will parse result.text.
-    promptOptions.output = { schema: ChatOutputSchema }; // The flow will populate this
+    // For grounded search, we expect a raw text response, so NO output schema is defined.
+    // This is the critical fix.
   } else {
     // For standard, non-grounded chat, we expect a structured response.
     promptOptions.output = {schema: z.object({ response: z.string() })};
@@ -147,11 +145,11 @@ const chatFlow = ai.defineFlow(
       let output: ChatOutput;
 
       if (isGrounded) {
-        // The prompt for grounded returns a ChatOutputSchema, which contains the raw response.
-        responseText = result.output?.response;
-        output = { response: responseText, rawResponse: result.output?.rawResponse || result };
+        // Grounded path: Response is in result.text
+        responseText = result.text;
+        output = { response: responseText, rawResponse: result };
       } else {
-        // The standard prompt returns a simple object: { response: string }
+        // Non-grounded path: Response is in result.output.response
         responseText = result.output?.response;
         output = { response: responseText, rawResponse: result };
       }
