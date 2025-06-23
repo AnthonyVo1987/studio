@@ -483,7 +483,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     } else {
       _setClientDebugConsoleOpen(false); 
     }
-  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
+  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -857,15 +857,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   };
 
   const [globalFsmReducerState, _dispatchFsmEventActual] = useReducer(fsmReducer, defaultState.globalFsmState);
-  const fsmStateRef = useRef<GlobalFsmReducerManagedState>(globalFsmReducerState);
-
-  useEffect(() => {
-    fsmStateRef.current = globalFsmReducerState;
-    logDebug('StockAnalysisContext:GlobalFSM', 'StateChange', `Actual state updated. Prev: ${globalFsmReducerState.previous}, Curr: ${globalFsmReducerState.current}.`);
-  }, [globalFsmReducerState, logDebug]);
 
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
-    const currentActualState = fsmStateRef.current.current;
+    const currentActualState = globalFsmReducerState.current;
     let determinedTarget: GlobalFsmState | null = null;
 
     switch (currentActualState) {
@@ -894,7 +888,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') determinedTarget = GlobalFsmState.CHAT_MESSAGE_ERROR;
             break;
         case GlobalFsmState.APP_INITIALIZING:
-            if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = fsmStateRef.current.variables.userInputTicker.trim() !== "" ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
+            if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = globalFsmReducerState.variables.userInputTicker.trim() !== "" ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
             break;
         case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH:
             if (event.type === 'TRIGGER_DATA_FETCH') determinedTarget = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
@@ -925,7 +919,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext:GlobalFSM' as LogSourceId, 'DispatchAttempt', `Event: ${event.type}, CurrentActual: ${currentActualState}, DeterminedTarget: ${determinedTarget || 'N/A'}`);
     if (determinedTarget && event.type !== 'TOGGLE_DEBUG_CONSOLE_MENU' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') { _setTargetFsmDisplayState(determinedTarget); }
     _dispatchFsmEventActual(event);
-  }, [_dispatchFsmEventActual, _setTargetFsmDisplayState, logDebug]);
+  }, [_dispatchFsmEventActual, _setTargetFsmDisplayState, logDebug, globalFsmReducerState.current, globalFsmReducerState.variables.userInputTicker]);
 
   useEffect(() => {
     if (_targetFsmDisplayState !== null && globalFsmReducerState.current === _targetFsmDisplayState) {
@@ -1033,11 +1027,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', globalFsmReducerState.current, 'Active Ticker:', globalFsmReducerState.variables.activeTicker, 'Profile:', globalFsmReducerState.variables.activePipelineProfile, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', globalFsmReducerState.variables.isInitialLoad);
   
-    const state = fsmStateRef.current;
+    const state = globalFsmReducerState;
     const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
     const dataJsons = dataJsonsRef.current;
   
-    type PipelineStep = 'base' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'chat_holistic' | 'web_search_ta' | 'web_search_options';
+    type PipelineStep = 'base' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'holistic_chat' | 'web_search_ta' | 'web_search_options';
     const dispatchNextCustomAction = (lastCompletedStep: PipelineStep) => {
         const activeTicker = state.variables.activeTicker;
         if (!activeTicker) {
@@ -1162,39 +1156,39 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   ]);
 
   useEffect(() => {
-    const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_FetchData';
+    const currentFsmState = globalFsmReducerState.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_FetchData';
     if (currentFsmState !== GlobalFsmState.DATA_FETCH_IN_PROGRESS) { if (fetchDataActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not DATA_FETCH_IN_PROGRESS. Ignoring update.`); } return; }
     if (fetchDataActionState.status === 'success' && fetchDataActionState.data) { dispatchFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: fetchDataActionState.data }); }
     else if (fetchDataActionState.status === 'error') {
-        if (fetchDataActionState.message && fetchDataActionState.message.includes("Stale data detected") && fetchDataActionState.data) { dispatchFsmEvent({ type: 'STALE_DATA_FROM_ACTION', payload: { error: fetchDataActionState.error || "Stale data error", message: fetchDataActionState.message, expectedTicker: fsmStateRef.current.variables.activeTicker || "UNKNOWN", actionStateData: fetchDataActionState.data }}); }
+        if (fetchDataActionState.message && fetchDataActionState.message.includes("Stale data detected") && fetchDataActionState.data) { dispatchFsmEvent({ type: 'STALE_DATA_FROM_ACTION', payload: { error: fetchDataActionState.error || "Stale data error", message: fetchDataActionState.message, expectedTicker: globalFsmReducerState.variables.activeTicker || "UNKNOWN", actionStateData: fetchDataActionState.data }}); }
         else { dispatchFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: { error: fetchDataActionState.error, message: fetchDataActionState.message, polygonApiRequestLogJson: fetchDataActionState.data?.polygonApiRequestLogJson, polygonApiResponseLogJson: fetchDataActionState.data?.polygonApiResponseLogJson }}); }
     }
-  }, [fetchDataActionState, dispatchFsmEvent, logDebug]);
+  }, [fetchDataActionState, dispatchFsmEvent, logDebug, globalFsmReducerState.current, globalFsmReducerState.variables.activeTicker]);
 
   useEffect(() => {
-    const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_AnalyzeTa';
+    const currentFsmState = globalFsmReducerState.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_AnalyzeTa';
     if (currentFsmState !== GlobalFsmState.CALCULATING_AI_TA) { if (analyzeTaActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not CALCULATING_AI_TA. Ignoring update.`); } return; }
     if (analyzeTaActionState.status === 'success' && analyzeTaActionState.data) { dispatchFsmEvent({ type: 'AI_TA_SUCCESS', payload: analyzeTaActionState.data }); }
     else if (analyzeTaActionState.status === 'error') { dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: analyzeTaActionState.error, message: analyzeTaActionState.message, aiAnalyzedTaRequestJson: analyzeTaActionState.data?.aiAnalyzedTaRequestJson }}); }
-  }, [analyzeTaActionState, dispatchFsmEvent, logDebug]);
+  }, [analyzeTaActionState, dispatchFsmEvent, logDebug, globalFsmReducerState.current]);
 
   useEffect(() => {
-    const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_PerformAiAnalysis';
+    const currentFsmState = globalFsmReducerState.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_PerformAiAnalysis';
     if (currentFsmState !== GlobalFsmState.GENERATING_KEY_TAKEAWAYS) { if (performAiAnalysisActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not GENERATING_KEY_TAKEAWAYS. Ignoring update.`); } return; }
     if (performAiAnalysisActionState.status === 'success' && performAiAnalysisActionState.data) { dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: performAiAnalysisActionState.data }); }
     else if (performAiAnalysisActionState.status === 'error') { dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: performAiAnalysisActionState.error, message: performAiAnalysisActionState.message, aiKeyTakeawaysRequestJson: performAiAnalysisActionState.data?.aiKeyTakeawaysRequestJson }}); }
-  }, [performAiAnalysisActionState, dispatchFsmEvent, logDebug]);
+  }, [performAiAnalysisActionState, dispatchFsmEvent, logDebug, globalFsmReducerState.current]);
 
   useEffect(() => {
-    const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_PerformAiOptions';
+    const currentFsmState = globalFsmReducerState.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_PerformAiOptions';
     if (currentFsmState !== GlobalFsmState.ANALYZING_OPTIONS) { if (performAiOptionsAnalysisActionState.status !== 'idle') { logDebug(logPrefix as LogSourceId, 'GuardBypass', `FSM state ${currentFsmState} not ANALYZING_OPTIONS. Ignoring update.`); } return; }
     if (performAiOptionsAnalysisActionState.status === 'success' && performAiOptionsAnalysisActionState.data) { dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: performAiOptionsAnalysisActionState.data }); }
     else if (performAiOptionsAnalysisActionState.status === 'error') { dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: performAiOptionsAnalysisActionState.error, message: performAiOptionsAnalysisActionState.message, aiOptionsAnalysisRequestJson: performAiOptionsAnalysisActionState.data?.aiOptionsAnalysisRequestJson }}); }
-  }, [performAiOptionsAnalysisActionState, dispatchFsmEvent, logDebug]);
+  }, [performAiOptionsAnalysisActionState, dispatchFsmEvent, logDebug, globalFsmReducerState.current]);
   
   useEffect(() => {
     const logPrefix = 'StockAnalysisContext:ManualActionFlagEffect';
-    const state = fsmStateRef.current;
+    const state = globalFsmReducerState;
 
     const manualActionsPossibleOverall =
       (state.current === GlobalFsmState.IDLE ||
