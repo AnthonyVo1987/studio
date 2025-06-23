@@ -12,6 +12,7 @@
     { "category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_ONLY_HIGH" }
   ],
   "thinkingBudget": -1,
+  "useGoogleSearch": true,
   "outputSchemaHint": "ChatOutputSchema from '@/ai/schemas/chat-schemas'",
   "chainOfThought": [
     {

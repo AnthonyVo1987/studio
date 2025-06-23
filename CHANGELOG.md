@@ -58,6 +58,15 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.1.6` (Finalize Phase 1 Grounding Config)
+**Tag:** `Phase-45_Task-3.3.16.1.6_FinalizeGroundingConfig`
+**Subject:** `feat(ai): Finalize grounding config across all AI prompts (v3.3.16.1.6)`
+**Details:**
+This commit (`TBD`) applies the final prompt configuration changes for Phase 1 of the "AI Chat Prompt & Google Search Grounding Consolidation" feature. It systemically reviews and corrects the `useGoogleSearch` flag across all relevant prompt definitions to ensure grounding is enabled or disabled according to the new architectural standard.
+*   **Enabled Grounding:** `stock-chatbot.json` (for all interactive user queries).
+*   **Disabled Grounding:** `analyze-stock-data.json`, `analyze-options-chain.json`.
+*   All other `useGoogleSearch` flags set in `v3.3.16.1.4` were confirmed correct.
+---
 **App Version:** `v3.3.16.1.5` (Complete Chat Grounding Consolidation - Phase 1)
 **Tag:** `Phase-44_Task-3.3.16.1.5_ChatGroundingConsolidation_Phase1_Complete`
 **Subject:** `feat(core,ai,fsm): Complete Phase 1 of Chat Grounding Consolidation feature (v3.3.16.1.5)`

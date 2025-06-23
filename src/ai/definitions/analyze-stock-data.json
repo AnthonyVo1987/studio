@@ -11,6 +11,7 @@
     { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" }
   ],
   "thinkingBudget": -1,
+  "useGoogleSearch": false,
   "outputSchemaHint": "StockAnalysisOutputSchema from '@/ai/schemas/stock-analysis-schemas'",
   "chainOfThought": [
     {

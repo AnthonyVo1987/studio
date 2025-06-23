@@ -1,8 +1,8 @@
 
 # Feature Scope: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16.0.0)
 
-**Document Version:** 3.0
-**Date:** 2025-07-06
+**Document Version:** 4.0
+**Date:** 2025-07-07
 **Target Application Version Series:** 3.3.16.x.z
 **Feature Status:** IN PROGRESS
 
@@ -45,9 +45,10 @@ In adherence to the mandatory new audit protocol, a full execution trace was per
 ### 3.3. Configuration & FSM Refactoring
 *   **Dynamic Thinking:** All AI prompt JSON definitions (`analyze-stock-data.json`, `analyze-options-chain.json`, and all chat/search prompts) will have the `thinkingBudget: -1` property to enable dynamic thinking mode by default.
 *   **Grounding Configuration:** A new boolean property, `useGoogleSearch: boolean`, will be added to the schema for prompt definitions (`LlmPromptDefinitionSchema` in `definition-loader.ts`) and implemented in all relevant JSON files.
-    *   `stock-chatbot.json`, `stock-trader-takeaways.json`, `options-trader-takeaways.json`, `holistic-takeaways.json`: `useGoogleSearch: false`
+    *   `stock-chatbot.json`: `useGoogleSearch: true` (for interactive queries)
+    *   `stock-trader-takeaways.json`, `options-trader-takeaways.json`, `holistic-takeaways.json`: `useGoogleSearch: false`
     *   `technical-analysis-web-search.json`, `options-flow-web-search.json`: `useGoogleSearch: true`
-    *   The prompts for `analyze-stock-data` and `analyze-options-chain` will not require this flag, as they are not chat-based and will never use grounding.
+    *   The prompts for `analyze-stock-data` and `analyze-options-chain` will have `useGoogleSearch: false`.
 *   **FSM Cleanup:**
     *   The `isAugmented...` flags in the FSM will be removed. The new UI toggles will directly control which `promptName` is dispatched to the chat flow.
     *   FSM states and debug logs will be updated to reflect the new "promptName"-based logic.
@@ -94,6 +95,7 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
     *   **v3.3.16.1.3:** Add `thinkingBudget: -1` to all prompt JSONs. (`COMPLETED`)
     *   **v3.3.16.1.4:** Add `useGoogleSearch` flag to all relevant prompt JSONs. (`COMPLETED`)
     *   **v3.3.16.1.5:** Update content of web search prompts with new requirements. (`COMPLETED`)
+    *   **v3.3.16.1.6:** Correct and standardize `useGoogleSearch` flag across all prompt definitions. (`COMPLETED`)
 
 ### Phase 2: AI Flow, FSM, and UI Unification
 *   **Objective:** Centralize all chat/search logic into the `chat-flow` and connect the UI/FSM to this new unified system.
@@ -136,6 +138,7 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 
 ## 7. Document Changelog
 
+*   **v4.0 (2025-07-07):** Added Task v3.3.16.1.6 to Phase 1 and marked as COMPLETED.
 *   **v3.0 (2025-07-06):** Marked Phase 1 as COMPLETED.
 *   **v2.0 (2025-07-05):** Added detailed, multi-phase implementation plan.
 *   **v1.0 (2025-07-05):** Initial document creation based on a comprehensive audit and new feature request.

@@ -1,14 +1,14 @@
 
 # Feature Status Report: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16)
 
-**Document Version:** 2.0
-**Date:** 2025-07-06
+**Document Version:** 3.0
+**Date:** 2025-07-07
 **Feature Target Application Version Series:** 3.3.16.x.z
 
 ## 1. Overall Feature Status
 
 **Current Status:** `IN PROGRESS`
-**Last Updated:** 2025-07-06
+**Last Updated:** 2025-07-07
 
 **Summary:** This feature is planned to execute a major refactoring and consolidation of all AI chat and web search functionalities. The objective is to create a single, unified, and configuration-driven execution path, clarifying terminology, standardizing AI prompt configurations, and enhancing the capabilities of the web search prompts. Phase 1 is now complete.
 
@@ -23,6 +23,7 @@
     *   **v3.3.16.1.3:** Add `thinkingBudget: -1` to all prompt JSONs. (`COMPLETED`)
     *   **v3.3.16.1.4:** Add `useGoogleSearch` flag to all relevant prompt JSONs. (`COMPLETED`)
     *   **v3.3.16.1.5:** Update content of web search prompts with new requirements. (`COMPLETED`)
+    *   **v3.3.16.1.6:** Correct and standardize `useGoogleSearch` flag across all prompt definitions. (`COMPLETED`)
 
 ### Phase 2: AI Flow, FSM, and UI Unification
 *   **Overall Phase Status:** `PLANNED`
@@ -49,12 +50,14 @@
 
 ## 3. Feature Changelog & Commit History
 
-| Date       | Version Tag (Task ID)         | Commit Hash (if applicable) | Summary of Changes                                                                  | Status    |
-| :--------- | :---------------------------- | :-------------------------- | :---------------------------------------------------------------------------------- | :-------- |
-| 2025-07-06 | `v3.3.16.1.5` (Phase 1 Complete) | TBD                         | Completed Phase 1: Terminology & Configuration Refactor. App version set.         | COMPLETED |
+| Date       | Version Tag (Task ID)          | Commit Hash (if applicable) | Summary of Changes                                                                  | Status    |
+| :--------- | :----------------------------- | :-------------------------- | :---------------------------------------------------------------------------------- | :-------- |
+| 2025-07-07 | `v3.3.16.1.6` (Grounding Config) | TBD                         | Finalized Phase 1. Corrected `useGoogleSearch` flag on all prompt definitions.      | COMPLETED |
+| 2025-07-06 | `v3.3.16.1.5` (Phase 1 Init)   | TBD                         | Completed initial tasks for Phase 1: Terminology & Configuration Refactor.          | COMPLETED |
 | 2025-07-05 | `v3.3.16.0.0` (Feature Scoped) | TBD                         | Feature scope and implementation plan approved. Documents generated. App version set. | COMPLETED |
 
 ## 4. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v3.0 (2025-07-07):** Added Task v3.3.16.1.6 to the changelog and marked as complete.
 *   **v2.0 (2025-07-06):** Marked Phase 1 as COMPLETED and updated the changelog table.
 *   **v1.0 (2025-07-05):** Initial document creation.
