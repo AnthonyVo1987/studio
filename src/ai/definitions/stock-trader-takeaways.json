@@ -1,3 +1,4 @@
+
 {
   "definitionType": "llm-prompt",
   "promptName": "stockTraderTakeawaysPrompt",
@@ -18,6 +19,14 @@
       "parts": [
         {
           "text": "You are StockSage, a financial assistant. You will be provided with comprehensive stock data."
+        }
+      ]
+    },
+    {
+      "role": "DataContextPresentation",
+      "parts": [
+        {
+          "text": "You will be provided with the following optional contextual information for the stock: {{ticker}}\n{{#if stockSnapshotJson}}\n1.  **Stock Snapshot JSON:** {{{stockSnapshotJson}}} (Contains current and previous day prices, volume, etc.)\n{{/if}}\n{{#if aiKeyTakeawaysJson}}\n2.  **AI Key Takeaways JSON:** {{{aiKeyTakeawaysJson}}} (Contains AI-generated analysis on price action, trend, volatility, momentum, and patterns, with sentiment.)\n{{/if}}\n{{#if aiAnalyzedTaJson}}\n3.  **AI Analyzed TA JSON:** {{{aiAnalyzedTaJson}}} (Contains AI-analyzed technical analysis like pivot points.)\n{{/if}}\n{{#if aiOptionsAnalysisJson}}\n4.  **AI Options Analysis JSON:** {{{aiOptionsAnalysisJson}}} (Contains AI-identified call/put walls from options data. If empty or \"{}\", no significant walls were identified or data was unavailable.)\n{{/if}}\nIf this data is not provided, you must state that you cannot perform the analysis without the required data."
         }
       ]
     },
