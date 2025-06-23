@@ -1,18 +1,13 @@
 
 "use client";
 
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useStockAnalysis, type ChatMessage, GlobalFsmState } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import exampleChatPromptsData from '@/ai/definitions/example-chat-prompts.json';
-import type { ExampleChatPrompt, ExampleChatPromptsFile } from '@/ai/definition-loader';
-
-import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle, Globe } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle, FileText, Search } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/hooks/use-toast';
@@ -29,18 +24,29 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { copyToClipboard, downloadJson } from '@/lib/export-utils';
-import { useChatbotFsm, ChatbotFsmInternalState, type ChatbotFsmEvent } from '@/contexts/chatbot-fsm-context'; 
+import { useChatbotFsm, type ChatbotFsmEvent } from '@/contexts/chatbot-fsm-context'; 
 
 interface ChatbotProps {
   isAnyAnalysisInProgress: boolean; 
   currentTickerForDisplay: string;
 }
 
-const exampleChatPrompts: ExampleChatPromptsFile = exampleChatPromptsData as ExampleChatPromptsFile;
+interface ExamplePromptButton {
+  title: string;
+  promptName: string;
+  icon: React.ElementType;
+}
 
-const WEB_SEARCH_TA_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_TA";
-const WEB_SEARCH_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_OPTIONS";
+const appDataButtons: ExamplePromptButton[] = [
+  { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
+  { title: "Options Trader's Takeaways", promptName: 'options-trader-takeaways', icon: FileText },
+  { title: "Additional Holistic Takeaways", promptName: 'holistic-takeaways', icon: FileText },
+];
 
+const webSearchButtons: ExamplePromptButton[] = [
+  { title: "Technical Analysis Web Search", promptName: 'technical-analysis-web-search', icon: Search },
+  { title: "Options Flow Web Search", promptName: 'options-flow-web-search', icon: Search },
+];
 
 export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: ChatbotProps) {
   const {
@@ -48,8 +54,6 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     clearChatHistory: clearGlobalChatHistory,
     logDebug: globalLogDebug,
     fsmState: globalFsmState,
-    isChatGroundingEnabled,
-    setChatGroundingEnabled,
   } = useStockAnalysis();
 
   const {
@@ -77,16 +81,16 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
       logDebug('Chatbot', 'UserAction_Submit_Prevented', 'Input empty or analysis/chat is globally in progress.');
       return;
     }
-    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED' }); 
+    const event: ChatbotFsmEvent = { type: 'SUBMIT_MESSAGE_REQUESTED', payload: { userInput: fsmUserInput, promptName: 'stock-chatbot' } };
+    dispatchChatbotFsmEvent(event); 
   }, [fsmUserInput, globalFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
 
-  const handleExamplePromptClick = (promptTemplate: string) => {
+  const handleExamplePromptClick = (promptName: string) => {
     if (isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING) return;
     
-    const filledPrompt = promptTemplate.replace(/{TICKER}/g, currentTickerForDisplay || 'this stock');
-    logDebug('Chatbot', 'UserAction_ExamplePrompt', `Prompt set to: "${filledPrompt}". Dispatching SUBMIT_MESSAGE_REQUESTED with payload.`);
-        
-    dispatchChatbotFsmEvent({ type: 'SUBMIT_MESSAGE_REQUESTED', payload: filledPrompt });
+    logDebug('Chatbot', 'UserAction_ExamplePrompt', `PromptName: "${promptName}". Dispatching SUBMIT_MESSAGE_REQUESTED.`);
+    const event: ChatbotFsmEvent = { type: 'SUBMIT_MESSAGE_REQUESTED', payload: { userInput: promptName, promptName: promptName } };
+    dispatchChatbotFsmEvent(event);
   };
 
   const handleCopyChat = async () => {
@@ -115,6 +119,23 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
   };
 
   const isProcessing = isAnyAnalysisInProgress; 
+
+  const renderPromptButtons = (buttons: ExamplePromptButton[]) => (
+    buttons.map((p, index) => (
+      <Button
+        key={index}
+        variant="outline"
+        size="sm"
+        onClick={() => handleExamplePromptClick(p.promptName)}
+        disabled={isProcessing}
+        className="text-xs px-2 py-1 h-auto"
+        title={p.title}
+      >
+        <p.icon className="mr-1.5 h-3 w-3" />
+        {p.title}
+      </Button>
+    ))
+  );
 
   return (
     <Card className="flex flex-col h-[650px]">
@@ -157,25 +178,13 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
               </Button>
             </div>
         </div>
-        <div className="flex items-center space-x-2 p-2 border rounded-md bg-muted/30">
-            <Globe className="h-4 w-4 text-muted-foreground"/>
-            <Label htmlFor="grounding-toggle" className="flex-grow text-xs font-medium">
-              Enable Google Search for Chat
-            </Label>
-            <Switch
-              id="grounding-toggle"
-              checked={isChatGroundingEnabled}
-              onCheckedChange={setChatGroundingEnabled}
-              disabled={isProcessing}
-            />
-          </div>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col p-4 space-y-4 overflow-hidden">
         <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
           <div className="space-y-4">
             {globalChatHistory.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
-                No messages yet. Try an example prompt or ask a question!
+                No messages yet. Try a prompt or ask a question!
               </div>
             )}
             {globalChatHistory.map((msg) => (
@@ -204,44 +213,15 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
           </div>
         </ScrollArea>
 
-        <div className="flex flex-wrap gap-2 mb-2">
-          {exampleChatPrompts.map((p: ExampleChatPrompt, index: number) => (
-            <Button
-              key={index}
-              variant="outline"
-              size="sm"
-              onClick={() => handleExamplePromptClick(p.promptTemplate)}
-              disabled={isProcessing}
-              className="text-xs px-2 py-1 h-auto"
-            >
-              <HelpCircle className="mr-1.5 h-3 w-3" />
-              {p.title.replace(/{TICKER}/g, currentTickerForDisplay || 'Stock')}
-            </Button>
-          ))}
-          <Button
-            key="web-search-ta"
-            variant="outline"
-            size="sm"
-            onClick={() => handleExamplePromptClick(WEB_SEARCH_TA_PROMPT_KEY)}
-            disabled={isProcessing}
-            className="text-xs px-2 py-1 h-auto"
-            title="Run TA Web Search"
-          >
-            <HelpCircle className="mr-1.5 h-3 w-3" />
-            Run TA Web Search
-          </Button>
-          <Button
-            key="web-search-options"
-            variant="outline"
-            size="sm"
-            onClick={() => handleExamplePromptClick(WEB_SEARCH_OPTIONS_PROMPT_KEY)}
-            disabled={isProcessing}
-            className="text-xs px-2 py-1 h-auto"
-            title="Run Options Web Search"
-          >
-            <HelpCircle className="mr-1.5 h-3 w-3" />
-            Run Options Web Search
-          </Button>
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1">App Data Analysis (No Web Search)</div>
+            <div className="flex flex-wrap gap-2">{renderPromptButtons(appDataButtons)}</div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1">Google Search Grounded Analysis</div>
+            <div className="flex flex-wrap gap-2">{renderPromptButtons(webSearchButtons)}</div>
+          </div>
         </div>
 
         <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 pt-2 border-t">

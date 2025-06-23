@@ -27,7 +27,7 @@ export interface ChatActionInputs {
   aiOptionsAnalysisJson?: string;
   chatHistory?: Array<{ role: 'user' | 'model'; content: string }>;
   userInput: string;
-  isChatGroundingEnabled?: boolean;
+  promptName?: string;
 }
 
 export async function chatServerAction(
@@ -42,10 +42,10 @@ export async function chatServerAction(
     aiOptionsAnalysisJson,
     chatHistory,
     userInput,
-    isChatGroundingEnabled
+    promptName,
   } = payload;
   const actionLogPrefix = `[ServerAction:chatServerAction:Ticker:${ticker || 'N/A'}]`;
-  console.log(`${actionLogPrefix} Action_Entry - Received request. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}. Grounding: ${isChatGroundingEnabled}. PrevState status: ${prevState.status}`);
+  console.log(`${actionLogPrefix} Action_Entry - Received request. PromptName: ${promptName || 'default_chat'}. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}. PrevState status: ${prevState.status}`);
 
 
   if (!userInput || userInput.trim() === '') {
@@ -56,32 +56,12 @@ export async function chatServerAction(
       error: errorMsg,
       message: 'Please provide a question or statement.',
       data: {
-        chatbotRequestJson: JSON.stringify({ error: errorMsg, ticker, userInput }, null, 2),
+        chatbotRequestJson: JSON.stringify({ error: errorMsg, ticker, userInput, promptName }, null, 2),
         chatbotResponseJson: JSON.stringify({ error: errorMsg, details: "User input was empty." }, null, 2),
       },
     };
   }
-
-  // If grounding is NOT enabled, we enforce the requirement for contextual data.
-  // If grounding IS enabled, we bypass this check and allow the flow to proceed.
-  if (!isChatGroundingEnabled) {
-    if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' ||
-        !aiKeyTakeawaysJson || aiKeyTakeawaysJson === '{}' ||
-        !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') {
-       const errorMsg = 'Contextual stock data is missing for the chat.';
-       console.warn(`${actionLogPrefix} Action_ValidationError (Grounding OFF) - ${errorMsg}. Snapshot empty: ${stockSnapshotJson === '{}'}, Takeaways empty: ${aiKeyTakeawaysJson === '{}'}, Analyzed TA empty: ${aiAnalyzedTaJson === '{}'}`);
-       return {
-        status: 'error',
-        error: errorMsg,
-        message: 'Cannot process chat without full stock context. Analyze a stock first or enable Google Search.',
-        data: {
-          chatbotRequestJson: JSON.stringify({ error: errorMsg, payloadSnapshot: { ticker, userInput, chatHistoryLength: chatHistory?.length || 0 } }, null, 2),
-          chatbotResponseJson: JSON.stringify({ error: errorMsg, details: "Missing contextual stock data for chat." }, null, 2),
-        },
-      };
-    }
-  }
-
+  
   const flowInput: ChatInput = {
     ticker,
     stockSnapshotJson,
@@ -90,11 +70,11 @@ export async function chatServerAction(
     aiOptionsAnalysisJson: aiOptionsAnalysisJson || "{}",
     chatHistory: chatHistory || [],
     userInput,
-    isChatGroundingEnabled: isChatGroundingEnabled || false,
+    promptName: promptName,
   };
 
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
-  console.log(`${actionLogPrefix} Action_PreFlowCall - Calling chatWithBot flow. Grounding enabled: ${flowInput.isChatGroundingEnabled}. Input keys: ${Object.keys(flowInput).join(', ')}. History length: ${flowInput.chatHistory.length}.`);
+  console.log(`${actionLogPrefix} Action_PreFlowCall - Calling chatWithBot flow. PromptName: ${flowInput.promptName || 'default_chat'}. Input keys: ${Object.keys(flowInput).join(', ')}. History length: ${flowInput.chatHistory.length}.`);
 
   try {
     const flowOutput: ChatOutput = await chatWithBot(flowInput);

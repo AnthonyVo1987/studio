@@ -30,7 +30,7 @@ export const ChatInputSchema = z.object({
       content: z.string(),
     })).optional().describe('Previous turns in the conversation. Optional.'),
   userInput: z.string().describe('The latest question or statement from the user.'),
-  isChatGroundingEnabled: z.boolean().optional().describe('When true, the model should use Google Search to ground its response with real-time information.'),
+  promptName: z.string().optional().describe("The name of the specific prompt definition to use (e.g., 'stock-trader-takeaways'). If omitted, defaults to general chat."),
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
@@ -40,6 +40,3 @@ export const ChatOutputSchema = z.object({
   rawResponse: z.any().optional().describe('The full raw response object from the Genkit API, including grounding metadata.'),
 });
 export type ChatOutput = z.infer<typeof ChatOutputSchema>;
-
-// Example prompts are now loaded from src/ai/prompts/example-chat-prompts.json
-// The chatbot.tsx component will handle loading this JSON.

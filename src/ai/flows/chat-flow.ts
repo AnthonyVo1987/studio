@@ -2,8 +2,9 @@
 'use server';
 /**
  * @fileOverview Implements a contextual chatbot flow for stock-related questions.
- * This flow is now intelligent and can handle standard chat, augmented TA searches,
- * and augmented Options searches by loading the appropriate prompt definition dynamically.
+ * This flow is now intelligent and can handle standard chat, web searches,
+ * and other predefined prompts by loading the appropriate prompt definition dynamically
+ * based on the 'promptName' input.
  *
  * - chatWithBot - The main function for the chatbot flow.
  * - ChatInput (from schemas) - The input type for the chatWithBot function.
@@ -24,29 +25,13 @@ import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefin
 // Caches for the prompt objects
 const promptCache: Record<string, any> = {};
 
-const WEB_SEARCH_TA_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_TA";
-const WEB_SEARCH_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_OPTIONS";
-
 async function getChatPrompt(input: ChatInput) {
-  let definitionName: string;
-  let isGroundedSearch: boolean;
-
-  if (input.userInput.includes(WEB_SEARCH_TA_PROMPT_KEY)) {
-    definitionName = 'technical-analysis-web-search';
-    isGroundedSearch = true;
-  } else if (input.userInput.includes(WEB_SEARCH_OPTIONS_PROMPT_KEY)) {
-    definitionName = 'options-flow-web-search';
-    isGroundedSearch = true;
-  } else {
-    definitionName = 'stock-chatbot';
-    isGroundedSearch = input.isChatGroundingEnabled || false;
-  }
-
+  const definitionName = input.promptName || 'stock-chatbot';
   const logPrefix = `[AIFlow:getChatPrompt:${definitionName}]`;
 
   if (promptCache[definitionName]) {
     console.log(`${logPrefix} Returning cached prompt object.`);
-    return promptCache[definitionName];
+    return { prompt: promptCache[definitionName], isGrounded: promptCache[definitionName].__isGrounded || false };
   }
 
   const genericDefinition = await loadDefinition(definitionName);
@@ -56,6 +41,7 @@ async function getChatPrompt(input: ChatInput) {
     throw new Error(errorMsg);
   }
   const promptDefinition = genericDefinition as LlmPromptDefinition;
+  const isGroundedSearch = promptDefinition.useGoogleSearch || false;
 
   const promptString = buildPromptStringFromLlmDefinition(promptDefinition);
   const modelId = promptDefinition.modelId || DEFAULT_CHAT_MODEL_ID;
@@ -76,9 +62,7 @@ async function getChatPrompt(input: ChatInput) {
 
   if (isGroundedSearch) {
     promptConfig.tools = [{ googleSearch: {} }];
-    // For grounded searches, we expect a raw text response, so NO output schema.
   } else {
-    // For standard chat, we expect a structured response.
     promptOptions.output = { schema: z.object({ response: z.string() }) };
   }
 
@@ -87,8 +71,9 @@ async function getChatPrompt(input: ChatInput) {
   );
 
   const prompt = ai.definePrompt(promptOptions);
+  prompt.__isGrounded = isGroundedSearch; // Attach metadata for the flow
   promptCache[definitionName] = prompt;
-  return prompt;
+  return { prompt, isGrounded: isGroundedSearch };
 }
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
@@ -113,12 +98,10 @@ const chatFlow = ai.defineFlow(
   },
   async (input: ChatInput): Promise<ChatOutput> => {
     const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker || 'N/A'}]`;
-    const isWebSearch = input.userInput.includes('SYSTEM_TRIGGER:WEB_SEARCH');
-    const isGrounded = isWebSearch || input.isChatGroundingEnabled || false;
-    console.log(`${logPrefix} Flow execution started. Grounding: ${isGrounded}, WebSearch: ${isWebSearch}.`);
+    console.log(`${logPrefix} Flow execution started. PromptName: ${input.promptName || 'default_chat'}.`);
 
     try {
-      const promptToUse = await getChatPrompt(input);
+      const { prompt: promptToUse, isGrounded } = await getChatPrompt(input);
       const result = await promptToUse(input);
       
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
