@@ -376,6 +376,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, localInitialStockDataFetchResult);
   const [formatWebSearchActionState, formatWebSearchFormAction, isFormatWebSearchPending] = useActionState<FormatWebSearchResultsActionState, FormatWebSearchResultsActionInputs>(formatWebSearchResultsAction, localInitialFormatWebSearchResultsState);
 
+  const dataJsonsRef = useRef({ _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, _chatbotRequestJson });
+  useEffect(() => {
+    dataJsonsRef.current = { _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, _chatbotRequestJson };
+  }, [ _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson, _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, _chatbotRequestJson ]);
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
@@ -1031,6 +1035,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   
     const state = fsmStateRef.current;
     const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
+    const dataJsons = dataJsonsRef.current;
   
     type PipelineStep = 'base' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'chat_holistic' | 'web_search_ta' | 'web_search_options';
     const dispatchNextCustomAction = (lastCompletedStep: PipelineStep) => {
@@ -1044,9 +1049,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const dispatchChat = (promptName: string) => {
             logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Trigger', `Triggering chat with promptName: ${promptName}.`);
             const payload: ChatActionInputs = {
-                ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
-                aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
-                chatHistory: _chatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
+                ticker: activeTicker, stockSnapshotJson: dataJsons._stockSnapshotJson, aiKeyTakeawaysJson: dataJsons._aiKeyTakeawaysJson,
+                aiAnalyzedTaJson: dataJsons._aiAnalyzedTaJson, aiOptionsAnalysisJson: dataJsons._aiOptionsAnalysisJson,
+                chatHistory: dataJsons._chatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
             };
             _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
         };
@@ -1086,8 +1091,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     } else if (state.current === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
       _dispatchFsmEventActual({ type: 'INITIATE_AI_TA_SEQUENCE' });
     } else if (state.current === GlobalFsmState.CALCULATING_AI_TA && state.variables.activeTicker && !isAnalyzeTaPending) {
-      if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'SnapshotForAITACalc')) {
-        startTransition(() => { analyzeTaFormAction({ stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! }); });
+      if (isDataReadyForProcessing(dataJsons._stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'SnapshotForAITACalc')) {
+        startTransition(() => { analyzeTaFormAction({ stockSnapshotJson: dataJsons._stockSnapshotJson, ticker: state.variables.activeTicker! }); });
       } else {
         _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: `Snapshot data missing/error for AI TA of ${state.variables.activeTicker}.`, error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({ error: "Snapshot data missing for AI TA", ticker: state.variables.activeTicker }) } });
       }
@@ -1096,8 +1101,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         dispatchNextCustomAction('base');
       }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
-      if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
-        startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson }); });
+      if (isDataReadyForProcessing(dataJsons._stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(dataJsons._standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(dataJsons._aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(dataJsons._marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
+        startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: dataJsons._stockSnapshotJson, standardTasJson: dataJsons._standardTasJson, aiAnalyzedTaJson: dataJsons._aiAnalyzedTaJson, marketStatusJson: dataJsons._marketStatusJson }); });
       } else {
         _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: `Prerequisite data for Key Takeaways of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
       }
@@ -1108,8 +1113,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
       }
     } else if (state.current === GlobalFsmState.ANALYZING_OPTIONS && state.variables.activeTicker && !isPerformAiOptionsAnalysisPending) {
-      if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Snapshot', 'Validation') && isDataReadyForProcessing(_optionsChainJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Chain', 'Validation')) {
-        startTransition(() => { performAiOptionsAnalysisFormAction({ ticker: state.variables.activeTicker!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson }); });
+      if (isDataReadyForProcessing(dataJsons._stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Snapshot', 'Validation') && isDataReadyForProcessing(dataJsons._optionsChainJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Chain', 'Validation')) {
+        startTransition(() => { performAiOptionsAnalysisFormAction({ ticker: state.variables.activeTicker!, optionsChainJson: dataJsons._optionsChainJson, stockSnapshotJson: dataJsons._stockSnapshotJson }); });
       } else {
         _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: `Prerequisite data for Options Analysis of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
       }
@@ -1123,7 +1128,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       if (state.variables.activePipelineProfile === 'standard') {
         let lastPromptIdentifier: PipelineStep = 'base';
         try {
-          const req = JSON.parse(_chatbotRequestJson);
+          const req = JSON.parse(dataJsons._chatbotRequestJson);
           const promptName = req.promptName;
           if(promptName === 'stock-trader-takeaways') lastPromptIdentifier = "chat_stock";
           else if (promptName === 'options-trader-takeaways') lastPromptIdentifier = "chat_options";
@@ -1153,9 +1158,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     globalFsmReducerState.current, globalFsmReducerState.variables, globalFsmReducerState.flags,
     isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending, 
     isChatPending, isFormatWebSearchPending,
-    _dispatchFsmEventActual, logDebug, contextOriginals, 
-    _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson,
-    _aiKeyTakeawaysJson, _aiOptionsAnalysisJson, _chatHistory, _chatbotRequestJson
+    _dispatchFsmEventActual, logDebug, contextOriginals
   ]);
 
   useEffect(() => {
