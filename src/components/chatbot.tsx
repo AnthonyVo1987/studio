@@ -38,8 +38,8 @@ interface ChatbotProps {
 
 const exampleChatPrompts: ExampleChatPromptsFile = exampleChatPromptsData as ExampleChatPromptsFile;
 
-const AUGMENTED_TA_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_TA_SEARCH";
-const AUGMENTED_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_OPTIONS_SEARCH";
+const WEB_SEARCH_TA_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_TA";
+const WEB_SEARCH_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_OPTIONS";
 
 
 export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: ChatbotProps) {
@@ -219,28 +219,28 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             </Button>
           ))}
           <Button
-            key="aug-ta-search"
+            key="web-search-ta"
             variant="outline"
             size="sm"
-            onClick={() => handleExamplePromptClick(AUGMENTED_TA_PROMPT_KEY)}
+            onClick={() => handleExamplePromptClick(WEB_SEARCH_TA_PROMPT_KEY)}
             disabled={isProcessing}
             className="text-xs px-2 py-1 h-auto"
-            title="Run augmented TA search"
+            title="Run TA Web Search"
           >
             <HelpCircle className="mr-1.5 h-3 w-3" />
-            Run Augmented TA Search
+            Run TA Web Search
           </Button>
           <Button
-            key="aug-options-search"
+            key="web-search-options"
             variant="outline"
             size="sm"
-            onClick={() => handleExamplePromptClick(AUGMENTED_OPTIONS_PROMPT_KEY)}
+            onClick={() => handleExamplePromptClick(WEB_SEARCH_OPTIONS_PROMPT_KEY)}
             disabled={isProcessing}
             className="text-xs px-2 py-1 h-auto"
-            title="Run augmented Options search"
+            title="Run Options Web Search"
           >
             <HelpCircle className="mr-1.5 h-3 w-3" />
-            Run Augmented Options Search
+            Run Options Web Search
           </Button>
         </div>
 

@@ -24,18 +24,18 @@ import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefin
 // Caches for the prompt objects
 const promptCache: Record<string, any> = {};
 
-const AUGMENTED_TA_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_TA_SEARCH";
-const AUGMENTED_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_OPTIONS_SEARCH";
+const WEB_SEARCH_TA_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_TA";
+const WEB_SEARCH_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:WEB_SEARCH_OPTIONS";
 
 async function getChatPrompt(input: ChatInput) {
   let definitionName: string;
   let isGroundedSearch: boolean;
 
-  if (input.userInput.includes(AUGMENTED_TA_PROMPT_KEY)) {
-    definitionName = 'augmented-ta-search';
+  if (input.userInput.includes(WEB_SEARCH_TA_PROMPT_KEY)) {
+    definitionName = 'technical-analysis-web-search';
     isGroundedSearch = true;
-  } else if (input.userInput.includes(AUGMENTED_OPTIONS_PROMPT_KEY)) {
-    definitionName = 'augmented-options-search';
+  } else if (input.userInput.includes(WEB_SEARCH_OPTIONS_PROMPT_KEY)) {
+    definitionName = 'options-flow-web-search';
     isGroundedSearch = true;
   } else {
     definitionName = 'stock-chatbot';
@@ -113,9 +113,9 @@ const chatFlow = ai.defineFlow(
   },
   async (input: ChatInput): Promise<ChatOutput> => {
     const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker || 'N/A'}]`;
-    const isAugmentedSearch = input.userInput.includes('SYSTEM_TRIGGER');
-    const isGrounded = isAugmentedSearch || input.isChatGroundingEnabled || false;
-    console.log(`${logPrefix} Flow execution started. Grounding: ${isGrounded}, Augmented: ${isAugmentedSearch}.`);
+    const isWebSearch = input.userInput.includes('SYSTEM_TRIGGER:WEB_SEARCH');
+    const isGrounded = isWebSearch || input.isChatGroundingEnabled || false;
+    console.log(`${logPrefix} Flow execution started. Grounding: ${isGrounded}, WebSearch: ${isWebSearch}.`);
 
     try {
       const promptToUse = await getChatPrompt(input);

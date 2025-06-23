@@ -58,6 +58,22 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.1.5` (Complete Chat Grounding Consolidation - Phase 1)
+**Tag:** `Phase-44_Task-3.3.16.1.5_ChatGroundingConsolidation_Phase1_Complete`
+**Subject:** `feat(core,ai,fsm): Complete Phase 1 of Chat Grounding Consolidation feature (v3.3.16.1.5)`
+**Details:**
+This commit (`TBD`) marks the completion of **Phase 1: Terminology & Configuration Refactor** for the new **"AI Chat Prompt & Google Search Grounding Consolidation"** feature. This foundational phase accomplished several key objectives:
+*   **Terminology Standardization:** Renamed all "Augmented" assets (FSM states, flags, variables, UI text) to use the clearer "Web Search" terminology.
+*   **Configuration in JSON:** Enhanced the `LlmPromptDefinitionSchema` to include a `useGoogleSearch` flag and ensured all prompts have `thinkingBudget: -1` by default.
+*   **Prompt Refactoring:** Created new, dedicated JSON prompt definitions for each of the five core chat/search actions (`technical-analysis-web-search.json`, `options-flow-web-search.json`, `stock-trader-takeaways.json`, `options-trader-takeaways.json`, `holistic-takeaways.json`).
+*   **Prompt Content Enhancement:** The two web search prompts were updated with more detailed data requirements.
+*   **Debug Enhancements:** The client debug log buffer was increased to 2000 entries, and default logging settings were made more verbose to aid development.
+
+**Outcome:**
+*   The application's architecture is now prepared for the next phase of the refactor.
+*   All prompt configurations are centralized and more easily managed.
+*   The codebase is clearer and uses standard industry terminology for grounding.
+---
 **App Version:** `v3.3.16.0.0` (Feature Scoping)
 **Tag:** `Phase-43_Task-3.3.16.0.0_ScopeChatGroundingConsolidation`
 **Subject:** `feat(docs): Scope AI Chat Prompt & Google Search Grounding Consolidation feature (v3.3.16)`

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,8 +61,8 @@ export function DebugTabContent() {
     aiKeyTakeawaysJson,
     chatbotRequestJson,
     chatbotResponseJson,
-    rawAugmentedTaResponseJson,
-    rawAugmentedOptionsResponseJson,
+    rawWebSearchTaResponseJson,
+    rawWebSearchOptionsResponseJson,
     logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
@@ -103,8 +104,8 @@ export function DebugTabContent() {
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
     { title: "Chatbot Request JSON", data: chatbotRequestJson, description: "Chatbot Request JSON (includes interactive chat requests)." },
     { title: "Chatbot Response JSON", data: chatbotResponseJson, description: "Chatbot Response JSON (includes interactive chat responses)." },
-    { title: "Raw Augmented TA Chat Response JSON", data: rawAugmentedTaResponseJson, description: "Raw response, including metadata, from the Augmented TA grounded search." },
-    { title: "Raw Augmented Options Chat Response JSON", data: rawAugmentedOptionsResponseJson, description: "Raw response, including metadata, from the Augmented Options grounded search." },
+    { title: "Raw Web Search TA Response JSON", data: rawWebSearchTaResponseJson, description: "Raw response, including metadata, from the TA web search." },
+    { title: "Raw Web Search Options Response JSON", data: rawWebSearchOptionsResponseJson, description: "Raw response, including metadata, from the Options web search." },
   ];
 
   return (

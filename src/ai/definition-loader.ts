@@ -27,6 +27,7 @@ export const LlmPromptDefinitionSchema = z.object({
     threshold: z.string(),
   })).optional(),
   thinkingBudget: z.number().optional().describe("Sets a budget for thinking tokens. -1 for dynamic allocation, 0 to disable, >0 for specific limit."),
+  useGoogleSearch: z.boolean().optional().describe("Whether to enable Google Search grounding for this prompt."),
   chainOfThought: z.array(LlmChainOfThoughtStepSchema).optional(),
   outputSchemaHint: z.string().optional(),
 });

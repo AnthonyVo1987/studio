@@ -1,0 +1,33 @@
+{
+  "definitionType": "llm-prompt",
+  "promptName": "optionsTraderTakeawaysPrompt",
+  "description": "Provides takeaways and trade setups for options traders.",
+  "modelId": "googleai/gemini-2.5-flash-lite-preview-06-17",
+  "safetySettings": [
+    { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" }
+  ],
+  "thinkingBudget": -1,
+  "useGoogleSearch": false,
+  "outputSchemaHint": "ChatOutputSchema from '@/ai/schemas/chat-schemas'",
+  "chainOfThought": [
+    {
+      "role": "SystemPersona",
+      "parts": [
+        {
+          "text": "You are StockSage, a financial assistant. You will be provided with comprehensive stock data."
+        }
+      ]
+    },
+    {
+      "role": "CoreTask",
+      "parts": [
+        {
+          "text": "**Options Trader's Takeaways for {{{ticker}}}**\n\nBased on a holistic view of all provided data, provide 3-5 concise, single-sentence takeaways as bullet points, focusing on volatility and key levels from TAs and Options Walls. Then, provide recommended trade setups for **Covered Calls (CCs)** and **Cash-Secured Puts (CSPs)** with exact strike prices. If the current data/environment is not ideal for these strategies, you MUST include a clear disclaimer/warning explaining why.\n\n**Example Format:**\n\n- Takeaway 1 as a single sentence.\n\n- Takeaway 2 as a single sentence.\n\n**Recommended Setups:**\n- **Covered Call:** [Suggest a strike, e.g., 'Sell {{{ticker}}} $XXX Call']\n- **Cash-Secured Put:** [Suggest a strike, e.g., 'Sell {{{ticker}}} $YYY Put']\n\n**(If applicable) Warning:** [Your disclaimer text here]"
+        }
+      ]
+    }
+  ]
+}

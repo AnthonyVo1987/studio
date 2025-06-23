@@ -1,0 +1,33 @@
+{
+  "definitionType": "llm-prompt",
+  "promptName": "holisticTakeawaysPrompt",
+  "description": "Provides additional holistic takeaways and an alternative trading strategy.",
+  "modelId": "googleai/gemini-2.5-flash-lite-preview-06-17",
+  "safetySettings": [
+    { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" }
+  ],
+  "thinkingBudget": -1,
+  "useGoogleSearch": false,
+  "outputSchemaHint": "ChatOutputSchema from '@/ai/schemas/chat-schemas'",
+  "chainOfThought": [
+    {
+      "role": "SystemPersona",
+      "parts": [
+        {
+          "text": "You are StockSage, a financial assistant. You will be provided with comprehensive stock data."
+        }
+      ]
+    },
+    {
+      "role": "CoreTask",
+      "parts": [
+        {
+          "text": "**Additional Holistic Takeaways for {{{ticker}}}**\n\nProvide 3-5 additional holistic key takeaways as concise, single-sentence bullet points. These should be distinct from typical price/trend summaries. Then, if viable, provide one alternative or additional stock/options trading strategy (e.g., Straddle, Strangle, Collar) based on the current data and environment.\n\n**Example Format:**\n\n- Holistic takeaway 1 as a single sentence.\n\n- Holistic takeaway 2 as a single sentence.\n\n**Alternative Strategy:**\n- [Describe the strategy and rationale, e.g., 'A straddle at the $XXX strike could be considered to play a potential volatility expansion.']"
+        }
+      ]
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 
 # Feature Scope: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16.0.0)
 
-**Document Version:** 2.0
-**Date:** 2025-07-05
+**Document Version:** 3.0
+**Date:** 2025-07-06
 **Target Application Version Series:** 3.3.16.x.z
-**Feature Status:** PLANNED
+**Feature Status:** IN PROGRESS
 
 ## 1. Introduction & Objective
 
@@ -86,36 +86,40 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 
 ### Phase 1: Terminology & Configuration Refactor
 *   **Objective:** Rename all "Augmented" assets, update prompt content, and embed configuration (`useGoogleSearch`, `thinkingBudget`) into JSON definitions.
+*   **Status:** `COMPLETED`
 *   **Tasks:**
-    *   **v3.3.16.1.0:** Rename `isAugmented...` flags and `rawAugmented...Json` variables to `isWebSearch...` and `rawWebSearch...Json` in `stock-analysis-context.tsx`, `main-tab-content.tsx`, and `debug-tab-content.tsx`.
-    *   **v3.3.16.1.1:** Add `useGoogleSearch: boolean` to `LlmPromptDefinitionSchema` in `src/ai/definition-loader.ts`.
-    *   **v3.3.16.1.2:** Rename prompt files: `augmented-ta-search.json` -> `technical-analysis-web-search.json`, `augmented-options-search.json` -> `options-flow-web-search.json`. Create new prompt JSONs for the three standard chat takeaways (`stock-trader-takeaways.json`, `options-trader-takeaways.json`, `holistic-takeaways.json`).
-    *   **v3.3.16.1.3:** Update all five new and two existing (`analyze-stock-data`, `analyze-options-chain`) prompt JSONs to include `thinkingBudget: -1`.
-    *   **v3.3.16.1.4:** Update all five new chat/search prompt JSONs with the correct `useGoogleSearch` flag (`true` for web search, `false` for app data analysis).
-    *   **v3.3.16.1.5:** Update the content of `technical-analysis-web-search.json` and `options-flow-web-search.json` with the new, expanded data requirements.
+    *   **v3.3.16.1.0:** Rename `isAugmented...` flags and `rawAugmented...Json` variables to `isWebSearch...` and `rawWebSearch...Json` in `stock-analysis-context.tsx`, `main-tab-content.tsx`, and `debug-tab-content.tsx`. (`COMPLETED`)
+    *   **v3.3.16.1.1:** Add `useGoogleSearch: boolean` to `LlmPromptDefinitionSchema` in `src/ai/definition-loader.ts`. (`COMPLETED`)
+    *   **v3.3.16.1.2:** Rename/create prompt JSON definition files. (`COMPLETED`)
+    *   **v3.3.16.1.3:** Add `thinkingBudget: -1` to all prompt JSONs. (`COMPLETED`)
+    *   **v3.3.16.1.4:** Add `useGoogleSearch` flag to all relevant prompt JSONs. (`COMPLETED`)
+    *   **v3.3.16.1.5:** Update content of web search prompts with new requirements. (`COMPLETED`)
 
 ### Phase 2: AI Flow, FSM, and UI Unification
 *   **Objective:** Centralize all chat/search logic into the `chat-flow` and connect the UI/FSM to this new unified system.
+*   **Status:** `PLANNED`
 *   **Tasks:**
-    *   **v3.3.16.2.0:** Refactor `chat-flow.ts` to be a pure orchestrator. It must accept a `promptName` in its input, load the corresponding definition, and dynamically configure the `ai.definePrompt` call (including `tools` based on the `useGoogleSearch` flag).
-    *   **v3.3.16.2.1:** Update `chat-schemas.ts` and `chat-server-action.ts` to include and pass through the new `promptName` parameter.
-    *   **v3.3.16.2.2:** Remove the "Enable Google Search for Chat" `Switch` and its state from `chatbot.tsx` and `stock-analysis-context.tsx`.
-    *   **v3.3.16.2.3:** Reorganize the `Button` components in `chatbot.tsx` into "App Data Analysis" and "Google Search Grounded Analysis" categories. Update their `onClick` handlers to dispatch `SUBMIT_CHAT_MESSAGE` with the correct `promptName` for each button.
-    *   **v3.3.16.2.4:** Refactor the FSM orchestrator (`stock-analysis-context.tsx`) to remove `TRIGGER_AUGMENTED_..._SEARCH` events. The main pipeline should now dispatch `SUBMIT_CHAT_MESSAGE` events with the correct `promptName` based on which toggles are enabled.
+    *   **v3.3.16.2.0:** Refactor `chat-flow.ts` to be a pure, `promptName`-driven orchestrator. (`PLANNED`)
+    *   **v3.3.16.2.1:** Update schemas and server action to use `promptName`. (`PLANNED`)
+    *   **v3.3.16.2.2:** Remove global "Enable Google Search for Chat" UI and state. (`PLANNED`)
+    *   **v3.3.16.2.3:** Reorganize Chatbot buttons and update their dispatch logic. (`PLANNED`)
+    *   **v3.3.16.2.4:** Refactor FSM orchestrator to use new `SUBMIT_CHAT_MESSAGE` with `promptName` for pipeline macros. (`PLANNED`)
 
 ### Phase 3: Debugging & Cleanup
 *   **Objective:** Implement the requested logging changes and remove obsolete files.
+*   **Status:** `PLANNED`
 *   **Tasks:**
-    *   **v3.3.16.3.0:** In `global-log-buffer.ts`, increase `MAX_BUFFER_SIZE` to `2000`.
-    *   **v3.3.16.3.1:** In `stock-analysis-context.tsx`, set default `isReducedStartupLoggingEnabled` to `false` and `isUiRenderLoggingEnabled` to `true`.
-    *   **v3.3.16.3.2:** Systematically audit and update all relevant debug logs in FSM, flows, and components to reflect the new `promptName`-based architecture.
+    *   **v3.3.16.3.0:** Increase debug log buffer to 2000. (`PLANNED`)
+    *   **v3.3.16.3.1:** Change default log settings. (`PLANNED`)
+    *   **v3.3.16.3.2:** Audit and update all debug log messages for new architecture. (`PLANNED`)
     *   **v3.3.16.3.3:** Delete the deprecated `augmented-ta-search-flow.ts` and `augmented-options-search-flow.ts` files and remove them from `src/ai/dev.ts`.
 
 ### Phase 4: Final Testing & Documentation
 *   **Objective:** Perform comprehensive end-to-end testing and finalize all project documentation.
+*   **Status:** `PLANNED`
 *   **Tasks:**
-    *   **v3.3.16.4.0:** Comprehensive testing of all chat/search paths and all customizable analysis pipeline toggle combinations.
-    *   **v3.3.16.4.1:** Final "Phase Completion Commit" to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor.
+    *   **v3.3.16.4.0:** Comprehensive testing of all chat/search paths and all customizable analysis pipeline toggle combinations. (`PLANNED`)
+    *   **v3.3.16.4.1:** Final "Phase Completion Commit" to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor. (`PLANNED`)
 
 ## 5. Value Added Proposition
 
@@ -132,5 +136,6 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 
 ## 7. Document Changelog
 
+*   **v3.0 (2025-07-06):** Marked Phase 1 as COMPLETED.
 *   **v2.0 (2025-07-05):** Added detailed, multi-phase implementation plan.
 *   **v1.0 (2025-07-05):** Initial document creation based on a comprehensive audit and new feature request.
