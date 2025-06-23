@@ -1,0 +1,41 @@
+
+{
+  "definitionType": "llm-prompt",
+  "promptName": "augmentedOptionsSearchPrompt",
+  "description": "Uses Google Search to find advanced options metrics like Max Pain, GEX, and Put/Call Ratio for a given stock.",
+  "modelId": "googleai/gemini-2.5-flash-lite-preview-06-17",
+  "safetySettings": [
+    { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH" },
+    { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" }
+  ],
+  "thinkingBudget": -1,
+  "outputSchemaHint": "AugmentedOptionsSearchOutputSchema from '@/ai/schemas/augmented-options-search-schemas'",
+  "chainOfThought": [
+    {
+      "role": "SystemSetup",
+      "parts": [
+        {
+          "text": "You are a specialized financial data retrieval agent. Your ONLY task is to use the provided Google Search tool to find specific, advanced options flow metrics for a given stock ticker and format the result as a JSON string."
+        }
+      ]
+    },
+    {
+      "role": "CoreTask",
+      "parts": [
+        {
+          "text": "For the stock ticker {{{ticker}}}, use the Google Search tool to find the most recent values for the following advanced options metrics:\n1.  **Max Pain:** The strike price at which the maximum number of options (puts and calls) would expire worthless.\n2.  **Gamma Exposure (GEX):** An estimate of how much market makers will need to hedge their positions.\n3.  **Put/Call Ratio:** The ratio of the volume of put options to call options.\n\nPerform individual searches for each metric to get the most accurate, up-to-date information. For example, search for '{{{ticker}}} max pain', '{{{ticker}}} gamma exposure gex', etc."
+        }
+      ]
+    },
+    {
+      "role": "OutputRequirements",
+      "parts": [
+        {
+          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. The JSON object should conform to the 'AugmentedOptionsSearchOutputSchema'.\n- `maxPain`: number or null\n- `gammaExposure`: string or null (e.g., \"High positive GEX\", \"Negative GEX\")\n- `putCallRatio`: number or null\n\nIf a metric cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. Your entire response MUST begin with `{` and end with `}`."
+        }
+      ]
+    }
+  ]
+}
