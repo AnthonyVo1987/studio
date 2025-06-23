@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
@@ -207,13 +208,35 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
               variant="outline"
               size="sm"
               onClick={() => handleExamplePromptClick(p.promptTemplate)}
-              disabled={isProcessing} 
+              disabled={isProcessing}
               className="text-xs px-2 py-1 h-auto"
             >
               <HelpCircle className="mr-1.5 h-3 w-3" />
               {p.title.replace(/{TICKER}/g, currentTickerForDisplay || 'Stock')}
             </Button>
           ))}
+          <Button
+            key="aug-ta-search"
+            variant="outline"
+            size="sm"
+            disabled={true}
+            className="text-xs px-2 py-1 h-auto"
+            title="Functionality to be implemented"
+          >
+            <HelpCircle className="mr-1.5 h-3 w-3" />
+            Run Augmented TA Search
+          </Button>
+          <Button
+            key="aug-options-search"
+            variant="outline"
+            size="sm"
+            disabled={true}
+            className="text-xs px-2 py-1 h-auto"
+            title="Functionality to be implemented"
+          >
+            <HelpCircle className="mr-1.5 h-3 w-3" />
+            Run Augmented Options Search
+          </Button>
         </div>
 
         <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 pt-2 border-t">
@@ -234,5 +257,3 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
     </Card>
   );
 }
-
-    

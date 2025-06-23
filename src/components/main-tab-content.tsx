@@ -14,8 +14,6 @@ import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details
 import { MarketStatusDisplay } from "@/components/market-status-display";
 import { StandardTaDisplay } from "@/components/standard-ta-display";
 import { AiAnalyzedTaDisplay } from "@/components/ai-analyzed-ta-display";
-import { AugmentedTaRawDisplay } from "@/components/augmented-ta-raw-display";
-import { AugmentedOptionsRawDisplay } from "@/components/augmented-options-raw-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
@@ -205,11 +203,11 @@ export function MainTabContent() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
-              <Label htmlFor="toggle-aug-ta" className="flex-grow text-sm">Augmented Technical Analysis Indicators</Label>
+              <Label htmlFor="toggle-aug-ta" className="flex-grow text-sm">Run Augmented TA in Chat Post-Analysis</Label>
               <Switch id="toggle-aug-ta" checked={globalFsmFlags.isAugmentedTaSearchEnabled} onCheckedChange={(checked) => handleToggleChange('augmented_ta_search', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
-              <Label htmlFor="toggle-aug-options" className="flex-grow text-sm">Augmented Options Flow Analysis</Label>
+              <Label htmlFor="toggle-aug-options" className="flex-grow text-sm">Run Augmented Options in Chat Post-Analysis</Label>
               <Switch id="toggle-aug-options" checked={globalFsmFlags.isAugmentedOptionsSearchEnabled} onCheckedChange={(checked) => handleToggleChange('augmented_options_search', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
           </CardContent>
@@ -246,11 +244,9 @@ export function MainTabContent() {
           <StockSnapshotDetailsDisplay />
           <StandardTaDisplay />
           <AiAnalyzedTaDisplay />
-          <AugmentedTaRawDisplay />
           <AiKeyTakeawaysDisplay />
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
-          <AugmentedOptionsRawDisplay />
           <ChatbotFsmProvider 
             dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
             currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 

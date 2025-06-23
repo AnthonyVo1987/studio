@@ -11,8 +11,6 @@ import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
 import { chatServerAction, type ChatActionState, type ChatActionInputs, type ChatActionResult } from '@/actions/chat-server-action';
-import { augmentedTaSearchAction, type AugmentedTaSearchActionState, type AugmentedTaSearchResult } from '@/actions/augmented-ta-search-action';
-import { augmentedOptionsSearchAction, type AugmentedOptionsSearchActionState, type AugmentedOptionsSearchResult } from '@/actions/augmented-options-search-action';
 import { useActionState, startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import exampleChatPromptsData from '@/ai/definitions/example-chat-prompts.json';
@@ -318,8 +316,6 @@ const localInitialStockDataFetchResult: AnalyzeStockServerActionState = { status
 const localInitialAnalyzeTaState: AnalyzeTaActionState = { status: 'idle', data: undefined, error: null, message: null };
 const localInitialPerformAiAnalysisState: PerformAiAnalysisActionState = { status: 'idle', data: undefined, error: null, message: null };
 const localInitialPerformAiOptionsAnalysisState: PerformAiOptionsAnalysisActionState = { status: 'idle', data: undefined, error: null, message: null };
-const localInitialAugmentedTaSearchState: AugmentedTaSearchActionState = { status: 'idle', data: undefined, error: null, message: null };
-const localInitialAugmentedOptionsSearchState: AugmentedOptionsSearchActionState = { status: 'idle', data: undefined, error: null, message: null };
 
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -932,8 +928,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const [fetchDataActionState, fetchStockDataFormAction, isFetchDataPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(fetchStockDataAction, localInitialStockDataFetchResult);
   const [analyzeTaActionState, analyzeTaFormAction, isAnalyzeTaPending] = useActionState<AnalyzeTaActionState, { stockSnapshotJson: string, ticker?: string }>(analyzeTaAction, localInitialAnalyzeTaState);
-  const [augmentedTaSearchActionState, augmentedTaSearchFormAction, isAugmentedTaSearchPending] = useActionState<AugmentedTaSearchActionState, { ticker: string }>(augmentedTaSearchAction, localInitialAugmentedTaSearchState);
-  const [augmentedOptionsSearchActionState, augmentedOptionsSearchFormAction, isAugmentedOptionsSearchPending] = useActionState<AugmentedOptionsSearchActionState, { ticker: string }>(augmentedOptionsSearchAction, localInitialAugmentedOptionsSearchState);
   const [performAiAnalysisActionState, performAiAnalysisFormAction, isPerformAiAnalysisPending] = useActionState<PerformAiAnalysisActionState, { ticker: string, stockSnapshotJson: string, standardTasJson: string, aiAnalyzedTaJson: string, marketStatusJson: string }>(performAiAnalysisAction, localInitialPerformAiAnalysisState);
   const [performAiOptionsAnalysisActionState, performAiOptionsAnalysisFormAction, isPerformAiOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, { ticker: string, optionsChainJson: string, stockSnapshotJson: string }>(performAiOptionsAnalysisAction, localInitialPerformAiOptionsAnalysisState);
   
@@ -949,33 +943,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_ERROR', payload: { error: chatActionState.error, message: chatActionState.message, chatbotRequestJson: chatActionState.data?.chatbotRequestJson, chatbotResponseJson: chatActionState.data?.chatbotResponseJson }});
     }
   }, [chatActionState, isChatPending, dispatchFsmEvent, logDebug]);
-  
-  useEffect(() => {
-    const logPrefix = 'StockAnalysisContext:AugmentedTaActionStateEffect';
-    if (augmentedTaSearchActionState.status === 'idle' || isAugmentedTaSearchPending) return;
-    const { status, data, error, message } = augmentedTaSearchActionState;
-    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${status}, Message: ${message}, Error: ${error}`);
-    if (status === 'success' && data) {
-      contextSetters.setAugmentedTaSearchJson(data.augmentedTaSearchJson);
-    } else if (status === 'error') {
-      const errorJson = JSON.stringify({ error, details: message }, null, 2);
-      contextSetters.setAugmentedTaSearchJson(errorJson);
-    }
-  }, [augmentedTaSearchActionState, isAugmentedTaSearchPending, contextSetters.setAugmentedTaSearchJson, logDebug]);
-
-  useEffect(() => {
-    const logPrefix = 'StockAnalysisContext:AugmentedOptionsActionStateEffect';
-    if (augmentedOptionsSearchActionState.status === 'idle' || isAugmentedOptionsSearchPending) return;
-    const { status, data, error, message } = augmentedOptionsSearchActionState;
-    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${status}, Message: ${message}, Error: ${error}`);
-    if (status === 'success' && data) {
-      contextSetters.setAugmentedOptionsSearchJson(data.augmentedOptionsSearchJson);
-    } else if (status === 'error') {
-      const errorJson = JSON.stringify({ error, details: message }, null, 2);
-      contextSetters.setAugmentedOptionsSearchJson(errorJson);
-    }
-  }, [augmentedOptionsSearchActionState, isAugmentedOptionsSearchPending, contextSetters.setAugmentedOptionsSearchJson, logDebug]);
-
 
   useEffect(() => {
     contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', globalFsmReducerState.current, 'Active Ticker:', globalFsmReducerState.variables.activeTicker, 'Profile:', globalFsmReducerState.variables.activePipelineProfile, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', globalFsmReducerState.variables.isInitialLoad);
@@ -1048,18 +1015,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: `Snapshot data missing/error for AI TA of ${state.variables.activeTicker}.`, error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({ error: "Snapshot data missing for AI TA", ticker: state.variables.activeTicker }) } });
       }
     } else if (state.current === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED) {
-      const activeTicker = state.variables.activeTicker;
-      if (activeTicker) {
-        logDebug(logPrefixOrchestrator as LogSourceId, 'ParallelExecutionStart', 'Base pipeline complete. Dispatching parallel augmented searches and main custom pipeline.');
-        if (state.flags.isAugmentedTaSearchEnabled) {
-          logDebug(logPrefixOrchestrator as LogSourceId, 'ParallelExecutionTrigger', 'Triggering Augmented TA Search.');
-          startTransition(() => { augmentedTaSearchFormAction({ ticker: activeTicker }); });
-        }
-        if (state.flags.isAugmentedOptionsSearchEnabled) {
-          logDebug(logPrefixOrchestrator as LogSourceId, 'ParallelExecutionTrigger', 'Triggering Augmented Options Search.');
-          startTransition(() => { augmentedOptionsSearchFormAction({ ticker: activeTicker }); });
-        }
-      }
       if (state.variables.activePipelineProfile === 'standard') {
         dispatchNextCustomAction('base');
       }
@@ -1109,7 +1064,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [
     globalFsmReducerState.current, globalFsmReducerState.variables, globalFsmReducerState.flags,
     isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending, 
-    isAugmentedTaSearchPending, isAugmentedOptionsSearchPending,
     isChatPending, 
     _dispatchFsmEventActual, logDebug, contextOriginals, 
     _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson, _marketStatusJson, _optionsChainJson,
