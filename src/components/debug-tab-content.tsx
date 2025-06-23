@@ -104,8 +104,8 @@ export function DebugTabContent() {
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
     { title: "Chatbot Request JSON", data: chatbotRequestJson, description: "Chatbot Request JSON (includes interactive chat requests)." },
     { title: "Chatbot Response JSON", data: chatbotResponseJson, description: "Chatbot Response JSON (includes interactive chat responses)." },
-    { title: "Raw Web Search TA Response JSON", data: rawWebSearchTaResponseJson, description: "Raw response, including metadata, from the TA web search." },
-    { title: "Raw Web Search Options Response JSON", data: rawWebSearchOptionsResponseJson, description: "Raw response, including metadata, from the Options web search." },
+    { title: "Raw Web Search TA Response JSON", data: rawWebSearchTaResponseJson, description: "Raw response from the chat flow for TA web searches, including grounding metadata." },
+    { title: "Raw Web Search Options Response JSON", data: rawWebSearchOptionsResponseJson, description: "Raw response from the chat flow for Options web searches, including grounding metadata." },
   ];
 
   return (

@@ -14,7 +14,7 @@ export interface GlobalLogEntry {
 }
 
 export const globalLogEntries: GlobalLogEntry[] = [];
-const MAX_BUFFER_SIZE = 2000; // Increased from 1000 to 2000
+const MAX_BUFFER_SIZE = 2000;
 
 let logIdCounter = 0;
 function generateId(): string {
