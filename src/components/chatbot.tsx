@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import exampleChatPromptsData from '@/ai/definitions/example-chat-prompts.json';
-import type { ExampleChatPrompt, ExampleChatPromptsFile } from '@/ai/prompt-loader';
+import type { ExampleChatPrompt, ExampleChatPromptsFile } from '@/ai/definition-loader';
 
 import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle, Globe } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -37,6 +37,9 @@ interface ChatbotProps {
 }
 
 const exampleChatPrompts: ExampleChatPromptsFile = exampleChatPromptsData as ExampleChatPromptsFile;
+
+const AUGMENTED_TA_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_TA_SEARCH";
+const AUGMENTED_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_OPTIONS_SEARCH";
 
 
 export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: ChatbotProps) {
@@ -219,9 +222,10 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             key="aug-ta-search"
             variant="outline"
             size="sm"
-            disabled={true}
+            onClick={() => handleExamplePromptClick(AUGMENTED_TA_PROMPT_KEY)}
+            disabled={isProcessing}
             className="text-xs px-2 py-1 h-auto"
-            title="Functionality to be implemented"
+            title="Run augmented TA search"
           >
             <HelpCircle className="mr-1.5 h-3 w-3" />
             Run Augmented TA Search
@@ -230,9 +234,10 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             key="aug-options-search"
             variant="outline"
             size="sm"
-            disabled={true}
+            onClick={() => handleExamplePromptClick(AUGMENTED_OPTIONS_PROMPT_KEY)}
+            disabled={isProcessing}
             className="text-xs px-2 py-1 h-auto"
-            title="Functionality to be implemented"
+            title="Run augmented Options search"
           >
             <HelpCircle className="mr-1.5 h-3 w-3" />
             Run Augmented Options Search

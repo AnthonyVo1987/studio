@@ -17,6 +17,9 @@ import exampleChatPromptsData from '@/ai/definitions/example-chat-prompts.json';
 import type { ExampleChatPromptsFile } from '@/ai/definition-loader';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
+const AUGMENTED_TA_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_TA_SEARCH";
+const AUGMENTED_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_OPTIONS_SEARCH";
+
 
 export enum GlobalFsmState {
   APP_INITIALIZING = 'APP_INITIALIZING',
@@ -723,18 +726,35 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'CHAT_MESSAGE_ACTION_SUCCESS':
         if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING) {
-          contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
-          contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
-          try {
-            const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
-            const messageId = `${Date.now()}_${chatMessageIdCounter++}_model_ctx`;
-            if (modelResponse.response) { addChatMessage({ id: messageId, role: 'model', content: modelResponse.response }); }
-            else if (modelResponse.error) { addChatMessage({ id: `${messageId}_err`, role: 'model', content: `Chatbot Error: ${modelResponse.error}` }); }
-          } catch (e) { addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_parse_err`, role: 'model', content: "Error parsing chatbot response." }); }
-          nextVariables.lastError = null;
-          nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS;
-          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_SUCCESS.`);
-        } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `CHAT_MESSAGE_ACTION_SUCCESS ignored. Not in CHAT_MESSAGE_PENDING state.`); }
+            contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
+            contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
+            try {
+                const requestPayload = JSON.parse(event.payload.chatbotRequestJson);
+                const isAugmentedTaRequest = requestPayload.userInput?.includes(AUGMENTED_TA_PROMPT_KEY);
+                const isAugmentedOptionsRequest = requestPayload.userInput?.includes(AUGMENTED_OPTIONS_PROMPT_KEY);
+                
+                const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
+
+                if (isAugmentedTaRequest) {
+                    contextSetters.setRawAugmentedTaResponseJson(JSON.stringify(modelResponse.rawResponse || {}, null, 2));
+                    addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_aug_ta`, role: 'model', content: modelResponse.response });
+                } else if (isAugmentedOptionsRequest) {
+                    contextSetters.setRawAugmentedOptionsResponseJson(JSON.stringify(modelResponse.rawResponse || {}, null, 2));
+                    addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_aug_opt`, role: 'model', content: modelResponse.response });
+                } else {
+                    const messageId = `${Date.now()}_${chatMessageIdCounter++}_model_ctx`;
+                    if (modelResponse.response) { addChatMessage({ id: messageId, role: 'model', content: modelResponse.response }); }
+                    else if (modelResponse.error) { addChatMessage({ id: `${messageId}_err`, role: 'model', content: `Chatbot Error: ${modelResponse.error}` }); }
+                }
+            } catch (e) {
+                addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_parse_err`, role: 'model', content: "Error parsing chatbot response." });
+            }
+            nextVariables.lastError = null;
+            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS;
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_SUCCESS.`);
+        } else {
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `CHAT_MESSAGE_ACTION_SUCCESS ignored. Not in CHAT_MESSAGE_PENDING state.`);
+        }
         nextVariables.pendingChatSubmissionPayload = null;
         break;
       case 'CHAT_MESSAGE_ACTION_ERROR':
@@ -950,52 +970,65 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const state = fsmStateRef.current;
     const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
   
-    type PipelineStep = 'base' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'chat_holistic';
+    type PipelineStep = 'base' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'chat_holistic' | 'augmented_ta' | 'augmented_options';
     const dispatchNextCustomAction = (lastCompletedStep: PipelineStep) => {
-      const activeTicker = state.variables.activeTicker;
-      if (!activeTicker) {
-        logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Guard', `Aborting custom pipeline, no active ticker.`);
-        _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-        return;
-      }
-  
-      const dispatchChat = (promptTitle: string, nextStepName: string) => {
-        const promptTemplate = macroPrompts.find(p => p.title.includes(promptTitle))?.promptTemplate;
-        if (promptTemplate) {
-          logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Trigger', `Triggering ${nextStepName}.`);
-          const payload: ChatActionInputs = {
-            ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
-            aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
-            chatHistory: _chatHistory, userInput: promptTemplate.replace(/{TICKER}/g, activeTicker),
-            isChatGroundingEnabled: _isChatGroundingEnabled,
-          };
-          _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
-        } else {
-          logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Could not find prompt template for '${promptTitle}'. Skipping.`);
-          dispatchNextCustomAction('chat_stock');
+        const activeTicker = state.variables.activeTicker;
+        if (!activeTicker) {
+            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Guard', `Aborting custom pipeline, no active ticker.`);
+            _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+            return;
         }
-      };
-      
-      const stepOrder: PipelineStep[] = ['base', 'key_takeaways', 'options_analysis', 'chat_stock', 'chat_options', 'chat_holistic'];
-      const currentStepIndex = stepOrder.indexOf(lastCompletedStep);
-  
-      if (currentStepIndex === -1) {
-        logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Unknown step '${lastCompletedStep}'. Finalizing pipeline.`);
+
+        const dispatchGroundedChat = (promptKey: string, nextStepName: string) => {
+            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Trigger', `Triggering ${nextStepName}.`);
+            const payload: ChatActionInputs = {
+                ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
+                aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
+                chatHistory: _chatHistory, userInput: `${promptKey} for ${activeTicker}`,
+                isChatGroundingEnabled: true, // Augmented searches are always grounded
+            };
+            _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
+        };
+    
+        const dispatchChat = (promptTitle: string, nextStepName: string) => {
+            const promptTemplate = macroPrompts.find(p => p.title.includes(promptTitle))?.promptTemplate;
+            if (promptTemplate) {
+                logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Trigger', `Triggering ${nextStepName}.`);
+                const payload: ChatActionInputs = {
+                    ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
+                    aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
+                    chatHistory: _chatHistory, userInput: promptTemplate.replace(/{TICKER}/g, activeTicker),
+                    isChatGroundingEnabled: _isChatGroundingEnabled,
+                };
+                _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
+            } else {
+                logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Could not find prompt template for '${promptTitle}'. Skipping.`);
+                dispatchNextCustomAction(nextStepName as PipelineStep); // Skip to next
+            }
+        };
+        
+        const stepOrder: PipelineStep[] = ['base', 'key_takeaways', 'options_analysis', 'chat_stock', 'chat_options', 'chat_holistic', 'augmented_ta', 'augmented_options'];
+        const currentStepIndex = stepOrder.indexOf(lastCompletedStep);
+    
+        if (currentStepIndex === -1) {
+            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Unknown step '${lastCompletedStep}'. Finalizing pipeline.`);
+            _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+            return;
+        }
+    
+        for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
+            const nextStep = stepOrder[i];
+            if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
+            if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
+            if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("Stock Trader", "AI Chat: Stock Trader's Takeaways"); return; }
+            if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchChat("Options Trader", "AI Chat: Options Trader's Takeaways"); return; }
+            if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchChat("Additional Holistic", "AI Chat: Additional Holistic Takeaways"); return; }
+            if (nextStep === 'augmented_ta' && state.flags.isAugmentedTaSearchEnabled) { dispatchGroundedChat(AUGMENTED_TA_PROMPT_KEY, "Augmented TA Search"); return; }
+            if (nextStep === 'augmented_options' && state.flags.isAugmentedOptionsSearchEnabled) { dispatchGroundedChat(AUGMENTED_OPTIONS_PROMPT_KEY, "Augmented Options Search"); return; }
+        }
+    
+        logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `No more custom analyses selected after '${lastCompletedStep}'. Finalizing.`);
         _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-        return;
-      }
-  
-      for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
-        const nextStep = stepOrder[i];
-        if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
-        if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
-        if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("Stock Trader", "AI Chat: Stock Trader's Takeaways"); return; }
-        if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchChat("Options Trader", "AI Chat: Options Trader's Takeaways"); return; }
-        if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchChat("Additional Holistic", "AI Chat: Additional Holistic Takeaways"); return; }
-      }
-  
-      logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `No more custom analyses selected after '${lastCompletedStep}'. Finalizing.`);
-      _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     };
   
     if (state.current === GlobalFsmState.APP_INITIALIZING && !initialInitializationDispatchedRef.current) {
@@ -1050,6 +1083,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           if (req.userInput.includes("Stock Trader's Takeaways")) lastPromptIdentifier = "chat_stock";
           else if (req.userInput.includes("Options Trader's Takeaways")) lastPromptIdentifier = "chat_options";
           else if (req.userInput.includes("Additional Holistic Takeaways")) lastPromptIdentifier = "chat_holistic";
+          else if (req.userInput.includes(AUGMENTED_TA_PROMPT_KEY)) lastPromptIdentifier = "augmented_ta";
+          else if (req.userInput.includes(AUGMENTED_OPTIONS_PROMPT_KEY)) lastPromptIdentifier = "augmented_options";
         } catch (e) { }
         dispatchNextCustomAction(lastPromptIdentifier);
       }
