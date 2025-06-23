@@ -182,8 +182,8 @@ interface StockAnalysisState {
   aiOptionsAnalysisJson: string;
   aiKeyTakeawaysRequestJson: string;
   aiKeyTakeawaysJson: string;
-  augmentedTaSearchJson: string;
-  augmentedOptionsSearchJson: string;
+  rawAugmentedTaResponseJson: string;
+  rawAugmentedOptionsResponseJson: string;
   chatbotRequestJson: string;
   chatbotResponseJson: string;
   chatHistory: ChatMessage[];
@@ -213,8 +213,8 @@ interface StockAnalysisContextSetters {
   setAiOptionsAnalysisJson: (json: string) => void;
   setAiKeyTakeawaysRequestJson: (json: string) => void;
   setAiKeyTakeawaysJson: (json: string) => void;
-  setAugmentedTaSearchJson: (json: string) => void;
-  setAugmentedOptionsSearchJson: (json: string) => void;
+  setRawAugmentedTaResponseJson: (json: string) => void;
+  setRawAugmentedOptionsResponseJson: (json: string) => void;
   setChatbotRequestJson: (json: string) => void;
   setChatbotResponseJson: (json: string) => void;
 }
@@ -294,8 +294,8 @@ const defaultState: StockAnalysisState = {
   aiOptionsAnalysisJson: initialJsonPlaceholder,
   aiKeyTakeawaysRequestJson: initialJsonPlaceholder,
   aiKeyTakeawaysJson: initialJsonPlaceholder,
-  augmentedTaSearchJson: initialJsonPlaceholder,
-  augmentedOptionsSearchJson: initialJsonPlaceholder,
+  rawAugmentedTaResponseJson: initialJsonPlaceholder,
+  rawAugmentedOptionsResponseJson: initialJsonPlaceholder,
   chatbotRequestJson: initialJsonPlaceholder,
   chatbotResponseJson: initialJsonPlaceholder,
   chatHistory: [],
@@ -346,8 +346,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_aiOptionsAnalysisJson, _setAiOptionsAnalysisJson] = useState<string>(defaultState.aiOptionsAnalysisJson);
   const [_aiKeyTakeawaysRequestJson, _setAiKeyTakeawaysRequestJson] = useState<string>(defaultState.aiKeyTakeawaysRequestJson);
   const [_aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
-  const [_augmentedTaSearchJson, _setAugmentedTaSearchJson] = useState<string>(defaultState.augmentedTaSearchJson);
-  const [_augmentedOptionsSearchJson, _setAugmentedOptionsSearchJson] = useState<string>(defaultState.augmentedOptionsSearchJson);
+  const [_rawAugmentedTaResponseJson, _setRawAugmentedTaResponseJson] = useState<string>(defaultState.rawAugmentedTaResponseJson);
+  const [_rawAugmentedOptionsResponseJson, _setRawAugmentedOptionsResponseJson] = useState<string>(defaultState.rawAugmentedOptionsResponseJson);
   const [_chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
   const [_chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
   const [_chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
@@ -387,8 +387,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setAiOptionsAnalysisJson: (json: string) => setAndLogJson(_setAiOptionsAnalysisJson, 'aiOptionsAnalysisJson', json),
     setAiKeyTakeawaysRequestJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json),
     setAiKeyTakeawaysJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json),
-    setAugmentedTaSearchJson: (json: string) => setAndLogJson(_setAugmentedTaSearchJson, 'augmentedTaSearchJson', json),
-    setAugmentedOptionsSearchJson: (json: string) => setAndLogJson(_setAugmentedOptionsSearchJson, 'augmentedOptionsSearchJson', json),
+    setRawAugmentedTaResponseJson: (json: string) => setAndLogJson(_setRawAugmentedTaResponseJson, 'rawAugmentedTaResponseJson', json),
+    setRawAugmentedOptionsResponseJson: (json: string) => setAndLogJson(_setRawAugmentedOptionsResponseJson, 'rawAugmentedOptionsResponseJson', json),
     setChatbotRequestJson: (json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson (Interactive)', json),
     setChatbotResponseJson: (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson (Interactive)', json),
   }), [setAndLogJson]);
@@ -434,8 +434,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     contextSetters.setAiKeyTakeawaysJson(pendingJson);
     contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
     contextSetters.setAiOptionsAnalysisJson(pendingJson);
-    contextSetters.setAugmentedTaSearchJson(pendingJson);
-    contextSetters.setAugmentedOptionsSearchJson(pendingJson);
+    contextSetters.setRawAugmentedTaResponseJson(pendingJson);
+    contextSetters.setRawAugmentedOptionsResponseJson(pendingJson);
     if (isFullAnalysis) {
         contextSetters.setChatbotRequestJson(chatPendingJson);
         contextSetters.setChatbotResponseJson(chatPendingJson);
@@ -1168,8 +1168,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiOptionsAnalysisJson: _aiOptionsAnalysisJson, setAiOptionsAnalysisJson: contextSetters.setAiOptionsAnalysisJson,
     aiKeyTakeawaysRequestJson: _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson: contextSetters.setAiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson: contextSetters.setAiKeyTakeawaysJson,
-    augmentedTaSearchJson: _augmentedTaSearchJson, setAugmentedTaSearchJson: contextSetters.setAugmentedTaSearchJson,
-    augmentedOptionsSearchJson: _augmentedOptionsSearchJson, setAugmentedOptionsSearchJson: contextSetters.setAugmentedOptionsSearchJson,
+    rawAugmentedTaResponseJson: _rawAugmentedTaResponseJson, setRawAugmentedTaResponseJson: contextSetters.setRawAugmentedTaResponseJson,
+    rawAugmentedOptionsResponseJson: _rawAugmentedOptionsResponseJson, setRawAugmentedOptionsResponseJson: contextSetters.setRawAugmentedOptionsResponseJson,
     chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson: contextSetters.setChatbotRequestJson,
     chatbotResponseJson: _chatbotResponseJson, setChatbotResponseJson: contextSetters.setChatbotResponseJson,
     chatHistory: _chatHistory, addChatMessage, clearChatHistory,
@@ -1193,7 +1193,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
     _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
     _aiOptionsAnalysisJson, _aiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson,
-    _augmentedTaSearchJson, _augmentedOptionsSearchJson, _chatbotRequestJson, 
+    _rawAugmentedTaResponseJson, _rawAugmentedOptionsResponseJson, _chatbotRequestJson, 
     _chatbotResponseJson, _chatHistory, addChatMessage,
     clearChatHistory, _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
     _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,

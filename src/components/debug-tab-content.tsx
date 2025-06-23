@@ -60,6 +60,8 @@ export function DebugTabContent() {
     aiKeyTakeawaysJson,
     chatbotRequestJson,
     chatbotResponseJson,
+    rawAugmentedTaResponseJson,
+    rawAugmentedOptionsResponseJson,
     logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
@@ -101,6 +103,8 @@ export function DebugTabContent() {
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
     { title: "Chatbot Request JSON", data: chatbotRequestJson, description: "Chatbot Request JSON (includes interactive chat requests)." },
     { title: "Chatbot Response JSON", data: chatbotResponseJson, description: "Chatbot Response JSON (includes interactive chat responses)." },
+    { title: "Raw Augmented TA Chat Response JSON", data: rawAugmentedTaResponseJson, description: "Raw response, including metadata, from the Augmented TA grounded search." },
+    { title: "Raw Augmented Options Chat Response JSON", data: rawAugmentedOptionsResponseJson, description: "Raw response, including metadata, from the Augmented Options grounded search." },
   ];
 
   return (

@@ -4,7 +4,7 @@
  * @fileOverview Implements a contextual chatbot flow for stock-related questions.
  * This flow uses provided stock data, AI analysis, and chat history to respond to user queries.
  * Prompt definition is now loaded from a JSON file.
- * This flow now supports conditional grounding with Google Search.
+ * This flow now supports conditional grounding with Google Search and returns the full raw response.
  *
  * - chatWithBot - The main function for the chatbot flow.
  * - ChatInput (from schemas) - The input type for the chatWithBot function.
@@ -78,7 +78,9 @@ async function getChatPrompt(isGrounded: boolean) {
   if (isGrounded) {
     promptConfig.tools = [{ googleSearch: {} }];
   } else {
-    promptOptions.output = {schema: ChatOutputSchema};
+    // For standard, non-grounded chat, we still expect the simple text response in the `response` field.
+    // The schema is now flexible to handle both cases.
+    promptOptions.output = {schema: z.object({ response: z.string() })};
   }
   
   console.log(
@@ -139,11 +141,14 @@ const chatFlow = ai.defineFlow(
       }
 
       let responseText: string | undefined;
+      let output: ChatOutput;
 
       if (isGrounded) {
-        responseText = result.text; // For grounded prompts, the response is simple text
+        responseText = result.text;
+        output = { response: responseText, rawResponse: result };
       } else {
-        responseText = result.output?.response; // For standard prompts, it's in the structured output
+        responseText = result.output?.response;
+        output = { response: responseText, rawResponse: result };
       }
 
       if (!responseText || typeof responseText !== 'string' || responseText.trim() === '') {
@@ -152,7 +157,7 @@ const chatFlow = ai.defineFlow(
       }
       
       console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${responseText.substring(0,50)}..."`);
-      return { response: responseText }; // Manually construct the valid output object
+      return output;
 
     } catch (error: any) {
       console.error(`${logPrefix} CRITICAL ERROR during stockChatBotPrompt execution for ticker ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}. Throwing error further.`);

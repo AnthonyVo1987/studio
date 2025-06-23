@@ -36,7 +36,8 @@ export type ChatInput = z.infer<typeof ChatInputSchema>;
 
 
 export const ChatOutputSchema = z.object({
-  response: z.string().describe('The chatbot\'s response, formatted in Markdown.'),
+  response: z.string().optional().describe('The chatbot\'s text response, formatted in Markdown.'),
+  rawResponse: z.any().optional().describe('The full raw response object from the Genkit API, including grounding metadata.'),
 });
 export type ChatOutput = z.infer<typeof ChatOutputSchema>;
 
