@@ -985,7 +985,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
                 aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
                 chatHistory: _chatHistory, userInput: `${promptKey} for ${activeTicker}`,
-                isChatGroundingEnabled: true, // Augmented searches are always grounded
+                isChatGroundingEnabled: true,
             };
             _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
         };
@@ -1003,7 +1003,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
             } else {
                 logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Could not find prompt template for '${promptTitle}'. Skipping.`);
-                dispatchNextCustomAction(nextStepName as PipelineStep); // Skip to next
+                dispatchNextCustomAction(nextStepName as PipelineStep); 
             }
         };
         
