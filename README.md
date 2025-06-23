@@ -1,32 +1,26 @@
+### AI Coding Agent Operating Procedure & Audit Protocol
 
-### AI Coding Agent Operating Procedure Instructions
-7.  **Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user. This ensures that changelogs and feature documents reflect a stable, completed set of work, not work-in-progress, and prevents unnecessary token usage and noise.
-1.  Features will be staged as version '3.w.x.y.z' series. Please follow this version naming convention when I request for commits later on. Do not increment versions on your own.
-    *   App Major Version: 3 (Fixed)
-    *   APP Phase Version (w): Represents the overall feature phase (e.g., 1 for Initial Setup, 2 for FSM Refactor, 3 for UI Enhancements).
-    *   FEAT Phase Version (x): Represents the phase within the specific feature being implemented (e.g., for FSM Refactor, Phase 1 might be 'Foundation', Phase 2 'Manual Actions Integration').
-    *   FEAT Phase Task # (y): The specific task number within the feature's phase.
-    *   Bug FEAT Phase Task # (z): Increment for bug fix iterations related to a specific FEAT Phase Task # (y). Starts at 0 for the initial implementation.
-2.  All new features need to provide the following documentation:
-    *   Generate a brand new ‘FEAT_SCOPE_xxx.md” markdown file in docs folder and it needs to contain:
-        *   The ‘FEAT_SCOPE_xxx.md” markdown file needs to utilize “chain of thought” prompting techniques to guide an AI Coding Agent to implement the full feature from scoping details.
-        *   FULL scoping details including complexity, value added proposition, risks assessment and potential pain points/issues.
-        *   Feature Implementation Phase and Task breakdown for AI Coding Agent to implement.
-        *   Add document version/changelog tracking for changes to this doc.
-    *   Generate a brand new ‘FEAT_STATUS_xxx.md” markdown file in docs folder and it needs:
-        *   Act a high level Feature Status Reports of the current state of the feature.
-        *   Changelog details whenever a Phase, Task is complete, and commit details.
-        *   Add document version/changelog tracking for changes to this doc.
-    *   Note: Any new phase/task code changes/implementation needs to have the app meta data version updated as well automatically along with code changes. This will allow us automatic and dynamic tracking of the current app version while we are still testing and coding. That way, when we start testing some changes and we encounter issues, I can just provide the debug logs which will have the version meta data so it's clear what task we are on and will help to ground us.
-3.  Any new phase/task code changes/implementation needs to have the app meta data version updated as well automatically along with code changes.
-    *   This will allow us automatic and dynamic tracking of the current app version while we are still testing and coding.
-    *   That way, when we start testing some changes and we encounter issues, I can just provide the debug logs which will have the version meta data so it's clear what task we are on and will help to ground us.
-4.  **XML Output Mandate & Confirmation:** All code changes proposed by the AI Coding Agent MUST be provided exclusively in the specified XML format. The Agent will explicitly confirm its understanding and adherence to this format at the beginning of new tasks or phases.
-5.  **Context Reset Confirmation:** At the beginning of new Phases or when explicitly requested, the AI Coding Agent will confirm that its internal context, stale cache, and operating state have been purged, cleared, and reset to ensure it is operating on the latest information.
-6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
+To prevent the severe audit failures of the v3.3.15.x series, the following procedures are now in effect and strictly enforced.
+
+#### Section 1: General Conduct & Output
+1.  **XML Output Mandate:** All code changes proposed by the AI Coding Agent MUST be provided exclusively in the specified XML format.
+2.  **Context Reset Confirmation:** At the beginning of new Phases or when explicitly requested, the AI Coding Agent will confirm that its internal context has been purged to ensure it is operating on the latest information.
+
+#### Section 2: Auditing & Debugging Protocol (NEW)
+3.  **Mandatory End-to-End Execution Trace:** When asked for a "comprehensive audit," I will not perform a shallow, localized review. My audit will consist of programmatically tracing the full execution path of the feature in question, from user interaction to the final UI update. This includes mapping logic through UI components, FSM events, FSM orchestrators, Server Actions, AI Flows, and Prompt Definitions.
+4.  **Mandatory Ground Truth Verification:** I will purge all assumptions from my previous turn before every audit. I will re-read the full content of all relevant files from scratch, rather than relying on a cached or summarized understanding. This prevents hallucinations about file contents or states.
+5.  **Symptom vs. Root Cause Analysis:** When a bug is reported, I will treat the report as a **symptom**, not the direct problem. My primary objective will be to trace that symptom back through the execution path to its origin, instead of attempting to patch the symptom directly.
+
+#### Section 3: Versioning & Documentation
+6.  **Versioning Scheme:** Features will be staged as version '3.w.x.y.z' series. I will not increment versions on my own.
+7.  **Metadata Updates:** Any new phase/task code change must include an automatic update to the `appVersion` in `src/config/app-metadata.json`.
+8.  **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user.
+9.  **Phase Completion Commits:** A consolidated commit log entry will be generated for documentation when a multi-task feature phase is marked as complete.
+10. **New Feature Documentation:** All new features need to provide `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` files in the `docs` folder with the specified content.
+
 ###
 ---
-**README Document Version:** 1.89
+**README Document Version:** 1.90
 **Application Version (from `app-metadata.json`):** v3.3.15.0.8
 **Last Updated:** 2025-07-04
 
@@ -242,7 +236,7 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.89
+*   **This README Document Version:** 1.90
 *   **Current Application Version:** `v3.3.15.0.8`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
