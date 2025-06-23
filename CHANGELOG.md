@@ -58,6 +58,20 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.0.0` (Feature Scoping)
+**Tag:** `Phase-43_Task-3.3.16.0.0_ScopeChatGroundingConsolidation`
+**Subject:** `feat(docs): Scope AI Chat Prompt & Google Search Grounding Consolidation feature (v3.3.16)`
+**Details:**
+This commit (`TBD`) prepares all documentation for the new **"AI Chat Prompt & Google Search Grounding Consolidation"** feature, version series `v3.3.16.x.z`. This is a documentation and planning commit that sets the stage for implementation.
+
+**Key Changes:**
+*   **`docs/FEAT_SCOPE_ChatGroundingConsolidation_v3.3.16.md`:** A new, comprehensive feature scope document was created based on a full codebase audit. It outlines the objectives, a detailed implementation plan, and updated prompt requirements for the new feature.
+*   **`docs/FEAT_STATUS_ChatGroundingConsolidation_v3.3.16.md`:** A new feature status report was created to track the progress of the v3.3.16 feature through its planned phases.
+*   **`README.md`:** The main PRD was updated to reflect the new application version (`v3.3.16.0.0`) and to note that the feature is now the active focus.
+*   **`CHANGELOG.md` (this file):** Updated with this commit log to mark the official start of the new feature.
+*   **`src/config/app-metadata.json`:** Application version updated to `v3.3.16.0.0`.
+*   **Superseded Docs:** The old `AugmentedSearchRefactor` scope and status documents have been updated to mark them as `OBSOLETE` and superseded by this new, more robust feature plan.
+---
 **App Version:** `v3.3.15.0.8` (Fix Augmented Search Architecture)
 **Tag:** `Phase-42_Task-3.3.15.0.8_FixAugmentedSearchArchitecture` (Commit `2188289d`)
 **Subject:** `fix(ai,fsm): Correct augmented search architecture, use single intelligent chat flow (v3.3.15.0.8)`

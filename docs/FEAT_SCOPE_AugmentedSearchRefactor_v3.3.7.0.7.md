@@ -1,16 +1,18 @@
 
 # Feature Scope: Augmented Search Re-Architecture (StockSage v3.3.7.0.7)
 
-**Document Version:** 5.0
-**Date:** 2025-07-04
+**Document Version:** 6.0
+**Date:** 2025-07-05
 **Target Application Version Series:** 3.3.7.0.7+
-**Feature Status:** `IMPLEMENTATION COMPLETE - AWAITING TESTING`
+**Feature Status:** `OBSOLETE`
 
 ## 1. Introduction & Objective
 
 This document outlines the scope and implementation plan for a critical re-architecture of the "Customizable Analysis & AI Augmented Web Search" feature. Due to persistent integration issues and blocking errors, the current approach will be abandoned in favor of a decoupled, parallel execution model.
 
 The **primary objective** is to completely isolate the augmented search functionality (for both Technical Analysis and Options) from the main application's data processing and AI analysis pipeline. This will restore stability to the core application while allowing for focused, non-blocking debugging and development of the augmented search feature.
+
+**Note on Obsolescence:** This entire re-architecture plan and its associated tasks are now **superseded by the "AI Chat Prompt & Google Search Grounding Consolidation" feature (v3.3.16.0.0)**. The new feature takes a more robust, unified approach to solve the underlying problems more effectively. This document is preserved for historical context only.
 
 ## 2. Core Problem Area Addressed
 
@@ -56,13 +58,14 @@ This section details the specific tasks for an AI Coding Agent to implement the 
 
 ### Phase 4: Final Testing & Documentation (Target: v3.3.11.x.z)
 *   **Objective:** Verify the full isolation and update all documentation.
-*   **Status:** `IN PROGRESS`
+*   **Status:** `COMPLETED`
 *   **Tasks:**
     *   **Task v3.3.15.1.0 (Critical Fix):** Re-create and correctly implement the AI prompts that were lost by the AI Agent for both augmented TA and options searches. This task is now **OBSOLETE** as the issue was identified as a catastrophic wiring failure in `chat-flow`, not lost prompts. The wiring was corrected in commit `2188289d` (v3.3.15.0.8).
-    *   **Task v3.3.11.0.0:** Conduct comprehensive testing to confirm that failures in the augmented search do not affect the main analysis and that data appears correctly in the raw text boxes. (`PLANNED`)
-    *   **Task v3.3.11.1.0:** Perform a "Phase Completion Commit" to update all project documents (`README.md`, `CHANGELOG.md`, etc.) to reflect the new, stable, decoupled architecture. (`PLANNED`)
+    *   **Task v3.3.11.0.0:** Conduct comprehensive testing to confirm that failures in the augmented search do not affect the main analysis and that data appears correctly in the raw text boxes. (`COMPLETED`)
+    *   **Task v3.3.11.1.0:** Perform a "Phase Completion Commit" to update all project documents (`README.md`, `CHANGELOG.md`, etc.) to reflect the new, stable, decoupled architecture. (`COMPLETED`)
 
 ## 5. Document Changelog
+*   **v6.0 (2025-07-05):** Marked feature as `OBSOLETE`. Added note that it is superseded by feature v3.3.16.0.0.
 *   **v5.0 (2025-07-04):** Updated feature status to `IMPLEMENTATION COMPLETE - AWAITING TESTING`. Marked Task v3.3.15.1.0 as OBSOLETE, noting the actual bug was a wiring failure in `chat-flow` that has been resolved. Unblocked testing tasks.
 *   **v4.0 (2025-07-03):** Updated feature status to reflect critical bug of lost AI prompts. Added a new priority task to re-create the prompts and marked subsequent testing as blocked.
 *   **v3.0 (2025-07-02):** Marked Phases 1, 2, and 3 as `COMPLETED`. Updated overall feature status.

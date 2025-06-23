@@ -1,7 +1,7 @@
 
 # Feature Scope: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16.0.0)
 
-**Document Version:** 1.0
+**Document Version:** 2.0
 **Date:** 2025-07-05
 **Target Application Version Series:** 3.3.16.x.z
 **Feature Status:** PLANNED
@@ -81,19 +81,56 @@ The two web search prompts will be updated to fetch more comprehensive data.
     *   The default value for `isUiRenderLoggingEnabled` will be set to **`true`**.
 *   **Log Content:** All relevant FSM and flow logs will be updated to reflect the new `promptName`-based architecture.
 
-## 4. Value Added Proposition
+## 4. Implementation Phased Plan
+This section outlines the incremental tasks for an AI Coding Agent to implement this feature. Each phase should result in a testable, intermediate state.
+
+### Phase 1: Terminology & Configuration Refactor
+*   **Objective:** Rename all "Augmented" assets, update prompt content, and embed configuration (`useGoogleSearch`, `thinkingBudget`) into JSON definitions.
+*   **Tasks:**
+    *   **v3.3.16.1.0:** Rename `isAugmented...` flags and `rawAugmented...Json` variables to `isWebSearch...` and `rawWebSearch...Json` in `stock-analysis-context.tsx`, `main-tab-content.tsx`, and `debug-tab-content.tsx`.
+    *   **v3.3.16.1.1:** Add `useGoogleSearch: boolean` to `LlmPromptDefinitionSchema` in `src/ai/definition-loader.ts`.
+    *   **v3.3.16.1.2:** Rename prompt files: `augmented-ta-search.json` -> `technical-analysis-web-search.json`, `augmented-options-search.json` -> `options-flow-web-search.json`. Create new prompt JSONs for the three standard chat takeaways (`stock-trader-takeaways.json`, `options-trader-takeaways.json`, `holistic-takeaways.json`).
+    *   **v3.3.16.1.3:** Update all five new and two existing (`analyze-stock-data`, `analyze-options-chain`) prompt JSONs to include `thinkingBudget: -1`.
+    *   **v3.3.16.1.4:** Update all five new chat/search prompt JSONs with the correct `useGoogleSearch` flag (`true` for web search, `false` for app data analysis).
+    *   **v3.3.16.1.5:** Update the content of `technical-analysis-web-search.json` and `options-flow-web-search.json` with the new, expanded data requirements.
+
+### Phase 2: AI Flow, FSM, and UI Unification
+*   **Objective:** Centralize all chat/search logic into the `chat-flow` and connect the UI/FSM to this new unified system.
+*   **Tasks:**
+    *   **v3.3.16.2.0:** Refactor `chat-flow.ts` to be a pure orchestrator. It must accept a `promptName` in its input, load the corresponding definition, and dynamically configure the `ai.definePrompt` call (including `tools` based on the `useGoogleSearch` flag).
+    *   **v3.3.16.2.1:** Update `chat-schemas.ts` and `chat-server-action.ts` to include and pass through the new `promptName` parameter.
+    *   **v3.3.16.2.2:** Remove the "Enable Google Search for Chat" `Switch` and its state from `chatbot.tsx` and `stock-analysis-context.tsx`.
+    *   **v3.3.16.2.3:** Reorganize the `Button` components in `chatbot.tsx` into "App Data Analysis" and "Google Search Grounded Analysis" categories. Update their `onClick` handlers to dispatch `SUBMIT_CHAT_MESSAGE` with the correct `promptName` for each button.
+    *   **v3.3.16.2.4:** Refactor the FSM orchestrator (`stock-analysis-context.tsx`) to remove `TRIGGER_AUGMENTED_..._SEARCH` events. The main pipeline should now dispatch `SUBMIT_CHAT_MESSAGE` events with the correct `promptName` based on which toggles are enabled.
+
+### Phase 3: Debugging & Cleanup
+*   **Objective:** Implement the requested logging changes and remove obsolete files.
+*   **Tasks:**
+    *   **v3.3.16.3.0:** In `global-log-buffer.ts`, increase `MAX_BUFFER_SIZE` to `2000`.
+    *   **v3.3.16.3.1:** In `stock-analysis-context.tsx`, set default `isReducedStartupLoggingEnabled` to `false` and `isUiRenderLoggingEnabled` to `true`.
+    *   **v3.3.16.3.2:** Systematically audit and update all relevant debug logs in FSM, flows, and components to reflect the new `promptName`-based architecture.
+    *   **v3.3.16.3.3:** Delete the deprecated `augmented-ta-search-flow.ts` and `augmented-options-search-flow.ts` files and remove them from `src/ai/dev.ts`.
+
+### Phase 4: Final Testing & Documentation
+*   **Objective:** Perform comprehensive end-to-end testing and finalize all project documentation.
+*   **Tasks:**
+    *   **v3.3.16.4.0:** Comprehensive testing of all chat/search paths and all customizable analysis pipeline toggle combinations.
+    *   **v3.3.16.4.1:** Final "Phase Completion Commit" to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor.
+
+## 5. Value Added Proposition
 
 *   **Architectural Clarity:** Consolidates all chat/search logic into one flow, making the system easier to understand and debug.
 *   **Configuration-Driven:** Moves all prompt-specific logic (including grounding) into JSON files, allowing for changes without altering flow code.
 *   **Standardization:** Adopts industry-standard terminology ("Grounding") and enforces consistent configuration patterns (`thinkingBudget`, `useGoogleSearch`) across all prompts.
 *   **Enhanced Analysis:** The updated web search prompts will provide richer, more detailed data for analysis.
 
-## 5. Risks Assessment
+## 6. Risks Assessment
 
 *   **Central Flow Complexity:** The refactored `chat-flow.ts` will be more complex as it dynamically constructs the prompt configuration. This requires careful implementation to avoid bugs.
 *   **Prompt Engineering Fragility:** The expanded web search prompts are more demanding and may have a higher failure rate or return malformed JSON. Robust error handling and parsing in the flow will be critical.
 *   **Regression Risk:** Modifying the core `chat-flow` and its interaction with the FSM could introduce regressions in existing chat functionality. Thorough testing will be required.
 
-## 6. Document Changelog
+## 7. Document Changelog
 
+*   **v2.0 (2025-07-05):** Added detailed, multi-phase implementation plan.
 *   **v1.0 (2025-07-05):** Initial document creation based on a comprehensive audit and new feature request.
