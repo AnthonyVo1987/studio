@@ -782,7 +782,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'AUGMENTED_TA_SUCCESS':
         contextSetters.setRawAugmentedTaResponseJson(event.payload.chatbotResponseJson);
-        try { const modelResponse = JSON.parse(event.payload.chatbotResponseJson); addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_aug_ta`, role: 'model', content: modelResponse.response }); } catch (e) {}
+        try {
+          const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
+          if (modelResponse && modelResponse.response) {
+            addChatMessage({
+              id: `${Date.now()}_${chatMessageIdCounter++}_aug_ta_model`,
+              role: 'model',
+              content: modelResponse.response,
+            });
+          } else {
+            throw new Error("Parsed response did not contain a 'response' field.");
+          }
+        } catch (e: any) {
+          console.error(`${logPrefixFsmReducer}:AUGMENTED_TA_SUCCESS`, "Failed to parse or add chat message from augmented TA response:", e.message);
+          addChatMessage({
+            id: `${Date.now()}_${chatMessageIdCounter++}_aug_ta_model_err`,
+            role: 'model',
+            content: `[System Error: Failed to display Augmented TA search result. Raw data is available in the Debug tab.]`,
+          });
+        }
         nextCurrentState = GlobalFsmState.AUGMENTED_TA_SUCCEEDED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AUGMENTED_TA_SUCCEEDED.`);
         break;
@@ -804,7 +822,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'AUGMENTED_OPTIONS_SUCCESS':
         contextSetters.setRawAugmentedOptionsResponseJson(event.payload.chatbotResponseJson);
-        try { const modelResponse = JSON.parse(event.payload.chatbotResponseJson); addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_aug_opt`, role: 'model', content: modelResponse.response }); } catch (e) {}
+        try {
+          const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
+          if (modelResponse && modelResponse.response) {
+            addChatMessage({
+              id: `${Date.now()}_${chatMessageIdCounter++}_aug_opt_model`,
+              role: 'model',
+              content: modelResponse.response,
+            });
+          } else {
+            throw new Error("Parsed response did not contain a 'response' field.");
+          }
+        } catch (e: any) {
+          console.error(`${logPrefixFsmReducer}:AUGMENTED_OPTIONS_SUCCESS`, "Failed to parse or add chat message from augmented Options response:", e.message);
+          addChatMessage({
+            id: `${Date.now()}_${chatMessageIdCounter++}_aug_opt_model_err`,
+            role: 'model',
+            content: `[System Error: Failed to display Augmented Options search result. Raw data is available in the Debug tab.]`,
+          });
+        }
         nextCurrentState = GlobalFsmState.AUGMENTED_OPTIONS_SUCCEEDED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AUGMENTED_OPTIONS_SUCCEEDED.`);
         break;
