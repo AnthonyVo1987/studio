@@ -20,9 +20,9 @@ To prevent the severe audit failures of the v3.3.15.x series, the following proc
 
 ###
 ---
-**README Document Version:** 1.91
-**Application Version (from `app-metadata.json`):** v3.3.16.0.0
-**Last Updated:** 2025-07-05
+**README Document Version:** 1.92
+**Application Version (from `app-metadata.json`):** v3.3.16.4.0
+**Last Updated:** 2025-07-09
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -73,14 +73,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Options Trader's Takeaways (with CC/CSP setups).
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
 *   **Google Search Grounding (as of v3.3.16):**
-    *   **[Architecture Refactor]** All web search functionality is being consolidated into a single, unified `chat-flow`. UI/FSM naming will be updated from "Augmented Search" to "Google Search Grounding" for clarity.
+    *   **[Architecture Refactor Complete]** All web search functionality has been consolidated into a single, unified `chat-flow`. All "Augmented" terminology has been replaced with "Web Search".
     *   **Functionality:** When toggled on or triggered on-demand, performs a Google Search for advanced TA and Options metrics.
     *   **UI Impact:**
         *   The clean text response is rendered in the main **Chatbot UI**.
         *   The full raw API response (including grounding metadata) is displayed in dedicated "Raw ... Response" text boxes on the **Debug Tab**.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
-    *   **[Architecture Refactor]** The global "Enable Google Search for Chat" toggle is being removed. Grounding will now be determined by the specific prompt being executed (e.g., "TA Web Search" will always be grounded).
+    *   **[Architecture Refactor Complete]** Grounding is now determined by the specific `promptName` being executed. All user-initiated interactive chat queries are grounded by default.
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
@@ -106,7 +106,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Copy functionality for the above exports.
     *   **Exported File Metadata:** All exported files (debug logs, data exports) will dynamically include the current application version sourced from `src/config/app-metadata.json`.
 *   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs).
-*   **Client Debug Console:** Real-time client-side log display with filtering, search, max 2000 entries (as of v3.3.16), wrap indicator, and export capabilities. Exported logs include the dynamic application version and a snapshot of the global FSM (state, flags, and variables).
+*   **Client Debug Console:** Real-time client-side log display with filtering, search, max 2000 entries, wrap indicator, and export capabilities. Exported logs include the dynamic application version and a snapshot of the global FSM (state, flags, and variables).
 *   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup. (Default `false` as of v3.3.16).
 *   **UI/Render Log Spam Toggle:** A user-configurable setting (default `true` as of v3.3.16) to control high-frequency logs from UI components related to re-renders and prop changes.
 *   **FSM Debug Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables within organized UI cards. Includes copy/export functionality for the full FSM snapshot.
@@ -121,11 +121,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.2. Genkit (AI Backend Orchestration)
 *   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis tasks.
-*   AI flows defined in `src/ai/flows/` for orchestrating LLM calls.
+*   **[Architecture Refactor Complete]** A single, intelligent `chat-flow.ts` file now orchestrates all chat and web search interactions. It dynamically loads prompt definitions and configurations based on a `promptName` input.
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
     *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
-    *   **Architectural Mandate:** Dynamic Thinking (`thinkingBudget: -1`) is enforced by default on all AI prompts for analysis and chat (as of v3.3.16).
-    *   **[Architecture Refactor]** As of v3.3.16, prompt definitions will include a `useGoogleSearch: boolean` flag to programmatically enable/disable grounding on a per-prompt basis.
+    *   **Architectural Mandate:** Dynamic Thinking (`thinkingBudget: -1`) and Grounding (`useGoogleSearch: boolean`) are now defined in and enforced by each prompt's JSON definition.
     *   Safety settings are defined in these JSONs.
     *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
 *   **"Grounding with Google Search" Pattern (Mandatory for Web-Augmented AI):** For all AI web searches (e.g., Augmented TA/Options Search, Chat), the application enforces a mandatory architectural pattern to ensure reliable tool use. This involves configuring the prompt with the `googleSearch` tool while omitting a structured `output` schema, and having the flow logic parse a JSON string from the AI's plain text response. This pattern is the mandated architectural approach and is detailed in the new official reference guide: `docs/Gemini_AI_Grounding_Google_Search.md`.
@@ -141,18 +140,18 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.4. State Management (as of v3.2.5.0.Z)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
-    *   Fetched data JSON strings (including `rawAugmentedTaResponseJson`, `rawAugmentedOptionsResponseJson`).
+    *   Fetched data JSON strings (including `rawWebSearchTaResponseJson`, `rawWebSearchOptionsResponseJson`).
     *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the customizable analysis pipeline.
     *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.15.0.8)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.2.4)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
     *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and the three standard chat prompts.
-    *   **[Architecture Refactor]** Web Search Pipeline (Chat-Centric): The FSM orchestrator triggers web searches as final steps of the main pipeline (if toggles on) or on-demand by dispatching special requests to the intelligent `chat-flow`. It uses dedicated FSM states (`FETCHING_AUGMENTED_TA`, etc.) to manage this lifecycle correctly.
+    *   **[Architecture Refactor Complete]** Web Search Pipeline (Chat-Centric): The FSM orchestrator triggers web searches as final steps of the main pipeline (if toggles on) or on-demand by dispatching special requests (with a `promptName`) to the intelligent `chat-flow`. All old FSM states for "Augmented Search" have been removed.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -170,11 +169,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Client-Side Logging:**
     *   Primary Method: `logDebug()` from `useStockAnalysis()`.
     *   Console Interception: `StockAnalysisContext` intercepts `console.*` calls.
-    *   **Startup Logging Control:** `isReducedStartupLoggingEnabled` toggle (default `false` as of v3.3.16).
-    *   **UI/Render Log Spam Control:** A dedicated `isUiRenderLoggingEnabled` toggle (default `true` as of v3.3.16).
+    *   **Startup Logging Control:** `isReducedStartupLoggingEnabled` toggle (default `false`).
+    *   **UI/Render Log Spam Control:** A dedicated `isUiRenderLoggingEnabled` toggle (default `true`).
 *   **Server-Side Logging:** `console.log`, etc., with standardized prefixes. All AI flows now include explicit logging for their grounding and thinking mode configurations to enhance traceability.
 *   **Debug Console (`src/components/debug-console.tsx`):**
-    *   Displays client-side logs (up to 2000 entries as of v3.3.16). Features filtering, search, wrap indicator.
+    *   Displays client-side logs (up to 2000 entries). Features filtering, search, wrap indicator.
     *   Export/Copy: Logs include dynamic `appVersion` and FSM snapshot.
 
 ### 3.5. Coding Standards & Conventions
@@ -182,8 +181,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.0.0):**
-    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** This new feature is now in the `PLANNED` state. It aims to refactor and consolidate all chat and web search functionality into a single, unified, and configuration-driven flow. This work supersedes the previous "Augmented Search Refactor."
+*   **Current Feature Focus (as of v3.3.16.4.0):**
+    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** This feature's implementation is now complete and awaiting final testing.
 *   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
@@ -237,8 +236,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.91
-*   **Current Application Version:** `v3.3.16.0.0`
+*   **This README Document Version:** 1.92
+*   **Current Application Version:** `v3.3.16.4.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.

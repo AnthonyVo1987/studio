@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.4.0` (Initial Documentation for Phase 4)
+**Tag:** `Phase-46_Task-3.3.16.4.0_PreTestingDocUpdate`
+**Subject:** `docs(all): Initial docs for v3.3.16.4.0, complete feature refactor implementation (v3.3.16.4.0)`
+**Details:**
+This commit (`324423cc`) is a **documentation-only** task that marks the completion of the core implementation for the **"AI Chat Prompt & Google Search Grounding Consolidation"** feature (v3.3.16 series). It updates all relevant documentation to reflect the successful refactoring work of Phases 1-3, preparing the application for the final testing phase.
+
+**Key Architectural Changes Completed in Phases 1-3:**
+*   **Terminology Refactor:** All "Augmented" search assets were renamed to use the clearer "Web Search" terminology.
+*   **Configuration-Driven Prompts:** All AI prompts (`.json` files) now include `useGoogleSearch: boolean` and `thinkingBudget: -1` properties, centralizing their configuration.
+*   **Unified AI Flow:** The `chat-flow.ts` was refactored into a single, intelligent orchestrator that dynamically loads and configures prompts based on a `promptName` input. All chat and web search logic now routes through this single flow.
+*   **UI & FSM Integration:** The UI (toggles, buttons) and global FSM were updated to use the new `promptName`-based system, and obsolete UI elements (like the global search toggle) and FSM states were removed.
+*   **Code Cleanup:** Obsolete AI flow files were deleted, and debug logging was enhanced and standardized.
+
+**Outcome:**
+*   The application's architecture for all chat and web-grounded AI actions is now unified, consistent, and configuration-driven.
+*   The implementation phase of the feature is complete. The application is now ready for **Phase 4: Final Testing & Debugging**.
+---
 **App Version:** `v3.3.16.1.6` (Finalize Phase 1 Grounding Config)
 **Tag:** `Phase-45_Task-3.3.16.1.6_FinalizeGroundingConfig`
 **Subject:** `feat(ai): Finalize grounding config across all AI prompts (v3.3.16.1.6)`

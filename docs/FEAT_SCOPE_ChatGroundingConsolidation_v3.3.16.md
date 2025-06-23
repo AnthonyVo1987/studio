@@ -1,10 +1,10 @@
 
 # Feature Scope: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16.0.0)
 
-**Document Version:** 5.0
-**Date:** 2025-07-08
+**Document Version:** 6.0
+**Date:** 2025-07-09
 **Target Application Version Series:** 3.3.16.x.z
-**Feature Status:** IN PROGRESS
+**Feature Status:** IMPLEMENTATION COMPLETE - AWAITING TESTING
 
 ## 1. Introduction & Objective
 
@@ -92,26 +92,18 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 ### Phase 2: AI Flow, FSM, and UI Unification
 *   **Objective:** Centralize all chat/search logic into the `chat-flow` and connect the UI/FSM to this new unified system.
 *   **Status:** `COMPLETED`
-*   **Tasks:**
-    *   **v3.3.16.2.0:** Refactor `chat-flow.ts` to be a pure, `promptName`-driven orchestrator. (`COMPLETED`)
-    *   **v3.3.16.2.1:** Update schemas and server action to use `promptName`. (`COMPLETED`)
-    *   **v3.3.16.2.2:** Remove global "Enable Google Search for Chat" UI and state. (`COMPLETED`)
-    *   **v3.3.16.2.3:** Reorganize Chatbot buttons and update their dispatch logic. (`COMPLETED`)
-    *   **v3.3.16.2.4:** Refactor FSM orchestrator to use new `SUBMIT_CHAT_MESSAGE` with `promptName` for pipeline macros. (`COMPLETED`)
 
 ### Phase 3: Debugging & Cleanup
 *   **Objective:** Implement the requested logging changes and remove obsolete files.
-*   **Status:** `PLANNED`
-*   **Tasks:**
-    *   **v3.3.16.3.0:** Audit and update all debug log messages for new architecture. (`PLANNED`)
-    *   **v3.3.16.3.1:** Delete the deprecated `augmented-ta-search-flow.ts` and `augmented-options-search-flow.ts` files and remove them from `src/ai/dev.ts`.
+*   **Status:** `COMPLETED`
 
 ### Phase 4: Final Testing & Documentation
 *   **Objective:** Perform comprehensive end-to-end testing and finalize all project documentation.
-*   **Status:** `PLANNED`
+*   **Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **v3.3.16.4.0:** Comprehensive testing of all chat/search paths and all customizable analysis pipeline toggle combinations. (`PLANNED`)
-    *   **v3.3.16.4.1:** Final "Phase Completion Commit" to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor. (`PLANNED`)
+    *   **v3.3.16.4.0:** Initial Pre-testing Phase Start to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor before we start our testing and debugging. (`COMPLETED`)
+    *   **v3.3.16.4.1:** Comprehensive testing of all chat/search paths and all customizable analysis pipeline toggle combinations. (`PLANNED`)
+    *   **v3.3.16.4.2:** Final "Phase Completion Commit" to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor. (`PLANNED`)
 
 ## 5. Value Added Proposition
 
@@ -128,6 +120,7 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 
 ## 7. Document Changelog
 
+*   **v6.0 (2025-07-09):** Marked Phase 3 and Phase 4 (Task 4.0) as complete. Updated feature status to `IMPLEMENTATION COMPLETE - AWAITING TESTING`.
 *   **v5.0 (2025-07-08):** Marked Phase 2 and all its tasks as `COMPLETED`.
 *   **v4.0 (2025-07-07):** Added Task v3.3.16.1.6 to Phase 1 and marked as COMPLETED.
 *   **v3.0 (2025-07-06):** Marked Phase 1 as COMPLETED.
