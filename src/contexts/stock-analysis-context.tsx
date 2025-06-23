@@ -51,6 +51,7 @@ export enum GlobalFsmState {
   FORMAT_WEB_SEARCH_FAILURE = 'FORMAT_WEB_SEARCH_FAILURE',
 
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
+  ERROR_PIPELINE_LOOP = 'ERROR_PIPELINE_LOOP',
 }
 
 export type FullAiMacroChatStep = 'key_takeaways' | 'options_analysis' | 'stock_trader_chat' | 'options_trader_chat' | 'holistic_chat' | null;
@@ -63,6 +64,7 @@ export interface GlobalFsmContextVariables {
   pendingChatSubmissionPayload: ChatActionInputs | null;
   pendingWebSearchFormatPayload: FormatWebSearchResultsActionInputs | null;
   activePipelineProfile: 'standard' | null;
+  completedSteps: Set<string>;
 }
 
 export interface GlobalFsmFlags {
@@ -262,6 +264,7 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     pendingChatSubmissionPayload: null,
     pendingWebSearchFormatPayload: null,
     activePipelineProfile: null,
+    completedSteps: new Set<string>(),
   },
   flags: {
     canAnalyzeStock: false,
@@ -508,10 +511,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
     logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}, ActiveProfile: ${state.variables.activePipelineProfile}`);
 
-    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
+    if ('payload' in event && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
-    } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
-      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., PromptName: ${event.payload.promptName}`);
     } else if (event.type === 'USER_INPUT_TICKER_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_TickerInput', `For USER_INPUT_TICKER_CHANGED: Ticker: ${event.payload.ticker}`);
     } else if (event.type === 'UPDATE_MANUAL_ACTION_FLAGS') {
@@ -519,7 +520,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     } else if (event.type === 'ANALYSIS_TOGGLE_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Toggle', `For ANALYSIS_TOGGLE_CHANGED: ${event.payload.toggleType} -> ${event.payload.isEnabled}`);
     }
-
 
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
@@ -532,6 +532,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextVariables.pendingChatSubmissionPayload = null;
         nextVariables.pendingWebSearchFormatPayload = null;
         nextVariables.activePipelineProfile = 'standard';
+        nextVariables.completedSteps = new Set<string>();
         nextFlags.canAnalyzeStock = false;
         nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
         nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
@@ -543,6 +544,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
         nextVariables.lastError = { message: errorMessage, source, details: errorDetails };
         nextVariables.activePipelineProfile = null;
+    };
+    
+    const checkStepAndGuard = (stepKey: string): boolean => {
+      if (state.variables.completedSteps.has(stepKey)) {
+        const errorMsg = `Potential loop detected for step '${stepKey}'. Aborting action.`;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'CriticalError', `[FSM_GUARD] ${errorMsg}`);
+        nextVariables.lastError = { message: errorMsg, source: 'FSMGuard' };
+        nextCurrentState = GlobalFsmState.ERROR_PIPELINE_LOOP;
+        return true; 
+      }
+      return false;
     };
 
     switch (event.type) {
@@ -646,7 +658,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_AUTOMATED_COMPLETE.`);
         break;
       case 'TRIGGER_MANUAL_KEY_TAKEAWAYS':
+        const ktStepKey = `kt_${event.payload.ticker}`;
+        if (checkStepAndGuard(ktStepKey)) break;
         if (nextVariables.activeTicker === event.payload.ticker) {
+            nextVariables.completedSteps.add(ktStepKey);
             contextSetters.setAiKeyTakeawaysRequestJson(pendingJson); contextSetters.setAiKeyTakeawaysJson(pendingJson);
             nextFlags.isKeyTakeawaysDataAvailable = false;
             nextCurrentState = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
@@ -668,7 +683,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To KEY_TAKEAWAYS_FAILED. Error: ${ktErrMsg}.`);
         break;
       case 'TRIGGER_MANUAL_OPTIONS_ANALYSIS':
+        const optStepKey = `opt_${event.payload.ticker}`;
+        if (checkStepAndGuard(optStepKey)) break;
         if (nextVariables.activeTicker === event.payload.ticker) {
+            nextVariables.completedSteps.add(optStepKey);
             contextSetters.setAiOptionsAnalysisRequestJson(pendingJson); contextSetters.setAiOptionsAnalysisJson(pendingJson);
             nextFlags.isOptionsAnalysisDataAvailable = false;
             nextCurrentState = GlobalFsmState.ANALYZING_OPTIONS;
@@ -690,6 +708,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To OPTIONS_ANALYSIS_FAILED. Error: ${optErrMsg}.`);
         break;
       case 'SUBMIT_CHAT_MESSAGE':
+        const chatStepKey = `${event.payload.promptName || 'interactive_chat'}_${event.payload.ticker}`;
+        if (checkStepAndGuard(chatStepKey)) break;
         if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING && state.variables.pendingChatSubmissionPayload?.userInput === event.payload.userInput) {
           logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateSubmission', `SUBMIT_CHAT_MESSAGE for "${event.payload.userInput.substring(0,20)}" ignored, already pending with same input.`);
         } else if (nextVariables.activeTicker || event.payload.promptName?.includes('web-search')) {
@@ -702,6 +722,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
               logDebug(logPrefixFsmReducer as LogSourceId, 'AddUserMsgToHistory', `Adding user message. Content: ${userMessage.content.substring(0,30)}...`);
               return [...prev, userMessage];
             });
+            nextVariables.completedSteps.add(chatStepKey);
             nextVariables.pendingChatSubmissionPayload = { ...event.payload };
             nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
             contextSetters.setChatbotRequestJson(chatPendingJson); contextSetters.setChatbotResponseJson(chatPendingJson);
@@ -822,7 +843,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || nextCurrentState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
         nextCurrentState === GlobalFsmState.CHAT_MESSAGE_SUCCESS || nextCurrentState === GlobalFsmState.CHAT_MESSAGE_ERROR ||
         nextCurrentState === GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS || nextCurrentState === GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE ||
-        nextCurrentState === GlobalFsmState.DATA_FETCH_FAILED || nextCurrentState === GlobalFsmState.ERROR_STALE_DATA
+        nextCurrentState === GlobalFsmState.DATA_FETCH_FAILED || nextCurrentState === GlobalFsmState.ERROR_STALE_DATA || nextCurrentState === GlobalFsmState.ERROR_PIPELINE_LOOP
     ) { nextFlags.canAnalyzeStock = true; } else { nextFlags.canAnalyzeStock = false; }
 
     logDebug(logPrefixFsmReducer as LogSourceId, 'StateExit', `Exiting reducer. OldState: ${previousState}, NewState: ${nextCurrentState}, CanAnalyze: ${nextFlags.canAnalyzeStock}`);
@@ -1108,8 +1129,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           if(promptName === 'stock-trader-takeaways') lastPromptIdentifier = "chat_stock";
           else if (promptName === 'options-trader-takeaways') lastPromptIdentifier = "chat_options";
           else if (promptName === 'holistic-takeaways') lastPromptIdentifier = "chat_holistic";
-          else if (promptName === 'technical-analysis-web-search') lastPromptIdentifier = 'web_search_ta';
-          else if (promptName === 'options-flow-web-search') lastPromptIdentifier = 'web_search_options';
         } catch (e) { }
         dispatchNextCustomAction(lastPromptIdentifier);
       }

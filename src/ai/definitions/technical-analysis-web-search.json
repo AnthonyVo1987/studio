@@ -25,7 +25,7 @@
       "role": "CoreTask",
       "parts": [
         {
-          "text": "For the stock ticker {{{ticker}}}, use the Google Search tool to find the most recent values for the following TA indicators:\n1.  **Average True Range (ATR) 14-day.**\n2.  **Bollinger Bands (20, 2):** Provide the specific values for the Upper Band, Middle Band, and Lower Band.\n3.  **Fibonacci Retracement Levels:** Based on the most recent significant price move, provide the price levels for the following 3 key retracements: 38.2%, 50.0%, and 61.8%."
+          "text": "For the stock ticker {{{ticker}}}, use the Google Search tool to find the most recent values for the following TA indicators:\n1.  **Average True Range (ATR) 14-day.**\n2.  **Bollinger Bands (20, 2):** You must find and provide the specific numeric values for all three bands: the Upper Band, Middle Band, and Lower Band.\n3.  **Fibonacci Retracement Levels:** Based on the most recent significant price move, provide the price levels for the following 3 key retracements: 38.2%, 50.0%, and 61.8%."
         }
       ]
     },

@@ -12,8 +12,11 @@ export type AugmentedTaSearchInput = z.infer<typeof AugmentedTaSearchInputSchema
 
 export const AugmentedTaSearchOutputSchema = z.object({
   averageTrueRange14: z.number().nullable().describe('The 14-day Average True Range (ATR).'),
-  supportLevels: z.array(z.number()).nullable().describe('An array of key support price levels.'),
-  resistanceLevels: z.array(z.number()).nullable().describe('An array of key resistance price levels.'),
+  bollingerBands: z.object({
+    upper: z.number().nullable(),
+    middle: z.number().nullable(),
+    lower: z.number().nullable(),
+  }).nullable().describe('An object containing the three Bollinger Band values.'),
   fibonacciRetracement: z.record(z.number()).nullable().describe('An object of Fibonacci retracement levels and their corresponding prices.'),
 });
 export type AugmentedTaSearchOutput = z.infer<typeof AugmentedTaSearchOutputSchema>;
