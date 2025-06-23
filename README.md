@@ -18,13 +18,13 @@ To prevent the severe audit failures of the v3.3.15.x series, the following proc
 8.  **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user.
 9.  **Phase Completion Commits:** A consolidated commit log entry will be generated for documentation when a multi-task feature phase is marked as complete.
 10. **New Feature Documentation:** All new features need to provide `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` files in the `docs` folder with the specified content.
-11. **Bug Report Versioning (NEW):** A single bug report corresponds to a single minor version increment. For example, if the current version is `v3.w.x.y.z`, the fix for a bug report will result in version `v3.w.x.y.(z+1)`. All subsequent corrections and auto-fixes for that *same* bug report will be part of the `v3.w.x.y.(z+1)` version and will **not** trigger further version increments.
+11. **Bug Report Versioning (Strictly Enforced):** A single bug report corresponds to a single minor version increment. For example, if the current version is `v3.w.x.y.z`, the fix for a bug report will result in version `v3.w.x.y.(z+1)`. All subsequent corrections and auto-fixes for that *same* bug report will be part of the `v3.w.x.y.(z+1)` version and will **not** trigger further version increments.
 
 ###
 ---
-**README Document Version:** 1.92
-**Application Version (from `app-metadata.json`):** v3.3.16.4.0
-**Last Updated:** 2025-07-09
+**README Document Version:** 1.93
+**Application Version (from `app-metadata.json`):** v3.3.16.4.7
+**Last Updated:** 2025-07-12
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -76,10 +76,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
 *   **Google Search Grounding (as of v3.3.16):**
     *   **[Architecture Refactor Complete]** All web search functionality has been consolidated into a single, unified `chat-flow`. All "Augmented" terminology has been replaced with "Web Search".
-    *   **Functionality:** When toggled on or triggered on-demand, performs a Google Search for advanced TA and Options metrics.
+    *   **Functionality:** When toggled on or triggered on-demand, performs a Google Search for advanced TA and Options metrics. The raw JSON result is then passed to a second, dedicated AI flow (`format-web-search-flow`) to generate a user-friendly markdown summary.
     *   **UI Impact:**
-        *   The clean text response is rendered in the main **Chatbot UI**.
-        *   The full raw API response (including grounding metadata) is displayed in dedicated "Raw ... Response" text boxes on the **Debug Tab**.
+        *   The clean, **formatted markdown** response is rendered in the main **Chatbot UI**.
+        *   The full raw API response from the initial search (including grounding metadata) is displayed in dedicated "Raw ... Response" text boxes on the **Debug Tab**.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
     *   **[Architecture Refactor Complete]** Grounding is now determined by the specific `promptName` being executed. All user-initiated interactive chat queries are grounded by default.
@@ -146,14 +146,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the customizable analysis pipeline.
     *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
-*   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.2.4)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.4.7)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
-*   **Lifecycle Management:** This FSM orchestrates all application pipelines:
+*   **Lifecycle Management & Robustness:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
     *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and the three standard chat prompts.
-    *   **[Architecture Refactor Complete]** Web Search Pipeline (Chat-Centric): The FSM orchestrator triggers web searches as final steps of the main pipeline (if toggles on) or on-demand by dispatching special requests (with a `promptName`) to the intelligent `chat-flow`. All old FSM states for "Augmented Search" have been removed.
+    *   **[Architecture Refactor Complete]** Web Search Pipeline (Two-Stage): The FSM orchestrator triggers web searches via the `chat-flow`. Upon receiving a raw JSON string, it transitions to a `FORMATTING_WEB_SEARCH_RESULTS` state, where it calls a separate `format-web-search-flow` to create a user-friendly summary for the chat UI.
+    *   **Loop Prevention:** The orchestrator is now architecturally robust against race conditions. It is fully decoupled from data JSON state updates and uses a `completedSteps` guard to ensure each step in a given pipeline can only be dispatched once, preventing infinite loops.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -183,8 +183,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.4.0):**
-    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** This feature's implementation is now complete and awaiting final testing.
+*   **Current Feature Focus (as of v3.3.16.4.7):**
+    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** This feature's implementation is complete and is now undergoing final testing and debugging.
 *   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
@@ -200,7 +200,6 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
-    *   `lastUpdatedTimestamp` in `app-metadata.json` updated with real ISO 8601 timestamp (or removed if optional and not set).
 *   **Dynamic Versioning in UI/Exports:** Header and Debug Console use `appVersion` prop.
 *   **Documentation Update Policy (Strictly Enforced):** The AI is prohibited from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
 
@@ -238,8 +237,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.92
-*   **Current Application Version:** `v3.3.16.4.0`
+*   **This README Document Version:** 1.93
+*   **Current Application Version:** `v3.3.16.4.7`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.

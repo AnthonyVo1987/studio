@@ -58,6 +58,21 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.4.7` (Intermediate Debugging Commit)
+**Tag:** `Phase-47_Task-3.3.16.4.7_DebugCheckpoint` (Commit `2de7f17d`)
+**Subject:** `docs(all): Intermediate commit for v3.3.16.4.7, consolidate bug fixes & update docs`
+**Details:**
+This is a **documentation and checkpoint commit** for app version `v3.3.16.4.7`, marking a stable point after a series of critical post-implementation bug fixes for the **"AI Chat Prompt & Google Search Grounding Consolidation"** feature.
+
+**Key Fixes Consolidated Under this Version:**
+*   **Web Search Formatting (v3.3.16.4.3):** Implemented a new, dedicated AI flow (`format-web-search-flow`) to properly parse and format raw JSON from web searches into user-friendly markdown for the chat UI, resolving unformatted output.
+*   **Build Error Fix (v3.3.16.4.4):** Corrected a Next.js build error by removing the `'use server'` directive from schema files that only export types.
+*   **Pipeline Loop Error Fixes (v3.3.16.4.5 - v3.3.16.4.7):** Resolved a persistent `ERROR_PIPELINE_LOOP` by architecturally hardening the FSM orchestrator in `stock-analysis-context.tsx`. This involved removing stale state caching (`useRef`) and fully decoupling the orchestrator's `useEffect` dependencies from data JSON strings, eliminating the root cause of the race condition.
+
+**Outcome:**
+*   The application is now in a stable state for continued testing.
+*   All project documentation (`README.md`, `CHANGELOG.md`, `FEAT_SCOPE_*.md`, `FEAT_STATUS_*.md`) has been updated to reflect the recent fixes and the current, stable architecture.
+---
 **App Version:** `v3.3.16.4.0` (Initial Documentation for Phase 4)
 **Tag:** `Phase-46_Task-3.3.16.4.0_PreTestingDocUpdate`
 **Subject:** `docs(all): Initial docs for v3.3.16.4.0, complete feature refactor implementation (v3.3.16.4.0)`

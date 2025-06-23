@@ -1,10 +1,10 @@
 
 # Feature Scope: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16.0.0)
 
-**Document Version:** 6.0
-**Date:** 2025-07-09
+**Document Version:** 7.0
+**Date:** 2025-07-12
 **Target Application Version Series:** 3.3.16.x.z
-**Feature Status:** IMPLEMENTATION COMPLETE - AWAITING TESTING
+**Feature Status:** IN PROGRESS - TESTING & DEBUGGING
 
 ## 1. Introduction & Objective
 
@@ -68,7 +68,7 @@ In adherence to the mandatory new audit protocol, a full execution trace was per
 The two web search prompts will be updated to fetch more comprehensive data.
 
 *   **`technical-analysis-web-search.json`:**
-    *   **Support/Resistance Levels:** The prompt will ask for a maximum of 3 levels for each.
+    *   **Support/Resistance Levels:** This has been **removed** as it is redundant with existing AI TA.
     *   **Bollinger Bands:** The prompt will be updated to request the actual values for the Lower, Middle, and Upper bands.
     *   **Fibonacci Retracement:** The prompt will be updated to request the 5 key levels: 0.236, 0.382, 0.500, 0.618, and 0.786.
 
@@ -102,8 +102,12 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 *   **Status:** `IN PROGRESS`
 *   **Tasks:**
     *   **v3.3.16.4.0:** Initial Pre-testing Phase Start to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor before we start our testing and debugging. (`COMPLETED`)
-    *   **v3.3.16.4.1:** Comprehensive testing of all chat/search paths and all customizable analysis pipeline toggle combinations. (`PLANNED`)
-    *   **v3.3.16.4.z:** Final "Phase Completion Commit" to update `README.md`, `CHANGELOG.md`, and all `FEAT_*` documents to reflect the completed refactor and any bug fixes. (`PLANNED`)
+    *   **v3.3.16.4.3 (Bug #3):** Implement a dedicated formatting flow for web search results to ensure they are displayed correctly in the chat UI. (`COMPLETED`)
+    *   **v3.3.16.4.4 (Bug #4):** Fix a Next.js build error by removing an invalid `'use server'` directive from schema files. (`COMPLETED`)
+    *   **v3.3.16.4.5 (Bug #5):** Resolve an `ERROR_PIPELINE_LOOP` by introducing an intermediate FSM state to prevent race conditions. (`COMPLETED`)
+    *   **v3.3.16.4.6 (Bug #6):** Resolve a recurring `ERROR_PIPELINE_LOOP` by decoupling the FSM orchestrator's `useEffect` hook from data JSON state variables. (`COMPLETED`)
+    *   **v3.3.16.4.7 (Bug #7):** Resolve the final `ERROR_PIPELINE_LOOP` by removing the stale `useRef` cache for FSM state from the orchestrator, fixing the root cause of the race condition. (`COMPLETED`)
+    *   **v3.3.16.4.z:** Final Phase Completion Commit. (`PLANNED`)
 
 ## 5. Value Added Proposition
 
@@ -120,6 +124,7 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 
 ## 7. Document Changelog
 
+*   **v7.0 (2025-07-12):** Updated Phase 4 task list to include the completed bug fixes up to v3.3.16.4.7.
 *   **v6.0 (2025-07-09):** Marked Phase 3 and Phase 4 (Task 4.0) as complete. Updated feature status to `IMPLEMENTATION COMPLETE - AWAITING TESTING`.
 *   **v5.0 (2025-07-08):** Marked Phase 2 and all its tasks as `COMPLETED`.
 *   **v4.0 (2025-07-07):** Added Task v3.3.16.1.6 to Phase 1 and marked as COMPLETED.
