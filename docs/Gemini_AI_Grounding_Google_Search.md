@@ -1,7 +1,7 @@
 # Gemini AI: Grounding with Google Search - Reference Guide
 
-**Document Version:** 1.0
-**Date:** 2025-06-29
+**Document Version:** 2.0
+**Date:** 2025-07-03
 **Author:** StockSage AI Coding Agent
 
 ## 1. Introduction
@@ -87,10 +87,55 @@ Since the grounded path relies on parsing a JSON string from a text response, th
 *   **Validate with Zod:** Always parse the resulting JSON string and then validate the object against its corresponding Zod schema (`MyTargetOutputSchema.parse(parsedObject)`). This ensures data integrity before it's passed to the rest of the application.
 *   **Handle Errors Gracefully:** The flow must have `try...catch` blocks to handle JSON parsing errors or Zod validation failures, returning a structured error to the client instead of crashing.
 
-## 4. Lessons Learned & Summary
+## 5. Understanding the Grounding Response & Metadata
+
+When a response is successfully grounded, the API response includes a `groundingMetadata` field alongside the generated text. This structured data is essential for verifying claims and building a rich citation experience in your application.
+
+### Example Metadata Output:
+```json
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Spain won Euro 2024, defeating England 2-1 in the final."
+          }
+        ],
+        "role": "model"
+      },
+      "groundingMetadata": {
+        "webSearchQueries": [
+          "UEFA Euro 2024 winner"
+        ],
+        "groundingChunks": [
+          {"web": {"uri": "https://vertexaisearch.cloud.google.com/...", "title": "uefa.com"}}
+        ],
+        "groundingSupports": [
+          {
+            "segment": {"startIndex": 0, "endIndex": 55, "text": "Spain won Euro 2024, defeating England 2-1 in the final."},
+            "groundingChunkIndices": [0]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Key Metadata Fields:
+*   **`webSearchQueries`**: An array of the search queries the model used. This is useful for debugging and understanding the model's reasoning process.
+*   **`searchEntryPoint`**: Contains the HTML and CSS to render required Search Suggestions widgets, as detailed in the Terms of Service. This is not currently used in our application.
+*   **`groundingChunks`**: An array of objects containing the web sources (with `uri` and `title`) that the model used to formulate its answer.
+*   **`groundingSupports`**: An array of objects that connect segments of the model's response text to the sources in `groundingChunks`. Each support object links a `segment` (defined by `startIndex` and `endIndex` of the text) to one or more sources via `groundingChunkIndices`. This is the key to building inline citations.
+
+## 6. Implementation Notes & Lessons Learned
 
 *   **The Root Cause of v3.3.7 Errors:** The primary bug was failing to remove the `outputSchema` from the `ai.defineFlow` definition when adding the `googleSearch` tool to the prompt.
 *   **No Special Imports:** The `googleSearch` tool is enabled with a plain object `[{ googleSearch: {} }]`. No special imports are needed.
 *   **Follow the Pattern:** The `chat-flow.ts` file provides a working, correct implementation of this architecture. All new grounded search features must replicate this pattern exactly.
 *   **Single Responsibility:** When grounding is on, the AI's only responsibility is to find information and return a JSON string. The application's responsibility is to parse and validate it.
-```
+
+## 7. Document Changelog
+*   **v2.0 (2025-07-03):** Added Section 5 detailing the `groundingMetadata` response object, including an example and explanation of key fields. Renumbered subsequent sections.
+*   **v1.0 (2025-06-29):** Initial document creation.
