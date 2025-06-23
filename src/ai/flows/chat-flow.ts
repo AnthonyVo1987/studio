@@ -12,6 +12,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { z } from 'zod'; // CRITICAL: Use direct 'zod' import
 import {
   ChatInputSchema,
   type ChatInput,
@@ -77,9 +78,11 @@ async function getChatPrompt(isGrounded: boolean) {
 
   if (isGrounded) {
     promptConfig.tools = [{ googleSearch: {} }];
+    // For grounded search, we expect a raw response, so no output schema is defined here.
+    // The flow will parse result.text.
+    promptOptions.output = { schema: ChatOutputSchema }; // The flow will populate this
   } else {
-    // For standard, non-grounded chat, we still expect the simple text response in the `response` field.
-    // The schema is now flexible to handle both cases.
+    // For standard, non-grounded chat, we expect a structured response.
     promptOptions.output = {schema: z.object({ response: z.string() })};
   }
   
@@ -144,9 +147,11 @@ const chatFlow = ai.defineFlow(
       let output: ChatOutput;
 
       if (isGrounded) {
-        responseText = result.text;
-        output = { response: responseText, rawResponse: result };
+        // The prompt for grounded returns a ChatOutputSchema, which contains the raw response.
+        responseText = result.output?.response;
+        output = { response: responseText, rawResponse: result.output?.rawResponse || result };
       } else {
+        // The standard prompt returns a simple object: { response: string }
         responseText = result.output?.response;
         output = { response: responseText, rawResponse: result };
       }
