@@ -270,8 +270,8 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isAiChatStockTraderTakeawaysSelected: true,
     isAiChatOptionsTraderTakeawaysSelected: true,
     isAiChatHolisticTakeawaysSelected: true,
-    isWebSearchTaEnabled: false,
-    isWebSearchOptionsEnabled: false,
+    isWebSearchTaEnabled: true,
+    isWebSearchOptionsEnabled: true,
   },
 };
 
