@@ -1,3 +1,4 @@
+
 ### AI Coding Agent Operating Procedure & Audit Protocol
 
 To prevent the severe audit failures of the v3.3.15.x series, the following procedures are now in effect and strictly enforced.
@@ -17,6 +18,7 @@ To prevent the severe audit failures of the v3.3.15.x series, the following proc
 8.  **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user.
 9.  **Phase Completion Commits:** A consolidated commit log entry will be generated for documentation when a multi-task feature phase is marked as complete.
 10. **New Feature Documentation:** All new features need to provide `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` files in the `docs` folder with the specified content.
+11. **Bug Report Versioning (NEW):** A single bug report corresponds to a single minor version increment. For example, if the current version is `v3.w.x.y.z`, the fix for a bug report will result in version `v3.w.x.y.(z+1)`. All subsequent corrections and auto-fixes for that *same* bug report will be part of the `v3.w.x.y.(z+1)` version and will **not** trigger further version increments.
 
 ###
 ---
@@ -180,7 +182,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
-*   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
+*   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a valid ISO 8601.
 *   **Current Feature Focus (as of v3.3.16.4.0):**
     *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** This feature's implementation is now complete and awaiting final testing.
 *   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
