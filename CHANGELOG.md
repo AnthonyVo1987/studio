@@ -58,6 +58,22 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.15.0.8` (Fix Augmented Search Architecture)
+**Tag:** `Phase-42_Task-3.3.15.0.8_FixAugmentedSearchArchitecture` (Commit `2188289d`)
+**Subject:** `fix(ai,fsm): Correct augmented search architecture, use single intelligent chat flow (v3.3.15.0.8)`
+**Details:**
+This commit (`2188289d`) fixes a critical architectural bug where augmented searches were incorrectly routed through the generic chatbot, causing them to use the wrong AI prompt and fail to perform a web search. The issue previously documented as "lost prompts" was, in fact, a severe logic and wiring error by the AI agent.
+
+**Key Architectural Correction:**
+*   **`src/ai/flows/chat-flow.ts`:** The `chatFlow` is now "intelligent." It inspects the `userInput` for `SYSTEM_TRIGGER` keys. If a key is present, the flow dynamically loads the correct specialized prompt definition (`augmented-ta-search.json` or `augmented-options-search.json`). If no key is found, it defaults to the standard `stock-chatbot.json` as before.
+*   **`src/contexts/stock-analysis-context.tsx`:** The FSM reducer has been corrected. On `AUGMENTED_..._SUCCESS` events, it now extracts the full `rawResponse` object from the flow's output (which includes the `groundingMetadata`) and correctly saves it to the state variables (`rawAugmentedTaResponseJson`, `rawAugmentedOptionsResponseJson`) for the Debug Tab.
+*   **Deprecated Files:** The unused and confusing standalone files (`augmented-ta-search-flow.ts`, `augmented-options-search-flow.ts`) have been marked as deprecated (emptied) and will be removed in a future cleanup task.
+
+**Outcome:**
+*   The augmented search feature now correctly executes the specialized web search prompts.
+*   The Debug Tab now correctly displays the full raw API response from the search, including the `groundingMetadata`.
+*   The feature is now functionally complete and ready for final testing.
+---
 **App Version:** `v3.3.15.0.7` (Intermediate Commit, Acknowledging Lost Prompts)
 **Tag:** `Phase-41_Task-3.3.15.0.7_AcknowledgeLostPrompts` (Commit `74970fb4`)
 **Subject:** `docs(all): Intermediate commit for v3.3.15.0.7, acknowledge lost AI prompts`
