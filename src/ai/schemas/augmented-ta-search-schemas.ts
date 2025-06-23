@@ -2,7 +2,6 @@
 /**
  * @fileOverview Zod schemas for the AI Augmented Technical Analysis Search feature.
  */
-'use server';
 
 import { z } from 'zod';
 

@@ -25,7 +25,7 @@
       "role": "CoreTask",
       "parts": [
         {
-          "text": "For the stock ticker {{{ticker}}}, use the Google Search tool to find the most recent values for the following TA indicators:\n1.  **Average True Range (ATR) 14-day.**\n2.  **Key Support and Resistance Levels (maximum of 3 each).**\n3.  **Bollinger Bands (20, 2):** Provide the specific values for the Upper Band, Middle Band, and Lower Band.\n4.  **Fibonacci Retracement Levels:** Based on the most recent significant price move, provide the price levels for the following 3 key retracements: 38.2%, 50.0%, and 61.8%."
+          "text": "For the stock ticker {{{ticker}}}, use the Google Search tool to find the most recent values for the following TA indicators:\n1.  **Average True Range (ATR) 14-day.**\n2.  **Bollinger Bands (20, 2):** Provide the specific values for the Upper Band, Middle Band, and Lower Band.\n3.  **Fibonacci Retracement Levels:** Based on the most recent significant price move, provide the price levels for the following 3 key retracements: 38.2%, 50.0%, and 61.8%."
         }
       ]
     },
@@ -33,7 +33,7 @@
       "role": "OutputRequirements",
       "parts": [
         {
-          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- Your entire response MUST begin with `{` and end with `}`.\n- `averageTrueRange14`: number or null\n- `supportLevels`: array of up to 3 numbers, or null\n- `resistanceLevels`: array of up to 3 numbers, or null\n- `bollingerBands`: object with `upper`, `middle`, `lower` keys (all numbers), or null.\n- `fibonacciRetracement`: object with percentage strings as keys and price values (e.g., `{\"38.2%\": 145.20, \"50.0%\": 142.10, \"61.8%\": 139.00}`), or null."
+          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- Your entire response MUST begin with `{` and end with `}`.\n- `averageTrueRange14`: number or null\n- `bollingerBands`: object with `upper`, `middle`, `lower` keys (all numbers), or null.\n- `fibonacciRetracement`: object with percentage strings as keys and price values (e.g., `{\"38.2%\": 145.20, \"50.0%\": 142.10, \"61.8%\": 139.00}`), or null."
         }
       ]
     }

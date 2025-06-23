@@ -2,7 +2,6 @@
 /**
  * @fileOverview Zod schemas for the AI Augmented Options Search feature.
  */
-'use server';
 
 import { z } from 'zod';
 
