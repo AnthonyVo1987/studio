@@ -32,6 +32,8 @@ export enum GlobalFsmState {
   AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
 
+  PIPELINE_AWAITING_CUSTOM_ANALYSIS_START = 'PIPELINE_AWAITING_CUSTOM_ANALYSIS_START',
+
   PIPELINE_AUTOMATED_COMPLETE = 'PIPELINE_AUTOMATED_COMPLETE',
 
   GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
@@ -550,7 +552,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       if (state.variables.completedSteps.has(stepKey)) {
         const errorMsg = `Potential loop detected for step '${stepKey}'. Aborting action.`;
         logDebug(logPrefixFsmReducer as LogSourceId, 'CriticalError', `[FSM_GUARD] ${errorMsg}`);
-        nextVariables.lastError = { message: errorMsg, source: 'FSMGuard' };
+        handlePipelineError('FSMGuard', errorMsg);
         nextCurrentState = GlobalFsmState.ERROR_PIPELINE_LOOP;
         return true; 
       }
@@ -641,9 +643,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
         nextFlags.isCalculatedTADataReady = true;
-        nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
         nextVariables.isInitialLoad = false;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED. isInitialLoad set to false.`);
+        nextCurrentState = GlobalFsmState.PIPELINE_AWAITING_CUSTOM_ANALYSIS_START;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_AWAITING_CUSTOM_ANALYSIS_START. isInitialLoad set to false.`);
         break;
       case 'AI_TA_FAILURE':
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
@@ -902,11 +904,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             if (event.type === 'INITIATE_AI_TA_SEQUENCE') determinedTarget = GlobalFsmState.CALCULATING_AI_TA;
             break;
         case GlobalFsmState.CALCULATING_AI_TA:
-            if (event.type === 'AI_TA_SUCCESS') determinedTarget = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
+            if (event.type === 'AI_TA_SUCCESS') determinedTarget = GlobalFsmState.PIPELINE_AWAITING_CUSTOM_ANALYSIS_START;
             else if (event.type === 'AI_TA_FAILURE') determinedTarget = GlobalFsmState.AI_TA_CALCULATION_FAILED;
-            break;
-        case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED: 
-             if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') determinedTarget = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
             break;
         case GlobalFsmState.FORMATTING_WEB_SEARCH_RESULTS:
             if (event.type === 'FORMAT_WEB_SEARCH_SUCCESS') determinedTarget = GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS;
@@ -1092,7 +1091,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       } else {
         _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: `Snapshot data missing/error for AI TA of ${state.variables.activeTicker}.`, error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({ error: "Snapshot data missing for AI TA", ticker: state.variables.activeTicker }) } });
       }
-    } else if (state.current === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED) {
+    } else if (state.current === GlobalFsmState.PIPELINE_AWAITING_CUSTOM_ANALYSIS_START) {
       if (state.variables.activePipelineProfile === 'standard') {
         dispatchNextCustomAction('base');
       }
