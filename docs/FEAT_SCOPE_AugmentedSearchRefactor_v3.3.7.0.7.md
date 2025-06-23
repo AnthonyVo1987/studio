@@ -1,10 +1,10 @@
 
 # Feature Scope: Augmented Search Re-Architecture (StockSage v3.3.7.0.7)
 
-**Document Version:** 3.0
-**Date:** 2025-07-02
+**Document Version:** 4.0
+**Date:** 2025-07-03
 **Target Application Version Series:** 3.3.7.0.7+
-**Feature Status:** IMPLEMENTATION COMPLETE, PENDING TESTING
+**Feature Status:** `IMPLEMENTATION INCOMPLETE - CRITICAL BUG`
 
 ## 1. Introduction & Objective
 
@@ -56,12 +56,14 @@ This section details the specific tasks for an AI Coding Agent to implement the 
 
 ### Phase 4: Final Testing & Documentation (Target: v3.3.11.x.z)
 *   **Objective:** Verify the full isolation and update all documentation.
-*   **Status:** `PLANNED`
+*   **Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **Task v3.3.11.0.0:** Conduct comprehensive testing to confirm that failures in the augmented search do not affect the main analysis and that data appears correctly in the raw text boxes.
-    *   **Task v3.3.11.1.0:** Perform a "Phase Completion Commit" to update all project documents (`README.md`, `CHANGELOG.md`, etc.) to reflect the new, stable, decoupled architecture.
+    *   **Task v3.3.15.1.0 (Critical Fix):** Re-create and correctly implement the AI prompts that were lost by the AI Agent for both augmented TA and options searches. This is the highest priority. (`PLANNED`)
+    *   **Task v3.3.11.0.0:** Conduct comprehensive testing to confirm that failures in the augmented search do not affect the main analysis and that data appears correctly in the raw text boxes. (`BLOCKED`)
+    *   **Task v3.3.11.1.0:** Perform a "Phase Completion Commit" to update all project documents (`README.md`, `CHANGELOG.md`, etc.) to reflect the new, stable, decoupled architecture. (`BLOCKED`)
 
 ## 5. Document Changelog
+*   **v4.0 (2025-07-03):** Updated feature status to reflect critical bug of lost AI prompts. Added a new priority task to re-create the prompts and marked subsequent testing as blocked.
 *   **v3.0 (2025-07-02):** Marked Phases 1, 2, and 3 as `COMPLETED`. Updated overall feature status.
 *   **v2.0 (2025-06-30):** Added detailed, multi-phase implementation plan and task breakdown for the re-architecture.
 *   **v1.0 (2025-06-30):** Initial document creation, scoping the re-architecture.

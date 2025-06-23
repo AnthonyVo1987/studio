@@ -58,6 +58,119 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.15.0.7` (Intermediate Commit, Acknowledging Lost Prompts)
+**Tag:** `Phase-41_Task-3.3.15.0.7_AcknowledgeLostPrompts` (Commit `74970fb4`)
+**Subject:** `docs(all): Intermediate commit for v3.3.15.0.7, acknowledge lost AI prompts`
+**Details:**
+This is a **documentation-only** commit to save the progress of the "Chat-Centric Grounded Search" re-architecture. It formally acknowledges a critical bug discovered during a code audit: the specific AI prompts for the augmented TA and options searches were **lost during a previous flawed refactoring by the AI agent**.
+
+**Key State & Known Issue:**
+*   **Functionality:** The application has a working FSM and UI to trigger the augmented searches.
+*   **Critical Bug:** The `chat-flow` that is triggered for these searches lacks the specific instructions to perform the correct web search and format the data. It defaults to a generic chat response, rendering the feature non-functional.
+*   **AI Agent Error:** This is a direct result of an error by the AI Coding Agent, which failed to preserve or correctly migrate the prompt logic.
+*   **Next Steps:** The immediate next priority is **Task v3.3.15.1.0**, which is to re-create and correctly implement the lost AI prompts for both augmented TA and options searches. Final testing of the feature is blocked until this critical fix is complete.
+
+**Documentation Changes:**
+*   `CHANGELOG.md` (this file), `README.md`, `FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`, and `FEAT_STATUS_AugmentedSearchRefactor_v3.3.7.0.7.md` have all been updated to reflect the current `v3.3.15.0.7` version and to explicitly state the known issue regarding the lost prompts.
+---
+**App Version:** `v3.3.15.0.6` (Fix AI Augment Data Flow to Chat UI)
+**Tag:** `Phase-40_Task-3.3.15.0.6_FixAugmentedResultToChat` (Commit `TBD`)
+**Subject:** `fix(fsm): Correctly pipe augmented search results to chat history (v3.3.15.0.6)`
+**Details:**
+This commit (`TBD`) fixes a critical bug of omission identified in the v3.3.15.0.6 audit. Previously, while successful augmented searches correctly saved their raw data for debugging, they failed to display the clean text result to the user in the chat window.
+
+**Key Architectural Correction:**
+*   **`src/contexts/stock-analysis-context.tsx`:**
+    *   The `fsmReducer` logic for the `AUGMENTED_TA_SUCCEEDED` and `AUGMENTED_OPTIONS_SUCCEEDED` events has been updated.
+    *   In addition to saving the raw response JSON, the reducer now correctly parses this JSON, extracts the clean `response` text, and calls the `addChatMessage` utility to push the result into the main chat history. This ensures the user sees the output of the augmented search.
+
+**Outcome:**
+*   The AI augmented search feature is now fully connected end-to-end. Successful searches will now correctly display their results in the main chat UI, as originally intended.
+---
+**App Version:** `v3.3.15.0.5` (Implement FSM States for Augmented Search)
+**Tag:** `Phase-39_Task-3.3.15.0.5_ImplementAugmentedSearchFsm` (Commit `TBD`)
+**Subject:** `feat(fsm): Implement dedicated FSM states for augmented search lifecycle (v3.3.15.0.5)`
+**Details:**
+This commit (`TBD`) implements the FSM enhancements scoped in the v3.3.15.0.5 audit. It addresses a critical architectural gap where augmented searches were incorrectly using the generic chat FSM states, breaking the main analysis pipeline sequence.
+
+**Key Architectural Correction:**
+*   **`src/contexts/stock-analysis-context.tsx`:**
+    *   **New FSM States:** Added six new states to the `GlobalFsmState` enum: `FETCHING_AUGMENTED_TA`, `AUGMENTED_TA_SUCCEEDED`, `AUGMENTED_TA_FAILED`, `FETCHING_AUGMENTED_OPTIONS`, `AUGMENTED_OPTIONS_SUCCEEDED`, `AUGMENTED_OPTIONS_FAILED`.
+    *   **New FSM Events:** Added corresponding new events to `FsmEvent` to trigger and manage these states.
+    *   **Updated FSM Orchestrator:** The `useEffect` orchestrator has been refactored. It now uses the new dedicated states to correctly sequence the augmented searches as the final steps of the main pipeline, waiting for one to complete before starting the next.
+    *   **Updated Reducer & Action Handling:** The reducer and the `useActionState` effect for the chat action were updated to handle the new events and dispatch them correctly, distinguishing between regular chat messages and augmented search requests.
+
+**Outcome:**
+*   The FSM now correctly and robustly manages the lifecycle of each augmented search, preventing premature termination of the analysis pipeline.
+*   The application architecture is now sound and prepared for final data flow checks.
+---
+**App Version:** `v3.3.15.0.3` (Corrected - Chat-Centric Grounded Search Re-Architecture)
+**Tag:** `Phase-38_Task-3.3.15.0.3_FixAugmentedSearchPrompts_Corrected` (Commit `TBD`)
+**Subject:** `fix(fsm,ai): Correct augmented search prompt logic in FSM orchestrator (v3.3.15.0.3)`
+**Details:**
+This commit (`TBD`) resolves a critical logic bug where the FSM orchestrator was calling incorrect prompts for the new chat-centric augmented search feature.
+
+**Key Changes in this Correction:**
+*   **`src/contexts/stock-analysis-context.tsx` (`dispatchNextCustomAction`):**
+    *   The logic for the `augmented_ta` and `augmented_options` steps has been corrected.
+    *   It now calls the correct `dispatchGroundedChat` helper function.
+    *   It now passes the correct system prompt keys (`SYSTEM_TRIGGER:AUGMENTED_TA_SEARCH` and `SYSTEM_TRIGGER:AUGMENTED_OPTIONS_SEARCH`) to `dispatchGroundedChat`.
+    *   This ensures that when the main pipeline triggers an augmented search, it sends the correct, specific instructions to the `chat-flow` instead of an incorrect, unrelated chat prompt.
+
+**Outcome:**
+*   The main analysis pipeline now correctly triggers the appropriate augmented search prompts via the chat flow.
+*   This resolves the issue of incorrect takeaways appearing in the chat log when an augmented search was initiated by the main pipeline.
+---
+**App Version:** `v3.3.15.0.2` (Fix Grounded Search API Error)
+**Tag:** `Phase-37_Task-3.3.15.0.2_FixGroundedSearchApiError` (Commit `TBD`)
+**Subject:** `fix(ai): Resolve unsupported tool use with JSON mime type error (v3.3.15.0.2)`
+**Details:**
+This commit (`TBD`) fixes a `[400 Bad Request]` error from the Google Generative AI API: `Tool use with a response mime type: 'application/json' is unsupported`. This occurred when trying to use the Google Search tool while also requesting a structured JSON output.
+
+**Key Architectural Correction:**
+*   **`src/ai/flows/chat-flow.ts`:**
+    *   The `getChatPrompt` function was updated to be conditionally aware of tool usage.
+    *   When grounding (tool use) is **enabled**, the prompt definition now **omits** the `output: { schema: ... }` property.
+    *   When grounding is **disabled**, the `output: { schema: ... }` property is included as before.
+    *   The `chatFlow` logic was updated to handle both response types, checking if the response is in `result.text` (for grounded) or `result.output` (for non-grounded).
+
+**Outcome:**
+*   The augmented chat search feature no longer causes a `400 Bad Request` API error and can now function correctly.
+---
+**App Version:** `v3.3.15.0.1` (Fix Chat Flow Zod Import)
+**Tag:** `Phase-36_Task-3.3.15.0.1_FixChatFlowZodImport` (Commit `TBD`)
+**Subject:** `fix(ai): Add missing zod import to chat-flow.ts (v3.3.15.0.1)`
+**Details:**
+This commit (`TBD`) fixes a critical `ReferenceError: z is not defined` that occurred on the server when the AI chat pipeline was initiated.
+
+**Key Change:**
+*   `src/ai/flows/chat-flow.ts`: Added the missing `import { z } from 'zod';` statement. This resolves the reference error and allows the flow to correctly define its output schema for non-grounded chat messages.
+
+**Outcome:**
+*   The standard (non-grounded) AI chat pipeline is now functional.
+---
+**App Version:** `v3.3.15.0.0` (Complete Chat-Centric Grounded Search Re-Architecture)
+**Tag:** `Phase-35_Task-3.3.15.0.0_CompleteChatCentricSearchRefactor_Phases1-4` (Commit `890f5cb7`)
+**Subject:** `feat(core,ai,fsm,ui): Complete Chat-Centric Grounded Search Re-Architecture (v3.3.15.0.0)`
+**Details:**
+This commit (`890f5cb7`) marks the successful completion of the **"Chat-Centric Grounded Search"** re-architecture. The core objective of this refactor—to consolidate all web search functionality into the robust, tool-enabled `chat-flow` and trigger it from various points in the UI—has been achieved. This provides a more stable, maintainable, and unified architecture for all grounded AI searches.
+
+**Key Changes in this Re-Architecture (Phases 1-4, v3.3.12.x.z to v3.3.15.x.z):**
+*   **Phase 1: Remove Old Standalone Search Flows (Tasks v3.3.12.x.z):**
+    *   The obsolete standalone files (`augmented-ta-search-flow.ts`, `augmented-options-search-flow.ts`, `augmented-ta-search-action.ts`, `augmented-options-search-action.ts`, `augmented-ta-display.tsx`, `augmented-options-display.tsx`) were removed from the project.
+*   **Phase 2: Consolidate Raw JSON Display (Tasks v3.3.13.x.z):**
+    *   New state variables (`rawAugmentedTaResponseJson`, `rawAugmentedOptionsResponseJson`) were added to `StockAnalysisContext` to hold the full, raw response (including grounding metadata) from the `chat-flow`.
+    *   The `DebugTabContent` was updated with new `JsonDisplayArea` components to show these raw responses.
+*   **Phase 3 & 4: FSM Integration & UI Logic (Tasks v3.3.14.x.z - v3.3.15.x.z):**
+    *   The FSM orchestrator in `stock-analysis-context.tsx` was refactored. It now triggers augmented searches as the final steps of the main analysis pipeline by dispatching special messages to the `chat-flow`.
+    *   The `Chatbot` component was updated with on-demand buttons that also dispatch these special messages.
+    *   UI toggles were added to `main-tab-content.tsx` to control whether the main pipeline automatically triggers the augmented searches. These toggles correctly update the FSM flags that the orchestrator uses.
+
+**Outcome:**
+*   The application's architecture for web-augmented search is now unified and robust.
+*   The feature is now functionally complete and ready for the final phase: **Phase 5: Testing & Debugging**.
+*   The application version is consistently `v3.3.15.0.0`.
+---
 **App Version:** `v3.3.10.1.0` (Complete Augmented Search Re-Architecture Implementation)
 **Tag:** `Phase-34_Task-3.3.10.1.0_CompleteAugmentedSearchRefactor_Phases1-3` (Commit `bd8655d1`)
 **Subject:** `feat(core,ai,fsm,ui): Complete initial implementation of Augmented Search Re-Architecture (v3.3.10.1.0)`
@@ -630,7 +743,7 @@ This commit marks the full completion of the "Debug Log Enhancements" feature, w
 *   **FSM Dispatch & Data Flow Bug Fixes (v3.1.3.x):**
     *   (v3.1.3.0) Corrected `currentPrice` derivation in `src/services/data-sources/adapters/polygon-adapter.ts` to better handle market-closed scenarios for options analysis. Refined FSM display logging in `StockAnalysisContext` to reduce duplicates. Implemented initial `globalDispatchGuardRef` in `MainTabContent.tsx` to prevent duplicate global FSM event dispatches.
     *   (v3.1.3.1) Further strengthened `PolygonAdapter`'s `currentPrice` logic. Tweaked AI Options flow/prompt (`analyze-options-chain.json`, `analyze-options-chain-flow.ts`) for improved wall detection. Further refined `globalDispatchGuardRef` reset logic in `MainTabContent.tsx`.
-    *   (v3.1.3.2 & v3.1.3.3) Continued refinement of the `globalDispatchGuardRef` reset logic in `MainTabContent.tsx`, making conditions for guard reset more precise based on global FSM terminal states for specific actions and ticker contexts to prevent duplicate global FSM event dispatches.
+    *   (v3.1.3.2 & v3.1.3.3) Continued refinement of the `globalDispatchGuardRef` reset logic in `MainTabContent.tsx`, making conditions for guard reset more precise based on global FSM terminal states for specific actions and relevant ticker contexts to prevent duplicate global FSM event dispatches.
     *   (v3.1.3.4) Fixed a `ReferenceError: activeAnalysisTickerRef is not defined` in `MainTabContent.tsx` by correctly using `localFsm.activeAnalysisTicker` within the global FSM dispatch guard reset logic.
 
 **Outcome of "Debug Log Enhancements" Feature (v3.1.3.4):**
@@ -661,7 +774,7 @@ This version (`v3.0.0.1`) implements a critical fix to ensure all application ve
 *   **Documentation Updates:**
     *   `README_3.0.md` (Document version 3.0.1): Updated to strictly reflect the new dynamic versioning policy:
         *   `src/config/app-metadata.json` is the sole source of truth for `appVersion`.
-        *   All UI displays (Header) and export metadata (DebugConsole logs) derive the application version dynamically from this source.
+        *   All UI displays (Header) and export metadata (DebugConsole logs) derive the application version dynamically from this single source.
         *   Hardcoded version constants (like the former `APP_VERSION_FOR_EXPORT`) are prohibited and have been removed.
         *   Commit procedures updated to reflect these changes.
     *   `CHANGELOG.md` (this file): Updated with this commit log for `v3.0.0.1`.

@@ -26,9 +26,9 @@
 6.  **Phase Completion Commits:** When a multi-task feature phase is marked as complete, a final consolidated commit log entry will be generated for documentation. This entry will use a distinct commit hash (provided by the user or a placeholder if not user-provided for meta-commits) and will summarize all tasks completed within that phase. The application version for this phase completion entry will typically reflect the version of the last task in that phase. No source code changes are made during this phase-closing documentation step; it is purely for record-keeping and updating relevant feature documents. The AI Agent will also perform a context reset after a phase completion.
 ###
 ---
-**README Document Version:** 1.87
-**Application Version (from `app-metadata.json`):** v3.3.10.1.0
-**Last Updated:** 2025-07-02
+**README Document Version:** 1.88
+**Application Version (from `app-metadata.json`):** v3.3.15.0.7
+**Last Updated:** 2025-07-03
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -78,11 +78,13 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Stock Trader's Takeaways (with Buy/Sell levels).
         *   AI Chat: Options Trader's Takeaways (with CC/CSP setups).
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
-*   **AI Augmented Web Search (as of v3.3.10.1.0):**
-    *   **[Re-Architected for Stability]** This feature has been re-architected to be fully decoupled from the main analysis pipeline. The augmented search flows run in a non-blocking, parallel manner.
-    *   **Functionality:** If toggled on, performs a Google Search for advanced TA and Options metrics.
-    *   **UI Impact:** The raw, unparsed JSON output from the search flows is displayed in dedicated "Raw Output" text boxes for debugging and observation. This data is **not** currently used by the main analysis prompts.
-    *   For the full scope and implementation plan of this refactor, see `docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`.
+*   **AI Augmented Web Search (as of v3.3.15.0.7):**
+    *   **[Re-Architected to Chat-Centric Model]** All augmented search functionality (for TA and Options) is now unified and handled by the `chat-flow`. This flow is triggered either automatically at the end of the main pipeline (if toggles are enabled) or on-demand via buttons in the chatbot UI.
+    *   **Functionality:** When toggled on or triggered, performs a Google Search for advanced TA and Options metrics.
+    *   **UI Impact:**
+        *   The clean text response is rendered in the main **Chatbot UI**.
+        *   The full raw API response (including grounding metadata) is displayed in dedicated "Raw ... Response" text boxes on the **Debug Tab**.
+    *   **KNOWN ISSUE:** The specific, detailed prompts required for the augmented TA and options searches were lost by the AI Agent during a previous flawed refactoring. Re-creating these prompts is the next critical bug fix.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
     *   **Grounding with Google Search:** A UI toggle (disabled by default) allows the user to enable Google Search grounding for the chatbot.
@@ -145,25 +147,25 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.4. State Management (as of v3.2.5.0.Z)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management for:
-    *   Fetched data JSON strings (including `augmentedTaSearchJson`, `augmentedOptionsSearchJson`).
-    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the "AI Full Stock Analysis" macro.
+    *   Fetched data JSON strings (including `rawAugmentedTaResponseJson`, `rawAugmentedOptionsResponseJson`).
+    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the customizable analysis pipeline.
     *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.10.1.0)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.15.0.7)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
-    *   The new customizable analysis pipeline, which conditionally triggers on-demand AI actions (Key Takeaways, Options Analysis) and chat prompts based on user-selected toggles.
-    *   **Augmented Search Pipeline (Decoupled):** The FSM orchestrator now triggers the augmented search actions in a non-blocking, parallel manner. Their execution and potential failures are isolated and do not impact the primary analysis pipeline.
+    *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and the three standard chat prompts.
+    *   **Augmented Search Pipeline (Chat-Centric):** The FSM orchestrator now triggers augmented searches as the final steps of the main pipeline (if toggles are on) by dispatching special requests to the `chat-flow`. It uses dedicated FSM states (`FETCHING_AUGMENTED_TA`, etc.) to manage this lifecycle correctly.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
 *   Flows load definitions using `src/ai/definition-loader.ts`.
 *   All flows include error handling and execution time logging. Prompts are cached for performance.
 *   Example chat prompts for the UI are sourced from `src/ai/definitions/example-chat-prompts.json`.
-*   **Augmented Data Integration (Removed as of v3.3.8.2.0):** The schemas and prompts for `analyze-stock-data`, `analyze-options-chain`, and `chat` flows have been reverted and no longer accept augmented data.
+*   **Augmented Search Prompts (KNOWN ISSUE):** The specific, detailed prompts required for the augmented TA and options searches were lost by the AI Agent during a flawed refactoring. Re-creating these prompts is the next critical bug fix.
 
 ### 3.4. Error Handling & Logging
 
@@ -187,9 +189,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.10.1.0):**
-    *   **"Augmented Search Re-Architecture" (v3.3.x.y.z):** The initial implementation of the re-architecture is complete. The application is stable and the feature is ready for its final testing and documentation phase. See `docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`.
-*   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user.
+*   **Current Feature Focus (as of v3.3.15.0.7):**
+    *   **"Augmented Search Re-Architecture" (v3.3.x.y.z):** The chat-centric re-architecture is implemented but contains a **critical bug**: the prompts for the augmented searches were lost by the AI agent and need to be re-created. The feature is non-functional until this is fixed. See `docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`.
+*   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -242,8 +244,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.87
-*   **Current Application Version:** `v3.3.10.1.0`
+*   **This README Document Version:** 1.88
+*   **Current Application Version:** `v3.3.15.0.7`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
