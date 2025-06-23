@@ -781,24 +781,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FETCHING_AUGMENTED_TA.`);
         break;
       case 'AUGMENTED_TA_SUCCESS':
-        contextSetters.setRawAugmentedTaResponseJson(event.payload.chatbotResponseJson);
         try {
-          const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
-          if (modelResponse && modelResponse.response) {
+          const flowOutput = JSON.parse(event.payload.chatbotResponseJson);
+          const rawResponseForDebug = flowOutput.rawResponse ? JSON.stringify(flowOutput.rawResponse, null, 2) : event.payload.chatbotResponseJson;
+          contextSetters.setRawAugmentedTaResponseJson(rawResponseForDebug);
+          
+          if (flowOutput && flowOutput.response) {
             addChatMessage({
               id: `${Date.now()}_${chatMessageIdCounter++}_aug_ta_model`,
               role: 'model',
-              content: modelResponse.response,
+              content: flowOutput.response,
             });
-          } else {
-            throw new Error("Parsed response did not contain a 'response' field.");
-          }
+          } else { throw new Error("Parsed augmented TA response did not contain a 'response' field."); }
         } catch (e: any) {
           console.error(`${logPrefixFsmReducer}:AUGMENTED_TA_SUCCESS`, "Failed to parse or add chat message from augmented TA response:", e.message);
+          contextSetters.setRawAugmentedTaResponseJson(event.payload.chatbotResponseJson); // Fallback
           addChatMessage({
             id: `${Date.now()}_${chatMessageIdCounter++}_aug_ta_model_err`,
             role: 'model',
-            content: `[System Error: Failed to display Augmented TA search result. Raw data is available in the Debug tab.]`,
+            content: `[System Error: Failed to display Augmented TA search result. Raw data is in Debug tab.]`,
           });
         }
         nextCurrentState = GlobalFsmState.AUGMENTED_TA_SUCCEEDED;
@@ -821,24 +822,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FETCHING_AUGMENTED_OPTIONS.`);
         break;
       case 'AUGMENTED_OPTIONS_SUCCESS':
-        contextSetters.setRawAugmentedOptionsResponseJson(event.payload.chatbotResponseJson);
         try {
-          const modelResponse = JSON.parse(event.payload.chatbotResponseJson);
-          if (modelResponse && modelResponse.response) {
+          const flowOutput = JSON.parse(event.payload.chatbotResponseJson);
+          const rawResponseForDebug = flowOutput.rawResponse ? JSON.stringify(flowOutput.rawResponse, null, 2) : event.payload.chatbotResponseJson;
+          contextSetters.setRawAugmentedOptionsResponseJson(rawResponseForDebug);
+
+          if (flowOutput && flowOutput.response) {
             addChatMessage({
               id: `${Date.now()}_${chatMessageIdCounter++}_aug_opt_model`,
               role: 'model',
-              content: modelResponse.response,
+              content: flowOutput.response,
             });
-          } else {
-            throw new Error("Parsed response did not contain a 'response' field.");
-          }
+          } else { throw new Error("Parsed augmented Options response did not contain a 'response' field."); }
         } catch (e: any) {
           console.error(`${logPrefixFsmReducer}:AUGMENTED_OPTIONS_SUCCESS`, "Failed to parse or add chat message from augmented Options response:", e.message);
+          contextSetters.setRawAugmentedOptionsResponseJson(event.payload.chatbotResponseJson); // Fallback
           addChatMessage({
             id: `${Date.now()}_${chatMessageIdCounter++}_aug_opt_model_err`,
             role: 'model',
-            content: `[System Error: Failed to display Augmented Options search result. Raw data is available in the Debug tab.]`,
+            content: `[System Error: Failed to display Augmented Options search result. Raw data is in Debug tab.]`,
           });
         }
         nextCurrentState = GlobalFsmState.AUGMENTED_OPTIONS_SUCCEEDED;

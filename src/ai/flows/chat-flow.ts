@@ -1,122 +1,107 @@
+
 'use server';
 /**
  * @fileOverview Implements a contextual chatbot flow for stock-related questions.
- * This flow uses provided stock data, AI analysis, and chat history to respond to user queries.
- * Prompt definition is now loaded from a JSON file.
- * This flow now supports conditional grounding with Google Search and returns the full raw response.
+ * This flow is now intelligent and can handle standard chat, augmented TA searches,
+ * and augmented Options searches by loading the appropriate prompt definition dynamically.
  *
  * - chatWithBot - The main function for the chatbot flow.
  * - ChatInput (from schemas) - The input type for the chatWithBot function.
  * - ChatOutput (from schemas) - The return type for the chatWithBot function.
  */
 
-import {ai} from '@/ai/genkit';
-import { z } from 'zod'; // CRITICAL: Use direct 'zod' import
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 import {
   ChatInputSchema,
   type ChatInput,
   ChatOutputSchema,
   type ChatOutput,
 } from '@/ai/schemas/chat-schemas';
-import {DEFAULT_CHAT_MODEL_ID} from '@/ai/models';
+import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 
 // Caches for the prompt objects
-let standardChatPrompt: any = null;
-let groundedChatPrompt: any = null;
+const promptCache: Record<string, any> = {};
 
-async function getChatPrompt(isGrounded: boolean) {
-  const logPrefix = '[AIFlow:getChatPrompt]';
-  const promptType: 'standard' | 'grounded' = isGrounded ? 'grounded' : 'standard';
+const AUGMENTED_TA_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_TA_SEARCH";
+const AUGMENTED_OPTIONS_PROMPT_KEY = "SYSTEM_TRIGGER:AUGMENTED_OPTIONS_SEARCH";
 
-  // Return cached prompt if available
-  if (isGrounded && groundedChatPrompt) {
-    return groundedChatPrompt;
+async function getChatPrompt(input: ChatInput) {
+  let definitionName: string;
+  let isGroundedSearch: boolean;
+
+  if (input.userInput.includes(AUGMENTED_TA_PROMPT_KEY)) {
+    definitionName = 'augmented-ta-search';
+    isGroundedSearch = true;
+  } else if (input.userInput.includes(AUGMENTED_OPTIONS_PROMPT_KEY)) {
+    definitionName = 'augmented-options-search';
+    isGroundedSearch = true;
+  } else {
+    definitionName = 'stock-chatbot';
+    isGroundedSearch = input.isChatGroundingEnabled || false;
   }
-  if (!isGrounded && standardChatPrompt) {
-    return standardChatPrompt;
+
+  const logPrefix = `[AIFlow:getChatPrompt:${definitionName}]`;
+
+  if (promptCache[definitionName]) {
+    console.log(`${logPrefix} Returning cached prompt object.`);
+    return promptCache[definitionName];
   }
 
-  const genericDefinition = await loadDefinition('stock-chatbot');
+  const genericDefinition = await loadDefinition(definitionName);
   if (genericDefinition.definitionType !== 'llm-prompt') {
-    const errorMsg = `Loaded definition for 'stock-chatbot' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
+    const errorMsg = `Loaded definition for '${definitionName}' is not an LLM prompt type.`;
     console.error(`${logPrefix} ${errorMsg}`);
     throw new Error(errorMsg);
   }
-  const stockChatBotPromptDefinition = genericDefinition;
+  const promptDefinition = genericDefinition as LlmPromptDefinition;
 
-  const promptString = buildPromptStringFromLlmDefinition(stockChatBotPromptDefinition!);
-  const modelId = stockChatBotPromptDefinition!.modelId || DEFAULT_CHAT_MODEL_ID;
-  const safetySettings = stockChatBotPromptDefinition!.safetySettings || [
-      {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH'},
-      {category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH'},
-      {category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH'},
-      {category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH'},
-      {category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_ONLY_HIGH'},
-  ];
+  const promptString = buildPromptStringFromLlmDefinition(promptDefinition);
+  const modelId = promptDefinition.modelId || DEFAULT_CHAT_MODEL_ID;
+  const safetySettings = promptDefinition.safetySettings;
 
-  const promptConfig: {
-    safetySettings: any[];
-    thinkingConfig?: { thinkingBudget?: number };
-    tools?: any[];
-  } = {
-    safetySettings: safetySettings,
-  };
-
-  if (stockChatBotPromptDefinition!.thinkingBudget !== undefined) {
-    promptConfig.thinkingConfig = { thinkingBudget: stockChatBotPromptDefinition!.thinkingBudget };
+  const promptConfig: any = { safetySettings };
+  if (promptDefinition.thinkingBudget !== undefined) {
+    promptConfig.thinkingConfig = { thinkingBudget: promptDefinition.thinkingBudget };
   }
 
   const promptOptions: any = {
-    name: `stockChatBotPrompt_${promptType}`,
-    input: {schema: ChatInputSchema},
+    name: promptDefinition.promptName,
+    input: { schema: ChatInputSchema },
     model: modelId,
     prompt: promptString,
     config: promptConfig,
   };
 
-  if (isGrounded) {
+  if (isGroundedSearch) {
     promptConfig.tools = [{ googleSearch: {} }];
-    // For grounded search, we expect a raw text response, so NO output schema is defined.
-    // This is the critical fix.
+    // For grounded searches, we expect a raw text response, so NO output schema.
   } else {
-    // For standard, non-grounded chat, we expect a structured response.
-    promptOptions.output = {schema: z.object({ response: z.string() })};
+    // For standard chat, we expect a structured response.
+    promptOptions.output = { schema: z.object({ response: z.string() }) };
   }
-  
+
   console.log(
-    `${logPrefix} Defining prompt. ` +
-    `Type: ${promptType}, ` +
-    `Model: ${modelId}, ` +
-    `Grounding: ${isGrounded}, ` +
-    `ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
-    `SafetySettings: ${safetySettings.length}`
+    `${logPrefix} Defining prompt. Model: ${modelId}, Grounding: ${isGroundedSearch}, ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}`
   );
 
   const prompt = ai.definePrompt(promptOptions);
-
-  // Cache the newly created prompt
-  if (isGrounded) {
-    groundedChatPrompt = prompt;
-  } else {
-    standardChatPrompt = prompt;
-  }
-
+  promptCache[definitionName] = prompt;
   return prompt;
 }
 
-
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
-  console.time('chatFlowExecutionTime');
   const logPrefix = `[AIFlow:chatWithBot:Ticker:${input.ticker}:Entry]`;
-  console.log(`${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}. Grounding Enabled: ${!!input.isChatGroundingEnabled}`);
+  console.log(`${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0, 50)}..."`);
+  console.time('chatFlowExecutionTime');
   try {
     const result = await chatFlow(input);
     console.timeEnd('chatFlowExecutionTime');
     return result;
   } catch (error) {
     console.timeEnd('chatFlowExecutionTime');
-    throw error; // Re-throw to be caught by server action
+    throw error;
   }
 }
 
@@ -128,43 +113,37 @@ const chatFlow = ai.defineFlow(
   },
   async (input: ChatInput): Promise<ChatOutput> => {
     const logPrefix = `[AIFlow:stockChatBotFlow:Ticker:${input.ticker || 'N/A'}]`;
-    const isGrounded = input.isChatGroundingEnabled || false;
-    console.log(`${logPrefix} Flow execution started. Grounding: ${isGrounded}. User input (first 50 chars): "${input.userInput.substring(0,50)}...". History length: ${input.chatHistory?.length || 0}.`);
+    const isAugmentedSearch = input.userInput.includes('SYSTEM_TRIGGER');
+    const isGrounded = isAugmentedSearch || input.isChatGroundingEnabled || false;
+    console.log(`${logPrefix} Flow execution started. Grounding: ${isGrounded}, Augmented: ${isAugmentedSearch}.`);
 
     try {
-      const promptToUse = await getChatPrompt(isGrounded);
-      console.log(`${logPrefix} Executing stockChatBotPrompt (type: ${isGrounded ? 'grounded' : 'standard'}) for ticker ${input.ticker}.`);
+      const promptToUse = await getChatPrompt(input);
       const result = await promptToUse(input);
       
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
-      if(isGrounded) {
+      if (isGrounded) {
         console.log(`${logPrefix} [Grounding] Search Entries: ${result.usageMetadata?.search?.searchEntries?.length ?? 0}`);
       }
 
       let responseText: string | undefined;
-      let output: ChatOutput;
 
       if (isGrounded) {
-        // Grounded path: Response is in result.text
         responseText = result.text;
-        output = { response: responseText, rawResponse: result };
       } else {
-        // Non-grounded path: Response is in result.output.response
         responseText = result.output?.response;
-        output = { response: responseText, rawResponse: result };
       }
 
       if (!responseText || typeof responseText !== 'string' || responseText.trim() === '') {
-          console.error(`${logPrefix} Chatbot AI prompt output for ticker ${input.ticker} is malformed or empty. Full result object (first 500 chars): ${JSON.stringify(result).substring(0,500)}`);
-          throw new Error('Chatbot AI prompt returned a malformed or empty response.');
+        throw new Error('Chatbot AI prompt returned a malformed or empty response.');
       }
       
-      console.log(`${logPrefix} Flow successfully executed for ticker ${input.ticker}. Response (first 50 chars): "${responseText.substring(0,50)}..."`);
-      return output;
+      console.log(`${logPrefix} Flow successfully executed. Response (first 50 chars): "${responseText.substring(0, 50)}..."`);
+      return { response: responseText, rawResponse: result };
 
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL ERROR during stockChatBotPrompt execution for ticker ${input.ticker}. Error name: ${error?.name}, Message: ${error?.message}. Throwing error further.`);
-      throw error; // Re-throw the error
+      console.error(`${logPrefix} CRITICAL ERROR during prompt execution. Error: ${error.message}`);
+      throw error;
     }
   }
 );
