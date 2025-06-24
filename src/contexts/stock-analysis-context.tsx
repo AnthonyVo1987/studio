@@ -63,6 +63,7 @@ export interface GlobalFsmContextVariables {
   pendingChatSubmissionPayload: ChatActionInputs | null;
   pendingWebSearchFormatPayload: FormatWebSearchResultsActionInputs | null;
   activePipelineProfile: 'standard' | null;
+  lastCompletedChatPromptName: string | null;
 }
 
 export interface GlobalFsmFlags {
@@ -111,8 +112,8 @@ interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string
 interface AiOptionsAnalysisSuccessPayload extends PerformAiOptionsAnalysisResult {}
 interface AiOptionsAnalysisFailurePayload { error?: string | null; message?: string | null; aiOptionsAnalysisRequestJson?: string; }
 interface SubmitChatMessagePayload extends ChatActionInputs {}
-interface ChatMessageActionSuccessPayload extends ChatActionResult {}
-interface ChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; }
+interface ChatMessageActionSuccessPayload extends ChatActionResult { promptName?: string; }
+interface ChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; promptName?: string; }
 type DebugConsoleMenuType = 'filter' | 'copy' | 'export';
 interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: boolean; }
 interface UpdateManualActionFlagsPayload { ktPossible: boolean; optPossible: boolean; }
@@ -262,6 +263,7 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     pendingChatSubmissionPayload: null,
     pendingWebSearchFormatPayload: null,
     activePipelineProfile: null,
+    lastCompletedChatPromptName: null,
   },
   flags: {
     canAnalyzeStock: false,
@@ -532,6 +534,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextVariables.pendingChatSubmissionPayload = null;
         nextVariables.pendingWebSearchFormatPayload = null;
         nextVariables.activePipelineProfile = 'standard';
+        nextVariables.lastCompletedChatPromptName = null;
         nextFlags.canAnalyzeStock = false;
         nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
         nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
@@ -716,9 +719,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING) {
             contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
             contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
+            nextVariables.lastCompletedChatPromptName = event.payload.promptName || null;
             try {
-                const reqJson = JSON.parse(event.payload.chatbotRequestJson);
-                const promptName = reqJson.promptName;
+                const promptName = event.payload.promptName;
                 const flowOutput = JSON.parse(event.payload.chatbotResponseJson);
                 const isWebSearch = promptName?.includes('web-search');
 
@@ -760,10 +763,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const chatErrPayload = event.payload; const chatErrMsg = chatErrPayload.message || 'Chat failed';
         contextSetters.setChatbotRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Chat request data unavailable on error", null));
         contextSetters.setChatbotResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+        nextVariables.lastCompletedChatPromptName = event.payload.promptName || null;
         
         try {
-          const reqJson = JSON.parse(chatErrPayload.chatbotRequestJson || '{}');
-          const promptName = reqJson.promptName;
+          const promptName = event.payload.promptName;
           const isWebSearch = promptName?.includes('web-search');
           if (isWebSearch) {
              const errJson = chatErrPayload.chatbotResponseJson || errorJsonWithDetails("Web search failed", chatErrPayload.error);
@@ -989,9 +992,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
     
     if (chatActionState.status === 'success' && chatActionState.data) {
-      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_SUCCESS', payload: chatActionState.data });
+      let promptName;
+      try { const req = JSON.parse(chatActionState.data.chatbotRequestJson); promptName = req.promptName; } catch (e) {}
+      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_SUCCESS', payload: { ...chatActionState.data, promptName } });
     } else if (chatActionState.status === 'error') {
-      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_ERROR', payload: { error: chatActionState.error, message: chatActionState.message, chatbotRequestJson: chatActionState.data?.chatbotRequestJson, chatbotResponseJson: chatActionState.data?.chatbotResponseJson }});
+      let promptName;
+      try { const req = JSON.parse(chatActionState.data?.chatbotRequestJson || '{}'); promptName = req.promptName; } catch (e) {}
+      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_ERROR', payload: { error: chatActionState.error, message: chatActionState.message, chatbotRequestJson: chatActionState.data?.chatbotRequestJson, chatbotResponseJson: chatActionState.data?.chatbotResponseJson, promptName }});
     }
   }, [chatActionState, isChatPending, dispatchFsmEvent, logDebug]);
 
@@ -1101,16 +1108,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       }
     } else if (state.current === GlobalFsmState.CHAT_MESSAGE_SUCCESS || state.current === GlobalFsmState.CHAT_MESSAGE_ERROR) {
       if (state.variables.activePipelineProfile === 'standard') {
+        const lastPromptName = state.variables.lastCompletedChatPromptName;
         let lastPromptIdentifier: PipelineStep = 'base';
-        try {
-          const req = JSON.parse(_chatbotRequestJson);
-          const promptName = req.promptName;
-          if(promptName === 'stock-trader-takeaways') lastPromptIdentifier = "chat_stock";
-          else if (promptName === 'options-trader-takeaways') lastPromptIdentifier = "chat_options";
-          else if (promptName === 'holistic-takeaways') lastPromptIdentifier = "chat_holistic";
-          else if (promptName === 'technical-analysis-web-search') lastPromptIdentifier = 'web_search_ta';
-          else if (promptName === 'options-flow-web-search') lastPromptIdentifier = 'web_search_options';
-        } catch (e) { }
+        if(lastPromptName === 'stock-trader-takeaways') lastPromptIdentifier = "chat_stock";
+        else if (lastPromptName === 'options-trader-takeaways') lastPromptIdentifier = "chat_options";
+        else if (lastPromptName === 'holistic-takeaways') lastPromptIdentifier = "chat_holistic";
+        else if (lastPromptName === 'technical-analysis-web-search') lastPromptIdentifier = 'web_search_ta';
+        else if (lastPromptName === 'options-flow-web-search') lastPromptIdentifier = 'web_search_options';
         dispatchNextCustomAction(lastPromptIdentifier);
       }
     } else if (state.current === GlobalFsmState.FORMATTING_WEB_SEARCH_RESULTS && state.variables.pendingWebSearchFormatPayload && !isFormatWebSearchPending) {
