@@ -1062,6 +1062,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     
         for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
             const nextStep = stepOrder[i];
+            
+            if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected && isPerformAiAnalysisPending) { logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Guarding against re-dispatch for step Key Takeaways: Action is already pending.'); return; }
+            if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected && isPerformAiOptionsAnalysisPending) { logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Guarding against re-dispatch for step Options Analysis: Action is already pending.'); return; }
+            // Note: Chat actions share a single pending state, so a single check is sufficient if any chat step is the "next" one being considered.
+            if ((nextStep === 'chat_stock' || nextStep === 'chat_options' || nextStep === 'chat_holistic' || nextStep === 'web_search_ta' || nextStep === 'web_search_options') && (state.flags.isAiChatStockTraderTakeawaysSelected || state.flags.isAiChatOptionsTraderTakeawaysSelected || state.flags.isAiChatHolisticTakeawaysSelected || state.flags.isWebSearchTaEnabled || state.flags.isWebSearchOptionsEnabled) && isChatPending) { logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Guarding against re-dispatch for a chat step: Action is already pending.'); return; }
             if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
             if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
             if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("stock-trader-takeaways"); return; }
