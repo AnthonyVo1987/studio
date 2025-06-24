@@ -374,7 +374,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
   const customAnalysisInitiatedRef = useRef(false);
-
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, localInitialStockDataFetchResult);
   const [formatWebSearchActionState, formatWebSearchFormAction, isFormatWebSearchPending] = useActionState<FormatWebSearchResultsActionState, FormatWebSearchResultsActionInputs>(formatWebSearchResultsAction, localInitialFormatWebSearchResultsState);
 
@@ -542,6 +541,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
         nextFlags.isCalculatedTADataReady = false; nextFlags.isKeyTakeawaysDataAvailable = false;
         nextFlags.isOptionsAnalysisDataAvailable = false;
+ customAnalysisInitiatedRef.current = false; 
         setAllPlaceholdersInternal(ticker, true);
         customAnalysisInitiatedRef.current = false;
     };
@@ -1045,42 +1045,81 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
 
         const dispatchChat = (promptName: string) => {
-            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Trigger', `Triggering chat with promptName: ${promptName}.`);
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for SUBMIT_CHAT_MESSAGE (Chat: ' + promptName + ') with 100ms delay.');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for SUBMIT_CHAT_MESSAGE (Chat: ' + promptName + ').');
             const payload: ChatActionInputs = {
-                ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
-                aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
-                chatHistory: _chatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
+ activeTicker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
+ aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
+ chatHistory: _chatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
             };
-            _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
+ _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
+ }, 100);
         };
         
         const stepOrder: PipelineStep[] = ['base', 'key_takeaways', 'options_analysis', 'chat_stock', 'chat_options', 'chat_holistic', 'web_search_ta', 'web_search_options'];
         const currentStepIndex = stepOrder.indexOf(lastCompletedStep);
     
         if (currentStepIndex === -1) {
-            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Unknown step '${lastCompletedStep}'. Finalizing pipeline.`);
-            _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+ logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Unknown step '${lastCompletedStep}'. Scheduling delayed dispatch for FINALIZE_AUTOMATED_PIPELINE with 100ms delay.`);
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Executing delayed dispatch for FINALIZE_AUTOMATED_PIPELINE due to unknown step.`);
+ _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+ }, 100);
             return;
         }
     
         for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
             const nextStep = stepOrder[i];
-            
+
             if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected && isPerformAiAnalysisPending) { logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Guarding against re-dispatch for step Key Takeaways: Action is already pending.'); return; }
             if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected && isPerformAiOptionsAnalysisPending) { logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Guarding against re-dispatch for step Options Analysis: Action is already pending.'); return; }
             // Note: Chat actions share a single pending state, so a single check is sufficient if any chat step is the "next" one being considered.
             if ((nextStep === 'chat_stock' || nextStep === 'chat_options' || nextStep === 'chat_holistic' || nextStep === 'web_search_ta' || nextStep === 'web_search_options') && (state.flags.isAiChatStockTraderTakeawaysSelected || state.flags.isAiChatOptionsTraderTakeawaysSelected || state.flags.isAiChatHolisticTakeawaysSelected || state.flags.isWebSearchTaEnabled || state.flags.isWebSearchOptionsEnabled) && isChatPending) { logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Guarding against re-dispatch for a chat step: Action is already pending.'); return; }
-            if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
-            if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
-            if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("stock-trader-takeaways"); return; }
-            if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchChat("options-trader-takeaways"); return; }
-            if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchChat("holistic-takeaways"); return; }
-            if (nextStep === 'web_search_ta' && state.flags.isWebSearchTaEnabled) { dispatchChat('technical-analysis-web-search'); return; }
-            if (nextStep === 'web_search_options' && state.flags.isWebSearchOptionsEnabled) { dispatchChat('options-flow-web-search'); return; }
+            
+            if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for TRIGGER_MANUAL_KEY_TAKEAWAYS with 100ms delay.');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for TRIGGER_MANUAL_KEY_TAKEAWAYS.');
+ _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } });
+ }, 100);
+ return;
+            }
+            if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for TRIGGER_MANUAL_OPTIONS_ANALYSIS with 100ms delay.');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for TRIGGER_MANUAL_OPTIONS_ANALYSIS.');
+ _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } });
+ }, 100);
+ return;
+            }
+            if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) {
+ dispatchChat("stock-trader-takeaways");
+ return;
+            }
+            if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) {
+ dispatchChat("options-trader-takeaways");
+ return;
+            }
+            if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) {
+ dispatchChat("holistic-takeaways");
+ return;
+            }
+            if (nextStep === 'web_search_ta' && state.flags.isWebSearchTaEnabled) {
+ dispatchChat('technical-analysis-web-search');
+ return;
+            }
+            if (nextStep === 'web_search_options' && state.flags.isWebSearchOptionsEnabled) {
+ dispatchChat('options-flow-web-search');
+ return;
+            }
         }
     
-        logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `No more custom analyses selected after '${lastCompletedStep}'. Finalizing.`);
-        _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+ logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `No more custom analyses selected after '${lastCompletedStep}'. Scheduling delayed dispatch for FINALIZE_AUTOMATED_PIPELINE with 100ms delay.`);
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `Executing delayed dispatch for FINALIZE_AUTOMATED_PIPELINE.`);
+ _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+ }, 100);
     };
   
     if (state.current === GlobalFsmState.APP_INITIALIZING && !initialInitializationDispatchedRef.current) {
@@ -1088,30 +1127,49 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       _dispatchFsmEventActual({ type: 'INITIALIZATION_COMPLETE' });
       initialInitializationDispatchedRef.current = true;
     } else if (state.current === GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH && state.variables.activeTicker) {
-      _dispatchFsmEventActual({ type: 'TRIGGER_DATA_FETCH' });
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for TRIGGER_DATA_FETCH with 100ms delay.');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for TRIGGER_DATA_FETCH.');
+ _dispatchFsmEventActual({ type: 'TRIGGER_DATA_FETCH' });
+ }, 100);
     } else if (state.current === GlobalFsmState.DATA_FETCH_IN_PROGRESS && state.variables.activeTicker && !isFetchDataPending) {
       startTransition(() => { fetchStockDataFormAction({ ticker: state.variables.activeTicker! }); });
     } else if (state.current === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
-      _dispatchFsmEventActual({ type: 'INITIATE_AI_TA_SEQUENCE' });
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for INITIATE_AI_TA_SEQUENCE with 100ms delay.');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for INITIATE_AI_TA_SEQUENCE.');
+ _dispatchFsmEventActual({ type: 'INITIATE_AI_TA_SEQUENCE' });
+ }, 100);
     } else if (state.current === GlobalFsmState.CALCULATING_AI_TA && state.variables.activeTicker && !isAnalyzeTaPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'SnapshotForAITACalc')) {
         startTransition(() => { analyzeTaFormAction({ stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! }); });
       } else {
-        _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: `Snapshot data missing/error for AI TA of ${state.variables.activeTicker}.`, error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({ error: "Snapshot data missing for AI TA", ticker: state.variables.activeTicker }) } });
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for AI_TA_FAILURE with 100ms delay (Data Not Ready).');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for AI_TA_FAILURE (Data Not Ready).');
+ _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: `Snapshot data missing/error for AI TA of ${state.variables.activeTicker}.`, error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({ error: "Snapshot data missing for AI TA", ticker: state.variables.activeTicker }) } });
+ }, 100);
       }
     } else if (state.current === GlobalFsmState.PIPELINE_AWAITING_CUSTOM_ANALYSIS_START) {
       if (state.variables.activePipelineProfile === 'standard') {
         if (!customAnalysisInitiatedRef.current) {
  console.log('[Orchestrator] Initiating custom analysis sequence...'); 
  customAnalysisInitiatedRef.current = true; 
- dispatchNextCustomAction('base'); 
+ // Dispatching the first custom action ('base') immediately to start the sequence, 
+ // and subsequent steps within dispatchNextCustomAction will have delays.
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Immediately initiating first custom analysis step (\'base\').');
+ dispatchNextCustomAction('base');
 } else { console.log('[Orchestrator] Guarded against re-initiation of custom analysis.'); }
       }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
         startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson }); });
       } else {
-        _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: `Prerequisite data for Key Takeaways of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for KEY_TAKEAWAYS_FAILURE with 100ms delay (Data Not Ready).');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for KEY_TAKEAWAYS_FAILURE (Data Not Ready).');
+ _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: `Prerequisite data for Key Takeaways of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
+ }, 100);
       }
     } else if (state.current === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || state.current === GlobalFsmState.KEY_TAKEAWAYS_FAILED) {
       if (state.variables.activePipelineProfile === 'standard') {
@@ -1123,7 +1181,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Snapshot', 'Validation') && isDataReadyForProcessing(_optionsChainJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Chain', 'Validation')) {
         startTransition(() => { performAiOptionsAnalysisFormAction({ ticker: state.variables.activeTicker!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson }); });
       } else {
-        _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: `Prerequisite data for Options Analysis of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Scheduling delayed dispatch for OPTIONS_ANALYSIS_FAILURE with 100ms delay (Data Not Ready).');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for OPTIONS_ANALYSIS_FAILURE (Data Not Ready).');
+ _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: `Prerequisite data for Options Analysis of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
+ }, 100);
       }
     } else if (state.current === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || state.current === GlobalFsmState.OPTIONS_ANALYSIS_FAILED) {
       if (state.variables.activePipelineProfile === 'standard') {
@@ -1145,12 +1207,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       }
     } else if (state.current === GlobalFsmState.FORMATTING_WEB_SEARCH_RESULTS && state.variables.pendingWebSearchFormatPayload && !isFormatWebSearchPending) {
         startTransition(() => { formatWebSearchFormAction(state.variables.pendingWebSearchFormatPayload!); });
-    } else if (state.current === GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE) {
+    } else if ((state.current === GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE) && state.variables.activePipelineProfile === 'standard') {
         if (state.variables.activePipelineProfile === 'standard') {
             let lastPromptIdentifier: PipelineStep = 'web_search_ta';
             if(state.variables.pendingWebSearchFormatPayload?.searchType === 'Options'){
                 lastPromptIdentifier = 'web_search_options';
             }
+ logDebug(logPrefixOrchestrator as LogSourceId, `[Orchestrator] After Web Search format completed (${state.current}). Scheduling next custom action from '${lastPromptIdentifier}' with 100ms delay.`);
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, `[Orchestrator] Executing delayed next custom action after Web Search format.`);
+ dispatchNextCustomAction(lastPromptIdentifier);
+ }, 100);
+ // Return immediately here because dispatchNextCustomAction is now delayed
+ return;
+        } else {
             dispatchNextCustomAction(lastPromptIdentifier);
         }
     } else if (state.current === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE && state.variables.activePipelineProfile === 'standard') {
@@ -1158,7 +1228,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     } else if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING && state.variables.pendingChatSubmissionPayload && !isChatPending) {
       startTransition(() => { chatFormAction(state.variables.pendingChatSubmissionPayload!); });
-      _dispatchFsmEventActual({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Chat action triggered. Scheduling delayed dispatch for PENDING_CHAT_SUBMISSION_TRIGGERED with 100ms delay.');
+ setTimeout(() => {
+ logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator] Executing delayed dispatch for PENDING_CHAT_SUBMISSION_TRIGGERED.');
+ _dispatchFsmEventActual({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
+ }, 100);
     }
   
   }, [
