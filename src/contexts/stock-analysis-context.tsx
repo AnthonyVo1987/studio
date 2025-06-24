@@ -212,6 +212,7 @@ interface StockAnalysisState {
   isUiRenderLoggingEnabled: boolean;
 }
 
+
 interface StockAnalysisContextSetters {
   setPolygonApiRequestLogJson: (json: string) => void;
   setPolygonApiResponseLogJson: (json: string) => void;
@@ -372,6 +373,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
+  const customAnalysisInitiatedRef = useRef(false);
 
   const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, localInitialStockDataFetchResult);
   const [formatWebSearchActionState, formatWebSearchFormAction, isFormatWebSearchPending] = useActionState<FormatWebSearchResultsActionState, FormatWebSearchResultsActionInputs>(formatWebSearchResultsAction, localInitialFormatWebSearchResultsState);
@@ -541,6 +543,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isCalculatedTADataReady = false; nextFlags.isKeyTakeawaysDataAvailable = false;
         nextFlags.isOptionsAnalysisDataAvailable = false;
         setAllPlaceholdersInternal(ticker, true);
+        customAnalysisInitiatedRef.current = false;
     };
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
@@ -1098,7 +1101,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       }
     } else if (state.current === GlobalFsmState.PIPELINE_AWAITING_CUSTOM_ANALYSIS_START) {
       if (state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction('base');
+        if (!customAnalysisInitiatedRef.current) {
+ console.log('[Orchestrator] Initiating custom analysis sequence...'); 
+ customAnalysisInitiatedRef.current = true; 
+ dispatchNextCustomAction('base'); 
+} else { console.log('[Orchestrator] Guarded against re-initiation of custom analysis.'); }
       }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {

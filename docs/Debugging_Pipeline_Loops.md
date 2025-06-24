@@ -34,7 +34,7 @@ This procedure ensures that we collaboratively agree on the underlying problem b
 ## 5. Bug Reports Tracking
 
 This section will list the bug reports related to `ERROR_PIPELINE_LOOP`.
-
+ 
 *   **[BUG REPORT 6]:** App stuck in ERROR_PIPELINE_LOOP after Analyze Stock button press. **Status: CLOSED**
     *   **Fix Version:** v3.3.16.4.6
     *   **Commit Details:** `fix(fsm): Resolve ERROR_PIPELINE_LOOP by guarding against re-dispatch of pending custom analysis steps (v3.3.16.4.6)`
@@ -42,6 +42,23 @@ This section will list the bug reports related to `ERROR_PIPELINE_LOOP`.
     *   **Symptom(s):** App remains in ERROR_PIPELINE_LOOP state after attempting full analysis. FSM state snapshot shows current and previous state as ERROR_PIPELINE_LOOP. lastError indicates "Potential loop detected for step 'kt_NVDA'." All analysis toggles were enabled.
     *   **Root Cause Analysis:** The FSM is correctly triggering the ERROR_PIPELINE_LOOP guard because it detected an attempt to process the 'kt_NVDA' step (AI Key Takeaways) when this step was already marked as completed in the `completedSteps` Set. The logs show the pipeline progressed successfully through data fetch and AI TA, reaching the point where it should initiate custom analysis. The issue is likely a race condition or synchronization problem in the Orchestrator (`StockAnalysisContext` useEffect) where it re-dispatches the trigger event for the first custom step (Key Takeaways in this case, as toggled) before the FSM state update from the *initial* dispatch of that trigger is fully processed and reflected in the Orchestrator's dependencies. This causes the reducer's `checkStepAndGuard` to see the step as already 'completed' (added by the first trigger), leading to the loop.
     *   **Bug Fix Scope of Changes:** Modify the Orchestrator useEffect in `/src/contexts/stock-analysis-context.tsx`. Within the `dispatchNextCustomAction` function, add checks before dispatching trigger events (`TRIGGER_MANUAL_KEY_TAKEAWAYS`, `TRIGGER_MANUAL_OPTIONS_ANALYSIS`, `SUBMIT_CHAT_MESSAGE`) to ensure the corresponding `useActionState` pending flag (`isPerformAiAnalysisPending`, `isPerformAiOptionsAnalysisPending`, `isChatPending`) is false. This will prevent the Orchestrator from re-dispatching a trigger if the action is already in progress, allowing the FSM and action states to synchronize correctly.
+
+---
+*   **[BUG REPORT 7]:** AI Key Takeaways ERROR_PIPELINE_LOOP **Status: OPEN**
+    *   **Fix Version:** v3.3.16.4.7
+    *   **Commit Details:** Pending
+    *   **Document Placeholder:** [DOCS_ERROR_PIPELINE_LOOP_002]
+    *   **Symptom(s):** Application is stuck in the `ERROR_PIPELINE_LOOP` state. The FSM state snapshot shows both `previous` and `current` states as `ERROR_PIPELINE_LOOP`. The `lastError` in `globalFsmContextVariables` is `"Potential loop detected for step 'kt_NVDA'. Aborting action."` All analysis toggles, including AI Key Takeaways, are enabled. The application version is `v3.3.16.4.6`.
+    *   **Root Cause Analysis:** The symptom is identical to [BUG REPORT 6], even with the fix for [BUG REPORT 6] implemented in version `v3.3.16.4.6`. This confirms that the previous fix, which guarded against re-dispatching *pending* actions within the Orchestrator's `dispatchNextCustomAction`, did not address the core issue causing the loop in this specific scenario. The FSM guard `checkStepAndGuard` is still triggering because the key 'kt_NVDA' is unexpectedly present in the `state.variables.completedSteps` Set when the initial `TRIGGER_MANUAL_KEY_TAKEAWAYS` event for this pipeline run is processed. While `resetForNewAnalysis` is expected to clear this Set at the start of a full analysis, and the Orchestrator is designed to dispatch the custom analysis initiation only once after the `PIPELINE_AWAITING_CUSTOM_ANALYSIS_START` state is reached, a subtle race condition likely exists. The most probable cause is that the Orchestrator's effect, upon detecting the transition to `PIPELINE_AWAITING_CUSTOM_ANALYSIS_START`, triggers the `dispatchNextCustomAction('base')` call. In a specific, narrow timing window, this dispatch might occur multiple times or be processed in a way that the reducer processes the event, adds 'kt_NVDA' to `completedSteps`, but another dispatch of the same event arrives *before* the Orchestrator's internal state or the useEffect dependencies fully synchronize with the state update that includes 'kt_NVDA' in `completedSteps`. This leads the `checkStepAndGuard` to incorrectly believe a loop is occurring on the seemingly "first" dispatch of the event in that state transition, even though the *actual* first dispatch has already been processed by the reducer.
+    *   **Proposed Bug Fix Scope of Changes:** Implement a mechanism within the Orchestrator's effect to ensure that the initiation of the custom analysis sequence (`dispatchNextCustomAction('base')`) occurs only *once* per transition into the `PIPELINE_AWAITING_CUSTOM_ANALYSIS_START` state for the 'standard' pipeline profile. This can be achieved by introducing a `useRef` flag to track whether the custom analysis initiation has already been dispatched for the current analysis run.
+        *   **File to Modify:** `/src/contexts/stock-analysis-context.tsx`
+        *   **Description of Changes:**
+            1.  Add a `useRef` named `customAnalysisInitiatedRef` initialized to `false` within the `StockAnalysisProvider`.
+            2.  In the `resetForNewAnalysis` function, set `customAnalysisInitiatedRef.current = false`.
+            3.  In the Orchestrator's `useEffect` that handles state transitions, locate the conditional block for `state.current === GlobalFsmState.PIPELINE_AWAITING_CUSTOM_ANALYSIS_START` and `state.variables.activePipelineProfile === 'standard'`.
+            4.  Wrap the call to `dispatchNextCustomAction('base')` within an additional check: `if (!customAnalysisInitiatedRef.current) { ... }`.
+            5.  Inside this `if` block, set `customAnalysisInitiatedRef.current = true` immediately before dispatching `dispatchNextCustomAction('base')`.
+            6.  Add appropriate debug log messages to indicate when the custom analysis initiation is dispatched and when a re-initiation attempt is guarded against.
 
 ---
 
