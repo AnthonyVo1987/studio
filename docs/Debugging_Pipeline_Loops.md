@@ -17,7 +17,13 @@ To ensure a thorough and systematic approach to debugging and fixing `ERROR_PIPE
 5.  **User Feedback/Rejection:** The user may provide feedback, request further analysis, or reject the proposed root cause or scope if it doesn't align with their understanding or further observations. The AI Agent will incorporate this feedback and refine the analysis/proposal.
 6.  **User Approval - Proceed with Implementation:** ONLY after the user explicitly approves the Root Cause Analysis and Proposed Bug Fix Scope, the AI Agent will proceed with implementing the necessary code changes.
 
-This procedure ensures that we collaboratively agree on the underlying problem before attempting a solution, minimizing the risk of addressing only symptoms or introducing new issues.
+This procedure ensures that we collaboratively agree on the underlying problem before attempting a solution, minimizing the risk of addressing only symptoms or introducing new issues. To maintain clear version tracking of applied fixes, an additional step is included:
+
+---
+
+5.  **Version Increment for Approved Fixes:** Upon user approval of the Root Cause Analysis and Proposed Bug Fix Scope, and *before* implementing the code changes, the AI Agent will update the `appVersion` in the `/src/config/app-metadata.json` file. The last number in the `appVersion` string (the bug fix iteration) will be incremented to match the Bug Report number being addressed (e.g., for [BUG REPORT 6], increment `v3.x.y.z` to `v3.x.y.6`). This ensures the application version reflects the applied fix.
+6.  **User Feedback/Rejection:** The user may provide feedback, request further analysis, or reject the proposed root cause or scope if it doesn't align with their understanding or further observations. The AI Agent will incorporate this feedback and refine the analysis/proposal.
+7.  **User Approval - Proceed with Implementation:** ONLY after the user explicitly approves the Root Cause Analysis and Proposed Bug Fix Scope, **AND the `appVersion` has been updated as per the versioning procedure**, the AI Agent will proceed with implementing the necessary code changes.
 
 ---
 
@@ -25,7 +31,17 @@ This procedure ensures that we collaboratively agree on the underlying problem b
 
 This section will list the bug reports related to `ERROR_PIPELINE_LOOP`.
 
-*   **[DOCS_ERROR_PIPELINE_LOOP_001]:** (Placeholder for the first bug report details)
+*   **[BUG REPORT 6]:** App stuck in ERROR_PIPELINE_LOOP after Analyze Stock button press.
+    *   **Symptom(s):** App remains in ERROR_PIPELINE_LOOP state after attempting full analysis. FSM state snapshot shows current and previous state as ERROR_PIPELINE_LOOP. lastError indicates "Potential loop detected for step 'kt_NVDA'." All analysis toggles were enabled.
+    *   **Root Cause Analysis:** The FSM is correctly triggering the ERROR_PIPELINE_LOOP guard because it detected an attempt to process the 'kt_NVDA' step (AI Key Takeaways) when this step was already marked as completed in the `completedSteps` Set. The logs show the pipeline progressed successfully through data fetch and AI TA, reaching the point where it should initiate custom analysis. The issue is likely a race condition or synchronization problem in the Orchestrator (`StockAnalysisContext` useEffect) where it re-dispatches the trigger event for the first custom step (Key Takeaways in this case, as toggled) before the FSM state update from the *initial* dispatch of that trigger is fully processed and reflected in the Orchestrator's dependencies. This causes the reducer's `checkStepAndGuard` to see the step as already 'completed' (added by the first trigger), leading to the loop.
+    *   **Bug Fix Scope of Changes:** Modify the Orchestrator useEffect in `/src/contexts/stock-analysis-context.tsx`. Within the `dispatchNextCustomAction` function, add checks before dispatching trigger events (`TRIGGER_MANUAL_KEY_TAKEAWAYS`, `TRIGGER_MANUAL_OPTIONS_ANALYSIS`, `SUBMIT_CHAT_MESSAGE`) to ensure the corresponding `useActionState` pending flag (`isPerformAiAnalysisPending`, `isPerformAiOptionsAnalysisPending`, `isChatPending`) is false. This will prevent the Orchestrator from re-dispatching a trigger if the action is already in progress, allowing the FSM and action states to synchronize correctly.
+
+---
+
+
+## 6. Implementation Notes
+
+This section will list the bug reports related to `ERROR_PIPELINE_LOOP`.
 
 ---
 
@@ -170,11 +186,5 @@ The most likely reasons for the `ERROR_PIPELINE_LOOP` to occur are scenarios whe
 3.  The FSM state transitions or Action State updates are not happening as expected, causing the Orchestrator to get "stuck" in a state where it repeatedly attempts to trigger a step that the reducer then guards against, leading to the loop.
 
 ---
-
-## 3. Bug Reports Tracking
-
-This section will list the bug reports related to `ERROR_PIPELINE_LOOP`.
-
-*   **[DOCS_ERROR_PIPELINE_LOOP_001]:** (Placeholder for the first bug report details)
 
 ---
