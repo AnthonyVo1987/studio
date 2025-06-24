@@ -12,19 +12,28 @@ To prevent the severe audit failures of the v3.3.15.x series, the following proc
 4.  **Mandatory Ground Truth Verification:** I will purge all assumptions from my previous turn before every audit. I will re-read the full content of all relevant files from scratch, rather than relying on a cached or summarized understanding. This prevents hallucinations about file contents or states.
 5.  **Symptom vs. Root Cause Analysis:** When a bug is reported, I will treat the report as a **symptom**, not the direct problem. My primary objective will be to trace that symptom back through the execution path to its origin, instead of attempting to patch the symptom directly.
 
-#### Section 3: Versioning & Documentation
-6.  **Versioning Scheme:** Features will be staged as version '3.w.x.y.z' series. I will not increment versions on my own.
-7.  **Metadata Updates:** Any new phase/task code change must include an automatic update to the `appVersion` in `src/config/app-metadata.json`.
-8.  **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" is explicitly requested by the user.
-9.  **Phase Completion Commits:** A consolidated commit log entry will be generated for documentation when a multi-task feature phase is marked as complete.
-10. **New Feature Documentation:** All new features need to provide `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` files in the `docs` folder with the specified content.
-11. **Bug Report Versioning (NEW):** A single bug report corresponds to a single minor version increment. For example, if the current version is `v3.w.x.y.z`, the fix for a bug report will result in version `v3.w.x.y.(z+1)`. All subsequent corrections and auto-fixes for that *same* bug report will be part of the `v3.w.x.y.(z+1)` version and will **not** trigger further version increments.
+#### Section 3: Bug Report Operating Procedure (NEW)
+This procedure ensures a thorough, top-down analysis for all bug reports to prevent narrow-sighted fixes and to ensure the user can validate the proposed plan before implementation.
+
+1.  **Review User Bug Report:** I will first analyze the symptoms and any provided logs from the user's bug report.
+2.  **Root Cause Analysis:** I will perform a deep-dive audit of the application's execution flow related to the bug's symptoms to identify the most likely root cause(s). This is to ensure the fix targets the core problem, not just a superficial symptom.
+3.  **Propose Bug Fix Scope:** I will provide a clear explanation of my root cause analysis and a detailed scope of the proposed code changes required to fix the issue.
+4.  **Await User Approval:** I will **stop** and await user review and approval of the root cause analysis and the proposed scope of the fix.
+5.  **Handle Rejection/Feedback:** If the user rejects the analysis or provides additional tasks, I will return to step 2 with the new information.
+6.  **Implement Fix:** Only after receiving explicit user approval will I proceed with generating the code changes for the agreed-upon fix.
+
+#### Section 4: Versioning & Documentation
+7.  **Versioning Scheme:** Features will be staged as version '3.w.x.y.z' series.
+8.  **Bug Report Versioning (NEW):** I will **not** increment versions on my own. The user will provide the exact new application version (e.g., `v3.w.x.y.(z+1)`) as part of the bug report submission. My fix will then be associated with that user-provided version.
+9.  **Metadata Updates:** Any code change must include an automatic update to the `appVersion` and `lastUpdatedTimestamp` in `src/config/app-metadata.json` to match the version specified in the task.
+10. **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
+11. **New Feature Documentation:** All new features need to provide `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` files in the `docs` folder with the specified content.
 
 ###
 ---
-**README Document Version:** 1.92
-**Application Version (from `app-metadata.json`):** v3.3.16.4.0
-**Last Updated:** 2025-07-09
+**README Document Version:** 2.0
+**Application Version (from `app-metadata.json`):** v3.3.16.4.3
+**Last Updated:** 2025-07-12
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -200,7 +209,6 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
     *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
     *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
-    *   `lastUpdatedTimestamp` in `app-metadata.json` updated with real ISO 8601 timestamp (or removed if optional and not set).
 *   **Dynamic Versioning in UI/Exports:** Header and Debug Console use `appVersion` prop.
 *   **Documentation Update Policy (Strictly Enforced):** The AI is prohibited from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
 
@@ -238,8 +246,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 1.92
-*   **Current Application Version:** `v3.3.16.4.0`
+*   **This README Document Version:** 2.0
+*   **Current Application Version:** `v3.3.16.4.3`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
