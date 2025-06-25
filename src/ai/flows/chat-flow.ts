@@ -18,9 +18,6 @@ import {
   ChatOutputSchema,
   type ChatOutput,
 } from '@/ai/schemas/chat-schemas';
-import {
-  FormatWebSearchResultsOutputSchema,
-} from '@/ai/schemas/format-web-search-schemas';
 import { DEFAULT_CHAT_MODEL_ID, DEFAULT_ANALYSIS_MODEL_ID } from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 import { extractJsonString } from '@/lib/string-utils';
@@ -139,7 +136,7 @@ const chatFlow = ai.defineFlow(
           const formattingPrompt = ai.definePrompt({
             name: formatPromptDef.promptName,
             input: { schema: z.object({ rawJsonString: z.string() }) },
-            output: { schema: FormatWebSearchResultsOutputSchema },
+            output: { schema: z.object({ formattedResponse: z.string() }) },
             model: formatPromptDef.modelId || DEFAULT_ANALYSIS_MODEL_ID,
             prompt: buildPromptStringFromLlmDefinition(formatPromptDef),
             config: {
