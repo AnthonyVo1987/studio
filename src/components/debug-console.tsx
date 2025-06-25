@@ -17,7 +17,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
-import { useStockAnalysis, type GlobalFsmState, type GlobalFsmFlags, type GlobalFsmContextVariables } from '@/contexts/stock-analysis-context';
+import { useStockAnalysis } from '@/contexts/stock-analysis-context';
 import { globalLogEntries, clearGlobalLogBuffer, type GlobalLogEntry } from '@/lib/global-log-buffer';
 import { downloadJson, copyToClipboard, downloadTxt } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,6 @@ const MAX_DISPLAYED_LOGS = 1000;
 
 interface DebugConsoleProps {
   appVersion: string;
-  allRawData: Record<string, any>;
 }
 
 function formatLogMessage(messages: any[]): string {
@@ -77,25 +76,39 @@ const escapeCsvField = (field: any): string => {
   return stringField;
 };
 
-const getFullSnapshotForExport = (
-    globalPreviousFsmState: GlobalFsmState | null,
-    globalCurrentFsmState: GlobalFsmState,
-    globalTargetFsmDisplayState: GlobalFsmState | null,
-    globalFlags: GlobalFsmFlags,
-    globalVariables: GlobalFsmContextVariables,
-    allRawData: Record<string, any>
-) => ({
+const getFullSnapshotForExport = (context: ReturnType<typeof useStockAnalysis>) => ({
   reportTimestamp: new Date().toISOString(),
   fsmStatesSnapshot: {
     globalApplicationFSM: { 
-      previous: globalPreviousFsmState, 
-      current: globalCurrentFsmState, 
-      target: globalTargetFsmDisplayState 
+      previous: context.previousFsmState, 
+      current: context.fsmState, 
+      target: context.targetFsmDisplayState 
     },
-    globalFsmFlags: globalFlags,
-    globalFsmContextVariables: globalVariables,
+    globalFsmFlags: context.fsmFlags,
+    globalFsmContextVariables: context.fsmVariables,
   },
-  allRawData: allRawData,
+  allRawData: {
+    polygonApiRequestLogJson: context.polygonApiRequestLogJson,
+    polygonApiResponseLogJson: context.polygonApiResponseLogJson,
+    marketStatusJson: context.marketStatusJson,
+    stockSnapshotJson: context.stockSnapshotJson,
+    standardTasJson: context.standardTasJson,
+    optionsChainJson: context.optionsChainJson,
+    aiAnalyzedTaRequestJson: context.aiAnalyzedTaRequestJson,
+    aiAnalyzedTaJson: context.aiAnalyzedTaJson,
+    aiOptionsAnalysisRequestJson: context.aiOptionsAnalysisRequestJson,
+    aiOptionsAnalysisJson: context.aiOptionsAnalysisJson,
+    aiKeyTakeawaysRequestJson: context.aiKeyTakeawaysRequestJson,
+    aiKeyTakeawaysJson: context.aiKeyTakeawaysJson,
+    appDataChatRequestJson: context.appDataChatRequestJson,
+    appDataChatResponseJson: context.appDataChatResponseJson,
+    userInputWebSearchChatRequestJson: context.userInputWebSearchChatRequestJson,
+    userInputWebSearchChatResponseJson: context.userInputWebSearchChatResponseJson,
+    rawTaWebSearchRequestJson: context.rawTaWebSearchRequestJson,
+    rawTaWebSearchResponseJson: context.rawTaWebSearchResponseJson,
+    rawOptionsWebSearchRequestJson: context.rawOptionsWebSearchRequestJson,
+    rawOptionsWebSearchResponseJson: context.rawOptionsWebSearchResponseJson,
+  },
 });
 
 
@@ -198,19 +211,16 @@ const generateLogsCsvWithMetadata = (
 };
 
 
-export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
+export function DebugConsole({ appVersion }: DebugConsoleProps) {
+  const stockAnalysisContext = useStockAnalysis();
   const {
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
-    logDebug: stockAnalysisLogDebug,
-    fsmState: globalFsmState,
-    previousFsmState: globalPreviousFsmState,
-    targetFsmDisplayState: globalTargetFsmDisplayState,
+    logDebug,
     fsmFlags, 
-    fsmVariables,
     dispatchFsmEvent, 
-  } = useStockAnalysis();
+  } = stockAnalysisContext;
 
   const { toast } = useToast();
   const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
@@ -271,18 +281,15 @@ export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
     setDisplayedLogs([]);
     setLocalSearchTerm(''); 
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
-    stockAnalysisLogDebug('DebugConsole', 'LogClear', 'Client debug logs cleared by user. Search term also cleared.');
+    logDebug('DebugConsole', 'LogClear', 'Client debug logs cleared by user. Search term also cleared.');
   };
 
   const getFullExportSnapshot = useCallback(() => {
-    return getFullSnapshotForExport(
-      globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
-      fsmFlags, fsmVariables, allRawData
-    );
-  }, [globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, fsmFlags, fsmVariables, allRawData]);
+    return getFullSnapshotForExport(stockAnalysisContext);
+  }, [stockAnalysisContext]);
 
   const handleCopyJson = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as JSON.');
+    logDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as JSON.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fullSnapshot = getFullExportSnapshot();
     const exportData = { appVersion, ...fullSnapshot, logs: displayedLogs };
@@ -294,7 +301,7 @@ export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
   };
 
   const handleCopyTxt = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as TXT.');
+    logDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fullSnapshot = getFullExportSnapshot();
     const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fullSnapshot); 
@@ -306,7 +313,7 @@ export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
   };
 
   const handleCopyCsv = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as CSV.');
+    logDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fullSnapshot = getFullExportSnapshot();
     const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fullSnapshot); 
@@ -318,7 +325,7 @@ export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
   };
 
   const handleExportJson = () => {
-    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as JSON.');
+    logDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as JSON.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fullSnapshot = getFullExportSnapshot();
@@ -331,7 +338,7 @@ export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
   };
 
   const handleExportTxt = () => {
-    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as TXT.');
+    logDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fullSnapshot = getFullExportSnapshot();
@@ -344,7 +351,7 @@ export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
   };
 
   const handleExportCsv = () => {
-    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as CSV.');
+    logDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fullSnapshot = getFullExportSnapshot();
