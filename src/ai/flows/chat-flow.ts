@@ -32,7 +32,7 @@ async function getChatPrompt(input: ChatInput) {
 
   if (promptCache[definitionName]) {
     console.log(`${logPrefix} Returning cached prompt object.`);
-    return { prompt: promptCache[definitionName], isGrounded: promptCache[definitionName].__isGrounded || false };
+    return promptCache[definitionName];
   }
 
   const genericDefinition = await loadDefinition(definitionName);
@@ -42,7 +42,7 @@ async function getChatPrompt(input: ChatInput) {
     throw new Error(errorMsg);
   }
   const promptDefinition = genericDefinition as LlmPromptDefinition;
-  const isGroundedSearch = promptDefinition.useGoogleSearch || false;
+  const isGrounded = promptDefinition.useGoogleSearch || false;
 
   const promptString = buildPromptStringFromLlmDefinition(promptDefinition);
   const modelId = promptDefinition.modelId || DEFAULT_CHAT_MODEL_ID;
@@ -60,21 +60,22 @@ async function getChatPrompt(input: ChatInput) {
     prompt: promptString,
     config: promptConfig,
   };
-
-  if (isGroundedSearch) {
+  
+  if (isGrounded) {
     promptOptions.tools = [{ googleSearch: {} }];
   } else {
     promptOptions.output = { schema: z.object({ response: z.string() }) };
   }
 
   console.log(
-    `${logPrefix} Defining prompt. Model: ${modelId}, Grounding: ${isGroundedSearch}, ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}`
+    `${logPrefix} Defining prompt. Model: ${modelId}, Grounding: ${isGrounded}, ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}`
   );
 
   const prompt = ai.definePrompt(promptOptions);
-  prompt.__isGrounded = isGroundedSearch; // Attach metadata for the flow
-  promptCache[definitionName] = prompt;
-  return { prompt, isGrounded: isGroundedSearch };
+  
+  const cachedObject = { prompt, isGrounded };
+  promptCache[definitionName] = cachedObject;
+  return cachedObject;
 }
 
 export async function chatWithBot(input: ChatInput): Promise<ChatOutput> {
