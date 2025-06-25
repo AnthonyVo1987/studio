@@ -62,7 +62,7 @@ async function getChatPrompt(input: ChatInput) {
   };
 
   if (isGroundedSearch) {
-    promptOptions.tools = [{ tool: 'googleSearch' }];
+    promptOptions.tools = [{ googleSearch: {} }];
   } else {
     promptOptions.output = { schema: z.object({ response: z.string() }) };
   }
