@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.6.4` (Complete Phase 2 of Dual Chat Architecture)
+**Tag:** `Phase-51_Task-3.3.16.6.4_CompleteDualChatPhase2`
+**Subject:** `feat(chat,fsm,ui): Complete Phase 2 of Dual Chat Architecture (v3.3.16.6.4)`
+**Details:**
+This commit marks the completion of **Phase 2: Build Grounded Web Search Chat Stream** for the new **"Dual AI Chat Architecture"** feature. This phase successfully built and integrated the second, parallel, and fully independent chat stream dedicated to handling AI queries that require real-time web search.
+
+**Key Architectural Changes:**
+*   **New Files:** Created a new, isolated set of files for the web search stream: `web-search-chat-flow.ts`, `web-search-chat-action.ts`, `web-search-chat-schemas.ts`, and `web-search-chatbot.json`.
+*   **Hardened Web Search Flow:** The new `web-search-chat-flow.ts` is architecturally hardened to **always** use the `googleSearch` tool and **never** use a structured `output.schema`, strictly following the "Grounded JSON-in-Text" pattern from the reference guide to ensure stability. It now correctly handles parsing responses from specialized search prompts.
+*   **FSM Isolation:** All global FSM states, variables, flags, and events related to web search chat were created and isolated (e.g., `WEB_SEARCH_CHAT_PENDING`, `webSearchChatHistory`).
+*   **Generic Chatbot Component:** The `Chatbot.tsx` component and its FSM context (`chatbot-fsm-context.tsx`) were refactored to be reusable, accepting props for title, description, button configurations, and the specific chat stream (`chatType`) they should control.
+*   **UI & Debugging Integration:** A second `Chatbot` instance was added to the UI, wired to the new `webSearch...` states. The Debug Tab was also updated with display boxes for the new stream's data.
+
+**Outcome:**
+*   The application now has two stable, predictable, and fully independent chat streams: one for analyzing loaded app data, and one for grounded web search queries.
+*   The architecture is now prepared for the final phase of this feature: Phase 3, which will involve code cleanup and comprehensive testing of both chat systems.
+---
 **App Version:** `v3.3.16.5.4` (Complete Phase 1 of Dual Chat Architecture)
 **Tag:** `Phase-50_Task-3.3.16.5.4_CompleteDualChatPhase1`
 **Subject:** `feat(chat): Complete Phase 1 of Dual Chat Architecture (v3.3.16.5.4)`

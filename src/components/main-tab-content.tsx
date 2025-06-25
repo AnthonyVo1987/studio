@@ -17,14 +17,26 @@ import { AiAnalyzedTaDisplay } from "@/components/ai-analyzed-ta-display";
 import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
-import { Chatbot } from "@/components/chatbot";
+import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
 import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
 import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Copy, Zap, Brain, BarChartBig, WandSparkles } from "lucide-react";
+import { Loader2, Download, Copy, Zap, Brain, BarChartBig, FileText, SearchCode, Search } from "lucide-react";
+
+
+const appDataButtons: ExamplePromptButton[] = [
+  { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
+  { title: "Options Trader's Takeaways", promptName: 'options-trader-takeaways', icon: FileText },
+  { title: "Additional Holistic Takeaways", promptName: 'holistic-takeaways', icon: FileText },
+];
+
+const webSearchButtons: ExamplePromptButton[] = [
+    { title: "TA Web Search", promptName: 'technical-analysis-web-search', icon: SearchCode },
+    { title: "Options Web Search", promptName: 'options-flow-web-search', icon: Search },
+];
 
 
 export function MainTabContent() {
@@ -35,7 +47,9 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson, aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, logDebug,
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
-    dispatchFsmEvent: dispatchGlobalFsmEvent, appDataChatHistory: contextChatHistory,
+    dispatchFsmEvent: dispatchGlobalFsmEvent, 
+    appDataChatHistory: contextAppDataChatHistory, clearAppDataChatHistory,
+    webSearchChatHistory: contextWebSearchChatHistory, clearWebSearchChatHistory,
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
@@ -90,10 +104,7 @@ export function MainTabContent() {
   };
 
   const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
-    dispatchGlobalFsmEvent({
-      type: 'ANALYSIS_TOGGLE_CHANGED',
-      payload: { toggleType, isEnabled },
-    });
+    dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
   };
 
   const analyzeButtonLoading = [GlobalFsmState.APP_INITIALIZING, GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
@@ -101,7 +112,9 @@ export function MainTabContent() {
 
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
-  const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.APP_DATA_CHAT_PENDING;
+  
+  const isAppDataChatFsmPending = globalFsmStateFromContext === GlobalFsmState.APP_DATA_CHAT_PENDING;
+  const isWebSearchChatFsmPending = globalFsmStateFromContext === GlobalFsmState.WEB_SEARCH_CHAT_PENDING;
 
   const getCombinedDataForExport = useCallback(() => {
     const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
@@ -112,7 +125,7 @@ export function MainTabContent() {
   }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
 
   const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'Validation') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'Validation') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'Validation') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'Validation');
-  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending;
+  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending || isWebSearchChatFsmPending;
 
   const handleExportAllToJson = useCallback(async () => {
     logDebug('MainTabContent' as LogSourceId, 'UserAction_ExportAll', 'Export All to JSON clicked.');
@@ -135,14 +148,14 @@ export function MainTabContent() {
     } catch (e: any) { toast({ variant: 'destructive', title: 'Copy Error', description: `Could not copy data: ${e.message}` }); }
   }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
 
-  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isGlobalChatFsmPending;
+  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending || isWebSearchChatFsmPending;
 
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock Analysis Input</CardTitle>
-        <CardDescription>Enter ticker for Data Fetch & AI TA. Manual AI actions available after. Chat integrated with global FSM.</CardDescription>
+        <CardDescription>Enter a stock ticker to begin the analysis pipeline. Use the toggles to customize the AI-driven steps.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form className="space-y-4" onSubmit={handleAnalyzeStockSubmit}>
@@ -153,14 +166,11 @@ export function MainTabContent() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataSource">Data Source</Label>
-              <Select defaultValue="polygon" disabled>
-                <SelectTrigger id="dataSource" disabled={isAnyAnalysisInProgress}><SelectValue placeholder="Select data source" /></SelectTrigger>
-                <SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent>
-              </Select>
+              <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={isAnyAnalysisInProgress}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isGlobalChatFsmPending}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAppDataChatFsmPending || isWebSearchChatFsmPending}>
               {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock
             </Button>
           </div>
@@ -229,18 +239,50 @@ export function MainTabContent() {
           <AiKeyTakeawaysDisplay />
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
-          <ChatbotFsmProvider 
-            dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
-            currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
-            stockSnapshotJson={contextStockSnapshotJson || '{}'} 
-            aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} 
-            aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} 
-            aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} 
-            currentGlobalChatHistory={contextChatHistory} 
-            logDebug={logDebug}
-          >
-            <Chatbot isAnyAnalysisInProgress={isAnyAnalysisInProgress} currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker} />
-          </ChatbotFsmProvider>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <ChatbotFsmProvider 
+              chatType='app-data'
+              dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
+              currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
+              stockSnapshotJson={contextStockSnapshotJson || '{}'} 
+              aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} 
+              aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} 
+              aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} 
+              currentGlobalChatHistory={contextAppDataChatHistory} 
+              logDebug={logDebug}
+            >
+              <Chatbot
+                title="App Data AI Chat"
+                description={`Analyzes loaded app data for ${globalFsmVariables.activeTicker || "the stock"}. Cannot access web.`}
+                chatHistory={contextAppDataChatHistory}
+                clearChatHistory={clearAppDataChatHistory}
+                fsmState={globalFsmStateFromContext}
+                isProcessing={isAnyAnalysisInProgress}
+                exampleButtons={appDataButtons}
+                currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
+                logDebug={logDebug}
+              />
+            </ChatbotFsmProvider>
+            <ChatbotFsmProvider 
+              chatType='web-search'
+              dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
+              currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
+              currentGlobalChatHistory={contextWebSearchChatHistory}
+              logDebug={logDebug}
+            >
+              <Chatbot
+                title="Web Search AI Chat"
+                description={`Uses Google Search for real-time info. Does not see app data.`}
+                chatHistory={contextWebSearchChatHistory}
+                clearChatHistory={clearWebSearchChatHistory}
+                fsmState={globalFsmStateFromContext}
+                isProcessing={isAnyAnalysisInProgress}
+                exampleButtons={webSearchButtons}
+                currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
+                logDebug={logDebug}
+              />
+            </ChatbotFsmProvider>
+          </div>
           <MarketStatusDisplay />
         </div>
       </CardContent>

@@ -61,6 +61,8 @@ export function DebugTabContent() {
     aiKeyTakeawaysJson,
     appDataChatRequestJson,
     appDataChatResponseJson,
+    webSearchChatRequestJson,
+    webSearchChatResponseJson,
     logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
@@ -102,6 +104,8 @@ export function DebugTabContent() {
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
     { title: "App Data Chat Request JSON", data: appDataChatRequestJson, description: "Request to the non-grounded, app-data-only chat stream." },
     { title: "App Data Chat Response JSON", data: appDataChatResponseJson, description: "Response from the non-grounded, app-data-only chat stream." },
+    { title: "Web Search Chat Request JSON", data: webSearchChatRequestJson, description: "Request to the grounded, web-search-enabled chat stream." },
+    { title: "Web Search Chat Response JSON", data: webSearchChatResponseJson, description: "Response from the grounded, web-search-enabled chat stream." },
   ];
 
   return (
