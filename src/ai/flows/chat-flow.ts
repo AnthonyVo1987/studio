@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Implements a contextual chatbot flow for stock-related questions.
@@ -19,8 +18,13 @@ import {
   ChatOutputSchema,
   type ChatOutput,
 } from '@/ai/schemas/chat-schemas';
-import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
+import {
+  FormatWebSearchResultsOutputSchema,
+} from '@/ai/schemas/format-web-search-schemas';
+import { DEFAULT_CHAT_MODEL_ID, DEFAULT_ANALYSIS_MODEL_ID } from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
+import { extractJsonString } from '@/lib/string-utils';
+
 
 // Caches for the prompt objects
 const promptCache: Record<string, any> = {};
@@ -113,6 +117,48 @@ const chatFlow = ai.defineFlow(
 
       if (isGrounded) {
         responseText = result.text;
+        const isWebSearchPrompt = input.promptName === 'technical-analysis-web-search' || input.promptName === 'options-flow-web-search';
+        
+        if (isWebSearchPrompt && responseText) {
+          console.log(`${logPrefix} Web Search prompt detected. Raw JSON string received, initiating internal formatting step.`);
+          const cleanedJsonString = extractJsonString(responseText);
+          
+          if (!cleanedJsonString) {
+            console.error(`${logPrefix} Could not extract a valid JSON string from the web search response. Returning error.`);
+            return { response: "**Error:** Web search returned malformed data.", rawResponse: result };
+          }
+          
+          const searchType = input.promptName === 'technical-analysis-web-search' ? 'TA' : 'Options';
+          const formatDefinitionName = searchType === 'TA' ? 'format-ta-search-results' : 'format-options-search-results';
+
+          console.log(`${logPrefix} Loading formatting definition: ${formatDefinitionName}`);
+          const genericFormatDef = await loadDefinition(formatDefinitionName);
+          if (genericFormatDef.definitionType !== 'llm-prompt') throw new Error(`Formatting definition '${formatDefinitionName}' is not an LLM prompt.`);
+          const formatPromptDef = genericFormatDef as LlmPromptDefinition;
+
+          const formattingPrompt = ai.definePrompt({
+            name: formatPromptDef.promptName,
+            input: { schema: z.object({ rawJsonString: z.string() }) },
+            output: { schema: FormatWebSearchResultsOutputSchema },
+            model: formatPromptDef.modelId || DEFAULT_ANALYSIS_MODEL_ID,
+            prompt: buildPromptStringFromLlmDefinition(formatPromptDef),
+            config: {
+              safetySettings: formatPromptDef.safetySettings,
+              thinkingConfig: { thinkingBudget: formatPromptDef.thinkingBudget },
+            },
+          });
+          
+          console.log(`${logPrefix} Calling internal formatting prompt for ${searchType}.`);
+          const formatResult = await formattingPrompt({ rawJsonString: cleanedJsonString });
+          
+          if (formatResult.output?.formattedResponse) {
+             console.log(`${logPrefix} Internal formatting successful. Setting final response text.`);
+             responseText = formatResult.output.formattedResponse;
+          } else {
+            console.error(`${logPrefix} Internal formatting step failed to produce a response.`);
+            responseText = "**Error:** Failed to format the data retrieved from the web search.";
+          }
+        }
       } else {
         responseText = result.output?.response;
       }
@@ -121,7 +167,7 @@ const chatFlow = ai.defineFlow(
         throw new Error('Chatbot AI prompt returned a malformed or empty response.');
       }
       
-      console.log(`${logPrefix} Flow successfully executed. Response (first 50 chars): "${responseText.substring(0, 50)}..."`);
+      console.log(`${logPrefix} Flow successfully executed. Final response (first 50 chars): "${responseText.substring(0, 50)}..."`);
       return { response: responseText, rawResponse: result };
 
     } catch (error: any) {
