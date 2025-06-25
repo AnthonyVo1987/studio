@@ -115,8 +115,9 @@ interface SubmitAppDataChatMessagePayload extends AppDataChatActionInputs {}
 interface AppDataChatMessageActionSuccessPayload extends AppDataChatActionResult { promptName?: string; }
 interface AppDataChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; promptName?: string; }
 interface SubmitWebSearchChatMessagePayload extends WebSearchChatActionInputs {}
-interface WebSearchChatMessageActionSuccessPayload extends WebSearchChatActionResult { promptName?: string; }
-interface WebSearchChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; promptName?: string; }
+type WebSearchType = 'user_input' | 'technical_analysis' | 'options_flow';
+interface WebSearchChatMessageActionSuccessPayload extends WebSearchChatActionResult { promptName?: string; searchType: WebSearchType; }
+interface WebSearchChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; promptName?: string; searchType: WebSearchType; }
 type DebugConsoleMenuType = 'filter' | 'copy' | 'export';
 interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: boolean; }
 interface UpdateManualActionFlagsPayload { ktPossible: boolean; optPossible: boolean; }
@@ -197,8 +198,12 @@ interface StockAnalysisState {
   appDataChatRequestJson: string;
   appDataChatResponseJson: string;
   appDataChatHistory: AppDataChatMessage[];
-  webSearchChatRequestJson: string;
-  webSearchChatResponseJson: string;
+  userInputWebSearchChatRequestJson: string;
+  userInputWebSearchChatResponseJson: string;
+  rawTaWebSearchRequestJson: string;
+  rawTaWebSearchResponseJson: string;
+  rawOptionsWebSearchRequestJson: string;
+  rawOptionsWebSearchResponseJson: string;
   webSearchChatHistory: AppDataChatMessage[];
   isClientDebugConsoleEnabled: boolean;
   isClientDebugConsoleOpen: boolean;
@@ -227,8 +232,12 @@ interface StockAnalysisContextSetters {
   setAiKeyTakeawaysJson: (json: string) => void;
   setAppDataChatRequestJson: (json: string) => void;
   setAppDataChatResponseJson: (json: string) => void;
-  setWebSearchChatRequestJson: (json: string) => void;
-  setWebSearchChatResponseJson: (json: string) => void;
+  setUserInputWebSearchChatRequestJson: (json: string) => void;
+  setUserInputWebSearchChatResponseJson: (json: string) => void;
+  setRawTaWebSearchRequestJson: (json: string) => void;
+  setRawTaWebSearchResponseJson: (json: string) => void;
+  setRawOptionsWebSearchRequestJson: (json: string) => void;
+  setRawOptionsWebSearchResponseJson: (json: string) => void;
 }
 
 interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState'>, StockAnalysisContextSetters {
@@ -289,8 +298,8 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isAiChatStockTraderTakeawaysSelected: true,
     isAiChatOptionsTraderTakeawaysSelected: true,
     isAiChatHolisticTakeawaysSelected: true,
-    isWebSearchTaEnabled: true,
-    isWebSearchOptionsEnabled: true,
+    isWebSearchTaEnabled: false,
+    isWebSearchOptionsEnabled: false,
   },
 };
 
@@ -312,8 +321,12 @@ const defaultState: StockAnalysisState = {
   appDataChatRequestJson: initialJsonPlaceholder,
   appDataChatResponseJson: initialJsonPlaceholder,
   appDataChatHistory: [],
-  webSearchChatRequestJson: initialJsonPlaceholder,
-  webSearchChatResponseJson: initialJsonPlaceholder,
+  userInputWebSearchChatRequestJson: initialJsonPlaceholder,
+  userInputWebSearchChatResponseJson: initialJsonPlaceholder,
+  rawTaWebSearchRequestJson: initialJsonPlaceholder,
+  rawTaWebSearchResponseJson: initialJsonPlaceholder,
+  rawOptionsWebSearchRequestJson: initialJsonPlaceholder,
+  rawOptionsWebSearchResponseJson: initialJsonPlaceholder,
   webSearchChatHistory: [],
   isClientDebugConsoleEnabled: true,
   isClientDebugConsoleOpen: true,
@@ -358,8 +371,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_appDataChatRequestJson, _setAppDataChatRequestJson] = useState<string>(defaultState.appDataChatRequestJson);
   const [_appDataChatResponseJson, _setAppDataChatResponseJson] = useState<string>(defaultState.appDataChatResponseJson);
   const [_appDataChatHistory, _setAppDataChatHistory] = useState<AppDataChatMessage[]>(defaultState.appDataChatHistory);
-  const [_webSearchChatRequestJson, _setWebSearchChatRequestJson] = useState<string>(defaultState.webSearchChatRequestJson);
-  const [_webSearchChatResponseJson, _setWebSearchChatResponseJson] = useState<string>(defaultState.webSearchChatResponseJson);
+  const [_userInputWebSearchChatRequestJson, _setUserInputWebSearchChatRequestJson] = useState<string>(defaultState.userInputWebSearchChatRequestJson);
+  const [_userInputWebSearchChatResponseJson, _setUserInputWebSearchChatResponseJson] = useState<string>(defaultState.userInputWebSearchChatResponseJson);
+  const [_rawTaWebSearchRequestJson, _setRawTaWebSearchRequestJson] = useState<string>(defaultState.rawTaWebSearchRequestJson);
+  const [_rawTaWebSearchResponseJson, _setRawTaWebSearchResponseJson] = useState<string>(defaultState.rawTaWebSearchResponseJson);
+  const [_rawOptionsWebSearchRequestJson, _setRawOptionsWebSearchRequestJson] = useState<string>(defaultState.rawOptionsWebSearchRequestJson);
+  const [_rawOptionsWebSearchResponseJson, _setRawOptionsWebSearchResponseJson] = useState<string>(defaultState.rawOptionsWebSearchResponseJson);
   const [_webSearchChatHistory, _setWebSearchChatHistory] = useState<AppDataChatMessage[]>(defaultState.webSearchChatHistory);
   const [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
   const [_isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
@@ -398,8 +415,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setAiKeyTakeawaysJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json),
     setAppDataChatRequestJson: (json: string) => setAndLogJson(_setAppDataChatRequestJson, 'appDataChatRequestJson', json),
     setAppDataChatResponseJson: (json: string) => setAndLogJson(_setAppDataChatResponseJson, 'appDataChatResponseJson', json),
-    setWebSearchChatRequestJson: (json: string) => setAndLogJson(_setWebSearchChatRequestJson, 'webSearchChatRequestJson', json),
-    setWebSearchChatResponseJson: (json: string) => setAndLogJson(_setWebSearchChatResponseJson, 'webSearchChatResponseJson', json),
+    setUserInputWebSearchChatRequestJson: (json: string) => setAndLogJson(_setUserInputWebSearchChatRequestJson, 'userInputWebSearchChatRequestJson', json),
+    setUserInputWebSearchChatResponseJson: (json: string) => setAndLogJson(_setUserInputWebSearchChatResponseJson, 'userInputWebSearchChatResponseJson', json),
+    setRawTaWebSearchRequestJson: (json: string) => setAndLogJson(_setRawTaWebSearchRequestJson, 'rawTaWebSearchRequestJson', json),
+    setRawTaWebSearchResponseJson: (json: string) => setAndLogJson(_setRawTaWebSearchResponseJson, 'rawTaWebSearchResponseJson', json),
+    setRawOptionsWebSearchRequestJson: (json: string) => setAndLogJson(_setRawOptionsWebSearchRequestJson, 'rawOptionsWebSearchRequestJson', json),
+    setRawOptionsWebSearchResponseJson: (json: string) => setAndLogJson(_setRawOptionsWebSearchResponseJson, 'rawOptionsWebSearchResponseJson', json),
   }), [setAndLogJson]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
@@ -463,8 +484,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     if (isFullAnalysis) {
         contextSetters.setAppDataChatRequestJson(chatPendingJson);
         contextSetters.setAppDataChatResponseJson(chatPendingJson);
-        contextSetters.setWebSearchChatRequestJson(chatPendingJson);
-        contextSetters.setWebSearchChatResponseJson(chatPendingJson);
+        contextSetters.setUserInputWebSearchChatRequestJson(chatPendingJson);
+        contextSetters.setUserInputWebSearchChatResponseJson(chatPendingJson);
+        contextSetters.setRawTaWebSearchRequestJson(chatPendingJson);
+        contextSetters.setRawTaWebSearchResponseJson(chatPendingJson);
+        contextSetters.setRawOptionsWebSearchRequestJson(chatPendingJson);
+        contextSetters.setRawOptionsWebSearchResponseJson(chatPendingJson);
     }
   }, [logDebug, contextSetters]);
 
@@ -754,8 +779,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
               addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput });
               nextVariables.pendingWebSearchChatSubmissionPayload = { ...event.payload };
               nextCurrentState = GlobalFsmState.WEB_SEARCH_CHAT_PENDING;
-              contextSetters.setWebSearchChatRequestJson(chatPendingJson);
-              contextSetters.setWebSearchChatResponseJson(chatPendingJson);
+              contextSetters.setUserInputWebSearchChatRequestJson(chatPendingJson);
+              contextSetters.setUserInputWebSearchChatResponseJson(chatPendingJson);
               logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To WEB_SEARCH_CHAT_PENDING for ticker ${nextVariables.userInputTicker}.`);
             }
             break;
@@ -765,8 +790,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             break;
         case 'WEB_SEARCH_CHAT_ACTION_SUCCESS':
             if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
-                contextSetters.setWebSearchChatRequestJson(event.payload.chatbotRequestJson);
-                contextSetters.setWebSearchChatResponseJson(event.payload.chatbotResponseJson);
+                const { searchType } = event.payload;
+                if (searchType === 'user_input') {
+                    contextSetters.setUserInputWebSearchChatRequestJson(event.payload.chatbotRequestJson);
+                    contextSetters.setUserInputWebSearchChatResponseJson(event.payload.chatbotResponseJson);
+                } else if (searchType === 'technical_analysis') {
+                    contextSetters.setRawTaWebSearchRequestJson(event.payload.chatbotRequestJson);
+                    contextSetters.setRawTaWebSearchResponseJson(event.payload.chatbotResponseJson);
+                } else if (searchType === 'options_flow') {
+                    contextSetters.setRawOptionsWebSearchRequestJson(event.payload.chatbotRequestJson);
+                    contextSetters.setRawOptionsWebSearchResponseJson(event.payload.chatbotResponseJson);
+                }
+                
                 nextVariables.lastCompletedChatPromptName = event.payload.promptName || null;
                 try {
                     const flowOutput = JSON.parse(event.payload.chatbotResponseJson);
@@ -783,9 +818,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             break;
         case 'WEB_SEARCH_CHAT_ACTION_ERROR':
             if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
-                const chatErrPayload = event.payload; const chatErrMsg = chatErrPayload.message || 'Web search chat failed';
-                contextSetters.setWebSearchChatRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Web search request unavailable", null));
-                contextSetters.setWebSearchChatResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+                const { searchType, ...chatErrPayload } = event.payload;
+                const chatErrMsg = chatErrPayload.message || 'Web search chat failed';
+
+                if (searchType === 'user_input') {
+                    contextSetters.setUserInputWebSearchChatRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
+                    contextSetters.setUserInputWebSearchChatResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+                } else if (searchType === 'technical_analysis') {
+                    contextSetters.setRawTaWebSearchRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
+                    contextSetters.setRawTaWebSearchResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+                } else if (searchType === 'options_flow') {
+                    contextSetters.setRawOptionsWebSearchRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
+                    contextSetters.setRawOptionsWebSearchResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+                }
+
                 addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_act_err`, role: 'model', content: `Error: ${chatErrMsg}` });
                 handlePipelineError('WebSearchChatAction', chatErrMsg, chatErrPayload.error);
                 nextCurrentState = GlobalFsmState.WEB_SEARCH_CHAT_ERROR;
@@ -1003,12 +1049,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
     if (webSearchChatActionState.status === 'success' && webSearchChatActionState.data) {
       let promptName;
-      try { const req = JSON.parse(webSearchChatActionState.data.chatbotRequestJson); promptName = req.promptName; } catch (e) {}
-      dispatchFsmEvent({ type: 'WEB_SEARCH_CHAT_ACTION_SUCCESS', payload: { ...webSearchChatActionState.data, promptName } });
+      let searchType: WebSearchType = 'user_input';
+      try { const req = JSON.parse(webSearchChatActionState.data.chatbotRequestJson); promptName = req.promptName; if (req.promptName === 'technical-analysis-web-search') { searchType = 'technical_analysis'; } else if (req.promptName === 'options-flow-web-search') { searchType = 'options_flow'; } } catch (e) {}
+      dispatchFsmEvent({ type: 'WEB_SEARCH_CHAT_ACTION_SUCCESS', payload: { ...webSearchChatActionState.data, promptName, searchType } });
     } else if (webSearchChatActionState.status === 'error') {
       let promptName;
-      try { const req = JSON.parse(webSearchChatActionState.data?.chatbotRequestJson || '{}'); promptName = req.promptName; } catch (e) {}
-      dispatchFsmEvent({ type: 'WEB_SEARCH_CHAT_ACTION_ERROR', payload: { error: webSearchChatActionState.error, message: webSearchChatActionState.message, chatbotRequestJson: webSearchChatActionState.data?.chatbotRequestJson, chatbotResponseJson: webSearchChatActionState.data?.chatbotResponseJson, promptName } });
+      let searchType: WebSearchType = 'user_input';
+      try { const req = JSON.parse(webSearchChatActionState.data?.chatbotRequestJson || '{}'); promptName = req.promptName; if (req.promptName === 'technical-analysis-web-search') { searchType = 'technical_analysis'; } else if (req.promptName === 'options-flow-web-search') { searchType = 'options_flow'; } } catch (e) {}
+      dispatchFsmEvent({ type: 'WEB_SEARCH_CHAT_ACTION_ERROR', payload: { error: webSearchChatActionState.error, message: webSearchChatActionState.message, chatbotRequestJson: webSearchChatActionState.data?.chatbotRequestJson, chatbotResponseJson: webSearchChatActionState.data?.chatbotResponseJson, promptName, searchType } });
     }
   }, [webSearchChatActionState, isWebSearchChatPending, dispatchFsmEvent, logDebug]);
   
@@ -1125,6 +1173,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'SUBMIT_APP_DATA_CHAT_MESSAGE', payload });
     };
 
+    const dispatchWebSearchChat = (promptName: string) => {
+        const payload: WebSearchChatActionInputs = {
+            ticker: activeTicker,
+            chatHistory: _webSearchChatHistory,
+            userInput: `Triggered by pipeline: ${promptName}`,
+            promptName,
+        };
+        _dispatchFsmEventActual({ type: 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE', payload });
+    };
+
     const stepOrder: (FullAiMacroChatStep | 'web_search_ta' | 'web_search_options' | null)[] = [
         'key_takeaways', 'options_analysis', 
         'stock_trader_chat', 'options_trader_chat', 'holistic_chat', 
@@ -1154,9 +1212,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (nextStep === 'stock_trader_chat' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchAppDataChat("stock-trader-takeaways"); return; }
         if (nextStep === 'options_trader_chat' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchAppDataChat("options-trader-takeaways"); return; }
         if (nextStep === 'holistic_chat' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchAppDataChat("holistic-takeaways"); return; }
+        if (nextStep === 'web_search_ta' && state.flags.isWebSearchTaEnabled) { dispatchWebSearchChat("technical-analysis-web-search"); return; }
+        if (nextStep === 'web_search_options' && state.flags.isWebSearchOptionsEnabled) { dispatchWebSearchChat("options-flow-web-search"); return; }
     }
     _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-  }, [_stockSnapshotJson, _aiKeyTakeawaysJson, _aiAnalyzedTaJson, _aiOptionsAnalysisJson, _appDataChatHistory, _dispatchFsmEventActual]);
+  }, [_stockSnapshotJson, _aiKeyTakeawaysJson, _aiAnalyzedTaJson, _aiOptionsAnalysisJson, _appDataChatHistory, _webSearchChatHistory, _dispatchFsmEventActual]);
   
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current;
@@ -1238,8 +1298,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     appDataChatRequestJson: _appDataChatRequestJson, setAppDataChatRequestJson: contextSetters.setAppDataChatRequestJson,
     appDataChatResponseJson: _appDataChatResponseJson, setAppDataChatResponseJson: contextSetters.setAppDataChatResponseJson,
     appDataChatHistory: _appDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
-    webSearchChatRequestJson: _webSearchChatRequestJson, setWebSearchChatRequestJson: contextSetters.setWebSearchChatRequestJson,
-    webSearchChatResponseJson: _webSearchChatResponseJson, setWebSearchChatResponseJson: contextSetters.setWebSearchChatResponseJson,
+    userInputWebSearchChatRequestJson: _userInputWebSearchChatRequestJson, setUserInputWebSearchChatRequestJson: contextSetters.setUserInputWebSearchChatRequestJson,
+    userInputWebSearchChatResponseJson: _userInputWebSearchChatResponseJson, setUserInputWebSearchChatResponseJson: contextSetters.setUserInputWebSearchChatResponseJson,
+    rawTaWebSearchRequestJson: _rawTaWebSearchRequestJson, setRawTaWebSearchRequestJson: contextSetters.setRawTaWebSearchRequestJson,
+    rawTaWebSearchResponseJson: _rawTaWebSearchResponseJson, setRawTaWebSearchResponseJson: contextSetters.setRawTaWebSearchResponseJson,
+    rawOptionsWebSearchRequestJson: _rawOptionsWebSearchRequestJson, setRawOptionsWebSearchRequestJson: contextSetters.setRawOptionsWebSearchRequestJson,
+    rawOptionsWebSearchResponseJson: _rawOptionsWebSearchResponseJson, setRawOptionsWebSearchResponseJson: contextSetters.setRawOptionsWebSearchResponseJson,
     webSearchChatHistory: _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
     isClientDebugConsoleEnabled: _isClientDebugConsoleEnabled, isClientDebugConsoleOpen: _isClientDebugConsoleOpen,
     logSourceConfig: _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
@@ -1259,7 +1323,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
     _aiOptionsAnalysisJson, _aiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson,
     _appDataChatRequestJson, _appDataChatResponseJson, _appDataChatHistory, addAppDataChatMessage,
-    clearAppDataChatHistory, _webSearchChatRequestJson, _webSearchChatResponseJson,
+    clearAppDataChatHistory, _userInputWebSearchChatRequestJson, _userInputWebSearchChatResponseJson,
+    _rawTaWebSearchRequestJson, _rawTaWebSearchResponseJson, _rawOptionsWebSearchRequestJson, _rawOptionsWebSearchResponseJson,
     _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
     _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
     _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,

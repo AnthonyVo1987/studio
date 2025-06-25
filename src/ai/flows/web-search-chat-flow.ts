@@ -86,10 +86,10 @@ export async function webSearchChat(input: WebSearchChatInput): Promise<WebSearc
   }
 }
 
-function formatJsonResponseToMarkdown(jsonResponse: any, promptName: string): string {
+function formatJsonResponseToMarkdown(jsonResponse: any, promptName: string, ticker?: string): string {
     if (promptName === 'technical-analysis-web-search') {
       const data = jsonResponse as z.infer<typeof AugmentedTaSearchOutputSchema>;
-      let md = `**Web Search: Technical Analysis for ${data.ticker || 'Stock'}**\n\n`;
+      let md = `**Web Search: Technical Analysis for ${ticker || 'Stock'}**\n\n`;
       md += `- **ATR-14:** ${data.averageTrueRange14 ?? 'Not found'}\n\n`;
       md += `- **Bollinger Bands:** Upper: ${data.bollingerBands?.upper ?? 'N/A'}, Middle: ${data.bollingerBands?.middle ?? 'N/A'}, Lower: ${data.bollingerBands?.lower ?? 'N/A'}\n\n`;
       md += `- **Fibonacci Levels:** ${data.fibonacciRetracement ? Object.entries(data.fibonacciRetracement).map(([key, value]) => `${key}: $${value}`).join(', ') : 'Not found'}`;
@@ -97,7 +97,7 @@ function formatJsonResponseToMarkdown(jsonResponse: any, promptName: string): st
     }
     if (promptName === 'options-flow-web-search') {
       const data = jsonResponse as z.infer<typeof AugmentedOptionsSearchOutputSchema>;
-      let md = `**Web Search: Options Metrics for ${data.ticker || 'Stock'}**\n\n`;
+      let md = `**Web Search: Options Metrics for ${ticker || 'Stock'}**\n\n`;
       md += `- **Max Pain:** ${data.maxPain ?? 'Not found'}\n\n`;
       md += `- **Gamma Exposure (GEX):** ${data.gammaExposure ?? 'Not found'}\n\n`;
       md += `- **Put/Call Ratio:** ${data.putCallRatio ?? 'Not found'}\n\n`;
@@ -149,7 +149,7 @@ const webSearchChatFlow = ai.defineFlow(
         const parsedData = JSON.parse(jsonString);
         const validatedData = jsonSchema.parse(parsedData); // Zod validation
 
-        responseText = formatJsonResponseToMarkdown(validatedData, input.promptName!);
+        responseText = formatJsonResponseToMarkdown(validatedData, input.promptName!, input.ticker);
       } else {
         // This is a standard conversational grounded prompt.
         responseText = rawTextResponse;
@@ -164,5 +164,3 @@ const webSearchChatFlow = ai.defineFlow(
     }
   }
 );
-
-    

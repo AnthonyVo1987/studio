@@ -61,8 +61,12 @@ export function DebugTabContent() {
     aiKeyTakeawaysJson,
     appDataChatRequestJson,
     appDataChatResponseJson,
-    webSearchChatRequestJson,
-    webSearchChatResponseJson,
+    userInputWebSearchChatRequestJson,
+    userInputWebSearchChatResponseJson,
+    rawTaWebSearchRequestJson,
+    rawTaWebSearchResponseJson,
+    rawOptionsWebSearchRequestJson,
+    rawOptionsWebSearchResponseJson,
     logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
@@ -104,8 +108,12 @@ export function DebugTabContent() {
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
     { title: "App Data Chat Request JSON", data: appDataChatRequestJson, description: "Request to the non-grounded, app-data-only chat stream." },
     { title: "App Data Chat Response JSON", data: appDataChatResponseJson, description: "Response from the non-grounded, app-data-only chat stream." },
-    { title: "Web Search Chat Request JSON", data: webSearchChatRequestJson, description: "Request to the grounded, web-search-enabled chat stream." },
-    { title: "Web Search Chat Response JSON", data: webSearchChatResponseJson, description: "Response from the grounded, web-search-enabled chat stream." },
+    { title: "User Input Web Search Request JSON", data: userInputWebSearchChatRequestJson, description: "Request for user-driven (interactive) web search." },
+    { title: "User Input Web Search Response JSON", data: userInputWebSearchChatResponseJson, description: "Response for user-driven (interactive) web search." },
+    { title: "TA Web Search Request JSON", data: rawTaWebSearchRequestJson, description: "Request for automated TA web search." },
+    { title: "TA Web Search Response JSON", data: rawTaWebSearchResponseJson, description: "Response for automated TA web search." },
+    { title: "Options Web Search Request JSON", data: rawOptionsWebSearchRequestJson, description: "Request for automated Options web search." },
+    { title: "Options Web Search Response JSON", data: rawOptionsWebSearchResponseJson, description: "Response for automated Options web search." },
   ];
 
   return (
