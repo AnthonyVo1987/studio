@@ -49,11 +49,11 @@ export async function webSearchChatAction(
   };
 
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
-  console.log(`${actionLogPrefix} Action_PreFlowCall - Calling webSearchChat flow. PromptName: ${flowInput.promptName || 'default_web_search'}.`);
-
+  
   try {
+    console.log(`${actionLogPrefix} [AI_CALL_START] Calling webSearchChat flow. PromptName: ${flowInput.promptName || 'default_web_search'}.`);
     const flowOutput: WebSearchChatOutput = await webSearchChat(flowInput);
-    console.log(`${actionLogPrefix} Action_PostFlowCall_Success - webSearchChat flow returned. Response (first 50 chars): "${flowOutput.response?.substring(0,50)}..."`);
+    console.log(`${actionLogPrefix} [AI_CALL_END] webSearchChat flow returned. Response (first 50 chars): "${flowOutput.response?.substring(0,50)}..."`);
     const chatbotResponseJson = JSON.stringify(flowOutput, null, 2);
 
     return {
@@ -66,7 +66,7 @@ export async function webSearchChatAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} Action_FlowError_Or_ActionCatch - CRITICAL Error during web search processing. Error: ${error.message}.`);
+    console.error(`${actionLogPrefix} [AI_CALL_END_ERROR] CRITICAL Error during web search processing. Error: ${error.message}.`);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during web search processing.',

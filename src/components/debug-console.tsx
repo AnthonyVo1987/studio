@@ -31,7 +31,8 @@ const POLLING_INTERVAL_MS = 750;
 const MAX_DISPLAYED_LOGS = 1000;
 
 interface DebugConsoleProps {
-  appVersion: string; 
+  appVersion: string;
+  allRawData: Record<string, any>;
 }
 
 function formatLogMessage(messages: any[]): string {
@@ -76,12 +77,13 @@ const escapeCsvField = (field: any): string => {
   return stringField;
 };
 
-const getFsmStatesAndTimestampForExport = (
+const getFullSnapshotForExport = (
     globalPreviousFsmState: GlobalFsmState | null,
     globalCurrentFsmState: GlobalFsmState,
     globalTargetFsmDisplayState: GlobalFsmState | null,
     globalFlags: GlobalFsmFlags,
-    globalVariables: GlobalFsmContextVariables
+    globalVariables: GlobalFsmContextVariables,
+    allRawData: Record<string, any>
 ) => ({
   reportTimestamp: new Date().toISOString(),
   fsmStatesSnapshot: {
@@ -92,35 +94,45 @@ const getFsmStatesAndTimestampForExport = (
     },
     globalFsmFlags: globalFlags,
     globalFsmContextVariables: globalVariables,
-  }
+  },
+  allRawData: allRawData,
 });
 
 
 const generateLogsTxtWithMetadata = (
     logs: GlobalLogEntry[],
     currentAppVersion: string, 
-    fsmSnapshot: any 
+    fullSnapshot: any 
 ): string => {
   let metadata = `App Version: ${currentAppVersion}\n`;
-  metadata += `Report Timestamp: ${fsmSnapshot.reportTimestamp}\n\n`;
+  metadata += `Report Timestamp: ${fullSnapshot.reportTimestamp}\n\n`;
   metadata += "Global FSM State:\n";
-  metadata += `  Previous: ${fsmSnapshot.fsmStatesSnapshot.globalApplicationFSM?.previous || 'N/A'}\n`;
-  metadata += `  Current: ${fsmSnapshot.fsmStatesSnapshot.globalApplicationFSM?.current || 'N/A'}\n`;
-  metadata += `  Target: ${fsmSnapshot.fsmStatesSnapshot.globalApplicationFSM?.target || 'N/A'}\n\n`;
+  metadata += `  Previous: ${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.previous || 'N/A'}\n`;
+  metadata += `  Current: ${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.current || 'N/A'}\n`;
+  metadata += `  Target: ${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.target || 'N/A'}\n\n`;
   
   metadata += "Global FSM Flags:\n";
-  for (const [key, value] of Object.entries(fsmSnapshot.fsmStatesSnapshot.globalFsmFlags || {})) {
+  for (const [key, value] of Object.entries(fullSnapshot.fsmStatesSnapshot.globalFsmFlags || {})) {
     metadata += `  ${key}: ${value}\n`;
   }
   metadata += "\n";
 
   metadata += "Global FSM Variables:\n";
-  for (const [key, value] of Object.entries(fsmSnapshot.fsmStatesSnapshot.globalFsmContextVariables || {})) {
+  for (const [key, value] of Object.entries(fullSnapshot.fsmStatesSnapshot.globalFsmContextVariables || {})) {
     const varValue = typeof value === 'object' ? JSON.stringify(value) : String(value ?? 'null');
     metadata += `  ${key}: ${varValue}\n`;
   }
   metadata += "\n";
   
+  metadata += "All Raw Data JSONs:\n";
+  for (const [key, value] of Object.entries(fullSnapshot.allRawData || {})) {
+      if (typeof value === 'string') {
+        metadata += `\n--- ${key} ---\n`;
+        metadata += `${value}\n`;
+      }
+  }
+  metadata += "\n--------------------------------------------------\n\n";
+
   metadata += "Client Debug Logs:\n";
   metadata += "--------------------------------------------------\n";
 
@@ -140,48 +152,53 @@ const generateLogsTxtWithMetadata = (
 const generateLogsCsvWithMetadata = (
     logs: GlobalLogEntry[],
     currentAppVersion: string, 
-    fsmSnapshot: any
+    fullSnapshot: any
 ): string => {
-  let metadata = `App Version:,${currentAppVersion}\n`;
-  metadata += `Report Timestamp:,${fsmSnapshot.reportTimestamp}\n\n`;
-  metadata += `Global FSM State:\n`;
-  metadata += `Previous:,${fsmSnapshot.fsmStatesSnapshot.globalApplicationFSM?.previous || 'N/A'}\n`;
-  metadata += `Current:,${fsmSnapshot.fsmStatesSnapshot.globalApplicationFSM?.current || 'N/A'}\n`;
-  metadata += `Target:,${fsmSnapshot.fsmStatesSnapshot.globalApplicationFSM?.target || 'N/A'}\n\n`;
+  let metadata = `Section,Key,Value\n`;
+  metadata += `Metadata,App Version,${currentAppVersion}\n`;
+  metadata += `Metadata,Report Timestamp,${fullSnapshot.reportTimestamp}\n\n`;
 
-  metadata += `Global FSM Flags:\n`;
-  metadata += `Flag Name,Flag Value\n`;
-  for (const [key, value] of Object.entries(fsmSnapshot.fsmStatesSnapshot.globalFsmFlags || {})) {
-    metadata += `${escapeCsvField(key)},${escapeCsvField(value)}\n`;
+  metadata += `Global FSM State,Previous,${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.previous || 'N/A'}\n`;
+  metadata += `Global FSM State,Current,${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.current || 'N/A'}\n`;
+  metadata += `Global FSM State,Target,${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.target || 'N/A'}\n\n`;
+
+  metadata += `Global FSM Flags\n`;
+  for (const [key, value] of Object.entries(fullSnapshot.fsmStatesSnapshot.globalFsmFlags || {})) {
+    metadata += `Flag,${escapeCsvField(key)},${escapeCsvField(value)}\n`;
   }
   metadata += "\n";
 
-  metadata += `Global FSM Variables:\n`;
-  metadata += `Variable Name,Variable Value\n`;
-  for (const [key, value] of Object.entries(fsmSnapshot.fsmStatesSnapshot.globalFsmContextVariables || {})) {
+  metadata += `Global FSM Variables\n`;
+  for (const [key, value] of Object.entries(fullSnapshot.fsmStatesSnapshot.globalFsmContextVariables || {})) {
     const varValue = typeof value === 'object' ? JSON.stringify(value) : String(value ?? 'null');
-    metadata += `${escapeCsvField(key)},${escapeCsvField(varValue)}\n`;
+    metadata += `Variable,${escapeCsvField(key)},${escapeCsvField(varValue)}\n`;
   }
   metadata += "\n";
   
-  metadata += "Client Debug Logs:\n";
-  metadata += "Timestamp,Type,Source,Message\n";
+  metadata += `All Raw Data JSONs\n`;
+  for (const [key, value] of Object.entries(fullSnapshot.allRawData || {})) {
+    if (typeof value === 'string') {
+        metadata += `Raw Data,${escapeCsvField(key)},${escapeCsvField(value)}\n`;
+    }
+  }
+  metadata += "\n";
 
+  metadata += "Client Debug Logs,Timestamp,Type,Source,Message\n";
   const logRows = logs.map(log => {
     if (log.source === 'LogBuffer' && log.type === 'system') { 
-      return `"",system,LogBuffer,"${escapeCsvField(formatLogMessage(log.messages))}"`;
+      return `Log,"",system,LogBuffer,"${escapeCsvField(formatLogMessage(log.messages))}"`;
     }
     const timestamp = log.timestamp;
     const type = log.type;
     const source = log.source ? getSourceLabel(log.source) : '';
     const message = formatLogMessage(log.messages);
-    return `${escapeCsvField(timestamp)},${escapeCsvField(type)},${escapeCsvField(source)},${escapeCsvField(message)}`;
+    return `Log,${escapeCsvField(timestamp)},${escapeCsvField(type)},${escapeCsvField(source)},${escapeCsvField(message)}`;
   }).join('\n');
   return metadata + logRows;
 };
 
 
-export function DebugConsole({ appVersion }: DebugConsoleProps) {
+export function DebugConsole({ appVersion, allRawData }: DebugConsoleProps) {
   const {
     isClientDebugConsoleOpen,
     setClientDebugConsoleOpen,
@@ -257,98 +274,85 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     stockAnalysisLogDebug('DebugConsole', 'LogClear', 'Client debug logs cleared by user. Search term also cleared.');
   };
 
-  const handleCopyJson = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as JSON.');
-    if (displayedLogs.length === 0) {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return;
-    }
-    const fsmSnapshot = getFsmStatesAndTimestampForExport(
-        globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
-        fsmFlags, fsmVariables
+  const getFullExportSnapshot = useCallback(() => {
+    return getFullSnapshotForExport(
+      globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
+      fsmFlags, fsmVariables, allRawData
     );
-    const exportData = { appVersion, ...fsmSnapshot, logs: displayedLogs };
+  }, [globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, fsmFlags, fsmVariables, allRawData]);
+
+  const handleCopyJson = async () => {
+    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as JSON.');
+    if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
+    const fullSnapshot = getFullExportSnapshot();
+    const exportData = { appVersion, ...fullSnapshot, logs: displayedLogs };
     if (await copyToClipboard(JSON.stringify(exportData, null, 2))) {
-      toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM snapshot copied to clipboard as JSON.' });
+      toast({ title: 'Snapshot Copied', description: 'Full system snapshot copied to clipboard as JSON.' });
     } else {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as JSON.' });
+      toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy system snapshot." });
     }
   };
 
   const handleCopyTxt = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as TXT.');
+    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
-    const fsmSnapshot = getFsmStatesAndTimestampForExport(
-        globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
-        fsmFlags, fsmVariables
-    );
-    const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fsmSnapshot); 
+    const fullSnapshot = getFullExportSnapshot();
+    const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fullSnapshot); 
     if (await copyToClipboard(txtData)) {
-      toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM snapshot copied to clipboard as TXT.' });
+      toast({ title: 'Snapshot Copied', description: 'Full system snapshot copied to clipboard as TXT.' });
     } else {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as TXT.' });
+      toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy system snapshot." });
     }
   };
 
   const handleCopyCsv = async () => {
-    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying logs as CSV.');
+    stockAnalysisLogDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
-    const fsmSnapshot = getFsmStatesAndTimestampForExport(
-        globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
-        fsmFlags, fsmVariables
-    );
-    const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fsmSnapshot); 
+    const fullSnapshot = getFullExportSnapshot();
+    const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fullSnapshot); 
     if (await copyToClipboard(csvData)) {
-      toast({ title: 'Logs Copied', description: 'Displayed client logs and FSM snapshot copied to clipboard as CSV.' });
+      toast({ title: 'Snapshot Copied', description: 'Full system snapshot copied to clipboard as CSV.' });
     } else {
-      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy client logs as CSV.' });
+      toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy system snapshot." });
     }
   };
 
   const handleExportJson = () => {
-    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as JSON.');
+    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as JSON.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      const fsmSnapshot = getFsmStatesAndTimestampForExport(
-        globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
-        fsmFlags, fsmVariables
-      );
-      const exportData = { appVersion, ...fsmSnapshot, logs: displayedLogs };
-      downloadJson(exportData, `stocksage_client_logs_fsm_${appVersion}.json`); 
-      toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM snapshot downloaded as JSON.' });
+      const fullSnapshot = getFullExportSnapshot();
+      const exportData = { appVersion, ...fullSnapshot, logs: displayedLogs };
+      downloadJson(exportData, `stocksage_full_snapshot_${appVersion}.json`); 
+      toast({ title: 'Snapshot Exported', description: 'Full system snapshot downloaded as JSON.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as JSON.' });
+      toast({ variant: "destructive", title: "Export Failed", description: "Could not export snapshot." });
     }
   };
 
   const handleExportTxt = () => {
-    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as TXT.');
+    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      const fsmSnapshot = getFsmStatesAndTimestampForExport(
-        globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
-        fsmFlags, fsmVariables
-      );
-      const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fsmSnapshot); 
-      downloadTxt(txtData, `stocksage_client_logs_fsm_${appVersion}.txt`); 
-      toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM snapshot downloaded as TXT.' });
+      const fullSnapshot = getFullExportSnapshot();
+      const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fullSnapshot); 
+      downloadTxt(txtData, `stocksage_full_snapshot_${appVersion}.txt`); 
+      toast({ title: 'Snapshot Exported', description: 'Full system snapshot downloaded as TXT.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as TXT.' });
+      toast({ variant: "destructive", title: "Export Failed", description: "Could not export snapshot." });
     }
   };
 
   const handleExportCsv = () => {
-    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting logs as CSV.');
+    stockAnalysisLogDebug('DebugConsole', 'ExportAction', 'Exporting full snapshot as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      const fsmSnapshot = getFsmStatesAndTimestampForExport(
-        globalPreviousFsmState, globalFsmState, globalTargetFsmDisplayState, 
-        fsmFlags, fsmVariables
-      );
-      const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fsmSnapshot); 
-      downloadTxt(csvData, `stocksage_client_logs_fsm_${appVersion}.csv`); 
-      toast({ title: 'Logs Exported', description: 'Displayed client logs and FSM snapshot downloaded as CSV.' });
+      const fullSnapshot = getFullExportSnapshot();
+      const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fullSnapshot); 
+      downloadTxt(csvData, `stocksage_full_snapshot_${appVersion}.csv`); 
+      toast({ title: 'Snapshot Exported', description: 'Full system snapshot downloaded as CSV.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export client logs as CSV.' });
+      toast({ variant: "destructive", title: "Export Failed", description: "Could not export snapshot." });
     }
   };
 
@@ -486,7 +490,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
               onOpenChange={(isOpen) => dispatchFsmEvent({ type: 'TOGGLE_DEBUG_CONSOLE_MENU', payload: { menu: 'copy', isOpen }})}
             >
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" title="Copy Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
+                    <Button variant="ghost" size="icon" title="Copy Snapshot" className="h-7 w-7" disabled={isUserInteractionDisabled}>
                         <ClipboardCopy className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -502,7 +506,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
               onOpenChange={(isOpen) => dispatchFsmEvent({ type: 'TOGGLE_DEBUG_CONSOLE_MENU', payload: { menu: 'export', isOpen }})}
             >
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" title="Export Logs" className="h-7 w-7" disabled={isUserInteractionDisabled}>
+                <Button variant="ghost" size="icon" title="Export Snapshot" className="h-7 w-7" disabled={isUserInteractionDisabled}>
                   <Download className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -572,6 +576,3 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     </Card>
   );
 }
-
-
-    

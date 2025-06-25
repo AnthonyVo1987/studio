@@ -74,11 +74,11 @@ export async function appDataChatAction(
   };
 
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
-  console.log(`${actionLogPrefix} Action_PreFlowCall - Calling chatWithBot flow. PromptName: ${flowInput.promptName || 'default_chat'}. Input keys: ${Object.keys(flowInput).join(', ')}. History length: ${flowInput.chatHistory.length}.`);
-
+  
   try {
+    console.log(`${actionLogPrefix} [AI_CALL_START] Calling chatWithBot flow. PromptName: ${flowInput.promptName || 'default_chat'}.`);
     const flowOutput: AppDataChatOutput = await chatWithBot(flowInput);
-    console.log(`${actionLogPrefix} Action_PostFlowCall_Success - chatWithBot flow returned. Response (first 50 chars): "${flowOutput.response.substring(0,50)}..."`);
+    console.log(`${actionLogPrefix} [AI_CALL_END] chatWithBot flow returned. Response (first 50 chars): "${flowOutput.response?.substring(0,50)}..."`);
     const chatbotResponseJson = JSON.stringify(flowOutput, null, 2);
 
     return {
@@ -91,7 +91,7 @@ export async function appDataChatAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} Action_FlowError_Or_ActionCatch - CRITICAL Error during chat processing. Error: ${error.message}.`);
+    console.error(`${actionLogPrefix} [AI_CALL_END_ERROR] CRITICAL Error during chat processing. Error: ${error.message}.`);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during chat processing.',

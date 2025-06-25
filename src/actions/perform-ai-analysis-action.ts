@@ -38,7 +38,7 @@ export async function performAiAnalysisAction(
     aiAnalyzedTaJson,
     marketStatusJson,
   } = payload;
-  const actionLogPrefix = `[ServerAction:performAiAnalysisAction:Ticker:${ticker}]`; // Simplified log prefix
+  const actionLogPrefix = `[ServerAction:performAiAnalysisAction:Ticker:${ticker}]`;
   console.log(`${actionLogPrefix} Action_Entry - Received request. PrevState status: ${prevState.status}. Payload keys: ${Object.keys(payload).join(', ')}.`);
 
 
@@ -47,14 +47,14 @@ export async function performAiAnalysisAction(
       !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}' ||
       !marketStatusJson || marketStatusJson === '{}') {
     const errorMsg = 'One or more required data inputs for AI Key Takeaways analysis are missing or empty.';
-    console.warn(`${actionLogPrefix} Action_ValidationError - ${errorMsg}. Details - Snapshot valid: ${!!(stockSnapshotJson && stockSnapshotJson !== '{}')}, Standard TAs valid: ${!!(standardTasJson && standardTasJson !== '{}')}, AI TA valid: ${!!(aiAnalyzedTaJson && aiAnalyzedTaJson !== '{}')}, MarketStatus valid: ${!!(marketStatusJson && marketStatusJson !== '{}')}`);
+    console.warn(`${actionLogPrefix} Action_ValidationError - ${errorMsg}.`);
     return {
       status: 'error',
       error: errorMsg,
       message: 'Prerequisite data not available for AI key takeaways.',
       data: {
-        aiKeyTakeawaysRequestJson: JSON.stringify({ error: errorMsg, ticker, inputValidity: {stockSnapshotJsonValid: !!(stockSnapshotJson && stockSnapshotJson !== '{}'), standardTasJsonValid: !!(standardTasJson && standardTasJson !== '{}'), aiAnalyzedTaJsonValid: !!(aiAnalyzedTaJson && aiAnalyzedTaJson !== '{}'), marketStatusJsonValid: !!(marketStatusJson && marketStatusJson !== '{}')} }, null, 2),
-        aiKeyTakeawaysJson: JSON.stringify({ error: errorMsg, details: "Missing prerequisite data for AI key takeaways analysis." }, null, 2),
+        aiKeyTakeawaysRequestJson: JSON.stringify({ error: errorMsg, ticker }, null, 2),
+        aiKeyTakeawaysJson: JSON.stringify({ error: errorMsg, details: "Missing prerequisite data." }, null, 2),
       },
     };
   }
@@ -68,26 +68,13 @@ export async function performAiAnalysisAction(
   };
 
   const aiKeyTakeawaysRequestJson = JSON.stringify(flowInput, null, 2);
-  console.log(`${actionLogPrefix} Action_PreFlowCall - Calling analyzeStockData flow. Input (first 300 chars of request JSON): ${aiKeyTakeawaysRequestJson.substring(0,300)}...`);
-
+  
   try {
+    console.log(`${actionLogPrefix} [AI_CALL_START] Calling analyzeStockData flow.`);
     const flowOutput: StockAnalysisOutput = await analyzeStockData(flowInput);
-    console.log(`${actionLogPrefix} Action_PostFlowCall_Success - analyzeStockData flow returned. FlowOutput (first 500 chars): ${JSON.stringify(flowOutput).substring(0,500)}`);
-
-    const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
-    let allCategoriesPresent = true;
-    for (const category of categories) {
-        if (!flowOutput[category] || !flowOutput[category].takeaway) {
-            allCategoriesPresent = false;
-            console.warn(`${actionLogPrefix} Action_Warning_PostFlowCall - Flow output missing or has empty takeaway for category '${category}'. This might indicate an issue in the flow's default filling. Output for category: ${JSON.stringify(flowOutput[category])}`);
-        }
-    }
-    if (!allCategoriesPresent) {
-        console.error(`${actionLogPrefix} Action_Error_PostFlowCall - Not all takeaway categories were present in the flow output from analyzeStockData. This is unexpected.`);
-    }
+    console.log(`${actionLogPrefix} [AI_CALL_END] analyzeStockData flow returned successfully.`);
 
     const aiKeyTakeawaysJson = JSON.stringify(flowOutput, null, 2);
-    console.log(`${actionLogPrefix} Action_ProcessComplete - analyzeStockData flow processing in action completed. Final aiKeyTakeawaysJson (first 300 chars): ${aiKeyTakeawaysJson.substring(0,300)}...`);
 
     return {
       status: 'success',
@@ -99,14 +86,14 @@ export async function performAiAnalysisAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} Action_FlowError_Or_ActionCatch - CRITICAL Error in performAiAnalysisAction's try-catch block (flow threw error or action itself failed). Error name: ${error?.name}, Message: ${error?.message}.`);
+    console.error(`${actionLogPrefix} [AI_CALL_END_ERROR] CRITICAL Error in action's try-catch. Error: ${error?.message}.`);
     return {
       status: 'error',
-      error: error.message || 'An unknown error occurred during AI key takeaways generation in action.',
-      message: `Failed to generate AI key takeaways for ${ticker} due to an action-level error. Flow might have failed.`,
+      error: error.message || 'An unknown error occurred during AI key takeaways generation.',
+      message: `Failed to generate AI key takeaways for ${ticker}.`,
       data: {
-        aiKeyTakeawaysRequestJson, // Request to the flow
-        aiKeyTakeawaysJson: JSON.stringify({ error: error.message || 'Flow execution failed critically or action failed', details: String(error) }, null, 2),
+        aiKeyTakeawaysRequestJson,
+        aiKeyTakeawaysJson: JSON.stringify({ error: error.message || 'Flow execution failed', details: String(error) }, null, 2),
       },
     };
   }

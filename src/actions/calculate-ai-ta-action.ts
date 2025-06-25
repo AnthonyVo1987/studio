@@ -30,11 +30,12 @@ export async function calculateAiTaAction(
   payload: CalculateAiTaActionInputs
 ): Promise<CalculateAiTaActionState> {
   const { stockSnapshotJson, ticker } = payload;
-  console.log(`[ServerAction:calculateAiTaAction] Request for ticker: ${ticker || 'Unknown'}`);
+  const actionLogPrefix = `[ServerAction:calculateAiTaAction:Ticker:${ticker || 'Unknown'}]`;
+  console.log(`${actionLogPrefix} Action_Entry - Received request.`);
 
   if (!stockSnapshotJson || stockSnapshotJson === '{}') {
     const errorMsg = 'Stock snapshot data is missing or empty. Cannot calculate AI TA.';
-    console.warn(`[ServerAction:calculateAiTaAction] Validation Error for ${ticker || 'Unknown'}: ${errorMsg}`);
+    console.warn(`${actionLogPrefix} Validation Error: ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
@@ -46,10 +47,10 @@ export async function calculateAiTaAction(
   let snapshotData: StockSnapshotData;
   try {
     snapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-    console.log(`[ServerAction:calculateAiTaAction] Parsed stockSnapshotJson for ${ticker || snapshotData.ticker}`);
+    console.log(`${actionLogPrefix} Parsed stockSnapshotJson for ${ticker || snapshotData.ticker}`);
   } catch(e: any) {
     const errorMsg = `Failed to parse stockSnapshotJson: ${e.message}`;
-    console.error(`[ServerAction:calculateAiTaAction] Error parsing snapshot for ${ticker || 'Unknown'}: ${errorMsg}`);
+    console.error(`${actionLogPrefix} Error parsing snapshot for ${ticker || 'Unknown'}: ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
@@ -64,7 +65,7 @@ export async function calculateAiTaAction(
         snapshotData.prevDay.l == null ||
         snapshotData.prevDay.c == null) {
       const errorMsg = 'Previous day HLC data is missing from the stock snapshot.';
-      console.warn(`[ServerAction:calculateAiTaAction] Data Error for ${ticker || snapshotData.ticker}: ${errorMsg}`);
+      console.warn(`${actionLogPrefix} Data Error for ${ticker || snapshotData.ticker}: ${errorMsg}`);
       return {
         status: 'error',
         error: errorMsg,
@@ -80,11 +81,12 @@ export async function calculateAiTaAction(
     };
 
     const aiCalculatedTaRequestJson = JSON.stringify(flowInput, null, 2);
-    console.log(`[ServerAction:calculateAiTaAction] Calling calculateAiTaIndicators flow for ${ticker || snapshotData.ticker} with input: ${aiCalculatedTaRequestJson}`);
-
+    
+    console.log(`${actionLogPrefix} [AI_CALL_START] Calling calculateAiTaIndicators flow for ${ticker || snapshotData.ticker}.`);
     const flowOutput: CalculateAiTaOutput = await calculateAiTaIndicators(flowInput);
+    console.log(`${actionLogPrefix} [AI_CALL_END] calculateAiTaIndicators flow succeeded for ${ticker || snapshotData.ticker}.`);
+    
     const aiCalculatedTaJson = JSON.stringify(flowOutput, null, 2);
-    console.log(`[ServerAction:calculateAiTaAction] calculateAiTaIndicators flow succeeded for ${ticker || snapshotData.ticker}. Output: ${aiCalculatedTaJson}`);
 
     return {
       status: 'success',
@@ -96,7 +98,7 @@ export async function calculateAiTaAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`[ServerAction:calculateAiTaAction] CRITICAL Error for ${ticker || snapshotData?.ticker || 'Unknown'}:`, error);
+    console.error(`${actionLogPrefix} [AI_CALL_END_ERROR] CRITICAL Error for ${ticker || snapshotData?.ticker || 'Unknown'}:`, error);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during AI TA calculation.',

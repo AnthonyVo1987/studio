@@ -7,7 +7,7 @@ import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
 import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
-import { analyzeTaAction } from '@/actions/analyze-ta-action';
+import { calculateAiTaAction } from '@/actions/calculate-ai-ta-action';
 import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs, type AppDataChatActionResult } from '@/actions/app-data-chat-action';
@@ -298,8 +298,8 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isAiChatStockTraderTakeawaysSelected: true,
     isAiChatOptionsTraderTakeawaysSelected: true,
     isAiChatHolisticTakeawaysSelected: true,
-    isWebSearchTaEnabled: false,
-    isWebSearchOptionsEnabled: false,
+    isWebSearchTaEnabled: true,
+    isWebSearchOptionsEnabled: true,
   },
 };
 
@@ -1084,7 +1084,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 break;
             case GlobalFsmState.CALCULATING_AI_TA:
                 try {
-                    const result = await analyzeTaAction({status: 'idle'}, { stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! });
+                    const result = await calculateAiTaAction({status: 'idle'}, { stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! });
                     if(result.status === 'success' && result.data){
                         _dispatchFsmEventActual({type: 'AI_TA_SUCCESS', payload: result.data});
                     } else {
@@ -1174,7 +1174,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
 
     const dispatchWebSearchChat = (promptName: string) => {
-        const payload: WebSearchChatActionInputs = {
+        const payload: WebSearchChatInput = {
             ticker: activeTicker,
             chatHistory: _webSearchChatHistory,
             userInput: `Triggered by pipeline: ${promptName}`,

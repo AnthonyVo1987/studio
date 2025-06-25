@@ -25,6 +25,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
     logDebug,
+    ...allRawData
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
@@ -82,7 +83,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
         </Tabs>
       </main>
-      <DebugConsole appVersion={appVersion} />
+      <DebugConsole appVersion={appVersion} allRawData={allRawData} />
       <Footer />
     </div>
   );
