@@ -382,6 +382,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
 
+  const [fetchDataActionState, runFetchDataAction, isFetchDataPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(fetchStockDataAction, { status: 'idle' });
+  const [aiTaActionState, runCalculateAiTaAction, isAiTaPending] = useActionState<CalculateAiTaActionState, { stockSnapshotJson: string, ticker?: string }>(calculateAiTaAction, { status: 'idle' });
+  const [keyTakeawaysActionState, runPerformAiAnalysisAction, isKeyTakeawaysPending] = useActionState<PerformAiAnalysisActionState, any>(performAiAnalysisAction, { status: 'idle' });
+  const [optionsAnalysisActionState, runPerformAiOptionsAnalysisAction, isOptionsAnalysisPending] = useActionState<PerformAiOptionsAnalysisActionState, any>(performAiOptionsAnalysisAction, { status: 'idle' });
+
   const [appDataChatActionState, appDataChatFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
   const [webSearchChatActionState, webSearchChatFormAction, isWebSearchChatPending] = useActionState<WebSearchChatActionState, WebSearchChatActionInputs>(webSearchChatAction, { status: 'idle' });
 
@@ -841,6 +846,58 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const logPrefix = 'StockAnalysisContext:FetchDataActionEffect';
+    if (fetchDataActionState.status === 'idle' || isFetchDataPending) return;
+    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${fetchDataActionState.status}, Message: ${fetchDataActionState.message}`);
+    if (fetchDataActionState.status === 'success' && fetchDataActionState.data) {
+        dispatchFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: fetchDataActionState.data });
+    } else if (fetchDataActionState.status === 'error') {
+        const errorData = fetchDataActionState.data;
+        const staleDataErrorMsg = 'CRITICAL STALE DATA';
+        if (fetchDataActionState.error?.includes(staleDataErrorMsg) && errorData) {
+            const expectedTicker = globalFsmReducerState.variables.activeTicker || 'Unknown';
+            const foundTickerInSnapshot = JSON.parse(errorData.stockSnapshotJson || '{}')?.ticker || 'Not found';
+            dispatchFsmEvent({ type: 'STALE_DATA_FROM_ACTION', payload: { error: fetchDataActionState.error, message: fetchDataActionState.message || '', expectedTicker, foundTickerInSnapshot, actionStateData: errorData }});
+        } else {
+            dispatchFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: { error: fetchDataActionState.error, message: fetchDataActionState.message, polygonApiRequestLogJson: errorData?.polygonApiRequestLogJson, polygonApiResponseLogJson: errorData?.polygonApiResponseLogJson }});
+        }
+    }
+  }, [fetchDataActionState, isFetchDataPending, dispatchFsmEvent, logDebug, globalFsmReducerState.variables.activeTicker]);
+
+  useEffect(() => {
+    const logPrefix = 'StockAnalysisContext:AiTaActionEffect';
+    if (aiTaActionState.status === 'idle' || isAiTaPending) return;
+    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${aiTaActionState.status}, Message: ${aiTaActionState.message}`);
+    if (aiTaActionState.status === 'success' && aiTaActionState.data) {
+        dispatchFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaActionState.data });
+    } else if (aiTaActionState.status === 'error') {
+        dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: aiTaActionState.error, message: aiTaActionState.message, aiAnalyzedTaRequestJson: aiTaActionState.data?.aiAnalyzedTaRequestJson }});
+    }
+  }, [aiTaActionState, isAiTaPending, dispatchFsmEvent, logDebug]);
+  
+  useEffect(() => {
+      const logPrefix = 'StockAnalysisContext:KeyTakeawaysActionEffect';
+      if (keyTakeawaysActionState.status === 'idle' || isKeyTakeawaysPending) return;
+      logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${keyTakeawaysActionState.status}, Message: ${keyTakeawaysActionState.message}`);
+      if (keyTakeawaysActionState.status === 'success' && keyTakeawaysActionState.data) {
+          dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: keyTakeawaysActionState.data });
+      } else if (keyTakeawaysActionState.status === 'error') {
+          dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: keyTakeawaysActionState.error, message: keyTakeawaysActionState.message, aiKeyTakeawaysRequestJson: keyTakeawaysActionState.data?.aiKeyTakeawaysRequestJson }});
+      }
+  }, [keyTakeawaysActionState, isKeyTakeawaysPending, dispatchFsmEvent, logDebug]);
+
+  useEffect(() => {
+      const logPrefix = 'StockAnalysisContext:OptionsAnalysisActionEffect';
+      if (optionsAnalysisActionState.status === 'idle' || isOptionsAnalysisPending) return;
+      logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${optionsAnalysisActionState.status}, Message: ${optionsAnalysisActionState.message}`);
+      if (optionsAnalysisActionState.status === 'success' && optionsAnalysisActionState.data) {
+          dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: optionsAnalysisActionState.data });
+      } else if (optionsAnalysisActionState.status === 'error') {
+          dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: optionsAnalysisActionState.error, message: optionsAnalysisActionState.message, aiOptionsAnalysisRequestJson: optionsAnalysisActionState.data?.aiOptionsAnalysisRequestJson }});
+      }
+  }, [optionsAnalysisActionState, isOptionsAnalysisPending, dispatchFsmEvent, logDebug]);
+
+  useEffect(() => {
     if (_targetFsmDisplayState !== null && globalFsmReducerState.current === _targetFsmDisplayState) {
       logDebug('StockAnalysisContext:GlobalFSM' as LogSourceId, 'TargetReached', `Current state ${_targetFsmDisplayState} matches target. Clearing target display.`);
       _setTargetFsmDisplayState(null);
@@ -953,12 +1010,24 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const logPrefix = 'StockAnalysisContext:GlobalFSM_Orchestrator';
     logDebug(logPrefix as LogSourceId, '[[ORCHESTRATOR_EFFECT_ENTRY]]', `Orchestrator running for state: ${globalFsmReducerState.current}`);
     
-    // Logic for automated pipeline after data is fetched.
-    if (globalFsmReducerState.current === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
+    if (globalFsmReducerState.current === GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH) {
+        logDebug(logPrefix as LogSourceId, 'Dispatch', `PIPELINE_REQUESTED_DATA_FETCH: Triggering data fetch for ${globalFsmReducerState.variables.activeTicker}.`);
+        if (!isFetchDataPending) {
+            startTransition(() => {
+                runFetchDataAction({ ticker: globalFsmReducerState.variables.activeTicker! });
+            });
+            _dispatchFsmEventActual({ type: 'DATA_FETCH_IN_PROGRESS' } as any);
+        }
+    } else if (globalFsmReducerState.current === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
       logDebug(logPrefix as LogSourceId, 'Dispatch', `DATA_FETCH_SUCCEEDED: Triggering AI_TA calculation.`);
-      _dispatchFsmEventActual({ type: 'CALCULATING_AI_TA', payload: {} } as any); 
+      if (!isAiTaPending) {
+        startTransition(() => {
+            runCalculateAiTaAction({ stockSnapshotJson: _stockSnapshotJson, ticker: globalFsmReducerState.variables.activeTicker! });
+        });
+        _dispatchFsmEventActual({ type: 'CALCULATING_AI_TA', payload: {} } as any);
+      }
     }
-  }, [globalFsmReducerState.current]); 
+  }, [globalFsmReducerState, isFetchDataPending, runFetchDataAction, isAiTaPending, runCalculateAiTaAction, _stockSnapshotJson, logDebug]);
 
 
   useEffect(() => {
@@ -1084,3 +1153,5 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
+
+    
