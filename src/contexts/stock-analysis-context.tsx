@@ -105,7 +105,7 @@ export type FsmDisplayTuple = {
 interface FetchDataSuccessPayload extends StockDataFetchResult {}
 interface FetchDataFailurePayload { error?: string | null; message?: string | null; polygonApiRequestLogJson?: string; polygonApiResponseLogJson?: string; }
 interface StaleDataFromActionPayload { error: string; message: string; expectedTicker: string; foundTickerInSnapshot?: string; actionStateData?: StockDataFetchResult; }
-interface AiTaSuccessPayload extends CalculateAiResult {}
+interface AiTaSuccessPayload extends CalculateAiTaResult {}
 interface AiTaFailurePayload { error?: string | null; message?: string | null; aiAnalyzedTaRequestJson?: string; }
 interface AiKeyTakeawaysSuccessPayload extends PerformAiAnalysisResult {}
 interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; }
@@ -837,10 +837,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [globalFsmReducerState, logDebug]);
 
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
-    const currentActualState = fsmStateRef.current.current;
-    let determinedTarget: GlobalFsmState | null = null;
     _dispatchFsmEventActual(event);
-  }, [_dispatchFsmEventActual, _setTargetFsmDisplayState, logDebug]);
+  }, []);
 
   useEffect(() => {
     if (_targetFsmDisplayState !== null && globalFsmReducerState.current === _targetFsmDisplayState) {
@@ -951,7 +949,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
   }, [webSearchChatActionState, isWebSearchChatPending, dispatchFsmEvent, logDebug]);
   
-  // *** MAIN FSM ORCHESTRATOR ***
   useEffect(() => {
     const orchestrate = async () => {
         const state = fsmStateRef.current;
@@ -965,34 +962,27 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 }
                 break;
             case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH:
-                (async () => {
+                {
                     const ticker = state.variables.activeTicker!;
                     logDebug('StockAnalysisContext:GlobalFSM_Orchestrator', 'DataFetch', `Starting data fetch for ${ticker}`);
-                    const result = await fetchStockDataAction({ status: 'idle' }, { ticker });
-                    if (result.status === 'success' && result.data) {
-                        _dispatchFsmEventActual({ type: 'FETCH_DATA_SUCCESS', payload: result.data });
-                    } else if (result.message?.includes("Stale data detected") && result.data) {
-                        _dispatchFsmEventActual({ type: 'STALE_DATA_FROM_ACTION', payload: { error: result.error || "Stale data error", message: result.message, expectedTicker: ticker, actionStateData: result.data }});
+                    const dataResult = await fetchStockDataAction({ status: 'idle' }, { ticker });
+                    if (dataResult.status === 'success' && dataResult.data) {
+                        _dispatchFsmEventActual({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
+                        
+                        _dispatchFsmEventActual({ type: 'CALCULATING_AI_TA', payload: {} } as any);
+                        const taResult = await calculateAiTaAction({ status: 'idle' }, { stockSnapshotJson: dataResult.data.stockSnapshotJson, ticker });
+                        if (taResult.status === 'success' && taResult.data) {
+                            _dispatchFsmEventActual({ type: 'AI_TA_SUCCESS', payload: taResult.data });
+                        } else {
+                            _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { error: taResult.error, message: taResult.message, aiAnalyzedTaRequestJson: taResult.data?.aiCalculatedTaRequestJson } });
+                        }
+                    } else if (dataResult.message?.includes("Stale data detected") && dataResult.data) {
+                        _dispatchFsmEventActual({ type: 'STALE_DATA_FROM_ACTION', payload: { error: dataResult.error || "Stale data error", message: dataResult.message, expectedTicker: ticker, actionStateData: dataResult.data }});
                     } else {
-                        _dispatchFsmEventActual({ type: 'FETCH_DATA_FAILURE', payload: { error: result.error, message: result.message, polygonApiRequestLogJson: result.data?.polygonApiRequestLogJson, polygonApiResponseLogJson: result.data?.polygonApiResponseLogJson } });
+                        _dispatchFsmEventActual({ type: 'FETCH_DATA_FAILURE', payload: { error: dataResult.error, message: dataResult.message, polygonApiRequestLogJson: dataResult.data?.polygonApiRequestLogJson, polygonApiResponseLogJson: dataResult.data?.polygonApiResponseLogJson } });
                     }
-                })();
+                }
                 break;
-
-            case GlobalFsmState.DATA_FETCH_SUCCEEDED:
-                 _dispatchFsmEventActual({ type: 'CALCULATING_AI_TA', payload: {} } as any);
-                break;
-            case GlobalFsmState.CALCULATING_AI_TA:
-                (async () => {
-                    const result = await calculateAiTaAction({ status: 'idle' }, { stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! });
-                    if (result.status === 'success' && result.data) {
-                        _dispatchFsmEventActual({ type: 'AI_TA_SUCCESS', payload: result.data });
-                    } else {
-                        _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { error: result.error, message: result.message, aiAnalyzedTaRequestJson: result.data?.aiCalculatedTaRequestJson } });
-                    }
-                })();
-                break;
-
             case GlobalFsmState.APP_DATA_CHAT_PENDING:
                 if (state.variables.pendingAppDataChatSubmissionPayload && !isAppDataChatPending) {
                     startTransition(() => { appDataChatFormAction(state.variables.pendingAppDataChatSubmissionPayload!); });
@@ -1003,48 +993,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                     startTransition(() => { webSearchChatFormAction(state.variables.pendingWebSearchChatSubmissionPayload!); });
                 }
                 break;
-            case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED:
-              // After base pipeline is done, start the customizable pipeline
-              dispatchNextCustomAction();
-              break;
         }
     };
     
     orchestrate();
   }, [globalFsmReducerState.current]);
 
-  const dispatchNextCustomAction = useCallback(async () => {
-    const state = fsmStateRef.current;
-    const activeTicker = state.variables.activeTicker;
-    if (!activeTicker) { return; }
-
-    logDebug('StockAnalysisContext:GlobalFSM_Orchestrator', 'CustomPipeline', 'Starting customizable pipeline execution.');
-
-    let localAiAnalyzedTaJson = _aiAnalyzedTaJson; // Use the most recent state value at the start
-
-    // Step 1: AI Key Takeaways
-    if (state.flags.isAiKeyTakeawaysSelected) {
-        _dispatchFsmEventActual({ type: 'GENERATING_KEY_TAKEAWAYS', payload: { ticker: activeTicker } } as any);
-        const result = await performAiAnalysisAction({ status: 'idle' }, {
-            ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson,
-            aiAnalyzedTaJson: localAiAnalyzedTaJson, marketStatusJson: _marketStatusJson
-        });
-        if (result.status === 'success' && result.data) {
-            _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: result.data });
-        } else {
-            _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: result.error, message: result.message, aiKeyTakeawaysRequestJson: result.data?.aiKeyTakeawaysRequestJson } });
-            return; // Stop pipeline on failure
-        }
-    }
-    
-    // ... other steps will be added here in the future
-    
-    logDebug('StockAnalysisContext:GlobalFSM_Orchestrator', 'CustomPipeline', 'Finished all selected steps.');
-    _dispatchFsmEventActual({ type: '_PIPELINE_STEP_SUCCEEDED', payload: { stepName: 'CustomPipelineEnd', nextState: GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE } });
-
-  }, [_aiAnalyzedTaJson, _stockSnapshotJson, _standardTasJson, _marketStatusJson, _dispatchFsmEventActual, logDebug]);
-  
-  
   useEffect(() => {
     const logPrefix = 'StockAnalysisContext:ManualActionFlagEffect';
     const state = fsmStateRef.current;
