@@ -15,13 +15,13 @@ import {
   type WebSearchChatInput,
   WebSearchChatOutputSchema,
   type WebSearchChatOutput,
-  JsonExtractionSchema,
 } from '@/ai/schemas/web-search-chat-schemas';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 import { AugmentedTaSearchOutputSchema } from '../schemas/augmented-ta-search-schemas';
 import { AugmentedOptionsSearchOutputSchema } from '../schemas/augmented-options-search-schemas';
 import { z } from 'zod';
+import { extractJsonString } from '@/lib/string-utils';
 
 const promptCache: Record<string, any> = {};
 
@@ -49,6 +49,8 @@ async function getWebSearchChatPrompt(input: WebSearchChatInput) {
   const promptString = buildPromptStringFromLlmDefinition(promptDefinition);
   const modelId = promptDefinition.modelId || DEFAULT_CHAT_MODEL_ID;
 
+  // ARCHITECTURAL FIX: A grounded prompt with tools CANNOT have an `output` schema.
+  // This was the root cause of the `Unable to determine type of tool` error.
   const promptOptions: any = {
     name: promptDefinition.promptName,
     input: { schema: WebSearchChatInputSchema },
@@ -60,11 +62,6 @@ async function getWebSearchChatPrompt(input: WebSearchChatInput) {
       thinkingConfig: promptDefinition.thinkingBudget !== undefined ? { thinkingBudget: promptDefinition.thinkingBudget } : undefined,
     },
   };
-  
-  const jsonSchema = jsonPromptSchemaMap[definitionName];
-  if (jsonSchema) {
-    promptOptions.output = { schema: JsonExtractionSchema(jsonSchema) };
-  }
   
   console.log(
     `${logPrefix} Defining prompt. Model: ${modelId}, Grounding: true, ThinkingBudget: ${promptOptions.config.thinkingConfig?.thinkingBudget ?? 'N/A'}`
@@ -128,18 +125,34 @@ const webSearchChatFlow = ai.defineFlow(
       const result = await promptToUse(input);
       
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
+      console.log(`${logPrefix} Grounded search metadata:`, JSON.stringify(result.usageMetadata?.grounding?.sources, null, 2));
+
+
+      // ARCHITECTURAL FIX: A grounded prompt's response is ALWAYS in `result.text`.
+      const rawTextResponse = result.text;
+      if (!rawTextResponse || rawTextResponse.trim() === '') {
+        throw new Error('Grounded AI prompt returned a malformed or empty text response.');
+      }
 
       let responseText: string;
       const isJsonPrompt = !!jsonPromptSchemaMap[input.promptName || ''];
 
       if (isJsonPrompt) {
-          if (!result.output) { throw new Error('Grounded JSON prompt returned no output.'); }
-          responseText = formatJsonResponseToMarkdown(result.output, input.promptName!);
+        // This is a "Grounded JSON-in-Text" prompt. We must parse the JSON from the text.
+        const jsonString = extractJsonString(rawTextResponse);
+        if (!jsonString) {
+          console.error(`${logPrefix} Failed to extract JSON from text:`, rawTextResponse);
+          throw new Error(`Could not extract a valid JSON block from the AI's text response for prompt '${input.promptName}'.`);
+        }
+        
+        const jsonSchema = jsonPromptSchemaMap[input.promptName!];
+        const parsedData = JSON.parse(jsonString);
+        const validatedData = jsonSchema.parse(parsedData); // Zod validation
+
+        responseText = formatJsonResponseToMarkdown(validatedData, input.promptName!);
       } else {
-          responseText = result.text;
-          if (!responseText || typeof responseText !== 'string' || responseText.trim() === '') {
-            throw new Error('Grounded AI prompt returned a malformed or empty text response.');
-          }
+        // This is a standard conversational grounded prompt.
+        responseText = rawTextResponse;
       }
       
       console.log(`${logPrefix} Flow successfully executed. Final response (first 50 chars): "${responseText.substring(0, 50)}..."`);
@@ -151,3 +164,5 @@ const webSearchChatFlow = ai.defineFlow(
     }
   }
 );
+
+    
