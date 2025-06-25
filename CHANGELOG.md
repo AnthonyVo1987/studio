@@ -58,6 +58,22 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.4.9` (Final Fix for Pipeline Loop)
+**Tag:** `Phase-47_Task-3.3.16.4.9_FinalFixPipelineLoop`
+**Subject:** `fix(fsm): Final fix for pipeline loop by enforcing deterministic FSM orchestration (v3.3.16.4.9)`
+**Details:**
+This commit (`b6739bb3`) **successfully resolves the persistent AI pipeline loop bug**. The root cause was identified as a non-deterministic FSM orchestrator whose massive dependency array created severe race conditions. The fix involved a critical architectural simplification within `src/contexts/stock-analysis-context.tsx`.
+
+**Key Architectural Correction:**
+*   The `useEffect` orchestrator hook's dependency array was correctly pruned to react **only** to changes in the primary FSM state (`globalFsmReducerState.current`).
+*   The internal AI analysis steps (Key Takeaways, Options Analysis) were changed from being managed by `useActionState` to being called directly with `async/await` from within the orchestrator.
+*   This ensures each step in the pipeline runs sequentially and deterministically, only after the previous step has fully completed and the FSM has settled into a new state. The race condition is eliminated.
+
+**Outcome:**
+*   **BUG RESOLVED:** The AI pipeline is now stable, executes all steps in the correct order, and no longer loops.
+*   The application is now ready for final, comprehensive testing of the "AI Chat Prompt & Google Search Grounding Consolidation" feature.
+*   **Future Task Scoped:** A new task will be created to audit the rest of the application and apply these principles of deterministic FSM design to other areas to improve overall robustness.
+---
 **App Version:** `v3.3.16.4.8` (Intermediate Debugging Commit)
 **Tag:** `Phase-46_Task-3.3.16.4.8_IntermediateDebugging`
 **Subject:** `docs(all): Intermediate commit v3.3.16.4.8, document failed FSM fixes & persistent loop`

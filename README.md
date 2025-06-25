@@ -31,9 +31,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 2.1
-**Application Version (from `app-metadata.json`):** v3.3.16.4.8
-**Last Updated:** 2025-07-15
+**README Document Version:** 2.2
+**Application Version (from `app-metadata.json`):** v3.3.16.4.9
+**Last Updated:** 2025-07-16
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -157,12 +157,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.4.8)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.4.9)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
     *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and the three standard chat prompts.
     *   **[Architecture Refactor Complete]** Web Search Pipeline (Chat-Centric): The FSM orchestrator triggers web searches as final steps of the main pipeline (if toggles on) or on-demand by dispatching special requests (with a `promptName`) to the intelligent `chat-flow`. All old FSM states for "Augmented Search" have been removed.
+    *   **[Architectural Principle - Enforced Determinism]:** To resolve persistent pipeline loops, the FSM orchestrator `useEffect` hook now depends **only** on the FSM's primary state (`current`). This ensures orchestration logic runs predictably only when a state transition completes. Internal pipeline actions now use direct `async/await` calls within the orchestrator instead of `useActionState` to eliminate race conditions.
+*   **TODO - Future Task:** A future architectural review task will be created to audit the entire application and apply the principle of deterministic FSM orchestration more broadly to ensure maximum stability and remove any remaining potential for race conditions.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -191,9 +193,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
-*   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.4.8):**
-    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** The feature implementation is complete, but a **critical bug** involving a pipeline loop is preventing the start of final testing. Debugging this issue is the current priority.
+*   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
+*   **Current Feature Focus (as of v3.3.16.4.9):**
+    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** The feature implementation is now stable after resolving the critical pipeline loop bug. The application is ready for final, comprehensive testing.
 *   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
@@ -246,8 +248,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 2.1
-*   **Current Application Version:** `v3.3.16.4.8`
+*   **This README Document Version:** 2.2
+*   **Current Application Version:** `v3.3.16.4.9`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
