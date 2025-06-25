@@ -58,6 +58,21 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.4.8` (Intermediate Debugging Commit)
+**Tag:** `Phase-46_Task-3.3.16.4.8_IntermediateDebugging`
+**Subject:** `docs(all): Intermediate commit v3.3.16.4.8, document failed FSM fixes & persistent loop`
+**Details:**
+This commit (`44883f42`) is a **documentation-only** task to checkpoint the ongoing debugging efforts for the "AI Chat Prompt & Google Search Grounding Consolidation" feature. It formally acknowledges that a persistent AI pipeline loop remains unresolved despite several attempted fixes across versions `v3.3.16.4.6`, `v3.3.16.4.7`, and the current commit's codebase.
+
+**Summary of Fix Attempts:**
+*   **v3.3.16.4.6:** Replaced generic web search FSM states with specific ones (`FORMATTING_TA_WEB_SEARCH`, `FORMATTING_OPTIONS_WEB_SEARCH`) to prevent a race condition.
+*   **v3.3.16.4.7:** Introduced a `PIPELINE_PAUSED` state with a `setTimeout` delay to provide a buffer between asynchronous steps.
+*   **v3.3.16.4.8 (Codebase):** Attempted to remove the `PIPELINE_PAUSED` state and create a more direct, deterministic state transition sequence in the orchestrator.
+
+**Outcome & Known Issue:**
+*   **BUG PERSISTS:** None of the attempted fixes have resolved the root cause. The AI pipeline continues to get stuck in a loop, executing prompts repeatedly and out of order.
+*   **Next Steps:** The investigation into the FSM orchestrator and its interaction with React's `useActionState` and `useEffect` lifecycle will continue.
+---
 **App Version:** `v3.3.16.4.0` (Initial Documentation for Phase 4)
 **Tag:** `Phase-46_Task-3.3.16.4.0_PreTestingDocUpdate`
 **Subject:** `docs(all): Initial docs for v3.3.16.4.0, complete feature refactor implementation (v3.3.16.4.0)`
@@ -79,7 +94,7 @@ This commit (`324423cc`) is a **documentation-only** task that marks the complet
 **Tag:** `Phase-45_Task-3.3.16.1.6_FinalizeGroundingConfig`
 **Subject:** `feat(ai): Finalize grounding config across all AI prompts (v3.3.16.1.6)`
 **Details:**
-This commit (`TBD`) applies the final prompt configuration changes for Phase 1 of the "AI Chat Prompt & Google Search Grounding Consolidation" feature. It systemically reviews and corrects the `useGoogleSearch` flag across all relevant prompt definitions to ensure grounding is enabled or disabled according to the new architectural standard.
+This commit (`TBD`) applies the final prompt configuration changes for Phase 1 of the "AI Chat Prompt & Google Search Grounding Consolidation" feature. It systemically reviews and corrects the `useGoogleSearch` flag on all relevant prompt definitions to ensure grounding is enabled or disabled according to the new architectural standard.
 *   **Enabled Grounding:** `stock-chatbot.json` (for all interactive user queries).
 *   **Disabled Grounding:** `analyze-stock-data.json`, `analyze-options-chain.json`.
 *   All other `useGoogleSearch` flags set in `v3.3.16.1.4` were confirmed correct.

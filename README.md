@@ -31,9 +31,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 2.0
-**Application Version (from `app-metadata.json`):** v3.3.16.4.3
-**Last Updated:** 2025-07-12
+**README Document Version:** 2.1
+**Application Version (from `app-metadata.json`):** v3.3.16.4.8
+**Last Updated:** 2025-07-15
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -157,7 +157,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.2.4)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.4.8)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
@@ -192,9 +192,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a valid ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.4.0):**
-    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** This feature's implementation is now complete and awaiting final testing.
-*   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
+*   **Current Feature Focus (as of v3.3.16.4.8):**
+    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** The feature implementation is complete, but a **critical bug** involving a pipeline loop is preventing the start of final testing. Debugging this issue is the current priority.
+*   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -246,8 +246,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 2.0
-*   **Current Application Version:** `v3.3.16.4.3`
+*   **This README Document Version:** 2.1
+*   **Current Application Version:** `v3.3.16.4.8`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
