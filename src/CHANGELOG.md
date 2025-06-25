@@ -58,39 +58,37 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.1` (Phase Completion)
+**Tag:** `Phase-52_Task-3.3.16.7.1_FinalCleanupAndDocs`
+**Subject:** `feat(core,docs): Final cleanup and documentation for Dual Chat feature (v3.3.16.7.1)`
+**Details:**
+This commit completes the implementation phase of the **"Dual AI Chat Architecture"** feature. It performs final code cleanup and updates all project documentation to reflect the new, stable architecture, preparing the application for the final testing phase.
+*   **Code Cleanup:** Deleted obsolete files from the old polymorphic chat system (`chat-flow.ts`, `chat-server-action.ts`, `chat-schemas.ts`, `stock-chatbot.json`).
+*   **Genkit Entrypoint:** Updated `src/ai/dev.ts` to remove the import for the deleted `chat-flow.ts`.
+*   **Documentation:** Updated `README.md` and feature-specific documents (`FEAT_SCOPE_...`, `FEAT_STATUS_...`) to reflect the completion of implementation Phases 1 and 2 and to set the stage for testing.
+*   **Metadata:** Updated application version in `src/config/app-metadata.json` to `v3.3.16.7.1`.
+---
 **App Version:** `v3.3.16.6.4` (Complete Phase 2 of Dual Chat Architecture)
 **Tag:** `Phase-51_Task-3.3.16.6.4_CompleteDualChatPhase2`
 **Subject:** `feat(chat,fsm,ui): Complete Phase 2 of Dual Chat Architecture (v3.3.16.6.4)`
 **Details:**
 This commit marks the completion of **Phase 2: Build Grounded Web Search Chat Stream** for the new **"Dual AI Chat Architecture"** feature. This phase successfully built and integrated the second, parallel, and fully independent chat stream dedicated to handling AI queries that require real-time web search.
-
-**Key Architectural Changes:**
 *   **New Files:** Created a new, isolated set of files for the web search stream: `web-search-chat-flow.ts`, `web-search-chat-action.ts`, `web-search-chat-schemas.ts`, and `web-search-chatbot.json`.
 *   **Hardened Web Search Flow:** The new `web-search-chat-flow.ts` is architecturally hardened to **always** use the `googleSearch` tool and **never** use a structured `output.schema`, strictly following the "Grounded JSON-in-Text" pattern from the reference guide to ensure stability. It now correctly handles parsing responses from specialized search prompts.
 *   **FSM Isolation:** All global FSM states, variables, flags, and events related to web search chat were created and isolated (e.g., `WEB_SEARCH_CHAT_PENDING`, `webSearchChatHistory`).
 *   **Generic Chatbot Component:** The `Chatbot.tsx` component and its FSM context (`chatbot-fsm-context.tsx`) were refactored to be reusable, accepting props for title, description, button configurations, and the specific chat stream (`chatType`) they should control.
 *   **UI & Debugging Integration:** A second `Chatbot` instance was added to the UI, wired to the new `webSearch...` states. The Debug Tab was also updated with display boxes for the new stream's data.
-
-**Outcome:**
-*   The application now has two stable, predictable, and fully independent chat streams: one for analyzing loaded app data, and one for grounded web search queries.
-*   The architecture is now prepared for the final phase of this feature: Phase 3, which will involve code cleanup and comprehensive testing of both chat systems.
 ---
 **App Version:** `v3.3.16.5.4` (Complete Phase 1 of Dual Chat Architecture)
 **Tag:** `Phase-50_Task-3.3.16.5.4_CompleteDualChatPhase1`
 **Subject:** `feat(chat): Complete Phase 1 of Dual Chat Architecture (v3.3.16.5.4)`
 **Details:**
 This commit marks the completion of **Phase 1: Foundation & App Data Chat Refactor** for the new **"Dual AI Chat Architecture"** feature (`v3.3.16.4.F` series). This phase successfully repurposed the old, problematic chat system into a new, stable, non-grounded stream.
-
-**Key Architectural Changes:**
 *   **File Renaming:** All core chat files (`chat-flow.ts`, `chat-server-action.ts`, `chat-schemas.ts`) were renamed to `app-data-chat-....ts` to clearly denote their new, specific purpose.
 *   **Flow Hardening:** The new `app-data-chat-flow.ts` was stripped of all conditional grounding logic. It is now hardcoded to **only** use structured JSON outputs (`output.schema`) and **never** use tools, eliminating the source of the previous architectural conflict for this stream.
 *   **FSM Isolation:** All global FSM states, variables, flags, and events related to chat were renamed to be specific to this stream (e.g., `CHAT_MESSAGE_PENDING` -> `APP_DATA_CHAT_PENDING`, `chatHistory` -> `appDataChatHistory`).
 *   **UI & Debugging Isolation:** The main `Chatbot` component and `DebugTab` were wired to the new, isolated `appData...` states. All UI related to web search was removed from this chat component, and a disclaimer was added to clarify its limited scope.
 *   **New Prompt:** A new `app-data-chatbot.json` prompt was created to serve as the default for this non-grounded stream.
-
-**Outcome:**
-*   The application now has a stable, predictable, and isolated chat stream for analyzing loaded application data.
-*   The architecture is now prepared for Phase 2, which will involve building the second, parallel, and fully independent "Grounded Web Search Chat" stream.
 ---
 **App Version:** `v3.3.16.4.F` (Feature Scoping)
 **Tag:** `Phase-49_Task-3.3.16.4.F_ScopeDualChatArchitecture`

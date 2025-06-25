@@ -31,8 +31,8 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 2.5
-**Application Version (from `app-metadata.json`):** v3.3.16.4.F
+**README Document Version:** 2.6
+**Application Version (from `app-metadata.json`):** v3.3.16.7.1
 **Last Updated:** 2025-07-19
 
 ## 1. Introduction
@@ -86,12 +86,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   **[New Location]** AI Chat: Run TA Web Search Post-Analysis.
         *   **[New Location]** AI Chat: Run Options Web Search Post-Analysis.
 *   **Dual AI Chat Architecture (as of v3.3.16.4.F):**
-    *   **[Architecture Refactor IN PROGRESS]** The single, polymorphic chatbot is being replaced by two distinct, isolated chat functionalities to resolve tool-use errors and improve stability.
+    *   **[Architecture Refactor COMPLETE]** The single, polymorphic chatbot has been replaced by two distinct, isolated chat functionalities to resolve tool-use errors and improve stability.
     *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application.
-    *   **Grounded Web Search Chat:** A new, separate chat box that will handle all queries requiring real-time web search, strictly adhering to the tool-use architectural pattern.
-*   **AI Chatbot:**
-    *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
-    *   **[Architecture Refactor Complete]** Grounding is determined by the specific `promptName` being executed. All user-initiated interactive chat queries are grounded by default.
+    *   **Grounded Web Search Chat:** A separate chat box that handles all queries requiring real-time web search, strictly adhering to the tool-use architectural pattern.
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
@@ -116,7 +113,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Export Combined Data (Stock Snapshot, TAs, AI Analyses) (JSON).
     *   Copy functionality for the above exports.
     *   **Exported File Metadata:** All exported files (debug logs, data exports) will dynamically include the current application version sourced from `src/config/app-metadata.json`.
-*   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs).
+*   **Debug Tab:** Display raw JSON for all major data segments (API requests/responses, AI flow inputs/outputs for both chat streams).
 *   **Client Debug Console:** Real-time client-side log display with filtering, search, max 2000 entries, wrap indicator, and export capabilities. Exported logs include the dynamic application version and a snapshot of the global FSM (state, flags, and variables).
 *   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup. (Default `false` as of v3.3.16).
 *   **UI/Render Log Spam Toggle:** A user-configurable setting (default `true` as of v3.3.16) to control high-frequency logs from UI components related to re-renders and prop changes.
@@ -132,7 +129,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.2. Genkit (AI Backend Orchestration)
 *   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis tasks.
-*   **[Architecture Refactor IN PROGRESS]** The single `chat-flow.ts` is being deprecated in favor of two new, independent flows: `app-data-chat-flow.ts` (non-grounded) and `web-search-chat-flow.ts` (grounded).
+*   **[Architecture Refactor COMPLETE]** The application now uses two independent flows: `app-data-chat-flow.ts` (non-grounded) and `web-search-chat-flow.ts` (grounded).
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
     *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
     *   **Architectural Mandate:** Dynamic Thinking (`thinkingBudget: -1`) and Grounding (`useGoogleSearch: boolean`) are now defined in and enforced by each prompt's JSON definition.
@@ -154,15 +151,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Fetched data JSON strings (including `rawWebSearchTaResponseJson`, `rawWebSearchOptionsResponseJson`).
     *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the customizable analysis pipeline.
     *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
-    *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
+    *   Chat history and the `useActionState` hook for both chat server actions, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.4.F)
-*   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.7.1)
+*   **Dual Chat FSM States:** The global FSM now has distinct, parallel states to manage the "App Data Chat" and "Web Search Chat" lifecycles independently (e.g., `APP_DATA_CHAT_PENDING` vs. `WEB_SEARCH_CHAT_PENDING`).
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
-    *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and the three standard chat prompts.
-    *   **[Architecture Refactor IN PROGRESS]** The chat pipeline is being split. The FSM will be updated with new, distinct states to manage the separate "App Data Chat" and "Web Search Chat" lifecycles independently.
+    *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and chat prompts.
     *   **[Architectural Principle - Enforced Determinism]:** To resolve persistent pipeline loops, the FSM orchestrator `useEffect` hook now depends **only** on the FSM's primary state (`current`). This ensures orchestration logic runs predictably only when a state transition completes. Internal pipeline actions now use direct `async/await` calls within the orchestrator instead of `useActionState` to eliminate race conditions.
 *   **TODO - Future Task:** A future architectural review task will be created to audit the entire application and apply the principle of deterministic FSM orchestration more broadly to ensure maximum stability and remove any remaining potential for race conditions.
 
@@ -194,8 +190,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.4.F):**
-    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** This new refactor is now the active focus. It aims to resolve the persistent tool-use error by creating two separate, isolated chat systems.
+*   **Current Feature Focus (as of v3.3.16.7.1):**
+    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Implementation is complete. The feature is now ready for final testing.
 *   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
@@ -248,8 +244,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 2.5
-*   **Current Application Version:** `v3.3.16.4.F`
+*   **This README Document Version:** 2.6
+*   **Current Application Version:** `v3.3.16.7.1`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
