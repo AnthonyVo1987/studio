@@ -62,7 +62,7 @@ async function getChatPrompt(input: ChatInput) {
   };
 
   if (isGroundedSearch) {
-    promptConfig.tools = [{ googleSearch: {} }];
+    promptOptions.tools = [{ tool: 'googleSearch' }];
   } else {
     promptOptions.output = { schema: z.object({ response: z.string() }) };
   }
@@ -126,26 +126,29 @@ const chatFlow = ai.defineFlow(
           }
           
           const searchType = input.promptName === 'technical-analysis-web-search' ? 'TA' : 'Options';
-          const formatDefinitionName = searchType === 'TA' ? 'format-ta-search-results' : 'format-options-search-results';
-
-          console.log(`${logPrefix} Loading formatting definition: ${formatDefinitionName}`);
-          const genericFormatDef = await loadDefinition(formatDefinitionName);
-          if (genericFormatDef.definitionType !== 'llm-prompt') throw new Error(`Formatting definition '${formatDefinitionName}' is not an LLM prompt.`);
-          const formatPromptDef = genericFormatDef as LlmPromptDefinition;
-
+          
+          console.log(`${logPrefix} Defining and calling internal formatting prompt for ${searchType}.`);
           const formattingPrompt = ai.definePrompt({
-            name: formatPromptDef.promptName,
-            input: { schema: z.object({ rawJsonString: z.string() }) },
-            output: { schema: z.object({ formattedResponse: z.string() }) },
-            model: formatPromptDef.modelId || DEFAULT_ANALYSIS_MODEL_ID,
-            prompt: buildPromptStringFromLlmDefinition(formatPromptDef),
-            config: {
-              safetySettings: formatPromptDef.safetySettings,
-              thinkingConfig: { thinkingBudget: formatPromptDef.thinkingBudget },
-            },
+              name: 'inlineWebSearchResultFormatter',
+              input: { schema: z.object({ rawJsonString: z.string() }) },
+              output: { schema: z.object({ formattedResponse: z.string() }) },
+              model: DEFAULT_ANALYSIS_MODEL_ID,
+              prompt: `You are a data formatting expert. Your task is to convert a raw JSON string into a human-readable markdown report. Use headings for sections, bullet points for lists, and bold text for labels.
+
+              **Raw Data:**
+              {{{rawJsonString}}}
+              `,
+              config: {
+                safetySettings: [
+                    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+                    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+                ],
+                thinkingConfig: { thinkingBudget: -1 },
+              },
           });
           
-          console.log(`${logPrefix} Calling internal formatting prompt for ${searchType}.`);
           const formatResult = await formattingPrompt({ rawJsonString: cleanedJsonString });
           
           if (formatResult.output?.formattedResponse) {
