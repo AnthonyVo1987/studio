@@ -54,6 +54,8 @@ export enum GlobalFsmState {
   FORMAT_OPTIONS_WEB_SEARCH_SUCCESS = 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS',
   FORMAT_OPTIONS_WEB_SEARCH_FAILURE = 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE',
 
+  PIPELINE_PAUSED = 'PIPELINE_PAUSED', 
+
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
 
@@ -170,7 +172,8 @@ export type FsmEvent =
   | { type: 'FORMAT_TA_WEB_SEARCH_SUCCESS', payload: FormatWebSearchSuccessPayload }
   | { type: 'FORMAT_TA_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload }
   | { type: 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS', payload: FormatWebSearchSuccessPayload }
-  | { type: 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload };
+  | { type: 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload }
+  | { type: 'PROCEED_FROM_PAUSE' }; 
 
 export interface ChatMessage {
   id: string;
@@ -790,9 +793,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
        case 'FORMAT_TA_WEB_SEARCH_SUCCESS':
         addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_formatted`, role: 'model', content: event.payload.formattedResponse });
-        nextCurrentState = GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS;
+        nextCurrentState = GlobalFsmState.PIPELINE_PAUSED;
         nextVariables.pendingTaWebSearchFormatPayload = null;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_TA_WEB_SEARCH_SUCCESS.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_PAUSED after FORMAT_TA_WEB_SEARCH_SUCCESS.`);
         break;
       case 'FORMAT_TA_WEB_SEARCH_FAILURE':
         const formatTaErr = event.payload;
@@ -804,9 +807,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS':
         addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_formatted`, role: 'model', content: event.payload.formattedResponse });
-        nextCurrentState = GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS;
+        nextCurrentState = GlobalFsmState.PIPELINE_PAUSED;
         nextVariables.pendingOptionsWebSearchFormatPayload = null;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_OPTIONS_WEB_SEARCH_SUCCESS.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_PAUSED after FORMAT_OPTIONS_WEB_SEARCH_SUCCESS.`);
         break;
       case 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE':
         const formatOptErr = event.payload;
@@ -874,6 +877,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.CHAT_MESSAGE_ERROR: case GlobalFsmState.DATA_FETCH_FAILED: case GlobalFsmState.ERROR_STALE_DATA: case GlobalFsmState.AI_TA_CALCULATION_FAILED:
         case GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS: case GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE:
         case GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS: case GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE:
+        case GlobalFsmState.PIPELINE_PAUSED:
             if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
             else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = GlobalFsmState.ANALYZING_OPTIONS;
@@ -1059,58 +1063,45 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [formatWebSearchActionState, isFormatWebSearchPending, dispatchFsmEvent, logDebug]);
   
   useEffect(() => {
-    contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', globalFsmReducerState.current, 'Active Ticker:', globalFsmReducerState.variables.activeTicker, 'Profile:', globalFsmReducerState.variables.activePipelineProfile, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', globalFsmReducerState.variables.isInitialLoad);
-  
-    const state = fsmStateRef.current;
     const logPrefixOrchestrator = 'StockAnalysisContext:GlobalFSM_Orchestrator';
-  
     type PipelineStep = 'base' | 'key_takeaways' | 'options_analysis' | 'chat_stock' | 'chat_options' | 'chat_holistic' | 'web_search_ta' | 'web_search_options';
-    const dispatchNextCustomAction = (lastCompletedStep: PipelineStep) => {
-        const activeTicker = state.variables.activeTicker;
-        if (!activeTicker) {
-            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Guard', `Aborting custom pipeline, no active ticker.`);
-            _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-            return;
-        }
 
-        const dispatchChat = (promptName: string) => {
-            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Trigger', `Triggering chat with promptName: ${promptName}.`);
-            const payload: ChatActionInputs = {
-                ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
-                aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
-                chatHistory: _chatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
-            };
-            _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
+    const dispatchNextCustomAction = (lastCompletedStep: PipelineStep) => {
+      const state = fsmStateRef.current;
+      const activeTicker = state.variables.activeTicker;
+      if (!activeTicker) { _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' }); return; }
+      
+      const dispatchChat = (promptName: string) => {
+        const payload: ChatActionInputs = {
+            ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
+            aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
+            chatHistory: _chatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
         };
-        
-        const stepOrder: PipelineStep[] = ['base', 'key_takeaways', 'options_analysis', 'chat_stock', 'chat_options', 'chat_holistic', 'web_search_ta', 'web_search_options'];
-        const currentStepIndex = stepOrder.indexOf(lastCompletedStep);
-    
-        if (currentStepIndex === -1) {
-            logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_Error', `Unknown step '${lastCompletedStep}'. Finalizing pipeline.`);
-            _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-            return;
-        }
-    
-        for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
-            const nextStep = stepOrder[i];
-            if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
-            if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
-            if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("stock-trader-takeaways"); return; }
-            if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchChat("options-trader-takeaways"); return; }
-            if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchChat("holistic-takeaways"); return; }
-            if (nextStep === 'web_search_ta' && state.flags.isWebSearchTaEnabled) { dispatchChat('technical-analysis-web-search'); return; }
-            if (nextStep === 'web_search_options' && state.flags.isWebSearchOptionsEnabled) { dispatchChat('options-flow-web-search'); return; }
-        }
-    
-        logDebug(logPrefixOrchestrator as LogSourceId, 'CustomPipeline_End', `No more custom analyses selected after '${lastCompletedStep}'. Finalizing.`);
-        _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+        _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
+      };
+
+      const stepOrder: PipelineStep[] = ['base', 'key_takeaways', 'options_analysis', 'chat_stock', 'chat_options', 'chat_holistic', 'web_search_ta', 'web_search_options'];
+      const currentStepIndex = stepOrder.indexOf(lastCompletedStep);
+      for (let i = currentStepIndex + 1; i < stepOrder.length; i++) {
+        const nextStep = stepOrder[i];
+        if (nextStep === 'key_takeaways' && state.flags.isAiKeyTakeawaysSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } }); return; }
+        if (nextStep === 'options_analysis' && state.flags.isAiOptionsAnalysisSelected) { _dispatchFsmEventActual({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } }); return; }
+        if (nextStep === 'chat_stock' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("stock-trader-takeaways"); return; }
+        if (nextStep === 'chat_options' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchChat("options-trader-takeaways"); return; }
+        if (nextStep === 'chat_holistic' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchChat("holistic-takeaways"); return; }
+        if (nextStep === 'web_search_ta' && state.flags.isWebSearchTaEnabled) { dispatchChat('technical-analysis-web-search'); return; }
+        if (nextStep === 'web_search_options' && state.flags.isWebSearchOptionsEnabled) { dispatchChat('options-flow-web-search'); return; }
+      }
+      _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     };
+
+    const state = globalFsmReducerState;
+    let timerId: NodeJS.Timeout | null = null;
+  
+    contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', state.current, 'Active Ticker:', state.variables.activeTicker, 'Profile:', state.variables.activePipelineProfile, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', state.variables.isInitialLoad);
   
     if (state.current === GlobalFsmState.APP_INITIALIZING && !initialInitializationDispatchedRef.current) {
-      logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Init]', 'Dispatching INITIALIZATION_COMPLETE.');
-      _dispatchFsmEventActual({ type: 'INITIALIZATION_COMPLETE' });
-      initialInitializationDispatchedRef.current = true;
+      _dispatchFsmEventActual({ type: 'INITIALIZATION_COMPLETE' }); initialInitializationDispatchedRef.current = true;
     } else if (state.current === GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH && state.variables.activeTicker) {
       _dispatchFsmEventActual({ type: 'TRIGGER_DATA_FETCH' });
     } else if (state.current === GlobalFsmState.DATA_FETCH_IN_PROGRESS && state.variables.activeTicker && !isFetchDataPending) {
@@ -1124,9 +1115,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { message: `Snapshot data missing/error for AI TA of ${state.variables.activeTicker}.`, error: 'Snapshot data unavailable', aiAnalyzedTaRequestJson: JSON.stringify({ error: "Snapshot data missing for AI TA", ticker: state.variables.activeTicker }) } });
       }
     } else if (state.current === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED) {
-      if (state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction('base');
-      }
+      if (state.variables.activePipelineProfile === 'standard') { dispatchNextCustomAction('base'); }
     } else if (state.current === GlobalFsmState.GENERATING_KEY_TAKEAWAYS && state.variables.activeTicker && !isPerformAiAnalysisPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_Snapshot') && isDataReadyForProcessing(_standardTasJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_StdTA') && isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_AiTA') && isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefixOrchestrator as LogSourceId, 'KT_MarketStatus')) {
         startTransition(() => { performAiAnalysisFormAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson }); });
@@ -1134,11 +1123,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { message: `Prerequisite data for Key Takeaways of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
       }
     } else if (state.current === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || state.current === GlobalFsmState.KEY_TAKEAWAYS_FAILED) {
-      if (state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction('key_takeaways');
-      } else {
-        _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
-      }
+      if (state.variables.activePipelineProfile === 'standard') { dispatchNextCustomAction('key_takeaways'); } else { _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' }); }
     } else if (state.current === GlobalFsmState.ANALYZING_OPTIONS && state.variables.activeTicker && !isPerformAiOptionsAnalysisPending) {
       if (isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Snapshot', 'Validation') && isDataReadyForProcessing(_optionsChainJson, logDebug, logPrefixOrchestrator as LogSourceId, 'Opt_Chain', 'Validation')) {
         startTransition(() => { performAiOptionsAnalysisFormAction({ ticker: state.variables.activeTicker!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson }); });
@@ -1146,42 +1131,30 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _dispatchFsmEventActual({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { message: `Prerequisite data for Options Analysis of ${state.variables.activeTicker} is not ready.`, error: 'Prerequisite data unavailable' } });
       }
     } else if (state.current === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || state.current === GlobalFsmState.OPTIONS_ANALYSIS_FAILED) {
-      if (state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction('options_analysis');
-      } else {
-        _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
-      }
+      if (state.variables.activePipelineProfile === 'standard') { dispatchNextCustomAction('options_analysis'); } else { _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' }); }
     } else if (state.current === GlobalFsmState.CHAT_MESSAGE_SUCCESS || state.current === GlobalFsmState.CHAT_MESSAGE_ERROR) {
       if (state.variables.activePipelineProfile === 'standard') {
-        const lastPromptName = state.variables.lastCompletedChatPromptName;
-        let lastPromptIdentifier: PipelineStep = 'base';
-        if(lastPromptName === 'stock-trader-takeaways') lastPromptIdentifier = "chat_stock";
-        else if (lastPromptName === 'options-trader-takeaways') lastPromptIdentifier = "chat_options";
-        else if (lastPromptName === 'holistic-takeaways') lastPromptIdentifier = "chat_holistic";
-        else if (lastPromptName === 'technical-analysis-web-search') lastPromptIdentifier = 'web_search_ta';
-        else if (lastPromptName === 'options-flow-web-search') lastPromptIdentifier = 'web_search_options';
-        dispatchNextCustomAction(lastPromptIdentifier);
+        dispatchNextCustomAction(state.variables.lastCompletedChatPromptName as PipelineStep);
       }
     } else if (state.current === GlobalFsmState.FORMATTING_TA_WEB_SEARCH_RESULTS && state.variables.pendingTaWebSearchFormatPayload && !isFormatWebSearchPending) {
-        startTransition(() => { formatWebSearchFormAction(state.variables.pendingTaWebSearchFormatPayload!); });
+      startTransition(() => { formatWebSearchFormAction(state.variables.pendingTaWebSearchFormatPayload!); });
     } else if (state.current === GlobalFsmState.FORMATTING_OPTIONS_WEB_SEARCH_RESULTS && state.variables.pendingOptionsWebSearchFormatPayload && !isFormatWebSearchPending) {
-        startTransition(() => { formatWebSearchFormAction(state.variables.pendingOptionsWebSearchFormatPayload!); });
-    } else if (state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE) {
+      startTransition(() => { formatWebSearchFormAction(state.variables.pendingOptionsWebSearchFormatPayload!); });
+    } else if (state.current === GlobalFsmState.PIPELINE_PAUSED) {
+      timerId = setTimeout(() => { _dispatchFsmEventActual({ type: 'PROCEED_FROM_PAUSE' }); }, 100);
+    } else if (state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE ||
+               state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE) {
       if (state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction('web_search_ta');
-      }
-    } else if (state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE) {
-      if (state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction('web_search_options');
+        dispatchNextCustomAction(state.variables.lastCompletedChatPromptName as PipelineStep);
       }
     } else if (state.current === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE && state.variables.activePipelineProfile === 'standard') {
-      logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Standard_PipelineFinallyComplete]', `Standard automated pipeline complete. Dispatching PROCEED_TO_IDLE.`);
       _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     } else if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING && state.variables.pendingChatSubmissionPayload && !isChatPending) {
       startTransition(() => { chatFormAction(state.variables.pendingChatSubmissionPayload!); });
       _dispatchFsmEventActual({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
     }
   
+    return () => { if (timerId) clearTimeout(timerId); };
   }, [
     globalFsmReducerState.current, globalFsmReducerState.variables, globalFsmReducerState.flags,
     isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending, 
