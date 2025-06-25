@@ -28,7 +28,6 @@ interface PerformAiAnalysisActionInputs {
 }
 
 export async function performAiAnalysisAction(
-  prevState: PerformAiAnalysisActionState,
   payload: PerformAiAnalysisActionInputs
 ): Promise<PerformAiAnalysisActionState> {
   const {

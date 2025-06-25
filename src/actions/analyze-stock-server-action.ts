@@ -20,13 +20,6 @@ export interface AnalyzeStockServerActionState {
   message?: string | null;
 }
 
-const initialStockDataFetchResult: AnalyzeStockServerActionState = {
-  status: 'idle',
-  data: undefined,
-  error: null,
-  message: null,
-};
-
 interface FetchStockDataActionInputs {
   ticker: string;
   dataSource?: string; 
@@ -34,13 +27,12 @@ interface FetchStockDataActionInputs {
 }
 
 export async function fetchStockDataAction(
-  prevState: AnalyzeStockServerActionState,
   payload: FetchStockDataActionInputs
 ): Promise<AnalyzeStockServerActionState> {
   const { ticker } = payload;
   const requestedTickerUpperCase = ticker.toUpperCase();
   const actionLogPrefix = `[ServerAction:fetchStockDataAction:Ticker:${requestedTickerUpperCase}]`;
-  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}. PrevState status: ${prevState.status}`);
+  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}.`);
 
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
     const errorMsg = 'Ticker symbol is required and must be a non-empty string.';
@@ -138,4 +130,3 @@ export async function fetchStockDataAction(
     };
   }
 }
-

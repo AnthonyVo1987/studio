@@ -26,7 +26,6 @@ interface CalculateAiTaActionInputs {
 }
 
 export async function calculateAiTaAction(
-  prevState: CalculateAiTaActionState,
   payload: CalculateAiTaActionInputs
 ): Promise<CalculateAiTaActionState> {
   const { stockSnapshotJson, ticker } = payload;
