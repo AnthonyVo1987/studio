@@ -58,6 +58,16 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.9` (Revert & Checkpoint)
+**Tag:** `Phase-54_Task-3.3.16.7.9_RevertFailedPipelineFixes`
+**Commit Hash:** `abfeffb3`
+**Subject:** `docs(all): Checkpoint v3.3.16.7.9, revert failed pipeline fixes for re-evaluation`
+**Details:**
+This is a documentation and checkpoint commit that officially reverts the three previous, unsuccessful attempts to fix the AI analysis pipeline stall (versions `v3.3.16.7.6` through `v3.3.16.7.8`). This action is taken to restore the codebase to a known-stable (though still buggy) state, providing a clean baseline for a new round of debugging.
+*   **Code Revert:** The FSM orchestrator logic in `stock-analysis-context.tsx` and the granular AI call logs in the server actions have been reverted to their pre-`v3.3.16.7.5` state.
+*   **Known Issue:** The pipeline stall after `DATA_FETCH_SUCCEEDED` remains the primary active bug. The investigation will resume from this reverted state in the next task.
+*   **Documentation:** All project documents (`README.md`, `CHANGELOG.md`, `FEAT_STATUS...`) have been updated to reflect this revert and the current application version.
+---
 **App Version:** `v3.3.16.7.1` (Phase Completion)
 **Tag:** `Phase-52_Task-3.3.16.7.1_FinalCleanupAndDocs`
 **Subject:** `feat(core,docs): Final cleanup and documentation for Dual Chat feature (v3.3.16.7.1)`
@@ -392,7 +402,7 @@ This commit (`TBD`) is a **documentation-only** task that defines a detailed, ph
 **Key Documentation Changes:**
 *   **`docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`:** The scope document has been updated with a new "Implementation Phased Plan" section, detailing four phases (Data Layer Decoupling, UI Isolation, FSM Refactoring, Final Testing) and their corresponding tasks.
 *   **`docs/FEAT_STATUS_AugmentedSearchRefactor_v3.3.7.0.7.md`:** The status document has been updated to reflect the newly defined implementation plan, with all new tasks marked as `PLANNED`.
-*   **`README.md`:** The main PRD has been updated to reflect the new application version (`v3.3.7.0.7`) and to note that the Augmented Search feature is currently undergoing this re-architecture.
+*   **`README.md`:** The main PRD has been updated to reflect the new application version (`v3.3.7.0.7`) and to note that the feature is currently undergoing this re-architecture.
 *   **`CHANGELOG.md` (this file):** Updated with this commit log.
 *   **`src/config/app-metadata.json`:** Remains at `v3.3.7.0.7` as established in the prior scoping task. No source code was changed.
 
