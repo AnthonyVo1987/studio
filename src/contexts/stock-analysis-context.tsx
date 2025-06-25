@@ -509,7 +509,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setLogSourceConfig, logDebug]);
 
   const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
-    logDebug('StockAnalysisContext', 'DebugConsoleToggle', `ClientDebugConsoleEnabled toggled to: ${enabled}.`);
+    logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', `ClientDebugConsoleEnabled toggled to: ${enabled}.`);
     _setClientDebugConsoleEnabled(enabled);
     if (enabled) {
         enableAllLogSources(); 
@@ -1118,7 +1118,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                         _dispatchFsmEventActual({type: 'KEY_TAKEAWAYS_FAILURE', payload: {error: result.error, message: result.message, aiKeyTakeawaysRequestJson: result.data?.aiKeyTakeawaysRequestJson}});
                     }
                 } catch(e: any){
-                    _dispatchFsmEventActual({type: 'KEY_TAKEAWAYS_FAILURE', payload: {error: e.message}});
+                     _dispatchFsmEventActual({type: 'KEY_TAKEAWAYS_FAILURE', payload: {error: e.message}});
                 }
                 break;
             case GlobalFsmState.ANALYZING_OPTIONS:

@@ -25,7 +25,27 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     setClientDebugConsoleEnabled,
     isClientDebugConsoleOpen,
     logDebug,
-    ...allRawData
+    // Explicitly destructure all raw data properties for the snapshot
+    polygonApiRequestLogJson,
+    polygonApiResponseLogJson,
+    marketStatusJson,
+    stockSnapshotJson,
+    standardTasJson,
+    optionsChainJson,
+    aiAnalyzedTaRequestJson,
+    aiAnalyzedTaJson,
+    aiOptionsAnalysisRequestJson,
+    aiOptionsAnalysisJson,
+    aiKeyTakeawaysRequestJson,
+    aiKeyTakeawaysJson,
+    appDataChatRequestJson,
+    appDataChatResponseJson,
+    userInputWebSearchChatRequestJson,
+    userInputWebSearchChatResponseJson,
+    rawTaWebSearchRequestJson,
+    rawTaWebSearchResponseJson,
+    rawOptionsWebSearchRequestJson,
+    rawOptionsWebSearchResponseJson,
   } = useStockAnalysis();
 
   const handleDebugConsoleToggle = (checked: boolean) => {
@@ -47,6 +67,30 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
     return `${padding}px`;
   };
   
+  // Construct the allRawData object selectively to prevent duplicate FSM state in exports
+  const allRawDataForExport = {
+    polygonApiRequestLogJson,
+    polygonApiResponseLogJson,
+    marketStatusJson,
+    stockSnapshotJson,
+    standardTasJson,
+    optionsChainJson,
+    aiAnalyzedTaRequestJson,
+    aiAnalyzedTaJson,
+    aiOptionsAnalysisRequestJson,
+    aiOptionsAnalysisJson,
+    aiKeyTakeawaysRequestJson,
+    aiKeyTakeawaysJson,
+    appDataChatRequestJson,
+    appDataChatResponseJson,
+    userInputWebSearchChatRequestJson,
+    userInputWebSearchChatResponseJson,
+    rawTaWebSearchRequestJson,
+    rawTaWebSearchResponseJson,
+    rawOptionsWebSearchRequestJson,
+    rawOptionsWebSearchResponseJson,
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header appVersion={appVersion} lastUpdatedTimestamp={lastUpdatedTimestamp} />
@@ -83,7 +127,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
         </Tabs>
       </main>
-      <DebugConsole appVersion={appVersion} allRawData={allRawData} />
+      <DebugConsole appVersion={appVersion} allRawData={allRawDataForExport} />
       <Footer />
     </div>
   );
