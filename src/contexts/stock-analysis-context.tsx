@@ -46,9 +46,13 @@ export enum GlobalFsmState {
   CHAT_MESSAGE_SUCCESS = 'CHAT_MESSAGE_SUCCESS',
   CHAT_MESSAGE_ERROR = 'CHAT_MESSAGE_ERROR',
 
-  FORMATTING_WEB_SEARCH_RESULTS = 'FORMATTING_WEB_SEARCH_RESULTS',
-  FORMAT_WEB_SEARCH_SUCCESS = 'FORMAT_WEB_SEARCH_SUCCESS',
-  FORMAT_WEB_SEARCH_FAILURE = 'FORMAT_WEB_SEARCH_FAILURE',
+  FORMATTING_TA_WEB_SEARCH_RESULTS = 'FORMATTING_TA_WEB_SEARCH_RESULTS',
+  FORMAT_TA_WEB_SEARCH_SUCCESS = 'FORMAT_TA_WEB_SEARCH_SUCCESS',
+  FORMAT_TA_WEB_SEARCH_FAILURE = 'FORMAT_TA_WEB_SEARCH_FAILURE',
+
+  FORMATTING_OPTIONS_WEB_SEARCH_RESULTS = 'FORMATTING_OPTIONS_WEB_SEARCH_RESULTS',
+  FORMAT_OPTIONS_WEB_SEARCH_SUCCESS = 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS',
+  FORMAT_OPTIONS_WEB_SEARCH_FAILURE = 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE',
 
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
@@ -61,7 +65,8 @@ export interface GlobalFsmContextVariables {
   isInitialLoad: boolean;
   lastError: { message: string; source: string; details?: any } | null;
   pendingChatSubmissionPayload: ChatActionInputs | null;
-  pendingWebSearchFormatPayload: FormatWebSearchResultsActionInputs | null;
+  pendingTaWebSearchFormatPayload: FormatWebSearchResultsActionInputs | null;
+  pendingOptionsWebSearchFormatPayload: FormatWebSearchResultsActionInputs | null;
   activePipelineProfile: 'standard' | null;
   lastCompletedChatPromptName: string | null;
 }
@@ -162,8 +167,10 @@ export type FsmEvent =
   | { type: 'UPDATE_MANUAL_ACTION_FLAGS'; payload: UpdateManualActionFlagsPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
   | { type: 'PROCEED_TO_IDLE' }
-  | { type: 'FORMAT_WEB_SEARCH_SUCCESS', payload: FormatWebSearchSuccessPayload }
-  | { type: 'FORMAT_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload };
+  | { type: 'FORMAT_TA_WEB_SEARCH_SUCCESS', payload: FormatWebSearchSuccessPayload }
+  | { type: 'FORMAT_TA_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload }
+  | { type: 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS', payload: FormatWebSearchSuccessPayload }
+  | { type: 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload };
 
 export interface ChatMessage {
   id: string;
@@ -261,7 +268,8 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isInitialLoad: true,
     lastError: null,
     pendingChatSubmissionPayload: null,
-    pendingWebSearchFormatPayload: null,
+    pendingTaWebSearchFormatPayload: null,
+    pendingOptionsWebSearchFormatPayload: null,
     activePipelineProfile: null,
     lastCompletedChatPromptName: null,
   },
@@ -476,7 +484,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     } else {
       _setClientDebugConsoleOpen(false); 
     }
-  }, [_setClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
+  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -532,7 +540,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextVariables.activeTicker = ticker;
         nextVariables.lastError = null;
         nextVariables.pendingChatSubmissionPayload = null;
-        nextVariables.pendingWebSearchFormatPayload = null;
+        nextVariables.pendingTaWebSearchFormatPayload = null;
+        nextVariables.pendingOptionsWebSearchFormatPayload = null;
         nextVariables.activePipelineProfile = 'standard';
         nextVariables.lastCompletedChatPromptName = null;
         nextFlags.canAnalyzeStock = false;
@@ -731,16 +740,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                   
                   if (searchType === 'TA') {
                     contextSetters.setRawWebSearchTaResponseJson(rawJsonResponse);
+                    nextVariables.pendingTaWebSearchFormatPayload = { searchType, rawJsonString: flowOutput.response };
+                    nextCurrentState = GlobalFsmState.FORMATTING_TA_WEB_SEARCH_RESULTS;
                   } else {
                     contextSetters.setRawWebSearchOptionsResponseJson(rawJsonResponse);
+                    nextVariables.pendingOptionsWebSearchFormatPayload = { searchType, rawJsonString: flowOutput.response };
+                    nextCurrentState = GlobalFsmState.FORMATTING_OPTIONS_WEB_SEARCH_RESULTS;
                   }
-                  
-                  nextVariables.pendingWebSearchFormatPayload = {
-                    searchType,
-                    rawJsonString: flowOutput.response 
-                  };
-                  nextCurrentState = GlobalFsmState.FORMATTING_WEB_SEARCH_RESULTS;
-                  logDebug(logPrefixFsmReducer as LogSourceId, 'Transition_WebSearchSuccess', `To FORMATTING_WEB_SEARCH_RESULTS for ${searchType}.`);
+                  logDebug(logPrefixFsmReducer as LogSourceId, 'Transition_WebSearchSuccess', `To ${nextCurrentState} for ${searchType}.`);
 
                 } else {
                     const messageId = `${Date.now()}_${chatMessageIdCounter++}_model_ctx`;
@@ -781,25 +788,40 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextVariables.pendingChatSubmissionPayload = null; 
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_ERROR. Error: ${chatErrMsg}.`);
         break;
-       case 'FORMAT_WEB_SEARCH_SUCCESS':
+       case 'FORMAT_TA_WEB_SEARCH_SUCCESS':
         addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_formatted`, role: 'model', content: event.payload.formattedResponse });
-        nextCurrentState = GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS;
-        nextVariables.pendingWebSearchFormatPayload = null;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_WEB_SEARCH_SUCCESS.`);
+        nextCurrentState = GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS;
+        nextVariables.pendingTaWebSearchFormatPayload = null;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_TA_WEB_SEARCH_SUCCESS.`);
         break;
-      case 'FORMAT_WEB_SEARCH_FAILURE':
-        const formatErr = event.payload;
-        addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_format_err`, role: 'model', content: `Error formatting web search results: ${formatErr.message || 'An unknown error occurred.'}` });
-        handlePipelineError('FormatWebSearch', formatErr.message || "Formatting failed", formatErr.error);
-        nextCurrentState = GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE;
-        nextVariables.pendingWebSearchFormatPayload = null;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_WEB_SEARCH_FAILURE. Error: ${formatErr.message}.`);
+      case 'FORMAT_TA_WEB_SEARCH_FAILURE':
+        const formatTaErr = event.payload;
+        addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_format_err`, role: 'model', content: `Error formatting TA web search results: ${formatTaErr.message || 'An unknown error occurred.'}` });
+        handlePipelineError('FormatWebSearch', formatTaErr.message || "Formatting failed", formatTaErr.error);
+        nextCurrentState = GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE;
+        nextVariables.pendingTaWebSearchFormatPayload = null;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_TA_WEB_SEARCH_FAILURE. Error: ${formatTaErr.message}.`);
+        break;
+      case 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS':
+        addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_formatted`, role: 'model', content: event.payload.formattedResponse });
+        nextCurrentState = GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS;
+        nextVariables.pendingOptionsWebSearchFormatPayload = null;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_OPTIONS_WEB_SEARCH_SUCCESS.`);
+        break;
+      case 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE':
+        const formatOptErr = event.payload;
+        addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_format_err`, role: 'model', content: `Error formatting Options web search results: ${formatOptErr.message || 'An unknown error occurred.'}` });
+        handlePipelineError('FormatWebSearch', formatOptErr.message || "Formatting failed", formatOptErr.error);
+        nextCurrentState = GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE;
+        nextVariables.pendingOptionsWebSearchFormatPayload = null;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_OPTIONS_WEB_SEARCH_FAILURE. Error: ${formatOptErr.message}.`);
         break;
       case 'PROCEED_TO_IDLE':
         nextCurrentState = GlobalFsmState.IDLE;
         nextVariables.activePipelineProfile = null;
         nextVariables.pendingChatSubmissionPayload = null;
-        nextVariables.pendingWebSearchFormatPayload = null;
+        nextVariables.pendingTaWebSearchFormatPayload = null;
+        nextVariables.pendingOptionsWebSearchFormatPayload = null;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Event PROCEED_TO_IDLE. To IDLE. All pending payloads reset.`);
         break;
       case 'TOGGLE_DEBUG_CONSOLE_MENU':
@@ -824,7 +846,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || nextCurrentState === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
         nextCurrentState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || nextCurrentState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
         nextCurrentState === GlobalFsmState.CHAT_MESSAGE_SUCCESS || nextCurrentState === GlobalFsmState.CHAT_MESSAGE_ERROR ||
-        nextCurrentState === GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS || nextCurrentState === GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE ||
+        nextCurrentState === GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS || nextCurrentState === GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE ||
+        nextCurrentState === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS || nextCurrentState === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE ||
         nextCurrentState === GlobalFsmState.DATA_FETCH_FAILED || nextCurrentState === GlobalFsmState.ERROR_STALE_DATA
     ) { nextFlags.canAnalyzeStock = true; } else { nextFlags.canAnalyzeStock = false; }
 
@@ -849,7 +872,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE: case GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED: case GlobalFsmState.KEY_TAKEAWAYS_FAILED:
         case GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED: case GlobalFsmState.OPTIONS_ANALYSIS_FAILED: case GlobalFsmState.CHAT_MESSAGE_SUCCESS:
         case GlobalFsmState.CHAT_MESSAGE_ERROR: case GlobalFsmState.DATA_FETCH_FAILED: case GlobalFsmState.ERROR_STALE_DATA: case GlobalFsmState.AI_TA_CALCULATION_FAILED:
-        case GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS: case GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE:
+        case GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS: case GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE:
+        case GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS: case GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE:
             if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
             else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = GlobalFsmState.ANALYZING_OPTIONS;
@@ -890,9 +914,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED: 
              if (event.type === 'FINALIZE_AUTOMATED_PIPELINE') determinedTarget = GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE;
             break;
-        case GlobalFsmState.FORMATTING_WEB_SEARCH_RESULTS:
-            if (event.type === 'FORMAT_WEB_SEARCH_SUCCESS') determinedTarget = GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS;
-            else if (event.type === 'FORMAT_WEB_SEARCH_FAILURE') determinedTarget = GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE;
+        case GlobalFsmState.FORMATTING_TA_WEB_SEARCH_RESULTS:
+            if (event.type === 'FORMAT_TA_WEB_SEARCH_SUCCESS') determinedTarget = GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS;
+            else if (event.type === 'FORMAT_TA_WEB_SEARCH_FAILURE') determinedTarget = GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE;
+            break;
+        case GlobalFsmState.FORMATTING_OPTIONS_WEB_SEARCH_RESULTS:
+            if (event.type === 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS') determinedTarget = GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS;
+            else if (event.type === 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE') determinedTarget = GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE;
             break;
     }
     if (event.type === 'PROCEED_TO_IDLE') { determinedTarget = GlobalFsmState.IDLE; }
@@ -1006,10 +1034,27 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const logPrefix = 'StockAnalysisContext:FormatWebSearchEffect';
     if (formatWebSearchActionState.status === 'idle' || isFormatWebSearchPending) return;
     logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${formatWebSearchActionState.status}`);
+    
+    let originalSearchType: 'TA' | 'Options' = 'TA'; // Default
+    try {
+        if(fsmStateRef.current.variables.pendingTaWebSearchFormatPayload){
+            originalSearchType = 'TA';
+        } else if (fsmStateRef.current.variables.pendingOptionsWebSearchFormatPayload){
+            originalSearchType = 'Options';
+        }
+    } catch(e) {}
+
+
     if (formatWebSearchActionState.status === 'success' && formatWebSearchActionState.data) {
-      dispatchFsmEvent({ type: 'FORMAT_WEB_SEARCH_SUCCESS', payload: formatWebSearchActionState.data });
+      const successEvent: FsmEvent = originalSearchType === 'TA' 
+        ? { type: 'FORMAT_TA_WEB_SEARCH_SUCCESS', payload: formatWebSearchActionState.data }
+        : { type: 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS', payload: formatWebSearchActionState.data };
+      dispatchFsmEvent(successEvent);
     } else if (formatWebSearchActionState.status === 'error') {
-      dispatchFsmEvent({ type: 'FORMAT_WEB_SEARCH_FAILURE', payload: { error: formatWebSearchActionState.error, message: formatWebSearchActionState.message } });
+      const failureEvent: FsmEvent = originalSearchType === 'TA' 
+        ? { type: 'FORMAT_TA_WEB_SEARCH_FAILURE', payload: { error: formatWebSearchActionState.error, message: formatWebSearchActionState.message } }
+        : { type: 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE', payload: { error: formatWebSearchActionState.error, message: formatWebSearchActionState.message } };
+      dispatchFsmEvent(failureEvent);
     }
   }, [formatWebSearchActionState, isFormatWebSearchPending, dispatchFsmEvent, logDebug]);
   
@@ -1117,16 +1162,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         else if (lastPromptName === 'options-flow-web-search') lastPromptIdentifier = 'web_search_options';
         dispatchNextCustomAction(lastPromptIdentifier);
       }
-    } else if (state.current === GlobalFsmState.FORMATTING_WEB_SEARCH_RESULTS && state.variables.pendingWebSearchFormatPayload && !isFormatWebSearchPending) {
-        startTransition(() => { formatWebSearchFormAction(state.variables.pendingWebSearchFormatPayload!); });
-    } else if (state.current === GlobalFsmState.FORMAT_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_WEB_SEARCH_FAILURE) {
-        if (state.variables.activePipelineProfile === 'standard') {
-            let lastPromptIdentifier: PipelineStep = 'web_search_ta';
-            if(state.variables.pendingWebSearchFormatPayload?.searchType === 'Options'){
-                lastPromptIdentifier = 'web_search_options';
-            }
-            dispatchNextCustomAction(lastPromptIdentifier);
-        }
+    } else if (state.current === GlobalFsmState.FORMATTING_TA_WEB_SEARCH_RESULTS && state.variables.pendingTaWebSearchFormatPayload && !isFormatWebSearchPending) {
+        startTransition(() => { formatWebSearchFormAction(state.variables.pendingTaWebSearchFormatPayload!); });
+    } else if (state.current === GlobalFsmState.FORMATTING_OPTIONS_WEB_SEARCH_RESULTS && state.variables.pendingOptionsWebSearchFormatPayload && !isFormatWebSearchPending) {
+        startTransition(() => { formatWebSearchFormAction(state.variables.pendingOptionsWebSearchFormatPayload!); });
+    } else if (state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE) {
+      if (state.variables.activePipelineProfile === 'standard') {
+        dispatchNextCustomAction('web_search_ta');
+      }
+    } else if (state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE) {
+      if (state.variables.activePipelineProfile === 'standard') {
+        dispatchNextCustomAction('web_search_options');
+      }
     } else if (state.current === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE && state.variables.activePipelineProfile === 'standard') {
       logDebug(logPrefixOrchestrator as LogSourceId, '[Orchestrator_Standard_PipelineFinallyComplete]', `Standard automated pipeline complete. Dispatching PROCEED_TO_IDLE.`);
       _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
