@@ -2,7 +2,7 @@
 'use client';
 
 import type { ReactNode} from 'react';
-import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
 import type { ChatMessage, FsmDisplayTuple, FsmEvent } from './stock-analysis-context'; 
 import type { ChatActionInputs } from '@/actions/chat-server-action';
 
@@ -20,12 +20,15 @@ interface SubmitMessagePayload {
 // FSM Events for Chatbot UI
 export type ChatbotFsmEvent =
   | { type: 'USER_INPUT_CHANGED'; payload: string }
-  | { type: 'SUBMIT_MESSAGE_REQUESTED'; payload: SubmitMessagePayload };
+  | { type: 'SUBMIT_MESSAGE_REQUESTED'; payload: SubmitMessagePayload }
+  | { type: 'PENDING_SUBMISSION_CLEARED' };
+
 
 interface ChatbotFsmManagedState {
   fsmState: ChatbotFsmInternalState;
   previousFsmState: ChatbotFsmInternalState | null;
   userInput: string;
+  pendingSubmissionPayload: SubmitMessagePayload | null;
 }
 
 interface ChatbotFsmContextType {
@@ -38,6 +41,7 @@ const initialChatbotFsmState: ChatbotFsmManagedState = {
   fsmState: ChatbotFsmInternalState.IDLE,
   previousFsmState: null,
   userInput: '',
+  pendingSubmissionPayload: null,
 };
 
 const ChatbotFsmContext = createContext<ChatbotFsmContextType | undefined>(undefined);
@@ -83,30 +87,21 @@ export function ChatbotFsmProvider({
           previousFsmState: previousState,
         };
       case 'SUBMIT_MESSAGE_REQUESTED':
-        const inputToSubmit = event.payload.userInput;
-        if (!inputToSubmit.trim()) {
+        if (!event.payload.userInput.trim()) {
           return { ...state, previousFsmState: previousState };
         }
-        
-        const chatPayloadForGlobalFsm: ChatActionInputs = {
-          ticker: currentTicker,
-          stockSnapshotJson,
-          aiKeyTakeawaysJson,
-          aiAnalyzedTaJson,
-          aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
-          chatHistory: currentGlobalChatHistory, 
-          userInput: inputToSubmit.trim(),
-          promptName: event.payload.promptName,
-        };
-        logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Local FSM dispatching SUBMIT_CHAT_MESSAGE to global FSM. PromptName: ${event.payload.promptName || 'default_chat'}`);
-        dispatchGlobalFsmEvent({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
-
-        // Reset local state after dispatching
         return {
           ...state,
           userInput: '', 
+          pendingSubmissionPayload: event.payload,
           fsmState: ChatbotFsmInternalState.IDLE, 
           previousFsmState: previousState,
+        };
+      case 'PENDING_SUBMISSION_CLEARED':
+        return {
+            ...state,
+            pendingSubmissionPayload: null,
+            previousFsmState: previousState,
         };
       default:
          logDebug(componentLogSource, 'LocalFSM_UnhandledEvent', `Unhandled event type: ${(event as any).type}`);
@@ -115,6 +110,39 @@ export function ChatbotFsmProvider({
   };
 
   const [state, dispatch] = useReducer(chatbotFsmReducer, initialChatbotFsmState);
+
+  useEffect(() => {
+    if (state.pendingSubmissionPayload) {
+      const payload = state.pendingSubmissionPayload;
+      const chatPayloadForGlobalFsm: ChatActionInputs = {
+        ticker: currentTicker,
+        stockSnapshotJson,
+        aiKeyTakeawaysJson,
+        aiAnalyzedTaJson,
+        aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
+        chatHistory: currentGlobalChatHistory, 
+        userInput: payload.userInput.trim(),
+        promptName: payload.promptName,
+      };
+
+      logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `useEffect triggering SUBMIT_CHAT_MESSAGE for prompt: ${payload.promptName || 'default_chat'}`);
+      dispatchGlobalFsmEvent({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
+      
+      // Clear the pending submission to prevent re-triggering
+      dispatch({ type: 'PENDING_SUBMISSION_CLEARED' });
+    }
+  }, [
+    state.pendingSubmissionPayload, 
+    dispatchGlobalFsmEvent, 
+    currentTicker, 
+    stockSnapshotJson, 
+    aiKeyTakeawaysJson, 
+    aiAnalyzedTaJson, 
+    aiOptionsAnalysisJson, 
+    currentGlobalChatHistory, 
+    logDebug
+  ]);
+
 
   const contextValue: ChatbotFsmContextType = {
     fsmState: state.fsmState,
