@@ -12,7 +12,7 @@
   ],
   "thinkingBudget": -1,
   "useGoogleSearch": false,
-  "outputSchemaHint": "ChatOutputSchema from '@/ai/schemas/chat-schemas'",
+  "outputSchemaHint": "AppDataChatOutputSchema from '@/ai/schemas/app-data-chat-schemas'",
   "chainOfThought": [
     {
       "role": "SystemPersona",

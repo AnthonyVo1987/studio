@@ -3,8 +3,8 @@
 
 import type { ReactNode} from 'react';
 import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
-import type { ChatMessage, FsmDisplayTuple, FsmEvent } from './stock-analysis-context'; 
-import type { ChatActionInputs } from '@/actions/chat-server-action';
+import type { AppDataChatMessage, FsmDisplayTuple, FsmEvent } from './stock-analysis-context'; 
+import type { AppDataChatActionInputs } from '@/actions/app-data-chat-action';
 
 // FSM States for Chatbot UI
 export enum ChatbotFsmInternalState {
@@ -54,7 +54,7 @@ interface ChatbotFsmProviderProps {
   aiKeyTakeawaysJson: string;
   aiAnalyzedTaJson: string;
   aiOptionsAnalysisJson?: string;
-  currentGlobalChatHistory: ChatMessage[]; 
+  currentGlobalChatHistory: AppDataChatMessage[]; 
   logDebug: (source: string, category: string, ...messages: any[]) => void;
 }
 
@@ -114,7 +114,7 @@ export function ChatbotFsmProvider({
   useEffect(() => {
     if (state.pendingSubmissionPayload) {
       const payload = state.pendingSubmissionPayload;
-      const chatPayloadForGlobalFsm: ChatActionInputs = {
+      const chatPayloadForGlobalFsm: AppDataChatActionInputs = {
         ticker: currentTicker,
         stockSnapshotJson,
         aiKeyTakeawaysJson,
@@ -125,8 +125,8 @@ export function ChatbotFsmProvider({
         promptName: payload.promptName,
       };
 
-      logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `useEffect triggering SUBMIT_CHAT_MESSAGE for prompt: ${payload.promptName || 'default_chat'}`);
-      dispatchGlobalFsmEvent({ type: 'SUBMIT_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
+      logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `useEffect triggering SUBMIT_APP_DATA_CHAT_MESSAGE for prompt: ${payload.promptName || 'default_chat'}`);
+      dispatchGlobalFsmEvent({ type: 'SUBMIT_APP_DATA_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
       
       // Clear the pending submission to prevent re-triggering
       dispatch({ type: 'PENDING_SUBMISSION_CLEARED' });

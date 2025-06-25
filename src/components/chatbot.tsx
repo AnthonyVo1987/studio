@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { useStockAnalysis, type ChatMessage, GlobalFsmState } from '@/contexts/stock-analysis-context';
+import { useStockAnalysis, type AppDataChatMessage, GlobalFsmState } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MessageSquare, Trash2, Copy, Download, Loader2, HelpCircle, FileText, Search } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Copy, Download, Loader2, FileText, Info } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/hooks/use-toast';
@@ -43,15 +43,10 @@ const appDataButtons: ExamplePromptButton[] = [
   { title: "Additional Holistic Takeaways", promptName: 'holistic-takeaways', icon: FileText },
 ];
 
-const webSearchButtons: ExamplePromptButton[] = [
-  { title: "Technical Analysis Web Search", promptName: 'technical-analysis-web-search', icon: Search },
-  { title: "Options Flow Web Search", promptName: 'options-flow-web-search', icon: Search },
-];
-
 export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: ChatbotProps) {
   const {
-    chatHistory: globalChatHistory,
-    clearChatHistory: clearGlobalChatHistory,
+    appDataChatHistory: globalChatHistory,
+    clearAppDataChatHistory: clearGlobalChatHistory,
     logDebug: globalLogDebug,
     fsmState: globalFsmState,
   } = useStockAnalysis();
@@ -77,16 +72,16 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     logDebug('Chatbot', 'UserAction_Submit', `GlobalFSM: ${globalFsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
-    if (!fsmUserInput.trim() || isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING) {
+    if (!fsmUserInput.trim() || isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.APP_DATA_CHAT_PENDING) {
       logDebug('Chatbot', 'UserAction_Submit_Prevented', 'Input empty or analysis/chat is globally in progress.');
       return;
     }
-    const event: ChatbotFsmEvent = { type: 'SUBMIT_MESSAGE_REQUESTED', payload: { userInput: fsmUserInput, promptName: 'stock-chatbot' } };
+    const event: ChatbotFsmEvent = { type: 'SUBMIT_MESSAGE_REQUESTED', payload: { userInput: fsmUserInput, promptName: 'app-data-chatbot' } };
     dispatchChatbotFsmEvent(event); 
   }, [fsmUserInput, globalFsmState, dispatchChatbotFsmEvent, logDebug, isAnyAnalysisInProgress]);
 
   const handleExamplePromptClick = (promptName: string) => {
-    if (isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING) return;
+    if (isAnyAnalysisInProgress || globalFsmState === GlobalFsmState.APP_DATA_CHAT_PENDING) return;
     
     logDebug('Chatbot', 'UserAction_ExamplePrompt', `PromptName: "${promptName}". Dispatching SUBMIT_MESSAGE_REQUESTED.`);
     const event: ChatbotFsmEvent = { type: 'SUBMIT_MESSAGE_REQUESTED', payload: { userInput: promptName, promptName: promptName } };
@@ -144,10 +139,10 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             <div>
               <CardTitle className="flex items-center text-lg">
                 <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-                StockSage AI Chat
+                App Data AI Chat
               </CardTitle>
               <CardDescription className="text-xs mt-1">
-                Ask about {currentTickerForDisplay || "the stock"}. (Inputs disabled during analysis or chat processing)
+                This chat analyzes loaded app data for {currentTickerForDisplay || "the stock"}. It cannot access the web.
               </CardDescription>
             </div>
             <div className="flex items-center gap-1">
@@ -202,7 +197,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
                 </ReactMarkdown>
               </div>
             ))}
-            {isProcessing && globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING && globalChatHistory.length > 0 && globalChatHistory[globalChatHistory.length-1].role === 'user' && (
+            {isProcessing && globalFsmState === GlobalFsmState.APP_DATA_CHAT_PENDING && globalChatHistory.length > 0 && globalChatHistory[globalChatHistory.length-1].role === 'user' && (
                  <div className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> 
                     <div className="flex items-center space-x-2">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -215,12 +210,10 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
 
         <div className="flex flex-col gap-3">
           <div>
-            <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1">App Data Analysis (No Web Search)</div>
+            <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1 flex items-center gap-1.5">
+              <Info className="h-3 w-3" /> App Data Analysis Prompts (No Web Search)
+            </div>
             <div className="flex flex-wrap gap-2">{renderPromptButtons(appDataButtons)}</div>
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1">Google Search Grounded Analysis</div>
-            <div className="flex flex-wrap gap-2">{renderPromptButtons(webSearchButtons)}</div>
           </div>
         </div>
 
@@ -234,7 +227,7 @@ export function Chatbot({ isAnyAnalysisInProgress, currentTickerForDisplay }: Ch
             onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}}
           />
           <Button type="submit" disabled={isProcessing || !fsmUserInput.trim()}>
-            {isProcessing && globalFsmState === GlobalFsmState.CHAT_MESSAGE_PENDING ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isProcessing && globalFsmState === GlobalFsmState.APP_DATA_CHAT_PENDING ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
         </form>

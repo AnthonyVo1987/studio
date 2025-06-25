@@ -10,7 +10,7 @@ import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDat
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
-import { chatServerAction, type ChatActionState, type ChatActionInputs, type ChatActionResult } from '@/actions/chat-server-action';
+import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs, type AppDataChatActionResult } from '@/actions/app-data-chat-action';
 import { useActionState, startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
@@ -40,10 +40,10 @@ export enum GlobalFsmState {
   ANALYZING_OPTIONS = 'ANALYZING_OPTIONS',
   OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED',
   OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
-
-  CHAT_MESSAGE_PENDING = 'CHAT_MESSAGE_PENDING',
-  CHAT_MESSAGE_SUCCESS = 'CHAT_MESSAGE_SUCCESS',
-  CHAT_MESSAGE_ERROR = 'CHAT_MESSAGE_ERROR',
+  
+  APP_DATA_CHAT_PENDING = 'APP_DATA_CHAT_PENDING',
+  APP_DATA_CHAT_SUCCESS = 'APP_DATA_CHAT_SUCCESS',
+  APP_DATA_CHAT_ERROR = 'APP_DATA_CHAT_ERROR',
 
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
@@ -55,7 +55,7 @@ export interface GlobalFsmContextVariables {
   userInputTicker: string;
   isInitialLoad: boolean;
   lastError: { message: string; source: string; details?: any } | null;
-  pendingChatSubmissionPayload: ChatActionInputs | null;
+  pendingAppDataChatSubmissionPayload: AppDataChatActionInputs | null;
   activePipelineProfile: 'standard' | null;
   lastCompletedChatPromptName: string | null;
 }
@@ -105,9 +105,9 @@ interface AiKeyTakeawaysSuccessPayload { aiKeyTakeawaysRequestJson: string; aiKe
 interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; }
 interface AiOptionsAnalysisSuccessPayload { aiOptionsAnalysisRequestJson: string; aiOptionsAnalysisJson: string; }
 interface AiOptionsAnalysisFailurePayload { error?: string | null; message?: string | null; aiOptionsAnalysisRequestJson?: string; }
-interface SubmitChatMessagePayload extends ChatActionInputs {}
-interface ChatMessageActionSuccessPayload extends ChatActionResult { promptName?: string; }
-interface ChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; promptName?: string; }
+interface SubmitAppDataChatMessagePayload extends AppDataChatActionInputs {}
+interface AppDataChatMessageActionSuccessPayload extends AppDataChatActionResult { promptName?: string; }
+interface AppDataChatMessageActionErrorPayload { error?: string | null; message?: string | null; chatbotRequestJson?: string; chatbotResponseJson?: string; promptName?: string; }
 type DebugConsoleMenuType = 'filter' | 'copy' | 'export';
 interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: boolean; }
 interface UpdateManualActionFlagsPayload { ktPossible: boolean; optPossible: boolean; }
@@ -144,17 +144,17 @@ export type FsmEvent =
   | { type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS'; payload: { ticker: string } }
   | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: AiOptionsAnalysisSuccessPayload }
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload }
-  | { type: 'SUBMIT_CHAT_MESSAGE'; payload: SubmitChatMessagePayload }
+  | { type: 'SUBMIT_APP_DATA_CHAT_MESSAGE'; payload: SubmitAppDataChatMessagePayload }
   | { type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' }
-  | { type: 'CHAT_MESSAGE_ACTION_SUCCESS'; payload: ChatMessageActionSuccessPayload }
-  | { type: 'CHAT_MESSAGE_ACTION_ERROR'; payload: ChatMessageActionErrorPayload }
+  | { type: 'APP_DATA_CHAT_ACTION_SUCCESS'; payload: AppDataChatMessageActionSuccessPayload }
+  | { type: 'APP_DATA_CHAT_ACTION_ERROR'; payload: AppDataChatMessageActionErrorPayload }
   | { type: 'TOGGLE_DEBUG_CONSOLE_MENU'; payload: ToggleDebugConsoleMenuPayload }
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' }
   | { type: 'UPDATE_MANUAL_ACTION_FLAGS'; payload: UpdateManualActionFlagsPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
   | { type: 'PROCEED_TO_IDLE' };
 
-export interface ChatMessage {
+export interface AppDataChatMessage {
   id: string;
   role: 'user' | 'model';
   content: string;
@@ -181,11 +181,9 @@ interface StockAnalysisState {
   aiOptionsAnalysisJson: string;
   aiKeyTakeawaysRequestJson: string;
   aiKeyTakeawaysJson: string;
-  rawWebSearchTaResponseJson: string;
-  rawWebSearchOptionsResponseJson: string;
-  chatbotRequestJson: string;
-  chatbotResponseJson: string;
-  chatHistory: ChatMessage[];
+  appDataChatRequestJson: string;
+  appDataChatResponseJson: string;
+  appDataChatHistory: AppDataChatMessage[];
   isClientDebugConsoleEnabled: boolean;
   isClientDebugConsoleOpen: boolean;
   logSourceConfig: LogSourceConfig;
@@ -211,10 +209,8 @@ interface StockAnalysisContextSetters {
   setAiOptionsAnalysisJson: (json: string) => void;
   setAiKeyTakeawaysRequestJson: (json: string) => void;
   setAiKeyTakeawaysJson: (json: string) => void;
-  setRawWebSearchTaResponseJson: (json: string) => void;
-  setRawWebSearchOptionsResponseJson: (json: string) => void;
-  setChatbotRequestJson: (json: string) => void;
-  setChatbotResponseJson: (json: string) => void;
+  setAppDataChatRequestJson: (json: string) => void;
+  setAppDataChatResponseJson: (json: string) => void;
 }
 
 interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState'>, StockAnalysisContextSetters {
@@ -222,8 +218,8 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   previousFsmState: GlobalFsmState | null;
   fsmVariables: GlobalFsmContextVariables;
   fsmFlags: GlobalFsmFlags;
-  addChatMessage: (message: ChatMessage) => void;
-  clearChatHistory: () => void;
+  addAppDataChatMessage: (message: AppDataChatMessage) => void;
+  clearAppDataChatHistory: () => void;
   setClientDebugConsoleEnabled: (enabled: boolean) => void;
   setClientDebugConsoleOpen: (open: boolean) => void;
   setLogSourceEnabled: (source: LogSourceId, enabled: boolean) => void;
@@ -249,7 +245,7 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     userInputTicker: "NVDA", 
     isInitialLoad: true,
     lastError: null,
-    pendingChatSubmissionPayload: null,
+    pendingAppDataChatSubmissionPayload: null,
     activePipelineProfile: null,
     lastCompletedChatPromptName: null,
   },
@@ -292,11 +288,9 @@ const defaultState: StockAnalysisState = {
   aiOptionsAnalysisJson: initialJsonPlaceholder,
   aiKeyTakeawaysRequestJson: initialJsonPlaceholder,
   aiKeyTakeawaysJson: initialJsonPlaceholder,
-  rawWebSearchTaResponseJson: initialJsonPlaceholder,
-  rawWebSearchOptionsResponseJson: initialJsonPlaceholder,
-  chatbotRequestJson: initialJsonPlaceholder,
-  chatbotResponseJson: initialJsonPlaceholder,
-  chatHistory: [],
+  appDataChatRequestJson: initialJsonPlaceholder,
+  appDataChatResponseJson: initialJsonPlaceholder,
+  appDataChatHistory: [],
   isClientDebugConsoleEnabled: true,
   isClientDebugConsoleOpen: true,
   logSourceConfig: defaultLogSourceConfig,
@@ -337,11 +331,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_aiOptionsAnalysisJson, _setAiOptionsAnalysisJson] = useState<string>(defaultState.aiOptionsAnalysisJson);
   const [_aiKeyTakeawaysRequestJson, _setAiKeyTakeawaysRequestJson] = useState<string>(defaultState.aiKeyTakeawaysRequestJson);
   const [_aiKeyTakeawaysJson, _setAiKeyTakeawaysJson] = useState<string>(defaultState.aiKeyTakeawaysJson);
-  const [_rawWebSearchTaResponseJson, _setRawWebSearchTaResponseJson] = useState<string>(defaultState.rawWebSearchTaResponseJson);
-  const [_rawWebSearchOptionsResponseJson, _setRawWebSearchOptionsResponseJson] = useState<string>(defaultState.rawWebSearchOptionsResponseJson);
-  const [_chatbotRequestJson, _setChatbotRequestJson] = useState<string>(defaultState.chatbotRequestJson);
-  const [_chatbotResponseJson, _setChatbotResponseJson] = useState<string>(defaultState.chatbotResponseJson);
-  const [_chatHistory, _setChatHistory] = useState<ChatMessage[]>(defaultState.chatHistory);
+  const [_appDataChatRequestJson, _setAppDataChatRequestJson] = useState<string>(defaultState.appDataChatRequestJson);
+  const [_appDataChatResponseJson, _setAppDataChatResponseJson] = useState<string>(defaultState.appDataChatResponseJson);
+  const [_appDataChatHistory, _setAppDataChatHistory] = useState<AppDataChatMessage[]>(defaultState.appDataChatHistory);
   const [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
   const [_isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
@@ -353,7 +345,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
 
-  const [chatActionState, chatFormAction, isChatPending] = useActionState<ChatActionState, ChatActionInputs>(chatServerAction, localInitialStockDataFetchResult);
+  const [appDataChatActionState, appDataChatFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
@@ -376,10 +368,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setAiOptionsAnalysisJson: (json: string) => setAndLogJson(_setAiOptionsAnalysisJson, 'aiOptionsAnalysisJson', json),
     setAiKeyTakeawaysRequestJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json),
     setAiKeyTakeawaysJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json),
-    setRawWebSearchTaResponseJson: (json: string) => setAndLogJson(_setRawWebSearchTaResponseJson, 'rawWebSearchTaResponseJson', json),
-    setRawWebSearchOptionsResponseJson: (json: string) => setAndLogJson(_setRawWebSearchOptionsResponseJson, 'rawWebSearchOptionsResponseJson', json),
-    setChatbotRequestJson: (json: string) => setAndLogJson(_setChatbotRequestJson, 'chatbotRequestJson (Interactive)', json),
-    setChatbotResponseJson: (json: string) => setAndLogJson(_setChatbotResponseJson, 'chatbotResponseJson (Interactive)', json),
+    setAppDataChatRequestJson: (json: string) => setAndLogJson(_setAppDataChatRequestJson, 'appDataChatRequestJson', json),
+    setAppDataChatResponseJson: (json: string) => setAndLogJson(_setAppDataChatResponseJson, 'appDataChatResponseJson', json),
   }), [setAndLogJson]);
 
 
@@ -391,10 +381,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     });
   }, [_setLogSourceConfig, logDebug]);
 
-  const addChatMessage = useCallback((message: ChatMessage) => {
-    _setChatHistory(prev => {
+  const addAppDataChatMessage = useCallback((message: AppDataChatMessage) => {
+    _setAppDataChatHistory(prev => {
       const uniqueMessageId = `${Date.now()}_${chatMessageIdCounter++}_${message.role}_ctx`;
-      const uniqueMessage: ChatMessage = { ...message, id: uniqueMessageId };
+      const uniqueMessage: AppDataChatMessage = { ...message, id: uniqueMessageId };
       if (prev.length > 0 && prev[prev.length - 1].role === message.role && prev[prev.length - 1].content === message.content) {
         logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Guard', `Skipped adding duplicate chat message from ${message.role} with content: "${message.content.substring(0,30)}..." (ID attempted: ${uniqueMessageId})`);
         return prev;
@@ -402,12 +392,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Add', `Added interactive chat message from ${uniqueMessage.role} with ID ${uniqueMessage.id}: "${uniqueMessage.content.substring(0, 50)}..."`);
       return [...prev, uniqueMessage];
     });
-  }, [_setChatHistory, logDebug]);
+  }, [_setAppDataChatHistory, logDebug]);
 
-  const clearChatHistory = useCallback(() => {
-    _setChatHistory([]);
+  const clearAppDataChatHistory = useCallback(() => {
+    _setAppDataChatHistory([]);
     logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Clear', 'Interactive chat history CLEARED by user action.');
-  }, [_setChatHistory, logDebug]);
+  }, [_setAppDataChatHistory, logDebug]);
 
   const setAllPlaceholdersInternal = useCallback((currentTickerForLogOnly: string, isFullAnalysis: boolean) => {
     logDebug('StockAnalysisContext','GlobalFSM_Action_Util', `Resetting analysis JSONs to PENDING for ${currentTickerForLogOnly}. Full analysis: ${isFullAnalysis}.`);
@@ -423,11 +413,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     contextSetters.setAiKeyTakeawaysJson(pendingJson);
     contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
     contextSetters.setAiOptionsAnalysisJson(pendingJson);
-    contextSetters.setRawWebSearchTaResponseJson(pendingJson);
-    contextSetters.setRawWebSearchOptionsResponseJson(pendingJson);
     if (isFullAnalysis) {
-        contextSetters.setChatbotRequestJson(chatPendingJson);
-        contextSetters.setChatbotResponseJson(chatPendingJson);
+        contextSetters.setAppDataChatRequestJson(chatPendingJson);
+        contextSetters.setAppDataChatResponseJson(chatPendingJson);
     }
   }, [logDebug, contextSetters]);
 
@@ -491,10 +479,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
     logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}, ActiveProfile: ${state.variables.activePipelineProfile}`);
 
-    if ('payload' in event && event.type !== 'SUBMIT_CHAT_MESSAGE' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
+    if ('payload' in event && event.type !== 'SUBMIT_APP_DATA_CHAT_MESSAGE' && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
-    } else if (event.type === 'SUBMIT_CHAT_MESSAGE') {
-      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., PromptName: ${event.payload.promptName}`);
+    } else if (event.type === 'SUBMIT_APP_DATA_CHAT_MESSAGE') {
+      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_Chat', `For SUBMIT_APP_DATA_CHAT_MESSAGE: UserInput: ${event.payload.userInput.substring(0,50)}..., PromptName: ${event.payload.promptName}`);
     } else if (event.type === 'USER_INPUT_TICKER_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload_TickerInput', `For USER_INPUT_TICKER_CHANGED: Ticker: ${event.payload.ticker}`);
     } else if (event.type === 'UPDATE_MANUAL_ACTION_FLAGS') {
@@ -512,7 +500,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const resetForNewAnalysis = (ticker: string) => {
         nextVariables.activeTicker = ticker;
         nextVariables.lastError = null;
-        nextVariables.pendingChatSubmissionPayload = null;
+        nextVariables.pendingAppDataChatSubmissionPayload = null;
         nextVariables.activePipelineProfile = 'standard';
         nextVariables.lastCompletedChatPromptName = null;
         nextFlags.canAnalyzeStock = false;
@@ -672,12 +660,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To OPTIONS_ANALYSIS_FAILED. Error: ${optErrMsg}.`);
         break;
-      case 'SUBMIT_CHAT_MESSAGE':
-        if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING && state.variables.pendingChatSubmissionPayload?.userInput === event.payload.userInput) {
-          logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateSubmission', `SUBMIT_CHAT_MESSAGE for "${event.payload.userInput.substring(0,20)}" ignored, already pending with same input.`);
-        } else if (nextVariables.activeTicker || event.payload.promptName?.includes('web-search')) {
-            _setChatHistory(prev => {
-              const userMessage: ChatMessage = { id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput };
+      case 'SUBMIT_APP_DATA_CHAT_MESSAGE':
+        if (state.current === GlobalFsmState.APP_DATA_CHAT_PENDING && state.variables.pendingAppDataChatSubmissionPayload?.userInput === event.payload.userInput) {
+          logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateSubmission', `SUBMIT_APP_DATA_CHAT_MESSAGE for "${event.payload.userInput.substring(0,20)}" ignored, already pending with same input.`);
+        } else if (nextVariables.activeTicker) {
+            _setAppDataChatHistory(prev => {
+              const userMessage: AppDataChatMessage = { id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput };
               if (prev.length > 0 && prev[prev.length - 1].role === 'user' && prev[prev.length -1].content === userMessage.content) {
                  logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateUserMsgAdd', `Skipped adding duplicate user message to history. Content: ${userMessage.content.substring(0,30)}...`);
                  return prev;
@@ -685,76 +673,57 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
               logDebug(logPrefixFsmReducer as LogSourceId, 'AddUserMsgToHistory', `Adding user message. Content: ${userMessage.content.substring(0,30)}...`);
               return [...prev, userMessage];
             });
-            nextVariables.pendingChatSubmissionPayload = { ...event.payload };
-            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_PENDING;
-            contextSetters.setChatbotRequestJson(chatPendingJson); contextSetters.setChatbotResponseJson(chatPendingJson);
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_PENDING for ${nextVariables.activeTicker || 'grounded query'}. Payload set.`);
-        } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `SUBMIT_CHAT_MESSAGE ignored. No active ticker and not a web search prompt.`); }
+            nextVariables.pendingAppDataChatSubmissionPayload = { ...event.payload };
+            nextCurrentState = GlobalFsmState.APP_DATA_CHAT_PENDING;
+            contextSetters.setAppDataChatRequestJson(chatPendingJson); contextSetters.setAppDataChatResponseJson(chatPendingJson);
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To APP_DATA_CHAT_PENDING for ${nextVariables.activeTicker}. Payload set.`);
+        } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `SUBMIT_APP_DATA_CHAT_MESSAGE ignored. No active ticker.`); }
         break;
       case 'PENDING_CHAT_SUBMISSION_TRIGGERED':
-        nextVariables.pendingChatSubmissionPayload = null;
+        nextVariables.pendingAppDataChatSubmissionPayload = null;
         logDebug(logPrefixFsmReducer as LogSourceId, 'InternalUpdate', `Pending chat payload cleared. State remains pending.`);
         break;
-      case 'CHAT_MESSAGE_ACTION_SUCCESS':
-        if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING) {
-          contextSetters.setChatbotRequestJson(event.payload.chatbotRequestJson);
-          contextSetters.setChatbotResponseJson(event.payload.chatbotResponseJson);
+      case 'APP_DATA_CHAT_ACTION_SUCCESS':
+        if (state.current === GlobalFsmState.APP_DATA_CHAT_PENDING) {
+          contextSetters.setAppDataChatRequestJson(event.payload.chatbotRequestJson);
+          contextSetters.setAppDataChatResponseJson(event.payload.chatbotResponseJson);
           nextVariables.lastCompletedChatPromptName = event.payload.promptName || null;
           try {
-            const promptName = event.payload.promptName;
             const flowOutput = JSON.parse(event.payload.chatbotResponseJson);
-            
-            const rawJsonResponse = flowOutput.rawResponse ? JSON.stringify(flowOutput.rawResponse, null, 2) : event.payload.chatbotResponseJson;
-            if (promptName === 'technical-analysis-web-search') {
-              contextSetters.setRawWebSearchTaResponseJson(rawJsonResponse);
-            } else if (promptName === 'options-flow-web-search') {
-              contextSetters.setRawWebSearchOptionsResponseJson(rawJsonResponse);
-            }
-
             const messageId = `${Date.now()}_${chatMessageIdCounter++}_model_ctx`;
             if (flowOutput.response) {
-                addChatMessage({ id: messageId, role: 'model', content: flowOutput.response });
+                addAppDataChatMessage({ id: messageId, role: 'model', content: flowOutput.response });
             } else if (flowOutput.error) {
-                addChatMessage({ id: `${messageId}_err`, role: 'model', content: `Chatbot Error: ${flowOutput.error}` });
+                addAppDataChatMessage({ id: `${messageId}_err`, role: 'model', content: `Chatbot Error: ${flowOutput.error}` });
             }
-            nextCurrentState = GlobalFsmState.CHAT_MESSAGE_SUCCESS;
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition_UnifiedChatSuccess', `To CHAT_MESSAGE_SUCCESS for prompt: ${promptName}.`);
+            nextCurrentState = GlobalFsmState.APP_DATA_CHAT_SUCCESS;
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition_UnifiedChatSuccess', `To APP_DATA_CHAT_SUCCESS for prompt: ${event.payload.promptName}.`);
           } catch (e) {
-              addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_parse_err`, role: 'model', content: "Error parsing chatbot response." });
-              nextCurrentState = GlobalFsmState.CHAT_MESSAGE_ERROR;
+              addAppDataChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_parse_err`, role: 'model', content: "Error parsing chatbot response." });
+              nextCurrentState = GlobalFsmState.APP_DATA_CHAT_ERROR;
           }
           nextVariables.lastError = null;
         } else {
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `CHAT_MESSAGE_ACTION_SUCCESS ignored. Not in CHAT_MESSAGE_PENDING state.`);
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `APP_DATA_CHAT_ACTION_SUCCESS ignored. Not in APP_DATA_CHAT_PENDING state.`);
         }
-        nextVariables.pendingChatSubmissionPayload = null;
+        nextVariables.pendingAppDataChatSubmissionPayload = null;
         break;
-      case 'CHAT_MESSAGE_ACTION_ERROR':
+      case 'APP_DATA_CHAT_ACTION_ERROR':
         const chatErrPayload = event.payload; const chatErrMsg = chatErrPayload.message || 'Chat failed';
-        contextSetters.setChatbotRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Chat request data unavailable on error", null));
-        contextSetters.setChatbotResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+        contextSetters.setAppDataChatRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Chat request data unavailable on error", null));
+        contextSetters.setAppDataChatResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
         nextVariables.lastCompletedChatPromptName = event.payload.promptName || null;
         
-        try {
-          const promptName = event.payload.promptName;
-          const isWebSearch = promptName?.includes('web-search');
-          if (isWebSearch) {
-             const errJson = chatErrPayload.chatbotResponseJson || errorJsonWithDetails("Web search failed", chatErrPayload.error);
-             if (promptName === 'technical-analysis-web-search') contextSetters.setRawWebSearchTaResponseJson(errJson);
-             else if (promptName === 'options-flow-web-search') contextSetters.setRawWebSearchOptionsResponseJson(errJson);
-          }
-        } catch(e) {}
-
-        addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_act_err`, role: 'model', content: `Error: ${chatErrMsg}` });
-        handlePipelineError('ChatAction', chatErrMsg, chatErrPayload.error);
-        nextCurrentState = GlobalFsmState.CHAT_MESSAGE_ERROR;
-        nextVariables.pendingChatSubmissionPayload = null; 
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CHAT_MESSAGE_ERROR. Error: ${chatErrMsg}.`);
+        addAppDataChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_act_err`, role: 'model', content: `Error: ${chatErrMsg}` });
+        handlePipelineError('AppDataChatAction', chatErrMsg, chatErrPayload.error);
+        nextCurrentState = GlobalFsmState.APP_DATA_CHAT_ERROR;
+        nextVariables.pendingAppDataChatSubmissionPayload = null; 
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To APP_DATA_CHAT_ERROR. Error: ${chatErrMsg}.`);
         break;
       case 'PROCEED_TO_IDLE':
         nextCurrentState = GlobalFsmState.IDLE;
         nextVariables.activePipelineProfile = null;
-        nextVariables.pendingChatSubmissionPayload = null;
+        nextVariables.pendingAppDataChatSubmissionPayload = null;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Event PROCEED_TO_IDLE. To IDLE. All pending payloads reset.`);
         break;
       case 'TOGGLE_DEBUG_CONSOLE_MENU':
@@ -778,7 +747,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState === GlobalFsmState.AWAITING_TICKER_INPUT || nextCurrentState === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE ||
         nextCurrentState === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || nextCurrentState === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
         nextCurrentState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || nextCurrentState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
-        nextCurrentState === GlobalFsmState.CHAT_MESSAGE_SUCCESS || nextCurrentState === GlobalFsmState.CHAT_MESSAGE_ERROR ||
+        nextCurrentState === GlobalFsmState.APP_DATA_CHAT_SUCCESS || nextCurrentState === GlobalFsmState.APP_DATA_CHAT_ERROR ||
         nextCurrentState === GlobalFsmState.DATA_FETCH_FAILED || nextCurrentState === GlobalFsmState.ERROR_STALE_DATA
     ) { nextFlags.canAnalyzeStock = true; } else { nextFlags.canAnalyzeStock = false; }
 
@@ -801,12 +770,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     switch (currentActualState) {
         case GlobalFsmState.IDLE: case GlobalFsmState.AWAITING_TICKER_INPUT: case GlobalFsmState.VALID_TICKER_ENTERED:
         case GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE: case GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED: case GlobalFsmState.KEY_TAKEAWAYS_FAILED:
-        case GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED: case GlobalFsmState.OPTIONS_ANALYSIS_FAILED: case GlobalFsmState.CHAT_MESSAGE_SUCCESS:
-        case GlobalFsmState.CHAT_MESSAGE_ERROR: case GlobalFsmState.DATA_FETCH_FAILED: case GlobalFsmState.ERROR_STALE_DATA: case GlobalFsmState.AI_TA_CALCULATION_FAILED:
+        case GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED: case GlobalFsmState.OPTIONS_ANALYSIS_FAILED: case GlobalFsmState.APP_DATA_CHAT_SUCCESS:
+        case GlobalFsmState.APP_DATA_CHAT_ERROR: case GlobalFsmState.DATA_FETCH_FAILED: case GlobalFsmState.ERROR_STALE_DATA: case GlobalFsmState.AI_TA_CALCULATION_FAILED:
             if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
             else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = GlobalFsmState.ANALYZING_OPTIONS;
-            else if (event.type === 'SUBMIT_CHAT_MESSAGE') determinedTarget = GlobalFsmState.CHAT_MESSAGE_PENDING;
+            else if (event.type === 'SUBMIT_APP_DATA_CHAT_MESSAGE') determinedTarget = GlobalFsmState.APP_DATA_CHAT_PENDING;
             else if (event.type === 'USER_INPUT_TICKER_CHANGED') determinedTarget = event.payload.ticker.trim() ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
             break;
         case GlobalFsmState.GENERATING_KEY_TAKEAWAYS:
@@ -817,10 +786,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             if (event.type === 'OPTIONS_ANALYSIS_SUCCESS') determinedTarget = GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED;
             else if (event.type === 'OPTIONS_ANALYSIS_FAILURE') determinedTarget = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
             break;
-        case GlobalFsmState.CHAT_MESSAGE_PENDING:
+        case GlobalFsmState.APP_DATA_CHAT_PENDING:
             if (event.type === 'PENDING_CHAT_SUBMISSION_TRIGGERED') determinedTarget = currentActualState; 
-            else if (event.type === 'CHAT_MESSAGE_ACTION_SUCCESS') determinedTarget = GlobalFsmState.CHAT_MESSAGE_SUCCESS;
-            else if (event.type === 'CHAT_MESSAGE_ACTION_ERROR') determinedTarget = GlobalFsmState.CHAT_MESSAGE_ERROR;
+            else if (event.type === 'APP_DATA_CHAT_ACTION_SUCCESS') determinedTarget = GlobalFsmState.APP_DATA_CHAT_SUCCESS;
+            else if (event.type === 'APP_DATA_CHAT_ACTION_ERROR') determinedTarget = GlobalFsmState.APP_DATA_CHAT_ERROR;
             break;
         case GlobalFsmState.APP_INITIALIZING:
             if (event.type === 'INITIALIZATION_COMPLETE') determinedTarget = fsmStateRef.current.variables.userInputTicker.trim() !== "" ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
@@ -933,20 +902,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [fetchDataActionState, fetchStockDataFormAction, isFetchDataPending] = useActionState<AnalyzeStockServerActionState, { ticker: string }>(fetchStockDataAction, localInitialStockDataFetchResult);
   
   useEffect(() => {
-    const logPrefix = 'StockAnalysisContext:ChatActionStateEffect';
-    if (chatActionState.status === 'idle' || isChatPending) { return; }
-    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${chatActionState.status}, Message: ${chatActionState.message}`);
+    const logPrefix = 'StockAnalysisContext:AppDataChatActionEffect';
+    if (appDataChatActionState.status === 'idle' || isAppDataChatPending) { return; }
+    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${appDataChatActionState.status}, Message: ${appDataChatActionState.message}`);
     
-    if (chatActionState.status === 'success' && chatActionState.data) {
+    if (appDataChatActionState.status === 'success' && appDataChatActionState.data) {
       let promptName;
-      try { const req = JSON.parse(chatActionState.data.chatbotRequestJson); promptName = req.promptName; } catch (e) {}
-      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_SUCCESS', payload: { ...chatActionState.data, promptName } });
-    } else if (chatActionState.status === 'error') {
+      try { const req = JSON.parse(appDataChatActionState.data.chatbotRequestJson); promptName = req.promptName; } catch (e) {}
+      dispatchFsmEvent({ type: 'APP_DATA_CHAT_ACTION_SUCCESS', payload: { ...appDataChatActionState.data, promptName } });
+    } else if (appDataChatActionState.status === 'error') {
       let promptName;
-      try { const req = JSON.parse(chatActionState.data?.chatbotRequestJson || '{}'); promptName = req.promptName; } catch (e) {}
-      dispatchFsmEvent({ type: 'CHAT_MESSAGE_ACTION_ERROR', payload: { error: chatActionState.error, message: chatActionState.message, chatbotRequestJson: chatActionState.data?.chatbotRequestJson, chatbotResponseJson: chatActionState.data?.chatbotResponseJson, promptName }});
+      try { const req = JSON.parse(appDataChatActionState.data?.chatbotRequestJson || '{}'); promptName = req.promptName; } catch (e) {}
+      dispatchFsmEvent({ type: 'APP_DATA_CHAT_ACTION_ERROR', payload: { error: appDataChatActionState.error, message: appDataChatActionState.message, chatbotRequestJson: appDataChatActionState.data?.chatbotRequestJson, chatbotResponseJson: appDataChatActionState.data?.chatbotResponseJson, promptName }});
     }
-  }, [chatActionState, isChatPending, dispatchFsmEvent, logDebug]);
+  }, [appDataChatActionState, isAppDataChatPending, dispatchFsmEvent, logDebug]);
   
   // *** MAIN FSM ORCHESTRATOR ***
   useEffect(() => {
@@ -987,8 +956,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             case GlobalFsmState.KEY_TAKEAWAYS_FAILED:
             case GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED:
             case GlobalFsmState.OPTIONS_ANALYSIS_FAILED:
-            case GlobalFsmState.CHAT_MESSAGE_SUCCESS:
-            case GlobalFsmState.CHAT_MESSAGE_ERROR:
+            case GlobalFsmState.APP_DATA_CHAT_SUCCESS:
+            case GlobalFsmState.APP_DATA_CHAT_ERROR:
                 if (state.variables.activePipelineProfile === 'standard') {
                     dispatchNextCustomAction();
                 } else {
@@ -1019,9 +988,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                      _dispatchFsmEventActual({type: 'OPTIONS_ANALYSIS_FAILURE', payload: {error: e.message}});
                 }
                 break;
-            case GlobalFsmState.CHAT_MESSAGE_PENDING:
-                if (state.variables.pendingChatSubmissionPayload && !isChatPending) {
-                    startTransition(() => { chatFormAction(state.variables.pendingChatSubmissionPayload!); });
+            case GlobalFsmState.APP_DATA_CHAT_PENDING:
+                if (state.variables.pendingAppDataChatSubmissionPayload && !isAppDataChatPending) {
+                    startTransition(() => { appDataChatFormAction(state.variables.pendingAppDataChatSubmissionPayload!); });
                     _dispatchFsmEventActual({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
                 }
                 break;
@@ -1045,12 +1014,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     if (!activeTicker) { _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' }); return; }
 
     const dispatchChat = (promptName: string) => {
-        const payload: ChatActionInputs = {
+        const payload: AppDataChatActionInputs = {
             ticker: activeTicker, stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson,
             aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson,
-            chatHistory: _chatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
+            chatHistory: _appDataChatHistory, userInput: `Triggered by pipeline: ${promptName}`, promptName
         };
-        _dispatchFsmEventActual({ type: 'SUBMIT_CHAT_MESSAGE', payload });
+        _dispatchFsmEventActual({ type: 'SUBMIT_APP_DATA_CHAT_MESSAGE', payload });
     };
 
     const stepOrder: (FullAiMacroChatStep | 'web_search_ta' | 'web_search_options' | null)[] = [
@@ -1082,11 +1051,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (nextStep === 'stock_trader_chat' && state.flags.isAiChatStockTraderTakeawaysSelected) { dispatchChat("stock-trader-takeaways"); return; }
         if (nextStep === 'options_trader_chat' && state.flags.isAiChatOptionsTraderTakeawaysSelected) { dispatchChat("options-trader-takeaways"); return; }
         if (nextStep === 'holistic_chat' && state.flags.isAiChatHolisticTakeawaysSelected) { dispatchChat("holistic-takeaways"); return; }
-        if (nextStep === 'web_search_ta' && state.flags.isWebSearchTaEnabled) { dispatchChat('technical-analysis-web-search'); return; }
-        if (nextStep === 'web_search_options' && state.flags.isWebSearchOptionsEnabled) { dispatchChat('options-flow-web-search'); return; }
     }
     _dispatchFsmEventActual({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-  }, [_stockSnapshotJson, _aiKeyTakeawaysJson, _aiAnalyzedTaJson, _aiOptionsAnalysisJson, _chatHistory, _dispatchFsmEventActual]);
+  }, [_stockSnapshotJson, _aiKeyTakeawaysJson, _aiAnalyzedTaJson, _aiOptionsAnalysisJson, _appDataChatHistory, _dispatchFsmEventActual]);
   
   useEffect(() => {
     const currentFsmState = fsmStateRef.current.current; const logPrefix = 'StockAnalysisContext:ActionStateEffect_FetchData';
@@ -1110,8 +1077,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         state.current === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
         state.current === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED ||
         state.current === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
-        state.current === GlobalFsmState.CHAT_MESSAGE_SUCCESS ||
-        state.current === GlobalFsmState.CHAT_MESSAGE_ERROR) &&
+        state.current === GlobalFsmState.APP_DATA_CHAT_SUCCESS ||
+        state.current === GlobalFsmState.APP_DATA_CHAT_ERROR) &&
       !!state.variables.activeTicker &&
       state.variables.activeTicker === state.variables.userInputTicker;
 
@@ -1165,11 +1132,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     aiOptionsAnalysisJson: _aiOptionsAnalysisJson, setAiOptionsAnalysisJson: contextSetters.setAiOptionsAnalysisJson,
     aiKeyTakeawaysRequestJson: _aiKeyTakeawaysRequestJson, setAiKeyTakeawaysRequestJson: contextSetters.setAiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson: _aiKeyTakeawaysJson, setAiKeyTakeawaysJson: contextSetters.setAiKeyTakeawaysJson,
-    rawWebSearchTaResponseJson: _rawWebSearchTaResponseJson, setRawWebSearchTaResponseJson: contextSetters.setRawWebSearchTaResponseJson,
-    rawWebSearchOptionsResponseJson: _rawWebSearchOptionsResponseJson, setRawWebSearchOptionsResponseJson: contextSetters.setRawWebSearchOptionsResponseJson,
-    chatbotRequestJson: _chatbotRequestJson, setChatbotRequestJson: contextSetters.setChatbotRequestJson,
-    chatbotResponseJson: _chatbotResponseJson, setChatbotResponseJson: contextSetters.setChatbotResponseJson,
-    chatHistory: _chatHistory, addChatMessage, clearChatHistory,
+    appDataChatRequestJson: _appDataChatRequestJson, setAppDataChatRequestJson: contextSetters.setAppDataChatRequestJson,
+    appDataChatResponseJson: _appDataChatResponseJson, setAppDataChatResponseJson: contextSetters.setAppDataChatResponseJson,
+    appDataChatHistory: _appDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
     isClientDebugConsoleEnabled: _isClientDebugConsoleEnabled, isClientDebugConsoleOpen: _isClientDebugConsoleOpen,
     logSourceConfig: _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
@@ -1187,9 +1152,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
     _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
     _aiOptionsAnalysisJson, _aiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson,
-    _rawWebSearchTaResponseJson, _rawWebSearchOptionsResponseJson, _chatbotRequestJson, 
-    _chatbotResponseJson, _chatHistory, addChatMessage,
-    clearChatHistory, _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
+    _appDataChatRequestJson, _appDataChatResponseJson, _appDataChatHistory, addAppDataChatMessage,
+    clearAppDataChatHistory, _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
     _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
@@ -1206,5 +1170,3 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
-
-    

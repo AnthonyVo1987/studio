@@ -59,10 +59,8 @@ export function DebugTabContent() {
     aiOptionsAnalysisJson,        
     aiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson,
-    chatbotRequestJson,
-    chatbotResponseJson,
-    rawWebSearchTaResponseJson,
-    rawWebSearchOptionsResponseJson,
+    appDataChatRequestJson,
+    appDataChatResponseJson,
     logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
@@ -102,10 +100,8 @@ export function DebugTabContent() {
     { title: "AI Options Analysis JSON", data: aiOptionsAnalysisJson },               
     { title: "AI Key Takeaways Request JSON", data: aiKeyTakeawaysRequestJson },
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
-    { title: "Chatbot Request JSON", data: chatbotRequestJson, description: "Chatbot Request JSON (includes interactive chat requests)." },
-    { title: "Chatbot Response JSON", data: chatbotResponseJson, description: "Chatbot Response JSON (includes interactive chat responses)." },
-    { title: "Raw Web Search TA Response JSON", data: rawWebSearchTaResponseJson, description: "Raw response from the chat flow for TA web searches, including grounding metadata." },
-    { title: "Raw Web Search Options Response JSON", data: rawWebSearchOptionsResponseJson, description: "Raw response from the chat flow for Options web searches, including grounding metadata." },
+    { title: "App Data Chat Request JSON", data: appDataChatRequestJson, description: "Request to the non-grounded, app-data-only chat stream." },
+    { title: "App Data Chat Response JSON", data: appDataChatResponseJson, description: "Response from the non-grounded, app-data-only chat stream." },
   ];
 
   return (

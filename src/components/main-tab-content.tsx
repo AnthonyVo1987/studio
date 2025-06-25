@@ -35,7 +35,7 @@ export function MainTabContent() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson, aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, logDebug,
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
-    dispatchFsmEvent: dispatchGlobalFsmEvent, chatHistory: contextChatHistory,
+    dispatchFsmEvent: dispatchGlobalFsmEvent, appDataChatHistory: contextChatHistory,
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
@@ -101,7 +101,7 @@ export function MainTabContent() {
 
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
-  const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.CHAT_MESSAGE_PENDING;
+  const isGlobalChatFsmPending = globalFsmStateFromContext === GlobalFsmState.APP_DATA_CHAT_PENDING;
 
   const getCombinedDataForExport = useCallback(() => {
     const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
@@ -191,14 +191,6 @@ export function MainTabContent() {
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-chat-holistic" className="flex-grow text-sm">AI Chat: Additional Holistic Takeaways</Label>
               <Switch id="toggle-chat-holistic" checked={globalFsmFlags.isAiChatHolisticTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_chat_holistic', checked)} disabled={isAnyAnalysisInProgress} />
-            </div>
-            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
-              <Label htmlFor="toggle-web-search-ta" className="flex-grow text-sm">Run TA Web Search in Chat Post-Analysis</Label>
-              <Switch id="toggle-web-search-ta" checked={globalFsmFlags.isWebSearchTaEnabled} onCheckedChange={(checked) => handleToggleChange('web_search_ta', checked)} disabled={isAnyAnalysisInProgress} />
-            </div>
-            <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
-              <Label htmlFor="toggle-web-search-options" className="flex-grow text-sm">Run Options Web Search in Chat Post-Analysis</Label>
-              <Switch id="toggle-web-search-options" checked={globalFsmFlags.isWebSearchOptionsEnabled} onCheckedChange={(checked) => handleToggleChange('web_search_options', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
           </CardContent>
         </Card>
