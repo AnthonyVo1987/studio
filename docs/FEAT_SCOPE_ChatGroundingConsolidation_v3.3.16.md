@@ -1,10 +1,11 @@
-
 # Feature Scope: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16.0.0)
 
-**Document Version:** 9.0
-**Date:** 2025-07-18
+**Document Version:** 10.0
+**Date:** 2025-07-19
 **Target Application Version Series:** 3.3.16.x.z
-**Feature Status:** IN PROGRESS - DEBUGGING
+**Feature Status:** `OBSOLETE`
+
+**Note on Obsolescence:** This feature, which aimed to consolidate web search into a single polymorphic chat flow, has been marked as **OBSOLETE**. The architectural approach proved unstable due to persistent tool-use errors. It is now superseded by the **"Dual AI Chat Architecture" feature (v3.3.16.4.F)**, which physically separates grounded and non-grounded chat functionalities for stability. This document is preserved for historical context only.
 
 ## 1. Introduction & Objective
 
@@ -125,6 +126,7 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 
 ## 7. Document Changelog
 
+*   **v10.0 (2025-07-19):** Marked feature as `OBSOLETE`. Added note that it is superseded by feature v3.3.16.4.F.
 *   **v9.0 (2025-07-18):** Updated Phase 5 status for task `v3.3.16.4.D`.
 *   **v8.0 (2025-07-17):** Marked Phase 4 (Web Search Refactor, v3.3.16.4.A) and all its sub-tasks as `COMPLETED`. Updated status to reflect that the refactor is complete and ready for final testing.
 *   **v7.0 (2025-07-16):** Marked Task `v3.3.16.4.9` as `COMPLETED`. Updated status to reflect that the pipeline loop is resolved and the feature is ready for final comprehensive testing.

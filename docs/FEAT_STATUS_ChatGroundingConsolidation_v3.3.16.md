@@ -1,9 +1,11 @@
-
 # Feature Status Report: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16)
 
-**Document Version:** 10.0
-**Date:** 2025-07-18
+**Document Version:** 11.0
+**Date:** 2025-07-19
 **Feature Target Application Version Series:** 3.3.16.x.z
+**Feature Status:** `OBSOLETE`
+
+**Note on Obsolescence:** This feature, which aimed to consolidate web search into a single polymorphic chat flow, has been marked as **OBSOLETE**. The architectural approach proved unstable due to persistent tool-use errors. It is now superseded by the **"Dual AI Chat Architecture" feature (v3.3.16.4.F)**, which physically separates grounded and non-grounded chat functionalities for stability. This document is preserved for historical context only.
 
 ## 1. Overall Feature Status
 
@@ -57,6 +59,7 @@
 
 ## 5. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v11.0 (2025-07-19):** Marked feature as `OBSOLETE`. Added note that it is superseded by feature v3.3.16.4.F.
 *   **v10.0 (2025-07-18):** Added changelog entries for `v3.3.16.4.C` and `v3.3.16.4.D`. Updated overall status and summary to reflect ongoing debugging. Blocked testing tasks.
 *   **v9.0 (2025-07-17):** Added changelog entry for commit `687eb097` (v3.3.16.4.A) and marked the Web Search Refactor phase as complete. Updated summary.
 *   **v8.0 (2025-07-16):** Marked `v3.3.16.4.9` as complete and updated summary to reflect bug resolution. Status updated to `READY FOR FINAL TESTING`.
@@ -65,5 +68,5 @@
 *   **v5.0 (2025-07-08):** Marked Phase 3 as `COMPLETED` and updated the changelog table.
 *   **v4.0 (2025-07-08):** Marked Phase 2 as `COMPLETED` and updated the changelog table.
 *   **v3.0 (2025-07-07):** Added Task v3.3.16.1.6 to the changelog and marked as complete.
-*   **v2.0 (2025-07-06):** Marked Phase 1 as COMPLETED and updated the changelog table.
+*   **v2.0 (2025-07-06):** Marked Phase 1 as `COMPLETED` and updated the changelog table.
 *   **v1.0 (2025-07-05):** Initial document creation.

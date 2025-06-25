@@ -58,6 +58,32 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.4.F` (Feature Scoping)
+**Tag:** `Phase-49_Task-3.3.16.4.F_ScopeDualChatArchitecture`
+**Subject:** `feat(docs): Scope Dual AI Chat Architecture feature (v3.3.16.4.F)`
+**Details:**
+This is a documentation-only commit that officially begins the **"Dual AI Chat Architecture"** feature (`v3.3.16.4.F` series). This major refactor addresses the persistent `Unable to determine type of tool` error by completely decoupling the chat system into two independent streams:
+1.  An **App Data Chat** for analyzing loaded application data (non-grounded).
+2.  A **Grounded Web Search Chat** for real-time queries (tool-enabled).
+
+This commit establishes the new architectural direction by:
+*   Creating new feature scope and status documents (`FEAT_SCOPE_DualChatArchitecture_v3.3.16.4.F.md`, `FEAT_STATUS_DualChatArchitecture_v3.3.16.4.F.md`) that detail the phased implementation plan.
+*   Marking the previous, unsuccessful "Chat Grounding Consolidation" feature documents as `OBSOLETE`.
+*   Updating the main `README.md` and this `CHANGELOG.md` to reflect the new feature's scope.
+*   Updating the application version in `src/config/app-metadata.json` to `v3.3.16.4.F`.
+---
+**App Version:** `v3.3.16.4.E` (Bug Fix)
+**Tag:** `Phase-49_Task-3.3.16.4.E_FixToolUseLogic`
+**Commit Hash:** `ff673d07730fdb2a7f104421aa10c21baf407a73`
+**Subject:** `fix(ai): Correct AI prompt definition logic for tool use (v3.3.16.4.E)`
+**Details:**
+This commit implements the correct architectural fix for the `Unable to determine type of tool` error.
+*   **Architectural Correction:** The `getChatPrompt` function in `src/ai/flows/chat-flow.ts` was refactored to be truly polymorphic. It now dynamically constructs the `ai.definePrompt` options based on the `useGoogleSearch` flag from the loaded JSON definition.
+    *   If `useGoogleSearch` is true, the prompt is defined **with** `tools` and **without** `output.schema`.
+    *   If `useGoogleSearch` is false, the prompt is defined **with** `output.schema` and **without** `tools`.
+*   The main `chatFlow` logic was updated to handle both the `result.text` (from grounded prompts) and `result.output` (from non-grounded prompts) response formats.
+*   This resolves the mutual exclusivity conflict that was causing the error and aligns the implementation with the mandatory pattern in `docs/Gemini_AI_Grounding_Google_Search.md`.
+---
 **App Version:** `v3.3.16.4.D` (Intermediate Debugging Commit)
 **Tag:** `Phase-5_Task-3.3.16.4.D_IntermediateDebugging`
 **Commit Hash:** `680f4843`
@@ -311,7 +337,7 @@ This commit (`bd8655d1`) marks the successful completion of the initial implemen
     *   The server actions that call these flows were updated to no longer pass the augmented data variables.
 *   **Phase 2: UI Isolation (Tasks v3.3.9.0.0 - v3.3.9.2.0):**
     *   The previous parsed display components (`AugmentedTaDisplay`, `AugmentedOptionsDisplay`) were removed.
-    *   Two new, simpler components (`AugmentedTaRawDisplay`, `AugmentedOptionsRawDisplay`) were created. Each renders a read-only `<Textarea>` to show the raw, unparsed JSON string returned by its respective search flow.
+    *   Two new, simpler components (`AugmentedTaRawDisplay`, `AugmentedOptionsRawDisplay`) were created. Each renders a read-only `<Textarea>` to display the raw, unparsed JSON string returned by its respective search flow.
     *   These new "raw display" components were integrated into `main-tab-content.tsx`, placed directly after the standard analysis cards for easy comparison and debugging.
 *   **Phase 3: FSM & Orchestrator Refactoring (Tasks v3.3.10.0.0 - v3.3.10.1.0):**
     *   The global FSM orchestrator in `stock-analysis-context.tsx` was significantly refactored.

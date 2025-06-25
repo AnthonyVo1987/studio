@@ -31,9 +31,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 2.4
-**Application Version (from `app-metadata.json`):** v3.3.16.4.D
-**Last Updated:** 2025-07-18
+**README Document Version:** 2.5
+**Application Version (from `app-metadata.json`):** v3.3.16.4.F
+**Last Updated:** 2025-07-19
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -85,12 +85,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
         *   **[New Location]** AI Chat: Run TA Web Search Post-Analysis.
         *   **[New Location]** AI Chat: Run Options Web Search Post-Analysis.
-*   **Google Search Grounding (as of v3.3.16.4.A Refactor):**
-    *   **[Architecture Refactor Complete]** The web search pipeline is now a simplified, single-stage process. The convoluted multi-step formatting pipeline has been removed.
-    *   **Functionality:** When a web search prompt is triggered (either by the automated pipeline toggles or on-demand buttons), the `chat-flow` now executes the search, **internally formats the raw JSON response into markdown**, and returns a single, clean response to the user-facing chat window.
-    *   **UI Impact:**
-        *   The clean, formatted markdown response is rendered directly in the **Chatbot UI**.
-        *   The full raw API response (including grounding metadata and the unformatted JSON string) is displayed in dedicated "Raw ... Response" text boxes on the **Debug Tab** for debugging purposes only.
+*   **Dual AI Chat Architecture (as of v3.3.16.4.F):**
+    *   **[Architecture Refactor IN PROGRESS]** The single, polymorphic chatbot is being replaced by two distinct, isolated chat functionalities to resolve tool-use errors and improve stability.
+    *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application.
+    *   **Grounded Web Search Chat:** A new, separate chat box that will handle all queries requiring real-time web search, strictly adhering to the tool-use architectural pattern.
 *   **AI Chatbot:**
     *   Provide a contextual chatbot that can answer questions about the currently analyzed stock using all available data.
     *   **[Architecture Refactor Complete]** Grounding is determined by the specific `promptName` being executed. All user-initiated interactive chat queries are grounded by default.
@@ -134,7 +132,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.2. Genkit (AI Backend Orchestration)
 *   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis tasks.
-*   **[Architecture Refactor Complete]** A single, intelligent `chat-flow.ts` file now orchestrates all chat and web search interactions. It dynamically loads prompt definitions and configurations based on a `promptName` input. It is now responsible for the full lifecycle of a web search, including the internal formatting of the result.
+*   **[Architecture Refactor IN PROGRESS]** The single `chat-flow.ts` is being deprecated in favor of two new, independent flows: `app-data-chat-flow.ts` (non-grounded) and `web-search-chat-flow.ts` (grounded).
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
     *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
     *   **Architectural Mandate:** Dynamic Thinking (`thinkingBudget: -1`) and Grounding (`useGoogleSearch: boolean`) are now defined in and enforced by each prompt's JSON definition.
@@ -159,12 +157,12 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and the `useActionState` hook for the chat server action, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.4.A)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.4.F)
 *   **Single Global Application FSM:** The architectural refactor is **COMPLETE**. The application now exclusively uses a single, centralized FSM within `StockAnalysisContext`.
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
     *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and the three standard chat prompts.
-    *   **[Architecture Refactor Complete]** Web Search Pipeline (Chat-Centric): The web search pipeline is now a simplified, single-stage process. The FSM orchestrator triggers web searches by dispatching a special request (with a `promptName`) to the intelligent `chat-flow`. The flow itself now handles the entire lifecycle, including result formatting. All old FSM states for multi-stage formatting have been removed.
+    *   **[Architecture Refactor IN PROGRESS]** The chat pipeline is being split. The FSM will be updated with new, distinct states to manage the separate "App Data Chat" and "Web Search Chat" lifecycles independently.
     *   **[Architectural Principle - Enforced Determinism]:** To resolve persistent pipeline loops, the FSM orchestrator `useEffect` hook now depends **only** on the FSM's primary state (`current`). This ensures orchestration logic runs predictably only when a state transition completes. Internal pipeline actions now use direct `async/await` calls within the orchestrator instead of `useActionState` to eliminate race conditions.
 *   **TODO - Future Task:** A future architectural review task will be created to audit the entire application and apply the principle of deterministic FSM orchestration more broadly to ensure maximum stability and remove any remaining potential for race conditions.
 
@@ -196,8 +194,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.4.A):**
-    *   **"AI Chat Prompt & Google Search Grounding Consolidation" (v3.3.16):** The core implementation and a major "AI Web Search Refactor" (v3.3.16.4.A) are now complete. The application is ready for the final, comprehensive testing phase.
+*   **Current Feature Focus (as of v3.3.16.4.F):**
+    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** This new refactor is now the active focus. It aims to resolve the persistent tool-use error by creating two separate, isolated chat systems.
 *   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
 
 #### 3.5.2. UI/UX Conventions
@@ -250,8 +248,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 2.4
-*   **Current Application Version:** `v3.3.16.4.D`
+*   **This README Document Version:** 2.5
+*   **Current Application Version:** `v3.3.16.4.F`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
