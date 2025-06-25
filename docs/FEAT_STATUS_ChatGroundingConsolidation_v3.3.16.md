@@ -1,19 +1,19 @@
 
 # Feature Status Report: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16)
 
-**Document Version:** 9.0
-**Date:** 2025-07-17
+**Document Version:** 10.0
+**Date:** 2025-07-18
 **Feature Target Application Version Series:** 3.3.16.x.z
 
 ## 1. Overall Feature Status
 
-**Current Status:** `REFACTOR COMPLETE - READY FOR FINAL TESTING`
-**Last Updated:** 2025-07-17
+**Current Status:** `IN PROGRESS - DEBUGGING`
+**Last Updated:** 2025-07-18
 
-**Summary:** The core architectural refactor for this feature is complete. This includes a major simplification of the AI web search pipeline (`v3.3.16.4.A`) and a critical fix for a persistent AI pipeline loop (`v3.3.16.4.9`). The application is now stable and ready for the final, comprehensive testing phase to begin.
+**Summary:** The core architectural refactor for this feature is complete. However, a critical bug, "Unable to determine type of tool", persists despite several fix attempts. The application is currently not stable for web search prompts. The investigation is ongoing.
 
 ## 2. Known Issues
-*   All known critical issues have been resolved. Final testing may uncover new, minor issues.
+*   A critical bug, "Unable to determine type of tool", prevents all web search prompts from executing correctly. This is the current focus of debugging efforts.
 
 ## 3. Phase & Task Status
 
@@ -32,17 +32,17 @@
 ### Phase 5: Final Testing & Documentation
 *   **Overall Phase Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **v3.3.16.4.0:** Initial Pre-testing Phase Start. (`COMPLETED`)
-    *   **v3.3.16.4.6 - v3.3.16.4.8:** Attempted fixes for FSM pipeline loop. (`FAILED`)
-    *   **v3.3.16.4.9:** Final, successful architectural fix to resolve the FSM pipeline loop by enforcing deterministic orchestration. (`COMPLETED`)
-    *   **v3.3.16.4.A:** Complete implementation of AI Web Search Refactor. (`COMPLETED`)
-    *   **v3.3.16.5.0:** Comprehensive end-to-end testing of all chat/search paths and all customizable analysis pipeline toggle combinations. (`PLANNED`)
-    *   **v3.3.16.6.0:** Final Phase Completion Commit. (`PLANNED`)
+    *   **v3.3.16.4.C:** Attempted fix for `Unable to determine type of tool` error. (`FAILED`)
+    *   **v3.3.16.4.D:** Documentation commit acknowledging persistent bug. (`COMPLETED`)
+    *   **v3.3.16.5.0:** Comprehensive end-to-end testing of all chat/search paths and all customizable analysis pipeline toggle combinations. (`BLOCKED`)
+    *   **v3.3.16.6.0:** Final Phase Completion Commit. (`BLOCKED`)
 
 ## 4. Feature Changelog & Commit History
 
 | Date       | Version Tag (Task ID)                  | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                              | Status           |
 | :--------- | :------------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------- |
+| 2025-07-18 | `v3.3.16.4.D` (Docs & Checkpoint)      | `680f4843`                  | Documentation commit to acknowledge that the "Unable to determine type of tool" bug persists after the `v3.3.16.4.C` fix attempt. Investigation ongoing.                       | COMPLETED        |
+| 2025-07-18 | `v3.3.16.4.C` (Attempted Fix)          | `(prev_commit)`             | **Fix failed.** Attempted to fix tool use error by making prompt generation dynamic. The issue persists.                                                                    | FAILED           |
 | 2025-07-17 | `v3.3.16.4.A` (Web Search Refactor)    | `687eb097`                  | **Completed AI Web Search Refactor.** Simplified the web search pipeline into a single-stage process within `chat-flow`. Removed obsolete states, actions, and files. | COMPLETED        |
 | 2025-07-16 | `v3.3.16.4.9` (Final Fix for Loop)     | `b6739bb3`                  | **BUG RESOLVED.** Architecturally simplified the FSM orchestrator to be deterministic, removing the race condition that caused the pipeline loop. App is now stable.            | COMPLETED        |
 | 2025-07-15 | `v3.3.16.4.8` (Intermediate Debug)     | `44883f42`                  | Checkpoint commit. Attempted to fix FSM loop by removing `PIPELINE_PAUSED` state. **Fix failed, bug persisted.** Docs updated to reflect ongoing issue.                    | FAILED           |
@@ -57,6 +57,7 @@
 
 ## 5. Document Changelog (for this FEAT_STATUS_xxx.md file)
 
+*   **v10.0 (2025-07-18):** Added changelog entries for `v3.3.16.4.C` and `v3.3.16.4.D`. Updated overall status and summary to reflect ongoing debugging. Blocked testing tasks.
 *   **v9.0 (2025-07-17):** Added changelog entry for commit `687eb097` (v3.3.16.4.A) and marked the Web Search Refactor phase as complete. Updated summary.
 *   **v8.0 (2025-07-16):** Marked `v3.3.16.4.9` as complete and updated summary to reflect bug resolution. Status updated to `READY FOR FINAL TESTING`.
 *   **v7.0 (2025-07-15):** Added changelog entry for commit `44883f42` (v3.3.16.4.8). Updated summary and task list to reflect the persistent, unresolved bug.

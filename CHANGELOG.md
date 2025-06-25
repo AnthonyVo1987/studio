@@ -58,6 +58,13 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.4.D` (Intermediate Debugging Commit)
+**Tag:** `Phase-5_Task-3.3.16.4.D_IntermediateDebugging`
+**Commit Hash:** `680f4843`
+**Subject:** `docs(all): Intermediate commit v3.3.16.4.D, document failed tool use fix`
+**Details:**
+This is a documentation-only commit to checkpoint the ongoing debugging for the "AI Chat Prompt & Google Search Grounding Consolidation" feature. It acknowledges that the `Unable to determine type of tool` error persists despite the attempted architectural fix in `chat-flow.ts` in the previous version (`v3.3.16.4.C`). The investigation will continue.
+---
 **App Version:** `v3.3.16.4.A` (Complete AI Web Search Refactor)
 **Tag:** `Phase-48_Task-3.3.16.4.A_CompleteWebSearchRefactor`
 **Commit Hash:** `687eb097`
