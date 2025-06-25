@@ -293,8 +293,8 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isAiChatStockTraderTakeawaysSelected: true,
     isAiChatOptionsTraderTakeawaysSelected: true,
     isAiChatHolisticTakeawaysSelected: true,
-    isWebSearchTaEnabled: false,
-    isWebSearchOptionsEnabled: false,
+    isWebSearchTaEnabled: true,
+    isWebSearchOptionsEnabled: true,
   },
 };
 
@@ -1013,6 +1013,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _marketStatusJson, _optionsChainJson,
     dispatchFsmEvent, logDebug
   ]);
+  
+  useEffect(() => {
+    if (!initialInitializationDispatchedRef.current) {
+        logDebug('StockAnalysisContext:GlobalFSM', 'Initialization', 'Dispatching INITIALIZATION_COMPLETE event on mount.');
+        dispatchFsmEvent({ type: 'INITIALIZATION_COMPLETE' });
+        initialInitializationDispatchedRef.current = true;
+    }
+  }, [dispatchFsmEvent, logDebug]);
 
 
   const contextValue: StockAnalysisContextType = useMemo(() => ({
