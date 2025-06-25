@@ -45,12 +45,12 @@ export async function appDataChatAction(
     promptName,
   } = payload;
   const actionLogPrefix = `[ServerAction:appDataChatAction:Ticker:${ticker || 'N/A'}]`;
-  console.log(`${actionLogPrefix} Action_Entry - Received request. PromptName: ${promptName || 'default_chat'}. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}. PrevState status: ${prevState.status}`);
+  console.log(`${actionLogPrefix} Received request. PromptName: ${promptName || 'default_chat'}. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}.`);
 
 
   if (!userInput || userInput.trim() === '') {
     const errorMsg = 'User input cannot be empty.';
-    console.warn(`${actionLogPrefix} Action_ValidationError - ${errorMsg}`);
+    console.warn(`${actionLogPrefix} Validation Error - ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
@@ -76,9 +76,7 @@ export async function appDataChatAction(
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
   
   try {
-    console.log(`${actionLogPrefix} [AI_CALL_START] Calling chatWithBot flow. PromptName: ${flowInput.promptName || 'default_chat'}.`);
     const flowOutput: AppDataChatOutput = await chatWithBot(flowInput);
-    console.log(`${actionLogPrefix} [AI_CALL_END] chatWithBot flow returned. Response (first 50 chars): "${flowOutput.response?.substring(0,50)}..."`);
     const chatbotResponseJson = JSON.stringify(flowOutput, null, 2);
 
     return {
@@ -91,7 +89,7 @@ export async function appDataChatAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} [AI_CALL_END_ERROR] CRITICAL Error during chat processing. Error: ${error.message}.`);
+    console.error(`${actionLogPrefix} CRITICAL Error during chat processing. Error: ${error.message}.`);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during chat processing.',

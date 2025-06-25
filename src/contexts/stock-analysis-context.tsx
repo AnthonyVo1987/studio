@@ -293,8 +293,8 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isAiChatStockTraderTakeawaysSelected: true,
     isAiChatOptionsTraderTakeawaysSelected: true,
     isAiChatHolisticTakeawaysSelected: true,
-    isWebSearchTaEnabled: true,
-    isWebSearchOptionsEnabled: true,
+    isWebSearchTaEnabled: false,
+    isWebSearchOptionsEnabled: false,
   },
 };
 
@@ -950,54 +950,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [webSearchChatActionState, isWebSearchChatPending, dispatchFsmEvent, logDebug]);
   
   useEffect(() => {
-    const orchestrate = async () => {
-        const state = fsmStateRef.current;
-        contextOriginals.log(`[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State: ${state.current}, Active Ticker: ${state.variables.activeTicker}`);
-
-        switch (state.current) {
-            case GlobalFsmState.APP_INITIALIZING:
-                if (!initialInitializationDispatchedRef.current) {
-                    _dispatchFsmEventActual({ type: 'INITIALIZATION_COMPLETE' });
-                    initialInitializationDispatchedRef.current = true;
-                }
-                break;
-            case GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH:
-                {
-                    const ticker = state.variables.activeTicker!;
-                    logDebug('StockAnalysisContext:GlobalFSM_Orchestrator', 'DataFetch', `Starting data fetch for ${ticker}`);
-                    const dataResult = await fetchStockDataAction({ status: 'idle' }, { ticker });
-                    if (dataResult.status === 'success' && dataResult.data) {
-                        _dispatchFsmEventActual({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
-                        
-                        _dispatchFsmEventActual({ type: 'CALCULATING_AI_TA', payload: {} } as any);
-                        const taResult = await calculateAiTaAction({ status: 'idle' }, { stockSnapshotJson: dataResult.data.stockSnapshotJson, ticker });
-                        if (taResult.status === 'success' && taResult.data) {
-                            _dispatchFsmEventActual({ type: 'AI_TA_SUCCESS', payload: taResult.data });
-                        } else {
-                            _dispatchFsmEventActual({ type: 'AI_TA_FAILURE', payload: { error: taResult.error, message: taResult.message, aiAnalyzedTaRequestJson: taResult.data?.aiCalculatedTaRequestJson } });
-                        }
-                    } else if (dataResult.message?.includes("Stale data detected") && dataResult.data) {
-                        _dispatchFsmEventActual({ type: 'STALE_DATA_FROM_ACTION', payload: { error: dataResult.error || "Stale data error", message: dataResult.message, expectedTicker: ticker, actionStateData: dataResult.data }});
-                    } else {
-                        _dispatchFsmEventActual({ type: 'FETCH_DATA_FAILURE', payload: { error: dataResult.error, message: dataResult.message, polygonApiRequestLogJson: dataResult.data?.polygonApiRequestLogJson, polygonApiResponseLogJson: dataResult.data?.polygonApiResponseLogJson } });
-                    }
-                }
-                break;
-            case GlobalFsmState.APP_DATA_CHAT_PENDING:
-                if (state.variables.pendingAppDataChatSubmissionPayload && !isAppDataChatPending) {
-                    startTransition(() => { appDataChatFormAction(state.variables.pendingAppDataChatSubmissionPayload!); });
-                }
-                break;
-            case GlobalFsmState.WEB_SEARCH_CHAT_PENDING:
-                if (state.variables.pendingWebSearchChatSubmissionPayload && !isWebSearchChatPending) {
-                    startTransition(() => { webSearchChatFormAction(state.variables.pendingWebSearchChatSubmissionPayload!); });
-                }
-                break;
-        }
-    };
+    const logPrefix = 'StockAnalysisContext:GlobalFSM_Orchestrator';
+    logDebug(logPrefix as LogSourceId, '[[ORCHESTRATOR_EFFECT_ENTRY]]', `Orchestrator running for state: ${globalFsmReducerState.current}`);
     
-    orchestrate();
-  }, [globalFsmReducerState.current]);
+    // Logic for automated pipeline after data is fetched.
+    if (globalFsmReducerState.current === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
+      logDebug(logPrefix as LogSourceId, 'Dispatch', `DATA_FETCH_SUCCEEDED: Triggering AI_TA calculation.`);
+      _dispatchFsmEventActual({ type: 'CALCULATING_AI_TA', payload: {} } as any); 
+    }
+  }, [globalFsmReducerState.current]); 
+
 
   useEffect(() => {
     const logPrefix = 'StockAnalysisContext:ManualActionFlagEffect';

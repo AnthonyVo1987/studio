@@ -36,14 +36,14 @@ export async function performAiOptionsAnalysisAction(
     stockSnapshotJson,
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiOptionsAnalysisAction:Ticker:${ticker}]`;
-  console.log(`${actionLogPrefix} Action_Entry - Received request.`);
+  console.log(`${actionLogPrefix} Received request.`);
 
   let currentUnderlyingPrice: number;
   let flowInput: AiOptionsAnalysisInput;
   let aiOptionsAnalysisRequestJson: string = JSON.stringify({ error: "Request preparation incomplete", ticker }, null, 2);
 
   const baseErrorReturnForValidation = (errMsg: string, detailMsg?: string, reqJsonOverride?: string) => {
-    console.warn(`${actionLogPrefix} Action_ValidationError - ${errMsg}`);
+    console.warn(`${actionLogPrefix} Validation Error - ${errMsg}`);
     return {
       status: 'error' as 'error',
       error: errMsg,
@@ -73,9 +73,7 @@ export async function performAiOptionsAnalysisAction(
     flowInput = { ticker, optionsChainJson, currentUnderlyingPrice };
     aiOptionsAnalysisRequestJson = JSON.stringify(flowInput, null, 2);
 
-    console.log(`${actionLogPrefix} [AI_CALL_START] Calling analyzeOptionsChain flow.`);
     const flowOutput: AiOptionsAnalysisOutput = await analyzeOptionsChain(flowInput);
-    console.log(`${actionLogPrefix} [AI_CALL_END] analyzeOptionsChain flow returned. CallWalls: ${flowOutput.callWalls?.length}, PutWalls: ${flowOutput.putWalls?.length}.`);
     
     const aiOptionsAnalysisJsonOutput = JSON.stringify(flowOutput, null, 2);
 
@@ -87,7 +85,7 @@ export async function performAiOptionsAnalysisAction(
     };
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred.';
-    console.error(`${actionLogPrefix} [AI_CALL_END_ERROR] CRITICAL Error in action's try-catch. Error: ${errorMessage}.`);
+    console.error(`${actionLogPrefix} CRITICAL Error in action's try-catch. Error: ${errorMessage}.`);
     return {
       status: 'error',
       error: errorMessage,

@@ -39,7 +39,7 @@ export async function performAiAnalysisAction(
     marketStatusJson,
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiAnalysisAction:Ticker:${ticker}]`;
-  console.log(`${actionLogPrefix} Action_Entry - Received request. PrevState status: ${prevState.status}. Payload keys: ${Object.keys(payload).join(', ')}.`);
+  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}.`);
 
 
   if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' ||
@@ -47,7 +47,7 @@ export async function performAiAnalysisAction(
       !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}' ||
       !marketStatusJson || marketStatusJson === '{}') {
     const errorMsg = 'One or more required data inputs for AI Key Takeaways analysis are missing or empty.';
-    console.warn(`${actionLogPrefix} Action_ValidationError - ${errorMsg}.`);
+    console.warn(`${actionLogPrefix} Validation Error - ${errorMsg}.`);
     return {
       status: 'error',
       error: errorMsg,
@@ -70,9 +70,7 @@ export async function performAiAnalysisAction(
   const aiKeyTakeawaysRequestJson = JSON.stringify(flowInput, null, 2);
   
   try {
-    console.log(`${actionLogPrefix} [AI_CALL_START] Calling analyzeStockData flow.`);
     const flowOutput: StockAnalysisOutput = await analyzeStockData(flowInput);
-    console.log(`${actionLogPrefix} [AI_CALL_END] analyzeStockData flow returned successfully.`);
 
     const aiKeyTakeawaysJson = JSON.stringify(flowOutput, null, 2);
 
@@ -86,7 +84,7 @@ export async function performAiAnalysisAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} [AI_CALL_END_ERROR] CRITICAL Error in action's try-catch. Error: ${error?.message}.`);
+    console.error(`${actionLogPrefix} CRITICAL Error in action's try-catch. Error: ${error?.message}.`);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during AI key takeaways generation.',
