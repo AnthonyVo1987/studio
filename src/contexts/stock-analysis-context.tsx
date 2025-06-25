@@ -54,8 +54,6 @@ export enum GlobalFsmState {
   FORMAT_OPTIONS_WEB_SEARCH_SUCCESS = 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS',
   FORMAT_OPTIONS_WEB_SEARCH_FAILURE = 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE',
 
-  PIPELINE_PAUSED = 'PIPELINE_PAUSED', 
-
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
 
@@ -172,8 +170,7 @@ export type FsmEvent =
   | { type: 'FORMAT_TA_WEB_SEARCH_SUCCESS', payload: FormatWebSearchSuccessPayload }
   | { type: 'FORMAT_TA_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload }
   | { type: 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS', payload: FormatWebSearchSuccessPayload }
-  | { type: 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload }
-  | { type: 'PROCEED_FROM_PAUSE' }; 
+  | { type: 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE', payload: FormatWebSearchFailurePayload };
 
 export interface ChatMessage {
   id: string;
@@ -793,9 +790,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
        case 'FORMAT_TA_WEB_SEARCH_SUCCESS':
         addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_formatted`, role: 'model', content: event.payload.formattedResponse });
-        nextCurrentState = GlobalFsmState.PIPELINE_PAUSED;
+        nextCurrentState = GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS;
         nextVariables.pendingTaWebSearchFormatPayload = null;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_PAUSED after FORMAT_TA_WEB_SEARCH_SUCCESS.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_TA_WEB_SEARCH_SUCCESS.`);
         break;
       case 'FORMAT_TA_WEB_SEARCH_FAILURE':
         const formatTaErr = event.payload;
@@ -807,9 +804,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'FORMAT_OPTIONS_WEB_SEARCH_SUCCESS':
         addChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_formatted`, role: 'model', content: event.payload.formattedResponse });
-        nextCurrentState = GlobalFsmState.PIPELINE_PAUSED;
+        nextCurrentState = GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS;
         nextVariables.pendingOptionsWebSearchFormatPayload = null;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To PIPELINE_PAUSED after FORMAT_OPTIONS_WEB_SEARCH_SUCCESS.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To FORMAT_OPTIONS_WEB_SEARCH_SUCCESS.`);
         break;
       case 'FORMAT_OPTIONS_WEB_SEARCH_FAILURE':
         const formatOptErr = event.payload;
@@ -877,7 +874,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         case GlobalFsmState.CHAT_MESSAGE_ERROR: case GlobalFsmState.DATA_FETCH_FAILED: case GlobalFsmState.ERROR_STALE_DATA: case GlobalFsmState.AI_TA_CALCULATION_FAILED:
         case GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS: case GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE:
         case GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS: case GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE:
-        case GlobalFsmState.PIPELINE_PAUSED:
             if (event.type === 'START_FULL_ANALYSIS') determinedTarget = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
             else if (event.type === 'TRIGGER_MANUAL_KEY_TAKEAWAYS') determinedTarget = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
             else if (event.type === 'TRIGGER_MANUAL_OPTIONS_ANALYSIS') determinedTarget = GlobalFsmState.ANALYZING_OPTIONS;
@@ -1096,7 +1092,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
 
     const state = globalFsmReducerState;
-    let timerId: NodeJS.Timeout | null = null;
   
     contextOriginals.log('[[ORCHESTRATOR_EFFECT_ENTRY]] GlobalFSM State:', state.current, 'Active Ticker:', state.variables.activeTicker, 'Profile:', state.variables.activePipelineProfile, 'isFetchPending:', isFetchDataPending, 'isInitialLoad:', state.variables.isInitialLoad);
   
@@ -1140,13 +1135,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       startTransition(() => { formatWebSearchFormAction(state.variables.pendingTaWebSearchFormatPayload!); });
     } else if (state.current === GlobalFsmState.FORMATTING_OPTIONS_WEB_SEARCH_RESULTS && state.variables.pendingOptionsWebSearchFormatPayload && !isFormatWebSearchPending) {
       startTransition(() => { formatWebSearchFormAction(state.variables.pendingOptionsWebSearchFormatPayload!); });
-    } else if (state.current === GlobalFsmState.PIPELINE_PAUSED) {
-      timerId = setTimeout(() => { _dispatchFsmEventActual({ type: 'PROCEED_FROM_PAUSE' }); }, 100);
-    } else if (state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE ||
-               state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE) {
-      if (state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction(state.variables.lastCompletedChatPromptName as PipelineStep);
-      }
+    } else if (state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_TA_WEB_SEARCH_FAILURE) {
+        if (state.variables.activePipelineProfile === 'standard') {
+            dispatchNextCustomAction('technical-analysis-web-search');
+        }
+    } else if (state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_SUCCESS || state.current === GlobalFsmState.FORMAT_OPTIONS_WEB_SEARCH_FAILURE) {
+        if (state.variables.activePipelineProfile === 'standard') {
+            dispatchNextCustomAction('options-flow-web-search');
+        }
     } else if (state.current === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE && state.variables.activePipelineProfile === 'standard') {
       _dispatchFsmEventActual({ type: 'PROCEED_TO_IDLE' });
     } else if (state.current === GlobalFsmState.CHAT_MESSAGE_PENDING && state.variables.pendingChatSubmissionPayload && !isChatPending) {
@@ -1154,7 +1150,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       _dispatchFsmEventActual({ type: 'PENDING_CHAT_SUBMISSION_TRIGGERED' });
     }
   
-    return () => { if (timerId) clearTimeout(timerId); };
   }, [
     globalFsmReducerState.current, globalFsmReducerState.variables, globalFsmReducerState.flags,
     isFetchDataPending, isAnalyzeTaPending, isPerformAiAnalysisPending, isPerformAiOptionsAnalysisPending, 
