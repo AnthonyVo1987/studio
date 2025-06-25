@@ -98,14 +98,16 @@ const appDataChatFlow = ai.defineFlow(
       
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
 
-      const responseText = result.output?.response;
-
-      if (!responseText || typeof responseText !== 'string' || responseText.trim() === '') {
+      const output = result.output;
+      if (!output || typeof output.response !== 'string' || output.response.trim() === '') {
         throw new Error('Chatbot AI prompt returned a malformed or empty response.');
       }
       
-      console.log(`${logPrefix} Flow successfully executed. Final response (first 50 chars): "${responseText.substring(0, 50)}..."`);
-      return { response: responseText, rawResponse: result };
+      // Augment the direct output with the raw response object before returning
+      output.rawResponse = result; 
+      
+      console.log(`${logPrefix} Flow successfully executed. Final response (first 50 chars): "${output.response.substring(0, 50)}..."`);
+      return output;
 
     } catch (error: any) {
       console.error(`${logPrefix} CRITICAL ERROR during prompt execution. Error: ${error.message}`);

@@ -114,7 +114,10 @@ const webSearchChatFlow = ai.defineFlow(
   {
     name: 'webSearchChatFlow',
     inputSchema: WebSearchChatInputSchema,
-    outputSchema: WebSearchChatOutputSchema,
+    // CRITICAL FIX: The outputSchema is removed from the FLOW definition
+    // because the prompt it calls uses tools, which is mutually exclusive
+    // with a structured output schema at the API level. The flow now
+    // manually constructs the output to match the desired schema.
   },
   async (input: WebSearchChatInput): Promise<WebSearchChatOutput> => {
     const logPrefix = `[AIFlow:webSearchChatFlow:Ticker:${input.ticker || 'N/A'}]`;
@@ -156,6 +159,7 @@ const webSearchChatFlow = ai.defineFlow(
       }
       
       console.log(`${logPrefix} Flow successfully executed. Final response (first 50 chars): "${responseText.substring(0, 50)}..."`);
+      // Manually construct the output object to match the WebSearchChatOutputSchema
       return { response: responseText, rawResponse: result };
 
     } catch (error: any) {
