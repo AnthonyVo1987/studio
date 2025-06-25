@@ -1,10 +1,10 @@
 
 # Feature Scope: AI Chat Prompt & Google Search Grounding Consolidation (v3.3.16.0.0)
 
-**Document Version:** 7.0
-**Date:** 2025-07-16
+**Document Version:** 8.0
+**Date:** 2025-07-17
 **Target Application Version Series:** 3.3.16.x.z
-**Feature Status:** IMPLEMENTATION COMPLETE - AWAITING FINAL TESTING
+**Feature Status:** REFACTOR COMPLETE - AWAITING FINAL TESTING
 
 ## 1. Introduction & Objective
 
@@ -97,13 +97,23 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 *   **Objective:** Implement the requested logging changes and remove obsolete files.
 *   **Status:** `COMPLETED`
 
-### Phase 4: Final Testing & Documentation
+### Phase 4: AI Web Search Refactor (v3.3.16.4.A)
+*   **Objective:** Refactor the convoluted, multi-stage web search pipeline into a simplified, single-stage process that mirrors the robust architecture of other chat prompts. This enhances stability and maintainability.
+*   **Status:** `COMPLETED`
+*   **Tasks:**
+    *   **Phase 4.1: Consolidate AI Flow Logic:** Move result-formatting logic into `chat-flow.ts`. (`COMPLETED`)
+    *   **Phase 4.2: Simplify FSM & Orchestrator:** Remove obsolete FSM states/variables for the old multi-stage pipeline. (`COMPLETED`)
+    *   **Phase 4.3: Refactor UI:** Relocate web search toggles and remove the now-empty card. (`COMPLETED`)
+    *   **Phase 4.4: Cleanup:** Delete all now-redundant files related to the old formatting pipeline. (`COMPLETED`)
+    *   **Phase 4.5: Bug Fix:** Resolve `Module not found` error by removing dangling imports from `chat-flow.ts`. (`COMPLETED`)
+
+### Phase 5: Final Testing & Documentation
 *   **Objective:** Perform comprehensive end-to-end testing and finalize all project documentation.
 *   **Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **v3.3.16.4.0:** Initial Pre-testing Phase Start. (`COMPLETED`)
-    *   **v3.3.16.4.6 - v3.3.16.4.8:** Debug and attempt to fix a persistent FSM pipeline loop. (`FAILED`)
+    *   **v3.3.16.4.0 - v3.3.16.4.8:** Debug and attempt to fix a persistent FSM pipeline loop. (`FAILED`)
     *   **v3.3.16.4.9:** Final, successful architectural fix to resolve the FSM pipeline loop by enforcing deterministic orchestration. (`COMPLETED`)
+    *   **v3.3.16.4.A:** Complete implementation of AI Web Search Refactor. (`COMPLETED`)
     *   **v3.3.16.5.0:** Comprehensive testing of all chat/search paths and all customizable analysis pipeline toggle combinations. (`PLANNED`)
     *   **v3.3.16.6.0:** Final "Phase Completion Commit" to update all documentation. (`PLANNED`)
 
@@ -122,6 +132,7 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
 
 ## 7. Document Changelog
 
+*   **v8.0 (2025-07-17):** Marked Phase 4 (Web Search Refactor, v3.3.16.4.A) and all its sub-tasks as `COMPLETED`. Updated status to reflect that the refactor is complete and ready for final testing.
 *   **v7.0 (2025-07-16):** Marked Task `v3.3.16.4.9` as `COMPLETED`. Updated status to reflect that the pipeline loop is resolved and the feature is ready for final comprehensive testing.
 *   **v6.0 (2025-07-09):** Marked Phase 3 and Phase 4 (Task 4.0) as complete. Updated feature status to `IMPLEMENTATION COMPLETE - AWAITING TESTING`.
 *   **v5.0 (2025-07-08):** Marked Phase 2 and all its tasks as `COMPLETED`.

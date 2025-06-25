@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.4.A` (Complete AI Web Search Refactor)
+**Tag:** `Phase-48_Task-3.3.16.4.A_CompleteWebSearchRefactor`
+**Commit Hash:** `687eb097`
+**Subject:** `feat(ai,fsm,ui): Complete AI Web Search Refactor (v3.3.16.4.A)`
+**Details:**
+This commit marks the successful completion of the **"AI Web Search Refactor"** (v3.3.16.4.A). This was a crucial architectural simplification to remove the convoluted, multi-stage pipeline for handling AI web searches and consolidate it into a single, robust execution path that mirrors the application's other AI chat prompts.
+
+**Key Architectural Corrections:**
+*   **Consolidated AI Flow Logic:** The logic to format the raw JSON string from a web search prompt has been moved from the deleted `format-web-search-flow.ts` directly into the main `chat-flow.ts`. The `chat-flow` now performs the web search and immediately formats the result internally, returning a single, clean markdown response to the FSM orchestrator.
+*   **Simplified FSM & Orchestrator:** All obsolete FSM states related to the separate formatting step (e.g., `FORMATTING_*`, `FORMAT_*_SUCCESS`) have been removed from `stock-analysis-context.tsx`. The FSM orchestrator no longer needs to handle a complex multi-stage process for web searches, treating all chat prompts uniformly.
+*   **Refactored UI:** The two web search toggles ("Run TA Web Search..." and "Run Options Web Search...") have been moved into the "Customizable Analysis Pipeline" card in `main-tab-content.tsx`. The now-empty "Google Search Grounding" card has been removed, cleaning up the UI.
+*   **File Cleanup:** All files related to the old, separate formatting pipeline (`format-web-search-action.ts`, `format-web-search-flow.ts`, `format-web-search-schemas.ts`, and their corresponding prompt definitions) have been deleted.
+
+**Outcome:**
+*   The architecture for all AI prompts (user-input, non-web search, and web search) is now unified and streamlined, significantly improving stability, maintainability, and debuggability.
+*   The application is now ready for a final, comprehensive testing phase of the entire customizable analysis feature.
+---
 **App Version:** `v3.3.16.4.9` (Final Fix for Pipeline Loop)
 **Tag:** `Phase-47_Task-3.3.16.4.9_FinalFixPipelineLoop`
 **Subject:** `fix(fsm): Final fix for pipeline loop by enforcing deterministic FSM orchestration (v3.3.16.4.9)`
@@ -580,7 +597,7 @@ This commit (`4fe5a570`) completes **Task v3.2.5.0.Q**, a key refinement within 
 **Tag:** `Phase-19_Task-3.2.5.0.P_FixStuckChatMacro` (Commit `f2e8c257`)
 **Subject:** `fix(fsm,chat): Move chat useActionState to context, fix stuck macro (v3.2.5.0.P)`
 **Details:**
-This commit (`f2e8c257`) resolves a critical bug where the "AI Full Stock Analysis" macro would get stuck permanently if the user switched tabs while a chat action was pending. The root cause was that the `useActionState` hook for the chat server action resided in `MainTabContent`, which was unmounted on tab switch, destroying the action's state.
+This commit (`f2e8c257`) resolves a critical bug where the "AI Full Stock Analysis" macro would get stuck permanently if the user switched tabs while a chat action was pending. The root cause was that the `useActionState` hook for the `chatServerAction` resided in `MainTabContent`, which was unmounted on tab switch, destroying the action's state.
 
 **Key Changes in v3.2.5.0.P:**
 *   **Centralized Chat Action State (`src/contexts/stock-analysis-context.tsx`):**
