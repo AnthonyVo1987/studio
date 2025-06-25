@@ -36,7 +36,6 @@ export function MainTabContent() {
     aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, logDebug,
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent, chatHistory: contextChatHistory,
-    setChatbotFsmDisplay, isChatGroundingEnabled,
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
@@ -193,15 +192,6 @@ export function MainTabContent() {
               <Label htmlFor="toggle-chat-holistic" className="flex-grow text-sm">AI Chat: Additional Holistic Takeaways</Label>
               <Switch id="toggle-chat-holistic" checked={globalFsmFlags.isAiChatHolisticTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_chat_holistic', checked)} disabled={isAnyAnalysisInProgress} />
             </div>
-          </CardContent>
-        </Card>
-        <Separator />
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center"><WandSparkles className="mr-2 h-5 w-5 text-primary" />Google Search Grounding</CardTitle>
-            <CardDescription>Enhance analysis with real-time data from Google Search (slower, requires more tokens).</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-web-search-ta" className="flex-grow text-sm">Run TA Web Search in Chat Post-Analysis</Label>
               <Switch id="toggle-web-search-ta" checked={globalFsmFlags.isWebSearchTaEnabled} onCheckedChange={(checked) => handleToggleChange('web_search_ta', checked)} disabled={isAnyAnalysisInProgress} />
@@ -255,9 +245,7 @@ export function MainTabContent() {
             aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} 
             aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} 
             currentGlobalChatHistory={contextChatHistory} 
-            logDebug={logDebug} 
-            setChatbotFsmDisplayState={setChatbotFsmDisplay}
-            isChatGroundingEnabled={isChatGroundingEnabled}
+            logDebug={logDebug}
           >
             <Chatbot isAnyAnalysisInProgress={isAnyAnalysisInProgress} currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker} />
           </ChatbotFsmProvider>
