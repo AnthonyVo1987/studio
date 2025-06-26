@@ -57,40 +57,18 @@ export function Chatbot({
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const cardContentRef = useRef<HTMLDivElement>(null); // Ref for diagnostics
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
 
   logDebug(logSourceId, 'RenderState', `GlobalFSM: ${fsmState}, LocalChatbotFSM_UIState: ${chatbotFsmState}, isProcessing (prop): ${isProcessing}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
+      const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      }
     }
   }, [chatHistory]);
-
-  // DIAGNOSTIC USE EFFECT - Using console.log for direct browser output
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (cardContentRef.current && scrollAreaRef.current) {
-        const cardContentHeight = cardContentRef.current.clientHeight;
-        const scrollAreaClientHeight = scrollAreaRef.current.clientHeight;
-        const scrollAreaScrollHeight = scrollAreaRef.current.scrollHeight;
-
-        // Using direct console.log to ensure it appears in the browser console for debugging
-        console.log(
-          `[CHAT SCROLL DEBUG - ${title}]`, 
-          {
-            cardContentHeight,
-            scrollAreaClientHeight,
-            scrollAreaScrollHeight
-          }
-        );
-      }
-    }, 250); // Increased delay slightly to ensure DOM has settled
-
-    return () => clearTimeout(timeoutId);
-  }, [chatHistory, title]);
-
 
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -175,35 +153,33 @@ export function Chatbot({
             </div>
         </div>
       </CardHeader>
-      <CardContent ref={cardContentRef} className="flex-grow flex flex-col p-4 space-y-4 min-h-0">
-          <div className="flex-grow min-h-0">
-              <ScrollArea ref={scrollAreaRef} className="h-full pr-4 -mr-4">
-                  <div className="space-y-4">
-                      {chatHistory.length === 0 && (
-                      <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
-                      )}
-                      {chatHistory.map((msg) => (
-                      <div key={msg.id} className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", msg.role === 'user' ? "ml-auto bg-primary text-primary-foreground" : "bg-muted")}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose dark:prose-invert prose-sm max-w-none">{msg.content}</ReactMarkdown>
-                      </div>
-                      ))}
-                      {isProcessing && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user' && (
-                          <div className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> 
-                              <div className="flex items-center space-x-2">
-                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                  <span className="text-muted-foreground italic">StockSage is thinking...</span>
-                              </div>
-                          </div>
-                      )}
+      <CardContent className="flex-grow p-0 min-h-0">
+          <ScrollArea ref={scrollAreaRef} className="h-full">
+              <div className="space-y-4 p-4">
+                  {chatHistory.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
+                  )}
+                  {chatHistory.map((msg) => (
+                  <div key={msg.id} className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", msg.role === 'user' ? "ml-auto bg-primary text-primary-foreground" : "bg-muted")}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose dark:prose-invert prose-sm max-w-none">{msg.content}</ReactMarkdown>
                   </div>
-              </ScrollArea>
-          </div>
-          <div className="w-full pt-4 border-t">
-              <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1 flex items-center gap-1.5"><Info className="h-3 w-3" /> Example Prompts</div>
-              <div className="flex flex-wrap gap-2">{renderPromptButtons(exampleButtons)}</div>
-          </div>
+                  ))}
+                  {isProcessing && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user' && (
+                      <div className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> 
+                          <div className="flex items-center space-x-2">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              <span className="text-muted-foreground italic">StockSage is thinking...</span>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </ScrollArea>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="flex flex-col items-start gap-4 p-4 pt-4 border-t">
+        <div className="w-full">
+            <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1 flex items-center gap-1.5"><Info className="h-3 w-3" /> Example Prompts</div>
+            <div className="flex flex-wrap gap-2">{renderPromptButtons(exampleButtons)}</div>
+        </div>
         <form onSubmit={handleFormSubmit} className="w-full flex items-center space-x-2">
           <Input value={fsmUserInput} onChange={(e) => dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: e.target.value })} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}} />
           <Button type="submit" disabled={isProcessing || !fsmUserInput.trim()}>
