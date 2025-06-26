@@ -864,67 +864,67 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
         break;
       
-        case 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE':
-            if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING && state.variables.pendingWebSearchChatSubmissionPayload?.userInput === event.payload.userInput) {
-              logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateSubmission', `SUBMIT_WEB_SEARCH_CHAT_MESSAGE for "${event.payload.userInput.substring(0, 20)}" ignored, already pending.`);
-            } else {
-              addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput });
-              nextVariables.pendingWebSearchChatSubmissionPayload = { ...event.payload };
-              nextCurrentState = GlobalFsmState.WEB_SEARCH_CHAT_PENDING;
-              contextSetters.setUserInputWebSearchChatRequestJson(chatPendingJson);
-              contextSetters.setUserInputWebSearchChatResponseJson(chatPendingJson);
-              logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To WEB_SEARCH_CHAT_PENDING for ticker ${nextVariables.userInputTicker}.`);
+      case 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE':
+        if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING && state.variables.pendingWebSearchChatSubmissionPayload?.userInput === event.payload.userInput) {
+          logDebug(logPrefixFsmReducer as LogSourceId, 'GuardDuplicateSubmission', `SUBMIT_WEB_SEARCH_CHAT_MESSAGE for "${event.payload.userInput.substring(0, 20)}" ignored, already pending.`);
+        } else {
+          addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput });
+          nextVariables.pendingWebSearchChatSubmissionPayload = { ...event.payload };
+          nextCurrentState = GlobalFsmState.WEB_SEARCH_CHAT_PENDING;
+          contextSetters.setUserInputWebSearchChatRequestJson(chatPendingJson);
+          contextSetters.setUserInputWebSearchChatResponseJson(chatPendingJson);
+          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To WEB_SEARCH_CHAT_PENDING for ticker ${nextVariables.userInputTicker}.`);
+        }
+        break;
+      case 'WEB_SEARCH_CHAT_ACTION_SUCCESS':
+        if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
+            const { searchType, promptName, ...restOfPayload } = event.payload;
+            if (searchType === 'user_input') {
+                contextSetters.setUserInputWebSearchChatRequestJson(restOfPayload.chatbotRequestJson);
+                contextSetters.setUserInputWebSearchChatResponseJson(restOfPayload.chatbotResponseJson);
+            } else if (searchType === 'technical_analysis') {
+                contextSetters.setRawTaWebSearchRequestJson(restOfPayload.chatbotRequestJson);
+                contextSetters.setRawTaWebSearchResponseJson(restOfPayload.chatbotResponseJson);
+            } else if (searchType === 'options_flow') {
+                contextSetters.setRawOptionsWebSearchRequestJson(restOfPayload.chatbotRequestJson);
+                contextSetters.setRawOptionsWebSearchResponseJson(restOfPayload.chatbotResponseJson);
             }
-            break;
-        case 'WEB_SEARCH_CHAT_ACTION_SUCCESS':
-            if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
-                const { searchType, promptName, ...restOfPayload } = event.payload;
-                if (searchType === 'user_input') {
-                    contextSetters.setUserInputWebSearchChatRequestJson(restOfPayload.chatbotRequestJson);
-                    contextSetters.setUserInputWebSearchChatResponseJson(restOfPayload.chatbotResponseJson);
-                } else if (searchType === 'technical_analysis') {
-                    contextSetters.setRawTaWebSearchRequestJson(restOfPayload.chatbotRequestJson);
-                    contextSetters.setRawTaWebSearchResponseJson(restOfPayload.chatbotResponseJson);
-                } else if (searchType === 'options_flow') {
-                    contextSetters.setRawOptionsWebSearchRequestJson(restOfPayload.chatbotRequestJson);
-                    contextSetters.setRawOptionsWebSearchResponseJson(restOfPayload.chatbotResponseJson);
-                }
-                
-                if (promptName) {
-                    nextVariables.completedChatPrompts.push(promptName);
-                }
-                try {
-                    const flowOutput = JSON.parse(restOfPayload.chatbotResponseJson);
-                    if (flowOutput.response) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_succ`, role: 'model', content: flowOutput.response }); }
-                    else if (flowOutput.error) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_err`, role: 'model', content: `Chatbot Error: ${flowOutput.error}` }); }
-                } catch (e) {
-                    addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_parse_err`, role: 'model', content: "Error parsing web search response." });
-                }
-                nextVariables.lastError = null;
-                nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+            
+            if (promptName) {
+                nextVariables.completedChatPrompts.push(promptName);
             }
-            break;
-        case 'WEB_SEARCH_CHAT_ACTION_ERROR':
-            if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
-                const { searchType, ...chatErrPayload } = event.payload;
-                const chatErrMsg = chatErrPayload.message || 'Web search chat failed';
+            try {
+                const flowOutput = JSON.parse(restOfPayload.chatbotResponseJson);
+                if (flowOutput.response) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_succ`, role: 'model', content: flowOutput.response }); }
+                else if (flowOutput.error) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_err`, role: 'model', content: `Chatbot Error: ${flowOutput.error}` }); }
+            } catch (e) {
+                addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_parse_err`, role: 'model', content: "Error parsing web search response." });
+            }
+            nextVariables.lastError = null;
+            nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+        }
+        break;
+      case 'WEB_SEARCH_CHAT_ACTION_ERROR':
+          if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
+              const { searchType, ...chatErrPayload } = event.payload;
+              const chatErrMsg = chatErrPayload.message || 'Web search chat failed';
 
-                if (searchType === 'user_input') {
-                    contextSetters.setUserInputWebSearchChatRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
-                    contextSetters.setUserInputWebSearchChatResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
-                } else if (searchType === 'technical_analysis') {
-                    contextSetters.setRawTaWebSearchRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
-                    contextSetters.setRawTaWebSearchResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
-                } else if (searchType === 'options_flow') {
-                    contextSetters.setRawOptionsWebSearchRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
-                    contextSetters.setRawOptionsWebSearchResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
-                }
+              if (searchType === 'user_input') {
+                  contextSetters.setUserInputWebSearchChatRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
+                  contextSetters.setUserInputWebSearchChatResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+              } else if (searchType === 'technical_analysis') {
+                  contextSetters.setRawTaWebSearchRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
+                  contextSetters.setRawTaWebSearchResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+              } else if (searchType === 'options_flow') {
+                  contextSetters.setRawOptionsWebSearchRequestJson(chatErrPayload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
+                  contextSetters.setRawOptionsWebSearchResponseJson(chatErrPayload.chatbotResponseJson || errorJsonWithDetails(chatErrMsg, chatErrPayload.error));
+              }
 
-                addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_act_err`, role: 'model', content: `Error: ${chatErrMsg}` });
-                handlePipelineError('WebSearchChatAction', chatErrMsg, chatErrPayload.error);
-                nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
-            }
-            break;
+              addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_act_err`, role: 'model', content: `Error: ${chatErrMsg}` });
+              handlePipelineError('WebSearchChatAction', chatErrMsg, chatErrPayload.error);
+              nextCurrentState = GlobalFsmState.IDLE;
+          }
+          break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextCurrentState = GlobalFsmState.IDLE;
         nextVariables.activePipelineProfile = null;

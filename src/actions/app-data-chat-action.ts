@@ -31,6 +31,7 @@ export interface AppDataChatActionInputs {
 }
 
 export async function appDataChatAction(
+  prevState: AppDataChatActionState,
   payload: AppDataChatActionInputs
 ): Promise<AppDataChatActionState> {
   const {
@@ -44,7 +45,7 @@ export async function appDataChatAction(
     promptName,
   } = payload;
   const actionLogPrefix = `[ServerAction:appDataChatAction:Ticker:${ticker || 'N/A'}]`;
-  console.log(`${actionLogPrefix} Received request. PromptName: ${promptName || 'default_chat'}. User Input (first 50 chars): "${userInput.substring(0,50)}...". History length: ${chatHistory?.length || 0}.`);
+  console.log(`${actionLogPrefix} Received request. PromptName: ${promptName || 'default_chat'}. User Input (first 50 chars): "${userInput?.substring(0,50) || 'undefined_input'}...". History length: ${chatHistory?.length || 0}.`);
 
 
   if (!userInput || userInput.trim() === '') {

@@ -25,7 +25,7 @@ export async function webSearchChatAction(
 ): Promise<WebSearchChatActionState> {
   const { ticker, userInput, promptName, chatHistory } = payload;
   const actionLogPrefix = `[ServerAction:webSearchChatAction:Ticker:${ticker || 'N/A'}]`;
-  console.log(`${actionLogPrefix} Received request. PromptName: ${promptName || 'default_web_search'}. User Input (first 50 chars): "${userInput.substring(0,50)}...".`);
+  console.log(`${actionLogPrefix} Received request. PromptName: ${promptName || 'default_web_search'}. User Input (first 50 chars): "${userInput?.substring(0,50) || 'undefined_input'}...".`);
 
   if (!userInput || userInput.trim() === '') {
     const errorMsg = 'User input cannot be empty.';
