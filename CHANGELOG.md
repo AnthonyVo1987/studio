@@ -58,6 +58,15 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.21` (Intermediate Debugging Checkpoint)
+**Tag:** `Phase-55_Task-3.3.16.7.21_CheckpointUnresolvedChatBug`
+**Commit Hash:** `a8e04f93`
+**Subject:** `docs(all): Checkpoint v3.3.16.7.21, acknowledge unresolved Web Search Chat bug`
+**Details:**
+This is a **documentation-only** commit to checkpoint the application's state during the debugging of the "Dual AI Chat Architecture" feature. It formally acknowledges two key points:
+1.  **Partial Bug Fix:** The fix in commit `a8e04f93` successfully resolved the `TypeError` crash in `appDataChatAction` by correcting its function signature. The App Data chat is now stable.
+2.  **Unresolved Web Search Bug:** The fix was **unsuccessful** in resolving the core issue with the Web Search chat. The `Unable to determine type of tool: {"googleSearch":{}}` error persists, indicating a deeper architectural or invocation issue. The investigation into the Web Search pipeline will continue from this checkpoint.
+---
 **App Version:** `v3.3.16.7.12` (Intermediate Debugging Checkpoint)
 **Tag:** `Phase-53_Task-3.3.16.7.12_CheckpointUnresolvedUiBug`
 **Commit Hash:** `b6523420`

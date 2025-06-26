@@ -1,8 +1,8 @@
 
 # Feature Scope: Dual AI Chat Architecture (v3.3.16.4.F)
 
-**Document Version:** 3.0
-**Date:** 2025-07-20
+**Document Version:** 4.0
+**Date:** 2025-07-22
 **Target Application Version Series:** 3.3.16.4.F+
 **Feature Status:** IN PROGRESS - TESTING & DEBUGGING
 
@@ -82,10 +82,13 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
     *   **v3.3.16.7.10:** Fix non-functional Chatbot scrollbars. (`FAILED`)
     *   **v3.3.16.7.12:** Checkpoint unresolved scrollbar bug; document successful `v3.3.16.7.17` pipeline loop fix. (`COMPLETED`)
     *   **v3.3.16.7.17:** Fix App Data Chat pipeline loop. (`COMPLETED`)
+    *   **v3.3.16.7.21:** (Attempt #3) Fix Web Search chat pipeline logic and server action signatures. (`FAILED`)
+    *   **v3.3.16.7.x:** Continue debugging of Web Search Chat `Unable to determine type of tool` error. (`PLANNED`)
     *   **v3.3.16.7.x:** Continue debugging of Chatbot scrollbars. (`PLANNED`)
     *   **v3.3.16.7.x:** Comprehensive testing of all functionality. (`PLANNED`)
 
 ## 6. Document Changelog
+*   **v4.0 (2025-07-22):** Updated Phase 3 task list to reflect the failed fix attempt in v3.3.16.7.21 and ongoing debugging.
 *   **v3.0 (2025-07-20):** Updated status to `IN PROGRESS - TESTING & DEBUGGING`. Documented the successful fix for the App Data Chat pipeline loop and the unresolved status of the chat scrollbar bug. Updated Phase 3 task list.
 *   **v2.0 (2025-07-19):** Updated feature status to `READY FOR TESTING`. Marked implementation phases as complete. Updated Phase 3 task status.
 *   **v1.0 (2025-07-19):** Initial document creation.

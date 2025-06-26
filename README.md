@@ -31,9 +31,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 2.8
-**Application Version (from `app-metadata.json`):** v3.3.16.7.12
-**Last Updated:** 2025-07-20
+**README Document Version:** 2.9
+**Application Version (from `app-metadata.json`):** v3.3.16.7.21
+**Last Updated:** 2025-07-22
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -191,9 +191,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.7.12):**
-    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final testing phase is in progress.
-    *   **Known Unresolved Bug:** The AI Chat scrollbars are not functioning correctly. Debugging is ongoing.
+*   **Current Feature Focus (as of v3.3.16.7.21):**
+    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final testing and debugging phase is in progress.
+    *   **Known Unresolved Bug:** The **Web Search AI Chat** pipeline is not functioning correctly, failing with a `Unable to determine type of tool` error. The investigation is ongoing.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -245,8 +245,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 2.8
-*   **Current Application Version:** `v3.3.16.7.12`
+*   **This README Document Version:** 2.9
+*   **Current Application Version:** `v3.3.16.7.21`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.

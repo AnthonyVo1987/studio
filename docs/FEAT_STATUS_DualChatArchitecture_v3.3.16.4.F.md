@@ -1,18 +1,19 @@
 
 # Feature Status Report: Dual AI Chat Architecture (v3.3.16.4.F)
 
-**Document Version:** 6.0
-**Date:** 2025-07-20
+**Document Version:** 7.0
+**Date:** 2025-07-22
 **Feature Target Application Version Series:** 3.3.16.4.F+
 
 ## 1. Overall Feature Status
 
 **Current Status:** `IN PROGRESS - TESTING & DEBUGGING`
-**Last Updated:** 2025-07-20
+**Last Updated:** 2025-07-22
 
-**Summary:** The initial implementation of the Dual AI Chat architecture is complete. Testing revealed and resolved a critical bug (`v3.3.16.7.17`) causing the automated App Data Chat pipeline to loop infinitely. A UI bug (`v3.3.16.7.12`) where the chat scrollbars are non-functional remains **unresolved**. This commit checkpoints the current progress.
+**Summary:** The initial implementation of the Dual AI Chat architecture is complete. Debugging is ongoing for the Web Search Chat pipeline. The most recent attempt (`v3.3.16.7.21`) fixed a `TypeError` crash in the App Data chat but did not resolve the persistent `Unable to determine type of tool` error for the Web Search chat. This error is now the primary blocker.
 
 ## 2. Known Issues
+*   **UNRESOLVED (CRITICAL):** The Web Search Chat pipeline fails with a `Unable to determine type of tool` error.
 *   **UNRESOLVED:** The scrollbars in both the App Data Chat and Web Search Chat components do not function correctly; content overflows instead of becoming scrollable.
 *   **DEFERRED:** The Web Search Chat pipeline has not yet been fully tested or debugged.
 
@@ -32,6 +33,8 @@
     *   **v3.3.16.7.10:** Fix non-functional Chatbot scrollbars. (`FAILED`)
     *   **v3.3.16.7.12:** Checkpoint unresolved scrollbar bug; document successful `v3.3.16.7.17` pipeline loop fix. (`COMPLETED`)
     *   **v3.3.16.7.17:** Fix App Data Chat pipeline loop. (`COMPLETED`)
+    *   **v3.3.16.7.21:** Fix Web Search chat pipeline logic and server action signatures. (`FAILED`)
+    *   **v3.3.16.7.x:** Continue debugging of Web Search Chat `Unable to determine type of tool` error. (`PLANNED`)
     *   **v3.3.16.7.x:** Continue debugging of Chatbot scrollbars. (`PLANNED`)
     *   **v3.3.16.7.x:** Comprehensive testing of all functionality. (`PLANNED`)
 
@@ -39,6 +42,7 @@
 
 | Date       | Version Tag (Task ID)               | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                              | Status    |
 | :--------- | :---------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :-------- |
+| 2025-07-22 | `v3.3.16.7.21` (Docs Checkpoint)    | `a8e04f93`                  | Checkpointed project state. Acknowledged fix for `TypeError` crash in App Data Chat. Acknowledged persistent `Unable to determine type of tool` bug for Web Search Chat. | COMPLETED |
 | 2025-07-20 | `v3.3.16.7.12` (Docs Checkpoint)    | `b6523420`                  | Checkpointed project state. Acknowledged unresolved scrollbar UI bug. Documented the successful fix for the app data chat pipeline loop for future reference.                   | COMPLETED |
 | 2025-07-20 | `v3.3.16.7.17` (Pipeline Loop Fix)  | `(prev_commit)`             | **FIXED App Data Chat loop.** Replaced `lastCompletedChatPromptName` string with `completedChatPrompts: string[]` array in FSM for proper sequence tracking.                    | COMPLETED |
 | 2025-07-20 | `v3.3.16.7.10` (Scrollbar Fix Attempt)| `(prev_commit)`             | **Attempted to fix chat scrollbars.** The fix was unsuccessful.                                                                                                                   | FAILED    |
@@ -49,6 +53,7 @@
 | 2025-07-19 | `v3.3.16.4.F` (Feature Scoped)      | TBD                         | Scoped new "Dual AI Chat Architecture" feature to resolve tool-use errors by decoupling chat streams. Created new scope/status docs and marked old ones as obsolete. | COMPLETED |
 
 ## 5. Document Changelog (for this FEAT_STATUS_xxx.md file)
+*   **v7.0 (2025-07-22):** Added changelog entry for commit `a8e04f93` (v3.3.16.7.21). Updated summary and Known Issues to reflect the persistent `Unable to determine type of tool` error.
 *   **v6.0 (2025-07-20):** Updated status for `v3.3.16.7.12` and added entries for `v3.3.16.7.17` and `v3.3.16.7.10` to reflect debugging progress.
 *   **v5.0 (2025-07-20):** Added changelog entry for `v3.3.16.7.9` revert. Updated summary and task status to reflect ongoing debugging of the pipeline stall.
 *   **v4.0 (2025-07-19):** Marked Phase 3 tasks v3.3.16.7.0 and v3.3.16.7.1 as `COMPLETED`. Updated overall status to `READY FOR TESTING`.
