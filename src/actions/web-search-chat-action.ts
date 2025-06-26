@@ -7,6 +7,7 @@ import {
   type WebSearchChatOutput,
 } from '@/ai/flows/web-search-chat-flow';
 import { ai } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
 
 export interface WebSearchChatActionResult {
@@ -38,7 +39,7 @@ export async function webSearchChatAction(
       const result = await ai.generate({
         model: DEFAULT_CHAT_MODEL_ID,
         prompt: debugPrompt,
-        tools: [{ googleSearch: {} }],
+        tools: [googleAI.googleSearch],
         config: {
           thinkingConfig: { thinkingBudget: -1 },
         },
