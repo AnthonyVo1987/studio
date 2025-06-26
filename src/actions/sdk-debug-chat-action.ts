@@ -5,6 +5,10 @@ import type {
   RawDebugChatActionState,
   RawDebugChatInputs,
 } from '@/ai/schemas/raw-debug-chat-schemas';
+import {
+  buildPromptStringFromLlmDefinition,
+  LlmPromptDefinitionSchema,
+} from '@/ai/definition-loader';
 
 // Ensure API key is available
 const apiKey = process.env.GEMINI_API_KEY;
@@ -15,55 +19,87 @@ const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite-preview-06-17" });
 const groundedModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite-preview-06-17", tools: [{googleSearch: {}}] });
 
+async function loadPromptText(definitionName: string, ticker: string = "NVDA"): Promise<string> {
+    const module = await import(`@/ai/definitions/${definitionName}.json`);
+    const jsonData = module.default;
+    const validationResult = LlmPromptDefinitionSchema.safeParse(jsonData);
+    if (!validationResult.success) {
+      throw new Error(`Invalid prompt definition structure in ${definitionName}.json`);
+    }
+    // Replace the ticker placeholder in the prompt string.
+    const rawPrompt = buildPromptStringFromLlmDefinition(validationResult.data);
+    return rawPrompt.replace(/{{{ticker}}}/g, ticker);
+}
+
 export async function sdkDebugChatAction(
   prevState: RawDebugChatActionState,
   payload: RawDebugChatInputs
 ): Promise<RawDebugChatActionState> {
-  const { promptType } = payload;
+  const { promptType, userInput } = payload;
   const logPrefix = `[ServerAction:sdkDebugChatAction:${promptType}]`;
   console.log(`${logPrefix} Received request.`);
 
-  if (promptType === 'sdk-app-data') {
-    const debugPrompt = "What's the correlation for NVDA and the broader AI market?";
-    const requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_app_data' }, null, 2);
-    try {
-      console.log(`${logPrefix} Executing direct SDK (non-grounded) prompt.`);
-      const result = await model.generateContent(debugPrompt);
-      const response = await result.response;
-      const text = response.text();
-      return {
-        status: 'success',
-        data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
-        message: 'SDK App Data response received.',
-      };
-    } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL Error: ${error.message}.`);
-      return {
-        status: 'error', error: error.message, message: 'SDK App Data prompt failed.',
-        data: { requestJson, responseJson: JSON.stringify({ error: error.message, details: String(error) }, null, 2) },
-      };
+  let debugPrompt = '';
+  let requestJson = '';
+  let modelToUse = model;
+
+  try {
+    switch (promptType) {
+        case 'sdk-app-data':
+            debugPrompt = "What's the correlation for NVDA and the broader AI market?";
+            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_app_data' }, null, 2);
+            modelToUse = model;
+            break;
+
+        case 'sdk-web-search':
+            debugPrompt = "What's the current ATR-14 for NVDA";
+            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_web_search' }, null, 2);
+            modelToUse = groundedModel;
+            break;
+
+        case 'sdk-ta-web-search':
+            debugPrompt = await loadPromptText('technical-analysis-web-search');
+            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-ta-web-search' }, null, 2);
+            modelToUse = groundedModel;
+            break;
+
+        case 'sdk-options-web-search':
+            debugPrompt = await loadPromptText('options-flow-web-search');
+            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-options-web-search' }, null, 2);
+            modelToUse = groundedModel;
+            break;
+
+        case 'sdk-user-web-search':
+            if (!userInput || userInput.trim() === '') {
+                throw new Error("User input cannot be empty for this prompt type.");
+            }
+            debugPrompt = userInput;
+            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-user-web-search' }, null, 2);
+            modelToUse = groundedModel;
+            break;
+
+        default:
+            return { status: 'error', error: 'Invalid prompt type.', message: 'Unknown debug prompt type requested.' };
     }
-  } else if (promptType === 'sdk-web-search') {
-    const debugPrompt = "What's the current ATR-14 for NVDA";
-    const requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_web_search' }, null, 2);
-    try {
-      console.log(`${logPrefix} Executing direct SDK (grounded) prompt.`);
-      const result = await groundedModel.generateContent(debugPrompt);
-      const response = await result.response;
-      const text = response.text();
-       return {
-        status: 'success',
-        data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
-        message: 'SDK Web Search response received.',
-      };
-    } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL Error: ${error.message}.`);
-      return {
-        status: 'error', error: error.message, message: 'SDK Web Search prompt failed.',
-        data: { requestJson, responseJson: JSON.stringify({ error: error.message, details: String(error) }, null, 2) },
-      };
+
+    console.log(`${logPrefix} Executing direct SDK prompt. Length: ${debugPrompt.length}`);
+    const result = await modelToUse.generateContent(debugPrompt);
+    const response = await result.response;
+    const text = response.text();
+    return {
+      status: 'success',
+      data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
+      message: `SDK action for '${promptType}' succeeded.`,
+    };
+  } catch (error: any) {
+    console.error(`${logPrefix} CRITICAL Error: ${error.message}.`);
+    // Ensure requestJson is populated even on error for display
+    if (!requestJson) {
+        requestJson = JSON.stringify({ prompt: "Error during prompt setup", type: promptType, error: error.message }, null, 2);
     }
-  } else {
-    return { status: 'error', error: 'Invalid prompt type.', message: 'Unknown debug prompt type requested.' };
+    return {
+      status: 'error', error: error.message, message: `SDK action for '${promptType}' failed.`,
+      data: { requestJson, responseJson: JSON.stringify({ error: error.message, details: String(error) }, null, 2) },
+    };
   }
 }
