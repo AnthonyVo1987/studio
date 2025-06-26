@@ -56,23 +56,11 @@ export function Chatbot({
 
   const { toast } = useToast();
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
-  const cardContentRef = useRef<HTMLDivElement>(null); 
-
-  // --- Diagnostic Logging Effect ---
-  useEffect(() => {
-    if (cardContentRef.current) {
-        const dimensions = {
-            cardContentClientHeight: cardContentRef.current.clientHeight,
-            cardContentScrollHeight: cardContentRef.current.scrollHeight,
-        };
-        console.log(`[CHAT SCROLL DEBUG - ${title}]`, dimensions);
-    }
-  }, [chatHistory, title]);
-  // --- End Diagnostic Logging Effect ---
+  const scrollAreaRef = useRef<HTMLDivElement>(null); 
 
   useEffect(() => {
-    if (cardContentRef.current) {
-      cardContentRef.current.scrollTo({ top: cardContentRef.current.scrollHeight, behavior: 'smooth' });
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [chatHistory]);
 
@@ -159,7 +147,7 @@ export function Chatbot({
             </div>
         </div>
       </CardHeader>
-      <CardContent ref={cardContentRef} className="flex-grow overflow-y-auto p-4 space-y-4">
+      <CardContent ref={scrollAreaRef} className="flex-grow overflow-y-auto p-4 space-y-4">
         {chatHistory.length === 0 && (
         <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
         )}
