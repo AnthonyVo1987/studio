@@ -8,3 +8,4 @@ import '@/ai/flows/analyze-stock-data.ts';
 import '@/ai/flows/app-data-chat-flow.ts';
 import '@/ai/flows/analyze-options-chain-flow.ts';
 import '@/ai/flows/web-search-chat-flow.ts';
+import '@/ai/flows/raw-web-search-debug-flow.ts';

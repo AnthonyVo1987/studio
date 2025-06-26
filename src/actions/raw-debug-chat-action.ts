@@ -4,22 +4,11 @@
 import { ai } from '@/ai/genkit';
 import { AppDataChatOutputSchema } from '@/ai/schemas/app-data-chat-schemas';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
-
-export interface RawDebugResult {
-  requestJson: string;
-  responseJson: string;
-}
-
-export interface RawDebugChatActionState {
-  status: 'idle' | 'success' | 'error';
-  data?: RawDebugResult;
-  error?: string;
-  message?: string;
-}
-
-interface RawDebugChatInputs {
-  promptType: 'app-data' | 'web-search';
-}
+import { rawWebSearchDebug } from '@/ai/flows/raw-web-search-debug-flow';
+import type {
+  RawDebugChatActionState,
+  RawDebugChatInputs,
+} from '@/ai/schemas/raw-debug-chat-schemas';
 
 export async function rawDebugChatAction(
   prevState: RawDebugChatActionState,
@@ -57,24 +46,19 @@ export async function rawDebugChatAction(
     const debugPrompt = "What's the current ATR-14 for NVDA";
     const requestJson = JSON.stringify({ prompt: debugPrompt, type: 'debug_web_search' }, null, 2);
     try {
-      console.log(`${logPrefix} Executing raw Web Search prompt via direct ai.generate().`);
-      const result = await ai.generate({
-        model: DEFAULT_CHAT_MODEL_ID,
-        prompt: debugPrompt,
-        tools: [{ googleSearch: {} }],
-        config: { thinkingConfig: { thinkingBudget: -1 } },
-      });
+      console.log(`${logPrefix} Executing raw Web Search prompt via dedicated debug flow.`);
+      // Call the new, dedicated flow instead of ai.generate() directly
+      const result = await rawWebSearchDebug(debugPrompt);
       
-      const responseText = result.text ?? "Debug prompt failed to return text.";
       return {
         status: 'success',
-        data: { requestJson, responseJson: JSON.stringify({ response: responseText, rawResponse: result }, null, 2) },
+        data: { requestJson, responseJson: JSON.stringify(result, null, 2) },
         message: 'Debug Web Search response received.',
       };
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL Error: ${error.message}.`);
+      console.error(`${logPrefix} CRITICAL Error calling debug flow: ${error.message}.`);
       return {
-        status: 'error', error: error.message, message: 'Debug Web Search prompt failed.',
+        status: 'error', error: error.message, message: 'Debug Web Search flow failed.',
         data: { requestJson, responseJson: JSON.stringify({ error: error.message, details: String(error) }, null, 2) },
       };
     }
