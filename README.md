@@ -31,8 +31,8 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 2.7
-**Application Version (from `app-metadata.json`):** v3.3.16.7.9
+**README Document Version:** 2.8
+**Application Version (from `app-metadata.json`):** v3.3.16.7.12
 **Last Updated:** 2025-07-20
 
 ## 1. Introduction
@@ -154,13 +154,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Chat history and the `useActionState` hook for both chat server actions, ensuring state persistence across UI changes.
 *   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.7.1)
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.7.12)
 *   **Dual Chat FSM States:** The global FSM now has distinct, parallel states to manage the "App Data Chat" and "Web Search Chat" lifecycles independently (e.g., `APP_DATA_CHAT_PENDING` vs. `WEB_SEARCH_CHAT_PENDING`).
 *   **Lifecycle Management:** This FSM orchestrates all application pipelines:
     *   The standard automated analysis (data fetch + base AI TA).
     *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and chat prompts.
-    *   **[Architectural Principle - Enforced Determinism]:** To resolve persistent pipeline loops, the FSM orchestrator `useEffect` hook now depends **only** on the FSM's primary state (`current`). This ensures orchestration logic runs predictably only when a state transition completes. Internal pipeline actions now use direct `async/await` calls within the orchestrator instead of `useActionState` to eliminate race conditions.
-*   **TODO - Future Task:** A future architectural review task will be created to audit the entire application and apply the principle of deterministic FSM orchestration more broadly to ensure maximum stability and remove any remaining potential for race conditions.
+*   **Automated Chat Pipeline State (as of `v3.3.16.7.17` Fix):**
+    *   **FIXED:** The App Data Chat pipeline loop was resolved. The FSM now uses a `completedChatPrompts: string[]` array to correctly track which chat prompts have been executed in a sequence. The dispatcher (`dispatchNextCustomAction`) now checks against this array to ensure each step runs only once, allowing the pipeline to complete successfully.
+*   **TODO - Future Task:** A future architectural review task will be created to apply the principle of deterministic FSM orchestration more broadly to ensure maximum stability and remove any remaining potential for race conditions.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -190,9 +191,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.7.1):**
-    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Implementation is complete. The feature is now ready for final testing.
-*   **AI Documentation Update Policy (Strictly Enforced):** The AI Coding Agent is **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
+*   **Current Feature Focus (as of v3.3.16.7.12):**
+    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final testing phase is in progress.
+    *   **Known Unresolved Bug:** The AI Chat scrollbars are not functioning correctly. Debugging is ongoing.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -244,8 +245,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 2.7
-*   **Current Application Version:** `v3.3.16.7.9`
+*   **This README Document Version:** 2.8
+*   **Current Application Version:** `v3.3.16.7.12`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.

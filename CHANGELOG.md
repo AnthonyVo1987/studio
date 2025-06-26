@@ -58,6 +58,18 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.12` (Intermediate Debugging Checkpoint)
+**Tag:** `Phase-53_Task-3.3.16.7.12_CheckpointUnresolvedUiBug`
+**Commit Hash:** `b6523420`
+**Subject:** `docs(all): Checkpoint v3.3.16.7.12, acknowledge unresolved UI bug & document pipeline fixes`
+**Details:**
+This is a **documentation-only** commit to checkpoint the application's state during the final testing phase of the "Dual AI Chat Architecture" feature. It formally acknowledges two key points:
+1.  **Unresolved UI Bug:** The fix for the non-functional AI Chat scrollbars (`v3.3.16.7.10`) was **unsuccessful**. The bug persists, and debugging will continue.
+2.  **Successful Pipeline Fix (Context for Future Debugging):** The critical bug causing the automated "App Data AI Chat" pipeline to loop infinitely (`v3.3.16.7.17`) **has been successfully resolved**.
+    *   **Root Cause:** The FSM orchestrator was using a single string (`lastCompletedChatPromptName`) to track progress, causing it to loop when checking which prompt to run next.
+    *   **The Fix:** This was corrected by replacing the string with a `completedChatPrompts: string[]` array. The FSM now correctly checks if a prompt name is already in this array before dispatching it, ensuring each step runs only once.
+    *   **Current State:** The "App Data AI Chat" pipeline is now stable and correctly sequences through all selected prompts. This successful architectural pattern (using an array to track completed steps) will serve as the model for debugging the "Web Search AI Chat" pipeline in future tasks.
+---
 **App Version:** `v3.3.16.7.9` (Revert & Checkpoint)
 **Tag:** `Phase-54_Task-3.3.16.7.9_RevertFailedPipelineFixes`
 **Commit Hash:** `abfeffb3`
@@ -551,59 +563,6 @@ This commit (`109dedd5`) marks the successful completion of **Phase 3: Condition
 *   The application's core analysis logic is no longer rigid. Users can now toggle which AI analyses they want to run, and the FSM will execute only that selected pipeline.
 *   The application is now prepared for the next major phases of the feature (Phase 4, 5, 6), which will involve building the AI-augmented web search flows and integrating their data into this new conditional pipeline.
 *   The application version is consistently `v3.3.3.1.0`.
----
-**App Version:** `v3.3.2.2.0` (Complete Customizable Analysis Phase 2)
-**Tag:** `Phase-27_Task-3.3.2.2.0_FsmIntegrationComplete` (Commit `316f3e78`)
-**Subject:** `feat(fsm,ui): Complete Phase 2 of Customizable Analysis - FSM Integration (v3.3.2.2.0)`
-**Details:**
-This commit (`316f3e78`) marks the successful completion of **Phase 2: FSM & State Management Integration** for the "Customizable Analysis & AI Augmented Web Search" feature (v3.3 series). This phase established the critical link between the new UI toggles and the application's central nervous system, the global Finite State Machine.
-
-**Key Changes in Phase 2 (Tasks v3.3.2.0.0 through v3.3.2.2.0):**
-*   **New FSM Flags (`src/contexts/stock-analysis-context.tsx`):**
-    *   Added seven new boolean flags to `GlobalFsmFlags` to represent the on/off state of each new analysis toggle (e.g., `isAiKeyTakeawaysSelected`, `isAugmentedTaSearchEnabled`).
-*   **New FSM Event & Reducer Logic (`src/contexts/stock-analysis-context.tsx`):**
-    *   Created a new `ANALYSIS_TOGGLE_CHANGED` event type.
-    *   Updated the `fsmReducer` to handle this event, allowing it to dynamically update the new flags based on user interaction.
-*   **UI to FSM Connection (`src/components/main-tab-content.tsx`):**
-    *   The `checked` property of each of the seven new `<Switch />` components is now bound directly to its corresponding flag in the global FSM.
-    *   The `onCheckedChange` handler for each switch now dispatches the `ANALYSIS_TOGGLE_CHANGED` event to the global FSM with the correct payload.
-
-**Outcome:**
-*   The UI toggles for customizing the analysis pipeline are now fully state-managed by the single global FSM.
-*   The application is now prepared for Phase 3, where the FSM orchestrator will be updated to read these new flags and execute the analysis pipeline conditionally.
-*   The application version is consistently `v3.3.2.2.0`.
----
-**App Version:** `v3.3.1.2.0` (UI Foundation for Customizable Analysis)
-**Tag:** `Phase-26_Task-3.3.1.2.0_IntermediatePhaseComplete` (Commit `8f345a34`)
-**Subject:** `feat(ui,docs): Implement UI foundation for Customizable Analysis feature (v3.3.1.2.0)`
-**Details:**
-This commit (`8f345a34`) marks the completion of the initial UI setup tasks (`v3.3.1.0.0` through `v3.3.1.2.0`) for the new **"Customizable Analysis & AI Augmented Web Search"** feature (v3.3 series). This is a checkpoint commit that lays the visual groundwork for the feature before integrating FSM logic.
-
-**Key Changes in v3.3.1.0.0 - v3.3.1.2.0 (Consolidated):**
-*   **`src/components/main-tab-content.tsx`:**
-    *   **Removed "AI Full Analysis Macro" Button:** The hardcoded macro button and its associated logic trigger have been removed to make way for the new customizable pipeline.
-    *   **Added "Customizable Analysis" Toggles:** Five new `Switch` components have been added for `AI Key Takeaways`, `AI Analyzed Options Chain`, and the three `AI Chat` takeaways. These are grouped in a new UI card and are enabled by default.
-    *   **Added "Augmented Intelligence" Toggles:** Two new `Switch` components have been added for `Augmented Technical Analysis` and `Augmented Options Flow Analysis`. These are grouped in a new UI card and are disabled by default.
-*   **`src/config/app-metadata.json`:** Application version updated incrementally to `v3.3.1.2.0`.
-*   **Documentation:** All relevant feature documents (`FEAT_SCOPE_CustomizableAnalysis_v3.3.md`, `FEAT_STATUS_CustomizableAnalysis_v3.3.md`) and the main `README.md` have been updated to reflect the completion of these initial UI tasks.
-
-**Outcome:**
-*   The main UI has been successfully updated with the new toggle controls for the customizable analysis pipeline.
-*   At this stage, the toggles are present visually but have no backend logic or FSM state connection.
-*   The application is now prepared for Phase 2 of the feature: FSM & State Management Integration.
----
-**App Version:** `v3.3.0.0.0` (Feature Scoping)
-**Tag:** `Phase-25_Task-3.3.0.0.0_ScopeCustomizableAnalysis`
-**Subject:** `feat(docs): Scope Customizable Analysis & AI Augmented Web Search feature (v3.3)`
-**Details:**
-This commit (`TBD`) prepares all documentation for the new **"Customizable Analysis & AI Augmented Web Search"** feature, version series `v3.3.x.y.z`. This is a documentation and planning commit that sets the stage for implementation.
-
-**Key Changes:**
-*   **`docs/FEAT_SCOPE_CustomizableAnalysis_v3.3.md`:** A new, comprehensive feature scope document was created, outlining the objectives, detailed requirements, and a full, multi-phase implementation plan for the new feature.
-*   **`docs/FEAT_STATUS_CustomizableAnalysis_v3.3.md`:** A new feature status report was created to track the progress of the v3.3 feature through its planned phases.
-*   **`README.md`:** The main PRD was updated to include the new "Customizable Analysis & AI Augmented Web Search" functionality in its feature list.
-*   **`CHANGELOG.md` (this file):** Updated with this commit log to mark the official start of the new feature.
-*   **`src/config/app-metadata.json`:** Application version updated to `v3.3.0.0.0`.
 ---
 **App Version:** `v3.2.5.0.Z` (Complete FSM Consolidation)
 **Tag:** `Phase-24_Task-3.2.5.0.Z_CompleteFsmConsolidation` (Commit `1ca4bd54`)
@@ -1211,7 +1170,7 @@ This version addresses a critical bug where the "Generate AI Key Takeaways" and 
     *   Application version updated to `v2.9.D.1`.
 
 *   **Task v2.9.D.2 (Refine Button Logic & Client Diagnostics):**
-    *   **Identified Root Cause & Applied Fix:** Corrected the `disabled` logic for the "Generate AI Key Takeaways" (`keyTakeawaysButtonDisabled`) and "Generate AI Options Analysis" (`optionsAnalysisButtonDisabled`) buttons in `MainTabContent.tsx`. The primary fix was to ensure these conditions correctly checked the readiness of their *actual input data sources* (e.g., `stockSnapshotJson`, `standardTasJson`, `optionsChainJson`) using `isDataReadyForProcessing`, rather than incorrectly expecting the *output AI JSONs* (e.g., `aiKeyTakeawaysJson`, `aiOptionsAnalysisJson`) to be ready *before* generation.
+    *   **Identified Root Cause & Applied Fix:** Corrected the `disabled` logic for the "Generate AI Key Takeaways" (`keyTakeawaysButtonDisabled`) and "Generate AI Options Analysis" (`optionsAnalysisButtonDisabled`) buttons in `MainTabContent.tsx`. The primary fix was to ensure these conditions correctly checked the readiness of their *actual input data sources* (e.g., `stockSnapshotJson`, `standardTasJson`, `aiAnalyzedTaJson`) using `isDataReadyForProcessing`, rather than incorrectly expecting the *output AI JSONs* (e.g., `aiKeyTakeawaysJson`, `aiOptionsAnalysisJson`) to be ready *before* generation.
     *   Added further client-side logging to the `useEffect` hook in `MainTabContent.tsx` to monitor the evaluation of the complete `disabled` conditions and their constituent parts.
     *   Application version updated to `v2.9.D.2`.
 
