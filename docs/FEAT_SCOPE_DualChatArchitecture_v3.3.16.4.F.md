@@ -1,10 +1,10 @@
 
 # Feature Scope: Dual AI Chat Architecture (v3.3.16.4.F)
 
-**Document Version:** 4.0
-**Date:** 2025-07-22
+**Document Version:** 5.0
+**Date:** 2025-07-25
 **Target Application Version Series:** 3.3.16.4.F+
-**Feature Status:** IN PROGRESS - TESTING & DEBUGGING
+**Feature Status:** IN PROGRESS - DEBUGGING
 
 ## 1. Introduction & Objective
 
@@ -83,11 +83,13 @@ This section outlines the incremental tasks for an AI Coding Agent to implement 
     *   **v3.3.16.7.12:** Checkpoint unresolved scrollbar bug; document successful `v3.3.16.7.17` pipeline loop fix. (`COMPLETED`)
     *   **v3.3.16.7.17:** Fix App Data Chat pipeline loop. (`COMPLETED`)
     *   **v3.3.16.7.21:** (Attempt #3) Fix Web Search chat pipeline logic and server action signatures. (`FAILED`)
-    *   **v3.3.16.7.x:** Continue debugging of Web Search Chat `Unable to determine type of tool` error. (`PLANNED`)
+    *   **v3.3.16.7.26:** Implement isolated raw debug AI prompts for baseline testing. (`COMPLETED`)
+    *   **v3.3.16.7.x:** (Next) Re-architect FSM orchestrator to be deterministic and resolve race condition. (`PLANNED`)
     *   **v3.3.16.7.x:** Continue debugging of Chatbot scrollbars. (`PLANNED`)
     *   **v3.3.16.7.x:** Comprehensive testing of all functionality. (`PLANNED`)
 
 ## 6. Document Changelog
+*   **v5.0 (2025-07-25):** Updated Phase 3 task list to reflect the completion of the diagnostic debug prompt feature (v3.3.16.7.26) and to scope the upcoming FSM re-architecture as the next planned task.
 *   **v4.0 (2025-07-22):** Updated Phase 3 task list to reflect the failed fix attempt in v3.3.16.7.21 and ongoing debugging.
 *   **v3.0 (2025-07-20):** Updated status to `IN PROGRESS - TESTING & DEBUGGING`. Documented the successful fix for the App Data Chat pipeline loop and the unresolved status of the chat scrollbar bug. Updated Phase 3 task list.
 *   **v2.0 (2025-07-19):** Updated feature status to `READY FOR TESTING`. Marked implementation phases as complete. Updated Phase 3 task status.

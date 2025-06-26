@@ -58,6 +58,20 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.26` (Diagnostic Feature)
+**Tag:** `Phase-56_Task-3.3.16.7.26_ImplementDebugPrompts`
+**Commit Hash:** `119f1a5b`
+**Subject:** `feat(debug,ai): Implement isolated raw debug AI prompts for baseline testing`
+**Details:**
+This commit introduces a significant diagnostic enhancement to aid in resolving the persistent `Unable to determine type of tool` error. Two new **"Debug AI Chat Prompt"** buttons have been added, one to each of the two chat boxes.
+
+**Architectural Significance:**
+*   **Total Isolation:** These debug buttons trigger direct, non-cached `ai.generate()` calls from the server actions (`app-data-chat-action.ts`, `web-search-chat-action.ts`).
+*   **Bypasses Application Logic:** They completely bypass the standard application's AI flow logic, prompt loading/caching, and data context dependencies.
+*   **Stable Baseline:** This provides a stable, dependency-free baseline to test the raw connectivity and response from the Genkit API for both grounded (web search) and non-grounded (app data) prompts.
+*   The prompts are hardcoded within the server actions to ensure they are sent verbatim on every click, eliminating any potential for bugs in the prompt management system.
+*   This feature is critical for the next phase of debugging, as it allows for a clear distinction between a fundamental API issue and a bug within the application's complex FSM or AI flow orchestration.
+---
 **App Version:** `v3.3.16.7.21` (Intermediate Debugging Checkpoint)
 **Tag:** `Phase-55_Task-3.3.16.7.21_CheckpointUnresolvedChatBug`
 **Commit Hash:** `a8e04f93`
