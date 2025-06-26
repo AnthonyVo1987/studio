@@ -103,23 +103,44 @@ export function ChatbotFsmProvider({
     if (state.pendingSubmissionPayload) {
       const payload = state.pendingSubmissionPayload;
       
+      const baseChatPayload = {
+        ticker: currentTicker,
+        chatHistory: currentGlobalChatHistory,
+        userInput: payload.userInput.trim(),
+        promptName: payload.promptName,
+      };
+
       if (chatType === 'app-data') {
-        const chatPayloadForGlobalFsm: AppDataChatActionInputs = {
-          ticker: currentTicker, stockSnapshotJson: stockSnapshotJson || '{}', aiKeyTakeawaysJson: aiKeyTakeawaysJson || '{}',
-          aiAnalyzedTaJson: aiAnalyzedTaJson || '{}', aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
-          chatHistory: currentGlobalChatHistory, userInput: payload.userInput.trim(), promptName: payload.promptName,
+        const appDataPayload: AppDataChatActionInputs = {
+            ...baseChatPayload,
+            stockSnapshotJson: stockSnapshotJson || '{}',
+            aiKeyTakeawaysJson: aiKeyTakeawaysJson || '{}',
+            aiAnalyzedTaJson: aiAnalyzedTaJson || '{}',
+            aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
         };
-        logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Dispatching SUBMIT_APP_DATA_CHAT_MESSAGE for prompt: ${payload.promptName || 'default_chat'}`);
-        dispatchGlobalFsmEvent({ type: 'SUBMIT_APP_DATA_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
+
+        let eventType: FsmEvent['type'];
+        switch (payload.promptName) {
+            case 'stock-trader-takeaways':
+                eventType = 'SUBMIT_STOCK_TRADER_TAKEAWAYS_CHAT';
+                break;
+            case 'options-trader-takeaways':
+                eventType = 'SUBMIT_OPTIONS_TRADER_TAKEAWAYS_CHAT';
+                break;
+            case 'holistic-takeaways':
+                eventType = 'SUBMIT_HOLISTIC_TAKEAWAYS_CHAT';
+                break;
+            default:
+                eventType = 'SUBMIT_USER_INPUT_APP_DATA_CHAT';
+                break;
+        }
+        logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Dispatching ${eventType}`);
+        dispatchGlobalFsmEvent({ type: eventType, payload: appDataPayload });
+
       } else if (chatType === 'web-search') {
-        const chatPayloadForGlobalFsm: WebSearchChatInput = {
-            ticker: currentTicker,
-            chatHistory: currentGlobalChatHistory,
-            userInput: payload.userInput.trim(),
-            promptName: payload.promptName,
-        };
+        const webSearchPayload: WebSearchChatInput = baseChatPayload;
         logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Dispatching SUBMIT_WEB_SEARCH_CHAT_MESSAGE for prompt: ${payload.promptName || 'default_web_search'}`);
-        dispatchGlobalFsmEvent({ type: 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE', payload: chatPayloadForGlobalFsm });
+        dispatchGlobalFsmEvent({ type: 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE', payload: webSearchPayload });
       }
       
       dispatch({ type: 'PENDING_SUBMISSION_CLEARED' });

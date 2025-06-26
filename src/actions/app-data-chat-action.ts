@@ -31,7 +31,6 @@ export interface AppDataChatActionInputs {
 }
 
 export async function appDataChatAction(
-  prevState: AppDataChatActionState,
   payload: AppDataChatActionInputs
 ): Promise<AppDataChatActionState> {
   const {
