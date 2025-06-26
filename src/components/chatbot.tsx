@@ -56,13 +56,27 @@ export function Chatbot({
 
   const { toast } = useToast();
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
-  const scrollAreaRef = useRef<HTMLDivElement>(null); 
+  const viewportRef = useRef<HTMLDivElement>(null); 
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
+    if (viewportRef.current) {
+        viewportRef.current.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [chatHistory]);
+
+  // DIAGNOSTIC LOG: Re-added as per user instruction to verify the fix.
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (element) {
+      console.log(
+        `[CHAT SCROLL DEBUG - ${title}]`,
+        {
+          cardContentClientHeight: element.clientHeight,
+          cardContentScrollHeight: element.scrollHeight,
+        }
+      );
+    }
+  }, [chatHistory, title]);
 
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -147,7 +161,7 @@ export function Chatbot({
             </div>
         </div>
       </CardHeader>
-      <CardContent ref={scrollAreaRef} className="flex-grow overflow-y-auto p-4 space-y-4">
+      <CardContent ref={viewportRef} className="flex-grow overflow-y-auto p-4 space-y-4">
         {chatHistory.length === 0 && (
         <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
         )}
