@@ -267,6 +267,7 @@ export function MainTabContent() {
                 fsmState={globalFsmStateFromContext}
                 isProcessing={isAnyAnalysisInProgress}
                 exampleButtons={appDataButtons}
+                debugPromptName="debug_app_data"
                 currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
                 logDebug={logDebug}
               />
@@ -286,6 +287,7 @@ export function MainTabContent() {
                 fsmState={globalFsmStateFromContext}
                 isProcessing={isAnyAnalysisInProgress}
                 exampleButtons={webSearchButtons}
+                debugPromptName="debug_web_search"
                 currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
                 logDebug={logDebug}
               />
