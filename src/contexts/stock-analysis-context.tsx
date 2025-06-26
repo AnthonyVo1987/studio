@@ -430,6 +430,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
   const initialInitializationDispatchedRef = useRef(false);
   
+  const [appDataChatActionState, appDataChatFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
   const [webSearchChatActionState, webSearchChatFormAction, isWebSearchChatPending] = useActionState<WebSearchChatActionState, WebSearchChatActionInputs>(webSearchChatAction, { status: 'idle' });
 
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
@@ -981,6 +982,31 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const logPrefix = 'StockAnalysisContext:AppDataChatActionEffect';
+    if (appDataChatActionState.status === 'idle' || isAppDataChatPending) { return; }
+    logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${appDataChatActionState.status}, Message: ${appDataChatActionState.message}`);
+
+    const currentState = fsmStateRef.current.current;
+    let successEvent: FsmEvent['type'];
+    let errorEvent: FsmEvent['type'];
+
+    if (currentState === GlobalFsmState.USER_INPUT_APP_DATA_CHAT_PENDING) { successEvent = 'USER_INPUT_APP_DATA_CHAT_ACTION_SUCCESS'; errorEvent = 'USER_INPUT_APP_DATA_CHAT_ACTION_ERROR'; }
+    else if (currentState === GlobalFsmState.STOCK_TRADER_CHAT_PENDING) { successEvent = 'STOCK_TRADER_TAKEAWAYS_CHAT_ACTION_SUCCESS'; errorEvent = 'STOCK_TRADER_TAKEAWAYS_CHAT_ACTION_ERROR'; }
+    else if (currentState === GlobalFsmState.OPTIONS_TRADER_CHAT_PENDING) { successEvent = 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_SUCCESS'; errorEvent = 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_ERROR'; }
+    else if (currentState === GlobalFsmState.HOLISTIC_CHAT_PENDING) { successEvent = 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_SUCCESS'; errorEvent = 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_ERROR'; }
+    else { return; }
+
+    if (appDataChatActionState.status === 'success' && appDataChatActionState.data) {
+        let promptName; try { promptName = JSON.parse(appDataChatActionState.data.chatbotRequestJson).promptName; } catch(e){}
+        dispatchFsmEvent({ type: successEvent, payload: { ...appDataChatActionState.data, promptName } } as FsmEvent);
+    } else if (appDataChatActionState.status === 'error') {
+        let promptName; try { promptName = JSON.parse(appDataChatActionState.data?.chatbotRequestJson || '{}').promptName; } catch(e){}
+        dispatchFsmEvent({ type: errorEvent, payload: { ...appDataChatActionState, promptName } } as FsmEvent);
+    }
+  }, [appDataChatActionState, isAppDataChatPending, dispatchFsmEvent, logDebug]);
+
+
+  useEffect(() => {
     const logPrefix = 'StockAnalysisContext:WebSearchChatActionEffect';
     if (webSearchChatActionState.status === 'idle' || isWebSearchChatPending) { return; }
     logDebug(logPrefix as LogSourceId, 'StateChanged', `Status: ${webSearchChatActionState.status}, Message: ${webSearchChatActionState.message}`);
@@ -1094,19 +1120,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         currentState === GlobalFsmState.HOLISTIC_CHAT_PENDING
       ) {
         if (state.variables.pendingAppDataChatSubmissionPayload) {
-          const payload = state.variables.pendingAppDataChatSubmissionPayload;
-          const result = await appDataChatAction(payload);
-          let successEvent: FsmEvent['type']; let errorEvent: FsmEvent['type'];
-          if (currentState === GlobalFsmState.USER_INPUT_APP_DATA_CHAT_PENDING) { successEvent = 'USER_INPUT_APP_DATA_CHAT_ACTION_SUCCESS'; errorEvent = 'USER_INPUT_APP_DATA_CHAT_ACTION_ERROR'; }
-          else if (currentState === GlobalFsmState.STOCK_TRADER_CHAT_PENDING) { successEvent = 'STOCK_TRADER_TAKEAWAYS_CHAT_ACTION_SUCCESS'; errorEvent = 'STOCK_TRADER_TAKEAWAYS_CHAT_ACTION_ERROR'; }
-          else if (currentState === GlobalFsmState.OPTIONS_TRADER_CHAT_PENDING) { successEvent = 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_SUCCESS'; errorEvent = 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_ERROR'; }
-          else { successEvent = 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_SUCCESS'; errorEvent = 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_ERROR'; }
-          if (result.status === 'success' && result.data) { dispatchFsmEvent({ type: successEvent, payload: { ...result.data, promptName: payload.promptName } } as FsmEvent); } 
-          else { dispatchFsmEvent({ type: errorEvent, payload: { error: result.error, message: result.message, chatbotRequestJson: result.data?.chatbotRequestJson, chatbotResponseJson: result.data?.chatbotResponseJson, promptName: payload.promptName } } as FsmEvent); }
+          startTransition(() => {
+            appDataChatFormAction(state.variables.pendingAppDataChatSubmissionPayload!);
+          });
         }
       } else if (currentState === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
         if (state.variables.pendingWebSearchChatSubmissionPayload) {
-          webSearchChatFormAction(state.variables.pendingWebSearchChatSubmissionPayload);
+          startTransition(() => {
+            webSearchChatFormAction(state.variables.pendingWebSearchChatSubmissionPayload!);
+          });
         }
       }
     };
@@ -1321,4 +1343,3 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
-
