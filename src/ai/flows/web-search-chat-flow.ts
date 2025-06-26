@@ -13,7 +13,6 @@ import { ai } from '@/ai/genkit';
 import {
   WebSearchChatInputSchema,
   type WebSearchChatInput,
-  WebSearchChatOutputSchema,
   type WebSearchChatOutput,
 } from '@/ai/schemas/web-search-chat-schemas';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
