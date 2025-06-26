@@ -2,7 +2,6 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/googleai';
 import { AppDataChatOutputSchema } from '@/ai/schemas/app-data-chat-schemas';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
 
@@ -62,7 +61,7 @@ export async function rawDebugChatAction(
       const result = await ai.generate({
         model: DEFAULT_CHAT_MODEL_ID,
         prompt: debugPrompt,
-        tools: [googleAI.googleSearch],
+        tools: [{ googleSearch: {} }],
         config: { thinkingConfig: { thinkingBudget: -1 } },
       });
       const responseText = result.text ?? "Debug prompt failed to return text.";
