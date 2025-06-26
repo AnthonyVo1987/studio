@@ -1,3 +1,4 @@
+
 {
   "definitionType": "llm-prompt",
   "promptName": "optionsFlowWebSearchPrompt",
@@ -33,7 +34,7 @@
       "role": "OutputRequirements",
       "parts": [
         {
-          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- Your entire response MUST begin with `{` and end with `}`.\n- You MUST include all keys in the response.\n- `maxPain`: number or null\n- `gammaExposure`: string or null (e.g., 'High positive GEX', 'Negative GEX')\n- `putCallRatio`: number or null\n- `ivSkew`: number or null (e.g., 0.15)\n- `ivRank`: number or null (e.g., 45 for 45%)\n- `ivPercentile`: number or null (e.g., 60 for 60th percentile)\n- `historicVolatility30d`: number or null (e.g., 0.35 for 35%)\n- `optionsVolatilitySkew`: string or null (e.g., 'Steep bearish skew')"
+          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- Your entire response MUST begin with `{` and end with `}`.\n- You MUST include all keys in the response.\n- `maxPain`: number or null\n- `gammaExposure`: string or null (e.g., 'High positive GEX', 'Negative GEX')\n- `putCallRatio`: number or null\n- `ivSkew`: number or null (e.g., 0.15)\n- `ivRank`: number or null (e.g., 45 for 45%)\n- `ivPercentile`: number or null (e.g., 60 for 60th percentile)\n- `historicVolatility30d`: number or null (e.g., 0.35 for 35%)\n- `optionsVolatilitySkew`: string or null (e.g., 'Steep bearish skew')\n- `searchStatus`: string - MUST be 'COMPLETE' if all metrics were found, 'PARTIAL' if only some were found, or 'NOT_FOUND' if no relevant data could be retrieved."
         }
       ]
     }

@@ -1,3 +1,4 @@
+
 {
   "definitionType": "llm-prompt",
   "promptName": "technicalAnalysisWebSearchPrompt",
@@ -33,7 +34,7 @@
       "role": "OutputRequirements",
       "parts": [
         {
-          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- You MUST include the `fibonacciRetracement` key in your JSON output. If the levels cannot be found, the value for this key MUST be `null`.\n- Your entire response MUST begin with `{` and end with `}`.\n- `averageTrueRange14`: number or null\n- `bollingerBands`: object with `upper`, `middle`, `lower` keys (all numbers), or null.\n- `fibonacciRetracement`: object with percentage strings as keys and price values (e.g., `{\"38.2%\": 145.20, \"50.0%\": 142.10, \"61.8%\": 139.00}`), or null."
+          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- You MUST include the `fibonacciRetracement` key in your JSON output. If the levels cannot be found, the value for this key MUST be `null`.\n- Your entire response MUST begin with `{` and end with `}`.\n- `averageTrueRange14`: number or null\n- `bollingerBands`: object with `upper`, `middle`, `lower` keys (all numbers), or null.\n- `fibonacciRetracement`: object with percentage strings as keys and price values (e.g., `{\"38.2%\": 145.20, \"50.0%\": 142.10, \"61.8%\": 139.00}`), or null.\n- `searchStatus`: string - MUST be 'COMPLETE' if all metrics were found, 'PARTIAL' if only some were found, or 'NOT_FOUND' if no relevant data could be retrieved."
         }
       ]
     }
