@@ -877,32 +877,30 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             break;
         case 'WEB_SEARCH_CHAT_ACTION_SUCCESS':
             if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
-                const { searchType } = event.payload;
+                const { searchType, promptName, ...restOfPayload } = event.payload;
                 if (searchType === 'user_input') {
-                    contextSetters.setUserInputWebSearchChatRequestJson(event.payload.chatbotRequestJson);
-                    contextSetters.setUserInputWebSearchChatResponseJson(event.payload.chatbotResponseJson);
+                    contextSetters.setUserInputWebSearchChatRequestJson(restOfPayload.chatbotRequestJson);
+                    contextSetters.setUserInputWebSearchChatResponseJson(restOfPayload.chatbotResponseJson);
                 } else if (searchType === 'technical_analysis') {
-                    contextSetters.setRawTaWebSearchRequestJson(event.payload.chatbotRequestJson);
-                    contextSetters.setRawTaWebSearchResponseJson(event.payload.chatbotResponseJson);
+                    contextSetters.setRawTaWebSearchRequestJson(restOfPayload.chatbotRequestJson);
+                    contextSetters.setRawTaWebSearchResponseJson(restOfPayload.chatbotResponseJson);
                 } else if (searchType === 'options_flow') {
-                    contextSetters.setRawOptionsWebSearchRequestJson(event.payload.chatbotRequestJson);
-                    contextSetters.setRawOptionsWebSearchResponseJson(event.payload.chatbotResponseJson);
+                    contextSetters.setRawOptionsWebSearchRequestJson(restOfPayload.chatbotRequestJson);
+                    contextSetters.setRawOptionsWebSearchResponseJson(restOfPayload.chatbotResponseJson);
                 }
                 
-                if (payload.promptName) {
-                    nextVariables.completedChatPrompts.push(payload.promptName);
+                if (promptName) {
+                    nextVariables.completedChatPrompts.push(promptName);
                 }
                 try {
-                    const flowOutput = JSON.parse(event.payload.chatbotResponseJson);
+                    const flowOutput = JSON.parse(restOfPayload.chatbotResponseJson);
                     if (flowOutput.response) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_succ`, role: 'model', content: flowOutput.response }); }
                     else if (flowOutput.error) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_err`, role: 'model', content: `Chatbot Error: ${flowOutput.error}` }); }
-                    nextCurrentState = GlobalFsmState.WEB_SEARCH_CHAT_SUCCESS;
-                    logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To WEB_SEARCH_CHAT_SUCCESS for prompt: ${event.payload.promptName}.`);
                 } catch (e) {
                     addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_parse_err`, role: 'model', content: "Error parsing web search response." });
-                    nextCurrentState = GlobalFsmState.WEB_SEARCH_CHAT_ERROR;
                 }
                 nextVariables.lastError = null;
+                nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
             }
             break;
         case 'WEB_SEARCH_CHAT_ACTION_ERROR':
@@ -923,7 +921,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
                 addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_act_err`, role: 'model', content: `Error: ${chatErrMsg}` });
                 handlePipelineError('WebSearchChatAction', chatErrMsg, chatErrPayload.error);
-                nextCurrentState = GlobalFsmState.WEB_SEARCH_CHAT_ERROR;
+                nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
             }
             break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
@@ -1014,8 +1012,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    const baseChatPayload = { ticker: activeTicker, chatHistory: [], stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson };
-    
+    const baseAppDataChatPayload = { ticker: activeTicker, chatHistory: [], stockSnapshotJson: _stockSnapshotJson, aiKeyTakeawaysJson: _aiKeyTakeawaysJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, aiOptionsAnalysisJson: _aiOptionsAnalysisJson };
+    const baseWebSearchPayload = { ticker: activeTicker, chatHistory: [] };
+
     if (flags.isAiKeyTakeawaysSelected && !flags.isKeyTakeawaysDataAvailable) {
         logDebug(logPrefix as LogSourceId, 'Dispatch', 'Triggering manual key takeaways.');
         dispatchFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } });
@@ -1024,13 +1023,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         dispatchFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } });
     } else if (flags.isAiChatStockTraderTakeawaysSelected && !completedChatPrompts.includes('stock-trader-takeaways')) {
         logDebug(logPrefix as LogSourceId, 'Dispatch', "Dispatching 'stock-trader-takeaways' chat.");
-        dispatchFsmEvent({ type: 'SUBMIT_STOCK_TRADER_TAKEAWAYS_CHAT', payload: { ...baseChatPayload, userInput: 'stock-trader-takeaways', promptName: 'stock-trader-takeaways' } });
+        dispatchFsmEvent({ type: 'SUBMIT_STOCK_TRADER_TAKEAWAYS_CHAT', payload: { ...baseAppDataChatPayload, userInput: 'stock-trader-takeaways', promptName: 'stock-trader-takeaways' } });
     } else if (flags.isAiChatOptionsTraderTakeawaysSelected && !completedChatPrompts.includes('options-trader-takeaways')) {
         logDebug(logPrefix as LogSourceId, 'Dispatch', "Dispatching 'options-trader-takeaways' chat.");
-        dispatchFsmEvent({ type: 'SUBMIT_OPTIONS_TRADER_TAKEAWAYS_CHAT', payload: { ...baseChatPayload, userInput: 'options-trader-takeaways', promptName: 'options-trader-takeaways' } });
+        dispatchFsmEvent({ type: 'SUBMIT_OPTIONS_TRADER_TAKEAWAYS_CHAT', payload: { ...baseAppDataChatPayload, userInput: 'options-trader-takeaways', promptName: 'options-trader-takeaways' } });
     } else if (flags.isAiChatHolisticTakeawaysSelected && !completedChatPrompts.includes('holistic-takeaways')) {
         logDebug(logPrefix as LogSourceId, 'Dispatch', "Dispatching 'holistic-takeaways' chat.");
-        dispatchFsmEvent({ type: 'SUBMIT_HOLISTIC_TAKEAWAYS_CHAT', payload: { ...baseChatPayload, userInput: 'holistic-takeaways', promptName: 'holistic-takeaways' } });
+        dispatchFsmEvent({ type: 'SUBMIT_HOLISTIC_TAKEAWAYS_CHAT', payload: { ...baseAppDataChatPayload, userInput: 'holistic-takeaways', promptName: 'holistic-takeaways' } });
+    } else if (flags.isWebSearchTaEnabled && !completedChatPrompts.includes('technical-analysis-web-search')) {
+        logDebug(logPrefix as LogSourceId, 'Dispatch', "Dispatching 'technical-analysis-web-search' chat.");
+        dispatchFsmEvent({ type: 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE', payload: { ...baseWebSearchPayload, userInput: 'technical-analysis-web-search', promptName: 'technical-analysis-web-search' } });
+    } else if (flags.isWebSearchOptionsEnabled && !completedChatPrompts.includes('options-flow-web-search')) {
+        logDebug(logPrefix as LogSourceId, 'Dispatch', "Dispatching 'options-flow-web-search' chat.");
+        dispatchFsmEvent({ type: 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE', payload: { ...baseWebSearchPayload, userInput: 'options-flow-web-search', promptName: 'options-flow-web-search' } });
     } else {
         logDebug(logPrefix as LogSourceId, 'Exit', 'All selected actions are complete. Finalizing pipeline.');
         dispatchFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
@@ -1098,6 +1103,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           else { successEvent = 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_SUCCESS'; errorEvent = 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_ERROR'; }
           if (result.status === 'success' && result.data) { dispatchFsmEvent({ type: successEvent, payload: { ...result.data, promptName: payload.promptName } } as FsmEvent); } 
           else { dispatchFsmEvent({ type: errorEvent, payload: { error: result.error, message: result.message, chatbotRequestJson: result.data?.chatbotRequestJson, chatbotResponseJson: result.data?.chatbotResponseJson, promptName: payload.promptName } } as FsmEvent); }
+        }
+      } else if (currentState === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
+        if (state.variables.pendingWebSearchChatSubmissionPayload) {
+          webSearchChatFormAction(state.variables.pendingWebSearchChatSubmissionPayload);
         }
       }
     };
@@ -1225,7 +1234,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _polygonApiRequestLogJson, contextSetters, _polygonApiResponseLogJson,
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
     _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
-    _aiOptionsAnalysisJson, _aiKeyTakeawaysRequestJson, _aiKeyTakeawaysJson,
+    _aiOptionsAnalysisJson, _aiKeyTakeawaysJson, _aiKeyTakeawaysJson,
     _userInputAppDataChatRequestJson, _userInputAppDataChatResponseJson,
     _stockTraderTakeawaysRequestJson, _stockTraderTakeawaysResponseJson,
     _optionsTraderTakeawaysRequestJson, _optionsTraderTakeawaysResponseJson,
@@ -1312,3 +1321,4 @@ export function useStockAnalysis() {
   if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
   return context;
 }
+
