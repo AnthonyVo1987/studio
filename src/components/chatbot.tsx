@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useCallback } from 'react';
@@ -63,20 +62,6 @@ export function Chatbot({
         viewportRef.current.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [chatHistory]);
-
-  // DIAGNOSTIC LOG: Re-added as per user instruction to verify the fix.
-  useEffect(() => {
-    const element = viewportRef.current;
-    if (element) {
-      console.log(
-        `[CHAT SCROLL DEBUG - ${title}]`,
-        {
-          cardContentClientHeight: element.clientHeight,
-          cardContentScrollHeight: element.scrollHeight,
-        }
-      );
-    }
-  }, [chatHistory, title]);
 
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
