@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { sdkDebugChatAction } from '@/actions/sdk-debug-chat-action';
-import type { RawDebugChatActionState, RawDebugChatInputs } from '@/ai/schemas/raw-debug-chat-schemas';
-import { Bug, Loader2, Copy, ShieldAlert, FileText, SearchCode, Search, Send } from 'lucide-react';
+import type { RawDebugChatActionState } from '@/ai/schemas/raw-debug-chat-schemas';
+import { Bug, Loader2, Copy, ShieldAlert, SearchCode, Search, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from './ui/separator';
 import { copyToClipboard } from '@/lib/export-utils';
@@ -64,31 +64,32 @@ export function SdkDebugChatbot({ title, description, promptType }: SdkDebugChat
     }
   };
 
-  const handleActionSubmit = (payload: RawDebugChatInputs) => {
-    if (isPending) return;
-    formAction(payload);
-  };
-
   const renderWebSearchButtons = () => (
     <>
-      <Button variant="secondary" onClick={() => handleActionSubmit({ promptType: 'sdk-web-search' })} disabled={isPending} title="What's the current ATR-14 for NVDA">
-        {isPending && state.data?.requestJson.includes('sdk_web_search') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
-        Run SDK Debug Prompt
-      </Button>
-      <Button variant="secondary" onClick={() => handleActionSubmit({ promptType: 'sdk-ta-web-search' })} disabled={isPending}>
-        {isPending && state.data?.requestJson.includes('sdk-ta-web-search') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCode className="mr-2 h-4 w-4" />}
-        Run SDK TA Web Search
-      </Button>
-      <Button variant="secondary" onClick={() => handleActionSubmit({ promptType: 'sdk-options-web-search' })} disabled={isPending}>
-        {isPending && state.data?.requestJson.includes('sdk-options-web-search') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-        Run SDK Options Web Search
-      </Button>
-      <div className="w-full flex items-center space-x-2 pt-2">
+      <form action={() => formAction({ promptType: 'sdk-web-search' })}>
+        <Button type="submit" variant="secondary" disabled={isPending} title="What's the current ATR-14 for NVDA" className="w-full justify-start">
+          {isPending && state.data?.requestJson.includes('sdk_web_search') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
+          Run SDK Debug Prompt
+        </Button>
+      </form>
+      <form action={() => formAction({ promptType: 'sdk-ta-web-search' })}>
+        <Button type="submit" variant="secondary" disabled={isPending} className="w-full justify-start">
+          {isPending && state.data?.requestJson.includes('sdk-ta-web-search') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCode className="mr-2 h-4 w-4" />}
+          Run SDK TA Web Search
+        </Button>
+      </form>
+      <form action={() => formAction({ promptType: 'sdk-options-web-search' })}>
+        <Button type="submit" variant="secondary" disabled={isPending} className="w-full justify-start">
+          {isPending && state.data?.requestJson.includes('sdk-options-web-search') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+          Run SDK Options Web Search
+        </Button>
+      </form>
+      <form action={() => formAction({ promptType: 'sdk-user-web-search', userInput })} className="w-full flex items-center space-x-2 pt-2">
         <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Enter custom web search prompt..." disabled={isPending} className="flex-grow" />
-        <Button onClick={() => handleActionSubmit({ promptType: 'sdk-user-web-search', userInput })} disabled={isPending || !userInput.trim()}>
+        <Button type="submit" disabled={isPending || !userInput.trim()}>
             {isPending && state.data?.requestJson.includes('sdk-user-web-search') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
-      </div>
+      </form>
     </>
   );
 
@@ -101,10 +102,12 @@ export function SdkDebugChatbot({ title, description, promptType }: SdkDebugChat
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-2">
           {promptType === 'sdk-app-data' ? (
-            <Button variant="secondary" onClick={() => handleActionSubmit({ promptType: 'sdk-app-data' })} disabled={isPending}>
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
-                Run SDK Debug Prompt
-            </Button>
+            <form action={() => formAction({ promptType: 'sdk-app-data' })}>
+              <Button type="submit" variant="secondary" disabled={isPending} className="w-full justify-start">
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
+                  Run SDK Debug Prompt
+              </Button>
+            </form>
           ) : (
             renderWebSearchButtons()
           )}
