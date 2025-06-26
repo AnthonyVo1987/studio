@@ -6,7 +6,6 @@ import type { AppDataChatMessage, GlobalFsmState } from '@/contexts/stock-analys
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, MessageSquare, Trash2, Copy, Download, Loader2, Info } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -125,7 +124,7 @@ export function Chatbot({
   );
 
   return (
-    <Card className="flex flex-col h-full min-h-[650px]">
+    <Card className="flex flex-col h-[650px]">
       <CardHeader className="flex-shrink-0">
         <div className="flex flex-row items-center justify-between">
             <div>
