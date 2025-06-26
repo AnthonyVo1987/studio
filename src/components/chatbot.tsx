@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useCallback } from 'react';
@@ -151,7 +150,7 @@ export function Chatbot({
         </div>
       </CardHeader>
       <CardContent className="flex flex-col p-4 space-y-4 flex-grow min-h-0">
-        <ScrollArea className="pr-4 -mr-4">
+        <ScrollArea className="flex-grow min-h-0 pr-4 -mr-4">
           <div className="space-y-4" ref={scrollAreaRef}>
             {chatHistory.length === 0 && (
               <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
