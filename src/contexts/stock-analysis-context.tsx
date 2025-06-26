@@ -784,25 +784,28 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To OPTIONS_ANALYSIS_FAILED. Error: ${optErrMsg}.`);
         break;
       
-      // New Specific Chat States
       case 'SUBMIT_USER_INPUT_APP_DATA_CHAT':
         addAppDataChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput });
         nextVariables.pendingAppDataChatSubmissionPayload = event.payload;
+        nextVariables.activePipelineProfile = null;
         nextCurrentState = GlobalFsmState.USER_INPUT_APP_DATA_CHAT_PENDING;
         break;
       case 'SUBMIT_STOCK_TRADER_TAKEAWAYS_CHAT':
         addAppDataChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput });
         nextVariables.pendingAppDataChatSubmissionPayload = event.payload;
+        nextVariables.activePipelineProfile = null;
         nextCurrentState = GlobalFsmState.STOCK_TRADER_CHAT_PENDING;
         break;
       case 'SUBMIT_OPTIONS_TRADER_TAKEAWAYS_CHAT':
         addAppDataChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput });
         nextVariables.pendingAppDataChatSubmissionPayload = event.payload;
+        nextVariables.activePipelineProfile = null;
         nextCurrentState = GlobalFsmState.OPTIONS_TRADER_CHAT_PENDING;
         break;
       case 'SUBMIT_HOLISTIC_TAKEAWAYS_CHAT':
         addAppDataChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_user_gbl_fsm`, role: 'user', content: event.payload.userInput });
         nextVariables.pendingAppDataChatSubmissionPayload = event.payload;
+        nextVariables.activePipelineProfile = null;
         nextCurrentState = GlobalFsmState.HOLISTIC_CHAT_PENDING;
         break;
 
@@ -810,50 +813,50 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setUserInputAppDataChatRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setUserInputAppDataChatResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
-        nextCurrentState = GlobalFsmState.USER_INPUT_APP_DATA_CHAT_SUCCESS;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
       case 'STOCK_TRADER_TAKEAWAYS_CHAT_ACTION_SUCCESS':
         contextSetters.setStockTraderTakeawaysRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setStockTraderTakeawaysResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
-        nextCurrentState = GlobalFsmState.STOCK_TRADER_CHAT_SUCCESS;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
       case 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_SUCCESS':
         contextSetters.setOptionsTraderTakeawaysRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setOptionsTraderTakeawaysResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
-        nextCurrentState = GlobalFsmState.OPTIONS_TRADER_CHAT_SUCCESS;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
       case 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_SUCCESS':
         contextSetters.setHolisticTakeawaysRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setHolisticTakeawaysResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
-        nextCurrentState = GlobalFsmState.HOLISTIC_CHAT_SUCCESS;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
 
       case 'USER_INPUT_APP_DATA_CHAT_ACTION_ERROR':
         contextSetters.setUserInputAppDataChatRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setUserInputAppDataChatResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
-        nextCurrentState = GlobalFsmState.USER_INPUT_APP_DATA_CHAT_ERROR;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
       case 'STOCK_TRADER_TAKEAWAYS_CHAT_ACTION_ERROR':
         contextSetters.setStockTraderTakeawaysRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setStockTraderTakeawaysResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
-        nextCurrentState = GlobalFsmState.STOCK_TRADER_CHAT_ERROR;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
       case 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_ERROR':
         contextSetters.setOptionsTraderTakeawaysRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setOptionsTraderTakeawaysResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
-        nextCurrentState = GlobalFsmState.OPTIONS_TRADER_CHAT_ERROR;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
       case 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_ERROR':
         contextSetters.setHolisticTakeawaysRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setHolisticTakeawaysResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
-        nextCurrentState = GlobalFsmState.HOLISTIC_CHAT_ERROR;
+        nextCurrentState = GlobalFsmState.IDLE;
         break;
       
         case 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE':
@@ -1059,7 +1062,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: result.error, message: result.message, aiAnalyzedTaRequestJson: result.data?.aiCalculatedTaRequestJson }});
         }
       } else if (currentState === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED) {
-        dispatchNextCustomAction();
+        if (state.variables.activePipelineProfile === 'standard') {
+            dispatchNextCustomAction();
+        }
       } else if (currentState === GlobalFsmState.GENERATING_KEY_TAKEAWAYS) {
         const result = await performAiAnalysisAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson });
         if (result.status === 'success' && result.data) {
@@ -1075,10 +1080,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: result.error, message: result.message, aiOptionsAnalysisRequestJson: result.data?.aiOptionsAnalysisRequestJson }});
         }
       } else if (currentState === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || currentState === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
-                 currentState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || currentState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED ||
-                 currentState === GlobalFsmState.STOCK_TRADER_CHAT_SUCCESS || currentState === GlobalFsmState.STOCK_TRADER_CHAT_ERROR ||
-                 currentState === GlobalFsmState.OPTIONS_TRADER_CHAT_SUCCESS || currentState === GlobalFsmState.OPTIONS_TRADER_CHAT_ERROR ||
-                 currentState === GlobalFsmState.HOLISTIC_CHAT_SUCCESS || currentState === GlobalFsmState.HOLISTIC_CHAT_ERROR) {
+                 currentState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || currentState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED) {
         if (state.variables.activePipelineProfile === 'standard') {
             dispatchNextCustomAction();
         }
