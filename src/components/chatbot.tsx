@@ -6,7 +6,7 @@ import type { AppDataChatMessage, GlobalFsmState } from '@/contexts/stock-analys
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, MessageSquare, Trash2, Copy, Download, Loader2, Info, Bug } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Copy, Download, Loader2, Info } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/hooks/use-toast';
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { copyToClipboard, downloadJson } from '@/lib/export-utils';
 import { useChatbotFsm, type ChatbotFsmEvent } from '@/contexts/chatbot-fsm-context'; 
-import { Separator } from './ui/separator';
 
 export interface ExamplePromptButton {
   title: string;
@@ -35,7 +34,6 @@ interface ChatbotProps {
   isProcessing: boolean;
   exampleButtons: ExamplePromptButton[];
   currentTickerForDisplay: string;
-  debugPromptName: string;
   logDebug: (source: string, category: string, ...messages: any[]) => void;
 }
 
@@ -48,7 +46,6 @@ export function Chatbot({
   isProcessing,
   exampleButtons,
   currentTickerForDisplay,
-  debugPromptName,
   logDebug,
 }: ChatbotProps) {
   const {
@@ -172,13 +169,6 @@ export function Chatbot({
         <div className="w-full">
             <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1 flex items-center gap-1.5"><Info className="h-3 w-3" /> Example Prompts</div>
             <div className="flex flex-wrap gap-2">{renderPromptButtons(exampleButtons)}</div>
-        </div>
-        <Separator />
-        <div className="w-full">
-          <Button variant="destructive" size="sm" onClick={() => handleExamplePromptClick(debugPromptName)} disabled={isProcessing} className="text-xs px-2 py-1 h-auto">
-            <Bug className="mr-1.5 h-3 w-3" />
-            Debug AI Chat Prompt (Raw)
-          </Button>
         </div>
         <form onSubmit={handleFormSubmit} className="w-full flex items-center space-x-2">
           <Input value={fsmUserInput} onChange={(e) => dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: e.target.value })} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}} />

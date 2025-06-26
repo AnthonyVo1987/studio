@@ -18,6 +18,7 @@ import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
+import { RawDebugChatbot } from "@/components/raw-debug-chatbot";
 import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
@@ -267,7 +268,6 @@ export function MainTabContent() {
                 fsmState={globalFsmStateFromContext}
                 isProcessing={isAnyAnalysisInProgress}
                 exampleButtons={appDataButtons}
-                debugPromptName="debug_app_data"
                 currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
                 logDebug={logDebug}
               />
@@ -287,11 +287,29 @@ export function MainTabContent() {
                 fsmState={globalFsmStateFromContext}
                 isProcessing={isAnyAnalysisInProgress}
                 exampleButtons={webSearchButtons}
-                debugPromptName="debug_web_search"
                 currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
                 logDebug={logDebug}
               />
             </ChatbotFsmProvider>
+          </div>
+          <Separator />
+          <div>
+            <h3 className="text-lg font-medium mb-2">Raw AI Prompt Diagnostics</h3>
+            <CardDescription className="mb-4">
+              These buttons trigger raw, non-cached, dependency-free calls directly to the AI backend to help diagnose fundamental API connectivity or prompt issues. They are fully isolated from the application's FSM and data states.
+            </CardDescription>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <RawDebugChatbot
+                title="Raw App Data Debug"
+                description="Tests a non-grounded prompt with a structured JSON output schema."
+                promptType="app-data"
+              />
+              <RawDebugChatbot
+                title="Raw Web Search Debug"
+                description="Tests a grounded prompt that uses the Google Search tool."
+                promptType="web-search"
+              />
+            </div>
           </div>
           <MarketStatusDisplay />
         </div>

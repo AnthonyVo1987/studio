@@ -6,9 +6,6 @@ import {
   type AppDataChatInput,
   type AppDataChatOutput,
 } from '@/ai/flows/app-data-chat-flow';
-import { ai } from '@/ai/genkit';
-import { AppDataChatOutputSchema } from '@/ai/schemas/app-data-chat-schemas';
-import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
 
 export interface AppDataChatActionResult {
   chatbotRequestJson: string;
@@ -49,40 +46,6 @@ export async function appDataChatAction(
   } = payload;
   const actionLogPrefix = `[ServerAction:appDataChatAction:Ticker:${ticker || 'N/A'}]`;
   console.log(`${actionLogPrefix} Received request. PromptName: ${promptName || 'default_chat'}. User Input (first 50 chars): "${userInput?.substring(0,50) || 'undefined_input'}...". History length: ${chatHistory?.length || 0}.`);
-
-  // Handle the new debug prompt directly
-  if (promptName === 'debug_app_data') {
-    const debugPrompt = "What's the correlation for NVDA and the broader AI market?";
-    const chatbotRequestJson = JSON.stringify({ prompt: debugPrompt, type: 'debug_app_data' }, null, 2);
-    try {
-      console.log(`${actionLogPrefix} Executing DEBUG App Data prompt. This is a direct, non-cached call.`);
-      const result = await ai.generate({
-        model: DEFAULT_CHAT_MODEL_ID,
-        prompt: debugPrompt,
-        output: { schema: AppDataChatOutputSchema },
-        config: {
-          thinkingConfig: { thinkingBudget: -1 },
-        },
-      });
-      const output = result.output || { response: "Debug prompt failed to return valid output." };
-      const chatbotResponseJson = JSON.stringify(output, null, 2);
-      return {
-        status: 'success',
-        data: { chatbotRequestJson, chatbotResponseJson },
-        message: 'Debug App Data response received.',
-        error: null,
-      };
-    } catch (error: any) {
-      console.error(`${actionLogPrefix} CRITICAL Error during DEBUG App Data processing. Error: ${error.message}.`);
-      return {
-        status: 'error', error: error.message, message: 'Debug App Data prompt failed.',
-        data: {
-          chatbotRequestJson,
-          chatbotResponseJson: JSON.stringify({ error: error.message, details: String(error) }, null, 2),
-        },
-      };
-    }
-  }
 
   if (!userInput || userInput.trim() === '') {
     const errorMsg = 'User input cannot be empty.';
