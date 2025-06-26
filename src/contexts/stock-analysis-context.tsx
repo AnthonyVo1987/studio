@@ -33,6 +33,7 @@ export enum GlobalFsmState {
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
 
   PIPELINE_AUTOMATED_COMPLETE = 'PIPELINE_AUTOMATED_COMPLETE',
+  PIPELINE_PAUSED = 'PIPELINE_PAUSED',
 
   GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
   KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
@@ -184,6 +185,7 @@ export type FsmEvent =
   | { type: 'UPDATE_MANUAL_ACTION_FLAGS'; payload: UpdateManualActionFlagsPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' }
+  | { type: 'RESUME_PIPELINE' }
   | { type: '_PIPELINE_STEP_SUCCEEDED'; payload: { stepName: string, nextState: GlobalFsmState } }
   | { type: '_PIPELINE_STEP_FAILED'; payload: { stepName: string, error: any, nextState: GlobalFsmState } };
 
@@ -824,19 +826,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setStockTraderTakeawaysRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setStockTraderTakeawaysResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
-        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.PIPELINE_PAUSED : GlobalFsmState.IDLE;
         break;
       case 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_SUCCESS':
         contextSetters.setOptionsTraderTakeawaysRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setOptionsTraderTakeawaysResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
-        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.PIPELINE_PAUSED : GlobalFsmState.IDLE;
         break;
       case 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_SUCCESS':
         contextSetters.setHolisticTakeawaysRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setHolisticTakeawaysResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
-        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.PIPELINE_PAUSED : GlobalFsmState.IDLE;
         break;
 
       case 'USER_INPUT_APP_DATA_CHAT_ACTION_ERROR':
@@ -849,19 +851,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setStockTraderTakeawaysRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setStockTraderTakeawaysResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
-        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.PIPELINE_PAUSED : GlobalFsmState.IDLE;
         break;
       case 'OPTIONS_TRADER_TAKEAWAYS_CHAT_ACTION_ERROR':
         contextSetters.setOptionsTraderTakeawaysRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setOptionsTraderTakeawaysResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
-        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.PIPELINE_PAUSED : GlobalFsmState.IDLE;
         break;
       case 'HOLISTIC_TAKEAWAYS_CHAT_ACTION_ERROR':
         contextSetters.setHolisticTakeawaysRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setHolisticTakeawaysResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
-        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
+        nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.PIPELINE_PAUSED : GlobalFsmState.IDLE;
         break;
       
       case 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE':
@@ -877,33 +879,33 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         break;
       case 'WEB_SEARCH_CHAT_ACTION_SUCCESS':
-        if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
-            const { searchType, promptName, ...restOfPayload } = event.payload;
-            if (searchType === 'user_input') {
-                contextSetters.setUserInputWebSearchChatRequestJson(restOfPayload.chatbotRequestJson);
-                contextSetters.setUserInputWebSearchChatResponseJson(restOfPayload.chatbotResponseJson);
-            } else if (searchType === 'technical_analysis') {
-                contextSetters.setRawTaWebSearchRequestJson(restOfPayload.chatbotRequestJson);
-                contextSetters.setRawTaWebSearchResponseJson(restOfPayload.chatbotResponseJson);
-            } else if (searchType === 'options_flow') {
-                contextSetters.setRawOptionsWebSearchRequestJson(restOfPayload.chatbotRequestJson);
-                contextSetters.setRawOptionsWebSearchResponseJson(restOfPayload.chatbotResponseJson);
-            }
-            
-            if (promptName) {
-                nextVariables.completedChatPrompts.push(promptName);
-            }
-            try {
-                const flowOutput = JSON.parse(restOfPayload.chatbotResponseJson);
-                if (flowOutput.response) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_succ`, role: 'model', content: flowOutput.response }); }
-                else if (flowOutput.error) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_err`, role: 'model', content: `Chatbot Error: ${flowOutput.error}` }); }
-            } catch (e) {
-                addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_parse_err`, role: 'model', content: "Error parsing web search response." });
-            }
-            nextVariables.lastError = null;
-            nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED : GlobalFsmState.IDLE;
-        }
-        break;
+          if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
+              const { searchType, promptName, ...restOfPayload } = event.payload;
+              if (searchType === 'user_input') {
+                  contextSetters.setUserInputWebSearchChatRequestJson(restOfPayload.chatbotRequestJson);
+                  contextSetters.setUserInputWebSearchChatResponseJson(restOfPayload.chatbotResponseJson);
+              } else if (searchType === 'technical_analysis') {
+                  contextSetters.setRawTaWebSearchRequestJson(restOfPayload.chatbotRequestJson);
+                  contextSetters.setRawTaWebSearchResponseJson(restOfPayload.chatbotResponseJson);
+              } else if (searchType === 'options_flow') {
+                  contextSetters.setRawOptionsWebSearchRequestJson(restOfPayload.chatbotRequestJson);
+                  contextSetters.setRawOptionsWebSearchResponseJson(restOfPayload.chatbotResponseJson);
+              }
+              
+              if (promptName) {
+                  nextVariables.completedChatPrompts.push(promptName);
+              }
+              try {
+                  const flowOutput = JSON.parse(restOfPayload.chatbotResponseJson);
+                  if (flowOutput.response) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_succ`, role: 'model', content: flowOutput.response }); }
+                  else if (flowOutput.error) { addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_err`, role: 'model', content: `Chatbot Error: ${flowOutput.error}` }); }
+              } catch (e) {
+                  addWebSearchChatMessage({ id: `${Date.now()}_${chatMessageIdCounter++}_model_ctx_web_parse_err`, role: 'model', content: "Error parsing web search response." });
+              }
+              nextVariables.lastError = null;
+              nextCurrentState = state.variables.activePipelineProfile === 'standard' ? GlobalFsmState.PIPELINE_PAUSED : GlobalFsmState.IDLE;
+          }
+          break;
       case 'WEB_SEARCH_CHAT_ACTION_ERROR':
           if (state.current === GlobalFsmState.WEB_SEARCH_CHAT_PENDING) {
               const { searchType, ...chatErrPayload } = event.payload;
@@ -942,6 +944,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isManualOptionsAnalysisActionPossible = event.payload.optPossible;
         logDebug(logPrefixFsmReducer as LogSourceId, 'FlagsUpdate_ManualActions', `KT possible: ${event.payload.ktPossible}, Opt possible: ${event.payload.optPossible}.`);
         nextCurrentState = previousState;
+        break;
+      case 'RESUME_PIPELINE':
+        if (previousState === GlobalFsmState.PIPELINE_PAUSED) {
+            nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Resuming pipeline from PAUSED to AI_TA_CALCULATION_SUCCEEDED.`);
+        } else {
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `Ignoring RESUME_PIPELINE, not in PAUSED state.`);
+        }
         break;
       default:
         logDebug(logPrefixFsmReducer as LogSourceId, 'UnhandledEvent', `Unhandled event type: ${(event as any).type} in state ${previousState}`);
@@ -1135,6 +1145,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     orchestratePipeline();
   }, [globalFsmReducerState.current]);
   
+  // New debouncing effect for the custom analysis pipeline
+  useEffect(() => {
+    const logPrefix = 'StockAnalysisContext:PipelinePauseEffect';
+    if (globalFsmReducerState.current === GlobalFsmState.PIPELINE_PAUSED) {
+        logDebug(logPrefix as LogSourceId, 'PauseTriggered', `Pipeline paused. Will resume in 50ms.`);
+        const timer = setTimeout(() => {
+            logDebug(logPrefix as LogSourceId, 'ResumeDispatch', `Resuming pipeline by dispatching RESUME_PIPELINE.`);
+            dispatchFsmEvent({ type: 'RESUME_PIPELINE' });
+        }, 50);
+
+        return () => clearTimeout(timer);
+    }
+  }, [globalFsmReducerState.current, dispatchFsmEvent, logDebug]);
 
   useEffect(() => {
     const logPrefix = 'StockAnalysisContext:ManualActionFlagEffect';
