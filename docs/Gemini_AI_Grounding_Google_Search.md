@@ -1,24 +1,51 @@
 # Gemini AI: Grounding with Google Search - Reference Guide
 
-**Document Version:** 2.0
-**Date:** 2025-07-03
+**Document Version:** 3.0
+**Date:** 2025-07-26
 **Author:** StockSage AI Coding Agent
 
 ## 1. Introduction
 
 This document serves as the **single source of truth and mandatory reference guide** for implementing AI flows that utilize the "Grounding with Google Search" feature within the StockSage application. Its purpose is to ensure all current and future web-augmented AI features are built with a consistent, proven, and correct architectural pattern.
 
-This guide synthesizes lessons learned from debugging the v3.3 feature, analysis of our own working implementation in `chat-flow.ts`, and the official Google AI API documentation. Adherence to this guide is mandatory to prevent errors related to tool usage and response parsing.
+This guide synthesizes lessons learned from debugging the v3.3 feature, analysis of our own working implementation in `chat-flow.ts`, and a review of official Google AI and Genkit documentation. Adherence to this guide is mandatory to prevent errors related to tool usage and response parsing.
 
-## 2. The Core Concept
+## 2. The `googleSearch` Tool: Mandatory Syntax for This Project
 
-"Grounding with Google Search" allows a Genkit AI flow to use Google Search as a tool to answer questions with up-to-date, real-world information. The key challenge is that when a tool is active, the AI model's response type changes from a structured JSON object to a plain text string. Our application, however, requires structured data for processing and display.
+There are two syntaxes for enabling the `googleSearch` tool. Due to specific package versions and dependencies within this project, only one is correct and permitted.
 
-The solution is the **"Grounded JSON-in-Text"** pattern, which is the required architecture.
+### 2.1. The Object Literal Syntax (MANDATORY)
 
-## 3. The "Grounded JSON-in-Text" Architectural Pattern (Mandatory)
+This is the correct and **required** syntax for enabling Google Search in this application. It involves passing a plain object literal inside the `tools` array.
 
-This pattern consists of four critical, interconnected steps. All steps must be implemented correctly for the feature to work.
+**Correct Usage:**
+```typescript
+const result = await ai.generate({
+  //...
+  tools: [{ googleSearch: {} }], 
+});
+```
+
+### 2.2. The `import` Syntax (PROHIBITED)
+
+The official Genkit documentation may show an `import` pattern. **This pattern is incompatible with our current project environment.**
+
+**Incorrect / Prohibited Usage:**
+```typescript
+// DO NOT USE THIS PATTERN
+import { googleSearch } from '@genkit-ai/googleai'; 
+
+const result = await ai.generate({
+  //...
+  tools: [googleSearch], // This will cause a build error in our project
+});
+```
+
+**Reason for Prohibition:** As documented in the project's `CHANGELOG.md` (see `v3.3.16.7.28`), attempting to use the `import { googleSearch }` pattern results in a build failure: `Export 'googleSearch' doesn't exist in target module`. Therefore, the object literal syntax is the only proven and stable method.
+
+## 3. The "Grounded JSON-in-Text" Architectural Pattern
+
+When a feature requires both web search grounding and a structured JSON output, a simple text response is insufficient. The solution is the **"Grounded JSON-in-Text"** pattern, which is the required architecture for this scenario. It consists of four critical, interconnected steps.
 
 ### Step 1: Conditional Prompt Definition (`ai.definePrompt`)
 
@@ -87,7 +114,7 @@ Since the grounded path relies on parsing a JSON string from a text response, th
 *   **Validate with Zod:** Always parse the resulting JSON string and then validate the object against its corresponding Zod schema (`MyTargetOutputSchema.parse(parsedObject)`). This ensures data integrity before it's passed to the rest of the application.
 *   **Handle Errors Gracefully:** The flow must have `try...catch` blocks to handle JSON parsing errors or Zod validation failures, returning a structured error to the client instead of crashing.
 
-## 5. Understanding the Grounding Response & Metadata
+## 4. Understanding the Grounding Response & Metadata
 
 When a response is successfully grounded, the API response includes a `groundingMetadata` field alongside the generated text. This structured data is essential for verifying claims and building a rich citation experience in your application.
 
@@ -108,13 +135,13 @@ When a response is successfully grounded, the API response includes a `grounding
         "webSearchQueries": [
           "UEFA Euro 2024 winner"
         ],
-        "groundingChunks": [
-          {"web": {"uri": "https://vertexaisearch.cloud.google.com/...", "title": "uefa.com"}}
+        "groundingAttributions": [
+          {"web": {"uri": "https://www.uefa.com/euro2024/news/028f-1b3294a21855-1f92100a1000-1000--spain-2-1-england-late-oirazabal-goal-wins-euro-2024-for-spai/", "title": "Spain 2-1 England: Late Oyarzabal goal..."}}
         ],
         "groundingSupports": [
           {
             "segment": {"startIndex": 0, "endIndex": 55, "text": "Spain won Euro 2024, defeating England 2-1 in the final."},
-            "groundingChunkIndices": [0]
+            "groundingAttributionIndices": [0]
           }
         ]
       }
@@ -125,17 +152,17 @@ When a response is successfully grounded, the API response includes a `grounding
 
 ### Key Metadata Fields:
 *   **`webSearchQueries`**: An array of the search queries the model used. This is useful for debugging and understanding the model's reasoning process.
-*   **`searchEntryPoint`**: Contains the HTML and CSS to render required Search Suggestions widgets, as detailed in the Terms of Service. This is not currently used in our application.
-*   **`groundingChunks`**: An array of objects containing the web sources (with `uri` and `title`) that the model used to formulate its answer.
-*   **`groundingSupports`**: An array of objects that connect segments of the model's response text to the sources in `groundingChunks`. Each support object links a `segment` (defined by `startIndex` and `endIndex` of the text) to one or more sources via `groundingChunkIndices`. This is the key to building inline citations.
+*   **`groundingAttributions`** (or `groundingChunks`): An array of objects containing the web sources (with `uri` and `title`) that the model used to formulate its answer.
+*   **`groundingSupports`**: An array of objects that connect segments of the model's response text to the sources in `groundingAttributions`. Each support object links a `segment` (defined by `startIndex` and `endIndex` of the text) to one or more sources via `groundingAttributionIndices`. This is the key to building inline citations.
 
-## 6. Implementation Notes & Lessons Learned
+## 5. Implementation Notes & Lessons Learned
 
 *   **The Root Cause of v3.3.7 Errors:** The primary bug was failing to remove the `outputSchema` from the `ai.defineFlow` definition when adding the `googleSearch` tool to the prompt.
-*   **No Special Imports:** The `googleSearch` tool is enabled with a plain object `[{ googleSearch: {} }]`. No special imports are needed.
-*   **Follow the Pattern:** The `chat-flow.ts` file provides a working, correct implementation of this architecture. All new grounded search features must replicate this pattern exactly.
-*   **Single Responsibility:** When grounding is on, the AI's only responsibility is to find information and return a JSON string. The application's responsibility is to parse and validate it.
+*   **The Root Cause of v3.3.16.7.30 Error:** The error `Cannot read properties of undefined (reading '__action')` was caused by using the prohibited `import` syntax for the tool.
+*   **Follow the Pattern:** The `web-search-chat-flow.ts` file provides a working, correct implementation of this architecture. All new grounded search features must replicate this pattern exactly.
+*   **Single Responsibility:** When grounding is on, the AI's only responsibility is to find information and return a text response. The application's responsibility is to parse and validate it.
 
-## 7. Document Changelog
+## 6. Document Changelog
+*   **v3.0 (2025-07-26):** Consolidated information from all provided official API docs and examples. Added a new section explicitly mandating the use of the `{ googleSearch: {} }` object literal syntax and prohibiting the `import` syntax, with a clear explanation of why. Expanded the `groundingMetadata` section with a new, more detailed example and explanation of fields. Re-numbered sections.
 *   **v2.0 (2025-07-03):** Added Section 5 detailing the `groundingMetadata` response object, including an example and explanation of key fields. Renumbered subsequent sections.
 *   **v1.0 (2025-06-29):** Initial document creation.
