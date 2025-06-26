@@ -79,10 +79,10 @@ const escapeCsvField = (field: any): string => {
 const getFullSnapshotForExport = (context: ReturnType<typeof useStockAnalysis>) => ({
   reportTimestamp: new Date().toISOString(),
   fsmStatesSnapshot: {
-    globalApplicationFSM: { 
-      previous: context.previousFsmState, 
-      current: context.fsmState, 
-      target: context.targetFsmDisplayState 
+    globalApplicationFSM: {
+      previous: context.previousFsmState,
+      current: context.fsmState,
+      target: context.targetFsmDisplayState
     },
     globalFsmFlags: context.fsmFlags,
     globalFsmContextVariables: context.fsmVariables,
@@ -114,8 +114,8 @@ const getFullSnapshotForExport = (context: ReturnType<typeof useStockAnalysis>) 
 
 const generateLogsTxtWithMetadata = (
     logs: GlobalLogEntry[],
-    currentAppVersion: string, 
-    fullSnapshot: any 
+    currentAppVersion: string,
+    fullSnapshot: any
 ): string => {
   let metadata = `App Version: ${currentAppVersion}\n`;
   metadata += `Report Timestamp: ${fullSnapshot.reportTimestamp}\n\n`;
@@ -123,7 +123,7 @@ const generateLogsTxtWithMetadata = (
   metadata += `  Previous: ${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.previous || 'N/A'}\n`;
   metadata += `  Current: ${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.current || 'N/A'}\n`;
   metadata += `  Target: ${fullSnapshot.fsmStatesSnapshot.globalApplicationFSM?.target || 'N/A'}\n\n`;
-  
+
   metadata += "Global FSM Flags:\n";
   for (const [key, value] of Object.entries(fullSnapshot.fsmStatesSnapshot.globalFsmFlags || {})) {
     metadata += `  ${key}: ${value}\n`;
@@ -136,7 +136,7 @@ const generateLogsTxtWithMetadata = (
     metadata += `  ${key}: ${varValue}\n`;
   }
   metadata += "\n";
-  
+
   metadata += "All Raw Data JSONs:\n";
   for (const [key, value] of Object.entries(fullSnapshot.allRawData || {})) {
       if (typeof value === 'string') {
@@ -150,7 +150,7 @@ const generateLogsTxtWithMetadata = (
   metadata += "--------------------------------------------------\n";
 
   const logLines = logs.map(log => {
-    if (log.source === 'LogBuffer' && log.type === 'system') { 
+    if (log.source === 'LogBuffer' && log.type === 'system') {
       return `\n--- ${formatLogMessage(log.messages)} ---\n`;
     }
     const timestamp = `[${new Date(log.timestamp).toISOString()}]`;
@@ -164,7 +164,7 @@ const generateLogsTxtWithMetadata = (
 
 const generateLogsCsvWithMetadata = (
     logs: GlobalLogEntry[],
-    currentAppVersion: string, 
+    currentAppVersion: string,
     fullSnapshot: any
 ): string => {
   let metadata = `Section,Key,Value\n`;
@@ -187,7 +187,7 @@ const generateLogsCsvWithMetadata = (
     metadata += `Variable,${escapeCsvField(key)},${escapeCsvField(varValue)}\n`;
   }
   metadata += "\n";
-  
+
   metadata += `All Raw Data JSONs\n`;
   for (const [key, value] of Object.entries(fullSnapshot.allRawData || {})) {
     if (typeof value === 'string') {
@@ -198,7 +198,7 @@ const generateLogsCsvWithMetadata = (
 
   metadata += "Client Debug Logs,Timestamp,Type,Source,Message\n";
   const logRows = logs.map(log => {
-    if (log.source === 'LogBuffer' && log.type === 'system') { 
+    if (log.source === 'LogBuffer' && log.type === 'system') {
       return `Log,"",system,LogBuffer,"${escapeCsvField(formatLogMessage(log.messages))}"`;
     }
     const timestamp = log.timestamp;
@@ -218,16 +218,15 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     setClientDebugConsoleOpen,
     isClientDebugConsoleEnabled,
     logDebug,
-    fsmFlags, 
-    dispatchFsmEvent, 
+    fsmFlags,
+    dispatchFsmEvent,
   } = stockAnalysisContext;
 
   const { toast } = useToast();
   const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
-  
+
   const [localActiveFilters, setLocalActiveFilters] = useState<{ types: Set<LogType>; sources: Set<LogSourceId> }>({ types: new Set(), sources: new Set() });
   const [localSearchTerm, setLocalSearchTerm] = useState<string>('');
-
 
   const processLogs = useCallback(() => {
     let logsToProcess = [...globalLogEntries];
@@ -263,6 +262,9 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     }
   }, [isClientDebugConsoleOpen, isClientDebugConsoleEnabled, displayedLogs, processLogs]);
 
+  const getFullExportSnapshot = useCallback(() => {
+    return getFullSnapshotForExport(stockAnalysisContext);
+  }, [stockAnalysisContext]);
 
   useEffect(() => {
     if (isClientDebugConsoleOpen && isClientDebugConsoleEnabled) {
@@ -275,18 +277,14 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
   if (!isClientDebugConsoleEnabled || !isClientDebugConsoleOpen) {
     return null;
   }
-  
+
   const handleClearLogs = () => {
     clearGlobalLogBuffer();
     setDisplayedLogs([]);
-    setLocalSearchTerm(''); 
+    setLocalSearchTerm('');
     toast({ title: 'Logs Cleared', description: 'Client debug logs have been cleared.' });
     logDebug('DebugConsole', 'LogClear', 'Client debug logs cleared by user. Search term also cleared.');
   };
-
-  const getFullExportSnapshot = useCallback(() => {
-    return getFullSnapshotForExport(stockAnalysisContext);
-  }, [stockAnalysisContext]);
 
   const handleCopyJson = async () => {
     logDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as JSON.');
@@ -304,7 +302,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     logDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as TXT.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fullSnapshot = getFullExportSnapshot();
-    const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fullSnapshot); 
+    const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fullSnapshot);
     if (await copyToClipboard(txtData)) {
       toast({ title: 'Snapshot Copied', description: 'Full system snapshot copied to clipboard as TXT.' });
     } else {
@@ -316,7 +314,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     logDebug('DebugConsole', 'CopyAction', 'Copying full snapshot as CSV.');
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
     const fullSnapshot = getFullExportSnapshot();
-    const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fullSnapshot); 
+    const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fullSnapshot);
     if (await copyToClipboard(csvData)) {
       toast({ title: 'Snapshot Copied', description: 'Full system snapshot copied to clipboard as CSV.' });
     } else {
@@ -330,7 +328,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     try {
       const fullSnapshot = getFullExportSnapshot();
       const exportData = { appVersion, ...fullSnapshot, logs: displayedLogs };
-      downloadJson(exportData, `stocksage_full_snapshot_${appVersion}.json`); 
+      downloadJson(exportData, `stocksage_full_snapshot_${appVersion}.json`);
       toast({ title: 'Snapshot Exported', description: 'Full system snapshot downloaded as JSON.' });
     } catch (error) {
       toast({ variant: "destructive", title: "Export Failed", description: "Could not export snapshot." });
@@ -342,8 +340,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fullSnapshot = getFullExportSnapshot();
-      const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fullSnapshot); 
-      downloadTxt(txtData, `stocksage_full_snapshot_${appVersion}.txt`); 
+      const txtData = generateLogsTxtWithMetadata(displayedLogs, appVersion, fullSnapshot);
+      downloadTxt(txtData, `stocksage_full_snapshot_${appVersion}.txt`);
       toast({ title: 'Snapshot Exported', description: 'Full system snapshot downloaded as TXT.' });
     } catch (error) {
       toast({ variant: "destructive", title: "Export Failed", description: "Could not export snapshot." });
@@ -355,8 +353,8 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
       const fullSnapshot = getFullExportSnapshot();
-      const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fullSnapshot); 
-      downloadTxt(csvData, `stocksage_full_snapshot_${appVersion}.csv`); 
+      const csvData = generateLogsCsvWithMetadata(displayedLogs, appVersion, fullSnapshot);
+      downloadTxt(csvData, `stocksage_full_snapshot_${appVersion}.csv`);
       toast({ title: 'Snapshot Exported', description: 'Full system snapshot downloaded as CSV.' });
     } catch (error) {
       toast({ variant: "destructive", title: "Export Failed", description: "Could not export snapshot." });
@@ -386,7 +384,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
     });
   };
   const setAllTypeFilters = (selectAll: boolean) => {
-    setLocalActiveFilters(prev => ({ ...prev, types: selectAll ? new Set(allLogTypes) : new Set() }));
+    setLocalActiveFilters(prev => ({ ...prev, types: selectAll ? new Set(logTypes) : new Set() }));
   };
   const setAllSourceFilters = (selectAll: boolean) => {
     setLocalActiveFilters(prev => ({ ...prev, sources: selectAll ? new Set(logSourceIds) : new Set() }));
@@ -565,7 +563,7 @@ export function DebugConsole({ appVersion }: DebugConsoleProps) {
                         'text-red-500 dark:text-red-400': log.type === 'error',
                         'text-blue-500 dark:text-blue-400': log.type === 'info',
                         'text-purple-500 dark:text-purple-400': log.type === 'debug',
-                        'text-green-500 dark:text-green-400': log.type === 'system', 
+                        'text-green-500 dark:text-green-400': log.type === 'system',
                         'text-gray-500 dark:text-gray-400': log.type === 'log',
                       })}
                     >
