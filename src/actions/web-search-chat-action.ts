@@ -34,7 +34,7 @@ export async function webSearchChatAction(
     const debugPrompt = "What's the current ATR-14 for NVDA";
     const chatbotRequestJson = JSON.stringify({ prompt: debugPrompt, type: 'debug_web_search' }, null, 2);
     try {
-      console.log(`${actionLogPrefix} Executing DEBUG Web Search prompt.`);
+      console.log(`${actionLogPrefix} Executing DEBUG Web Search prompt. This is a direct, non-cached call.`);
       const result = await ai.generate({
         model: DEFAULT_CHAT_MODEL_ID,
         prompt: debugPrompt,

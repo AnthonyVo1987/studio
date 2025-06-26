@@ -55,7 +55,7 @@ export async function appDataChatAction(
     const debugPrompt = "What's the correlation for NVDA and the broader AI market?";
     const chatbotRequestJson = JSON.stringify({ prompt: debugPrompt, type: 'debug_app_data' }, null, 2);
     try {
-      console.log(`${actionLogPrefix} Executing DEBUG App Data prompt.`);
+      console.log(`${actionLogPrefix} Executing DEBUG App Data prompt. This is a direct, non-cached call.`);
       const result = await ai.generate({
         model: DEFAULT_CHAT_MODEL_ID,
         prompt: debugPrompt,
@@ -64,7 +64,7 @@ export async function appDataChatAction(
           thinkingConfig: { thinkingBudget: -1 },
         },
       });
-      const output = result.output() || { response: "Debug prompt failed to return valid output." };
+      const output = result.output || { response: "Debug prompt failed to return valid output." };
       const chatbotResponseJson = JSON.stringify(output, null, 2);
       return {
         status: 'success',
