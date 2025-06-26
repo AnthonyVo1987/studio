@@ -1,7 +1,7 @@
 # Gemini AI: Grounding with Google Search - Reference Guide
 
-**Document Version:** 3.0
-**Date:** 2025-07-26
+**Document Version:** 4.0
+**Date:** 2025-07-27
 **Author:** StockSage AI Coding Agent
 
 ## 1. Introduction
@@ -158,11 +158,12 @@ When a response is successfully grounded, the API response includes a `grounding
 ## 5. Implementation Notes & Lessons Learned
 
 *   **The Root Cause of v3.3.7 Errors:** The primary bug was failing to remove the `outputSchema` from the `ai.defineFlow` definition when adding the `googleSearch` tool to the prompt.
-*   **The Root Cause of v3.3.16.7.30 Error:** The error `Cannot read properties of undefined (reading '__action')` was caused by using the prohibited `import` syntax for the tool.
+*   **The Root Cause of v3.3.16.7.30 Error:** The error `Cannot read properties of undefined (reading '__action')` was caused by using the prohibited `import` syntax for the tool (`import { googleSearch }...`). This failed because the version of `@genkit-ai/googleai` in this project does not export `googleSearch` as a named constant.
 *   **Follow the Pattern:** The `web-search-chat-flow.ts` file provides a working, correct implementation of this architecture. All new grounded search features must replicate this pattern exactly.
 *   **Single Responsibility:** When grounding is on, the AI's only responsibility is to find information and return a text response. The application's responsibility is to parse and validate it.
 
 ## 6. Document Changelog
+*   **v4.0 (2025-07-27):** Updated "Implementation Notes & Lessons Learned" with the specific root cause of the `v3.3.16.7.30` error, clarifying why the `import` syntax fails in this project.
 *   **v3.0 (2025-07-26):** Consolidated information from all provided official API docs and examples. Added a new section explicitly mandating the use of the `{ googleSearch: {} }` object literal syntax and prohibiting the `import` syntax, with a clear explanation of why. Expanded the `groundingMetadata` section with a new, more detailed example and explanation of fields. Re-numbered sections.
 *   **v2.0 (2025-07-03):** Added Section 5 detailing the `groundingMetadata` response object, including an example and explanation of key fields. Renumbered subsequent sections.
 *   **v1.0 (2025-06-29):** Initial document creation.

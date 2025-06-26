@@ -58,6 +58,16 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.31` (Documentation)
+**Tag:** `Phase-57_Task-3.3.16.7.31_DocumentToolSyntaxFix`
+**Commit Hash:** `(to be assigned)`
+**Subject:** `docs(all): Update docs to reflect tool syntax failure post-mortem`
+**Details:**
+This is a documentation-only commit that captures the lessons learned from the debugging of the `v3.3.16.7.30` `TypeError`. It ensures the project has a clear and permanent record of the correct syntax for using the Google Search tool within our specific environment, preventing future regressions.
+*   **New Post-Mortem Document:** Created `docs/POST_MORTEM_ToolSyntaxFailure_v3.3.16.7.30.md` to analyze and document the AI agent's process failure that led to the incorrect syntax being implemented.
+*   **Updated Grounding Guide:** Updated `docs/Gemini_AI_Grounding_Google_Search.md` with a new "Lessons Learned" section. This section explicitly states why the `import { googleSearch }` pattern fails in this project and reinforces that `[{ googleSearch: {} }]` is the mandatory syntax.
+*   **Application Metadata:** Updated `src/config/app-metadata.json` to version `v3.3.16.7.31`.
+---
 **App Version:** `v3.3.16.7.29` (Debug Enhancement)
 **Tag:** `Phase-57_Task-3.3.16.7.29_ImplementIsolatedDebugChats`
 **Commit Hash:** `ed84249b`
