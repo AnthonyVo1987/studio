@@ -150,9 +150,9 @@ export function Chatbot({
             </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow flex flex-col p-4 space-y-4 overflow-hidden">
-        <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
-          <div className="space-y-4">
+      <CardContent className="flex flex-col p-4 space-y-4 flex-grow min-h-0">
+        <ScrollArea className="pr-4 -mr-4">
+          <div className="space-y-4" ref={scrollAreaRef}>
             {chatHistory.length === 0 && (
               <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
             )}
