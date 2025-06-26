@@ -57,6 +57,7 @@ export function Chatbot({
 
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const cardContentRef = useRef<HTMLDivElement>(null); // Ref for diagnostics
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
 
   logDebug(logSourceId, 'RenderState', `GlobalFSM: ${fsmState}, LocalChatbotFSM_UIState: ${chatbotFsmState}, isProcessing (prop): ${isProcessing}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
@@ -66,6 +67,27 @@ export function Chatbot({
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [chatHistory]);
+
+  // DIAGNOSTIC USE EFFECT
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (cardContentRef.current && scrollAreaRef.current) {
+        const cardContentHeight = cardContentRef.current.clientHeight;
+        const scrollAreaClientHeight = scrollAreaRef.current.clientHeight;
+        const scrollAreaScrollHeight = scrollAreaRef.current.scrollHeight;
+
+        logDebug(
+          logSourceId as any, // Cast to any to allow custom category
+          'ScrollDebug', // A specific category for this debugging
+          `CardContent Height: ${cardContentHeight}px, `,
+          `ScrollArea Inner Div ClientHeight: ${scrollAreaClientHeight}px, `,
+          `ScrollArea Inner Div ScrollHeight: ${scrollAreaScrollHeight}px`
+        );
+      }
+    }, 100); // 100ms delay to give DOM a bit more time to settle after render
+
+    return () => clearTimeout(timeoutId);
+}, [chatHistory, logDebug, logSourceId]);
 
   const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -150,7 +172,7 @@ export function Chatbot({
             </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-4 min-h-0">
+      <CardContent ref={cardContentRef} className="flex-grow min-h-0 p-4 flex flex-col">
         <ScrollArea className="h-full pr-4 -mr-4">
           <div className="space-y-4" ref={scrollAreaRef}>
             {chatHistory.length === 0 && (
@@ -188,3 +210,4 @@ export function Chatbot({
     </Card>
   );
 }
+
