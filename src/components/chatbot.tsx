@@ -57,16 +57,14 @@ export function Chatbot({
 
   const { toast } = useToast();
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const cardContentRef = useRef<HTMLDivElement>(null); // For diagnostic logging
+  const cardContentRef = useRef<HTMLDivElement>(null); 
 
   // --- Diagnostic Logging Effect ---
   useEffect(() => {
-    if (cardContentRef.current && viewportRef.current) {
+    if (cardContentRef.current) {
         const dimensions = {
-            cardContentHeight: cardContentRef.current.clientHeight,
-            scrollAreaClientHeight: viewportRef.current.clientHeight,
-            scrollAreaScrollHeight: viewportRef.current.scrollHeight,
+            cardContentClientHeight: cardContentRef.current.clientHeight,
+            cardContentScrollHeight: cardContentRef.current.scrollHeight,
         };
         console.log(`[CHAT SCROLL DEBUG - ${title}]`, dimensions);
     }
@@ -74,8 +72,8 @@ export function Chatbot({
   // --- End Diagnostic Logging Effect ---
 
   useEffect(() => {
-    if (viewportRef.current) {
-      viewportRef.current.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
+    if (cardContentRef.current) {
+      cardContentRef.current.scrollTo({ top: cardContentRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [chatHistory]);
 
@@ -162,27 +160,23 @@ export function Chatbot({
             </div>
         </div>
       </CardHeader>
-      <CardContent ref={cardContentRef} className="flex-grow min-h-0 flex flex-col p-0">
-        <ScrollArea className="h-full">
-            <div ref={viewportRef} className="p-4 space-y-4">
-                {chatHistory.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
-                )}
-                {chatHistory.map((msg) => (
-                <div key={msg.id} className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", msg.role === 'user' ? "ml-auto bg-primary text-primary-foreground" : "bg-muted")}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose dark:prose-invert prose-sm max-w-none">{msg.content}</ReactMarkdown>
+      <CardContent ref={cardContentRef} className="flex-grow overflow-y-auto p-4 space-y-4">
+        {chatHistory.length === 0 && (
+        <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
+        )}
+        {chatHistory.map((msg) => (
+        <div key={msg.id} className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", msg.role === 'user' ? "ml-auto bg-primary text-primary-foreground" : "bg-muted")}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose dark:prose-invert prose-sm max-w-none">{msg.content}</ReactMarkdown>
+        </div>
+        ))}
+        {isProcessing && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user' && (
+            <div className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> 
+                <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <span className="text-muted-foreground italic">StockSage is thinking...</span>
                 </div>
-                ))}
-                {isProcessing && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user' && (
-                    <div className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> 
-                        <div className="flex items-center space-x-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                            <span className="text-muted-foreground italic">StockSage is thinking...</span>
-                        </div>
-                    </div>
-                )}
             </div>
-        </ScrollArea>
+        )}
       </CardContent>
       <CardFooter className="flex-shrink-0 flex flex-col items-start gap-4 p-4 pt-4 border-t">
         <div className="w-full">
