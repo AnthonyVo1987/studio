@@ -1,10 +1,9 @@
-
 # Root Cause Analysis Report: Web Search Tool Error (v3.3.16.7.22)
 
-**Document Version:** 1.0
+**Document Version:** 2.0
 **Date:** 2025-07-23
 **Target Application Version Series:** 3.3.16.7.22+
-**Status:** ANALYSIS COMPLETE - AWAITING REVIEW
+**Status:** FIX IN PROGRESS
 
 ## 1. Executive Summary
 
@@ -62,8 +61,26 @@ This creates a fundamental contradiction: the flow promises to output a structur
 
 ## 5. Next Steps
 
-This Root Cause Analysis is now complete. Awaiting review and approval of these findings from the project lead. Upon approval, a detailed scope of changes and implementation plan can be proposed to fix the identified architectural conflict.
+This Root Cause Analysis is now complete. The implementation plans have been approved by the project lead. The next step is to generate the code changes to implement the approved fixes.
 
-## 6. Document Changelog
+## 6. Approved Implementation Plan
 
+### Plan A: Fix Genkit Architectural Violation (MUST-HAVE)
+*   **Objective:** To resolve the critical `Unable to determine type of tool` error by correcting the Genkit architectural violation in the Web Search AI flow.
+*   **Implementation Task:**
+    *   **File:** `src/ai/flows/web-search-chat-flow.ts`
+    *   **Action:** Locate the `ai.defineFlow` block for `webSearchChatFlow` and **remove the `outputSchema: WebSearchChatOutputSchema,` line entirely**. This resolves the conflict by making the flow's declaration match its tool-using behavior.
+
+### Plan B: Fix FSM Race Condition (NICE-TO-HAVE)
+*   **Objective:** To resolve the client-side FSM race condition that causes duplicate chat actions to be dispatched.
+*   **Implementation Task:**
+    *   **File:** `src/contexts/stock-analysis-context.tsx`
+    *   **Actions:**
+        1.  Add a new `PIPELINE_PAUSED` state to the `GlobalFsmState` enum.
+        2.  Modify the FSM reducer to transition to `PIPELINE_PAUSED` upon successful completion of a custom chat prompt.
+        3.  Add a new debouncing `useEffect` hook that triggers on the `PIPELINE_PAUSED` state. This hook will use a `setTimeout` to introduce a brief delay before dispatching an event to transition the FSM back to `AI_TA_CALCULATION_SUCCEEDED`, allowing React state to propagate and preventing the race condition.
+
+## 7. Document Changelog
+
+*   **v2.0 (2025-07-23):** Added approved implementation plans for both the critical architectural fix and the secondary FSM race condition fix. Updated status to "FIX IN PROGRESS".
 *   **v1.0 (2025-07-23):** Initial document creation, synthesizing findings from the full root cause analysis.
