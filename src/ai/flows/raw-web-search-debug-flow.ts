@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A dedicated, minimal Genkit flow for raw web search debugging.
@@ -12,7 +11,6 @@ import { ai } from '@/ai/genkit';
 import {
   RawWebSearchDebugInputSchema,
   type RawWebSearchDebugInput,
-  RawWebSearchDebugOutputSchema,
   type RawWebSearchDebugOutput,
 } from '@/ai/schemas/raw-debug-chat-schemas';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
@@ -27,9 +25,9 @@ const rawWebSearchDebugFlow = ai.defineFlow(
   {
     name: 'rawWebSearchDebugFlow',
     inputSchema: RawWebSearchDebugInputSchema,
-    outputSchema: RawWebSearchDebugOutputSchema,
+    // REMOVED: outputSchema to resolve tool conflict
   },
-  async (prompt) => {
+  async (prompt): Promise<RawWebSearchDebugOutput> => {
     const logPrefix = `[AIFlow:rawWebSearchDebugFlow]`;
     console.log(`${logPrefix} Executing raw debug web search prompt.`);
 
