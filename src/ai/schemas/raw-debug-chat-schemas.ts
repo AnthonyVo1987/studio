@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 // Schemas for raw-debug-chat-action
 export const RawDebugChatInputsSchema = z.object({
-  promptType: z.enum(['app-data', 'web-search']),
+  promptType: z.enum(['app-data', 'web-search', 'sdk-app-data', 'sdk-web-search']),
 });
 export type RawDebugChatInputs = z.infer<typeof RawDebugChatInputsSchema>;
 
