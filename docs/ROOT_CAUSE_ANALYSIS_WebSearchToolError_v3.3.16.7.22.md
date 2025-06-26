@@ -1,7 +1,8 @@
+
 # Root Cause Analysis Report: Web Search Tool Error & FSM Instability
 
-**Document Version:** 3.0
-**Date:** 2025-07-24
+**Document Version:** 4.0
+**Date:** 2025-07-26
 **Target Application Version Series:** 3.3.16.7.25+
 **Status:** FIX IN PROGRESS
 
@@ -11,7 +12,7 @@ This report details the findings from a series of step-by-step root cause analys
 
 The definitive root cause has been identified as a **foundational architectural flaw in the client-side FSM orchestrator** within `src/contexts/stock-analysis-context.tsx`. The orchestrator's design, based on a `useEffect` hook with a large and complex dependency array, is inherently non-deterministic and creates a severe race condition.
 
-This client-side instability is the direct cause of the downstream server-side errors. The application is attempting to invoke server actions from a corrupted, looping state, leading to the Genkit tool determination failure. Previous attempts to fix this with isolated patches (`v3.3.16.7.22` and `v3.3.16.7.23`) were insufficient as they did not address this core architectural problem.
+This client-side instability is the direct cause of the downstream server-side errors. The application is attempting to invoke server actions from a corrupted, looping state, leading to the Genkit tool determination failure. Previous attempts to fix this with isolated patches (`v3.3.16.7.22`, `v3.3.16.7.23`, and `v3.3.16.7.28`) were insufficient as they did not address this core architectural problem. The implementation of fully isolated debug components in `v3.3.16.7.29` confirmed that direct API calls can work, further pointing to the FSM as the source of the issue.
 
 ## 2. Symptoms Observed
 
@@ -57,6 +58,9 @@ This Root Cause Analysis is now complete. The implementation plans have been app
 
 ## 7. Document Changelog
 
+*   **v4.0 (2025-07-26):** Updated summary to reflect the successful implementation of the isolated debug components in `v3.3.16.7.29`, which confirmed the FSM is the likely source of the problem.
 *   **v3.0 (2025-07-24):** Updated report to reflect the definitive root cause being the FSM orchestrator's race condition. Superseded previous analysis. Added new, comprehensive re-architecture plan.
 *   **v2.0 (2025-07-23):** Added approved implementation plans for both the critical architectural fix and the secondary FSM race condition fix. Updated status to "FIX IN PROGRESS".
 *   **v1.0 (2025-07-23):** Initial document creation, synthesizing findings from the full root cause analysis.
+
+    

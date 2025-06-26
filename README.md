@@ -32,8 +32,8 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 ###
 ---
 **README Document Version:** 3.0
-**Application Version (from `app-metadata.json`):** v3.3.16.7.26
-**Last Updated:** 2025-07-25
+**Application Version (from `app-metadata.json`):** v3.3.16.7.29
+**Last Updated:** 2025-07-26
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -118,7 +118,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup. (Default `false` as of v3.3.16).
 *   **UI/Render Log Spam Toggle:** A user-configurable setting (default `true` as of v3.3.16) to control high-frequency logs from UI components related to re-renders and prop changes.
 *   **FSM Debug Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables within organized UI cards. Includes copy/export functionality for the full FSM snapshot.
-*   **Debug AI Prompts:** Each of the two AI chat boxes includes a dedicated "Debug" button. These buttons bypass all application FSM logic, data context, and flow orchestration to send a raw, hardcoded prompt directly to the Genkit API. This provides a stable, isolated baseline for testing raw API connectivity and responses, aiding in distinguishing between fundamental API issues and application-level bugs.
+*   **Raw AI Prompt Diagnostics:** Two new, dedicated UI cards have been added to the main tab, each containing a single button. These buttons trigger raw, non-cached, dependency-free calls directly to the AI backend via a dedicated server action (`raw-debug-chat-action.ts`). This provides a completely isolated testbed for diagnosing fundamental API connectivity or prompt issues without any interference from the main application's FSM or data state.
 
 ### 3.2. System Architecture & Components
 
@@ -192,7 +192,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.7.26):**
+*   **Current Feature Focus (as of v3.3.16.7.29):**
     *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final testing and debugging phase is in progress.
     *   **Known Unresolved Bug:** The **Web Search AI Chat** pipeline is not functioning correctly, failing with a `Unable to determine type of tool` error. The investigation has identified a client-side FSM race condition as the root cause.
     *   **Next Step:** Re-architect the client-side FSM orchestrator to be deterministic and sequential.
@@ -248,10 +248,12 @@ npm run start
 
 ## 5. Change History & Versioning
 *   **This README Document Version:** 3.0
-*   **Current Application Version:** `v3.3.16.7.26`
+*   **Current Application Version:** `v3.3.16.7.29`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
     *   For pre-v3.0.0.0 history: Refer to `CHANGELOG.md`.
 
 ---
+
+    

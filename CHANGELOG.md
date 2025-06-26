@@ -58,6 +58,31 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.29` (Debug Enhancement)
+**Tag:** `Phase-57_Task-3.3.16.7.29_ImplementIsolatedDebugChats`
+**Commit Hash:** `ed84249b`
+**Subject:** `feat(debug,ui): Implement fully isolated raw AI prompt chat components`
+**Details:**
+This commit introduces a significant debugging enhancement by creating two new, completely isolated chat components dedicated solely to the "Raw AI Prompt" diagnostic feature. This change was necessitated by logs showing that even the raw debug prompts were being affected by the main application's FSM lifecycle, preventing a clean diagnostic test.
+
+**Architectural Significance:**
+*   **New Component (`raw-debug-chatbot.tsx`):** A new, lightweight chat component was created. It uses its own minimal `useActionState` and does not connect to the global `StockAnalysisContext` or any FSM.
+*   **New Server Action (`raw-debug-chat-action.ts`):** A new, dedicated server action was created to house *only* the direct `ai.generate()` calls for both debug prompt types. This ensures the raw prompts are not routed through the main chat actions (`app-data-chat-action`, `web-search-chat-action`).
+*   **UI Refactoring (`main-tab-content.tsx`):** The old "Debug" buttons were removed from the primary `Chatbot` components. Two instances of the new `RawDebugChatbot` have been added to the UI, each configured for its specific prompt type ('app-data' or 'web-search').
+*   **Complete Decoupling:** This architecture guarantees that clicking a "Run Raw Debug Prompt" button triggers a completely independent execution path, free from any potential interference from the application's complex state management. This provides a truly clean baseline for diagnosing fundamental API, SDK, or tool-resolution issues.
+---
+**App Version:** `v3.3.16.7.28` (Debug Fix Attempt)
+**Tag:** `Phase-56_Task-3.3.16.7.28_FixWebSearchToolReference`
+**Commit Hash:** `(prev_commit)`
+**Subject:** `fix(debug,ai): Attempt to fix tool resolution with direct SDK reference`
+**Details:**
+This commit attempted to fix the `Unable to determine type of tool` error by changing the tool reference in `web-search-chat-action.ts` from the object literal `[{ googleSearch: {} }]` to a direct import and reference of the `googleSearch` tool from `@genkit-ai/googleai`.
+
+**Outcome:**
+*   **FAILED:** This change introduced a build error (`Export 'googleSearch' doesn't exist in target module`), proving that `googleSearch` is not a direct named export of the package.
+*   **Lesson Learned:** The build error's hint, "Did you mean to import googleAI?", was a critical clue that was not acted upon in this commit. It pointed towards referencing the tool via the main plugin object (e.g., `googleAI.googleSearch`).
+*   The code was subsequently reverted in the same task to restore build stability.
+---
 **App Version:** `v3.3.16.7.26` (Diagnostic Feature)
 **Tag:** `Phase-56_Task-3.3.16.7.26_ImplementDebugPrompts`
 **Commit Hash:** `119f1a5b`
@@ -325,7 +350,7 @@ This commit (`TBD`) implements the FSM enhancements scoped in the v3.3.15.0.5 au
 
 **Key Architectural Correction:**
 *   **`src/contexts/stock-analysis-context.tsx`:**
-    *   **New FSM States:** Added six new states to the `GlobalFsmState` enum: `FETCHING_AUGMENTED_TA`, `AUGMENTED_TA_SUCCEEDED`, `AUGMENTED_TA_FAILED`, `FETCHING_AUGMENTED_OPTIONS`, `AUGMENTED_OPTIONS_SUCCEEDED`, `AUGMENTED_OPTIONS_FAILED`.
+    *   **New FSM States:** Added six new states to the `GlobalFsmState` enum: `FETCHING_AUGMENTED_TA`, `AUGMENTED_TA_SUCCEEDED`, `AUGMENTED_TA_FAILED`, `FETCHING_AUGMENTED_OPTIONS`, `AUGMENTED_OPTIONS_SUCCEEDED`, `AUGMENTED_OPTIONS_FAILED`,
     *   **New FSM Events:** Added corresponding new events to `FsmEvent` to trigger and manage these states.
     *   **Updated FSM Orchestrator:** The `useEffect` orchestrator has been refactored. It now uses the new dedicated states to correctly sequence the augmented searches as the final steps of the main pipeline, waiting for one to complete before starting the next.
     *   **Updated Reducer & Action Handling:** The reducer and the `useActionState` effect for the chat action were updated to handle the new events and dispatch them correctly, distinguishing between regular chat messages and augmented search requests.
@@ -1236,3 +1261,5 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
+    
