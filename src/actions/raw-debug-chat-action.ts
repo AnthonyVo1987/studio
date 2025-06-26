@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -19,6 +20,29 @@ export interface RawDebugChatActionState {
 interface RawDebugChatInputs {
   promptType: 'app-data' | 'web-search';
 }
+
+// --- Cached Prompt for Web Search ---
+let webSearchDebugPrompt: any = null;
+
+async function getWebSearchDebugPrompt() {
+  const logPrefix = `[AIFlow:getWebSearchDebugPrompt:RawDebug]`;
+  if (webSearchDebugPrompt) {
+    console.log(`${logPrefix} Returning cached prompt object.`);
+    return webSearchDebugPrompt;
+  }
+  
+  const prompt = ai.definePrompt({
+    name: 'rawWebSearchDebugPrompt',
+    model: DEFAULT_CHAT_MODEL_ID,
+    tools: [{ googleSearch: {} }],
+    config: { thinkingConfig: { thinkingBudget: -1 } },
+  });
+
+  webSearchDebugPrompt = prompt;
+  console.log(`${logPrefix} Raw web search debug prompt object defined and cached.`);
+  return webSearchDebugPrompt;
+}
+// --- End Cached Prompt ---
 
 export async function rawDebugChatAction(
   prevState: RawDebugChatActionState,
@@ -56,13 +80,10 @@ export async function rawDebugChatAction(
     const debugPrompt = "What's the current ATR-14 for NVDA";
     const requestJson = JSON.stringify({ prompt: debugPrompt, type: 'debug_web_search' }, null, 2);
     try {
-      console.log(`${logPrefix} Executing raw Web Search prompt.`);
-      const result = await ai.generate({
-        model: DEFAULT_CHAT_MODEL_ID,
-        prompt: debugPrompt,
-        tools: [{ googleSearch: {} }],
-        config: { thinkingConfig: { thinkingBudget: -1 } },
-      });
+      console.log(`${logPrefix} Executing raw Web Search prompt via defined prompt object.`);
+      const promptToUse = await getWebSearchDebugPrompt();
+      const result = await promptToUse(debugPrompt); // Pass the prompt string as input
+
       const responseText = result.text ?? "Debug prompt failed to return text.";
       return {
         status: 'success',
