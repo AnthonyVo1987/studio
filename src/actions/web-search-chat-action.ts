@@ -25,7 +25,8 @@ export async function webSearchChatAction(
 ): Promise<WebSearchChatActionState> {
   const { ticker, userInput, promptName, chatHistory } = payload;
   const actionLogPrefix = `[ServerAction:webSearchChatAction:Ticker:${ticker || 'N/A'}]`;
-  console.log(`${actionLogPrefix} Received request. PromptName: ${promptName || 'default_web_search'}. User Input (first 50 chars): "${userInput?.substring(0,50) || 'undefined_input'}...".`);
+  console.log(`[DIAG_LOG_WEBACTION_ENTRY] ${actionLogPrefix} Received request. PromptName: ${promptName || 'default_web_search'}. User Input (first 50 chars): "${userInput?.substring(0,50) || 'undefined_input'}...".`);
+
 
   if (!userInput || userInput.trim() === '') {
     const errorMsg = 'User input cannot be empty.';
@@ -51,8 +52,10 @@ export async function webSearchChatAction(
   const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
   
   try {
+    console.log(`[DIAG_LOG_WEBACTION_PRE_FLOW] ${actionLogPrefix} Calling webSearchChat flow.`);
     const flowOutput: WebSearchChatOutput = await webSearchChat(flowInput);
     const chatbotResponseJson = JSON.stringify(flowOutput, null, 2);
+    console.log(`[DIAG_LOG_WEBACTION_POST_FLOW_SUCCESS] ${actionLogPrefix} Flow succeeded. chatbotResponseJson length: ${chatbotResponseJson.length}`);
 
     return {
       status: 'success',
@@ -64,7 +67,7 @@ export async function webSearchChatAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CRITICAL Error during web search processing. Error: ${error.message}.`);
+    console.error(`[DIAG_LOG_WEBACTION_POST_FLOW_ERROR] ${actionLogPrefix} CRITICAL Error during web search processing. Error: ${error.message}.`);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during web search processing.',

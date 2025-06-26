@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Implements a grounded chatbot flow for web search queries.
@@ -33,6 +34,7 @@ const jsonPromptSchemaMap: Record<string, z.ZodTypeAny> = {
 async function getWebSearchChatPrompt(input: WebSearchChatInput) {
   const definitionName = input.promptName || 'web-search-chatbot';
   const logPrefix = `[AIFlow:getWebSearchChatPrompt:Grounded:${definitionName}]`;
+  console.log(`[DIAG_LOG_GET_PROMPT] Entry. promptCache has key '${definitionName}': ${!!promptCache[definitionName]}`);
 
   if (promptCache[definitionName]) {
     console.log(`${logPrefix} Returning cached prompt object.`);
@@ -48,14 +50,12 @@ async function getWebSearchChatPrompt(input: WebSearchChatInput) {
   const promptString = buildPromptStringFromLlmDefinition(promptDefinition);
   const modelId = promptDefinition.modelId || DEFAULT_CHAT_MODEL_ID;
 
-  // ARCHITECTURAL FIX: A grounded prompt with tools CANNOT have an `output` schema.
-  // This was the root cause of the `Unable to determine type of tool` error.
   const promptOptions: any = {
     name: promptDefinition.promptName,
     input: { schema: WebSearchChatInputSchema },
     model: modelId,
     prompt: promptString,
-    tools: [{ googleSearch: {} }], // Always use Google Search for this flow
+    tools: [{ googleSearch: {} }],
     config: {
       safetySettings: promptDefinition.safetySettings,
       thinkingConfig: promptDefinition.thinkingBudget !== undefined ? { thinkingBudget: promptDefinition.thinkingBudget } : undefined,
@@ -63,7 +63,7 @@ async function getWebSearchChatPrompt(input: WebSearchChatInput) {
   };
   
   console.log(
-    `${logPrefix} Defining prompt. Model: ${modelId}, Grounding: true, ThinkingBudget: ${promptOptions.config.thinkingConfig?.thinkingBudget ?? 'N/A'}`
+    `[DIAG_LOG_PROMPT_OPTIONS] Defining prompt with options for '${definitionName}': ${JSON.stringify(promptOptions, null, 2)}`
   );
 
   const prompt = ai.definePrompt(promptOptions);
@@ -73,7 +73,7 @@ async function getWebSearchChatPrompt(input: WebSearchChatInput) {
 
 export async function webSearchChat(input: WebSearchChatInput): Promise<WebSearchChatOutput> {
   const logPrefix = `[AIFlow:webSearchChat:Grounded:Ticker:${input.ticker}:Entry]`;
-  console.log(`${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0, 50)}..."`);
+  console.log(`[DIAG_LOG_FLOW_WRAPPER] ${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0, 50)}..."`);
   console.time('webSearchChatFlowExecutionTime');
   try {
     const result = await webSearchChatFlow(input);
@@ -113,20 +113,22 @@ const webSearchChatFlow = ai.defineFlow(
   {
     name: 'webSearchChatFlow',
     inputSchema: WebSearchChatInputSchema,
+    // REMOVED: outputSchema to fix tool conflict
   },
   async (input: WebSearchChatInput): Promise<WebSearchChatOutput> => {
     const logPrefix = `[AIFlow:webSearchChatFlow:Ticker:${input.ticker || 'N/A'}]`;
-    console.log(`${logPrefix} Flow execution started. PromptName: ${input.promptName || 'web-search-chatbot'}.`);
+    console.log(`[DIAG_LOG_FLOW_ENTRY] ${logPrefix} Flow execution started. PromptName: ${input.promptName || 'web-search-chatbot'}.`);
 
     try {
+      console.log(`[DIAG_LOG_FLOW_PRE_PROMPT] ${logPrefix} About to call getWebSearchChatPrompt.`);
       const promptToUse = await getWebSearchChatPrompt(input);
+      console.log(`[DIAG_LOG_FLOW_POST_PROMPT] ${logPrefix} Prompt object retrieved. About to execute prompt.`);
       const result = await promptToUse(input);
+      console.log(`[DIAG_LOG_FLOW_POST_EXEC] ${logPrefix} Prompt execution complete.`);
       
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
       console.log(`${logPrefix} Grounded search metadata:`, JSON.stringify(result.usageMetadata?.grounding?.sources, null, 2));
 
-
-      // ARCHITECTURAL FIX: A grounded prompt's response is ALWAYS in `result.text`.
       const rawTextResponse = result.text;
       if (!rawTextResponse || rawTextResponse.trim() === '') {
         throw new Error('Grounded AI prompt returned a malformed or empty text response.');
@@ -136,7 +138,6 @@ const webSearchChatFlow = ai.defineFlow(
       const isJsonPrompt = !!jsonPromptSchemaMap[input.promptName || ''];
 
       if (isJsonPrompt) {
-        // This is a "Grounded JSON-in-Text" prompt. We must parse the JSON from the text.
         const jsonString = extractJsonString(rawTextResponse);
         if (!jsonString) {
           console.error(`${logPrefix} Failed to extract JSON from text:`, rawTextResponse);
@@ -145,20 +146,18 @@ const webSearchChatFlow = ai.defineFlow(
         
         const jsonSchema = jsonPromptSchemaMap[input.promptName!];
         const parsedData = JSON.parse(jsonString);
-        const validatedData = jsonSchema.parse(parsedData); // Zod validation
+        const validatedData = jsonSchema.parse(parsedData);
 
         responseText = formatJsonResponseToMarkdown(validatedData, input.promptName!, input.ticker);
       } else {
-        // This is a standard conversational grounded prompt.
         responseText = rawTextResponse;
       }
       
-      console.log(`${logPrefix} Flow successfully executed. Final response (first 50 chars): "${responseText.substring(0, 50)}..."`);
-      // Manually construct the output object to match the WebSearchChatOutputSchema
+      console.log(`[DIAG_LOG_FLOW_SUCCESS] ${logPrefix} Flow successfully executed. Final response (first 50 chars): "${responseText.substring(0, 50)}..."`);
       return { response: responseText, rawResponse: result };
 
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL ERROR during prompt execution. Error: ${error.message}`);
+      console.error(`[DIAG_LOG_FLOW_ERROR] ${logPrefix} CRITICAL ERROR during prompt execution. Error: ${error.message}`);
       throw error;
     }
   }
