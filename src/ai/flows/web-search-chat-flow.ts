@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Implements a grounded chatbot flow for web search queries.
@@ -114,10 +113,6 @@ const webSearchChatFlow = ai.defineFlow(
   {
     name: 'webSearchChatFlow',
     inputSchema: WebSearchChatInputSchema,
-    // CRITICAL FIX: The outputSchema is removed from the FLOW definition
-    // because the prompt it calls uses tools, which is mutually exclusive
-    // with a structured output schema at the API level. The flow now
-    // manually constructs the output to match the desired schema.
   },
   async (input: WebSearchChatInput): Promise<WebSearchChatOutput> => {
     const logPrefix = `[AIFlow:webSearchChatFlow:Ticker:${input.ticker || 'N/A'}]`;
