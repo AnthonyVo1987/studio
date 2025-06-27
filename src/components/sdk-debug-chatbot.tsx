@@ -16,6 +16,7 @@ import { copyToClipboard } from '@/lib/export-utils';
 import { extractJsonString } from '@/lib/string-utils';
 
 const POLLING_INTERVAL_MS = 5000;
+const INITIAL_DELAY_MS = 5000;
 const MAX_RETRIES = 5;
 
 // --- Local FSM Definition ---
@@ -97,14 +98,32 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
 
   const [serverActionState, formAction, isServerActionPending] = useActionState(sdkDebugChatAction, { status: 'idle' });
 
-  // Effect to link server action state back to local FSM
+  // Effect to link server action state back to local FSM, with initial delay
   useEffect(() => {
-    if (serverActionState !== localFsm.serverResponse) {
-      if (localFsm.fsmState === 'AWAITING_RESPONSE') {
-        dispatch({ type: 'RESPONSE_RECEIVED', payload: serverActionState });
-      }
+    // Guard against running on initial state or if server state hasn't changed
+    if (serverActionState.status === 'idle' || serverActionState === localFsm.serverResponse) {
+      return;
     }
-  }, [serverActionState, localFsm.fsmState, localFsm.serverResponse]);
+
+    if (localFsm.fsmState === 'AWAITING_RESPONSE') {
+      const isFirstResponse = localFsm.retries === 0;
+      const delayMs = isFirstResponse ? INITIAL_DELAY_MS : 0;
+      
+      if (delayMs > 0) {
+        console.log(`[SdkDebugChatbot:Effect] Received new server state. Starting ${delayMs}ms delay before processing.`);
+      }
+
+      const processingTimeout = setTimeout(() => {
+        if (delayMs > 0) {
+          console.log(`[SdkDebugChatbot:Effect] ${delayMs}ms delay complete. Dispatching RESPONSE_RECEIVED to local FSM.`);
+        }
+        dispatch({ type: 'RESPONSE_RECEIVED', payload: serverActionState });
+      }, delayMs);
+
+      return () => clearTimeout(processingTimeout);
+    }
+  }, [serverActionState, localFsm.fsmState, localFsm.serverResponse, localFsm.retries]);
+
 
   // Effect to handle polling
   useEffect(() => {
@@ -149,30 +168,37 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
   };
 
   const isUiPending = localFsm.fsmState === 'AWAITING_RESPONSE' || localFsm.fsmState === 'POLLING';
+  
+  // New useEffect to handle form submission via FSM
+  useEffect(() => {
+    if (localFsm.fsmState === 'AWAITING_RESPONSE' && localFsm.activePrompt && localFsm.retries === 0) {
+      formAction(localFsm.activePrompt);
+    }
+  }, [localFsm.fsmState, localFsm.activePrompt, localFsm.retries, formAction]);
 
   const renderButtons = () => {
     if (promptType === 'sdk-web-search') {
       return (
         <div className="flex flex-col gap-2">
-          <form action={() => formAction({ promptType: 'sdk-web-search' })}>
+          <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-web-search' } })}>
             <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
               {isUiPending && localFsm.activePrompt?.promptType === 'sdk-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
               Run SDK Debug Prompt
             </Button>
           </form>
-          <form action={() => formAction({ promptType: 'sdk-ta-web-search' })}>
+          <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-ta-web-search' } })}>
             <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
               {isUiPending && localFsm.activePrompt?.promptType === 'sdk-ta-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCode className="mr-2 h-4 w-4" />}
               Run SDK TA Web Search
             </Button>
           </form>
-          <form action={() => formAction({ promptType: 'sdk-options-web-search' })}>
+          <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-options-web-search' } })}>
             <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
               {isUiPending && localFsm.activePrompt?.promptType === 'sdk-options-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               Run SDK Options Web Search
             </Button>
           </form>
-          <form action={() => { if (!isUiPending && userInput.trim()) { formAction({ promptType: 'sdk-user-web-search', userInput }); } }} className="w-full flex items-center space-x-2 pt-2">
+          <form onSubmit={(e) => { e.preventDefault(); if (!isUiPending && userInput.trim()) { dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-user-web-search', userInput } }); } }} className="w-full flex items-center space-x-2 pt-2">
             <Input
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
@@ -187,7 +213,7 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
       );
     }
     return (
-      <form action={() => formAction({ promptType: 'sdk-app-data' })}>
+      <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-app-data' } })}>
         <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
           {isUiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
           Run SDK Debug Prompt
@@ -195,7 +221,7 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
       </form>
     );
   };
-
+  
   return (
     <Card>
       <CardHeader>

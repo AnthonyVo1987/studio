@@ -12,7 +12,7 @@ import {
 } from '@/ai/definition-loader';
 
 // Ensure API key is available
-const apiKey = process.env.GEMINI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY; // Corrected to use GEMINI_API_KEY
 if (!apiKey) {
   throw new Error('GEMINI_API_KEY is not set in environment variables.');
 }
@@ -42,7 +42,6 @@ export async function sdkDebugChatAction(
   let debugPrompt = '';
   let requestJson = '';
   let modelToUse = model;
-  let isGroundedSearch = false;
 
   try {
     switch (promptType) {
@@ -53,25 +52,22 @@ export async function sdkDebugChatAction(
             break;
 
         case 'sdk-web-search':
-            // CORRECTED: Updated the default debug prompt as requested.
+            // CORRECTED as per v3.3.16.7.41 bug report
             debugPrompt = "What are the current 3 support and 3 resistance levels for NVDA?";
             requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_web_search' }, null, 2);
             modelToUse = groundedModel;
-            isGroundedSearch = true;
             break;
 
         case 'sdk-ta-web-search':
             debugPrompt = await loadPromptText('technical-analysis-web-search');
             requestJson = JSON.stringify({ prompt: "Loaded prompt from technical-analysis-web-search.json", type: 'sdk-ta-web-search' }, null, 2);
             modelToUse = groundedModel;
-            isGroundedSearch = true;
             break;
 
         case 'sdk-options-web-search':
             debugPrompt = await loadPromptText('options-flow-web-search');
             requestJson = JSON.stringify({ prompt: "Loaded prompt from options-flow-web-search.json", type: 'sdk-options-web-search' }, null, 2);
             modelToUse = groundedModel;
-            isGroundedSearch = true;
             break;
 
         case 'sdk-user-web-search':
@@ -81,14 +77,13 @@ export async function sdkDebugChatAction(
             debugPrompt = userInput;
             requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-user-web-search' }, null, 2);
             modelToUse = groundedModel;
-            isGroundedSearch = true;
             break;
 
         default:
             return { status: 'error', error: 'Invalid prompt type.', message: 'Unknown debug prompt type requested.' };
     }
     
-    // CORRECTED: Removed incorrect server-side delay. All waiting logic is handled by the client.
+    // CORRECTED: Removed server-side delay. Waiting logic is handled by the client.
     console.log(`${logPrefix} Executing direct SDK prompt. Length: ${debugPrompt.length}`);
     const result = await modelToUse.generateContent(debugPrompt);
     const response = await result.response;
