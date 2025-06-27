@@ -1,3 +1,4 @@
+
 'use server';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -66,7 +67,7 @@ export async function sdkDebugChatAction(
             specificLogPrefix = `${genLogPrefix} SDK TA Web Search prompt:`;
             console.log(`${specificLogPrefix} START.`);
             debugPrompt = await loadPromptText('technical-analysis-web-search');
-            requestJson = JSON.stringify({ prompt: "Loaded prompt from technical-analysis-web-search.json", type: 'sdk-ta-web-search' }, null, 2);
+            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-ta-web-search' }, null, 2);
             modelToUse = groundedModel;
             break;
 
@@ -74,7 +75,7 @@ export async function sdkDebugChatAction(
             specificLogPrefix = `${genLogPrefix} SDK Options Web Search prompt:`;
             console.log(`${specificLogPrefix} START.`);
             debugPrompt = await loadPromptText('options-flow-web-search');
-            requestJson = JSON.stringify({ prompt: "Loaded prompt from options-flow-web-search.json", type: 'sdk-options-web-search' }, null, 2);
+            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-options-web-search' }, null, 2);
             modelToUse = groundedModel;
             break;
 

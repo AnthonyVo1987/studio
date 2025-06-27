@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useReducer, useEffect, useRef } from 'react';
@@ -197,6 +198,7 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
           </form>
           <form onSubmit={(e) => { e.preventDefault(); if (!isUiPending && userInput.trim()) { dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-user-web-search', userInput } }); } }} className="w-full flex items-center space-x-2 pt-2">
             <Input
+                name="userInput"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 placeholder="Enter custom web search..."
