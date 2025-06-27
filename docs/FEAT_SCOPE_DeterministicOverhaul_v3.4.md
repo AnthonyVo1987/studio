@@ -1,7 +1,8 @@
+
 # Feature Scope: Full Deterministic Application Refactor (v3.4)
 
-**Document Version:** 1.0
-**Date:** 2025-07-30
+**Document Version:** 1.1
+**Date:** 2025-07-31
 **Target Application Version Series:** 3.4.x.y.z (Future Implementation)
 **Feature Status:** `PLANNED`
 
@@ -27,6 +28,7 @@ This pattern proved to be an architectural mistake in the context of a modern Re
 1.  **Non-Deterministic `useEffect`:** The central orchestrator `useEffect` became the primary source of instability. Its dependency array grew with every new piece of state, causing it to re-run unpredictably on almost any state change. This created severe **race conditions**, where the orchestrator would execute with a stale view of the application's state (e.g., re-running a step it thought hadn't completed), leading to infinite loops and incorrect data flows.
 2.  **State Closure Issues:** The `useEffect` hook would capture stale closures over state variables and functions. This meant that even when the state *did* update, the effect might still be operating with old data, leading to the bizarre "mismatched prompt" bugs that were so difficult to diagnose.
 3.  **Over-Engineering:** The event-driven model was an over-complication. It prioritized a theoretical "clean" separation of concerns over a simple, robust, and **predictable command-driven model**.
+4.  **Brittle Pipeline Management (as seen in v3.3.16.7.50):** The attempt to manage a conditional, multi-step chat pipeline within this reactive orchestrator was a key failure point. The logic to check flags and dispatch the next chat prompt became deeply entangled with other state updates, further exacerbating the race conditions. The successful resolution was to remove this complexity entirely, which strongly validates the need for this overhaul.
 
 **The Correct, Deterministic Approach:**
 The key lesson learned is that for sequential, asynchronous workflows, a simple `async/await` handler is vastly superior. When a user clicks a button, a single `async` function should execute and `await` each step of the pipeline in sequence. This flow is linear, predictable, easy to debug, and has no race conditions.
@@ -61,7 +63,7 @@ This is a high-risk refactor. It will be broken down into discrete phases. Each 
 *   **Objective:** Re-implement the conditional analysis pipeline using a simple, explicit loop within the `handleAnalyzeStock` function.
 *   **Tasks:**
     *   **Task 3.4.3.0:** After the base analysis in `handleAnalyzeStock` succeeds, add logic to read the FSM toggle flags.
-    *   **Task 3.4.3.1:** Create a predefined array representing the pipeline sequence (e.g., `['key_takeaways', 'options_analysis', 'stock_trader_chat', ...]`).
+    *   **Task 3.4.3.1:** Create a predefined array representing the pipeline sequence (e.g., `['key_takeaways', 'options_analysis']`).
     *   **Task 3.4.3.2:** Iterate through this sequence. For each step, check the corresponding flag. If true, `await` the relevant server action. This replaces the complex `dispatchNextCustomAction` logic.
 
 ### Phase 4: Refactor On-Demand Actions to be Deterministic
@@ -75,7 +77,7 @@ This is a high-risk refactor. It will be broken down into discrete phases. Each 
 *   **Objective:** Simplify the AI chatbot submission flow.
 *   **Tasks:**
     *   **Task 3.4.5.0:** Refactor the `ChatbotFsmProvider` to trigger a single `async` handler function in the main context upon submission.
-    *   **Task 3.4.5.1:** This handler will `await` the appropriate chat server action (`appDataChatAction` or `webSearchChatAction`).
+    *   **Task 3.4.5.1:** This handler will `await` the appropriate chat server action (`appDataChatAction` or `sdkWebSearchChatAction`).
     *   **Task 3.4.5.2:** Upon receiving the response, the handler will directly update the correct chat history array. This removes the need for multiple `..._PENDING`, `..._SUCCESS`, `..._ERROR` FSM states for each chat type.
 
 ### Phase 6: Final Cleanup & Comprehensive Testing
@@ -98,4 +100,5 @@ This is a high-risk refactor. It will be broken down into discrete phases. Each 
     *   **Implementation Complexity:** While the final architecture is simpler, the process of refactoring requires careful, step-by-step implementation and rigorous testing at each phase.
 
 ## 6. Document Changelog
+*   **v1.1 (2025-07-31):** Updated "Lessons Learned" section to include the failure of the conditional chat pipeline as further evidence supporting the need for this overhaul.
 *   **v1.0 (2025-07-30):** Initial document creation, scoping the full deterministic refactor. Includes post-mortem on previous architectural failures and a detailed, phased implementation plan.

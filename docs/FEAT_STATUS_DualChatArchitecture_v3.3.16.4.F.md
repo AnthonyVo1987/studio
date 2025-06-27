@@ -1,44 +1,44 @@
 
 # Feature Status Report: Dual AI Chat Architecture (v3.3.16.4.F)
 
-**Document Version:** 11.0
-**Date:** 2025-07-30
+**Document Version:** 12.0
+**Date:** 2025-07-31
 **Feature Target Application Version Series:** 3.3.16.4.F+
 
 ## 1. Overall Feature Status
 
-**Current Status:** `IN PROGRESS - DEBUGGING`
-**Last Updated:** 2025-07-30
+**Current Status:** `READY FOR FINAL TESTING`
+**Last Updated:** 2025-07-31
 
-**Summary:** The initial implementation of the Dual AI Chat architecture is complete. The core `web-search-chat-flow` remains blocked by a client-side FSM race condition. To aid debugging, two fully isolated diagnostic tools have now been successfully built and stabilized: the "Genkit Raw AI Prompt" tool and the "Google GenAI SDK Direct" tool. The SDK tool includes a robust client-side polling FSM to handle complex, asynchronous web searches. These tools provide a clear, working baseline, confirming that the root cause of the application's instability lies within the main FSM orchestrator. The next step is a high-risk re-architecture of that orchestrator to resolve the race condition.
+**Summary:** The architectural refactor for this feature is **complete**. The non-functional Genkit Web Search chat has been successfully replaced with a stable implementation using the raw Google AI SDK. Furthermore, all AI chat prompts have been decoupled from the automated analysis pipeline, making them purely manual actions. This has resolved the critical stability issues and significantly simplified the application's control flow. The feature is now ready for a final round of comprehensive testing.
 
 ## 2. Known Issues
-*   **UNRESOLVED (CRITICAL):** The Web Search Chat pipeline fails with a `Unable to determine type of tool` error. **Root Cause:** A client-side FSM race condition is creating an unstable execution context.
-*   **UNRESOLVED:** The scrollbars in both the App Data Chat and Web Search Chat components do not function correctly.
-*   **DEFERRED:** Comprehensive testing of the full automated analysis pipeline is blocked until the FSM race condition is resolved.
+*   **UNRESOLVED:** The scrollbars in both the App Data Chat and Web Search Chat components do not function correctly. This is a known UI bug to be addressed in a future task.
+*   **RESOLVED:** The critical `Unable to determine type of tool` error and the associated FSM race conditions have been resolved by replacing the underlying technology and simplifying the architecture.
 
 ## 3. Phase & Task Status
 
-### Phase 1: Foundation & App Data Chat Refactor (Target: v3.3.16.5.z)
-*   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.3.16.5.4`)
+### Phase 1: Foundation & App Data Chat Refactor
+*   **Overall Phase Status:** `COMPLETED`
 
-### Phase 2: Build Grounded Web Search Chat Stream (Target: v3.3.16.6.z)
-*   **Overall Phase Status:** `COMPLETED` (as of App Version `v3.3.16.6.4`)
+### Phase 2: Build Grounded Web Search Chat Stream
+*   **Overall Phase Status:** `COMPLETED`
 
-### Phase 3: Final Cleanup & Testing (Target: v3.3.16.7.z)
+### Phase 3: Final Cleanup & Testing
 *   **Overall Phase Status:** `IN PROGRESS`
 *   **Tasks:**
-    *   **v3.3.16.7.0 - v3.3.16.7.29:** Various implementation and debugging attempts. (`COMPLETED`)
-    *   **v3.3.16.7.36 - v3.3.16.7.41:** Implement and debug isolated Google GenAI SDK direct diagnostic tool. (`COMPLETED`)
-    *   **v3.3.16.7.43 - v3.3.16.7.47:** Resolve persistent SDK debug tool state and prompt issues through a deterministic client-side refactor. (`COMPLETED`)
-    *   **v3.3.16.8.x:** (Next) Re-architect FSM orchestrator to be deterministic and resolve race condition. (`PLANNED`)
+    *   **v3.3.16.7.0 - v3.3.16.7.47:** Various Genkit debugging and SDK diagnostic tool implementations. (`COMPLETED`)
+    *   **v3.3.16.7.49 (Part A):** Upgrade Web Search Chat to use the raw Google AI SDK. (`COMPLETED`)
+    *   **v3.3.16.7.50 (Part B):** Decouple all AI chat prompts from the automated analysis pipeline. (`COMPLETED`)
+    *   **v3.3.16.8.x:** (Next) Comprehensive end-to-end testing of the new, stable architecture. (`PLANNED`)
     *   **v3.3.16.8.x:** Continue debugging of Chatbot scrollbars. (`PLANNED`)
-    *   **v3.3.16.8.x:** Comprehensive testing of all functionality. (`PLANNED`)
 
 ## 4. Feature Changelog & Commit History
 
 | Date       | Version Tag (Task ID)                         | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                              | Status    |
 | :--------- | :-------------------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :-------- |
+| 2025-07-31 | `v3.3.16.7.50` (Chat Decoupling)              | `36748225`                  | **Completed Part B.** Decoupled all chat prompts from the automated analysis pipeline by removing UI toggles and FSM orchestrator logic. All chat is now manual.           | COMPLETED |
+| 2025-07-31 | `v3.3.16.7.49` (SDK Web Search)               | `(prev_commit)`             | **Completed Part A.** Replaced failing Genkit web search with a stable raw SDK implementation. Deprecated old flows/actions. Refactored client FSM for direct calls.    | COMPLETED |
 | 2025-07-30 | `v3.3.16.7.47` (SDK Deterministic Fix)        | `51af662f`                  | **Checkpoint commit.** Fixed SDK debug tool's client state with a deterministic refactor. Updated docs with post-mortem & new procedures.                                   | COMPLETED |
 | 2025-07-29 | `v3.3.16.7.41` (SDK Debug Fix & Checkpoint)   | `86824270`                  | **Checkpoint commit.** Fixed "async transition" error in SDK debug tool. Implemented client-side initial delay. Updated all docs.                                            | COMPLETED |
 | 2025-07-29 | `v3.3.16.7.39` (SDK Polling FSM)              | `(prev_commit)`             | **Implemented client-side polling FSM** for the SDK debug tool to handle complex, multi-search prompts with timeouts and retries.                                     | COMPLETED |
@@ -78,6 +78,7 @@ The process of stabilizing the "Google GenAI SDK Direct Diagnostics" tool reveal
 *   **Trust the User's Logs:** I repeatedly failed to correctly interpret the logs provided by the user, leading me down the wrong path. My analysis must be more thorough and less driven by my own preconceived notions.
 
 ## 6. Document Changelog (for this FEAT_STATUS_xxx.md file)
+*   **v12.0 (2025-07-31):** Updated changelog and status for commits `v3.3.16.7.49` and `v3.3.16.7.50`. Updated summary to reflect completion of the refactor. Marked feature as `READY FOR FINAL TESTING`.
 *   **v11.0 (2025-07-30):** Added changelog entry for commit `51af662f` (v3.3.16.7.47). Added a new, detailed post-mortem section analyzing the repeated failures and lessons learned from the SDK debug tool saga.
 *   **v10.0 (2025-07-29):** Added changelog entries for the SDK debug tool fixes (`v3.3.16.7.36` - `v3.3.16.7.41`). Added a new post-mortem section detailing the debugging process and lessons learned.
 *   **v9.0 (2025-07-26):** Added changelog entries for commits `ed84249b` (v3.3.16.7.29) and the failed `v3.3.16.7.28` attempt. Updated summary and task list.

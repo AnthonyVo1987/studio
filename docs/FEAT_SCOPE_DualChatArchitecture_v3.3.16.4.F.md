@@ -1,10 +1,10 @@
 
 # Feature Scope: Dual AI Chat Architecture (v3.3.16.4.F)
 
-**Document Version:** 8.0
-**Date:** 2025-07-30
+**Document Version:** 9.0
+**Date:** 2025-07-31
 **Target Application Version Series:** 3.3.16.4.F+
-**Feature Status:** IN PROGRESS - DEBUGGING
+**Feature Status:** `IN PROGRESS - FINAL TESTING`
 
 ## 1. Introduction & Objective
 
@@ -22,69 +22,64 @@ The solution is to physically separate the two functionalities into completely i
 
 #### 3.1 Stream 1: App Data AI Chat (No Web Search)
 
-This stream will be focused exclusively on analyzing the data already loaded within the application (stock snapshot, TAs, etc.).
+This stream is focused exclusively on analyzing the data already loaded within the application (stock snapshot, TAs, etc.).
 
-*   **UI:** The existing `Chatbot` component has been repurposed. It features a prominent disclaimer stating: *"This chat analyzes loaded application data only. It cannot access real-time web information."*
-*   **Code Path:**
-    *   A new, dedicated server action (`app-data-chat-action.ts`) and AI flow (`app-data-chat-flow.ts`) have been created.
-    *   The flow uses its own schema (`app-data-chat-schemas.ts`) and prompt definitions.
-*   **AI Architecture:**
-    *   The `ai.definePrompt` call will **always** include a structured `output.schema` to get a reliable JSON response.
-    *   It will **never** include the `googleSearch` tool.
-*   **FSM Integration & Pipeline Logic (Fixed in `v3.3.16.7.17`):**
-    *   The automated chat pipeline for this stream is now **stable**. The root cause of a previous infinite loop was fixed by replacing the FSM's `lastCompletedChatPromptName` string variable with a `completedChatPrompts: string[]` array. This ensures the orchestrator correctly tracks and executes each step of a multi-prompt sequence only once.
-*   **Prompt Buttons:** The on-demand prompt buttons within this chat box are limited to those that analyze app data (e.g., "Stock Trader's Takeaways").
+*   **UI:** The existing `Chatbot` component has been repurposed for this stream.
+*   **Code Path & AI Architecture:**
+    *   Uses a dedicated server action (`app-data-chat-action.ts`) and AI flow (`app-data-chat-flow.ts`).
+    *   The `ai.definePrompt` call **always** includes a structured `output.schema` and **never** includes a `googleSearch` tool. This path is stable.
 
 ---
 
-#### 3.2 Stream 2: Grounded AI Chat (Web Search Enabled)
+#### 3.2 Stream 2: Grounded AI Chat (Web Search Enabled) - **Refactored in v3.3.16.7.49**
 
-This new stream handles all interactions requiring real-time web search capabilities.
+This new stream handles all interactions requiring real-time web search capabilities. The initial Genkit-based implementation proved unstable and has been **completely replaced**.
 
-*   **UI:** A **new, second Chatbot component** has been added to the interface. It has a disclaimer: *"This chat uses Google Search to answer questions. It does not have access to the specific data loaded in the application."*
-*   **Code Path:**
-    *   A new server action (`web-search-chat-action.ts`) and AI flow (`web-search-chat-flow.ts`) have been created.
-    *   The flow uses its own schema (`web-search-chat-schemas.ts`) and prompt definitions.
-*   **AI Architecture:**
-    *   The `ai.definePrompt` call will **always** include the `tools: [{ googleSearch: {} }]` property.
-    *   It will **never** include a structured `output.schema`, strictly following the "Grounded JSON-in-Text" pattern from the reference guide. The flow is responsible for parsing the text response.
+*   **UI:** A second `Chatbot` component is dedicated to this stream.
+*   **Code Path & AI Architecture (New):**
+    *   The Genkit-based `web-search-chat-flow.ts` and `web-search-chat-action.ts` have been **deprecated**.
+    *   A new, robust server action, `sdk-web-search-chat-action.ts`, now powers this chat.
+    *   This action uses the **raw Google AI SDK (`@google/generative-ai`)** to make API calls, completely bypassing the problematic Genkit tool abstraction for this use case.
 *   **FSM Integration:**
-    *   New state variables have been added to `StockAnalysisContext` for this chat's history and state (e.g., `webSearchChatHistory`, `webSearchChatRequestJson`).
-    *   The FSM has dedicated states to manage this stream's lifecycle (e.g., `WEB_SEARCH_CHAT_PENDING`, `WEB_SEARCH_CHAT_SUCCESS`).
-*   **Prompt Buttons:** The prompt buttons within this chat box are limited to those requiring web searches (e.g., "Technical Analysis Web Search," "Options Flow Web Search"). The interactive user input is also routed through this grounded path.
+    *   The chat submission for this stream is now handled by a **local, deterministic FSM** within `chatbot-fsm-context.tsx`. This provider directly calls the new SDK action and updates the chat history upon completion, removing the dependency on the complex global FSM orchestrator and eliminating a major source of race conditions.
 
 ---
 
 ## 4. General Details & Value Added
 
-*   **Clarity & Stability:** By creating two separate, non-interacting streams, we eliminate the source of the tool-use conflict. If one stream fails, the other is completely unaffected.
-*   **Simplified Debugging:** A bug in the web search chat can now be traced along its own isolated path without interference from the app data chat logic, and vice-versa. The Debug Tab has been updated with separate display boxes for each chat stream's raw data.
-*   **Future Re-integration:** The modular design, with cleanly separated files and logic for each stream, makes a potential future project to merge them back into a single, more sophisticated UI a much more manageable task.
+*   **Clarity & Stability:** By creating two separate, non-interacting streams (and replacing the unstable one with a more direct SDK implementation), we eliminate the source of the tool-use conflict.
+*   **Simplified Debugging:** A bug in the web search chat can now be traced along its own isolated path. The Debug Tab has separate display boxes for each chat stream's data.
+*   **Decoupled from Pipeline (v3.3.16.7.50):** All chat prompts are now **100% manual**. The complex logic for triggering chats automatically as part of the main analysis pipeline has been **removed**, simplifying the FSM and making the application more predictable.
 
 ## 5. Implementation Phased Plan
 
-This section outlines the incremental tasks for an AI Coding Agent to implement this feature.
-
 ### Phase 1: Foundation & App Data Chat Refactor
-*   **Objective:** Repurpose the existing, flawed chat architecture into the new, stable "App Data Chat" stream.
 *   **Status:** `COMPLETED`
 
 ### Phase 2: Build Grounded Web Search Chat Stream
-*   **Objective:** Create the second, completely independent "Grounded Web Search Chat" stream.
 *   **Status:** `COMPLETED`
 
 ### Phase 3: Final Cleanup & Testing
 *   **Objective:** Clean up obsolete code and perform final integration tests.
 *   **Status:** `IN PROGRESS`
 *   **Tasks:** 
-    *   **v3.3.16.7.0 - v3.3.16.7.29:** Various implementation and debugging attempts. (`COMPLETED`)
-    *   **v3.3.16.7.36 - v3.3.16.7.41:** Implement and debug isolated Google GenAI SDK direct diagnostic tool with a client-side polling FSM to handle complex web searches. (`COMPLETED`)
-    *   **v3.3.16.7.43 - v3.3.16.7.47:** Resolve persistent SDK debug tool state and prompt issues through a deterministic client-side refactor. (`COMPLETED`)
-    *   **v3.3.16.8.x:** (Next) Re-architect FSM orchestrator to be deterministic and resolve race condition. (`PLANNED`)
+    *   **v3.3.16.7.0 - v3.3.16.7.47:** Various Genkit debugging and SDK diagnostic tool implementations. (`COMPLETED`)
+    *   **v3.3.16.7.49 (Part A):** Upgrade Web Search Chat to use the raw Google AI SDK, deprecating the Genkit flow. (`COMPLETED`)
+    *   **v3.3.16.7.50 (Part B):** Decouple all AI chat prompts from the automated analysis pipeline. (`COMPLETED`)
+    *   **v3.3.16.8.x:** (Next) Comprehensive end-to-end testing of the new, stable architecture. (`PLANNED`)
     *   **v3.3.16.8.x:** Continue debugging of Chatbot scrollbars. (`PLANNED`)
-    *   **v3.3.16.8.x:** Comprehensive testing of all functionality. (`PLANNED`)
 
-## 6. Document Changelog
+## 6. Post-Mortem: Why the Genkit Web Search Failed & SDK Succeeded
+
+*   **What Went Wrong:** The initial design attempted to use a single, polymorphic Genkit flow (`web-search-chat-flow.ts`) to handle multiple, slightly different web search prompts. This, combined with the non-deterministic FSM orchestrator, created a brittle system that was difficult to debug. The core issue within Genkit—the conflict between `tools` and `output.schema`—was a recurring problem that simple fixes could not resolve.
+*   **How We Got It Right:**
+    1.  **Isolation:** The creation of the `sdk-debug-chatbot` proved that a direct, simple call using the raw Google AI SDK was perfectly stable and functional.
+    2.  **Deterministic Action:** By moving the web search logic into its own server action (`sdk-web-search-chat-action.ts`) and calling it from a simple, local FSM in the `ChatbotFsmProvider`, we created a predictable, linear request-response cycle. This completely bypassed the complex global FSM orchestrator, which was the source of the race conditions.
+    3.  **Simplification:** Decoupling the chat prompts from the automated pipeline (Part B) was the final step in simplification. It removed a whole layer of conditional logic from the FSM, making it far more robust.
+*   **Lesson Learned:** For features that are proving architecturally unstable, sometimes the best solution is to **replace the abstraction (Genkit tools) with a more direct implementation (raw SDK)** and to **radically simplify the control flow (remove from global FSM)**.
+
+## 7. Document Changelog
+*   **v9.0 (2025-07-31):** Updated entire document to reflect the completion of the SDK web search refactor and decoupling from the analysis pipeline. Added a new post-mortem section. Marked feature as ready for final testing.
 *   **v8.0 (2025-07-30):** Updated Phase 3 task list to reflect the completion of the deterministic SDK debug tool fix (`v3.3.16.7.43` - `v3.3.16.7.47`).
 *   **v7.0 (2025-07-29):** Updated Phase 3 task list to reflect the completion of the SDK debug tool (`v3.3.16.7.36` - `v3.3.16.7.41`) and scope the FSM re-architecture for a new version series (`v3.3.16.8.x`).
 *   **v6.0 (2025-07-26):** Updated Phase 3 task list to reflect the completion of the fully isolated diagnostic chat components (v3.3.16.7.29) and the failed tool reference fix (v3.3.16.7.28).

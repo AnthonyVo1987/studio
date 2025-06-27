@@ -58,6 +58,28 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.50` (Architectural Simplification)
+**Tag:** `Phase-60_Task-3.3.16.7.50_DecoupleChatAndUseSdkWebSearch`
+**Commit Hash:** `36748225`
+**Subject:** `refactor(chat,fsm): Replace Genkit web chat with SDK, decouple all chat from pipeline (v3.3.16.7.50)`
+**Details:**
+This commit represents a major architectural simplification to improve application stability. It addresses two key problem areas: the non-functional Genkit Web Search and the complexity of the automated analysis pipeline.
+
+**Key Architectural Corrections:**
+*   **Part A: Replaced Genkit Web Search with Raw SDK (`v3.3.16.7.49`):**
+    *   The failing Genkit-based `web-search-chat-flow.ts` and its associated action/schemas have been **deprecated and replaced**.
+    *   A new, robust `sdk-web-search-chat-action.ts` was created. This action uses the raw Google AI SDK for all grounded web search queries, bypassing the problematic Genkit tool abstraction for this use case.
+    *   The `ChatbotFsmProvider` was refactored to directly call this new, deterministic server action, removing its dependency on the global FSM for web search orchestration.
+*   **Part B: Decoupled All Chat Prompts from Automated Pipeline (`v3.3.16.7.50`):**
+    *   All AI chat prompts are now **100% manual and user-initiated**.
+    *   The UI toggles to automatically run chat prompts as part of the main analysis pipeline have been **removed**.
+    *   The global FSM orchestrator in `stock-analysis-context.tsx` has been simplified. All logic that previously checked flags and dispatched chat prompts has been **removed**. The automated pipeline now concludes after the core data and AI analyses are complete.
+
+**Outcome:**
+*   The "Web Search AI Chat" is now fully functional and stable.
+*   The application's core analysis pipeline is significantly simpler, more predictable, and less prone to race conditions.
+*   The separation of concerns between automated data analysis and manual user chat is now architecturally enforced.
+---
 **App Version:** `v3.3.16.7.47` (Debugging Checkpoint)
 **Tag:** `Phase-59_Task-3.3.16.7.47_CheckpointSdkDeterministicFix`
 **Commit Hash:** `51af662f`

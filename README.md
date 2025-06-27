@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.0
-**Application Version (from `app-metadata.json`):** v3.3.16.7.47
-**Last Updated:** 2025-07-29
+**README Document Version:** 3.1
+**Application Version (from `app-metadata.json`):** v3.3.16.7.50
+**Last Updated:** 2025-07-31
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -76,25 +76,21 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Highlight the At-The-Money (ATM) strike row in the table.
 
 #### 3.1.3. AI-Powered Insights & Analysis
-*   **Customizable Analysis Pipeline (as of v3.3):**
+*   **Customizable Analysis Pipeline (as of v3.3.16.7.50):**
     *   **Base Pipeline (Always-On):** Fetches Stock Snapshot, Standard TAs, and calculates AI Analyzed Pivot Points.
     *   **Selectable AI Analyses (Toggles, default ON):**
         *   AI Key Takeaways (Price Action, Trend, Volatility, Momentum, Patterns).
         *   AI Analyzed Options Chain (Call/Put Walls).
-        *   AI Chat: Stock Trader's Takeaways (with Buy/Sell levels).
-        *   AI Chat: Options Trader's Takeaways (with CC/CSP setups).
-        *   AI Chat: Additional Holistic Takeaways (with alternative strategies).
-        *   **[New Location]** AI Chat: Run TA Web Search Post-Analysis.
-        *   **[New Location]** AI Chat: Run Options Web Search Post-Analysis.
-*   **Dual AI Chat Architecture (as of v3.3.16.4.F):**
-    *   **[Architecture Refactor COMPLETE]** The single, polymorphic chatbot has been replaced by two distinct, isolated chat functionalities to resolve tool-use errors and improve stability.
-    *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application.
-    *   **Grounded Web Search Chat:** A separate chat box that handles all queries requiring real-time web search, strictly adhering to the tool-use architectural pattern.
+    *   **[REMOVED FROM PIPELINE]** All AI Chat prompts are now manual, user-initiated actions and are no longer part of the automated pipeline.
+
+*   **Dual AI Chat Architecture (as of v3.3.16.7.50):**
+    *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application (using a stable Genkit flow).
+    *   **Web Search Chat:** A separate chat box that handles all queries requiring real-time web search. This now uses the **raw Google AI SDK** for improved stability, bypassing the problematic Genkit tool abstraction for this use case. All prompts are manual.
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug", and "FSM Debug" tabs.
+*   Main application interface organized into "Main", "Debug", "FSM Debug", and "Staging" tabs.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -119,7 +115,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Startup Log Toggle:** User-configurable setting in Debug Settings Card to reduce log verbosity during initial application startup. (Default `false` as of v3.3.16).
 *   **UI/Render Log Spam Toggle:** A user-configurable setting (default `true` as of v3.3.16) to control high-frequency logs from UI components related to re-renders and prop changes.
 *   **FSM Debug Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables within organized UI cards. Includes copy/export functionality for the full FSM snapshot.
-*   **Raw AI Prompt Diagnostics:** Two new, dedicated UI cards have been added to the main tab, each containing a single button. These buttons trigger raw, non-cached, dependency-free calls directly to the AI backend via a dedicated server action (`raw-debug-chat-action.ts`). This provides a completely isolated testbed for diagnosing fundamental API connectivity or prompt issues without any interference from the main application's FSM or data state.
+*   **Staging Tab:** A dedicated sandbox tab for isolating and testing experimental features, such as the Genkit Raw AI Prompt diagnostics.
 *   **Google GenAI SDK Direct Diagnostics:** A dedicated UI card provides buttons to bypass Genkit and use the low-level Google GenAI SDK for direct API calls. This component features a robust, client-side FSM to handle asynchronous, multi-step web search prompts with a polling/retry mechanism.
 
 ### 3.2. System Architecture & Components
@@ -130,41 +126,29 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Server Components for data fetching and server-side logic (e.g., `page.tsx` loading `app-metadata.json`).
 *   Client Components for interactive UI elements and state management.
 
-#### 3.2.2. Genkit (AI Backend Orchestration)
+#### 3.2.2. Genkit & Google AI SDK (AI Backend Orchestration)
 *   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis tasks.
-*   **[Architecture Refactor COMPLETE]** The application now uses two independent flows: `app-data-chat-flow.ts` (non-grounded) and `web-search-chat-flow.ts` (grounded).
+*   **Genkit:** Used for stable, non-grounded AI flows like the "App Data Chat" and core AI analyses.
+*   **Raw Google AI SDK (`@google/generative-ai`):** Now used directly in a dedicated server action (`sdk-web-search-chat-action.ts`) for all grounded web search chat functionalities to ensure stability and bypass previous Genkit tool resolution issues.
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
-    *   Dynamic `import()` is used in `src/ai/definition-loader.ts` to load these JSONs.
-    *   **Architectural Mandate:** Dynamic Thinking (`thinkingBudget: -1`) and Grounding (`useGoogleSearch: boolean`) are now defined in and enforced by each prompt's JSON definition.
-    *   Safety settings are defined in these JSONs.
-    *   Prompt definition functions in flow files cache the `ai.definePrompt` object to prevent re-definition warnings and improve performance.
-*   **"Grounding with Google Search" Pattern (Mandatory for Web-Augmented AI):** For all AI web searches (e.g., Augmented TA/Options Search, Chat), the application enforces a mandatory architectural pattern to ensure reliable tool use. This involves configuring the prompt with the `googleSearch` tool while omitting a structured `output` schema, and having the flow logic parse a JSON string from the AI's plain text response. This pattern is the mandated architectural approach and is detailed in the new official reference guide: `docs/Gemini_AI_Grounding_Google_Search.md`.
+*   **"Grounding with Google Search" Pattern:** The mandatory architectural pattern for all web-augmented AI, detailed in `docs/Gemini_AI_Grounding_Google_Search.md`.
 *   Zod schemas (`src/ai/schemas/`) for data validation of AI flow inputs and outputs.
 
 #### 3.2.3. Data Sources
 *   **Polygon.io API:** Primary source for stock data and options chain data.
-*   **Environment Variables (`.env`):** Stores API keys.
+*   **Environment Variables (`.env`):** Stores API keys (`POLYGON_API_KEY`, `GEMINI_API_KEY`).
 *   **Application Metadata (`src/config/app-metadata.json`):**
     *   Stores `appVersion` (following `3.w.x.y.z` scheme) and `metadataSchemaVersion`. `lastUpdatedTimestamp` is optional.
     *   **Policy (Strictly Enforced):** Sole source for `appVersion`. Dynamically loaded and used.
     *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
 #### 3.2.4. State Management (as of v3.2.5.0.Z)
-*   **React Context (`StockAnalysisContext`):** Centralized global state management for:
-    *   Fetched data JSON strings (including `rawWebSearchTaResponseJson`, `rawWebSearchOptionsResponseJson`).
-    *   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, contextual flags (e.g., `isSnapshotDataReady`, `isManualKeyTakeawaysActionPossible`), and key context variables (e.g., `activeTicker`, `isInitialLoad`, `userInputTicker`). Orchestrates the entire application lifecycle, including the customizable analysis pipeline.
-    *   Client-side debug logging and its configuration (e.g., `isUiRenderLoggingEnabled`).
-    *   Chat history and the `useActionState` hook for both chat server actions, ensuring state persistence across UI changes.
-*   **`useReducer` (in `StockAnalysisContext`):** Manages the single global FSM's state transitions.
+*   **React Context (`StockAnalysisContext`):** Centralized global state management.
+*   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, flags, and context variables. Orchestrates the application lifecycle.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.7.12)
-*   **Dual Chat FSM States:** The global FSM now has distinct, parallel states to manage the "App Data Chat" and "Web Search Chat" lifecycles independently (e.g., `APP_DATA_CHAT_PENDING` vs. `WEB_SEARCH_CHAT_PENDING`).
-*   **Lifecycle Management:** This FSM orchestrates all application pipelines:
-    *   The standard automated analysis (data fetch + base AI TA).
-    *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and chat prompts.
-*   **Automated Chat Pipeline State (as of `v3.3.16.7.17` Fix):**
-    *   **FIXED:** The App Data Chat pipeline loop was resolved. The FSM now uses a `completedChatPrompts: string[]` array to correctly track which chat prompts have been executed in a sequence. The dispatcher (`dispatchNextCustomAction`) now checks against this array to ensure each step runs only once, allowing the pipeline to complete successfully.
-*   **TODO - Future Task (as of `v3.3.16.7.47`):** The repeated failures of the non-deterministic `useEffect` based FSM orchestrator have highlighted a critical architectural risk. A future task will be created to audit the entire application and refactor all major state-driven processes to use simple, predictable, and deterministic patterns (e.g., manual `async/await` handlers) to improve overall robustness and prevent race conditions.
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.7.50)
+*   **Simplified Pipeline Orchestration:** The global FSM orchestrator no longer triggers any chat prompts automatically. Its responsibility is now limited to sequencing the data fetch and core AI analysis steps (Key Takeaways, Options Analysis) based on user toggle selections. This makes the pipeline significantly more deterministic.
+*   **Manual Chat Triggers:** All chat functionalities are now triggered manually by the user through their respective UI components, which call dedicated server actions.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -173,31 +157,16 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Example chat prompts for the UI are sourced from `src/ai/definitions/example-chat-prompts.json`.
 
 ### 3.4. Error Handling & Logging
-
-#### 3.4.1. Error Handling
-*   Next.js `error.js` boundary files.
-*   `try...catch` in Server Actions and AI Flows, returning structured error states.
-
-#### 3.4.2. Logging System
-*   **Client-Side Logging:**
-    *   Primary Method: `logDebug()` from `useStockAnalysis()`.
-    *   Console Interception: `StockAnalysisContext` intercepts `console.*` calls.
-    *   **Startup Logging Control:** `isReducedStartupLoggingEnabled` toggle (default `false`).
-    *   **UI/Render Log Spam Control:** A dedicated `isUiRenderLoggingEnabled` toggle (default `true`).
-*   **Server-Side Logging:** `console.log`, etc., with standardized prefixes. All AI flows now include explicit logging for their grounding and thinking mode configurations to enhance traceability.
-*   **Debug Console (`src/components/debug-console.tsx`):**
-    *   Displays client-side logs (up to 2000 entries). Features filtering, search, wrap indicator.
-    *   Export/Copy: Logs include dynamic `appVersion` and FSM snapshot.
+*   **Error Handling:** `try...catch` in Server Actions and AI Flows.
+*   **Logging System:** `logDebug()` for client-side, `console.*` for server-side.
+*   **Debug Console (`src/components/debug-console.tsx`):** Displays client-side logs. Features filtering, search, wrap indicator. Export/Copy includes `appVersion` and FSM snapshot.
 
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
-*   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.7.47):**
-    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final testing and debugging phase is in progress.
-    *   **Known Unresolved Bug:** The **Web Search AI Chat** pipeline is not functioning correctly, failing with a `Unable to determine type of tool` error. The investigation has identified a client-side FSM race condition as the root cause.
-    *   **Next Step:** Re-architect FSM orchestrator to be deterministic and sequential.
+*   **Current Feature Focus (as of v3.3.16.7.50):**
+    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final refactoring complete. The Web Search Chat now uses the raw SDK, and all chat prompts have been decoupled from the automated pipeline. The feature is ready for final testing.
+    *   **Next Step:** Comprehensive end-to-end testing of the newly stabilized architecture.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -206,14 +175,12 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   TypeScript with `import type`. Zod schemas. `next/image`. Placeholders: `https://placehold.co/<width>x<height>.png` with `data-ai-hint`.
 
 #### 3.5.4. Server & AI Conventions (Genkit 1.x)
-*   Next.js App Router, Server Components, Server Actions. Genkit. Genkit 1.x API. `thinkingConfig`. JSON prompt definitions with Handlebars. Tools.
+*   Next.js App Router, Server Components, Server Actions. Genkit for non-grounded flows, Raw SDK for grounded flows. JSON prompt definitions with Handlebars.
 
 ### 3.6. Commit & Changelog Procedures (Reflecting v3.3.0.0.0 and New Versioning Scheme)
-*   **Application Versioning - Single Source of Truth & `3.w.x.y.z` Scheme:**
-    *   Version updated **ONLY** in `src/config/app-metadata.json` (`appVersion` field).
-    *   `3.w.x.y.z`: Major.AppPhase.FeatPhase.FeatTask.BugFixIteration.
+*   **Application Versioning:** `src/config/app-metadata.json` is the single source of truth.
 *   **Dynamic Versioning in UI/Exports:** Header and Debug Console use `appVersion` prop.
-*   **Documentation Update Policy (Strictly Enforced):** The AI is prohibited from updating any documentation files (`.md`, `CHANGELOG`, etc.) unless a "Phase Completion Commit" is explicitly requested by the user.
+*   **Documentation Update Policy:** AI will only update docs when explicitly told to in a "Phase Completion Commit".
 
 ---
 
@@ -228,7 +195,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 Create `.env`:
 ```env
 POLYGON_API_KEY=your_polygon_api_key
-GOOGLE_API_KEY=your_google_ai_api_key
+GEMINI_API_KEY=your_google_ai_api_key
 ```
 
 ### 4.3. Installation
@@ -249,12 +216,10 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.0
-*   **Current Application Version:** `v3.3.16.7.47`
+*   **This README Document Version:** 3.1
+*   **Current Application Version:** `v3.3.16.7.50`
     *   Sourced dynamically from `src/config/app-metadata.json`.
-*   **Changelogs:**
-    *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
-    *   For pre-v3.0.0.0 history: Refer to `CHANGELOG.md`.
+*   **Changelogs:** Refer to `CHANGELOG.md`.
 
 ---
 
