@@ -18,6 +18,6 @@ export const AugmentedTaSearchOutputSchema = z.object({
     lower: z.number(),
   }).nullable().describe('The upper, middle, and lower Bollinger Bands.'),
   fibonacciRetracement: z.record(z.number()).nullable().describe('An object of Fibonacci retracement levels and their corresponding prices.'),
-  searchStatus: z.enum(['COMPLETE', 'PARTIAL', 'NOT_FOUND']).describe('The status of the web search operation.')
+  searchStatus: z.enum(['COMPLETE', 'PARTIAL', 'NOT_FOUND', 'WEB_SEARCH_TIMEOUT']).describe('The status of the web search operation.')
 });
 export type AugmentedTaSearchOutput = z.infer<typeof AugmentedTaSearchOutputSchema>;

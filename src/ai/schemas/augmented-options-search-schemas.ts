@@ -19,6 +19,6 @@ export const AugmentedOptionsSearchOutputSchema = z.object({
   ivPercentile: z.number().nullable().describe('The percentage of days in the past year that IV was lower than the current IV (e.g., 60 for 60th percentile).'),
   historicVolatility30d: z.number().nullable().describe('The realized volatility of the stock over the past 30 days (as a decimal, e.g., 0.35 for 35%).'),
   optionsVolatilitySkew: z.string().nullable().describe('A general description of the options volatility skew (e.g., "Steep bearish skew").'),
-  searchStatus: z.enum(['COMPLETE', 'PARTIAL', 'NOT_FOUND']).describe('The status of the web search operation.')
+  searchStatus: z.enum(['COMPLETE', 'PARTIAL', 'NOT_FOUND', 'WEB_SEARCH_TIMEOUT']).describe('The status of the web search operation.')
 });
 export type AugmentedOptionsSearchOutput = z.infer<typeof AugmentedOptionsSearchOutputSchema>;
