@@ -1,8 +1,8 @@
 
 # Feature Scope: Full Deterministic Application Refactor (v3.4)
 
-**Document Version:** 1.2
-**Date:** 2025-08-01
+**Document Version:** 1.3
+**Date:** 2025-08-02
 **Target Application Version Series:** 3.4.x.y.z (Future Implementation)
 **Feature Status:** `PLANNED`
 
@@ -11,6 +11,8 @@
 This document outlines the scope, technical plan, and critical rationale for a complete architectural overhaul of the StockSage application. The **primary objective** is to refactor the entire state management and asynchronous execution flow to be **100% deterministic**.
 
 This initiative is the direct result of repeated, severe bugs throughout the v3.x development cycle (culminating in the v3.3.16.7 series) that were all traced back to a single architectural flaw: a complex, reactive, `useEffect`-based Finite State Machine (FSM) orchestrator. This refactor will replace that flawed model with simple, predictable, and sequential `async/await` logic, dramatically improving application stability, predictability, and debuggability.
+
+**Note on Prerequisite Stability (as of v3.3.16.8.5):** The implementation of the "Enhanced Debug Consoles" feature provides a critical foundation for this overhaul. The new, powerful logging and snapshot capabilities will make it significantly easier and safer to validate each step of this high-risk refactor.
 
 This is a high-risk, high-reward task that will touch every core feature of the application.
 
@@ -49,7 +51,7 @@ This is a high-risk refactor. It will be broken down into discrete phases. Each 
 *   **Objective:** To disable the current non-deterministic orchestrator, creating a stable (though non-functional) baseline for the refactor.
 *   **Tasks:**
     *   **Task 3.4.1.0:** Prune the dependency array of the main `useEffect` orchestrator in `stock-analysis-context.tsx` to its absolute minimum (e.g., only `fsmState.current`).
-    *   **Task 3.4.1.1:** Remove all server action calls (`fetchStockDataAction`, `calculateAiTaAction`, etc.) and complex dispatch logic from within the `useEffect` hook.
+    *   **Task 3.4.1.1:** Remove all server action calls (`fetchStockDataAction`, `analyzeTaAction`, etc.) and complex dispatch logic from within the `useEffect` hook.
 
 ### Phase 2: Implement Deterministic "Analyze Stock" Pipeline
 *   **Objective:** Re-implement the main analysis pipeline as a single, deterministic `async` function.
@@ -100,6 +102,7 @@ This is a high-risk refactor. It will be broken down into discrete phases. Each 
     *   **Implementation Complexity:** While the final architecture is simpler, the process of refactoring requires careful, step-by-step implementation and rigorous testing at each phase.
 
 ## 6. Document Changelog
+*   **v1.3 (2025-08-02):** Added note regarding the prerequisite stability provided by the v3.3.16.8.5 "Enhanced Debug Consoles" feature.
 *   **v1.2 (2025-08-01):** Updated `handleAnalyzeStock` task in Phase 2 to correctly reference `analyzeTaAction` instead of `calculateAiTaAction`.
 *   **v1.1 (2025-07-31):** Updated "Lessons Learned" section to include the failure of the conditional chat pipeline as further evidence supporting the need for this overhaul.
 *   **v1.0 (2025-07-30):** Initial document creation, scoping the full deterministic refactor. Includes post-mortem on previous architectural failures and a detailed, phased implementation plan.

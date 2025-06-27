@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.8.5` (Documentation)
+**Tag:** `Phase-62_Task-3.3.16.8.5_DocsPreTest`
+**Commit Hash:** `d57cecbe`
+**Subject:** `docs(all): Checkpoint v3.3.16.8.5, complete Enhanced Debug Consoles implementation`
+**Details:**
+This commit is a **documentation-only checkpoint** that marks the completion of the core implementation for the **"Enhanced Debug Consoles"** feature (v3.3.16.8 series). It updates all relevant project documentation to reflect the new, stable debugging architecture, preparing the application for its final testing and validation phase.
+
+**Key Architectural Changes Implemented (Phases 1-4):**
+*   **Phase 1: JSON-Only Export Consolidation (`v3.3.16.8.0`):** All user-facing "Copy" and "Export" functionality throughout the application (on data cards, in the old debug console) was standardized to exclusively use the JSON format. All logic for generating TXT/CSV formats was removed.
+*   **Phase 2: Client Trace Log Tab (`v3.3.16.8.1`):** The old "Debug" tab was renamed to "Debug Data". The pop-up client debug console was refactored into a reusable `LogConsole` component and moved to a new, persistent "Client Debug Trace Logs" tab, with its buffer increased to 2000 entries.
+*   **Phase 3: Full Console Logs Tab (`v3.3.16.8.3`):** A new "Console Logs" tab was created, powered by a new, parallel logging buffer. This tab provides an unfiltered, verbatim duplicate of the browser's developer console, enabling deep-dive debugging.
+*   **Phase 4: Debug Snapshot Controls (`v3.3.16.8.4`):** A new `DebugSnapshotControls` component was added to the Main tab, providing one-click buttons to copy or export four distinct types of system snapshots (Full, Client, Console, Data-Only), each containing the full FSM state for comprehensive bug reporting.
+
+**Outcome:**
+*   The application's debugging capabilities are significantly enhanced, with a clear separation between data inspection and log tracing.
+*   The implementation phase of the feature is complete. The application is now ready for **Phase 5: Final Testing & Debugging**.
+---
 **App Version:** `v3.3.16.7.52` (Documentation)
 **Tag:** `Phase-61_Task-3.3.16.7.53_DocsCommit`
 **Commit Hash:** `2d5de6e1`
