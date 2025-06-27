@@ -7,7 +7,7 @@ import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
 import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
-import { calculateAiTaAction, type CalculateAiTaActionState, type CalculateAiTaResult } from '@/actions/calculate-ai-ta-action';
+import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
 import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs, type AppDataChatActionResult } from '@/actions/app-data-chat-action';
@@ -97,7 +97,7 @@ export type FsmDisplayTuple = {
 interface FetchDataSuccessPayload extends StockDataFetchResult {}
 interface FetchDataFailurePayload { error?: string | null; message?: string | null; polygonApiRequestLogJson?: string; polygonApiResponseLogJson?: string; }
 interface StaleDataFromActionPayload { error: string; message: string; expectedTicker: string; foundTickerInSnapshot?: string; actionStateData?: StockDataFetchResult; }
-interface AiTaSuccessPayload extends CalculateAiTaResult {}
+interface AiTaSuccessPayload extends AnalyzeTaResult {}
 interface AiTaFailurePayload { error?: string | null; message?: string | null; aiAnalyzedTaRequestJson?: string; }
 interface AiKeyTakeawaysSuccessPayload extends PerformAiAnalysisResult {}
 interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; }
@@ -679,7 +679,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ERROR_STALE_DATA. Error: ${staleErrMsg}.`);
         break;
       case 'AI_TA_SUCCESS':
-        contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiCalculatedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiCalculatedTaJson);
+        contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
         nextFlags.isCalculatedTADataReady = true;
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
         nextVariables.isInitialLoad = false;
@@ -883,11 +883,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
       } else if (currentState === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
         dispatchFsmEvent({ type: GlobalFsmState.CALCULATING_AI_TA });
-        const result = await calculateAiTaAction({ stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! });
+        const result = await analyzeTaAction({ stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! });
         if (result.status === 'success' && result.data) {
           dispatchFsmEvent({ type: 'AI_TA_SUCCESS', payload: result.data });
         } else {
-          dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: result.error, message: result.message, aiAnalyzedTaRequestJson: result.data?.aiCalculatedTaRequestJson }});
+          dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: result.error, message: result.message, aiAnalyzedTaRequestJson: result.data?.aiAnalyzedTaRequestJson }});
         }
       } else if (currentState === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED && state.variables.activePipelineProfile === 'standard') {
         dispatchNextCustomAction();
