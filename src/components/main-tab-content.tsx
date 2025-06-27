@@ -20,12 +20,12 @@ import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
 import { SdkDebugChatbot } from "@/components/sdk-debug-chatbot";
 import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
+import { DebugSnapshotControls } from "@/components/debug-snapshot-controls"; // New Import
 
 import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Copy, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
+import { Loader2, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
 
 
 const appDataButtons: ExamplePromptButton[] = [
@@ -117,39 +117,7 @@ export function MainTabContent() {
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
   
   const isAppDataChatFsmPending = globalFsmStateFromContext === GlobalFsmState.USER_INPUT_APP_DATA_CHAT_PENDING;
-
-  const getCombinedDataForExport = useCallback(() => {
-    const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
-    if (isDataReadyForProcessing(contextAiKeyTakeawaysJson, logDebug, 'MainTabContent', 'CombinedExport_AiKeyTakeaways', 'Validation')) { baseData.aiKeyTakeaways = JSON.parse(contextAiKeyTakeawaysJson || '{}'); }
-    if (isDataReadyForProcessing(contextAiOptionsAnalysisJson, logDebug, 'MainTabContent', 'CombinedExport_AiOptionsAnalysis', 'Validation')) { baseData.aiOptionsAnalysis = JSON.parse(contextAiOptionsAnalysisJson || '{}'); }
-    if (isDataReadyForProcessing(contextOptionsChainJson, logDebug, 'MainTabContent', 'CombinedExport_OptionsChain', 'Validation')) { baseData.optionsChain = JSON.parse(contextOptionsChainJson || '{}'); }
-    return baseData;
-  }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
-
-  const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'Validation') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'Validation') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'Validation') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'Validation');
-  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending;
-
-  const handleExportAllToJson = useCallback(async () => {
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_ExportAll', 'Export All to JSON clicked.');
-    if (!isBaseDataReadyForCombinedExport) { toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Core data sections are not available for export.' }); return; }
-    try {
-      const combinedData = getCombinedDataForExport();
-      const filename = `${combinedData.ticker || 'StockSage'}_full_analysis_${new Date().toISOString().split('T')[0]}.json`;
-      downloadJson(combinedData, filename);
-      toast({ title: 'Export Successful', description: `Data exported to ${filename}` });
-    } catch (e: any) { toast({ variant: 'destructive', title: 'Export Error', description: `Could not export data: ${e.message}` }); }
-  }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
-
-  const handleCopyAllToJson = useCallback(async () => {
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_CopyAll', 'Copy All to JSON clicked.');
-    if (!isBaseDataReadyForCombinedExport) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'Core data sections are not available for copy.' }); return; }
-    try {
-      const combinedData = getCombinedDataForExport();
-      const success = await copyToClipboard(JSON.stringify(combinedData, null, 2));
-      if (success) { toast({ title: 'Copied to Clipboard', description: 'Data copied as JSON.' }); } else { throw new Error('Clipboard API failed.'); }
-    } catch (e: any) { toast({ variant: 'destructive', title: 'Copy Error', description: `Could not copy data: ${e.message}` }); }
-  }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
-
+  
   const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending;
 
 
@@ -211,15 +179,6 @@ export function MainTabContent() {
             </div>
           </CardContent>
         </Card>
-        <Separator />
-        <div className="space-y-2">
-          <h3 className="text-lg font-medium">Combined Data Export</h3>
-          <CardDescription>Exports Snapshot, Standard TAs, AI Analyzed TA, and Market Status. AI Key Takeaways, Options Chain, and AI Options Analysis are included if available.</CardDescription>
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
-            <Button onClick={handleExportAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={combinedExportButtonsDisabled}><Download className="mr-2 h-4 w-4" /> Export All to JSON</Button>
-            <Button onClick={handleCopyAllToJson} type="button" variant="outline" className="w-full sm:w-auto" disabled={combinedExportButtonsDisabled}><Copy className="mr-2 h-4 w-4" /> Copy All to JSON</Button>
-          </div>
-        </div>
         <Separator />
         <div className="space-y-6">
           <KeyMetricsDisplay />
@@ -297,6 +256,8 @@ export function MainTabContent() {
             </CardContent>
           </Card>
           <MarketStatusDisplay />
+          <Separator />
+          <DebugSnapshotControls />
         </div>
       </CardContent>
     </Card>
