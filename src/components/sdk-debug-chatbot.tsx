@@ -1,8 +1,6 @@
-
 'use client';
 
 import React, { useState, useReducer, useEffect, useRef } from 'react';
-import { useActionState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -96,14 +94,20 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
   const [localFsm, dispatch] = useReducer(localFsmReducer, initialLocalFsmState);
   const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [serverActionState, formAction, isServerActionPending] = useActionState(sdkDebugChatAction, { status: 'idle' });
+  // Manual state management for the server action
+  const [actionResult, setActionResult] = useState<RawDebugChatActionState>({ status: 'idle' });
+  const [isPending, setIsPending] = useState(false);
+
+  const handleActionSubmit = async (payload: RawDebugChatInputs) => {
+    setIsPending(true);
+    const result = await sdkDebugChatAction({ status: 'idle' }, payload);
+    setActionResult(result);
+    setIsPending(false);
+  };
 
   // Effect to link server action state back to local FSM, with initial delay
   useEffect(() => {
-    // Guard against running on initial state or if server state hasn't changed
-    if (serverActionState.status === 'idle' || serverActionState === localFsm.serverResponse) {
-      return;
-    }
+    if (actionResult.status === 'idle') return;
 
     if (localFsm.fsmState === 'AWAITING_RESPONSE') {
       const isFirstResponse = localFsm.retries === 0;
@@ -117,12 +121,12 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
         if (delayMs > 0) {
           console.log(`[SdkDebugChatbot:Effect] ${delayMs}ms delay complete. Dispatching RESPONSE_RECEIVED to local FSM.`);
         }
-        dispatch({ type: 'RESPONSE_RECEIVED', payload: serverActionState });
+        dispatch({ type: 'RESPONSE_RECEIVED', payload: actionResult });
       }, delayMs);
 
       return () => clearTimeout(processingTimeout);
     }
-  }, [serverActionState, localFsm.fsmState, localFsm.serverResponse, localFsm.retries]);
+  }, [actionResult, localFsm.fsmState, localFsm.retries]);
 
 
   // Effect to handle polling
@@ -147,12 +151,12 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
     };
   }, [localFsm.fsmState, localFsm.retries]);
 
-  // Effect to re-trigger action on poll
+  // Effect to re-trigger action on poll or initial submit
   useEffect(() => {
-    if (localFsm.fsmState === 'AWAITING_RESPONSE' && localFsm.activePrompt && localFsm.retries > 0) {
-      formAction(localFsm.activePrompt);
+    if (localFsm.fsmState === 'AWAITING_RESPONSE' && localFsm.activePrompt) {
+      handleActionSubmit(localFsm.activePrompt);
     }
-  }, [localFsm.fsmState, localFsm.retries, localFsm.activePrompt, formAction]);
+  }, [localFsm.fsmState, localFsm.activePrompt]);
 
 
   const handleCopy = async () => {
@@ -167,32 +171,25 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
     }
   };
 
-  const isUiPending = localFsm.fsmState === 'AWAITING_RESPONSE' || localFsm.fsmState === 'POLLING';
+  const isUiPending = localFsm.fsmState === 'AWAITING_RESPONSE' || localFsm.fsmState === 'POLLING' || isPending;
   
-  // New useEffect to handle form submission via FSM
-  useEffect(() => {
-    if (localFsm.fsmState === 'AWAITING_RESPONSE' && localFsm.activePrompt && localFsm.retries === 0) {
-      formAction(localFsm.activePrompt);
-    }
-  }, [localFsm.fsmState, localFsm.activePrompt, localFsm.retries, formAction]);
-
   const renderButtons = () => {
     if (promptType === 'sdk-web-search') {
       return (
         <div className="flex flex-col gap-2">
-          <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-web-search' } })}>
+          <form onSubmit={(e) => { e.preventDefault(); dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-web-search' } }); }}>
             <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
               {isUiPending && localFsm.activePrompt?.promptType === 'sdk-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
               Run SDK Debug Prompt
             </Button>
           </form>
-          <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-ta-web-search' } })}>
+          <form onSubmit={(e) => { e.preventDefault(); dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-ta-web-search' } }); }}>
             <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
               {isUiPending && localFsm.activePrompt?.promptType === 'sdk-ta-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCode className="mr-2 h-4 w-4" />}
               Run SDK TA Web Search
             </Button>
           </form>
-          <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-options-web-search' } })}>
+          <form onSubmit={(e) => { e.preventDefault(); dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-options-web-search' } }); }}>
             <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
               {isUiPending && localFsm.activePrompt?.promptType === 'sdk-options-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               Run SDK Options Web Search
@@ -213,7 +210,7 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
       );
     }
     return (
-      <form action={() => dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-app-data' } })}>
+      <form onSubmit={(e) => { e.preventDefault(); dispatch({ type: 'SUBMIT', payload: { promptType: 'sdk-app-data' } }); }}>
         <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
           {isUiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
           Run SDK Debug Prompt
