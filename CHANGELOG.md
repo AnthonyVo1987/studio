@@ -58,6 +58,20 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.41` (Debugging Checkpoint)
+**Tag:** `Phase-58_Task-3.3.16.7.41_CheckpointSdkDebugToolFixes`
+**Commit Hash:** `86824270`
+**Subject:** `docs(all): Checkpoint v3.3.16.7.41, document fixes for SDK debug tool`
+**Details:**
+This commit is a **documentation-only checkpoint** that records the successful implementation and debugging of the isolated "Google GenAI SDK Direct Diagnostics" feature (`v3.3.16.7.36` through `v3.3.16.7.41`). This tool is now stable and serves as a critical baseline for comparing Genkit behavior against direct SDK calls.
+
+**Key Fixes and Enhancements (v3.3.16.7.36 - v3.3.16.7.41):**
+*   **New Buttons:** Added dedicated buttons to the SDK debug component to test the complex, multi-search prompts (`technical-analysis-web-search`, `options-flow-web-search`) directly.
+*   **Robust Polling FSM:** Implemented a dedicated, client-side Finite State Machine within the `sdk-debug-chatbot` component to handle asynchronous AI responses. This FSM manages a 5-second initial delay and a 5x5-second polling retry loop, ensuring complex web searches have time to complete.
+*   **Prompt Contract Enhancement:** Updated the web search prompt definitions (`.json` files) and their Zod schemas to include a mandatory `searchStatus` field (`COMPLETE`, `PARTIAL`, `NOT_FOUND`, `WEB_SEARCH_TIMEOUT`), providing a clear handshake mechanism with the AI.
+*   **Critical Bug Fix (`v3.3.16.7.41`):** Resolved the "async function... called outside of a transition" error by refactoring the `sdk-debug-chatbot` to use standard `<form>` submissions instead of direct `onClick` or `onKeyPress` handlers for server actions. This aligns the component with React best practices for `useActionState`.
+*   **Server-Side Logic Correction:** Removed the incorrect server-side delay from `sdk-debug-chat-action.ts` and updated the default debug prompt to the correct "3 support/resistance levels" query.
+---
 **App Version:** `v3.3.16.7.31` (Documentation)
 **Tag:** `Phase-57_Task-3.3.16.7.31_DocumentToolSyntaxFix`
 **Commit Hash:** `(to be assigned)`
@@ -460,7 +474,7 @@ This commit (`bd8655d1`) marks the successful completion of the initial implemen
 **Outcome:**
 *   The application is now stable, as the experimental augmented search feature is fully isolated.
 *   Debugging of the search flows can proceed without impacting the core user experience.
-*   The application is ready for **Phase 4: Final Testing & Documentation** of this re-architecture.
+*   The application is now ready for **Phase 4: Final Testing & Documentation** of this re-architecture.
 *   The application version is consistently `v3.3.10.1.0`.
 ---
 **App Version:** `v3.3.7.0.7` (Re-Architecture Scoping & Planning)
