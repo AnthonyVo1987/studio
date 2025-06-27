@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useReducer, useEffect, useRef } from 'react';
+import React, { useState, useReducer, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +14,7 @@ import { copyToClipboard } from '@/lib/export-utils';
 import { extractJsonString } from '@/lib/string-utils';
 
 const POLLING_INTERVAL_MS = 5000;
-const INITIAL_DELAY_MS = 5000;
+const INITIAL_DELAY_MS = 0; // Temporarily disabled for faster debugging
 const MAX_RETRIES = 5;
 
 // --- Local FSM Definition ---
@@ -99,12 +98,12 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
   const [actionResult, setActionResult] = useState<RawDebugChatActionState>({ status: 'idle' });
   const [isPending, setIsPending] = useState(false);
 
-  const handleActionSubmit = async (payload: RawDebugChatInputs) => {
+  const handleActionSubmit = useCallback(async (payload: RawDebugChatInputs) => {
     setIsPending(true);
     const result = await sdkDebugChatAction({ status: 'idle' }, payload);
     setActionResult(result);
     setIsPending(false);
-  };
+  }, []);
 
   // Effect to link server action state back to local FSM, with initial delay
   useEffect(() => {
@@ -157,7 +156,7 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
     if (localFsm.fsmState === 'AWAITING_RESPONSE' && localFsm.activePrompt) {
       handleActionSubmit(localFsm.activePrompt);
     }
-  }, [localFsm.fsmState, localFsm.activePrompt]);
+  }, [localFsm.fsmState, localFsm.activePrompt, handleActionSubmit]);
 
 
   const handleCopy = async () => {
