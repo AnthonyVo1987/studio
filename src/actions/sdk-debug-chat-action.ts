@@ -1,4 +1,3 @@
-
 'use server';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -36,84 +35,92 @@ export async function sdkDebugChatAction(
   payload: RawDebugChatInputs
 ): Promise<RawDebugChatActionState> {
   const { promptType, userInput } = payload;
-  const logPrefix = `[ServerAction:sdkDebugChatAction:${promptType}]`;
+  const actionLogPrefix = `[ServerAction:sdkDebugChatAction:${promptType}]`;
   const genLogPrefix = '[DEBUG_SDK_CALL]';
-  console.log(`${logPrefix} Received request.`);
-
-  let debugPrompt = '';
-  let requestJson = '';
-  let modelToUse = model;
-  let specificLogPrefix = '';
+  console.log(`${actionLogPrefix} Received request.`);
 
   try {
     switch (promptType) {
-        case 'sdk-app-data':
-            specificLogPrefix = `${genLogPrefix} SDK App Data prompt:`;
+        case 'sdk-app-data': {
+            const specificLogPrefix = `${genLogPrefix} SDK App Data prompt:`;
             console.log(`${specificLogPrefix} START.`);
-            debugPrompt = "What are the current 3 support and 3 resistance levels for NVDA?";
-            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_app_data' }, null, 2);
-            modelToUse = model;
-            break;
+            const currentPrompt = "What are the current 3 support and 3 resistance levels for NVDA?";
+            const requestJson = JSON.stringify({ prompt: currentPrompt, type: promptType }, null, 2);
+            const result = await model.generateContent(currentPrompt);
+            const text = result.response.text();
+            console.log(`${specificLogPrefix} END.`);
+            return {
+                status: 'success', data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
+                message: `SDK action for '${promptType}' succeeded.`
+            };
+        }
 
-        case 'sdk-web-search':
-            specificLogPrefix = `${genLogPrefix} SDK Web Search (Default) prompt:`;
+        case 'sdk-web-search': {
+            const specificLogPrefix = `${genLogPrefix} SDK Web Search (Default) prompt:`;
             console.log(`${specificLogPrefix} START.`);
-            debugPrompt = "What are the current 3 support and 3 resistance levels for NVDA?";
-            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_web_search' }, null, 2);
-            modelToUse = groundedModel;
-            break;
+            const currentPrompt = "What are the current 3 support and 3 resistance levels for NVDA?";
+            const requestJson = JSON.stringify({ prompt: currentPrompt, type: promptType }, null, 2);
+            const result = await groundedModel.generateContent(currentPrompt);
+            const text = result.response.text();
+            console.log(`${specificLogPrefix} END.`);
+            return {
+                status: 'success', data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
+                message: `SDK action for '${promptType}' succeeded.`
+            };
+        }
 
-        case 'sdk-ta-web-search':
-            specificLogPrefix = `${genLogPrefix} SDK TA Web Search prompt:`;
+        case 'sdk-ta-web-search': {
+            const specificLogPrefix = `${genLogPrefix} SDK TA Web Search prompt:`;
             console.log(`${specificLogPrefix} START.`);
-            debugPrompt = await loadPromptText('technical-analysis-web-search');
-            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-ta-web-search' }, null, 2);
-            modelToUse = groundedModel;
-            break;
+            const currentPrompt = await loadPromptText('technical-analysis-web-search');
+            const requestJson = JSON.stringify({ prompt: currentPrompt, type: promptType }, null, 2);
+            const result = await groundedModel.generateContent(currentPrompt);
+            const text = result.response.text();
+            console.log(`${specificLogPrefix} END.`);
+            return {
+                status: 'success', data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
+                message: `SDK action for '${promptType}' succeeded.`
+            };
+        }
 
-        case 'sdk-options-web-search':
-            specificLogPrefix = `${genLogPrefix} SDK Options Web Search prompt:`;
+        case 'sdk-options-web-search': {
+            const specificLogPrefix = `${genLogPrefix} SDK Options Web Search prompt:`;
             console.log(`${specificLogPrefix} START.`);
-            debugPrompt = await loadPromptText('options-flow-web-search');
-            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-options-web-search' }, null, 2);
-            modelToUse = groundedModel;
-            break;
-
-        case 'sdk-user-web-search':
-            specificLogPrefix = `${genLogPrefix} SDK User Web Search prompt:`;
+            const currentPrompt = await loadPromptText('options-flow-web-search');
+            const requestJson = JSON.stringify({ prompt: currentPrompt, type: promptType }, null, 2);
+            const result = await groundedModel.generateContent(currentPrompt);
+            const text = result.response.text();
+            console.log(`${specificLogPrefix} END.`);
+            return {
+                status: 'success', data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
+                message: `SDK action for '${promptType}' succeeded.`
+            };
+        }
+      
+        case 'sdk-user-web-search': {
+            const specificLogPrefix = `${genLogPrefix} SDK User Web Search prompt:`;
             console.log(`${specificLogPrefix} START.`);
             if (!userInput || userInput.trim() === '') {
                 throw new Error("User input cannot be empty for this prompt type.");
             }
-            debugPrompt = userInput;
-            requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk-user-web-search' }, null, 2);
-            modelToUse = groundedModel;
-            break;
+            const currentPrompt = userInput;
+            const requestJson = JSON.stringify({ prompt: currentPrompt, type: promptType }, null, 2);
+            const result = await groundedModel.generateContent(currentPrompt);
+            const text = result.response.text();
+            console.log(`${specificLogPrefix} END.`);
+            return {
+                status: 'success', data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
+                message: `SDK action for '${promptType}' succeeded.`
+            };
+        }
 
         default:
             return { status: 'error', error: 'Invalid prompt type.', message: 'Unknown debug prompt type requested.' };
     }
-    
-    const result = await modelToUse.generateContent(debugPrompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    console.log(`${specificLogPrefix} END.`);
-    return {
-      status: 'success',
-      data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
-      message: `SDK action for '${promptType}' succeeded.`,
-    };
   } catch (error: any) {
-    if(specificLogPrefix) {
-        console.error(`${specificLogPrefix} FAILED. Error: ${error.message}`);
-    } else {
-        console.error(`${logPrefix} CRITICAL Unhandled Outer Error: ${error.message}.`);
-    }
-
-    if (!requestJson) {
-        requestJson = JSON.stringify({ prompt: "Error during prompt setup", type: promptType, error: error.message }, null, 2);
-    }
+    const specificLogPrefix = `${genLogPrefix} ${promptType}`;
+    console.error(`${specificLogPrefix} FAILED. Error: ${error.message}`);
+    const requestJson = JSON.stringify({ prompt: "Error during execution", type: promptType, error: error.message }, null, 2);
     return {
       status: 'error', error: error.message, message: `SDK action for '${promptType}' failed.`,
       data: { requestJson, responseJson: JSON.stringify({ error: error.message, details: String(error) }, null, 2) },
