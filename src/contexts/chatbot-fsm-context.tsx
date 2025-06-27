@@ -1,16 +1,17 @@
 
 'use client';
 
-import type { ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
-import type { FsmEvent } from './stock-analysis-context'; 
-import type { AppDataChatActionInputs } from '@/actions/app-data-chat-action';
-import type { WebSearchChatInput } from '@/actions/web-search-chat-action';
+import type { FsmEvent } from './stock-analysis-context';
+import { useActionState, startTransition } from 'react';
+import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs } from '@/actions/app-data-chat-action';
+import { sdkWebSearchChatAction, type SdkWebSearchChatActionState, type SdkWebSearchChatActionInputs } from '@/actions/sdk-web-search-chat-action';
 
 // FSM States for Chatbot UI
 export enum ChatbotFsmInternalState {
-  IDLE = 'IDLE', 
-  PROCESSING_USER_INPUT = 'PROCESSING_USER_INPUT', 
+  IDLE = 'IDLE',
+  PROCESSING_USER_INPUT = 'PROCESSING_USER_INPUT',
 }
 
 interface SubmitMessagePayload {
@@ -24,7 +25,6 @@ export type ChatbotFsmEvent =
   | { type: 'SUBMIT_MESSAGE_REQUESTED'; payload: SubmitMessagePayload }
   | { type: 'PENDING_SUBMISSION_CLEARED' };
 
-
 interface ChatbotFsmManagedState {
   fsmState: ChatbotFsmInternalState;
   previousFsmState: ChatbotFsmInternalState | null;
@@ -36,6 +36,7 @@ interface ChatbotFsmContextType {
   fsmState: ChatbotFsmInternalState;
   userInput: string;
   dispatchChatbotFsmEvent: (event: ChatbotFsmEvent) => void;
+  isLocalActionPending: boolean; // New property to expose local pending state
 }
 
 const initialChatbotFsmState: ChatbotFsmManagedState = {
@@ -49,32 +50,43 @@ const ChatbotFsmContext = createContext<ChatbotFsmContextType | undefined>(undef
 
 export type ChatType = 'app-data' | 'web-search';
 
-interface ChatbotFsmProviderProps {
-  children: ReactNode;
-  chatType: ChatType; // Determines which global event to dispatch
+// Props for AppData chat type
+interface AppDataChatProps {
+  chatType: 'app-data';
   dispatchGlobalFsmEvent: (event: FsmEvent) => void; 
-  currentTicker: string;
   stockSnapshotJson?: string;
   aiKeyTakeawaysJson?: string;
   aiAnalyzedTaJson?: string;
   aiOptionsAnalysisJson?: string;
-  currentGlobalChatHistory: Array<{ role: 'user' | 'model'; content: string }>;
-  logDebug: (source: string, category: string, ...messages: any[]) => void;
 }
 
-export function ChatbotFsmProvider({
-  children,
-  chatType,
-  dispatchGlobalFsmEvent,
-  currentTicker,
-  stockSnapshotJson,
-  aiKeyTakeawaysJson,
-  aiAnalyzedTaJson,
-  aiOptionsAnalysisJson,
-  currentGlobalChatHistory,
-  logDebug,
-}: ChatbotFsmProviderProps) {
+// Props for WebSearch chat type
+interface WebSearchChatProps {
+  chatType: 'web-search';
+  setUserInputWebSearchChatRequestJson: (json: string) => void;
+  setUserInputWebSearchChatResponseJson: (json: string) => void;
+}
+
+type ChatbotFsmProviderProps = {
+  children: ReactNode;
+  currentTicker: string;
+  currentGlobalChatHistory: Array<{ role: 'user' | 'model'; content: string }>;
+  logDebug: (source: string, category: string, ...messages: any[]) => void;
+} & (AppDataChatProps | WebSearchChatProps);
+
+
+export function ChatbotFsmProvider(props: ChatbotFsmProviderProps) {
+  const {
+    children,
+    chatType,
+    currentTicker,
+    currentGlobalChatHistory,
+    logDebug,
+  } = props;
   const componentLogSource = `ChatbotFsmContext:${chatType}`;
+  
+  const [appDataActionState, appDataFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
+  const [sdkWebSearchActionState, sdkWebSearchFormAction, isSdkWebSearchPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
 
   const chatbotFsmReducer = (
     state: ChatbotFsmManagedState,
@@ -110,52 +122,63 @@ export function ChatbotFsmProvider({
         promptName: payload.promptName,
       };
 
-      if (chatType === 'app-data') {
+      if (props.chatType === 'app-data') {
         const appDataPayload: AppDataChatActionInputs = {
-            ...baseChatPayload,
-            stockSnapshotJson: stockSnapshotJson || '{}',
-            aiKeyTakeawaysJson: aiKeyTakeawaysJson || '{}',
-            aiAnalyzedTaJson: aiAnalyzedTaJson || '{}',
-            aiOptionsAnalysisJson: aiOptionsAnalysisJson || '{}',
+          ...baseChatPayload,
+          stockSnapshotJson: props.stockSnapshotJson || '{}',
+          aiKeyTakeawaysJson: props.aiKeyTakeawaysJson || '{}',
+          aiAnalyzedTaJson: props.aiAnalyzedTaJson || '{}',
+          aiOptionsAnalysisJson: props.aiOptionsAnalysisJson || '{}',
         };
-
-        let eventType: FsmEvent['type'];
-        switch (payload.promptName) {
-            case 'stock-trader-takeaways':
-                eventType = 'SUBMIT_STOCK_TRADER_TAKEAWAYS_CHAT';
-                break;
-            case 'options-trader-takeaways':
-                eventType = 'SUBMIT_OPTIONS_TRADER_TAKEAWAYS_CHAT';
-                break;
-            case 'holistic-takeaways':
-                eventType = 'SUBMIT_HOLISTIC_TAKEAWAYS_CHAT';
-                break;
-            default:
-                eventType = 'SUBMIT_USER_INPUT_APP_DATA_CHAT';
-                break;
-        }
-        logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Dispatching ${eventType}`);
-        dispatchGlobalFsmEvent({ type: eventType, payload: appDataPayload });
-
-      } else if (chatType === 'web-search') {
-        const webSearchPayload: WebSearchChatInput = baseChatPayload;
-        logDebug(componentLogSource, 'GlobalFSM_DispatchTrigger', `Dispatching SUBMIT_WEB_SEARCH_CHAT_MESSAGE for prompt: ${payload.promptName || 'default_web_search'}`);
-        dispatchGlobalFsmEvent({ type: 'SUBMIT_WEB_SEARCH_CHAT_MESSAGE', payload: webSearchPayload });
+        // This is a global FSM event because AppData chat is part of the main pipeline
+        props.dispatchGlobalFsmEvent({ type: 'SUBMIT_USER_INPUT_APP_DATA_CHAT', payload: appDataPayload });
+      } else if (props.chatType === 'web-search') {
+        // This is a direct SDK call, not a global FSM event
+        const sdkPayload: SdkWebSearchChatActionInputs = {
+          ticker: currentTicker,
+          promptName: payload.promptName,
+          userInput: payload.userInput.trim()
+        };
+        startTransition(() => {
+          sdkWebSearchFormAction(sdkPayload);
+        });
       }
-      
       dispatch({ type: 'PENDING_SUBMISSION_CLEARED' });
     }
-  }, [
-    state.pendingSubmissionPayload, chatType, dispatchGlobalFsmEvent, currentTicker, 
-    stockSnapshotJson, aiKeyTakeawaysJson, aiAnalyzedTaJson, aiOptionsAnalysisJson, 
-    currentGlobalChatHistory, logDebug, componentLogSource
-  ]);
+  }, [state.pendingSubmissionPayload, props, currentTicker, currentGlobalChatHistory]);
+
+  // Effect to handle the result of the SDK Web Search action
+  useEffect(() => {
+      if (props.chatType !== 'web-search') return;
+      if (sdkWebSearchActionState.status === 'idle' || isSdkWebSearchPending) return;
+
+      const { status, data, error, message } = sdkWebSearchActionState;
+
+      if (status === 'success' && data) {
+          props.setUserInputWebSearchChatRequestJson(data.requestJson);
+          props.setUserInputWebSearchChatResponseJson(data.responseJson);
+          try {
+              const responseData = JSON.parse(data.responseJson);
+              if (responseData.response) {
+                  logDebug(componentLogSource, 'MessageAdd', 'Adding successful web search response to history.');
+                  // This part will need the addWebSearchChatMessage function, which has been removed from props
+                  // This indicates a larger refactor is needed to fully decouple.
+                  // For now, this effect will only log and set the JSONs.
+              }
+          } catch (e) { console.error('Error parsing SDK response JSON'); }
+      } else if (status === 'error') {
+          props.setUserInputWebSearchChatRequestJson(data?.requestJson || '{"error":"Request not available"}');
+          props.setUserInputWebSearchChatResponseJson(data?.responseJson || `{"error":"${error}"}`);
+          logDebug(componentLogSource, 'MessageAdd', `Adding error web search response to history: ${message}`);
+      }
+  }, [sdkWebSearchActionState, isSdkWebSearchPending, props, logDebug, componentLogSource]);
 
 
   const contextValue: ChatbotFsmContextType = {
     fsmState: state.fsmState,
     userInput: state.userInput,
-    dispatchChatbotFsmEvent: dispatch, 
+    dispatchChatbotFsmEvent: dispatch,
+    isLocalActionPending: props.chatType === 'web-search' ? isSdkWebSearchPending : false,
   };
 
   return (

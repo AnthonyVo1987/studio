@@ -25,7 +25,7 @@ import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
 import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Copy, Zap, Brain, BarChartBig, FileText, SearchCode, Search } from "lucide-react";
+import { Loader2, Download, Copy, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
 
 
 const appDataButtons: ExamplePromptButton[] = [
@@ -35,8 +35,9 @@ const appDataButtons: ExamplePromptButton[] = [
 ];
 
 const webSearchButtons: ExamplePromptButton[] = [
-    { title: "TA Web Search", promptName: 'technical-analysis-web-search', icon: SearchCode },
-    { title: "Options Web Search", promptName: 'options-flow-web-search', icon: Search },
+    { title: "S/R Levels Search", promptName: 'technical-analysis-web-search', icon: CandlestickChart },
+    { title: "Technical Analysis Search", promptName: 'technical-analysis-web-search', icon: SearchCode },
+    { title: "Options Flow Search", promptName: 'options-flow-web-search', icon: Search },
 ];
 
 
@@ -51,6 +52,7 @@ export function MainTabContent() {
     dispatchFsmEvent: dispatchGlobalFsmEvent, 
     appDataChatHistory: contextAppDataChatHistory, clearAppDataChatHistory,
     webSearchChatHistory: contextWebSearchChatHistory, clearWebSearchChatHistory,
+    setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson,
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
@@ -114,8 +116,7 @@ export function MainTabContent() {
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
   
-  const isAppDataChatFsmPending = globalFsmStateFromContext === GlobalFsmState.APP_DATA_CHAT_PENDING;
-  const isWebSearchChatFsmPending = globalFsmStateFromContext === GlobalFsmState.WEB_SEARCH_CHAT_PENDING;
+  const isAppDataChatFsmPending = globalFsmStateFromContext === GlobalFsmState.USER_INPUT_APP_DATA_CHAT_PENDING;
 
   const getCombinedDataForExport = useCallback(() => {
     const baseData: any = { ticker: globalFsmVariables.activeTicker || globalUserInputTicker, marketStatus: JSON.parse(contextMarketStatusJson || '{}'), stockSnapshot: JSON.parse(contextStockSnapshotJson || '{}'), standardTechnicalIndicators: JSON.parse(contextStandardTasJson || '{}'), aiAnalyzedTechnicalAnalysis: JSON.parse(contextAiAnalyzedTaJson || '{}'), };
@@ -126,7 +127,7 @@ export function MainTabContent() {
   }, [ globalFsmVariables.activeTicker, globalUserInputTicker, contextMarketStatusJson, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextAiKeyTakeawaysJson, contextAiOptionsAnalysisJson, contextOptionsChainJson, logDebug ]);
 
   const isBaseDataReadyForCombinedExport = isDataReadyForProcessing(contextMarketStatusJson, logDebug, 'MainTabContent', 'ExportCheck_MarketStatus', 'Validation') && isDataReadyForProcessing(contextStockSnapshotJson, logDebug, 'MainTabContent', 'ExportCheck_StockSnapshot', 'Validation') && isDataReadyForProcessing(contextStandardTasJson, logDebug, 'MainTabContent', 'ExportCheck_StandardTAs', 'Validation') && isDataReadyForProcessing(contextAiAnalyzedTaJson, logDebug, 'MainTabContent', 'ExportCheck_AiAnalyzedTA', 'Validation');
-  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending || isWebSearchChatFsmPending;
+  const combinedExportButtonsDisabled = !isBaseDataReadyForCombinedExport || analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending;
 
   const handleExportAllToJson = useCallback(async () => {
     logDebug('MainTabContent' as LogSourceId, 'UserAction_ExportAll', 'Export All to JSON clicked.');
@@ -149,7 +150,7 @@ export function MainTabContent() {
     } catch (e: any) { toast({ variant: 'destructive', title: 'Copy Error', description: `Could not copy data: ${e.message}` }); }
   }, [isBaseDataReadyForCombinedExport, getCombinedDataForExport, toast, logDebug]);
 
-  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending || isWebSearchChatFsmPending;
+  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending;
 
 
   return (
@@ -171,7 +172,7 @@ export function MainTabContent() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAppDataChatFsmPending || isWebSearchChatFsmPending}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAppDataChatFsmPending}>
               {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock
             </Button>
           </div>
@@ -277,11 +278,13 @@ export function MainTabContent() {
               dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
               currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
               currentGlobalChatHistory={contextWebSearchChatHistory}
+              setUserInputWebSearchChatRequestJson={setUserInputWebSearchChatRequestJson}
+              setUserInputWebSearchChatResponseJson={setUserInputWebSearchChatResponseJson}
               logDebug={logDebug}
             >
               <Chatbot
                 title="Web Search AI Chat"
-                description={`Uses Google Search for real-time info. Does not see app data.`}
+                description={`Ask AI anything with Google Search Support...`}
                 chatHistory={contextWebSearchChatHistory}
                 clearChatHistory={clearWebSearchChatHistory}
                 fsmState={globalFsmStateFromContext}
