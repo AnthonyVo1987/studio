@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
+import { StagingTabContent } from "@/components/staging-tab-content";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
 import { cn } from "@/lib/utils";
@@ -66,10 +67,11 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </div>
         </div>
         <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="main">Main</TabsTrigger>
             <TabsTrigger value="debug">Debug</TabsTrigger>
             <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
+            <TabsTrigger value="staging">Staging</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
             <MainTabContent /> 
@@ -79,6 +81,9 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
           <TabsContent value="fsm-debug">
             <FsmDebugTabContent />
+          </TabsContent>
+          <TabsContent value="staging">
+            <StagingTabContent />
           </TabsContent>
         </Tabs>
       </main>
