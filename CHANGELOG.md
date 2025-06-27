@@ -58,6 +58,25 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.47` (Debugging Checkpoint)
+**Tag:** `Phase-59_Task-3.3.16.7.47_CheckpointSdkDeterministicFix`
+**Commit Hash:** `51af662f`
+**Subject:** `docs(all): Checkpoint v3.3.16.7.47, document deterministic SDK fix & lessons learned`
+**Details:**
+This commit is a **documentation-only checkpoint** that records the successful resolution of the persistent "mismatched prompt" bug in the SDK Debug Chatbot. It also codifies the critical lessons learned from the repeated failures of the AI Agent (`v3.3.16.7.44` - `v3.3.16.7.46`) and updates the project's operating procedures to prevent future occurrences.
+
+**Key Fixes and Enhancements (v3.3.16.7.44 - v3.3.16.7.47):**
+*   **Root Cause Identified (`v3.3.16.7.46`):** The AI Agent's previous four attempts failed because they incorrectly targeted the server-side action. A comprehensive, top-down audit finally revealed the true root cause: a **flawed, non-deterministic client-side FSM** in `sdk-debug-chatbot.tsx` that used a combination of `useReducer` and `useActionState`, leading to race conditions where the UI would not update with new server responses, instead displaying stale data.
+*   **Architectural Correction (`v3.3.16.7.47`):**
+    *   The `sdk-debug-chatbot.tsx` component was **completely refactored** to be deterministic.
+    *   The failing `useReducer` and `useActionState` hooks were **removed**.
+    *   They were replaced with a simple, manually controlled flow using `useState` and a single `async` handler function. This ensures a direct, predictable request-response cycle, eliminating the stale state bugs.
+*   **AI Prompt Hardening (`v3.3.16.7.47`):** The prompt for `options-flow-web-search.json` was updated with more forceful instructions to ensure the AI includes the mandatory `searchStatus` key, fixing an immediate polling issue.
+*   **Lessons Learned & New Procedures (`v3.3.16.7.47` Docs):**
+    *   Project documentation (`README.md`, `FEAT_STATUS_...`) has been updated with a post-mortem, emphasizing that future features **must** be designed with deterministic state management to avoid similar bugs.
+    *   A future, high-risk task to re-architect the main application's FSM for determinism has been scoped.
+    *   A new, mandatory `[DIRECTIVE: CONTEXT_PURGE | ID: <...>]` command has been added to the AI Agent's operating procedures in `README.md` to ensure reliable context resets.
+---
 **App Version:** `v3.3.16.7.41` (Debugging Checkpoint)
 **Tag:** `Phase-58_Task-3.3.16.7.41_CheckpointSdkDebugToolFixes`
 **Commit Hash:** `86824270`

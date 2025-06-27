@@ -6,11 +6,12 @@ To prevent the severe audit failures of the v3.3.15.x series, the following proc
 #### Section 1: General Conduct & Output
 1.  **XML Output Mandate:** All code changes proposed by the AI Coding Agent MUST be provided exclusively in the specified XML format.
 2.  **Context Reset Confirmation:** At the beginning of new Phases or when explicitly requested, the AI Coding Agent will confirm that its internal context has been purged to ensure it is operating on the latest information.
+3.  **New Context Purge Directive:** To force a true context reset, the user will issue the following command: `[DIRECTIVE: CONTEXT_PURGE | ID: <unique_identifier>]`. The unique ID (e.g., a version number or timestamp) is mandatory and ensures the request is treated as new, preventing me from using a cached or stale understanding of the session.
 
 #### Section 2: Auditing & Debugging Protocol (NEW)
-3.  **Mandatory End-to-End Execution Trace:** When asked for a "comprehensive audit," I will not perform a shallow, localized review. My audit will consist of programmatically tracing the full execution path of the feature in question, from user interaction to the final UI update. This includes mapping logic through UI components, FSM events, FSM orchestrators, Server Actions, AI Flows, and Prompt Definitions.
-4.  **Mandatory Ground Truth Verification:** I will purge all assumptions from my previous turn before every audit. I will re-read the full content of all relevant files from scratch, rather than relying on a cached or summarized understanding. This prevents hallucinations about file contents or states.
-5.  **Symptom vs. Root Cause Analysis:** When a bug is reported, I will treat the report as a **symptom**, not the direct problem. My primary objective will be to trace that symptom back through the execution path to its origin, instead of attempting to patch the symptom directly.
+4.  **Mandatory End-to-End Execution Trace:** When asked for a "comprehensive audit," I will not perform a shallow, localized review. My audit will consist of programmatically tracing the full execution path of the feature in question, from user interaction to the final UI update. This includes mapping logic through UI components, FSM events, FSM orchestrators, Server Actions, AI Flows, and Prompt Definitions.
+5.  **Mandatory Ground Truth Verification:** I will purge all assumptions from my previous turn before every audit. I will re-read the full content of all relevant files from scratch, rather than relying on a cached or summarized understanding. This prevents hallucinations about file contents or states.
+6.  **Symptom vs. Root Cause Analysis:** When a bug is reported, I will treat the report as a **symptom**, not the direct problem. My primary objective will be to trace that symptom back through the execution path to its origin, instead of attempting to patch the symptom directly.
 
 #### Section 3: Bug Report Operating Procedure (NEW)
 This procedure ensures a thorough, top-down analysis for all bug reports to prevent narrow-sighted fixes and to ensure the user can validate the proposed plan before implementation.
@@ -32,7 +33,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 ###
 ---
 **README Document Version:** 3.0
-**Application Version (from `app-metadata.json`):** v3.3.16.7.41
+**Application Version (from `app-metadata.json`):** v3.3.16.7.47
 **Last Updated:** 2025-07-29
 
 ## 1. Introduction
@@ -163,7 +164,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   The customizable analysis pipeline, which conditionally triggers on-demand AI actions and chat prompts.
 *   **Automated Chat Pipeline State (as of `v3.3.16.7.17` Fix):**
     *   **FIXED:** The App Data Chat pipeline loop was resolved. The FSM now uses a `completedChatPrompts: string[]` array to correctly track which chat prompts have been executed in a sequence. The dispatcher (`dispatchNextCustomAction`) now checks against this array to ensure each step runs only once, allowing the pipeline to complete successfully.
-*   **TODO - Future Task:** A future architectural review task will be created to apply the principle of deterministic FSM orchestration more broadly to ensure maximum stability and remove any remaining potential for race conditions.
+*   **TODO - Future Task (as of `v3.3.16.7.47`):** The repeated failures of the non-deterministic `useEffect` based FSM orchestrator have highlighted a critical architectural risk. A future task will be created to audit the entire application and refactor all major state-driven processes to use simple, predictable, and deterministic patterns (e.g., manual `async/await` handlers) to improve overall robustness and prevent race conditions.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -193,7 +194,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.5.1. General Rules & Policies
 *   Use `logDebug` for client-side. No commented-out code. JSDoc for overviews. No `package.json` comments.
 *   **`app-metadata.json`:** `lastUpdatedTimestamp` is optional. If present, must be a real ISO 8601.
-*   **Current Feature Focus (as of v3.3.16.7.41):**
+*   **Current Feature Focus (as of v3.3.16.7.47):**
     *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final testing and debugging phase is in progress.
     *   **Known Unresolved Bug:** The **Web Search AI Chat** pipeline is not functioning correctly, failing with a `Unable to determine type of tool` error. The investigation has identified a client-side FSM race condition as the root cause.
     *   **Next Step:** Re-architect FSM orchestrator to be deterministic and sequential.
@@ -249,7 +250,7 @@ npm run start
 
 ## 5. Change History & Versioning
 *   **This README Document Version:** 3.0
-*   **Current Application Version:** `v3.3.16.7.41`
+*   **Current Application Version:** `v3.3.16.7.47`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:**
     *   For v3.0.0.0 onwards: Refer to `CHANGELOG_3.0.md`.
