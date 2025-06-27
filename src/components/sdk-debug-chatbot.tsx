@@ -136,12 +136,6 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
   }, [localFsm.fsmState, localFsm.retries, localFsm.activePrompt, formAction]);
 
 
-  const handleSubmit = (payload: RawDebugChatInputs) => {
-    if (localFsm.fsmState !== 'IDLE' && localFsm.fsmState !== 'COMPLETE' && localFsm.fsmState !== 'ERROR' && localFsm.fsmState !== 'TIMED_OUT') return;
-    dispatch({ type: 'SUBMIT', payload });
-    formAction(payload);
-  };
-
   const handleCopy = async () => {
     if (!localFsm.serverResponse?.data) return;
     try {
@@ -160,32 +154,40 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
     if (promptType === 'sdk-web-search') {
       return (
         <div className="flex flex-col gap-2">
-          <Button onClick={() => handleSubmit({ promptType: 'sdk-web-search' })} variant="secondary" disabled={isUiPending} className="w-full justify-start">
-            {isUiPending && localFsm.activePrompt?.promptType === 'sdk-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
-            Run SDK Debug Prompt
-          </Button>
-          <Button onClick={() => handleSubmit({ promptType: 'sdk-ta-web-search' })} variant="secondary" disabled={isUiPending} className="w-full justify-start">
-            {isUiPending && localFsm.activePrompt?.promptType === 'sdk-ta-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCode className="mr-2 h-4 w-4" />}
-            Run SDK TA Web Search
-          </Button>
-          <Button onClick={() => handleSubmit({ promptType: 'sdk-options-web-search' })} variant="secondary" disabled={isUiPending} className="w-full justify-start">
-            {isUiPending && localFsm.activePrompt?.promptType === 'sdk-options-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-            Run SDK Options Web Search
-          </Button>
-          <div className="w-full flex items-center space-x-2 pt-2">
-            <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Enter custom web search..." disabled={isUiPending} />
-            <Button onClick={() => handleSubmit({ promptType: 'sdk-user-web-search', userInput })} disabled={isUiPending || !userInput.trim()}>
+          <form action={() => formAction({ promptType: 'sdk-web-search' })}>
+            <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
+              {isUiPending && localFsm.activePrompt?.promptType === 'sdk-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
+              Run SDK Debug Prompt
+            </Button>
+          </form>
+          <form action={() => formAction({ promptType: 'sdk-ta-web-search' })}>
+            <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
+              {isUiPending && localFsm.activePrompt?.promptType === 'sdk-ta-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCode className="mr-2 h-4 w-4" />}
+              Run SDK TA Web Search
+            </Button>
+          </form>
+          <form action={() => formAction({ promptType: 'sdk-options-web-search' })}>
+            <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
+              {isUiPending && localFsm.activePrompt?.promptType === 'sdk-options-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+              Run SDK Options Web Search
+            </Button>
+          </form>
+          <form action={() => formAction({ promptType: 'sdk-user-web-search', userInput })} className="w-full flex items-center space-x-2 pt-2">
+            <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Enter custom web search..." disabled={isUiPending} onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!isUiPending && userInput.trim()) { formAction({ promptType: 'sdk-user-web-search', userInput }); } } }} />
+            <Button type="submit" disabled={isUiPending || !userInput.trim()}>
                 {isUiPending && localFsm.activePrompt?.promptType === 'sdk-user-web-search' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
-          </div>
+          </form>
         </div>
       );
     }
     return (
-      <Button onClick={() => handleSubmit({ promptType: 'sdk-app-data' })} variant="secondary" disabled={isUiPending} className="w-full justify-start">
-        {isUiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
-        Run SDK Debug Prompt
-      </Button>
+      <form action={() => formAction({ promptType: 'sdk-app-data' })}>
+        <Button type="submit" variant="secondary" disabled={isUiPending} className="w-full justify-start">
+          {isUiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
+          Run SDK Debug Prompt
+        </Button>
+      </form>
     );
   };
 

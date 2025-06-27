@@ -20,8 +20,6 @@ const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite-preview-06-17" });
 const groundedModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite-preview-06-17", tools: [{googleSearch: {}}] });
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 async function loadPromptText(definitionName: string, ticker: string = "NVDA"): Promise<string> {
     const module = await import(`@/ai/definitions/${definitionName}.json`);
     const jsonData = module.default;
@@ -55,7 +53,8 @@ export async function sdkDebugChatAction(
             break;
 
         case 'sdk-web-search':
-            debugPrompt = "What's the current ATR-14 for NVDA";
+            // CORRECTED: Updated the default debug prompt as requested.
+            debugPrompt = "What are the current 3 support and 3 resistance levels for NVDA?";
             requestJson = JSON.stringify({ prompt: debugPrompt, type: 'sdk_web_search' }, null, 2);
             modelToUse = groundedModel;
             isGroundedSearch = true;
@@ -89,11 +88,7 @@ export async function sdkDebugChatAction(
             return { status: 'error', error: 'Invalid prompt type.', message: 'Unknown debug prompt type requested.' };
     }
     
-    if (isGroundedSearch) {
-      console.log(`${logPrefix} Applying initial 5-second delay for grounded search.`);
-      await delay(5000);
-    }
-
+    // CORRECTED: Removed incorrect server-side delay. All waiting logic is handled by the client.
     console.log(`${logPrefix} Executing direct SDK prompt. Length: ${debugPrompt.length}`);
     const result = await modelToUse.generateContent(debugPrompt);
     const response = await result.response;
