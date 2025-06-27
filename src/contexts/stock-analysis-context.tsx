@@ -6,6 +6,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useReducer
 import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
 import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
+import { addEntryToRawConsoleBuffer } from '@/lib/raw-console-log-buffer'; // Import for raw console
 import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
@@ -191,8 +192,6 @@ interface StockAnalysisState {
   rawOptionsWebSearchRequestJson: string;
   rawOptionsWebSearchResponseJson: string;
   webSearchChatHistory: AppDataChatMessage[];
-  isClientDebugConsoleEnabled: boolean;
-  isClientDebugConsoleOpen: boolean;
   logSourceConfig: LogSourceConfig;
   globalFsmState: GlobalFsmReducerManagedState;
   targetFsmDisplayState: GlobalFsmState | null;
@@ -241,8 +240,6 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   clearAppDataChatHistory: () => void;
   addWebSearchChatMessage: (message: AppDataChatMessage) => void;
   clearWebSearchChatHistory: () => void;
-  setClientDebugConsoleEnabled: (enabled: boolean) => void;
-  setClientDebugConsoleOpen: (open: boolean) => void;
   setLogSourceEnabled: (source: LogSourceId, enabled: boolean) => void;
   enableAllLogSources: () => void;
   disableAllLogSources: () => void;
@@ -320,8 +317,6 @@ const defaultState: StockAnalysisState = {
   rawOptionsWebSearchRequestJson: initialJsonPlaceholder,
   rawOptionsWebSearchResponseJson: initialJsonPlaceholder,
   webSearchChatHistory: [],
-  isClientDebugConsoleEnabled: true,
-  isClientDebugConsoleOpen: true,
   logSourceConfig: defaultLogSourceConfig,
   globalFsmState: initialGlobalFsmReducerState,
   targetFsmDisplayState: null,
@@ -374,8 +369,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_rawOptionsWebSearchRequestJson, _setRawOptionsWebSearchRequestJson] = useState<string>(defaultState.rawOptionsWebSearchRequestJson);
   const [_rawOptionsWebSearchResponseJson, _setRawOptionsWebSearchResponseJson] = useState<string>(defaultState.rawOptionsWebSearchResponseJson);
   const [_webSearchChatHistory, _setWebSearchChatHistory] = useState<AppDataChatMessage[]>(defaultState.webSearchChatHistory);
-  const [_isClientDebugConsoleEnabled, _setClientDebugConsoleEnabled] = useState<boolean>(defaultState.isClientDebugConsoleEnabled);
-  const [_isClientDebugConsoleOpen, _setClientDebugConsoleOpen] = useState<boolean>(defaultState.isClientDebugConsoleOpen);
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
   const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<GlobalFsmState | null>(defaultState.targetFsmDisplayState);
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
@@ -514,19 +507,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; }); 
     _setLogSourceConfig(newConfig);
   }, [_setLogSourceConfig, logDebug]);
-
-  const setClientDebugConsoleEnabled = useCallback((enabled: boolean) => {
-    logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', `ClientDebugConsoleEnabled toggled to: ${enabled}.`);
-    _setClientDebugConsoleEnabled(enabled);
-    if (enabled) {
-        enableAllLogSources(); 
-        _setLogSourceConfig(prevConfig => ({ ...prevConfig, OptionsChainTable: false })); 
-        logDebug('StockAnalysisContext', 'LogConfigChange', `OptionsChainTable log source explicitly DISABLED after enabling all.`);
-        _setClientDebugConsoleOpen(true); 
-    } else {
-      _setClientDebugConsoleOpen(false); 
-    }
-  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, enableAllLogSources, logDebug]);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -992,12 +972,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         initialInitializationDispatchedRef.current = true;
     }
   }, [dispatchFsmEvent, logDebug]);
-
-  const setClientDebugConsoleOpen = useCallback((open: boolean) => {
-    logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', `ClientDebugConsoleOpen will be set to: ${open}. Current isClientDebugConsoleEnabled: ${_isClientDebugConsoleEnabled}`);
-    if (_isClientDebugConsoleEnabled || !open) { _setClientDebugConsoleOpen(open); }
-    else if (!_isClientDebugConsoleEnabled && open) { logDebug('StockAnalysisContext', 'DebugConsoleUIToggle', 'Attempted to open console while it is disabled. Opening action will be ignored.'); }
-  }, [_isClientDebugConsoleEnabled, _setClientDebugConsoleOpen, logDebug]);
   
   const contextValue: StockAnalysisContextType = useMemo(() => ({
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson: contextSetters.setPolygonApiRequestLogJson,
@@ -1028,8 +1002,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     rawOptionsWebSearchRequestJson: _rawOptionsWebSearchRequestJson, setRawOptionsWebSearchRequestJson: contextSetters.setRawOptionsWebSearchRequestJson,
     rawOptionsWebSearchResponseJson: _rawOptionsWebSearchResponseJson, setRawOptionsWebSearchResponseJson: contextSetters.setRawOptionsWebSearchResponseJson,
     webSearchChatHistory: _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    isClientDebugConsoleEnabled: _isClientDebugConsoleEnabled, isClientDebugConsoleOpen: _isClientDebugConsoleOpen,
-    logSourceConfig: _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
+    logSourceConfig: _logSourceConfig,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
     fsmState: globalFsmReducerState.current, previousFsmState: globalFsmReducerState.previous,
     fsmVariables: globalFsmReducerState.variables, fsmFlags: globalFsmReducerState.flags,
@@ -1053,8 +1026,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _userInputWebSearchChatRequestJson, _userInputWebSearchChatResponseJson,
     _rawTaWebSearchRequestJson, _rawTaWebSearchResponseJson, _rawOptionsWebSearchRequestJson, _rawOptionsWebSearchResponseJson,
     _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    _isClientDebugConsoleEnabled, _isClientDebugConsoleOpen,
-    _logSourceConfig, setClientDebugConsoleEnabled, setClientDebugConsoleOpen,
+    _logSourceConfig,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
@@ -1069,59 +1041,61 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     
     const interceptAndProcessLog = (type: LogType, ...args: any[]) => {
       currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
+      
       queueMicrotask(() => {
-        if (!_isClientDebugConsoleEnabled) return;
-        let sourceForBuffer: LogSourceId = 'NATIVE_CONSOLE'; let messagesForBuffer = args; let typeForBuffer = type;
+        let sourceForBuffer: LogSourceId = 'NATIVE_CONSOLE';
+        let messagesForBuffer = args;
+        let typeForBuffer = type;
+
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
           sourceForBuffer = args[1] as LogSourceId;
-          const category = args[2] as string;
-          messagesForBuffer = args.slice(3);
-          
-          const noisyUiCategories = ['RenderState', 'PropsReceived', 'Validation'];
-          if (!_isUiRenderLoggingEnabled && noisyUiCategories.includes(category)) {
-              return; 
-          }
-
-          if (!_logSourceConfig[sourceForBuffer]) return;
           typeForBuffer = 'debug';
-        } else { if (!_logSourceConfig['NATIVE_CONSOLE']) return; }
-        
-        if (globalFsmReducerState.variables.isInitialLoad && _isReducedStartupLoggingEnabled) {
-          const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter', 'StockAnalysisContext:GlobalFSM_Orchestrator', 'StockAnalysisContext:GlobalFSM']; let allowLog = false;
-          if (sourceForBuffer && criticalSources.includes(sourceForBuffer)) { allowLog = true; }
-          else if (typeForBuffer === 'error' || typeForBuffer === 'warn') { allowLog = true; }
-          if (sourceForBuffer === 'NATIVE_CONSOLE' && typeForBuffer !== 'error' && typeForBuffer !== 'warn' && !criticalSources.includes('NATIVE_CONSOLE')) { allowLog = false; }
-          if (!allowLog && String(messagesForBuffer[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; } 
-          if (!allowLog) { return; }
+          messagesForBuffer = args.slice(2); // Keep category for now
         }
-        
-        const lastLog = globalLogEntries[globalLogEntries.length - 1];
-        if (lastLog) {
-            try {
-                const isDuplicate = lastLog.source === sourceForBuffer &&
-                                  lastLog.type === typeForBuffer &&
-                                  JSON.stringify(lastLog.messages) === JSON.stringify(messagesForBuffer);
-                if (isDuplicate) {
-                    return; 
-                }
-            } catch (e) {}
+
+        addEntryToRawConsoleBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
+
+        if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
+            const category = args[2] as string;
+            const finalMessages = args.slice(3);
+            const noisyUiCategories = ['RenderState', 'PropsReceived', 'Validation'];
+            if (!_isUiRenderLoggingEnabled && noisyUiCategories.includes(category)) {
+                return; 
+            }
+            if (!_logSourceConfig[sourceForBuffer]) return;
+
+            if (globalFsmReducerState.variables.isInitialLoad && _isReducedStartupLoggingEnabled) {
+                const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter', 'StockAnalysisContext:GlobalFSM_Orchestrator', 'StockAnalysisContext:GlobalFSM'];
+                let allowLog = criticalSources.includes(sourceForBuffer);
+                if (!allowLog && String(finalMessages[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; }
+                if (!allowLog) return;
+            }
+            const lastLog = globalLogEntries[globalLogEntries.length - 1];
+            if (lastLog) {
+                try {
+                    const isDuplicate = lastLog.source === sourceForBuffer && lastLog.type === 'debug' && JSON.stringify(lastLog.messages) === JSON.stringify(finalMessages);
+                    if (isDuplicate) { return; }
+                } catch (e) {}
+            }
+            addEntryToGlobalLogBuffer({ type: 'debug', messages: finalMessages, source: sourceForBuffer });
+        } else {
+            if (!_logSourceConfig['NATIVE_CONSOLE']) return;
+            if (globalFsmReducerState.variables.isInitialLoad && _isReducedStartupLoggingEnabled && type !== 'error' && type !== 'warn') { return; }
+            addEntryToGlobalLogBuffer({ type, messages: args, source: 'NATIVE_CONSOLE' });
         }
-        
-        addEntryToGlobalLogBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
       });
     };
 
-    if (_isClientDebugConsoleEnabled) {
-      console.log = (...args) => interceptAndProcessLog('log', ...args); console.warn = (...args) => interceptAndProcessLog('warn', ...args);
-      console.error = (...args) => interceptAndProcessLog('error', ...args); console.info = (...args) => interceptAndProcessLog('info', ...args);
-      console.debug = (...args) => interceptAndProcessLog('debug', ...args);
-    } else {
-      if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
-    }
+    console.log = (...args) => interceptAndProcessLog('log', ...args); 
+    console.warn = (...args) => interceptAndProcessLog('warn', ...args);
+    console.error = (...args) => interceptAndProcessLog('error', ...args); 
+    console.info = (...args) => interceptAndProcessLog('info', ...args);
+    console.debug = (...args) => interceptAndProcessLog('debug', ...args);
+    
     return () => {
       if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
     };
-  }, [_isClientDebugConsoleEnabled, _isUiRenderLoggingEnabled, _logSourceConfig, contextOriginals, logDebug, globalFsmReducerState.variables.isInitialLoad, _isReducedStartupLoggingEnabled]);
+  }, [_logSourceConfig, contextOriginals, globalFsmReducerState.variables.isInitialLoad, _isReducedStartupLoggingEnabled, _isUiRenderLoggingEnabled]);
   
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
 }

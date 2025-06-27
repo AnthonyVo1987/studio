@@ -12,6 +12,7 @@ import { StagingTabContent } from "@/components/staging-tab-content";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { LogConsole } from "@/components/log-console";
 import { globalLogEntries, clearGlobalLogBuffer } from "@/lib/global-log-buffer";
+import { rawConsoleLogEntries, clearRawConsoleBuffer } from "@/lib/raw-console-log-buffer";
 import { cn } from "@/lib/utils";
 
 interface PageContentProps {
@@ -22,7 +23,7 @@ interface PageContentProps {
 export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentProps) {
   const stockAnalysisContext = useStockAnalysis();
 
-  const getClientTraceSnapshotForExport = useCallback(() => {
+  const getSystemStateSnapshotForExport = useCallback(() => {
     const {
         fsmState, previousFsmState, targetFsmDisplayState, fsmFlags, fsmVariables,
         polygonApiRequestLogJson, polygonApiResponseLogJson, marketStatusJson, stockSnapshotJson,
@@ -71,9 +72,9 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="main">Main</TabsTrigger>
             <TabsTrigger value="debug-data">Debug Data</TabsTrigger>
-            <TabsTrigger value="client-trace-logs">Client Trace Logs</TabsTrigger>
+            <TabsTrigger value="client-trace-logs">Client Debug Trace Logs</TabsTrigger>
+            <TabsTrigger value="console-logs">Console Logs</TabsTrigger>
             <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
-            <TabsTrigger value="staging">Staging</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
             <MainTabContent /> 
@@ -85,10 +86,20 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
             <LogConsole
               appVersion={appVersion}
               logEntries={globalLogEntries}
-              getSnapshotForExport={getClientTraceSnapshotForExport}
+              getSnapshotForExport={getSystemStateSnapshotForExport}
               clearLogs={clearGlobalLogBuffer}
               consoleTitle="Client Debug Trace Logs"
               consoleDescription="Curated, high-level trace logs from the application's internal logging system."
+            />
+          </TabsContent>
+           <TabsContent value="console-logs">
+            <LogConsole
+              appVersion={appVersion}
+              logEntries={rawConsoleLogEntries}
+              getSnapshotForExport={getSystemStateSnapshotForExport}
+              clearLogs={clearRawConsoleBuffer}
+              consoleTitle="Console Logs"
+              consoleDescription="A raw, unfiltered duplicate of the browser's developer console output."
             />
           </TabsContent>
           <TabsContent value="fsm-debug">
