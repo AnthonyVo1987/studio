@@ -11,6 +11,7 @@ export const RawDebugChatInputsSchema = z.object({
     'web-search',
     'sdk-app-data',
     'sdk-web-search',
+    'sdk-support-resistance-web-search',
     'sdk-ta-web-search',
     'sdk-options-web-search',
     'sdk-user-web-search',

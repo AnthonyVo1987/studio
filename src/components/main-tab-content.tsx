@@ -35,7 +35,7 @@ const appDataButtons: ExamplePromptButton[] = [
 ];
 
 const webSearchButtons: ExamplePromptButton[] = [
-    { title: "S/R Levels Search", promptName: 'technical-analysis-web-search', icon: CandlestickChart },
+    { title: "S/R Levels Search", promptName: 'support-resistance-web-search', icon: CandlestickChart },
     { title: "Technical Analysis Search", promptName: 'technical-analysis-web-search', icon: SearchCode },
     { title: "Options Flow Search", promptName: 'options-flow-web-search', icon: Search },
 ];

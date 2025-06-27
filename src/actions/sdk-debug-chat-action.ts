@@ -58,7 +58,21 @@ export async function sdkDebugChatAction(
         case 'sdk-web-search': {
             const specificLogPrefix = `${genLogPrefix} SDK Web Search (Default) prompt:`;
             console.log(`${specificLogPrefix} START.`);
-            const currentPrompt = "What are the current 3 support and 3 resistance levels for NVDA?";
+            const currentPrompt = "What's a general market summary for today?";
+            const requestJson = JSON.stringify({ prompt: currentPrompt, type: promptType }, null, 2);
+            const result = await groundedModel.generateContent(currentPrompt);
+            const text = result.response.text();
+            console.log(`${specificLogPrefix} END.`);
+            return {
+                status: 'success', data: { requestJson, responseJson: JSON.stringify({ response: text }, null, 2) },
+                message: `SDK action for '${promptType}' succeeded.`
+            };
+        }
+
+        case 'sdk-support-resistance-web-search': {
+            const specificLogPrefix = `${genLogPrefix} SDK S/R Web Search prompt:`;
+            console.log(`${specificLogPrefix} START.`);
+            const currentPrompt = await loadPromptText('support-resistance-web-search');
             const requestJson = JSON.stringify({ prompt: currentPrompt, type: promptType }, null, 2);
             const result = await groundedModel.generateContent(currentPrompt);
             const text = result.response.text();

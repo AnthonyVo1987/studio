@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { sdkDebugChatAction } from '@/actions/sdk-debug-chat-action';
 import type { RawDebugChatActionState, RawDebugChatInputs } from '@/ai/schemas/raw-debug-chat-schemas';
-import { Bug, Loader2, Copy, ShieldAlert, SearchCode, Search, Send, Timer } from 'lucide-react';
+import { Bug, Loader2, Copy, ShieldAlert, SearchCode, Search, Send, Timer, CandlestickChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from './ui/separator';
 import { copyToClipboard } from '@/lib/export-utils';
@@ -85,7 +85,13 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
           <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleActionSubmit({ promptType: 'sdk-web-search' }); }}>
             <Button type="submit" variant="secondary" disabled={isPending} className="w-full justify-start">
               {isPending && activeRequest === 'sdk-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
-              Run SDK Debug Prompt
+              Run SDK Debug (General Search)
+            </Button>
+          </form>
+           <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleActionSubmit({ promptType: 'sdk-support-resistance-web-search' }); }}>
+            <Button type="submit" variant="secondary" disabled={isPending} className="w-full justify-start">
+               {isPending && activeRequest === 'sdk-support-resistance-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CandlestickChart className="mr-2 h-4 w-4" />}
+              Run SDK S/R Web Search
             </Button>
           </form>
           <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleActionSubmit({ promptType: 'sdk-ta-web-search' }); }}>
