@@ -58,6 +58,20 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.7.52` (Documentation)
+**Tag:** `Phase-61_Task-3.3.16.7.53_DocsCommit`
+**Commit Hash:** `2d5de6e1`
+**Subject:** `docs(all): Update all project docs to reflect final Dual Chat architecture (v3.3.16.7.52)`
+**Details:**
+This commit is a **documentation-only checkpoint** that brings all project documentation (`README.md`, `CHANGELOG.md`, `FEAT_*.md`) into alignment with the final, stable state of the "Dual AI Chat Architecture" feature, now ready for comprehensive testing.
+
+**Key Architectural Changes Documented:**
+*   **Part A: Replaced Genkit Web Search with Raw SDK (`v3.3.16.7.49`):** All documentation now correctly reflects that the web search chat is powered by the raw Google AI SDK (`sdk-web-search-chat-action.ts`), bypassing the unstable Genkit tool abstraction.
+*   **Part B: Decoupled All Chat Prompts (`v3.3.16.7.50`):** All documentation now correctly states that chat prompts are **100% manual** and have been removed from the automated analysis pipeline, simplifying the FSM and improving determinism.
+*   **Code Cleanup (`v3.3.16.7.51`):** All documentation reflects the removal of 11 obsolete files and the standardization of AI TA naming conventions.
+*   **UI/Prompt Fix (`v3.3.16.7.52`):** Documentation updated to reflect the addition of a dedicated "Support/Resistance" web search prompt and the removal of redundant example buttons from the UI.
+*   **Lessons Learned:** Feature documentation (`FEAT_SCOPE_...`) has been updated with detailed post-mortems analyzing why the Genkit approach failed and why the raw SDK/decoupled approach is superior for stability.
+---
 **App Version:** `v3.3.16.7.50` (Architectural Simplification)
 **Tag:** `Phase-60_Task-3.3.16.7.50_DecoupleChatAndUseSdkWebSearch`
 **Commit Hash:** `36748225`

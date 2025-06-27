@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.1
-**Application Version (from `app-metadata.json`):** v3.3.16.7.50
-**Last Updated:** 2025-07-31
+**README Document Version:** 3.2
+**Application Version (from `app-metadata.json`):** v3.3.16.7.52
+**Last Updated:** 2025-08-01
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -83,7 +83,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Analyzed Options Chain (Call/Put Walls).
     *   **[REMOVED FROM PIPELINE]** All AI Chat prompts are now manual, user-initiated actions and are no longer part of the automated pipeline.
 
-*   **Dual AI Chat Architecture (as of v3.3.16.7.50):**
+*   **Dual AI Chat Architecture (as of v3.3.16.7.52):**
     *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application (using a stable Genkit flow).
     *   **Web Search Chat:** A separate chat box that handles all queries requiring real-time web search. This now uses the **raw Google AI SDK** for improved stability, bypassing the problematic Genkit tool abstraction for this use case. All prompts are manual.
 
@@ -116,7 +116,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **UI/Render Log Spam Toggle:** A user-configurable setting (default `true` as of v3.3.16) to control high-frequency logs from UI components related to re-renders and prop changes.
 *   **FSM Debug Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables within organized UI cards. Includes copy/export functionality for the full FSM snapshot.
 *   **Staging Tab:** A dedicated sandbox tab for isolating and testing experimental features, such as the Genkit Raw AI Prompt diagnostics.
-*   **Google GenAI SDK Direct Diagnostics:** A dedicated UI card provides buttons to bypass Genkit and use the low-level Google GenAI SDK for direct API calls. This component features a robust, client-side FSM to handle asynchronous, multi-step web search prompts with a polling/retry mechanism.
+*   **Google GenAI SDK Direct Diagnostics:** A dedicated UI card provides buttons to bypass Genkit and use the low-level Google GenAI SDK for direct API calls. It features a parallel set of prompts that mirror the main Web Search Chat for apples-to-apples baseline testing.
 
 ### 3.2. System Architecture & Components
 
@@ -164,9 +164,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.3.16.7.50):**
-    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final refactoring complete. The Web Search Chat now uses the raw SDK, and all chat prompts have been decoupled from the automated pipeline. The feature is ready for final testing.
-    *   **Next Step:** Comprehensive end-to-end testing of the newly stabilized architecture.
+*   **Current Feature Focus (as of v3.3.16.7.52):**
+    *   **"Dual AI Chat Architecture" (v3.3.16.4.F):** Final implementation and cleanup complete. The feature is now ready for comprehensive end-to-end testing.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -216,8 +215,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.1
-*   **Current Application Version:** `v3.3.16.7.50`
+*   **This README Document Version:** 3.2
+*   **Current Application Version:** `v3.3.16.7.52`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
