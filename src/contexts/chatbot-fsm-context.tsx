@@ -65,6 +65,7 @@ interface WebSearchChatProps {
   chatType: 'web-search';
   setUserInputWebSearchChatRequestJson: (json: string) => void;
   setUserInputWebSearchChatResponseJson: (json: string) => void;
+  addWebSearchChatMessage: (message: { role: 'user' | 'model'; content: string }) => void;
 }
 
 type ChatbotFsmProviderProps = {
@@ -139,6 +140,8 @@ export function ChatbotFsmProvider(props: ChatbotFsmProviderProps) {
           promptName: payload.promptName,
           userInput: payload.userInput.trim()
         };
+        // Add user's message to chat history immediately
+        props.addWebSearchChatMessage({ role: 'user', content: payload.userInput.trim() });
         startTransition(() => {
           sdkWebSearchFormAction(sdkPayload);
         });
@@ -161,15 +164,19 @@ export function ChatbotFsmProvider(props: ChatbotFsmProviderProps) {
               const responseData = JSON.parse(data.responseJson);
               if (responseData.response) {
                   logDebug(componentLogSource, 'MessageAdd', 'Adding successful web search response to history.');
-                  // This part will need the addWebSearchChatMessage function, which has been removed from props
-                  // This indicates a larger refactor is needed to fully decouple.
-                  // For now, this effect will only log and set the JSONs.
+                  props.addWebSearchChatMessage({ role: 'model', content: responseData.response });
               }
-          } catch (e) { console.error('Error parsing SDK response JSON'); }
+          } catch (e) {
+             const errorMsg = `Error parsing SDK response JSON: ${(e as Error).message}`;
+             logDebug(componentLogSource, 'MessageAdd', errorMsg);
+             props.addWebSearchChatMessage({ role: 'model', content: errorMsg });
+          }
       } else if (status === 'error') {
           props.setUserInputWebSearchChatRequestJson(data?.requestJson || '{"error":"Request not available"}');
           props.setUserInputWebSearchChatResponseJson(data?.responseJson || `{"error":"${error}"}`);
-          logDebug(componentLogSource, 'MessageAdd', `Adding error web search response to history: ${message}`);
+          const errorResponse = `Error: ${message || error}`;
+          logDebug(componentLogSource, 'MessageAdd', `Adding error web search response to history: ${errorResponse}`);
+          props.addWebSearchChatMessage({ role: 'model', content: errorResponse });
       }
   }, [sdkWebSearchActionState, isSdkWebSearchPending, props, logDebug, componentLogSource]);
 

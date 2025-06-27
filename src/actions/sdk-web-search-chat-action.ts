@@ -3,16 +3,13 @@
 /**
  * @fileOverview A server action for handling web-grounded chat requests using the
  * raw Google AI SDK, bypassing the Genkit wrapper for this specific feature.
- * It formats the AI's response into user-friendly markdown.
+ * It returns the AI's raw text response.
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   buildPromptStringFromLlmDefinition,
   LlmPromptDefinitionSchema,
 } from '@/ai/definition-loader';
-import {
-  formatResponseToMarkdown,
-} from '@/lib/string-utils';
 import {
   type SdkWebSearchChatActionState,
   type SdkWebSearchChatActionInputs,
@@ -65,14 +62,9 @@ export async function sdkWebSearchChatAction(
     const result = await groundedModel.generateContent(currentPrompt);
     const rawTextResponse = result.response.text();
 
-    console.log(`${actionLogPrefix} SDK call successful. Formatting response.`);
-    const formattedResponse = formatResponseToMarkdown(
-      rawTextResponse,
-      promptName,
-      ticker
-    );
+    console.log(`${actionLogPrefix} SDK call successful. Returning raw text response.`);
     
-    const responseJson = JSON.stringify({ response: formattedResponse, rawResponse: rawTextResponse }, null, 2);
+    const responseJson = JSON.stringify({ response: rawTextResponse }, null, 2);
 
     return {
       status: 'success',
