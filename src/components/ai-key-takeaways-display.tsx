@@ -5,7 +5,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Download, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
@@ -13,7 +12,7 @@ import type { StockAnalysisOutput } from "@/ai/schemas/stock-analysis-schemas";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, downloadTxt, copyToClipboard } from "@/lib/export-utils";
+import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 
 type TakeawayCategory = keyof StockAnalysisOutput;
 
@@ -74,35 +73,6 @@ const getTickerFromSnapshot = (snapshotJson: string, logDebugFn: Function, compN
     logDebugFn(compName, "GetTickerError", "Failed to parse stockSnapshotJson for ticker", e);
   }
   return "STOCK";
-};
-
-const generateKeyTakeawaysText = (data: StockAnalysisOutput, ticker: string): string => {
-  let text = `AI Key Takeaways for ${ticker}\n\n`;
-  for (const key in data) {
-    const category = key as TakeawayCategory;
-    text += `${categoryLabels[category]}: ${data[category].sentiment}\n`;
-    text += `${data[category].takeaway}\n\n`;
-  }
-  return text.trim();
-};
-
-const escapeCsvField = (field: string): string => {
-  if (/[",\n]/.test(field)) {
-    return `"${field.replace(/"/g, '""')}"`;
-  }
-  return field;
-};
-
-const generateKeyTakeawaysCsv = (data: StockAnalysisOutput): string => {
-  const headers = "Category,Sentiment,Takeaway\n";
-  let csvRows = "";
-  for (const key in data) {
-    const category = key as TakeawayCategory;
-    const sentiment = data[category].sentiment;
-    const takeawayText = data[category].takeaway;
-    csvRows += `${escapeCsvField(categoryLabels[category])},${escapeCsvField(sentiment)},${escapeCsvField(takeawayText)}\n`;
-  }
-  return headers + csvRows.trim();
 };
 
 const PENDING_STATUS_JSON_VARIANTS = [
@@ -206,50 +176,32 @@ export function AiKeyTakeawaysDisplay() {
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedTakeawaysDataState && Object.keys(parsedTakeawaysDataState).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug, componentName);
 
-  const handleExport = (format: 'json' | 'text' | 'csv') => {
-    logDebug(componentName, `ExportAction`, `Attempting to export takeaways as ${format} for ${currentTicker}`);
+  const handleExport = () => {
+    logDebug(componentName, `ExportAction`, `Attempting to export takeaways as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysDataState) {
       toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
       return;
     }
     try {
-      let filename = `${currentTicker}_key_takeaways`;
-      if (format === 'json') {
-        downloadJson(parsedTakeawaysDataState, `${filename}.json`);
-        toast({ title: "Exported as JSON", description: "Key takeaways downloaded." });
-      } else if (format === 'text') {
-        const textData = generateKeyTakeawaysText(parsedTakeawaysDataState, currentTicker);
-        downloadTxt(textData, `${filename}.txt`);
-        toast({ title: "Exported as Text", description: "Key takeaways downloaded." });
-      } else if (format === 'csv') {
-        const csvData = generateKeyTakeawaysCsv(parsedTakeawaysDataState);
-        downloadTxt(csvData, `${filename}.csv`); 
-        toast({ title: "Exported as CSV", description: "Key takeaways downloaded." });
-      }
+      let filename = `${currentTicker}_key_takeaways.json`;
+      downloadJson(parsedTakeawaysDataState, filename);
+      toast({ title: "Exported as JSON", description: "Key takeaways downloaded." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Export Error", description: `Could not export takeaways: ${e.message}` });
     }
   };
 
-  const handleCopy = async (format: 'json' | 'text' | 'csv') => {
-    logDebug(componentName, `CopyAction`, `Attempting to copy takeaways as ${format} for ${currentTicker}`);
+  const handleCopy = async () => {
+    logDebug(componentName, `CopyAction`, `Attempting to copy takeaways as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysDataState) {
       toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
       return;
     }
-    let dataToCopy = "";
-    let success = false;
+    let dataToCopy = JSON.stringify(parsedTakeawaysDataState, null, 2);
     try {
-      if (format === 'json') {
-        dataToCopy = JSON.stringify(parsedTakeawaysDataState, null, 2);
-      } else if (format === 'text') {
-        dataToCopy = generateKeyTakeawaysText(parsedTakeawaysDataState, currentTicker);
-      } else if (format === 'csv') {
-        dataToCopy = generateKeyTakeawaysCsv(parsedTakeawaysDataState);
-      }
-      success = await copyToClipboard(dataToCopy);
+      const success = await copyToClipboard(dataToCopy);
       if (success) {
-        toast({ title: `Copied as ${format.toUpperCase()}`, description: "Key takeaways copied to clipboard." });
+        toast({ title: `Copied as JSON`, description: "Key takeaways copied to clipboard." });
       } else {
         throw new Error("Clipboard API failed.");
       }
@@ -266,30 +218,12 @@ export function AiKeyTakeawaysDisplay() {
           <CardDescription>Sentiment-focused insights based on current data analysis.</CardDescription>
         </div>
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={!isDataReadyForExport}>
-                <Copy className="mr-2 h-4 w-4" /> Copy
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleCopy('json')}>JSON</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleCopy('text')}>Text</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleCopy('csv')}>CSV</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={!isDataReadyForExport}>
-                <Download className="mr-2 h-4 w-4" /> Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('json')}>JSON</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('text')}>Text</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('csv')}>CSV</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!isDataReadyForExport}>
+            <Copy className="mr-2 h-4 w-4" /> Copy JSON
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={!isDataReadyForExport}>
+            <Download className="mr-2 h-4 w-4" /> Export JSON
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

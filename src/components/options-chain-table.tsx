@@ -20,7 +20,7 @@ import { formatDisplayDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, downloadTxt, copyToClipboard } from "@/lib/export-utils"; 
+import { downloadJson, copyToClipboard } from "@/lib/export-utils"; 
 
 interface OptionHeaderConfig {
   key: keyof StreamlinedOptionContract;
@@ -52,10 +52,6 @@ const putHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
-const csvCallKeys: (keyof StreamlinedOptionContract)[] = ["gamma", "iv", "percent_change", "bid", "ask", "last_price", "volume", "open_interest", "delta"];
-const csvPutKeys: (keyof StreamlinedOptionContract)[] = ["delta", "open_interest", "volume", "last_price", "bid", "ask", "percent_change", "iv", "gamma"];
-
-
 const renderSkeletonRow = (rowIndex: number) => (
   <TableRow key={`skeleton-options-${rowIndex}`} className={rowIndex % 2 !== 0 ? "bg-muted/20 dark:bg-muted/10" : ""}>
     {callHeadersConfig.map((header) => (
@@ -73,36 +69,6 @@ const renderSkeletonRow = (rowIndex: number) => (
     ))}
   </TableRow>
 );
-
-const generateOptionsCsv = (optionsData: OptionsChainData, logDebugFn: Function, compName: string): string => {
-  logDebugFn(compName, 'GenerateCSV', 'Starting CSV generation for ticker:', optionsData.ticker);
-  const headers: string[] = [
-    ...csvCallKeys.map(k => `Call ${k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`),
-    "Strike",
-    ...csvPutKeys.map(k => `Put ${k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`),
-  ];
-
-  const rows: string[] = (optionsData.contracts || []).map(contractRow => {
-    const callValues = csvCallKeys.map(key => {
-      let val = contractRow.call?.[key];
-      if (key === 'percent_change' && typeof val === 'number') {
-        val = roundNumber(val / 100, 4);
-      }
-      return val !== undefined && val !== null ? String(val) : "";
-    });
-    const putValues = csvPutKeys.map(key => {
-      let val = contractRow.put?.[key];
-      if (key === 'percent_change' && typeof val === 'number') {
-         val = roundNumber(val / 100, 4);
-      }
-      return val !== undefined && val !== null ? String(val) : "";
-    });
-    return [...callValues, String(contractRow.strike ?? ""), ...putValues].join(',');
-  });
-
-  const csvString = [headers.join(','), ...rows].join('\n');
-  return csvString;
-};
 
 const PENDING_STATUS_JSON_VARIANTS = [
   '{ "status": "pending..." }',
@@ -253,43 +219,6 @@ export function OptionsChainTable() {
   
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedDataState && (parsedDataState.contracts?.length || 0) > 0;
 
-  const handleExportOptionsCsv = () => {
-    logDebug(componentName, 'ExportAction', 'Export Options CSV button clicked. Data ready:', isDataReadyForExport);
-    if (!isDataReadyForExport || !parsedDataState) {
-      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for export.' });
-      return;
-    }
-    try {
-      const csvString = generateOptionsCsv(parsedDataState, logDebug, componentName);
-      const filenameTicker = parsedDataState.ticker || "STOCK";
-      const filenameExpDate = parsedDataState.expiration_date ? parsedDataState.expiration_date.replace(/-/g,'') : "EXP";
-      const filename = `${filenameTicker}_options_${filenameExpDate}.csv`;
-      downloadTxt(csvString, filename);
-      toast({ title: 'Options Exported', description: `Options chain for ${filenameTicker} downloaded as ${filename}.` });
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Export Error', description: `Failed to generate or download CSV: ${e.message}` });
-    }
-  };
-
-  const handleCopyOptionsCsv = async () => {
-    logDebug(componentName, 'CopyAction', 'Copy Options CSV button clicked. Data ready:', isDataReadyForExport);
-    if (!isDataReadyForExport || !parsedDataState) {
-      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for copy.' });
-      return;
-    }
-    try {
-      const csvString = generateOptionsCsv(parsedDataState, logDebug, componentName);
-      const success = await copyToClipboard(csvString);
-      if (success) {
-        toast({ title: 'Options Copied', description: 'Options chain CSV data copied to clipboard.' });
-      } else {
-        toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy options chain CSV data.' });
-      }
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Copy Error', description: `Failed to generate or copy CSV: ${e.message}` });
-    }
-  };
-
   const handleExportOptionsJson = () => {
     logDebug(componentName, 'ExportAction', 'Export Options JSON button clicked. Data ready:', isDataReadyForExport);
     if (!isDataReadyForExport || !parsedDataState) {
@@ -347,12 +276,6 @@ export function OptionsChainTable() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleExportOptionsJson} disabled={!isDataReadyForExport} title="Export Options Chain as JSON">
                     <Download className="mr-2 h-4 w-4" /> Export JSON
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCopyOptionsCsv} disabled={!isDataReadyForExport} title="Copy Options Chain as CSV">
-                    <Copy className="mr-2 h-4 w-4" /> Copy CSV
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExportOptionsCsv} disabled={!isDataReadyForExport} title="Export Options Chain as CSV">
-                    <Download className="mr-2 h-4 w-4" /> Export CSV
                 </Button>
             </div>
         </div>
