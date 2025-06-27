@@ -31,7 +31,6 @@ const MAX_DISPLAYED_LOGS = 2000;
 interface LogConsoleProps {
   appVersion: string;
   logEntries: GlobalLogEntry[];
-  getSnapshotForExport: () => any;
   clearLogs: () => void;
   consoleTitle: string;
   consoleDescription: string;
@@ -71,7 +70,6 @@ const getSourceLabel = (source?: LogSourceId): string => {
 export function LogConsole({
   appVersion,
   logEntries,
-  getSnapshotForExport,
   clearLogs,
   consoleTitle,
   consoleDescription
@@ -130,28 +128,26 @@ export function LogConsole({
   };
 
   const handleCopyJson = async () => {
-    logDebug('LogConsole', 'CopyAction', `Copying snapshot from ${consoleTitle}.`);
+    logDebug('LogConsole', 'CopyAction', `Copying logs from ${consoleTitle}.`);
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
-    const snapshotData = getSnapshotForExport();
-    const exportData = { appVersion, snapshot: snapshotData, logs: displayedLogs };
+    const exportData = { appVersion, logType: consoleTitle, logs: displayedLogs };
     if (await copyToClipboard(JSON.stringify(exportData, null, 2))) {
-      toast({ title: 'Snapshot Copied', description: 'Full system snapshot copied to clipboard as JSON.' });
+      toast({ title: 'Logs Copied', description: 'Console logs copied to clipboard as JSON.' });
     } else {
-      toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy system snapshot." });
+      toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy console logs." });
     }
   };
 
   const handleExportJson = () => {
-    logDebug('LogConsole', 'ExportAction', `Exporting snapshot from ${consoleTitle}.`);
+    logDebug('LogConsole', 'ExportAction', `Exporting logs from ${consoleTitle}.`);
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
     try {
-      const snapshotData = getSnapshotForExport();
-      const exportData = { appVersion, snapshot: snapshotData, logs: displayedLogs };
+      const exportData = { appVersion, logType: consoleTitle, logs: displayedLogs };
       const filenameSuffix = consoleTitle.toLowerCase().replace(/\s+/g, '_');
-      downloadJson(exportData, `stocksage_${filenameSuffix}_snapshot_${appVersion}.json`);
-      toast({ title: 'Snapshot Exported', description: 'Full system snapshot downloaded as JSON.' });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Export Failed", description: "Could not export snapshot." });
+      downloadJson(exportData, `stocksage_logs_${filenameSuffix}_${appVersion}.json`);
+      toast({ title: 'Logs Exported', description: 'Console logs downloaded as JSON.' });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Export Failed", description: `Could not export logs: ${error.message}` });
     }
   };
   
@@ -200,8 +196,8 @@ export function LogConsole({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="outline" size="sm" title="Copy Snapshot as JSON" disabled={isUserInteractionDisabled} onClick={handleCopyJson}><ClipboardCopy className="mr-2 h-4 w-4" /> Copy</Button>
-            <Button variant="outline" size="sm" title="Export Snapshot as JSON" disabled={isUserInteractionDisabled} onClick={handleExportJson}><Download className="mr-2 h-4 w-4" /> Export</Button>
+            <Button variant="outline" size="sm" title="Copy Logs as JSON" disabled={isUserInteractionDisabled} onClick={handleCopyJson}><ClipboardCopy className="mr-2 h-4 w-4" /> Copy</Button>
+            <Button variant="outline" size="sm" title="Export Logs as JSON" disabled={isUserInteractionDisabled} onClick={handleExportJson}><Download className="mr-2 h-4 w-4" /> Export</Button>
             <Button variant="destructive" size="sm" onClick={handleClearLogs} title="Clear Logs"><Trash2 className="mr-2 h-4 w-4" /> Clear</Button>
           </div>
         </div>
