@@ -1,10 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Header } from "@/components/layout/header";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Footer } from "@/components/layout/footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
@@ -12,7 +10,8 @@ import { MainTabContent } from "@/components/main-tab-content";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
 import { StagingTabContent } from "@/components/staging-tab-content";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
-import { DebugConsole, CONSOLE_HEIGHT_PX } from "@/components/debug-console";
+import { LogConsole } from "@/components/log-console";
+import { globalLogEntries, clearGlobalLogBuffer } from "@/lib/global-log-buffer";
 import { cn } from "@/lib/utils";
 
 interface PageContentProps {
@@ -21,63 +20,76 @@ interface PageContentProps {
 }
 
 export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentProps) {
-  const {
-    isClientDebugConsoleEnabled,
-    setClientDebugConsoleEnabled,
-    isClientDebugConsoleOpen,
-    logDebug,
-  } = useStockAnalysis();
+  const stockAnalysisContext = useStockAnalysis();
 
-  const handleDebugConsoleToggle = (checked: boolean) => {
-    logDebug('PageContent', 'UserAction_DebugConsoleToggle', `Main debug console switch toggled by user to: ${checked}`);
-    setClientDebugConsoleEnabled(checked);
-  };
+  const getClientTraceSnapshotForExport = useCallback(() => {
+    const {
+        fsmState, previousFsmState, targetFsmDisplayState, fsmFlags, fsmVariables,
+        polygonApiRequestLogJson, polygonApiResponseLogJson, marketStatusJson, stockSnapshotJson,
+        standardTasJson, optionsChainJson, aiAnalyzedTaRequestJson, aiAnalyzedTaJson,
+        aiOptionsAnalysisRequestJson, aiOptionsAnalysisJson, aiKeyTakeawaysRequestJson, aiKeyTakeawaysJson,
+        userInputAppDataChatRequestJson, userInputAppDataChatResponseJson, stockTraderTakeawaysRequestJson,
+        stockTraderTakeawaysResponseJson, optionsTraderTakeawaysRequestJson, optionsTraderTakeawaysResponseJson,
+        holisticTakeawaysRequestJson, holisticTakeawaysResponseJson, userInputWebSearchChatRequestJson,
+        userInputWebSearchChatResponseJson, rawTaWebSearchRequestJson, rawTaWebSearchResponseJson,
+        rawOptionsWebSearchRequestJson, rawOptionsWebSearchResponseJson
+    } = stockAnalysisContext;
 
-  const calculatePaddingBottom = () => {
-    let padding = 32; 
-    let consoleEffectiveHeight = 0;
-
-    if (isClientDebugConsoleEnabled && isClientDebugConsoleOpen) {
-      consoleEffectiveHeight = CONSOLE_HEIGHT_PX;
-    }
-    
-    if (consoleEffectiveHeight > 0) {
-      padding = consoleEffectiveHeight + 16;
-    }
-    return `${padding}px`;
-  };
+    return {
+        reportTimestamp: new Date().toISOString(),
+        fsmStatesSnapshot: {
+            globalApplicationFSM: {
+                previous: previousFsmState,
+                current: fsmState,
+                target: targetFsmDisplayState
+            },
+            globalFsmFlags: fsmFlags,
+            globalFsmContextVariables: fsmVariables
+        },
+        allRawData: {
+            polygonApiRequestLogJson, polygonApiResponseLogJson, marketStatusJson, stockSnapshotJson,
+            standardTasJson, optionsChainJson, aiAnalyzedTaRequestJson, aiAnalyzedTaJson,
+            aiOptionsAnalysisRequestJson, aiOptionsAnalysisJson, aiKeyTakeawaysRequestJson, aiKeyTakeawaysJson,
+            userInputAppDataChatRequestJson, userInputAppDataChatResponseJson, stockTraderTakeawaysRequestJson,
+            stockTraderTakeawaysResponseJson, optionsTraderTakeawaysRequestJson, optionsTraderTakeawaysResponseJson,
+            holisticTakeawaysRequestJson, holisticTakeawaysResponseJson, userInputWebSearchChatRequestJson,
+            userInputWebSearchChatResponseJson, rawTaWebSearchRequestJson, rawTaWebSearchResponseJson,
+            rawOptionsWebSearchRequestJson, rawOptionsWebSearchResponseJson,
+        },
+    };
+  }, [stockAnalysisContext]);
   
   return (
     <div className="flex flex-col min-h-screen">
       <Header appVersion={appVersion} lastUpdatedTimestamp={lastUpdatedTimestamp} />
       <main
         className={cn(
-          "flex-grow container mx-auto py-8 px-4 sm:px-6 lg:px-8 transition-all duration-300 ease-in-out"
+          "flex-grow container mx-auto py-8 px-4 sm:px-6 lg:px-8"
         )}
-        style={{ paddingBottom: calculatePaddingBottom() }}
       >
-        <div className="flex flex-col space-y-2 mb-4 p-4 border rounded-md bg-card/50">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="enable-debug-console"
-              checked={isClientDebugConsoleEnabled}
-              onCheckedChange={handleDebugConsoleToggle}
-            />
-            <Label htmlFor="enable-debug-console" className="flex-shrink-0">Enable & Show Client Debug Console</Label>
-          </div>
-        </div>
         <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="main">Main</TabsTrigger>
-            <TabsTrigger value="debug">Debug</TabsTrigger>
+            <TabsTrigger value="debug-data">Debug Data</TabsTrigger>
+            <TabsTrigger value="client-trace-logs">Client Trace Logs</TabsTrigger>
             <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
             <TabsTrigger value="staging">Staging</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
             <MainTabContent /> 
           </TabsContent>
-          <TabsContent value="debug">
+          <TabsContent value="debug-data">
             <DebugTabContent />
+          </TabsContent>
+          <TabsContent value="client-trace-logs">
+            <LogConsole
+              appVersion={appVersion}
+              logEntries={globalLogEntries}
+              getSnapshotForExport={getClientTraceSnapshotForExport}
+              clearLogs={clearGlobalLogBuffer}
+              consoleTitle="Client Debug Trace Logs"
+              consoleDescription="Curated, high-level trace logs from the application's internal logging system."
+            />
           </TabsContent>
           <TabsContent value="fsm-debug">
             <FsmDebugTabContent />
@@ -87,7 +99,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
         </Tabs>
       </main>
-      <DebugConsole appVersion={appVersion} />
       <Footer />
     </div>
   );

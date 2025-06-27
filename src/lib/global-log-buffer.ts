@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Global log buffer for client-side debug console.
  * This buffer is outside of React state to avoid re-render issues.
