@@ -172,8 +172,13 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
               Run SDK Options Web Search
             </Button>
           </form>
-          <form action={() => formAction({ promptType: 'sdk-user-web-search', userInput })} className="w-full flex items-center space-x-2 pt-2">
-            <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Enter custom web search..." disabled={isUiPending} onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!isUiPending && userInput.trim()) { formAction({ promptType: 'sdk-user-web-search', userInput }); } } }} />
+          <form action={() => { if (!isUiPending && userInput.trim()) { formAction({ promptType: 'sdk-user-web-search', userInput }); } }} className="w-full flex items-center space-x-2 pt-2">
+            <Input
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="Enter custom web search..."
+                disabled={isUiPending}
+            />
             <Button type="submit" disabled={isUiPending || !userInput.trim()}>
                 {isUiPending && localFsm.activePrompt?.promptType === 'sdk-user-web-search' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
