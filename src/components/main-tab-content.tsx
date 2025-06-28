@@ -51,7 +51,7 @@ export function MainTabContent() {
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent, 
     appDataChatHistory: contextAppDataChatHistory, clearAppDataChatHistory,
-    webSearchChatHistory: contextWebSearchChatHistory, clearWebSearchChatHistory,
+    webSearchChatHistory: contextWebSearchChatHistory, clearWebSearchChatHistory, addWebSearchChatMessage,
     setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson,
   } = useStockAnalysis();
 
@@ -217,6 +217,7 @@ export function MainTabContent() {
               dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
               currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
               currentGlobalChatHistory={contextWebSearchChatHistory}
+              addWebSearchChatMessage={addWebSearchChatMessage}
               setUserInputWebSearchChatRequestJson={setUserInputWebSearchChatRequestJson}
               setUserInputWebSearchChatResponseJson={setUserInputWebSearchChatResponseJson}
               logDebug={logDebug}
