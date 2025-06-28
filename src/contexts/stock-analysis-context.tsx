@@ -743,6 +743,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setUserInputAppDataChatRequestJson(event.payload.chatbotRequestJson);
         contextSetters.setUserInputAppDataChatResponseJson(event.payload.chatbotResponseJson);
         handleAppDataChatSuccess(event.payload);
+        nextVariables.pendingAppDataChatSubmissionPayload = null;
         nextCurrentState = GlobalFsmState.IDLE;
         break;
 
@@ -750,6 +751,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setUserInputAppDataChatRequestJson(event.payload.chatbotRequestJson || errorJsonWithDetails("Request unavailable", null));
         contextSetters.setUserInputAppDataChatResponseJson(event.payload.chatbotResponseJson || errorJsonWithDetails(event.payload.message || "Error", null));
         handleAppDataChatError(event.payload);
+        nextVariables.pendingAppDataChatSubmissionPayload = null;
         nextCurrentState = GlobalFsmState.IDLE;
         break;
       
@@ -1031,7 +1033,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _polygonApiRequestLogJson, contextSetters, _polygonApiResponseLogJson,
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
     _aiAnalyzedTaRequestJson, _aiAnalyzedTaJson, _aiOptionsAnalysisRequestJson,
-    _aiOptionsAnalysisJson, _aiKeyTakeawaysJson, _aiKeyTakeawaysJson,
+    _aiOptionsAnalysisJson, _aiKeyTakeawaysJson,
     _userInputAppDataChatRequestJson, _userInputAppDataChatResponseJson,
     _stockTraderTakeawaysRequestJson, _stockTraderTakeawaysResponseJson,
     _optionsTraderTakeawaysRequestJson, _optionsTraderTakeawaysResponseJson,

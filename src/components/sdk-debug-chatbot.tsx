@@ -19,7 +19,7 @@ const initialActionState: RawDebugChatActionState = {
 
 export function SdkDebugChatbot({ title, description, promptType }: { title: string; description: string; promptType: 'sdk-app-data' | 'sdk-web-search' }) {
   const { toast } = useToast();
-  const [userInput, setUserInput] = useState('');
+  // Removed userInput state as it's no longer needed for the web search variant
   
   // Use simple state for deterministic control
   const [actionResult, setActionResult] = useState<RawDebugChatActionState>(initialActionState);
@@ -101,18 +101,7 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
               Run SDK Options Web Search
             </Button>
           </form>
-          <form onSubmit={(e: FormEvent) => { e.preventDefault(); if (!isPending && userInput.trim()) { handleActionSubmit({ promptType: 'sdk-user-web-search', userInput }); } }} className="w-full flex items-center space-x-2 pt-2">
-            <Input
-                name="userInput"
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                placeholder="Enter custom web search..."
-                disabled={isPending}
-            />
-            <Button type="submit" disabled={isPending || !userInput.trim()}>
-                {isPending && activeRequest === 'sdk-user-web-search' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
-          </form>
+          {/* The user input form for sdk-user-web-search has been removed to fix the UI inconsistency */}
         </div>
       );
     }
