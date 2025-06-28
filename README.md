@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.3
-**Application Version (from `app-metadata.json`):** v3.3.16.8.5
-**Last Updated:** 2025-08-02
+**README Document Version:** 3.4
+**Application Version (from `app-metadata.json`):** v3.3.16.8.7
+**Last Updated:** 2025-08-03
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -90,7 +90,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", and "FSM Debug" tabs.
+*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", and "FSM Debug" tabs. A "Staging" tab is also available for developers.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -102,17 +102,18 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Tailwind CSS for styling, using HSL theme variables in `globals.css`.
 *   Dark mode support.
 
-#### 3.1.5. Data Export & Debugging (as of v3.3.16.8.5)
-*   **JSON-Only Export:** All data export functions on individual cards (e.g., Key Takeaways, Options Chain) now exclusively support "Copy JSON" and "Export JSON".
+#### 3.1.5. Data Export & Debugging (as of v3.3.16.8.7)
+*   **JSON-Only Export:** All data export functions on individual UI cards (e.g., Key Takeaways, Options Chain) now exclusively support "Copy JSON" and "Export JSON".
 *   **"Debug Data" Tab:** The former "Debug" tab is now the "Debug Data" tab. Its sole purpose is to display the raw JSON inputs and outputs for all major data segments and AI flows.
-*   **"Client Debug Trace Logs" Tab:** A new, dedicated tab housing a large, persistent console that displays curated, high-level trace logs from the application's internal logging system. Includes filtering, search, and a 2000-entry buffer.
-*   **"Console Logs" Tab:** A new, dedicated tab that provides a verbatim, unfiltered duplicate of the browser's developer console output, enabling deep-dive debugging. Includes its own independent filtering, search, and 2000-entry buffer.
+*   **"Client Debug Trace Logs" Tab:** A dedicated tab housing a large, persistent console that displays curated, high-level trace logs from the application's internal logging system. Includes filtering, search, and a 2000-entry buffer.
+*   **"Console Logs" Tab:** A new, parallel tab that provides a verbatim, unfiltered duplicate of the browser's developer console output, enabling deep-dive debugging. Includes its own independent filtering, search, and 2000-entry buffer.
 *   **"FSM Debug" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
-*   **Debug Snapshot Controls (Main Tab):** A new UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables):
+*   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables):
     *   **Full Snapshot:** All FSM, data, chats, and both log types.
-    *   **Client Debug Snapshot:** All FSM, data, chats, and Client Trace Logs.
-    *   **Console Debug Snapshot:** All FSM, data, chats, and Console Logs.
-    *   **Data-Only Snapshot:** All FSM, data, and chats.
+    *   **Client Debug Snapshot:** The standard report; includes everything except the raw console logs.
+    *   **Console Debug Snapshot:** For deep-dive issues; includes everything except the curated trace logs.
+    *   **Data-Only Snapshot:** For AI prompt/data issues; includes FSM data, debug data, and chat histories only.
+*   **"Staging" Tab:** A dedicated area for developers to test experimental features and diagnostic tools in isolation from the main application flow.
 
 ### 3.2. System Architecture & Components
 
@@ -160,8 +161,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.3.16.8.5):**
-    *   **"Enhanced Debug Consoles" (v3.3.16.8.0):** Initial implementation complete. The feature is now ready for comprehensive end-to-end testing.
+*   **Current Feature Focus (as of v3.3.16.8.7):**
+    *   **"Enhanced Debug Consoles" & "SDK AI Diagnostics Migration":** Implementation is complete. The application is now ready for a comprehensive end-to-end testing phase before proceeding to the v3.4 Deterministic Overhaul.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -211,11 +212,9 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.3
-*   **Current Application Version:** `v3.3.16.8.5`
+*   **This README Document Version:** 3.4
+*   **Current Application Version:** `v3.3.16.8.7`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
 ---
-
-    

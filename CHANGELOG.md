@@ -58,6 +58,30 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.3.16.8.7` (Documentation & Checkpoint)
+**Tag:** `Phase-64_Task-3.3.16.8.7_DocsCheckpoint`
+**Commit Hash:** `8a68eea5`
+**Subject:** `feat(docs,core): Checkpoint v3.3.16.8.7, consolidate SDK AI & Enhanced Debug features`
+**Details:**
+This commit is a **documentation-only checkpoint** that consolidates the completion of two major feature sets: **"Enhanced Debug Consoles"** (`v3.3.16.8.x`) and the **"SDK AI Diagnostics Migration"** (`v3.3.16.9.x`). It updates all project documentation to reflect the final, stable state of the application, which is now feature-complete and ready for a comprehensive final testing and debugging phase.
+
+**Key Architectural Changes Completed & Documented:**
+*   **Feature 1: Enhanced Debug Consoles (v3.3.16.8.0 - v3.3.16.8.5):**
+    *   The debugging UI was completely overhauled into a tabbed interface, separating "Debug Data" (raw JSONs), "Client Debug Trace Logs" (curated app logs), and "Console Logs" (verbatim browser console).
+    *   A new `DebugSnapshotControls` card was added to the Main tab, providing one-click JSON exports of the full application state for streamlined bug reporting.
+    *   All data exports on UI cards were standardized to JSON-only.
+*   **Feature 2: SDK AI Diagnostics Migration (v3.3.16.9.0 - v3.3.16.9.6):**
+    *   The Genkit and raw SDK diagnostic tools were successfully migrated from the main UI into a dedicated "Staging" tab.
+    *   This cleans up the primary user interface, making it production-ready, while preserving the valuable diagnostic tools for developers in an isolated environment.
+    *   Fixed a latent bug where stale chat payloads were not being cleared from the global FSM.
+    *   Fixed a UI regression where the Staging tab trigger was accidentally removed.
+
+**Outcome:**
+*   The application's core feature set is stable and complete.
+*   The UI is clean and production-focused.
+*   The debugging and diagnostic capabilities are more powerful and organized than ever before.
+*   The application is now prepared for final end-to-end testing before the next major architectural refactor (the Deterministic Overhaul, v3.4).
+---
 **App Version:** `v3.3.16.8.5` (Documentation)
 **Tag:** `Phase-62_Task-3.3.16.8.5_DocsPreTest`
 **Commit Hash:** `d57cecbe`
@@ -558,7 +582,7 @@ This commit (`TBD`) is a **documentation-only** task that defines a detailed, ph
 **Key Documentation Changes:**
 *   **`docs/FEAT_SCOPE_AugmentedSearchRefactor_v3.3.7.0.7.md`:** The scope document has been updated with a new "Implementation Phased Plan" section, detailing four phases (Data Layer Decoupling, UI Isolation, FSM Refactoring, Final Testing) and their corresponding tasks.
 *   **`docs/FEAT_STATUS_AugmentedSearchRefactor_v3.3.7.0.7.md`:** The status document has been updated to reflect the newly defined implementation plan, with all new tasks marked as `PLANNED`.
-*   **`README.md`:** The main PRD has been updated to reflect the new application version (`v3.3.7.0.7`) and to note that the feature is currently undergoing this re-architecture.
+*   **`README.md`:** The main PRD was updated to reflect the new application version (`v3.3.7.0.7`) and to note that the feature is currently undergoing this re-architecture.
 *   **`CHANGELOG.md` (this file):** Updated with this commit log.
 *   **`src/config/app-metadata.json`:** Remains at `v3.3.7.0.7` as established in the prior scoping task. No source code was changed.
 

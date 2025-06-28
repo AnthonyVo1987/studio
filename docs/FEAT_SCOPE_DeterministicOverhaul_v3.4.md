@@ -2,7 +2,7 @@
 # Feature Scope: Full Deterministic Application Refactor (v3.4)
 
 **Document Version:** 1.3
-**Date:** 2025-08-02
+**Date:** 2025-08-03
 **Target Application Version Series:** 3.4.x.y.z (Future Implementation)
 **Feature Status:** `PLANNED`
 
@@ -12,7 +12,7 @@ This document outlines the scope, technical plan, and critical rationale for a c
 
 This initiative is the direct result of repeated, severe bugs throughout the v3.x development cycle (culminating in the v3.3.16.7 series) that were all traced back to a single architectural flaw: a complex, reactive, `useEffect`-based Finite State Machine (FSM) orchestrator. This refactor will replace that flawed model with simple, predictable, and sequential `async/await` logic, dramatically improving application stability, predictability, and debuggability.
 
-**Note on Prerequisite Stability (as of v3.3.16.8.5):** The implementation of the "Enhanced Debug Consoles" feature provides a critical foundation for this overhaul. The new, powerful logging and snapshot capabilities will make it significantly easier and safer to validate each step of this high-risk refactor.
+**Note on Prerequisite Stability (as of v3.3.16.8.7):** The successful completion and stabilization of the "Enhanced Debug Consoles" feature (`v3.3.16.8.x`) provides a critical foundation for this overhaul. The new, powerful logging and snapshot capabilities will make it significantly easier and safer to validate each step of this high-risk refactor.
 
 This is a high-risk, high-reward task that will touch every core feature of the application.
 
@@ -88,7 +88,7 @@ This is a high-risk refactor. It will be broken down into discrete phases. Each 
     *   **Task 3.4.6.0:** Audit `stock-analysis-context.tsx` and remove all now-redundant `GlobalFsmState` enums, flags, and variables.
     *   **Task 3.4.6.1:** Simplify the FSM reducer to handle only essential state changes that are not part of a sequential flow.
     *   **Task 3.4.6.2:** Conduct comprehensive testing of all application features, ensuring stability and correct behavior.
-    *   **Task 3.4.6.3:** Perform a final documentation update commit for the v3.4 feature series.
+    *   **Task 3.4.6.3:** Perform a final "Feature Complete" documentation update for the v3.4 feature series.
 
 ## 5. Value Added & Risk Assessment
 
@@ -102,7 +102,7 @@ This is a high-risk refactor. It will be broken down into discrete phases. Each 
     *   **Implementation Complexity:** While the final architecture is simpler, the process of refactoring requires careful, step-by-step implementation and rigorous testing at each phase.
 
 ## 6. Document Changelog
-*   **v1.3 (2025-08-02):** Added note regarding the prerequisite stability provided by the v3.3.16.8.5 "Enhanced Debug Consoles" feature.
+*   **v1.3 (2025-08-03):** Updated "Note on Prerequisite Stability" to reflect the completion of the `v3.3.16.8.x` features, which provide the necessary stable debugging foundation for this refactor.
 *   **v1.2 (2025-08-01):** Updated `handleAnalyzeStock` task in Phase 2 to correctly reference `analyzeTaAction` instead of `calculateAiTaAction`.
 *   **v1.1 (2025-07-31):** Updated "Lessons Learned" section to include the failure of the conditional chat pipeline as further evidence supporting the need for this overhaul.
 *   **v1.0 (2025-07-30):** Initial document creation, scoping the full deterministic refactor. Includes post-mortem on previous architectural failures and a detailed, phased implementation plan.
