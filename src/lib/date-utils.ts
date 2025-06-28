@@ -3,7 +3,7 @@
  * @fileOverview Date and time utility functions.
  */
 
-import { format, addDays, getDay, nextFriday as dateFnsNextFriday, parseISO } from 'date-fns';
+import { format, addDays, getDay, nextFriday as dateFnsNextFriday, parseISO, subDays } from 'date-fns';
 
 /**
  * Calculates the nearest Friday expiration date.
@@ -14,6 +14,19 @@ import { format, addDays, getDay, nextFriday as dateFnsNextFriday, parseISO } fr
 export function calculateNextFridayExpiration(): string {
   const today = new Date();
   let nextFridayDate = dateFnsNextFriday(today);
+
+  // One-time Kludge for July 4th, 2025 Holiday
+  // In the future, this should be replaced with a dynamic holiday calendar check.
+  const year = nextFridayDate.getFullYear();
+  const month = nextFridayDate.getMonth(); // 0-indexed, so July is 6
+  const dayOfMonth = nextFridayDate.getDate();
+
+  // Specific check for July 4th, 2025.
+  if (year === 2025 && month === 6 && dayOfMonth === 4) {
+    // If next Friday is July 4th, use Thursday July 3rd instead.
+    nextFridayDate = subDays(nextFridayDate, 1);
+  }
+
   return format(nextFridayDate, 'yyyy-MM-dd');
 }
 
@@ -78,4 +91,3 @@ export function formatDisplayDate(isoDateString?: string | null): string {
     return 'N/A';
   }
 }
-
