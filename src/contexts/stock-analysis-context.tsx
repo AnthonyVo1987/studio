@@ -1067,7 +1067,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
           sourceForBuffer = args[1] as LogSourceId;
           typeForBuffer = 'debug';
-          messagesForBuffer = args.slice(2); // Keep category for now
+          messagesForBuffer = args.slice(2); 
         }
 
         addEntryToRawConsoleBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
@@ -1087,13 +1087,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 if (!allowLog && String(finalMessages[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; }
                 if (!allowLog) return;
             }
-            const lastLog = globalLogEntries[globalLogEntries.length - 1];
-            if (lastLog) {
-                try {
-                    const isDuplicate = lastLog.source === sourceForBuffer && lastLog.type === 'debug' && JSON.stringify(lastLog.messages) === JSON.stringify(finalMessages);
-                    if (isDuplicate) { return; }
-                } catch (e) {}
-            }
+            // De-duplication logic moved to global-log-buffer to fix stale closure issue
             addEntryToGlobalLogBuffer({ type: 'debug', messages: finalMessages, source: sourceForBuffer });
         } else {
             if (!_logSourceConfig['NATIVE_CONSOLE']) return;
