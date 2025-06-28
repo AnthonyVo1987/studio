@@ -65,6 +65,12 @@ interface WebSearchChatProps {
   chatType: 'web-search';
   setUserInputWebSearchChatRequestJson: (json: string) => void;
   setUserInputWebSearchChatResponseJson: (json: string) => void;
+  setRawTaWebSearchRequestJson: (json: string) => void;
+  setRawTaWebSearchResponseJson: (json: string) => void;
+  setRawOptionsWebSearchRequestJson: (json: string) => void;
+  setRawOptionsWebSearchResponseJson: (json: string) => void;
+  setRawSupportResistanceWebSearchRequestJson: (json: string) => void;
+  setRawSupportResistanceWebSearchResponseJson: (json: string) => void;
   addWebSearchChatMessage: (message: { role: 'user' | 'model'; content: string }) => void;
 }
 
@@ -156,10 +162,41 @@ export function ChatbotFsmProvider(props: ChatbotFsmProviderProps) {
       if (sdkWebSearchActionState.status === 'idle' || isSdkWebSearchPending) return;
 
       const { status, data, error, message } = sdkWebSearchActionState;
+      let promptName: string | undefined;
+
+      // Determine the promptName from the request data if available
+      if (data?.requestJson) {
+        try {
+          const requestData = JSON.parse(data.requestJson);
+          promptName = requestData?.promptName;
+          logDebug(componentLogSource, 'WebSearchResponse', `Received response for promptName: '${promptName}'`);
+        } catch(e) {
+          logDebug(componentLogSource, 'WebSearchResponse', 'Could not parse promptName from request JSON.');
+        }
+      }
+
+      // Route the JSON data to the correct state based on promptName
+      const routeRequestJson = (json: string) => {
+        switch (promptName) {
+          case 'technical-analysis-web-search': props.setRawTaWebSearchRequestJson(json); break;
+          case 'options-flow-web-search': props.setRawOptionsWebSearchRequestJson(json); break;
+          case 'support-resistance-web-search': props.setRawSupportResistanceWebSearchRequestJson(json); break;
+          default: props.setUserInputWebSearchChatRequestJson(json); break;
+        }
+      };
+
+      const routeResponseJson = (json: string) => {
+        switch (promptName) {
+          case 'technical-analysis-web-search': props.setRawTaWebSearchResponseJson(json); break;
+          case 'options-flow-web-search': props.setRawOptionsWebSearchResponseJson(json); break;
+          case 'support-resistance-web-search': props.setRawSupportResistanceWebSearchResponseJson(json); break;
+          default: props.setUserInputWebSearchChatResponseJson(json); break;
+        }
+      };
 
       if (status === 'success' && data) {
-          props.setUserInputWebSearchChatRequestJson(data.requestJson);
-          props.setUserInputWebSearchChatResponseJson(data.responseJson);
+          routeRequestJson(data.requestJson);
+          routeResponseJson(data.responseJson);
           try {
               const responseData = JSON.parse(data.responseJson);
               if (responseData.response) {
@@ -172,8 +209,8 @@ export function ChatbotFsmProvider(props: ChatbotFsmProviderProps) {
              props.addWebSearchChatMessage({ role: 'model', content: errorMsg });
           }
       } else if (status === 'error') {
-          props.setUserInputWebSearchChatRequestJson(data?.requestJson || '{"error":"Request not available"}');
-          props.setUserInputWebSearchChatResponseJson(data?.responseJson || `{"error":"${error}"}`);
+          routeRequestJson(data?.requestJson || '{"error":"Request not available"}');
+          routeResponseJson(data?.responseJson || `{"error":"${error}"}`);
           const errorResponse = `Error: ${message || error}`;
           logDebug(componentLogSource, 'MessageAdd', `Adding error web search response to history: ${errorResponse}`);
           props.addWebSearchChatMessage({ role: 'model', content: errorResponse });

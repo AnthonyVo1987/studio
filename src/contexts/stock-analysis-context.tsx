@@ -191,6 +191,8 @@ interface StockAnalysisState {
   rawTaWebSearchResponseJson: string;
   rawOptionsWebSearchRequestJson: string;
   rawOptionsWebSearchResponseJson: string;
+  rawSupportResistanceWebSearchRequestJson: string;
+  rawSupportResistanceWebSearchResponseJson: string;
   webSearchChatHistory: AppDataChatMessage[];
   logSourceConfig: LogSourceConfig;
   globalFsmState: GlobalFsmReducerManagedState;
@@ -229,6 +231,8 @@ interface StockAnalysisContextSetters {
   setRawTaWebSearchResponseJson: (json: string) => void;
   setRawOptionsWebSearchRequestJson: (json: string) => void;
   setRawOptionsWebSearchResponseJson: (json: string) => void;
+  setRawSupportResistanceWebSearchRequestJson: (json: string) => void;
+  setRawSupportResistanceWebSearchResponseJson: (json: string) => void;
 }
 
 interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState'>, StockAnalysisContextSetters {
@@ -316,6 +320,8 @@ const defaultState: StockAnalysisState = {
   rawTaWebSearchResponseJson: initialJsonPlaceholder,
   rawOptionsWebSearchRequestJson: initialJsonPlaceholder,
   rawOptionsWebSearchResponseJson: initialJsonPlaceholder,
+  rawSupportResistanceWebSearchRequestJson: initialJsonPlaceholder,
+  rawSupportResistanceWebSearchResponseJson: initialJsonPlaceholder,
   webSearchChatHistory: [],
   logSourceConfig: defaultLogSourceConfig,
   globalFsmState: initialGlobalFsmReducerState,
@@ -368,6 +374,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_rawTaWebSearchResponseJson, _setRawTaWebSearchResponseJson] = useState<string>(defaultState.rawTaWebSearchResponseJson);
   const [_rawOptionsWebSearchRequestJson, _setRawOptionsWebSearchRequestJson] = useState<string>(defaultState.rawOptionsWebSearchRequestJson);
   const [_rawOptionsWebSearchResponseJson, _setRawOptionsWebSearchResponseJson] = useState<string>(defaultState.rawOptionsWebSearchResponseJson);
+  const [_rawSupportResistanceWebSearchRequestJson, _setRawSupportResistanceWebSearchRequestJson] = useState<string>(defaultState.rawSupportResistanceWebSearchRequestJson);
+  const [_rawSupportResistanceWebSearchResponseJson, _setRawSupportResistanceWebSearchResponseJson] = useState<string>(defaultState.rawSupportResistanceWebSearchResponseJson);
   const [_webSearchChatHistory, _setWebSearchChatHistory] = useState<AppDataChatMessage[]>(defaultState.webSearchChatHistory);
   const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
   const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<GlobalFsmState | null>(defaultState.targetFsmDisplayState);
@@ -415,6 +423,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setRawTaWebSearchResponseJson: (json: string) => setAndLogJson(_setRawTaWebSearchResponseJson, 'rawTaWebSearchResponseJson', json),
     setRawOptionsWebSearchRequestJson: (json: string) => setAndLogJson(_setRawOptionsWebSearchRequestJson, 'rawOptionsWebSearchRequestJson', json),
     setRawOptionsWebSearchResponseJson: (json: string) => setAndLogJson(_setRawOptionsWebSearchResponseJson, 'rawOptionsWebSearchResponseJson', json),
+    setRawSupportResistanceWebSearchRequestJson: (json: string) => setAndLogJson(_setRawSupportResistanceWebSearchRequestJson, 'rawSupportResistanceWebSearchRequestJson', json),
+    setRawSupportResistanceWebSearchResponseJson: (json: string) => setAndLogJson(_setRawSupportResistanceWebSearchResponseJson, 'rawSupportResistanceWebSearchResponseJson', json),
   }), [setAndLogJson]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
@@ -490,6 +500,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setRawTaWebSearchResponseJson(chatPendingJson);
         contextSetters.setRawOptionsWebSearchRequestJson(chatPendingJson);
         contextSetters.setRawOptionsWebSearchResponseJson(chatPendingJson);
+        contextSetters.setRawSupportResistanceWebSearchRequestJson(chatPendingJson);
+        contextSetters.setRawSupportResistanceWebSearchResponseJson(chatPendingJson);
     }
   }, [logDebug, contextSetters]);
 
@@ -1001,6 +1013,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     rawTaWebSearchResponseJson: _rawTaWebSearchResponseJson, setRawTaWebSearchResponseJson: contextSetters.setRawTaWebSearchResponseJson,
     rawOptionsWebSearchRequestJson: _rawOptionsWebSearchRequestJson, setRawOptionsWebSearchRequestJson: contextSetters.setRawOptionsWebSearchRequestJson,
     rawOptionsWebSearchResponseJson: _rawOptionsWebSearchResponseJson, setRawOptionsWebSearchResponseJson: contextSetters.setRawOptionsWebSearchResponseJson,
+    rawSupportResistanceWebSearchRequestJson: _rawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchRequestJson: contextSetters.setRawSupportResistanceWebSearchRequestJson,
+    rawSupportResistanceWebSearchResponseJson: _rawSupportResistanceWebSearchResponseJson, setRawSupportResistanceWebSearchResponseJson: contextSetters.setRawSupportResistanceWebSearchResponseJson,
     webSearchChatHistory: _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
     logSourceConfig: _logSourceConfig,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
@@ -1025,6 +1039,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _appDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory, 
     _userInputWebSearchChatRequestJson, _userInputWebSearchChatResponseJson,
     _rawTaWebSearchRequestJson, _rawTaWebSearchResponseJson, _rawOptionsWebSearchRequestJson, _rawOptionsWebSearchResponseJson,
+    _rawSupportResistanceWebSearchRequestJson, _rawSupportResistanceWebSearchResponseJson,
     _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
     _logSourceConfig,
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,

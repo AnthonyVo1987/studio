@@ -73,6 +73,8 @@ export function DebugTabContent() {
     rawTaWebSearchResponseJson,
     rawOptionsWebSearchRequestJson,
     rawOptionsWebSearchResponseJson,
+    rawSupportResistanceWebSearchRequestJson,
+    rawSupportResistanceWebSearchResponseJson,
     logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
@@ -126,6 +128,8 @@ export function DebugTabContent() {
     { title: "TA Web Search Response JSON", data: rawTaWebSearchResponseJson, description: "Response for automated TA web search." },
     { title: "Options Web Search Request JSON", data: rawOptionsWebSearchRequestJson, description: "Request for automated Options web search." },
     { title: "Options Web Search Response JSON", data: rawOptionsWebSearchResponseJson, description: "Response for automated Options web search." },
+    { title: "S/R Web Search Request JSON", data: rawSupportResistanceWebSearchRequestJson, description: "Request for S/R web search." },
+    { title: "S/R Web Search Response JSON", data: rawSupportResistanceWebSearchResponseJson, description: "Response for S/R web search." },
   ];
 
   return (

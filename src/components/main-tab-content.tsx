@@ -53,6 +53,9 @@ export function MainTabContent() {
     appDataChatHistory: contextAppDataChatHistory, clearAppDataChatHistory,
     webSearchChatHistory: contextWebSearchChatHistory, clearWebSearchChatHistory, addWebSearchChatMessage,
     setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson,
+    setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson,
+    setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson,
+    setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson,
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
@@ -220,6 +223,12 @@ export function MainTabContent() {
               addWebSearchChatMessage={addWebSearchChatMessage}
               setUserInputWebSearchChatRequestJson={setUserInputWebSearchChatRequestJson}
               setUserInputWebSearchChatResponseJson={setUserInputWebSearchChatResponseJson}
+              setRawTaWebSearchRequestJson={setRawTaWebSearchRequestJson}
+              setRawTaWebSearchResponseJson={setRawTaWebSearchResponseJson}
+              setRawOptionsWebSearchRequestJson={setRawOptionsWebSearchRequestJson}
+              setRawOptionsWebSearchResponseJson={setRawOptionsWebSearchResponseJson}
+              setRawSupportResistanceWebSearchRequestJson={setRawSupportResistanceWebSearchRequestJson}
+              setRawSupportResistanceWebSearchResponseJson={setRawSupportResistanceWebSearchResponseJson}
               logDebug={logDebug}
             >
               <Chatbot
