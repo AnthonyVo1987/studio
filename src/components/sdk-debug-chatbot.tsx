@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, FormEvent } from 'react';
@@ -82,12 +83,6 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
     if (promptType === 'sdk-web-search') {
       return (
         <div className="flex flex-col gap-2">
-          <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleActionSubmit({ promptType: 'sdk-web-search' }); }}>
-            <Button type="submit" variant="secondary" disabled={isPending} className="w-full justify-start">
-              {isPending && activeRequest === 'sdk-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bug className="mr-2 h-4 w-4" />}
-              Run SDK Debug (General Search)
-            </Button>
-          </form>
            <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleActionSubmit({ promptType: 'sdk-support-resistance-web-search' }); }}>
             <Button type="submit" variant="secondary" disabled={isPending} className="w-full justify-start">
                {isPending && activeRequest === 'sdk-support-resistance-web-search' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CandlestickChart className="mr-2 h-4 w-4" />}
