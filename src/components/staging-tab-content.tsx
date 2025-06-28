@@ -3,7 +3,9 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RawDebugChatbot } from "@/components/raw-debug-chatbot";
+import { SdkDebugChatbot } from "@/components/sdk-debug-chatbot";
 import { ScrollArea } from "./ui/scroll-area";
+import { Separator } from "./ui/separator";
 
 export function StagingTabContent() {
     return (
@@ -37,7 +39,29 @@ export function StagingTabContent() {
                                 />
                             </CardContent>
                         </Card>
-                        {/* Future experimental features can be added here */}
+                        
+                        <Separator />
+                        
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Google GenAI SDK Direct Diagnostics</CardTitle>
+                                <CardDescription>
+                                These buttons bypass Genkit entirely and use the low-level Google GenAI SDK to make direct API calls. This helps determine if an issue lies within the Genkit abstraction layer.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                <SdkDebugChatbot
+                                    title="SDK Direct App Data Debug"
+                                    description="Tests a non-grounded prompt using the SDK."
+                                    promptType="sdk-app-data"
+                                />
+                                <SdkDebugChatbot
+                                    title="SDK Direct Web Search Debug"
+                                    description="Tests a grounded prompt using the SDK."
+                                    promptType="sdk-web-search"
+                                />
+                            </CardContent>
+                        </Card>
                     </div>
                 </ScrollArea>
             </CardContent>

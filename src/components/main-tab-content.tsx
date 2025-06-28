@@ -18,10 +18,9 @@ import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
-import { SdkDebugChatbot } from "@/components/sdk-debug-chatbot";
 import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
-import { DebugSnapshotControls } from "@/components/debug-snapshot-controls"; // New Import
+import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
 
 import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
@@ -245,26 +244,6 @@ export function MainTabContent() {
             </ChatbotFsmProvider>
           </div>
           <Separator />
-           <Card>
-            <CardHeader>
-                <CardTitle>Google GenAI SDK Direct Diagnostics</CardTitle>
-                <CardDescription>
-                These buttons bypass Genkit entirely and use the low-level Google GenAI SDK to make direct API calls. This helps determine if an issue lies within the Genkit abstraction layer.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <SdkDebugChatbot
-                    title="SDK Direct App Data Debug"
-                    description="Tests a non-grounded prompt using the SDK."
-                    promptType="sdk-app-data"
-                />
-                <SdkDebugChatbot
-                    title="SDK Direct Web Search Debug"
-                    description="Tests a grounded prompt using the SDK."
-                    promptType="sdk-web-search"
-                />
-            </CardContent>
-          </Card>
           <MarketStatusDisplay />
           <Separator />
           <DebugSnapshotControls />
