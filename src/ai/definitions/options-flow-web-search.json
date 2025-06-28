@@ -1,3 +1,4 @@
+
 {
   "definitionType": "llm-prompt",
   "promptName": "optionsFlowWebSearchPrompt",
@@ -25,7 +26,7 @@
       "role": "CoreTask",
       "parts": [
         {
-          "text": "For the stock ticker {{{ticker}}}, use the Google Search tool to find the most recent values for the following advanced options metrics:\n1.  **Max Pain:** The strike price at which the maximum number of options would expire worthless.\n2.  **Gamma Exposure (GEX):** An estimate of how much market makers will need to hedge their positions.\n3.  **Put/Call Ratio:** The ratio of the volume of put options to call options.\n4.  **IV Skew:** The difference in implied volatility between out-of-the-money puts and out-of-the-money calls.\n5.  **IV Rank:** Compares the current IV to the high and low IV over the past year.\n6.  **IV Percentile:** The percentage of days in the past year that IV was lower than the current IV.\n7.  **Historic Volatility (30-day):** The realized volatility of the stock over the past 30 days.\n8.  **Options Volatility Skew:** A general description of the skew (e.g., 'steep', 'flat', 'smirk')."
+          "text": "For the stock ticker {{{ticker}}}, use the Google Search tool to find the most recent values for the following advanced options metrics:\n1.  **Max Pain:** The strike price at which the maximum number of options would expire worthless.\n2.  **Gamma Exposure (GEX):** An estimate of how much market makers will need to hedge their positions.\n3.  **Put/Call Ratio:** The ratio of the volume of put options to call options.\n4.  **IV Skew:** The difference in implied volatility between out-of-the-money puts and out-of-the-money calls.\n5.  **Historic Volatility (30-day):** The realized volatility of the stock over the past 30 days.\n6.  **Options Volatility Skew:** A general description of the skew (e.g., 'steep', 'flat', 'smirk')."
         }
       ]
     },
@@ -33,7 +34,7 @@
       "role": "OutputRequirements",
       "parts": [
         {
-          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- Your entire response MUST begin with `{` and end with `}`.\n- You MUST include all keys in the response.\n- `maxPain`: number or null\n- `gammaExposure`: string or null (e.g., 'High positive GEX', 'Negative GEX')\n- `putCallRatio`: number or null\n- `ivSkew`: number or null (e.g., 0.15)\n- `ivRank`: number or null (e.g., 45 for 45%)\n- `ivPercentile`: number or null (e.g., 60 for 60th percentile)\n- `historicVolatility30d`: number or null (e.g., 0.35 for 35%)\n- `optionsVolatilitySkew`: string or null (e.g., 'Steep bearish skew')\n- `searchStatus`: string - You MUST include this key in your final JSON response. Its value MUST be 'COMPLETE' if all metrics were found, 'PARTIAL' if only some were found, or 'NOT_FOUND' if no relevant data could be retrieved."
+          "text": "CRITICAL: You MUST format your ENTIRE response as a single, valid JSON object string. Do not include any text, notes, or explanations outside of the JSON structure. \n- For any metric that cannot be found after a diligent search, its value in the JSON MUST be `null`. Do not invent or estimate data. \n- Your entire response MUST begin with `{` and end with `}`.\n- You MUST include all keys in the response.\n- `maxPain`: number or null\n- `gammaExposure`: string or null (e.g., 'High positive GEX', 'Negative GEX')\n- `putCallRatio`: number or null\n- `ivSkew`: number or null (e.g., 0.15)\n- `historicVolatility30d`: number or null (e.g., 0.35 for 35%)\n- `optionsVolatilitySkew`: string or null (e.g., 'Steep bearish skew')\n- `searchStatus`: string - You MUST include this key in your final JSON response. Its value MUST be 'COMPLETE' if all metrics were found, 'PARTIAL' if only some were found, or 'NOT_FOUND' if no relevant data could be retrieved."
         }
       ]
     }
