@@ -4,7 +4,6 @@
 import { ai } from '@/ai/genkit';
 import { AppDataChatOutputSchema } from '@/ai/schemas/app-data-chat-schemas';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
-import { rawWebSearchDebug } from '@/ai/flows/raw-web-search-debug-flow';
 import type {
   RawDebugChatActionState,
   RawDebugChatInputs,
@@ -46,19 +45,26 @@ export async function rawDebugChatAction(
     const debugPrompt = "What's the current ATR-14 for NVDA";
     const requestJson = JSON.stringify({ prompt: debugPrompt, type: 'debug_web_search' }, null, 2);
     try {
-      console.log(`${logPrefix} Executing raw Web Search prompt via dedicated debug flow.`);
-      // Call the new, dedicated flow instead of ai.generate() directly
-      const result = await rawWebSearchDebug(debugPrompt);
+      console.log(`${logPrefix} Executing raw Web Search prompt directly via ai.generate.`);
+      const result = await ai.generate({
+        model: DEFAULT_CHAT_MODEL_ID,
+        prompt: debugPrompt,
+        tools: [{ googleSearch: {} }],
+        config: { thinkingConfig: { thinkingBudget: -1 } },
+      });
       
+      const responseText = result.text ?? "Debug prompt failed to return text.";
+      const responseJson = JSON.stringify({ response: responseText, rawResponse: result }, null, 2);
+
       return {
         status: 'success',
-        data: { requestJson, responseJson: JSON.stringify(result, null, 2) },
+        data: { requestJson, responseJson },
         message: 'Debug Web Search response received.',
       };
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL Error calling debug flow: ${error.message}.`);
+      console.error(`${logPrefix} CRITICAL Error during direct ai.generate call: ${error.message}.`);
       return {
-        status: 'error', error: error.message, message: 'Debug Web Search flow failed.',
+        status: 'error', error: error.message, message: 'Debug Web Search prompt failed.',
         data: { requestJson, responseJson: JSON.stringify({ error: error.message, details: String(error) }, null, 2) },
       };
     }

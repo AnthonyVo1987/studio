@@ -33,11 +33,3 @@ export const RawDebugChatActionStateSchema = z.object({
   message: z.string().optional().nullable(),
 });
 export type RawDebugChatActionState = z.infer<typeof RawDebugChatActionStateSchema>;
-
-
-// Schemas for raw-web-search-debug-flow
-export const RawWebSearchDebugInputSchema = z.string();
-export type RawWebSearchDebugInput = z.infer<typeof RawWebSearchDebugInputSchema>;
-
-export const RawWebSearchDebugOutputSchema = z.any();
-export type RawWebSearchDebugOutput = z.infer<typeof RawWebSearchDebugOutputSchema>;
