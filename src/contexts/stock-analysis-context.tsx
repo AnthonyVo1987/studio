@@ -616,6 +616,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
+        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `START_FULL_ANALYSIS for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
         break;
