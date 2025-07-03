@@ -107,11 +107,9 @@ export type FsmEvent =
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
   | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
-  | { type: 'DATA_FETCH_IN_PROGRESS' }
   | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
   | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
   | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
-  | { type: 'CALCULATING_AI_TA' }
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
   | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
   | { type: 'GENERATING_KEY_TAKEAWAYS' }
@@ -123,7 +121,8 @@ export type FsmEvent =
   | { type: 'TOGGLE_DEBUG_CONSOLE_MENU'; payload: ToggleDebugConsoleMenuPayload }
   | { type: 'UPDATE_MANUAL_ACTION_FLAGS'; payload: UpdateManualActionFlagsPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
-  | { type: 'FINALIZE_AUTOMATED_PIPELINE' };
+  | { type: 'FINALIZE_AUTOMATED_PIPELINE' }
+  | { type: 'RETURN_TO_IDLE' };
 
 export interface AppDataChatMessage {
   id: string;
@@ -549,6 +548,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
 
     switch (event.type) {
+      case 'RETURN_TO_IDLE':
+        if ([
+          GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED,
+          GlobalFsmState.KEY_TAKEAWAYS_FAILED,
+          GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED,
+          GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
+        ].includes(previousState)) {
+          nextCurrentState = GlobalFsmState.IDLE;
+          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Returning to IDLE from on-demand action state ${previousState}.`);
+        } else {
+          logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `Ignoring RETURN_TO_IDLE from state ${previousState}.`);
+          nextCurrentState = previousState;
+        }
+        break;
       case 'ANALYSIS_TOGGLE_CHANGED':
         const { toggleType, isEnabled } = event.payload;
         switch (toggleType) {
@@ -580,9 +593,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
              nextCurrentState = previousState;
         }
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `USER_INPUT_TICKER_CHANGED. To ${nextCurrentState}.`);
-        break;
-      case 'DATA_FETCH_IN_PROGRESS':
-        nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
         break;
       case 'FETCH_DATA_SUCCESS':
         contextSetters.setMarketStatusJson(event.payload.marketStatusJson); contextSetters.setStockSnapshotJson(event.payload.stockSnapshotJson);
@@ -616,10 +626,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.ERROR_STALE_DATA;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ERROR_STALE_DATA. Error: ${staleErrMsg}.`);
-        break;
-      case 'CALCULATING_AI_TA':
-        nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', 'To CALCULATING_AI_TA.');
         break;
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
@@ -777,14 +783,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _marketStatusJson, _optionsChainJson,
     dispatchFsmEvent, logDebug
   ]);
-  
-  useEffect(() => {
-    if (!initialInitializationDispatchedRef.current) {
-        logDebug('StockAnalysisContext:GlobalFSM', 'Initialization', 'Dispatching INITIALIZATION_COMPLETE event on mount.');
-        dispatchFsmEvent({ type: 'INITIALIZATION_COMPLETE' });
-        initialInitializationDispatchedRef.current = true;
-    }
-  }, [dispatchFsmEvent, logDebug]);
   
   const contextValue: StockAnalysisContextType = useMemo(() => ({
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson: contextSetters.setPolygonApiRequestLogJson,
