@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.4
-**Application Version (from `app-metadata.json`):** v3.3.16.8.7
-**Last Updated:** 2025-08-03
+**README Document Version:** 3.5
+**Application Version (from `app-metadata.json`):** v3.4.6.4
+**Last Updated:** 2025-08-08
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -139,13 +139,14 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Policy (Strictly Enforced):** Sole source for `appVersion`. Dynamically loaded and used.
     *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
-#### 3.2.4. State Management (as of v3.2.5.0.Z)
+#### 3.2.4. State Management (as of v3.4.6.4 - Deterministic)
 *   **React Context (`StockAnalysisContext`):** Centralized global state management.
-*   **Single, Enhanced Global Finite State Machine (FSM):** Manages all primary application states, flags, and context variables. Orchestrates the application lifecycle.
+*   **Deterministic Handlers:** All complex asynchronous workflows (e.g., "Analyze Stock" pipeline, on-demand AI actions, chat submissions) are now driven by dedicated `async` handler functions within the primary UI component (`MainTabContent.tsx`). These handlers use a simple `await` pattern to ensure a linear, predictable, and sequential execution of server actions, eliminating the race conditions of the previous architecture.
+*   **Simple State Updates:** The application primarily uses `useState` (for local component state) and `useReducer` (for the simplified global FSM) to manage state. The deterministic handlers manually update the UI/FSM state before and after `await` calls.
 
-#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.3.16.7.50)
-*   **Simplified Pipeline Orchestration:** The global FSM orchestrator no longer triggers any chat prompts automatically. Its responsibility is now limited to sequencing the data fetch and core AI analysis steps (Key Takeaways, Options Analysis) based on user toggle selections. This makes the pipeline significantly more deterministic.
-*   **Manual Chat Triggers:** All chat functionalities are now triggered manually by the user through their respective UI components, which call dedicated server actions.
+#### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.4.6.4)
+*   **Simplified Global FSM:** The single global FSM's role has been drastically reduced. It **no longer orchestrates complex sequences**. It now serves as a simple repository for global state flags (`GlobalFsmFlags`) and context variables (`GlobalFsmContextVariables`), providing a clear snapshot of the application's overall state. It only handles simple, direct state transitions dispatched by the deterministic handlers.
+*   **No Local FSMs:** All local FSMs, including the `ChatbotFsmContext`, have been removed to simplify the architecture and centralize state in the global context and component-level `useActionState` hooks.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -161,8 +162,8 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.3.16.8.7):**
-    *   **"Enhanced Debug Consoles" & "SDK AI Diagnostics Migration":** Implementation is complete. The application is now ready for a comprehensive end-to-end testing phase before proceeding to the v3.4 Deterministic Overhaul.
+*   **Current Feature Focus (as of v3.4.6.4):**
+    *   **"Full Deterministic Application Refactor":** Implementation is complete. The application is now ready for a comprehensive end-to-end testing phase.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -212,9 +213,10 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.4
-*   **Current Application Version:** `v3.3.16.8.7`
+*   **This README Document Version:** 3.5
+*   **Current Application Version:** `v3.4.6.4`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
 ---
+

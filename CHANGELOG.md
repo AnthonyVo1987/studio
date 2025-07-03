@@ -58,6 +58,24 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.4.6.4` (Pre-Testing Documentation)
+**Tag:** `Phase-65_Task-3.4.6.4_DocsPreTest`
+**Commit Hash:** `2db3e1a9`
+**Subject:** `docs(all): Checkpoint v3.4.6.4, complete Deterministic Overhaul implementation`
+**Details:**
+This commit is a **documentation-only checkpoint** that marks the completion of the core implementation for the **"Full Deterministic Application Refactor"** feature (v3.4 series). It updates all project documentation to reflect the new, stable, and deterministic state management architecture, preparing the application for its final testing and validation phase.
+
+**Key Architectural Changes Completed (v3.4.x.y.z Series):**
+*   **Abolished Reactive FSM Orchestrator:** The primary source of instability—the complex, `useEffect`-based FSM orchestrator in `StockAnalysisContext`—has been **completely removed**.
+*   **Implemented Deterministic Handlers:** All asynchronous pipelines (Automated Analysis, On-Demand AI Actions, Chat Submissions) are now driven by simple, predictable `async/await` handlers located directly in the triggering component (`MainTabContent.tsx`). This eliminates race conditions and ensures linear, traceable execution.
+*   **Simplified Global FSM:** The role of the global FSM has been drastically reduced. It no longer orchestrates complex sequences and now serves as a simple, lean repository for global state flags and variables. All obsolete states, flags, and variables have been removed.
+*   **Removed `ChatbotFsmContext`:** The local FSM managing the chatbot UI was deprecated and removed, with its logic being absorbed into the deterministic handlers in `MainTabContent`, further simplifying the state architecture.
+*   **Critical Bug Fixes:** The refactor inherently fixed numerous deep-seated bugs, including FSM lock-ups after on-demand actions and the critical failure of the "Analyze Stock" button pipeline.
+
+**Outcome:**
+*   The application's state management is now fundamentally stable, predictable, and robust.
+*   The implementation phase of the feature is complete. The application is now ready for **final end-to-end testing**.
+---
 **App Version:** `v3.3.16.8.7` (Documentation & Checkpoint)
 **Tag:** `Phase-64_Task-3.3.16.8.7_DocsCheckpoint`
 **Commit Hash:** `8a68eea5`
