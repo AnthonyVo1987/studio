@@ -125,7 +125,6 @@ export type FsmEvent =
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
   | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
-  | { type: 'TRIGGER_DATA_FETCH' }
   | { type: 'DATA_FETCH_IN_PROGRESS' }
   | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
   | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
@@ -679,8 +678,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
         nextFlags.isCalculatedTADataReady = true;
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
-        nextVariables.isInitialLoad = false;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED. isInitialLoad set to false.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED.`);
         break;
       case 'AI_TA_FAILURE':
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
