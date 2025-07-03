@@ -130,6 +130,7 @@ export type FsmEvent =
   | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
   | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
   | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
+  | { type: 'CALCULATING_AI_TA' }
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
   | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
   | { type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS'; payload: { ticker: string } }
@@ -669,6 +670,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         handlePipelineError('StaleData', staleErrMsg, staleErr.error);
         nextCurrentState = GlobalFsmState.ERROR_STALE_DATA;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ERROR_STALE_DATA. Error: ${staleErrMsg}.`);
+        break;
+      case 'CALCULATING_AI_TA':
+        nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', 'To CALCULATING_AI_TA.');
         break;
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);

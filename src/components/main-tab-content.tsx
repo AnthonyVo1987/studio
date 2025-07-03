@@ -26,6 +26,8 @@ import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggle
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
 
+import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
+import { analyzeTaAction } from '@/actions/analyze-ta-action';
 
 const appDataButtons: ExamplePromptButton[] = [
   { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
@@ -81,12 +83,61 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: newTicker } });
   };
 
-  const handleAnalyzeStockSubmit = (e?: FormEvent<HTMLFormElement>) => {
+  const handleAnalyzeStockSubmit = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (!globalUserInputTicker.trim()) { toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" }); return; }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction', `Analyze Stock CLICKED for ${globalUserInputTicker}. Dispatching START_FULL_ANALYSIS to global FSM.`);
-    dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker: globalUserInputTicker } });
+    const ticker = globalUserInputTicker.trim();
+    if (!ticker) {
+      toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
+      return;
+    }
+    
+    logDebug('MainTabContent' as LogSourceId, 'UserAction', `Analyze Stock CLICKED for ${ticker}. Beginning deterministic pipeline.`);
+    
+    // 1. Dispatch initial event to reset state and set active ticker
+    dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
+
+    try {
+      // 2. Fetch stock data
+      dispatchGlobalFsmEvent({ type: 'DATA_FETCH_IN_PROGRESS' });
+      const stockDataResult = await fetchStockDataAction({ ticker });
+
+      if (stockDataResult.status !== 'success' || !stockDataResult.data) {
+        if (stockDataResult.error?.includes('CRITICAL STALE DATA')) {
+          dispatchGlobalFsmEvent({ type: 'STALE_DATA_FROM_ACTION', payload: { error: stockDataResult.error, message: stockDataResult.message || 'Stale data detected', expectedTicker: ticker, actionStateData: stockDataResult.data } });
+        } else {
+          dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: stockDataResult });
+        }
+        toast({ title: "Data Fetch Failed", description: stockDataResult.message || 'Could not fetch stock data.', variant: 'destructive' });
+        return; // Stop the pipeline
+      }
+      
+      // 3. Dispatch data success
+      dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: stockDataResult.data });
+      
+      // 4. Analyze TA indicators
+      dispatchGlobalFsmEvent({ type: 'CALCULATING_AI_TA' });
+      const taResult = await analyzeTaAction({ stockSnapshotJson: stockDataResult.data.stockSnapshotJson, ticker });
+
+      if (taResult.status !== 'success' || !taResult.data) {
+        dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: taResult });
+        toast({ title: "AI TA Failed", description: taResult.message || 'Could not calculate AI TA.', variant: 'destructive' });
+        return; // Stop the pipeline
+      }
+
+      // 5. Dispatch TA success
+      dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: taResult.data });
+      
+      // Phase 2 ends here. The main pipeline will conclude, and other actions are manual.
+      logDebug('MainTabContent' as LogSourceId, 'PipelineSuccess', `Deterministic base pipeline for ${ticker} completed successfully.`);
+
+    } catch (error: any) {
+      // Catch-all for network errors etc. during the async handlers
+      const errorMessage = error.message || 'A critical error occurred.';
+      dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: { error: errorMessage, message: 'Pipeline failed unexpectedly.' } });
+      toast({ title: "Pipeline Error", description: errorMessage, variant: 'destructive' });
+    }
   };
+
 
   const handleGenerateKeyTakeaways = () => {
     const currentActiveTicker = globalFsmVariables.activeTicker;
@@ -112,7 +163,7 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
   };
 
-  const analyzeButtonLoading = [GlobalFsmState.APP_INITIALIZING, GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
+  const analyzeButtonLoading = [GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
 
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
