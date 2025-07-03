@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, type FormEvent, useCallback } from "react";
+import React, { useState, useEffect, type FormEvent, useCallback, useRef, useMemo } from "react";
 import { useActionState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,9 +19,8 @@ import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
-import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
-import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, GlobalFsmState, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
 
@@ -73,6 +72,17 @@ export function MainTabContent() {
 
   const [appDataChatState, appDataChatFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
   const [webSearchChatState, webSearchChatFormAction, isWebSearchChatPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
+  
+  const initialInitializationDispatchedRef = useRef(false);
+
+  useEffect(() => {
+    if (!initialInitializationDispatchedRef.current) {
+        logDebug('MainTabContent', 'Initialization', 'Dispatching INITIALIZATION_COMPLETE event on mount.');
+        dispatchGlobalFsmEvent({ type: 'INITIALIZATION_COMPLETE' });
+        initialInitializationDispatchedRef.current = true;
+    }
+  }, [dispatchGlobalFsmEvent, logDebug]);
+
 
   // Effect to handle App Data Chat results
   useEffect(() => {
@@ -174,7 +184,6 @@ export function MainTabContent() {
       }
       dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: stockDataResult.data });
       
-      dispatchGlobalFsmEvent({ type: 'CALCULATING_AI_TA' });
       const taResult = await analyzeTaAction({ stockSnapshotJson: stockDataResult.data.stockSnapshotJson, ticker });
 
       if (taResult.status !== 'success' || !taResult.data) {
@@ -187,7 +196,6 @@ export function MainTabContent() {
       const { isAiKeyTakeawaysSelected, isAiOptionsAnalysisSelected } = globalFsmFlags;
 
       if (isAiKeyTakeawaysSelected) {
-          dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
           const keyTakeawaysResult = await performAiAnalysisAction({
               ticker, 
               stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
@@ -200,7 +208,6 @@ export function MainTabContent() {
       }
 
       if (isAiOptionsAnalysisSelected) {
-          dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
           const optionsAnalysisResult = await performAiOptionsAnalysisAction({
               ticker,
               stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
@@ -224,7 +231,6 @@ export function MainTabContent() {
     const ticker = globalFsmVariables.activeTicker;
     if (!ticker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); return; }
     
-    dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
     try {
       const keyTakeawaysResult = await performAiAnalysisAction({
           ticker, stockSnapshotJson: contextStockSnapshotJson,
@@ -243,7 +249,6 @@ export function MainTabContent() {
     const ticker = globalFsmVariables.activeTicker;
     if (!ticker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); return; }
 
-    dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
     try {
       const optionsAnalysisResult = await performAiOptionsAnalysisAction({
           ticker, stockSnapshotJson: contextStockSnapshotJson, optionsChainJson: contextOptionsChainJson,
@@ -260,10 +265,10 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
   };
 
-  const analyzeButtonLoading = [GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA, GlobalFsmState.GENERATING_KEY_TAKEAWAYS, GlobalFsmState.ANALYZING_OPTIONS].includes(globalFsmStateFromContext);
+  const analyzeButtonLoading = globalFsmStateFromContext === GlobalFsmState.DATA_FETCH_IN_PROGRESS;
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
-  const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
-  const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
+  const keyTakeawaysButtonLoading = [GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.KEY_TAKEAWAYS_SUCCESS].includes(globalFsmStateFromContext);
+  const optionsAnalysisButtonLoading = [GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.OPTIONS_ANALYSIS_SUCCESS].includes(globalFsmStateFromContext);
   
   const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading;
 
