@@ -7,10 +7,10 @@ import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
 import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
 import { addEntryToRawConsoleBuffer } from '@/lib/raw-console-log-buffer'; // Import for raw console
-import { fetchStockDataAction, type AnalyzeStockServerActionState, type StockDataFetchResult } from '@/actions/analyze-stock-server-action';
-import { analyzeTaAction, type AnalyzeTaActionState, type AnalyzeTaResult } from '@/actions/analyze-ta-action';
-import { performAiAnalysisAction, type PerformAiAnalysisActionState, type PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
-import { performAiOptionsAnalysisAction, type PerformAiOptionsAnalysisActionState, type PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
+import type { StockDataFetchResult } from '@/actions/analyze-stock-server-action';
+import type { AnalyzeTaResult } from '@/actions/analyze-ta-action';
+import type { PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
+import type { PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
 import { startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
@@ -22,6 +22,7 @@ export enum GlobalFsmState {
   AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT',
   VALID_TICKER_ENTERED = 'VALID_TICKER_ENTERED',
 
+  // Re-added for deterministic pipeline control
   DATA_FETCH_IN_PROGRESS = 'DATA_FETCH_IN_PROGRESS',
   DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
   DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
@@ -30,6 +31,7 @@ export enum GlobalFsmState {
   AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
 
+  // On-demand states
   GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
   KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
   KEY_TAKEAWAYS_FAILED = 'KEY_TAKEAWAYS_FAILED',
@@ -44,7 +46,6 @@ export enum GlobalFsmState {
 export interface GlobalFsmContextVariables {
   activeTicker: string | null;
   userInputTicker: string;
-  isInitialLoad: boolean;
   lastError: { message: string; source: string; details?: any } | null;
 }
 
@@ -107,11 +108,15 @@ export type FsmEvent =
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
   | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
+  // Re-added for deterministic pipeline control
+  | { type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' }
   | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
   | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
-  | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
+  | { type: 'SET_STATE_CALCULATING_AI_TA' }
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
   | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
+  // Existing events
+  | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
   | { type: 'GENERATING_KEY_TAKEAWAYS' }
   | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: AiKeyTakeawaysSuccessPayload }
   | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: AiKeyTakeawaysFailurePayload }
@@ -239,7 +244,6 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
   variables: {
     activeTicker: null,
     userInputTicker: "NVDA", 
-    isInitialLoad: true,
     lastError: null,
   },
   flags: {
@@ -355,8 +359,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
-  const initialInitializationDispatchedRef = useRef(false);
-
+  
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
   }, []);
@@ -573,9 +576,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
-        nextVariables.isInitialLoad = true; 
-        nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `START_FULL_ANALYSIS for ${event.payload.ticker}. To DATA_FETCH_IN_PROGRESS.`);
+        nextCurrentState = previousState;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'ActionStart', `START_FULL_ANALYSIS for ${event.payload.ticker}. Resetting state.`);
         break;
       case 'INITIALIZATION_COMPLETE':
         if (previousState === GlobalFsmState.APP_INITIALIZING) {
@@ -594,6 +596,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `USER_INPUT_TICKER_CHANGED. To ${nextCurrentState}.`);
         break;
+      case 'SET_STATE_DATA_FETCH_IN_PROGRESS':
+        nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To DATA_FETCH_IN_PROGRESS.`);
+        break;
       case 'FETCH_DATA_SUCCESS':
         contextSetters.setMarketStatusJson(event.payload.marketStatusJson); contextSetters.setStockSnapshotJson(event.payload.stockSnapshotJson);
         contextSetters.setStandardTasJson(event.payload.standardTasJson); contextSetters.setOptionsChainJson(event.payload.optionsChainJson);
@@ -609,7 +615,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setStandardTasJson(fetchErrorJson); contextSetters.setOptionsChainJson(fetchErrorJson);
         contextSetters.setPolygonApiRequestLogJson(fetchErr.polygonApiRequestLogJson || fetchErrorJson); contextSetters.setPolygonApiResponseLogJson(fetchErr.polygonApiResponseLogJson || fetchErrorJson);
         handlePipelineError('DataFetch', fetchErrMsg, fetchErr.error);
-        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.DATA_FETCH_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To DATA_FETCH_FAILED. Error: ${fetchErrMsg}.`);
         break;
@@ -623,9 +628,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setPolygonApiRequestLogJson(staleErr.actionStateData?.polygonApiRequestLogJson || errorJsonWithDetails("Req log unavailable for stale data.", null));
         contextSetters.setPolygonApiResponseLogJson(staleErr.actionStateData?.polygonApiResponseLogJson || errorJsonWithDetails("Res log unavailable for stale data.", null));
         handlePipelineError('StaleData', staleErrMsg, staleErr.error);
-        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.ERROR_STALE_DATA;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ERROR_STALE_DATA. Error: ${staleErrMsg}.`);
+        break;
+      case 'SET_STATE_CALCULATING_AI_TA':
+        nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CALCULATING_AI_TA.`);
         break;
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
@@ -638,7 +646,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const aiTaErrorJson = errorJsonWithDetails(aiTaErrMsg, aiTaErr.error);
         contextSetters.setAiAnalyzedTaRequestJson(aiTaErr.aiAnalyzedTaRequestJson || aiTaErrorJson); contextSetters.setAiAnalyzedTaJson(aiTaErrorJson);
         handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
-        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_FAILED. Error: ${aiTaErrMsg}.`);
         break;
@@ -684,7 +691,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       
       case 'FINALIZE_AUTOMATED_PIPELINE':
-        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.IDLE;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after pipeline finalization.`);
         break;
@@ -709,7 +715,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         GlobalFsmState.IDLE, GlobalFsmState.VALID_TICKER_ENTERED, GlobalFsmState.AWAITING_TICKER_INPUT,
         GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED,
         GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
-        GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.ERROR_STALE_DATA
+        GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.ERROR_STALE_DATA,
+        GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED, GlobalFsmState.AI_TA_CALCULATION_FAILED,
     ].includes(nextCurrentState)) {
         nextFlags.canAnalyzeStock = true;
     } else {
@@ -852,7 +859,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const logPrefix = 'StockAnalysisContext:ConsoleInterceptor';
     if (typeof window === 'undefined') { return; }
     const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
-    
+    const isInitialLoad = fsmStateRef.current.current === GlobalFsmState.APP_INITIALIZING;
+
     const interceptAndProcessLog = (type: LogType, ...args: any[]) => {
       currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
       
@@ -878,7 +886,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             }
             if (!_logSourceConfig[sourceForBuffer]) return;
 
-            if (globalFsmReducerState.variables.isInitialLoad && _isReducedStartupLoggingEnabled) {
+            if (isInitialLoad && _isReducedStartupLoggingEnabled) {
                 const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter', 'StockAnalysisContext:GlobalFSM_Orchestrator', 'StockAnalysisContext:GlobalFSM'];
                 let allowLog = criticalSources.includes(sourceForBuffer);
                 if (!allowLog && String(finalMessages[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; }
@@ -887,7 +895,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             addEntryToGlobalLogBuffer({ type: 'debug', messages: finalMessages, source: sourceForBuffer });
         } else {
             if (!_logSourceConfig['NATIVE_CONSOLE']) return;
-            if (globalFsmReducerState.variables.isInitialLoad && _isReducedStartupLoggingEnabled && type !== 'error' && type !== 'warn') { return; }
+            if (isInitialLoad && _isReducedStartupLoggingEnabled && type !== 'error' && type !== 'warn') { return; }
             addEntryToGlobalLogBuffer({ type, messages: args, source: 'NATIVE_CONSOLE' });
         }
       });
@@ -902,7 +910,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     return () => {
       if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
     };
-  }, [_logSourceConfig, contextOriginals, globalFsmReducerState.variables.isInitialLoad, _isReducedStartupLoggingEnabled, _isUiRenderLoggingEnabled]);
+  }, [_logSourceConfig, contextOriginals, globalFsmReducerState.current, _isReducedStartupLoggingEnabled, _isUiRenderLoggingEnabled]);
   
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
 }

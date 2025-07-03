@@ -172,14 +172,53 @@ export function MainTabContent() {
       return;
     }
     
+    // 1. Reset state and start
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
+    dispatchGlobalFsmEvent({ type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' });
+    
+    // 2. Fetch Data
+    const dataResult = await fetchStockDataAction({ ticker });
+    if (dataResult.status !== 'success' || !dataResult.data) {
+      dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: dataResult });
+      toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
+      return;
+    }
+    dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
+    
+    // 3. Calculate AI TA
+    dispatchGlobalFsmEvent({ type: 'SET_STATE_CALCULATING_AI_TA' });
+    const aiTaResult = await analyzeTaAction({ stockSnapshotJson: dataResult.data.stockSnapshotJson, ticker });
+    if (aiTaResult.status !== 'success' || !aiTaResult.data) {
+      dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: aiTaResult });
+      toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
+      dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+      return;
+    }
+    dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaResult.data });
 
-  }, [globalUserInputTicker, dispatchGlobalFsmEvent, toast]);
+    // 4. Customizable Pipeline: Key Takeaways
+    if (globalFsmFlags.isAiKeyTakeawaysSelected) {
+      await handleGenerateKeyTakeaways(true); // Pass flag to indicate it's part of a pipeline
+    }
+
+    // 5. Customizable Pipeline: Options Analysis
+    if (globalFsmFlags.isAiOptionsAnalysisSelected) {
+      await handleGenerateOptionsAnalysis(true); // Pass flag
+    }
+
+    // 6. Finalize
+    dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+    toast({ title: "Analysis Complete", description: `Full analysis for ${ticker} has finished.` });
+
+  }, [globalUserInputTicker, dispatchGlobalFsmEvent, toast, globalFsmFlags.isAiKeyTakeawaysSelected, globalFsmFlags.isAiOptionsAnalysisSelected]);
 
 
-  const handleGenerateKeyTakeaways = useCallback(async () => {
+  const handleGenerateKeyTakeaways = useCallback(async (isPipelineCall: boolean = false) => {
     const ticker = globalFsmVariables.activeTicker;
-    if (!ticker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); return; }
+    if (!ticker) { 
+        if (!isPipelineCall) toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
+        return; 
+    }
     
     dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
     try {
@@ -189,18 +228,23 @@ export function MainTabContent() {
           marketStatusJson: contextMarketStatusJson,
       });
       dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
-      if(keyTakeawaysResult.status !== 'success') toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message, variant: 'destructive' });
+      if(keyTakeawaysResult.status !== 'success' && !isPipelineCall) toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message, variant: 'destructive' });
     } catch (error: any) {
         dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
-        toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
+        if (!isPipelineCall) toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
     } finally {
-      setTimeout(() => dispatchGlobalFsmEvent({ type: 'RETURN_TO_IDLE' }), 2000);
+      if (!isPipelineCall) {
+        setTimeout(() => dispatchGlobalFsmEvent({ type: 'RETURN_TO_IDLE' }), 1000);
+      }
     }
   }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, dispatchGlobalFsmEvent, toast]);
 
-  const handleGenerateOptionsAnalysis = useCallback(async () => {
+  const handleGenerateOptionsAnalysis = useCallback(async (isPipelineCall: boolean = false) => {
     const ticker = globalFsmVariables.activeTicker;
-    if (!ticker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); return; }
+    if (!ticker) { 
+        if (!isPipelineCall) toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
+        return; 
+    }
 
     dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
     try {
@@ -208,12 +252,14 @@ export function MainTabContent() {
           ticker, stockSnapshotJson: contextStockSnapshotJson, optionsChainJson: contextOptionsChainJson,
       });
       dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
-      if(optionsAnalysisResult.status !== 'success') toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message, variant: 'destructive' });
+      if(optionsAnalysisResult.status !== 'success' && !isPipelineCall) toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message, variant: 'destructive' });
     } catch (error: any) {
         dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
-        toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
+        if (!isPipelineCall) toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
     } finally {
-      setTimeout(() => dispatchGlobalFsmEvent({ type: 'RETURN_TO_IDLE' }), 2000);
+      if (!isPipelineCall) {
+        setTimeout(() => dispatchGlobalFsmEvent({ type: 'RETURN_TO_IDLE' }), 1000);
+      }
     }
   }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast]);
 
@@ -221,7 +267,12 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
   };
 
-  const analyzeButtonLoading = globalFsmStateFromContext === GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+  const isPipelineInProgress = [
+    GlobalFsmState.DATA_FETCH_IN_PROGRESS,
+    GlobalFsmState.CALCULATING_AI_TA,
+  ].includes(globalFsmStateFromContext);
+
+  const analyzeButtonLoading = isPipelineInProgress;
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
   
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
@@ -278,10 +329,10 @@ export function MainTabContent() {
           </CardHeader>
           <CardContent className="pt-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={handleGenerateKeyTakeaways} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualKeyTakeawaysActionPossible || keyTakeawaysButtonLoading}>
+              <Button onClick={() => handleGenerateKeyTakeaways()} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualKeyTakeawaysActionPossible || keyTakeawaysButtonLoading}>
                 {keyTakeawaysButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Brain className="mr-2 h-4 w-4" /> Generate AI Key Takeaways
               </Button>
-              <Button onClick={handleGenerateOptionsAnalysis} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualOptionsAnalysisActionPossible || optionsAnalysisButtonLoading}>
+              <Button onClick={() => handleGenerateOptionsAnalysis()} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualOptionsAnalysisActionPossible || optionsAnalysisButtonLoading}>
                 {optionsAnalysisButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <BarChartBig className="mr-2 h-4 w-4" /> Generate AI Options Analysis
               </Button>
             </div>
