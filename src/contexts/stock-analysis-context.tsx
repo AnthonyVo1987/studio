@@ -22,7 +22,6 @@ export enum GlobalFsmState {
   AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT',
   VALID_TICKER_ENTERED = 'VALID_TICKER_ENTERED',
 
-  PIPELINE_REQUESTED_DATA_FETCH = 'PIPELINE_REQUESTED_DATA_FETCH',
   DATA_FETCH_IN_PROGRESS = 'DATA_FETCH_IN_PROGRESS',
   DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
   DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
@@ -30,8 +29,6 @@ export enum GlobalFsmState {
   CALCULATING_AI_TA = 'CALCULATING_AI_TA',
   AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
-
-  PIPELINE_AUTOMATED_COMPLETE = 'PIPELINE_AUTOMATED_COMPLETE',
 
   GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
   KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
@@ -44,14 +41,11 @@ export enum GlobalFsmState {
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
 
-export type FullAiMacroChatStep = 'key_takeaways' | 'options_analysis' | null;
-
 export interface GlobalFsmContextVariables {
   activeTicker: string | null;
   userInputTicker: string;
   isInitialLoad: boolean;
   lastError: { message: string; source: string; details?: any } | null;
-  activePipelineProfile: 'standard' | null;
 }
 
 export interface GlobalFsmFlags {
@@ -248,7 +242,6 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     userInputTicker: "NVDA", 
     isInitialLoad: true,
     lastError: null,
-    activePipelineProfile: null,
   },
   flags: {
     canAnalyzeStock: false,
@@ -527,7 +520,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
     const previousState = state.current;
     const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
-    logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}, ActiveProfile: ${state.variables.activePipelineProfile}`);
+    logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}.`);
 
     if ('payload' in event && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
@@ -542,7 +535,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const resetForNewAnalysis = (ticker: string) => {
         nextVariables.activeTicker = ticker;
         nextVariables.lastError = null;
-        nextVariables.activePipelineProfile = 'standard';
         nextFlags.canAnalyzeStock = false;
         nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
         nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
@@ -554,7 +546,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
         nextVariables.lastError = { message: errorMessage, source, details: errorDetails };
-        nextVariables.activePipelineProfile = null;
     };
 
     switch (event.type) {
@@ -570,8 +561,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
         nextVariables.isInitialLoad = true; 
-        nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `START_FULL_ANALYSIS for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
+        nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `START_FULL_ANALYSIS for ${event.payload.ticker}. To DATA_FETCH_IN_PROGRESS.`);
         break;
       case 'INITIALIZATION_COMPLETE':
         if (previousState === GlobalFsmState.APP_INITIALIZING) {
@@ -689,7 +680,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.IDLE;
-        nextVariables.activePipelineProfile = null;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after pipeline finalization.`);
         break;
       case 'TOGGLE_DEBUG_CONSOLE_MENU':
@@ -711,7 +701,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
     if ([
         GlobalFsmState.IDLE, GlobalFsmState.VALID_TICKER_ENTERED, GlobalFsmState.AWAITING_TICKER_INPUT,
-        GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE, GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED,
+        GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED,
         GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
         GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.ERROR_STALE_DATA
     ].includes(nextCurrentState)) {
@@ -739,19 +729,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
   
   useEffect(() => {
-    const logPrefix = 'StockAnalysisContext:FSM_Orchestrator(Neutered)';
-    logDebug(logPrefix as LogSourceId, 'StateChange', `FSM transition occurred. From: ${globalFsmReducerState.previous}, To: ${globalFsmReducerState.current}. No actions will be triggered by this effect.`);
-
-  }, [globalFsmReducerState.current, logDebug]);
-  
-  useEffect(() => {
     const logPrefix = 'StockAnalysisContext:ManualActionFlagEffect';
     const state = fsmStateRef.current;
 
     const manualActionsPossibleOverall =
       (state.current === GlobalFsmState.IDLE ||
         state.current === GlobalFsmState.VALID_TICKER_ENTERED ||
-        state.current === GlobalFsmState.PIPELINE_AUTOMATED_COMPLETE ||
         state.current === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED ||
         state.current === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
         state.current === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED ||

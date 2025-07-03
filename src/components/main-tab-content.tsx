@@ -95,7 +95,7 @@ export function MainTabContent() {
     } else if (status === 'error') {
       addAppDataChatMessage({ role: 'model', content: `Error: ${message || error}` });
     }
-  }, [appDataChatState, isAppDataChatPending]);
+  }, [appDataChatState, isAppDataChatPending, addAppDataChatMessage, setHolisticTakeawaysRequestJson, setHolisticTakeawaysResponseJson, setOptionsTraderTakeawaysRequestJson, setOptionsTraderTakeawaysResponseJson, setStockTraderTakeawaysRequestJson, setStockTraderTakeawaysResponseJson, setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson]);
 
   // Effect to handle Web Search Chat results
   useEffect(() => {
@@ -118,7 +118,7 @@ export function MainTabContent() {
     } else if (status === 'error') {
       addWebSearchChatMessage({ role: 'model', content: `Error: ${message || error}` });
     }
-  }, [webSearchChatState, isWebSearchChatPending]);
+  }, [webSearchChatState, isWebSearchChatPending, addWebSearchChatMessage, setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson, setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson, setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson]);
 
   const appDataFormActionWrapper = (payload: { userInput?: string; promptName?: string }) => {
     if (isAppDataChatPending) return;
@@ -165,7 +165,6 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
 
     try {
-      dispatchGlobalFsmEvent({ type: 'DATA_FETCH_IN_PROGRESS' });
       const stockDataResult = await fetchStockDataAction({ ticker });
 
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
@@ -261,7 +260,7 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
   };
 
-  const analyzeButtonLoading = [GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA, GlobalFsmState.GENERATING_KEY_TAKEAWAYS, GlobalFsmState.ANALYZING_OPTIONS].includes(globalFsmStateFromContext);
+  const analyzeButtonLoading = [GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA, GlobalFsmState.GENERATING_KEY_TAKEAWAYS, GlobalFsmState.ANALYZING_OPTIONS].includes(globalFsmStateFromContext);
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
