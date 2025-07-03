@@ -19,7 +19,7 @@ const initialActionState: RawDebugChatActionState = {
 
 export function SdkDebugChatbot({ title, description, promptType }: { title: string; description: string; promptType: 'sdk-app-data' | 'sdk-web-search' }) {
   const { toast } = useToast();
-  // Removed userInput state as it's no longer needed for the web search variant
+  const [userInput, setUserInput] = useState('');
   
   // Use simple state for deterministic control
   const [actionResult, setActionResult] = useState<RawDebugChatActionState>(initialActionState);
@@ -61,6 +61,7 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
     } finally {
       setIsPending(false);
       setActiveRequest(null); // Clear active request tracker
+      if(payload.promptType === 'sdk-user-web-search') setUserInput('');
     }
   }, [toast]);
 
@@ -79,6 +80,12 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
     }
   };
 
+  const handleUserInputFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!userInput.trim() || isPending) return;
+    handleActionSubmit({ promptType: 'sdk-user-web-search', userInput });
+  };
+  
   const renderButtons = () => {
     if (promptType === 'sdk-web-search') {
       return (
@@ -101,7 +108,14 @@ export function SdkDebugChatbot({ title, description, promptType }: { title: str
               Run SDK Options Web Search
             </Button>
           </form>
-          {/* The user input form for sdk-user-web-search has been removed to fix the UI inconsistency */}
+          <Separator className="my-2"/>
+          <form onSubmit={handleUserInputFormSubmit} className="w-full flex items-center space-x-2">
+            <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Test custom web search..." disabled={isPending} className="flex-grow text-xs h-9" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleUserInputFormSubmit(e); }}} />
+            <Button type="submit" disabled={isPending || !userInput.trim()} size="sm">
+                {isPending && activeRequest === 'sdk-user-web-search' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <span className="sr-only">Send</span>
+            </Button>
+          </form>
         </div>
       );
     }
