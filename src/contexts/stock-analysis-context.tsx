@@ -830,87 +830,20 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
   }, [appDataChatActionState, isAppDataChatPending, dispatchFsmEvent, logDebug]);
   
-  const dispatchNextCustomAction = useCallback(() => {
-    const state = fsmStateRef.current;
-    const { flags, variables } = state;
-    const { activeTicker, completedChatPrompts } = variables;
-    const logPrefix = 'StockAnalysisContext:dispatchNextCustomAction';
-  
-    logDebug(logPrefix as LogSourceId, 'Execution', `Checking next action. Ticker: ${activeTicker}, Completed: [${completedChatPrompts.join(', ')}]`);
-
-    if (!activeTicker) {
-        logDebug(logPrefix as LogSourceId, 'Exit', 'No active ticker. Finalizing pipeline.');
-        dispatchFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-        return;
-    }
-
-    if (flags.isAiKeyTakeawaysSelected && !flags.isKeyTakeawaysDataAvailable) {
-        logDebug(logPrefix as LogSourceId, 'Dispatch', 'Triggering manual key takeaways.');
-        dispatchFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: activeTicker } });
-    } else if (flags.isAiOptionsAnalysisSelected && !flags.isOptionsAnalysisDataAvailable) {
-        logDebug(logPrefix as LogSourceId, 'Dispatch', 'Triggering manual options analysis.');
-        dispatchFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: activeTicker } });
-    } else {
-        logDebug(logPrefix as LogSourceId, 'Exit', 'All selected actions are complete. Finalizing pipeline.');
-        dispatchFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-    }
-  }, [dispatchFsmEvent, logDebug]);
-
   useEffect(() => {
-    const orchestratePipeline = async () => {
-      const state = fsmStateRef.current;
-      const currentState = state.current;
-  
-      if (currentState === GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH) {
-        dispatchFsmEvent({ type: 'DATA_FETCH_IN_PROGRESS' });
-        const result = await fetchStockDataAction({ ticker: state.variables.activeTicker! });
-        if (result.status === 'success' && result.data) {
-          const expectedTicker = state.variables.activeTicker!;
-          const receivedTicker = JSON.parse(result.data.stockSnapshotJson)?.ticker;
-          if (receivedTicker && receivedTicker !== expectedTicker) {
-            dispatchFsmEvent({ type: 'STALE_DATA_FROM_ACTION', payload: { error: 'Stale data detected', message: `Expected ${expectedTicker}, got ${receivedTicker}`, expectedTicker, foundTickerInSnapshot: receivedTicker, actionStateData: result.data }});
-          } else {
-            dispatchFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: result.data });
-          }
-        } else {
-          dispatchFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: { error: result.error, message: result.message, polygonApiRequestLogJson: result.data?.polygonApiRequestLogJson, polygonApiResponseLogJson: result.data?.polygonApiResponseLogJson } });
-        }
-      } else if (currentState === GlobalFsmState.DATA_FETCH_SUCCEEDED) {
-        dispatchFsmEvent({ type: GlobalFsmState.CALCULATING_AI_TA });
-        const result = await analyzeTaAction({ stockSnapshotJson: _stockSnapshotJson, ticker: state.variables.activeTicker! });
-        if (result.status === 'success' && result.data) {
-          dispatchFsmEvent({ type: 'AI_TA_SUCCESS', payload: result.data });
-        } else {
-          dispatchFsmEvent({ type: 'AI_TA_FAILURE', payload: { error: result.error, message: result.message, aiAnalyzedTaRequestJson: result.data?.aiAnalyzedTaRequestJson }});
-        }
-      } else if (currentState === GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED && state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction();
-      } else if (currentState === GlobalFsmState.GENERATING_KEY_TAKEAWAYS) {
-        const result = await performAiAnalysisAction({ ticker: state.variables.activeTicker!, stockSnapshotJson: _stockSnapshotJson, standardTasJson: _standardTasJson, aiAnalyzedTaJson: _aiAnalyzedTaJson, marketStatusJson: _marketStatusJson });
-        if (result.status === 'success' && result.data) {
-          dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: result.data });
-        } else {
-          dispatchFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: result.error, message: result.message, aiKeyTakeawaysRequestJson: result.data?.aiKeyTakeawaysRequestJson }});
-        }
-      } else if (currentState === GlobalFsmState.ANALYZING_OPTIONS) {
-        const result = await performAiOptionsAnalysisAction({ ticker: state.variables.activeTicker!, optionsChainJson: _optionsChainJson, stockSnapshotJson: _stockSnapshotJson });
-        if (result.status === 'success' && result.data) {
-          dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: result.data });
-        } else {
-          dispatchFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: result.error, message: result.message, aiOptionsAnalysisRequestJson: result.data?.aiOptionsAnalysisRequestJson }});
-        }
-      } else if ((currentState === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || currentState === GlobalFsmState.KEY_TAKEAWAYS_FAILED || currentState === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || currentState === GlobalFsmState.OPTIONS_ANALYSIS_FAILED) && state.variables.activePipelineProfile === 'standard') {
-        dispatchNextCustomAction();
-      } else if (currentState === GlobalFsmState.USER_INPUT_APP_DATA_CHAT_PENDING) {
-        if (state.variables.pendingAppDataChatSubmissionPayload) {
-          startTransition(() => {
-            appDataChatFormAction(state.variables.pendingAppDataChatSubmissionPayload!);
-          });
-        }
-      }
-    };
-    orchestratePipeline();
-  }, [globalFsmReducerState.current]);
+    // Phase 1 of Deterministic Overhaul (v3.4.1.1):
+    // The main FSM orchestrator is now "neutered". It no longer triggers any
+    // server actions or complex sequences. Its only job is to log state changes.
+    // The actual pipeline logic will be moved to deterministic async handlers
+    // triggered directly by user actions in MainTabContent.tsx.
+    
+    const state = fsmStateRef.current;
+    const currentState = state.current;
+    const previousState = state.previous;
+    const logPrefix = 'StockAnalysisContext:FSM_Orchestrator(Neutered)';
+    logDebug(logPrefix as LogSourceId, 'StateChange', `FSM transition occurred. From: ${previousState}, To: ${currentState}. No actions will be triggered by this effect.`);
+
+  }, [globalFsmReducerState.current, logDebug]); // Dependency array pruned to only react to state changes.
   
   // New debouncing effect for the custom analysis pipeline
   useEffect(() => {
