@@ -22,12 +22,14 @@ import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
 
-import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType, type GlobalFsmFlags } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
 
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
+import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
+import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 
 const appDataButtons: ExamplePromptButton[] = [
   { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
@@ -91,7 +93,7 @@ export function MainTabContent() {
       return;
     }
     
-    logDebug('MainTabContent' as LogSourceId, 'UserAction', `Analyze Stock CLICKED for ${ticker}. Beginning deterministic pipeline.`);
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_AnalyzeStock', `Deterministic pipeline STARTED for ${ticker}.`);
     
     // 1. Dispatch initial event to reset state and set active ticker
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
@@ -110,11 +112,9 @@ export function MainTabContent() {
         toast({ title: "Data Fetch Failed", description: stockDataResult.message || 'Could not fetch stock data.', variant: 'destructive' });
         return; // Stop the pipeline
       }
-      
-      // 3. Dispatch data success
       dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: stockDataResult.data });
       
-      // 4. Analyze TA indicators
+      // 3. Analyze TA indicators
       dispatchGlobalFsmEvent({ type: 'CALCULATING_AI_TA' });
       const taResult = await analyzeTaAction({ stockSnapshotJson: stockDataResult.data.stockSnapshotJson, ticker });
 
@@ -123,15 +123,51 @@ export function MainTabContent() {
         toast({ title: "AI TA Failed", description: taResult.message || 'Could not calculate AI TA.', variant: 'destructive' });
         return; // Stop the pipeline
       }
-
-      // 5. Dispatch TA success
       dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: taResult.data });
       
-      // Phase 2 ends here. The main pipeline will conclude, and other actions are manual.
-      logDebug('MainTabContent' as LogSourceId, 'PipelineSuccess', `Deterministic base pipeline for ${ticker} completed successfully.`);
+      // --- Phase 3: Deterministic Customizable Analysis Pipeline ---
+      logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3', 'Starting deterministic custom analysis pipeline.');
+      
+      const { isAiKeyTakeawaysSelected, isAiOptionsAnalysisSelected } = globalFsmFlags;
+
+      if (isAiKeyTakeawaysSelected) {
+          logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3_Step', 'AI Key Takeaways is selected. Executing...');
+          dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
+          const keyTakeawaysResult = await performAiAnalysisAction({
+              ticker, 
+              stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
+              standardTasJson: stockDataResult.data.standardTasJson,
+              aiAnalyzedTaJson: taResult.data.aiAnalyzedTaJson,
+              marketStatusJson: stockDataResult.data.marketStatusJson,
+          });
+          if (keyTakeawaysResult.status === 'success' && keyTakeawaysResult.data) {
+              dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: keyTakeawaysResult.data });
+          } else {
+              dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
+              toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message || 'Could not generate key takeaways.', variant: 'destructive' });
+          }
+      }
+
+      if (isAiOptionsAnalysisSelected) {
+          logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3_Step', 'AI Options Analysis is selected. Executing...');
+          dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
+          const optionsAnalysisResult = await performAiOptionsAnalysisAction({
+              ticker,
+              stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
+              optionsChainJson: stockDataResult.data.optionsChainJson,
+          });
+          if (optionsAnalysisResult.status === 'success' && optionsAnalysisResult.data) {
+              dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: optionsAnalysisResult.data });
+          } else {
+              dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
+              toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message || 'Could not generate options analysis.', variant: 'destructive' });
+          }
+      }
+
+      logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3_Complete', 'Custom analysis steps finished. Finalizing pipeline.');
+      dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
 
     } catch (error: any) {
-      // Catch-all for network errors etc. during the async handlers
       const errorMessage = error.message || 'A critical error occurred.';
       dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: { error: errorMessage, message: 'Pipeline failed unexpectedly.' } });
       toast({ title: "Pipeline Error", description: errorMessage, variant: 'destructive' });
@@ -163,7 +199,7 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
   };
 
-  const analyzeButtonLoading = [GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA].includes(globalFsmStateFromContext);
+  const analyzeButtonLoading = [GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA, GlobalFsmState.GENERATING_KEY_TAKEAWAYS, GlobalFsmState.ANALYZING_OPTIONS].includes(globalFsmStateFromContext);
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
 
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;

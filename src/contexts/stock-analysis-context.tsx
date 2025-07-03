@@ -33,7 +33,6 @@ export enum GlobalFsmState {
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
 
   PIPELINE_AUTOMATED_COMPLETE = 'PIPELINE_AUTOMATED_COMPLETE',
-  PIPELINE_PAUSED = 'PIPELINE_PAUSED',
 
   GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
   KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
@@ -46,8 +45,6 @@ export enum GlobalFsmState {
   USER_INPUT_APP_DATA_CHAT_PENDING = 'USER_INPUT_APP_DATA_CHAT_PENDING',
   USER_INPUT_APP_DATA_CHAT_SUCCESS = 'USER_INPUT_APP_DATA_CHAT_SUCCESS',
   USER_INPUT_APP_DATA_CHAT_ERROR = 'USER_INPUT_APP_DATA_CHAT_ERROR',
-
-  // All automated chat states are removed as chat is now manual only
   
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
@@ -144,10 +141,7 @@ export type FsmEvent =
   | { type: 'TOGGLE_DEBUG_CONSOLE_MENU'; payload: ToggleDebugConsoleMenuPayload }
   | { type: 'UPDATE_MANUAL_ACTION_FLAGS'; payload: UpdateManualActionFlagsPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
-  | { type: 'FINALIZE_AUTOMATED_PIPELINE' }
-  | { type: 'RESUME_PIPELINE' }
-  | { type: '_PIPELINE_STEP_SUCCEEDED'; payload: { stepName: string, nextState: GlobalFsmState } }
-  | { type: '_PIPELINE_STEP_FAILED'; payload: { stepName: string, error: any, nextState: GlobalFsmState } };
+  | { type: 'FINALIZE_AUTOMATED_PIPELINE' };
 
 export interface AppDataChatMessage {
   id: string;
@@ -616,7 +610,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
-        nextVariables.isInitialLoad = false;
+        nextVariables.isInitialLoad = true; // Set to true at the start of a new analysis
         nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `START_FULL_ANALYSIS for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
         break;
@@ -655,6 +649,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setStandardTasJson(fetchErrorJson); contextSetters.setOptionsChainJson(fetchErrorJson);
         contextSetters.setPolygonApiRequestLogJson(fetchErr.polygonApiRequestLogJson || fetchErrorJson); contextSetters.setPolygonApiResponseLogJson(fetchErr.polygonApiResponseLogJson || fetchErrorJson);
         handlePipelineError('DataFetch', fetchErrMsg, fetchErr.error);
+        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.DATA_FETCH_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To DATA_FETCH_FAILED. Error: ${fetchErrMsg}.`);
         break;
@@ -668,6 +663,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setPolygonApiRequestLogJson(staleErr.actionStateData?.polygonApiRequestLogJson || errorJsonWithDetails("Req log unavailable for stale data.", null));
         contextSetters.setPolygonApiResponseLogJson(staleErr.actionStateData?.polygonApiResponseLogJson || errorJsonWithDetails("Res log unavailable for stale data.", null));
         handlePipelineError('StaleData', staleErrMsg, staleErr.error);
+        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.ERROR_STALE_DATA;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ERROR_STALE_DATA. Error: ${staleErrMsg}.`);
         break;
@@ -686,6 +682,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const aiTaErrorJson = errorJsonWithDetails(aiTaErrMsg, aiTaErr.error);
         contextSetters.setAiAnalyzedTaRequestJson(aiTaErr.aiAnalyzedTaRequestJson || aiTaErrorJson); contextSetters.setAiAnalyzedTaJson(aiTaErrorJson);
         handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
+        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_FAILED. Error: ${aiTaErrMsg}.`);
         break;
@@ -706,8 +703,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'KEY_TAKEAWAYS_SUCCESS':
         contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson); contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
         nextFlags.isKeyTakeawaysDataAvailable = true;
-        if(state.variables.activePipelineProfile !== 'standard') { nextCurrentState = GlobalFsmState.IDLE; }
-        else { nextCurrentState = GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED; }
+        nextCurrentState = GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
         break;
       case 'KEY_TAKEAWAYS_FAILURE':
@@ -715,15 +711,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const ktErrorJson = errorJsonWithDetails(ktErrMsg, ktErr.error);
         contextSetters.setAiKeyTakeawaysRequestJson(ktErr.aiKeyTakeawaysRequestJson || ktErrorJson); contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
         handlePipelineError('KeyTakeaways', ktErrMsg, ktErr.error);
-        if(state.variables.activePipelineProfile !== 'standard') { nextCurrentState = GlobalFsmState.IDLE; }
-        else { nextCurrentState = GlobalFsmState.KEY_TAKEAWAYS_FAILED; }
+        nextCurrentState = GlobalFsmState.KEY_TAKEAWAYS_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}. Error: ${ktErrMsg}.`);
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
         contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson); contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
         nextFlags.isOptionsAnalysisDataAvailable = true;
-        if(state.variables.activePipelineProfile !== 'standard') { nextCurrentState = GlobalFsmState.IDLE; }
-        else { nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED; }
+        nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
         break;
       case 'OPTIONS_ANALYSIS_FAILURE':
@@ -731,8 +725,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const optErrorJson = errorJsonWithDetails(optErrMsg, optErr.error);
         contextSetters.setAiOptionsAnalysisRequestJson(optErr.aiOptionsAnalysisRequestJson || optErrorJson); contextSetters.setAiOptionsAnalysisJson(optErrorJson);
         handlePipelineError('OptionsAnalysis', optErrMsg, optErr.error);
-        if(state.variables.activePipelineProfile !== 'standard') { nextCurrentState = GlobalFsmState.IDLE; }
-        else { nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_FAILED; }
+        nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}. Error: ${optErrMsg}.`);
         break;
       
@@ -760,6 +753,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       
       case 'FINALIZE_AUTOMATED_PIPELINE':
+        nextVariables.isInitialLoad = false;
         nextCurrentState = GlobalFsmState.IDLE;
         nextVariables.activePipelineProfile = null;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after pipeline finalization.`);
@@ -776,14 +770,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isManualOptionsAnalysisActionPossible = event.payload.optPossible;
         logDebug(logPrefixFsmReducer as LogSourceId, 'FlagsUpdate_ManualActions', `KT possible: ${event.payload.ktPossible}, Opt possible: ${event.payload.optPossible}.`);
         nextCurrentState = previousState;
-        break;
-      case 'RESUME_PIPELINE':
-        if (previousState === GlobalFsmState.PIPELINE_PAUSED) {
-            nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Resuming pipeline from PAUSED to AI_TA_CALCULATION_SUCCEEDED.`);
-        } else {
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `Ignoring RESUME_PIPELINE, not in PAUSED state.`);
-        }
         break;
       default:
         logDebug(logPrefixFsmReducer as LogSourceId, 'UnhandledEvent', `Unhandled event type: ${(event as any).type} in state ${previousState}`);
@@ -835,34 +821,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [appDataChatActionState, isAppDataChatPending, dispatchFsmEvent, logDebug]);
   
   useEffect(() => {
-    // Phase 1 of Deterministic Overhaul (v3.4.1.1):
-    // The main FSM orchestrator is now "neutered". It no longer triggers any
-    // server actions or complex sequences. Its only job is to log state changes.
-    // The actual pipeline logic will be moved to deterministic async handlers
-    // triggered directly by user actions in MainTabContent.tsx.
-    
     const state = fsmStateRef.current;
     const currentState = state.current;
-    const previousState = state.previous;
     const logPrefix = 'StockAnalysisContext:FSM_Orchestrator(Neutered)';
-    logDebug(logPrefix as LogSourceId, 'StateChange', `FSM transition occurred. From: ${previousState}, To: ${currentState}. No actions will be triggered by this effect.`);
+    logDebug(logPrefix as LogSourceId, 'StateChange', `FSM transition occurred. From: ${state.previous}, To: ${currentState}. No actions will be triggered by this effect.`);
 
-  }, [globalFsmReducerState.current, logDebug]); // Dependency array pruned to only react to state changes.
+  }, [globalFsmReducerState.current, logDebug]);
   
-  // New debouncing effect for the custom analysis pipeline
-  useEffect(() => {
-    const logPrefix = 'StockAnalysisContext:PipelinePauseEffect';
-    if (globalFsmReducerState.current === GlobalFsmState.PIPELINE_PAUSED) {
-        logDebug(logPrefix as LogSourceId, 'PauseTriggered', `Pipeline paused. Will resume in 50ms.`);
-        const timer = setTimeout(() => {
-            logDebug(logPrefix as LogSourceId, 'ResumeDispatch', `Resuming pipeline by dispatching RESUME_PIPELINE.`);
-            dispatchFsmEvent({ type: 'RESUME_PIPELINE' });
-        }, 50);
-
-        return () => clearTimeout(timer);
-    }
-  }, [globalFsmReducerState.current, dispatchFsmEvent, logDebug]);
-
   useEffect(() => {
     const logPrefix = 'StockAnalysisContext:ManualActionFlagEffect';
     const state = fsmStateRef.current;
@@ -1024,7 +989,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
                 if (!allowLog && String(finalMessages[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; }
                 if (!allowLog) return;
             }
-            // De-duplication logic moved to global-log-buffer to fix stale closure issue
             addEntryToGlobalLogBuffer({ type: 'debug', messages: finalMessages, source: sourceForBuffer });
         } else {
             if (!_logSourceConfig['NATIVE_CONSOLE']) return;
