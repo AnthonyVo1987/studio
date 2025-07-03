@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
+import React, { useState, useEffect, type FormEvent, useCallback } from "react";
+import { useActionState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,18 +19,19 @@ import { OptionsChainTable } from "@/components/options-chain-table";
 import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-display";
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
-import { ChatbotFsmProvider } from "@/contexts/chatbot-fsm-context";
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
-
-import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType, type GlobalFsmFlags } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, GlobalFsmState, type LogSourceId, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
 
+// Server Actions
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
+import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs } from '@/actions/app-data-chat-action';
+import { sdkWebSearchChatAction, type SdkWebSearchChatActionState, type SdkWebSearchChatActionInputs } from '@/actions/sdk-web-search-chat-action';
 
 const appDataButtons: ExamplePromptButton[] = [
   { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
@@ -49,18 +51,102 @@ export function MainTabContent() {
   const {
     marketStatusJson: contextMarketStatusJson, stockSnapshotJson: contextStockSnapshotJson,
     standardTasJson: contextStandardTasJson, optionsChainJson: contextOptionsChainJson,
-    aiAnalyzedTaJson: contextAiAnalyzedTaJson, aiKeyTakeawaysJson: contextAiKeyTakeawaysJson,
-    aiOptionsAnalysisJson: contextAiOptionsAnalysisJson, logDebug,
+    aiAnalyzedTaJson: contextAiAnalyzedTaJson, logDebug,
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
-    dispatchFsmEvent: dispatchGlobalFsmEvent, 
-    appDataChatHistory: contextAppDataChatHistory, clearAppDataChatHistory,
-    webSearchChatHistory: contextWebSearchChatHistory, clearWebSearchChatHistory, addWebSearchChatMessage,
+    dispatchFsmEvent: dispatchGlobalFsmEvent,
+    // App Data Chat
+    appDataChatHistory: contextAppDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
+    setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson,
+    setStockTraderTakeawaysRequestJson, setStockTraderTakeawaysResponseJson,
+    setOptionsTraderTakeawaysRequestJson, setOptionsTraderTakeawaysResponseJson,
+    setHolisticTakeawaysRequestJson, setHolisticTakeawaysResponseJson,
+    // Web Search Chat
+    webSearchChatHistory: contextWebSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
     setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson,
     setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson,
     setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson,
     setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson,
   } = useStockAnalysis();
 
+  const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
+  const [webSearchUserInput, setWebSearchUserInput] = useState('');
+
+  const [appDataChatState, appDataChatFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
+  const [webSearchChatState, webSearchChatFormAction, isWebSearchChatPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
+
+  // Effect to handle App Data Chat results
+  useEffect(() => {
+    if (appDataChatState.status === 'idle' || isAppDataChatPending) return;
+    const { data, error, message, status } = appDataChatState;
+    const requestJson = data?.chatbotRequestJson || '{}';
+    const responseJson = data?.chatbotResponseJson || '{}';
+    const promptName = JSON.parse(requestJson)?.promptName;
+    
+    switch (promptName) {
+      case 'stock-trader-takeaways': setStockTraderTakeawaysRequestJson(requestJson); setStockTraderTakeawaysResponseJson(responseJson); break;
+      case 'options-trader-takeaways': setOptionsTraderTakeawaysRequestJson(requestJson); setOptionsTraderTakeawaysResponseJson(responseJson); break;
+      case 'holistic-takeaways': setHolisticTakeawaysRequestJson(requestJson); setHolisticTakeawaysResponseJson(responseJson); break;
+      default: setUserInputAppDataChatRequestJson(requestJson); setUserInputAppDataChatResponseJson(responseJson); break;
+    }
+    
+    if (status === 'success') {
+      const response = JSON.parse(responseJson)?.response;
+      addAppDataChatMessage({ role: 'model', content: response || 'No response text found.' });
+    } else if (status === 'error') {
+      addAppDataChatMessage({ role: 'model', content: `Error: ${message || error}` });
+    }
+  }, [appDataChatState, isAppDataChatPending]);
+
+  // Effect to handle Web Search Chat results
+  useEffect(() => {
+    if (webSearchChatState.status === 'idle' || isWebSearchChatPending) return;
+    const { data, error, message, status } = webSearchChatState;
+    const requestJson = data?.requestJson || '{}';
+    const responseJson = data?.responseJson || '{}';
+    const promptName = JSON.parse(requestJson)?.promptName;
+
+    switch (promptName) {
+      case 'support-resistance-web-search': setRawSupportResistanceWebSearchRequestJson(requestJson); setRawSupportResistanceWebSearchResponseJson(responseJson); break;
+      case 'technical-analysis-web-search': setRawTaWebSearchRequestJson(requestJson); setRawTaWebSearchResponseJson(responseJson); break;
+      case 'options-flow-web-search': setRawOptionsWebSearchRequestJson(requestJson); setRawOptionsWebSearchResponseJson(responseJson); break;
+      default: setUserInputWebSearchChatRequestJson(requestJson); setUserInputWebSearchChatResponseJson(responseJson); break;
+    }
+
+    if (status === 'success') {
+      const response = JSON.parse(responseJson)?.response;
+      addWebSearchChatMessage({ role: 'model', content: response || 'No response text found.' });
+    } else if (status === 'error') {
+      addWebSearchChatMessage({ role: 'model', content: `Error: ${message || error}` });
+    }
+  }, [webSearchChatState, isWebSearchChatPending]);
+
+  const appDataFormActionWrapper = (payload: { userInput?: string; promptName?: string }) => {
+    if (isAppDataChatPending) return;
+    const userInput = payload.userInput || payload.promptName || '';
+    addAppDataChatMessage({ role: 'user', content: userInput });
+    appDataChatFormAction({
+      ticker: globalFsmVariables.activeTicker || '',
+      stockSnapshotJson: contextStockSnapshotJson,
+      aiKeyTakeawaysJson: useStockAnalysis().aiKeyTakeawaysJson,
+      aiAnalyzedTaJson: contextAiAnalyzedTaJson,
+      aiOptionsAnalysisJson: useStockAnalysis().aiOptionsAnalysisJson,
+      chatHistory: contextAppDataChatHistory,
+      userInput: userInput,
+      promptName: payload.promptName,
+    });
+  };
+
+  const webSearchFormActionWrapper = (payload: { userInput?: string; promptName?: string }) => {
+    if (isWebSearchChatPending) return;
+    const userInput = payload.userInput || payload.promptName || '';
+    addWebSearchChatMessage({ role: 'user', content: userInput });
+    webSearchChatFormAction({
+        ticker: globalFsmVariables.activeTicker || '',
+        promptName: payload.promptName,
+        userInput: payload.userInput,
+    });
+  };
+  
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,15 +154,13 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: newTicker } });
   };
 
-  const handleAnalyzeStockSubmit = async (e?: FormEvent<HTMLFormElement>) => {
+  const handleAnalyzeStockSubmit = useCallback(async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     const ticker = globalUserInputTicker.trim();
     if (!ticker) {
       toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
       return;
     }
-    
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_AnalyzeStock', `Deterministic pipeline STARTED for ${ticker}.`);
     
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
 
@@ -85,11 +169,7 @@ export function MainTabContent() {
       const stockDataResult = await fetchStockDataAction({ ticker });
 
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
-        if (stockDataResult.error?.includes('CRITICAL STALE DATA')) {
-          dispatchGlobalFsmEvent({ type: 'STALE_DATA_FROM_ACTION', payload: { error: stockDataResult.error, message: stockDataResult.message || 'Stale data detected', expectedTicker: ticker, actionStateData: stockDataResult.data } });
-        } else {
-          dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: stockDataResult });
-        }
+        dispatchGlobalFsmEvent({ type: stockDataResult.error?.includes('CRITICAL STALE DATA') ? 'STALE_DATA_FROM_ACTION' : 'FETCH_DATA_FAILURE', payload: stockDataResult });
         toast({ title: "Data Fetch Failed", description: stockDataResult.message || 'Could not fetch stock data.', variant: 'destructive' });
         return; 
       }
@@ -105,12 +185,9 @@ export function MainTabContent() {
       }
       dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: taResult.data });
       
-      logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3', 'Starting deterministic custom analysis pipeline.');
-      
       const { isAiKeyTakeawaysSelected, isAiOptionsAnalysisSelected } = globalFsmFlags;
 
       if (isAiKeyTakeawaysSelected) {
-          logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3_Step', 'AI Key Takeaways is selected. Executing...');
           dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
           const keyTakeawaysResult = await performAiAnalysisAction({
               ticker, 
@@ -119,31 +196,21 @@ export function MainTabContent() {
               aiAnalyzedTaJson: taResult.data.aiAnalyzedTaJson,
               marketStatusJson: stockDataResult.data.marketStatusJson,
           });
-          if (keyTakeawaysResult.status === 'success' && keyTakeawaysResult.data) {
-              dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: keyTakeawaysResult.data });
-          } else {
-              dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
-              toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message || 'Could not generate key takeaways.', variant: 'destructive' });
-          }
+          dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
+          if(keyTakeawaysResult.status !== 'success') toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message || 'Could not generate key takeaways.', variant: 'destructive' });
       }
 
       if (isAiOptionsAnalysisSelected) {
-          logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3_Step', 'AI Options Analysis is selected. Executing...');
           dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
           const optionsAnalysisResult = await performAiOptionsAnalysisAction({
               ticker,
               stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
               optionsChainJson: stockDataResult.data.optionsChainJson,
           });
-          if (optionsAnalysisResult.status === 'success' && optionsAnalysisResult.data) {
-              dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: optionsAnalysisResult.data });
-          } else {
-              dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
-              toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message || 'Could not generate options analysis.', variant: 'destructive' });
-          }
+          dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
+          if(optionsAnalysisResult.status !== 'success') toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message || 'Could not generate options analysis.', variant: 'destructive' });
       }
 
-      logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3_Complete', 'Custom analysis steps finished. Finalizing pipeline.');
       dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
 
     } catch (error: any) {
@@ -151,68 +218,44 @@ export function MainTabContent() {
       dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: { error: errorMessage, message: 'Pipeline failed unexpectedly.' } });
       toast({ title: "Pipeline Error", description: errorMessage, variant: 'destructive' });
     }
-  };
+  }, [globalUserInputTicker, globalFsmFlags, dispatchGlobalFsmEvent, toast]);
 
 
-  const handleGenerateKeyTakeaways = async () => {
+  const handleGenerateKeyTakeaways = useCallback(async () => {
     const ticker = globalFsmVariables.activeTicker;
-    if (!ticker) {
-      toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
-      return;
-    }
+    if (!ticker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); return; }
     
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', `Deterministic on-demand action STARTED for ${ticker}.`);
     dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
-
     try {
       const keyTakeawaysResult = await performAiAnalysisAction({
-          ticker, 
-          stockSnapshotJson: contextStockSnapshotJson,
-          standardTasJson: contextStandardTasJson,
-          aiAnalyzedTaJson: contextAiAnalyzedTaJson,
+          ticker, stockSnapshotJson: contextStockSnapshotJson,
+          standardTasJson: contextStandardTasJson, aiAnalyzedTaJson: contextAiAnalyzedTaJson,
           marketStatusJson: contextMarketStatusJson,
       });
-
-      if (keyTakeawaysResult.status === 'success' && keyTakeawaysResult.data) {
-          dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: keyTakeawaysResult.data });
-      } else {
-          dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
-          toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message || 'Could not generate key takeaways.', variant: 'destructive' });
-      }
+      dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
+      if(keyTakeawaysResult.status !== 'success') toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message, variant: 'destructive' });
     } catch (error: any) {
         dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
         toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
     }
-  };
+  }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, dispatchGlobalFsmEvent, toast]);
 
-  const handleGenerateOptionsAnalysis = async () => {
+  const handleGenerateOptionsAnalysis = useCallback(async () => {
     const ticker = globalFsmVariables.activeTicker;
-    if (!ticker) {
-      toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
-      return;
-    }
+    if (!ticker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); return; }
 
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', `Deterministic on-demand action STARTED for ${ticker}.`);
     dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
-
     try {
       const optionsAnalysisResult = await performAiOptionsAnalysisAction({
-          ticker,
-          stockSnapshotJson: contextStockSnapshotJson,
-          optionsChainJson: contextOptionsChainJson,
+          ticker, stockSnapshotJson: contextStockSnapshotJson, optionsChainJson: contextOptionsChainJson,
       });
-
-      if (optionsAnalysisResult.status === 'success' && optionsAnalysisResult.data) {
-          dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: optionsAnalysisResult.data });
-      } else {
-          dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
-          toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message || 'Could not generate options analysis.', variant: 'destructive' });
-      }
+      dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
+      if(optionsAnalysisResult.status !== 'success') toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message, variant: 'destructive' });
     } catch (error: any) {
         dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
         toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
     }
-  };
+  }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast]);
 
   const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
@@ -220,14 +263,10 @@ export function MainTabContent() {
 
   const analyzeButtonLoading = [GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH, GlobalFsmState.DATA_FETCH_IN_PROGRESS, GlobalFsmState.CALCULATING_AI_TA, GlobalFsmState.GENERATING_KEY_TAKEAWAYS, GlobalFsmState.ANALYZING_OPTIONS].includes(globalFsmStateFromContext);
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
-
   const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
   const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
   
-  const isAppDataChatFsmPending = globalFsmStateFromContext === GlobalFsmState.USER_INPUT_APP_DATA_CHAT_PENDING;
-  
-  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading || isAppDataChatFsmPending;
-
+  const isAnyAnalysisInProgress = analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading;
 
   return (
     <Card>
@@ -248,7 +287,7 @@ export function MainTabContent() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAppDataChatFsmPending}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAppDataChatPending || isWebSearchChatPending}>
               {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock
             </Button>
           </div>
@@ -297,57 +336,32 @@ export function MainTabContent() {
           <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <ChatbotFsmProvider 
-              chatType='app-data'
-              dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
-              currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
-              stockSnapshotJson={contextStockSnapshotJson || '{}'} 
-              aiKeyTakeawaysJson={contextAiKeyTakeawaysJson || '{}'} 
-              aiAnalyzedTaJson={contextAiAnalyzedTaJson || '{}'} 
-              aiOptionsAnalysisJson={contextAiOptionsAnalysisJson || '{}'} 
-              currentGlobalChatHistory={contextAppDataChatHistory} 
+            <Chatbot
+              title="App Data AI Chat"
+              description={`Analyzes loaded app data for ${globalFsmVariables.activeTicker || "the stock"}. Cannot access web.`}
+              chatHistory={contextAppDataChatHistory}
+              clearChatHistory={clearAppDataChatHistory}
+              isProcessing={isAnyAnalysisInProgress || isAppDataChatPending}
+              exampleButtons={appDataButtons}
+              currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
               logDebug={logDebug}
-            >
-              <Chatbot
-                title="App Data AI Chat"
-                description={`Analyzes loaded app data for ${globalFsmVariables.activeTicker || "the stock"}. Cannot access web.`}
-                chatHistory={contextAppDataChatHistory}
-                clearChatHistory={clearAppDataChatHistory}
-                fsmState={globalFsmStateFromContext}
-                isProcessing={isAnyAnalysisInProgress}
-                exampleButtons={appDataButtons}
-                currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
-                logDebug={logDebug}
-              />
-            </ChatbotFsmProvider>
-            <ChatbotFsmProvider 
-              chatType='web-search'
-              dispatchGlobalFsmEvent={dispatchGlobalFsmEvent} 
-              currentTicker={globalFsmVariables.activeTicker || globalUserInputTicker} 
-              currentGlobalChatHistory={contextWebSearchChatHistory}
-              addWebSearchChatMessage={addWebSearchChatMessage}
-              setUserInputWebSearchChatRequestJson={setUserInputWebSearchChatRequestJson}
-              setUserInputWebSearchChatResponseJson={setUserInputWebSearchChatResponseJson}
-              setRawTaWebSearchRequestJson={setRawTaWebSearchRequestJson}
-              setRawTaWebSearchResponseJson={setRawTaWebSearchResponseJson}
-              setRawOptionsWebSearchRequestJson={setRawOptionsWebSearchRequestJson}
-              setRawOptionsWebSearchResponseJson={setRawOptionsWebSearchResponseJson}
-              setRawSupportResistanceWebSearchRequestJson={setRawSupportResistanceWebSearchRequestJson}
-              setRawSupportResistanceWebSearchResponseJson={setRawSupportResistanceWebSearchResponseJson}
+              userInput={appDataChatUserInput}
+              setUserInput={setAppDataChatUserInput}
+              formAction={appDataFormActionWrapper}
+            />
+            <Chatbot
+              title="Web Search AI Chat"
+              description={`Ask AI anything with Google Search Support...`}
+              chatHistory={contextWebSearchChatHistory}
+              clearChatHistory={clearWebSearchChatHistory}
+              isProcessing={isAnyAnalysisInProgress || isWebSearchChatPending}
+              exampleButtons={webSearchButtons}
+              currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
               logDebug={logDebug}
-            >
-              <Chatbot
-                title="Web Search AI Chat"
-                description={`Ask AI anything with Google Search Support...`}
-                chatHistory={contextWebSearchChatHistory}
-                clearChatHistory={clearWebSearchChatHistory}
-                fsmState={globalFsmStateFromContext}
-                isProcessing={isAnyAnalysisInProgress}
-                exampleButtons={webSearchButtons}
-                currentTickerForDisplay={globalFsmVariables.activeTicker || globalUserInputTicker}
-                logDebug={logDebug}
-              />
-            </ChatbotFsmProvider>
+              userInput={webSearchUserInput}
+              setUserInput={setWebSearchUserInput}
+              formAction={webSearchFormActionWrapper}
+            />
           </div>
           <Separator />
           <MarketStatusDisplay />

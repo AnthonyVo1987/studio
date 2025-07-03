@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useEffect, useRef, useCallback } from 'react';
-import type { AppDataChatMessage, GlobalFsmState } from '@/contexts/stock-analysis-context';
+import React, { useEffect, useRef } from 'react';
+import type { AppDataChatMessage } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { copyToClipboard, downloadJson } from '@/lib/export-utils';
-import { useChatbotFsm, type ChatbotFsmEvent } from '@/contexts/chatbot-fsm-context'; 
 
 export interface ExamplePromptButton {
   title: string;
@@ -30,11 +29,14 @@ interface ChatbotProps {
   description: string;
   chatHistory: AppDataChatMessage[];
   clearChatHistory: () => void;
-  fsmState: GlobalFsmState; 
   isProcessing: boolean;
   exampleButtons: ExamplePromptButton[];
   currentTickerForDisplay: string;
   logDebug: (source: string, category: string, ...messages: any[]) => void;
+  // New props for deterministic action handling
+  userInput: string;
+  setUserInput: (input: string) => void;
+  formAction: (payload: any) => void; 
 }
 
 export function Chatbot({
@@ -42,18 +44,14 @@ export function Chatbot({
   description,
   chatHistory,
   clearChatHistory,
-  fsmState,
   isProcessing,
   exampleButtons,
   currentTickerForDisplay,
   logDebug,
+  userInput,
+  setUserInput,
+  formAction,
 }: ChatbotProps) {
-  const {
-    fsmState: chatbotFsmState, 
-    userInput: fsmUserInput,
-    dispatchChatbotFsmEvent,
-  } = useChatbotFsm();
-
   const { toast } = useToast();
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
   const viewportRef = useRef<HTMLDivElement>(null); 
@@ -64,24 +62,20 @@ export function Chatbot({
     }
   }, [chatHistory]);
 
-  const handleFormSubmit = useCallback((e?: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    logDebug(logSourceId, 'UserAction_Submit', `GlobalFSM: ${fsmState}, FSM UserInput: "${fsmUserInput.substring(0,20)}"`);
-    if (!fsmUserInput.trim() || isProcessing) {
-      logDebug(logSourceId, 'UserAction_Submit_Prevented', 'Input empty or analysis/chat is globally in progress.');
-      return;
-    }
-    const event: ChatbotFsmEvent = { type: 'SUBMIT_MESSAGE_REQUESTED', payload: { userInput: fsmUserInput, promptName: title.toLowerCase().includes('web') ? 'web-search-chatbot' : 'app-data-chatbot' } };
-    dispatchChatbotFsmEvent(event); 
-  }, [fsmUserInput, fsmState, dispatchChatbotFsmEvent, logDebug, isProcessing, logSourceId, title]);
+    if (!userInput.trim() || isProcessing) return;
+    logDebug(logSourceId, 'UserAction_Submit', `Submitting user input: "${userInput.substring(0,20)}"`);
+    formAction({ userInput });
+    setUserInput(''); // Clear input after submission
+  };
 
   const handleExamplePromptClick = (promptName: string) => {
     if (isProcessing) return;
-    logDebug(logSourceId, 'UserAction_ExamplePrompt', `PromptName: "${promptName}". Dispatching SUBMIT_MESSAGE_REQUESTED.`);
-    const event: ChatbotFsmEvent = { type: 'SUBMIT_MESSAGE_REQUESTED', payload: { userInput: promptName, promptName: promptName } };
-    dispatchChatbotFsmEvent(event);
+    logDebug(logSourceId, 'UserAction_ExamplePrompt', `Submitting example prompt: "${promptName}".`);
+    formAction({ promptName });
   };
-
+  
   const handleCopyChat = async () => {
     if (chatHistory.length === 0) { logDebug(logSourceId, 'UserAction_CopyChat', 'No history to copy.'); return; }
     const success = await copyToClipboard(JSON.stringify(chatHistory, null, 2));
@@ -171,8 +165,8 @@ export function Chatbot({
             <div className="flex flex-wrap gap-2">{renderPromptButtons(exampleButtons)}</div>
         </div>
         <form onSubmit={handleFormSubmit} className="w-full flex items-center space-x-2">
-          <Input value={fsmUserInput} onChange={(e) => dispatchChatbotFsmEvent({ type: 'USER_INPUT_CHANGED', payload: e.target.value })} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}} />
-          <Button type="submit" disabled={isProcessing || !fsmUserInput.trim()}>
+          <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}} />
+          <Button type="submit" disabled={isProcessing || !userInput.trim()}>
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
