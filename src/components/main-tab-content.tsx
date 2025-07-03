@@ -62,23 +62,6 @@ export function MainTabContent() {
   } = useStockAnalysis();
 
   const { userInputTicker: globalUserInputTicker } = globalFsmVariables;
-  const globalDispatchGuardRef = useRef<Record<string, boolean>>({});
-
-  useEffect(() => {
-    const logPrefixEff = 'MainTabContent:GlobalDispatchGuardEffect';
-    logDebug(logPrefixEff as LogSourceId, 'RenderState', `GlobalFSM: ${globalFsmStateFromContext}, ActiveTicker: ${globalFsmVariables.activeTicker}, GuardRef: ${JSON.stringify(globalDispatchGuardRef.current)}`);
-    const activeTickerForGuardReset = globalFsmVariables.activeTicker;
-    const guardKeyForManualKT = activeTickerForGuardReset ? `TRIGGER_MANUAL_KEY_TAKEAWAYS_FOR_${activeTickerForGuardReset}` : null;
-    if (guardKeyForManualKT && globalDispatchGuardRef.current[guardKeyForManualKT] && (globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.KEY_TAKEAWAYS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)) {
-      logDebug(logPrefixEff as LogSourceId, 'GuardReset', `Resetting guard for KT: ${guardKeyForManualKT}. FSM state: ${globalFsmStateFromContext}`);
-      globalDispatchGuardRef.current[guardKeyForManualKT] = false;
-    }
-    const guardKeyForManualOpt = activeTickerForGuardReset ? `TRIGGER_MANUAL_OPTIONS_ANALYSIS_FOR_${activeTickerForGuardReset}` : null;
-    if (guardKeyForManualOpt && globalDispatchGuardRef.current[guardKeyForManualOpt] && (globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED || globalFsmStateFromContext === GlobalFsmState.OPTIONS_ANALYSIS_FAILED || globalFsmStateFromContext === GlobalFsmState.IDLE)) {
-      logDebug(logPrefixEff as LogSourceId, 'GuardReset', `Resetting guard for Options: ${guardKeyForManualOpt}. FSM state: ${globalFsmStateFromContext}`);
-      globalDispatchGuardRef.current[guardKeyForManualOpt] = false;
-    }
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, logDebug]);
 
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTicker = e.target.value.toUpperCase();
@@ -95,11 +78,9 @@ export function MainTabContent() {
     
     logDebug('MainTabContent' as LogSourceId, 'UserAction_AnalyzeStock', `Deterministic pipeline STARTED for ${ticker}.`);
     
-    // 1. Dispatch initial event to reset state and set active ticker
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
 
     try {
-      // 2. Fetch stock data
       dispatchGlobalFsmEvent({ type: 'DATA_FETCH_IN_PROGRESS' });
       const stockDataResult = await fetchStockDataAction({ ticker });
 
@@ -110,22 +91,20 @@ export function MainTabContent() {
           dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: stockDataResult });
         }
         toast({ title: "Data Fetch Failed", description: stockDataResult.message || 'Could not fetch stock data.', variant: 'destructive' });
-        return; // Stop the pipeline
+        return; 
       }
       dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: stockDataResult.data });
       
-      // 3. Analyze TA indicators
       dispatchGlobalFsmEvent({ type: 'CALCULATING_AI_TA' });
       const taResult = await analyzeTaAction({ stockSnapshotJson: stockDataResult.data.stockSnapshotJson, ticker });
 
       if (taResult.status !== 'success' || !taResult.data) {
         dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: taResult });
         toast({ title: "AI TA Failed", description: taResult.message || 'Could not calculate AI TA.', variant: 'destructive' });
-        return; // Stop the pipeline
+        return; 
       }
       dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: taResult.data });
       
-      // --- Phase 3: Deterministic Customizable Analysis Pipeline ---
       logDebug('MainTabContent' as LogSourceId, 'PipelinePhase3', 'Starting deterministic custom analysis pipeline.');
       
       const { isAiKeyTakeawaysSelected, isAiOptionsAnalysisSelected } = globalFsmFlags;
@@ -175,24 +154,64 @@ export function MainTabContent() {
   };
 
 
-  const handleGenerateKeyTakeaways = () => {
-    const currentActiveTicker = globalFsmVariables.activeTicker;
-    if (!currentActiveTicker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', 'Prevented: No active ticker.'); return; }
-    const guardKey = `TRIGGER_MANUAL_KEY_TAKEAWAYS_FOR_${currentActiveTicker}`;
-    if (globalDispatchGuardRef.current[guardKey]) { logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', `Blocked by dispatch guard for ${currentActiveTicker}.`); toast({ title: "Processing...", description: "Key Takeaways generation already in progress or recently completed."}); return; }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_KEY_TAKEAWAYS to global FSM.`);
-    globalDispatchGuardRef.current[guardKey] = true;
-    dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS', payload: { ticker: currentActiveTicker } });
+  const handleGenerateKeyTakeaways = async () => {
+    const ticker = globalFsmVariables.activeTicker;
+    if (!ticker) {
+      toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
+      return;
+    }
+    
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenKT', `Deterministic on-demand action STARTED for ${ticker}.`);
+    dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
+
+    try {
+      const keyTakeawaysResult = await performAiAnalysisAction({
+          ticker, 
+          stockSnapshotJson: contextStockSnapshotJson,
+          standardTasJson: contextStandardTasJson,
+          aiAnalyzedTaJson: contextAiAnalyzedTaJson,
+          marketStatusJson: contextMarketStatusJson,
+      });
+
+      if (keyTakeawaysResult.status === 'success' && keyTakeawaysResult.data) {
+          dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: keyTakeawaysResult.data });
+      } else {
+          dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
+          toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message || 'Could not generate key takeaways.', variant: 'destructive' });
+      }
+    } catch (error: any) {
+        dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
+        toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
+    }
   };
 
-  const handleGenerateOptionsAnalysis = () => {
-    const currentActiveTicker = globalFsmVariables.activeTicker;
-    if (!currentActiveTicker) { toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" }); logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', 'Prevented: No active ticker.'); return; }
-    const guardKey = `TRIGGER_MANUAL_OPTIONS_ANALYSIS_FOR_${currentActiveTicker}`;
-    if (globalDispatchGuardRef.current[guardKey]) { logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', `Blocked by dispatch guard for ${currentActiveTicker}.`); toast({ title: "Processing...", description: "Options Analysis generation already in progress or recently completed."}); return; }
-    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', `Button clicked for ${currentActiveTicker}. Dispatching TRIGGER_MANUAL_OPTIONS_ANALYSIS to global FSM.`);
-    globalDispatchGuardRef.current[guardKey] = true;
-    dispatchGlobalFsmEvent({ type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS', payload: { ticker: currentActiveTicker } });
+  const handleGenerateOptionsAnalysis = async () => {
+    const ticker = globalFsmVariables.activeTicker;
+    if (!ticker) {
+      toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
+      return;
+    }
+
+    logDebug('MainTabContent' as LogSourceId, 'UserAction_GenOpt', `Deterministic on-demand action STARTED for ${ticker}.`);
+    dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
+
+    try {
+      const optionsAnalysisResult = await performAiOptionsAnalysisAction({
+          ticker,
+          stockSnapshotJson: contextStockSnapshotJson,
+          optionsChainJson: contextOptionsChainJson,
+      });
+
+      if (optionsAnalysisResult.status === 'success' && optionsAnalysisResult.data) {
+          dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: optionsAnalysisResult.data });
+      } else {
+          dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
+          toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message || 'Could not generate options analysis.', variant: 'destructive' });
+      }
+    } catch (error: any) {
+        dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
+        toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
+    }
   };
 
   const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {

@@ -129,10 +129,10 @@ export type FsmEvent =
   | { type: 'CALCULATING_AI_TA' }
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
   | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
-  | { type: 'TRIGGER_MANUAL_KEY_TAKEAWAYS'; payload: { ticker: string } }
-  | { type: 'TRIGGER_MANUAL_OPTIONS_ANALYSIS'; payload: { ticker: string } }
+  | { type: 'GENERATING_KEY_TAKEAWAYS' }
   | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: AiKeyTakeawaysSuccessPayload }
   | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: AiKeyTakeawaysFailurePayload }
+  | { type: 'ANALYZING_OPTIONS' }
   | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: AiOptionsAnalysisSuccessPayload }
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload }
   | { type: 'SUBMIT_USER_INPUT_APP_DATA_CHAT'; payload: AppDataChatActionInputs }
@@ -610,7 +610,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
-        nextVariables.isInitialLoad = true; // Set to true at the start of a new analysis
+        nextVariables.isInitialLoad = true; 
         nextCurrentState = GlobalFsmState.PIPELINE_REQUESTED_DATA_FETCH;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `START_FULL_ANALYSIS for ${event.payload.ticker}. To PIPELINE_REQUESTED_DATA_FETCH.`);
         break;
@@ -686,20 +686,18 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_FAILED. Error: ${aiTaErrMsg}.`);
         break;
-      case 'TRIGGER_MANUAL_KEY_TAKEAWAYS':
-        if (state.current !== GlobalFsmState.GENERATING_KEY_TAKEAWAYS) {
+      case 'GENERATING_KEY_TAKEAWAYS':
           contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
           contextSetters.setAiKeyTakeawaysJson(pendingJson);
           nextCurrentState = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
-        }
-        break;
-      case 'TRIGGER_MANUAL_OPTIONS_ANALYSIS':
-        if (state.current !== GlobalFsmState.ANALYZING_OPTIONS) {
+          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
+          break;
+      case 'ANALYZING_OPTIONS':
           contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
           contextSetters.setAiOptionsAnalysisJson(pendingJson);
           nextCurrentState = GlobalFsmState.ANALYZING_OPTIONS;
-        }
-        break;
+          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
+          break;
       case 'KEY_TAKEAWAYS_SUCCESS':
         contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson); contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
         nextFlags.isKeyTakeawaysDataAvailable = true;
@@ -821,10 +819,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [appDataChatActionState, isAppDataChatPending, dispatchFsmEvent, logDebug]);
   
   useEffect(() => {
-    const state = fsmStateRef.current;
-    const currentState = state.current;
     const logPrefix = 'StockAnalysisContext:FSM_Orchestrator(Neutered)';
-    logDebug(logPrefix as LogSourceId, 'StateChange', `FSM transition occurred. From: ${state.previous}, To: ${currentState}. No actions will be triggered by this effect.`);
+    logDebug(logPrefix as LogSourceId, 'StateChange', `FSM transition occurred. From: ${globalFsmReducerState.previous}, To: ${globalFsmReducerState.current}. No actions will be triggered by this effect.`);
 
   }, [globalFsmReducerState.current, logDebug]);
   
