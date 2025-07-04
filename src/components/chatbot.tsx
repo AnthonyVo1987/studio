@@ -42,7 +42,6 @@ interface ChatbotProps {
     aiKeyTakeawaysJson: string;
     aiAnalyzedTaJson: string;
     aiOptionsAnalysisJson: string;
-    chatHistory: string; // Already stringified
   };
 }
 
@@ -99,7 +98,7 @@ export function Chatbot({
         <input type="hidden" name="aiKeyTakeawaysJson" value={contextualData.aiKeyTakeawaysJson} />
         <input type="hidden" name="aiAnalyzedTaJson" value={contextualData.aiAnalyzedTaJson} />
         <input type="hidden" name="aiOptionsAnalysisJson" value={contextualData.aiOptionsAnalysisJson} />
-        <input type="hidden" name="chatHistory" value={contextualData.chatHistory} />
+        <input type="hidden" name="chatHistory" value={JSON.stringify(chatHistory)} />
       </>
     );
   };
@@ -185,7 +184,8 @@ export function Chatbot({
         </div>
         <form action={formAction} className="w-full flex items-center space-x-2">
           <HiddenContextInputs />
-          <Input name="userInput" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" />
+          <input type="hidden" name="userInput" value={userInput} />
+          <Input name="userInputDisplay" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" />
           <Button type="submit" disabled={isProcessing || !userInput.trim()}>
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
