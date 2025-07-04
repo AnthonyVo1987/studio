@@ -11,6 +11,7 @@ import {
 } from '@/ai/definition-loader';
 import {
   type SdkWebSearchChatActionState,
+  type SdkWebSearchChatActionInputs,
 } from '@/ai/schemas/sdk-web-search-chat-schemas';
 
 
@@ -25,11 +26,13 @@ const groundedModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite-p
 
 export async function sdkWebSearchChatAction(
   prevState: SdkWebSearchChatActionState,
-  formData: FormData
+  payload: SdkWebSearchChatActionInputs
 ): Promise<SdkWebSearchChatActionState> {
-  const ticker = (formData.get('ticker') as string) || '';
-  const promptName = formData.get('promptName') as string | undefined;
-  const userInputFromForm = (formData.get('userInput') as string) || '';
+  const {
+    ticker,
+    promptName,
+    userInput: userInputFromPayload
+  } = payload;
 
   const actionLogPrefix = `[ServerAction:sdkWebSearchChatAction:${promptName || 'user_input'}]`;
   console.log(`${actionLogPrefix} Received request.`);
@@ -37,10 +40,10 @@ export async function sdkWebSearchChatAction(
   const requestPayloadForLogging = {
       ticker,
       promptName,
-      userInputFromForm,
+      userInput: userInputFromPayload,
   };
   const requestJson = JSON.stringify(requestPayloadForLogging, null, 2);
-  let finalPromptText = userInputFromForm;
+  let finalPromptText = userInputFromPayload || '';
 
   try {
     if (promptName) {

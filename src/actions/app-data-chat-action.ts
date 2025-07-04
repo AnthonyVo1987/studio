@@ -8,8 +8,8 @@ import {
 } from '@/ai/flows/app-data-chat-flow';
 import {
   loadExampleChatPrompts,
-  type ExampleChatPrompt,
 } from '@/ai/definition-loader';
+import type { AppDataChatActionInputs } from '@/ai/schemas/app-data-chat-schemas';
 
 export interface AppDataChatActionResult {
   chatbotRequestJson: string;
@@ -25,26 +25,25 @@ export interface AppDataChatActionState {
 
 export async function appDataChatAction(
   prevState: AppDataChatActionState,
-  formData: FormData
+  payload: AppDataChatActionInputs
 ): Promise<AppDataChatActionState> {
-  const ticker = (formData.get('ticker') as string) || '';
-  const stockSnapshotJson =
-    (formData.get('stockSnapshotJson') as string) || '{}';
-  const aiKeyTakeawaysJson =
-    (formData.get('aiKeyTakeawaysJson') as string) || '{}';
-  const aiAnalyzedTaJson = (formData.get('aiAnalyzedTaJson') as string) || '{}';
-  const aiOptionsAnalysisJson =
-    (formData.get('aiOptionsAnalysisJson') as string) || '{}';
-  const chatHistoryString = (formData.get('chatHistory') as string) || '[]';
-  const promptName = formData.get('promptName') as string | undefined;
-  const userInputFromForm = (formData.get('userInput') as string) || '';
+  const {
+    ticker,
+    stockSnapshotJson = '{}',
+    aiKeyTakeawaysJson = '{}',
+    aiAnalyzedTaJson = '{}',
+    aiOptionsAnalysisJson = '{}',
+    chatHistory = [],
+    promptName,
+    userInput,
+  } = payload;
 
   const actionLogPrefix = `[ServerAction:appDataChatAction:Ticker:${ticker || 'N/A'}]`;
   console.log(
-    `${actionLogPrefix} Received request. PromptName: ${promptName || 'user_input'}. User Input from form: "${userInputFromForm?.substring(0, 50) || 'N/A'}...".`
+    `${actionLogPrefix} Received request. PromptName: ${promptName || 'user_input'}. User Input from payload: "${userInput?.substring(0, 50) || 'N/A'}...".`
   );
 
-  let finalUserInput = userInputFromForm;
+  let finalUserInput = userInput || '';
 
   try {
     if (promptName) {
@@ -93,9 +92,9 @@ export async function appDataChatAction(
       aiKeyTakeawaysJson,
       aiAnalyzedTaJson,
       aiOptionsAnalysisJson,
-      chatHistory: JSON.parse(chatHistoryString),
+      chatHistory,
       userInput: finalUserInput,
-      promptName: promptName || undefined, // Pass original promptName for logging/tracing if needed
+      promptName: promptName || undefined,
     };
 
     const chatbotRequestJson = JSON.stringify(flowInput, null, 2);
@@ -119,7 +118,7 @@ export async function appDataChatAction(
     const chatbotRequestJson = JSON.stringify({
       error: 'Failed during input assembly',
       details: String(error),
-      ticker, promptName, userInputFromForm
+      ticker, promptName, userInput
     }, null, 2);
     return {
       status: 'error',
