@@ -7,9 +7,6 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
-  loadExampleChatPrompts
-} from '@/ai/definition-loader';
-import {
   type SdkWebSearchChatActionState,
   type SdkWebSearchChatActionInputs,
 } from '@/ai/schemas/sdk-web-search-chat-schemas';
@@ -31,7 +28,7 @@ export async function sdkWebSearchChatAction(
   const {
     ticker,
     promptName,
-    userInput: userInputFromPayload
+    userInput
   } = payload;
 
   const actionLogPrefix = `[ServerAction:sdkWebSearchChatAction:${promptName || 'user_input'}]`;
@@ -40,29 +37,17 @@ export async function sdkWebSearchChatAction(
   const requestPayloadForLogging = {
       ticker,
       promptName,
-      userInput: userInputFromPayload,
+      userInput,
   };
   const requestJson = JSON.stringify(requestPayloadForLogging, null, 2);
-  let finalPromptText = userInputFromPayload || '';
 
   try {
-    if (promptName) {
-        const examplePrompts = await loadExampleChatPrompts();
-        const matchedPrompt = examplePrompts.find(p => p.promptName === promptName);
-        if (matchedPrompt) {
-            finalPromptText = matchedPrompt.promptTemplate.replace(/\{TICKER\}/g, ticker || "the stock");
-            console.log(`${actionLogPrefix} Loaded template for promptName '${promptName}'.`);
-        } else {
-            throw new Error(`Could not find web search prompt definition for '${promptName}'.`);
-        }
-    }
-
-    if (!finalPromptText || finalPromptText.trim() === '') {
-        throw new Error("User input cannot be empty for a general web search query.");
+    if (!userInput || userInput.trim() === '') {
+        throw new Error("User input cannot be empty for a web search query.");
     }
     
-    console.log(`${actionLogPrefix} Generating content with prompt (first 100): ${finalPromptText.substring(0, 100)}...`);
-    const result = await groundedModel.generateContent(finalPromptText);
+    console.log(`${actionLogPrefix} Generating content with prompt (first 100): ${userInput.substring(0, 100)}...`);
+    const result = await groundedModel.generateContent(userInput);
     const rawTextResponse = result.response.text();
 
     console.log(`${actionLogPrefix} SDK call successful. Returning raw text response.`);

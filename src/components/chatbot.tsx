@@ -35,14 +35,7 @@ interface ChatbotProps {
   logDebug: (source: string, category: string, ...messages: any[]) => void;
   userInput: string;
   setUserInput: (input: string) => void;
-  formAction: (formData: FormData) => void;
-  contextualData?: {
-    ticker: string;
-    stockSnapshotJson: string;
-    aiKeyTakeawaysJson: string;
-    aiAnalyzedTaJson: string;
-    aiOptionsAnalysisJson: string;
-  };
+  onFormSubmit: (payload: { userInput?: string; promptName?: string }) => void;
 }
 
 export function Chatbot({
@@ -56,8 +49,7 @@ export function Chatbot({
   logDebug,
   userInput,
   setUserInput,
-  formAction,
-  contextualData,
+  onFormSubmit,
 }: ChatbotProps) {
   const { toast } = useToast();
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
@@ -89,25 +81,21 @@ export function Chatbot({
     }
   };
   
-  const HiddenContextInputs = () => {
-    if (!contextualData) return null;
-    return (
-      <>
-        <input type="hidden" name="ticker" value={contextualData.ticker} />
-        <input type="hidden" name="stockSnapshotJson" value={contextualData.stockSnapshotJson} />
-        <input type="hidden" name="aiKeyTakeawaysJson" value={contextualData.aiKeyTakeawaysJson} />
-        <input type="hidden" name="aiAnalyzedTaJson" value={contextualData.aiAnalyzedTaJson} />
-        <input type="hidden" name="aiOptionsAnalysisJson" value={contextualData.aiOptionsAnalysisJson} />
-        <input type="hidden" name="chatHistory" value={JSON.stringify(chatHistory)} />
-      </>
-    );
+  const handleExamplePromptSubmit = (e: FormEvent, promptName: string) => {
+    e.preventDefault();
+    if(isProcessing) return;
+    onFormSubmit({ promptName });
+  };
+  
+  const handleUserInputSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (isProcessing || !userInput.trim()) return;
+    onFormSubmit({ userInput });
   };
 
   const renderPromptButtons = (buttons: ExamplePromptButton[]) => (
     buttons.map((p, index) => (
-      <form key={index} action={formAction}>
-        <HiddenContextInputs />
-        <input type="hidden" name="promptName" value={p.promptName} />
+      <form key={index} onSubmit={(e) => handleExamplePromptSubmit(e, p.promptName)}>
         <Button 
             type="submit" 
             variant="outline" 
@@ -182,9 +170,7 @@ export function Chatbot({
             <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1 flex items-center gap-1.5"><Info className="h-3 w-3" /> Example Prompts</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">{renderPromptButtons(exampleButtons)}</div>
         </div>
-        <form action={formAction} className="w-full flex items-center space-x-2">
-          <HiddenContextInputs />
-          <input type="hidden" name="userInput" value={userInput} />
+        <form onSubmit={handleUserInputSubmit} className="w-full flex items-center space-x-2">
           <Input name="userInputDisplay" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" />
           <Button type="submit" disabled={isProcessing || !userInput.trim()}>
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

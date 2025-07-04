@@ -23,6 +23,7 @@ import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
 import { useStockAnalysis, GlobalFsmState, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart } from "lucide-react";
+import { loadExampleChatPrompts, type ExampleChatPrompt } from '@/ai/definition-loader';
 
 // Server Actions
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
@@ -53,6 +54,11 @@ export function MainTabContent() {
     aiOptionsAnalysisJson: contextOptionsAnalysisJson, logDebug,
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent,
+    // AI Analysis Setters
+    setAiKeyTakeawaysRequestJson,
+    setAiKeyTakeawaysJson,
+    setAiOptionsAnalysisRequestJson,
+    setAiOptionsAnalysisJson,
     // App Data Chat
     appDataChatHistory: contextAppDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
     setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson,
@@ -69,6 +75,14 @@ export function MainTabContent() {
 
   const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
   const [webSearchUserInput, setWebSearchUserInput] = useState('');
+  const [examplePrompts, setExamplePrompts] = useState<ExampleChatPrompt[]>([]);
+
+  useEffect(() => {
+    loadExampleChatPrompts().then(setExamplePrompts).catch(err => {
+      console.error("Failed to load example chat prompts:", err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load example prompts.' });
+    });
+  }, [toast]);
 
   const [appDataChatState, appDataChatFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
   const [webSearchChatState, webSearchChatFormAction, isWebSearchChatPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
@@ -110,6 +124,10 @@ export function MainTabContent() {
             aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
             marketStatusJson: contextMarketStatusJson
           });
+          if (result.status === 'success' && result.data) {
+            setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
+            setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+          }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
           if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
           break;
@@ -120,6 +138,10 @@ export function MainTabContent() {
             stockSnapshotJson: contextStockSnapshotJson, 
             optionsChainJson: contextOptionsChainJson,
           });
+          if(result.status === 'success' && result.data) {
+            setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
+            setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
+          }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
           if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
           break;
@@ -130,7 +152,7 @@ export function MainTabContent() {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysJson, setAiKeyTakeawaysRequestJson, setAiOptionsAnalysisJson, setAiOptionsAnalysisRequestJson]);
 
 
   // Effect to handle App Data Chat results
@@ -179,10 +201,25 @@ export function MainTabContent() {
     }
   }, [webSearchChatState, isWebSearchChatPending, addWebSearchChatMessage, setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson, setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson, setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson]);
 
-  const appDataFormActionWrapper = (payload: { userInput?: string; promptName?: string }) => {
+  const handleAppDataFormSubmit = (payload: { userInput?: string; promptName?: string }) => {
     if (isAppDataChatPending) return;
-    const userInput = payload.userInput || payload.promptName || '';
-    addAppDataChatMessage({ role: 'user', content: userInput });
+    const { userInput: rawUserInput, promptName } = payload;
+    let finalUserInput = rawUserInput || '';
+    let messageToHistory = finalUserInput;
+
+    if (promptName) {
+      const promptTemplate = examplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
+      if (promptTemplate) {
+        finalUserInput = promptTemplate.replace(/\{TICKER\}/g, globalFsmVariables.activeTicker || 'the stock');
+        messageToHistory = promptName;
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: `Could not find prompt: ${promptName}` });
+        return;
+      }
+    }
+
+    addAppDataChatMessage({ role: 'user', content: messageToHistory });
+    setAppDataChatUserInput('');
     startTransition(() => {
         appDataChatFormAction({
           ticker: globalFsmVariables.activeTicker || '',
@@ -191,21 +228,36 @@ export function MainTabContent() {
           aiAnalyzedTaJson: contextAiAnalyzedTaJson,
           aiOptionsAnalysisJson: contextOptionsAnalysisJson,
           chatHistory: contextAppDataChatHistory,
-          userInput: userInput,
-          promptName: payload.promptName,
+          userInput: finalUserInput,
+          promptName: promptName,
         });
     });
   };
 
-  const webSearchFormActionWrapper = (payload: { userInput?: string; promptName?: string }) => {
+  const handleWebSearchFormSubmit = (payload: { userInput?: string; promptName?: string }) => {
     if (isWebSearchChatPending) return;
-    const userInput = payload.userInput || payload.promptName || '';
-    addWebSearchChatMessage({ role: 'user', content: userInput });
+    const { userInput: rawUserInput, promptName } = payload;
+    let finalUserInput = rawUserInput || '';
+    let messageToHistory = finalUserInput;
+
+    if (promptName) {
+      const promptTemplate = examplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
+      if (promptTemplate) {
+        finalUserInput = promptTemplate.replace(/\{TICKER\}/g, globalFsmVariables.activeTicker || 'the stock');
+        messageToHistory = promptName;
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: `Could not find prompt: ${promptName}` });
+        return;
+      }
+    }
+    
+    addWebSearchChatMessage({ role: 'user', content: messageToHistory });
+    setWebSearchUserInput('');
     startTransition(() => {
         webSearchChatFormAction({
             ticker: globalFsmVariables.activeTicker || '',
-            promptName: payload.promptName,
-            userInput: payload.userInput,
+            promptName: promptName,
+            userInput: finalUserInput,
         });
     });
   };
@@ -311,7 +363,7 @@ export function MainTabContent() {
               logDebug={logDebug}
               userInput={appDataChatUserInput}
               setUserInput={setAppDataChatUserInput}
-              formAction={appDataFormActionWrapper}
+              onFormSubmit={handleAppDataFormSubmit}
             />
             <Chatbot
               title="Web Search AI Chat"
@@ -324,7 +376,7 @@ export function MainTabContent() {
               logDebug={logDebug}
               userInput={webSearchUserInput}
               setUserInput={setWebSearchUserInput}
-              formAction={webSearchFormActionWrapper}
+              onFormSubmit={handleWebSearchFormSubmit}
             />
           </div>
           <Separator />

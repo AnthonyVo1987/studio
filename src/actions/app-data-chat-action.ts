@@ -6,9 +6,6 @@ import {
   type AppDataChatInput,
   type AppDataChatOutput,
 } from '@/ai/flows/app-data-chat-flow';
-import {
-  loadExampleChatPrompts,
-} from '@/ai/definition-loader';
 import type { AppDataChatActionInputs } from '@/ai/schemas/app-data-chat-schemas';
 
 export interface AppDataChatActionResult {
@@ -40,31 +37,11 @@ export async function appDataChatAction(
 
   const actionLogPrefix = `[ServerAction:appDataChatAction:Ticker:${ticker || 'N/A'}]`;
   console.log(
-    `${actionLogPrefix} Received request. PromptName: ${promptName || 'user_input'}. User Input from payload: "${userInput?.substring(0, 50) || 'N/A'}...".`
+    `${actionLogPrefix} Received request. PromptName: ${promptName || 'user_input'}. User Input (start): "${userInput?.substring(0, 50) || 'N/A'}...".`
   );
 
-  let finalUserInput = userInput || '';
-
   try {
-    if (promptName) {
-      const examplePrompts = await loadExampleChatPrompts();
-      const matchedPrompt = examplePrompts.find(
-        (p) => p.promptName === promptName
-      );
-      if (matchedPrompt) {
-        finalUserInput = matchedPrompt.promptTemplate.replace(
-          /\{TICKER\}/g,
-          ticker || 'the stock'
-        );
-        console.log(
-          `${actionLogPrefix} Loaded template for promptName '${promptName}'.`
-        );
-      } else {
-        throw new Error(`Could not find example prompt definition for '${promptName}'.`);
-      }
-    }
-
-    if (!finalUserInput || finalUserInput.trim() === '') {
+    if (!userInput || userInput.trim() === '') {
       const errorMsg = 'User input cannot be empty.';
       console.warn(`${actionLogPrefix} Validation Error - ${errorMsg}`);
       return {
@@ -73,7 +50,7 @@ export async function appDataChatAction(
         message: 'Please provide a question or statement.',
         data: {
           chatbotRequestJson: JSON.stringify(
-            { error: errorMsg, ticker, userInput: finalUserInput, promptName },
+            { error: errorMsg, ticker, userInput, promptName },
             null,
             2
           ),
@@ -93,7 +70,7 @@ export async function appDataChatAction(
       aiAnalyzedTaJson,
       aiOptionsAnalysisJson,
       chatHistory,
-      userInput: finalUserInput,
+      userInput: userInput,
       promptName: promptName || undefined,
     };
 
