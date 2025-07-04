@@ -42,12 +42,13 @@ export async function sdkWebSearchChatAction(
   const requestJson = JSON.stringify(requestPayloadForLogging, null, 2);
 
   try {
-    if (!userInput || userInput.trim() === '') {
+    const finalUserInput = userInput;
+    if (!finalUserInput || finalUserInput.trim() === '') {
         throw new Error("User input cannot be empty for a web search query.");
     }
     
-    console.log(`${actionLogPrefix} Generating content with prompt (first 100): ${userInput.substring(0, 100)}...`);
-    const result = await groundedModel.generateContent(userInput);
+    console.log(`${actionLogPrefix} Generating content with prompt (first 100): ${finalUserInput.substring(0, 100)}...`);
+    const result = await groundedModel.generateContent(finalUserInput);
     const rawTextResponse = result.response.text();
 
     console.log(`${actionLogPrefix} SDK call successful. Returning raw text response.`);

@@ -41,7 +41,8 @@ export async function appDataChatAction(
   );
 
   try {
-    if (!userInput || userInput.trim() === '') {
+    const finalUserInput = userInput;
+    if (!finalUserInput || finalUserInput.trim() === '') {
       const errorMsg = 'User input cannot be empty.';
       console.warn(`${actionLogPrefix} Validation Error - ${errorMsg}`);
       return {
@@ -70,7 +71,7 @@ export async function appDataChatAction(
       aiAnalyzedTaJson,
       aiOptionsAnalysisJson,
       chatHistory,
-      userInput: userInput,
+      userInput: finalUserInput,
       promptName: promptName || undefined,
     };
 

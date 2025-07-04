@@ -84,8 +84,8 @@ export function MainTabContent() {
     });
   }, [toast]);
 
-  const [appDataChatState, appDataChatFormAction, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
-  const [webSearchChatState, webSearchChatFormAction, isWebSearchChatPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
+  const [appDataChatState, submitAppDataChat, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
+  const [webSearchChatState, submitWebSearchChat, isWebSearchChatPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
   
   const initialInitializationDispatchedRef = useRef(false);
 
@@ -152,7 +152,7 @@ export function MainTabContent() {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysJson, setAiKeyTakeawaysRequestJson, setAiOptionsAnalysisJson, setAiOptionsAnalysisRequestJson]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysJson, setAiKeyTakeawaysRequestJson, setAiOptionsAnalysisJson, setAiOptionsAnalysisJson]);
 
 
   // Effect to handle App Data Chat results
@@ -201,7 +201,7 @@ export function MainTabContent() {
     }
   }, [webSearchChatState, isWebSearchChatPending, addWebSearchChatMessage, setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson, setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson, setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson]);
 
-  const handleAppDataFormSubmit = (payload: { userInput?: string; promptName?: string }) => {
+  const handleAppDataChatSubmit = (payload: { userInput?: string; promptName?: string }) => {
     if (isAppDataChatPending) return;
     const { userInput: rawUserInput, promptName } = payload;
     let finalUserInput = rawUserInput || '';
@@ -221,7 +221,7 @@ export function MainTabContent() {
     addAppDataChatMessage({ role: 'user', content: messageToHistory });
     setAppDataChatUserInput('');
     startTransition(() => {
-        appDataChatFormAction({
+        submitAppDataChat({
           ticker: globalFsmVariables.activeTicker || '',
           stockSnapshotJson: contextStockSnapshotJson,
           aiKeyTakeawaysJson: contextKeyTakeawaysJson,
@@ -234,7 +234,7 @@ export function MainTabContent() {
     });
   };
 
-  const handleWebSearchFormSubmit = (payload: { userInput?: string; promptName?: string }) => {
+  const handleWebSearchChatSubmit = (payload: { userInput?: string; promptName?: string }) => {
     if (isWebSearchChatPending) return;
     const { userInput: rawUserInput, promptName } = payload;
     let finalUserInput = rawUserInput || '';
@@ -254,7 +254,7 @@ export function MainTabContent() {
     addWebSearchChatMessage({ role: 'user', content: messageToHistory });
     setWebSearchUserInput('');
     startTransition(() => {
-        webSearchChatFormAction({
+        submitWebSearchChat({
             ticker: globalFsmVariables.activeTicker || '',
             promptName: promptName,
             userInput: finalUserInput,
@@ -363,7 +363,7 @@ export function MainTabContent() {
               logDebug={logDebug}
               userInput={appDataChatUserInput}
               setUserInput={setAppDataChatUserInput}
-              onFormSubmit={handleAppDataFormSubmit}
+              onFormSubmit={handleAppDataChatSubmit}
             />
             <Chatbot
               title="Web Search AI Chat"
@@ -376,7 +376,7 @@ export function MainTabContent() {
               logDebug={logDebug}
               userInput={webSearchUserInput}
               setUserInput={setWebSearchUserInput}
-              onFormSubmit={handleWebSearchFormSubmit}
+              onFormSubmit={handleWebSearchChatSubmit}
             />
           </div>
           <Separator />
