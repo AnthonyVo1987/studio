@@ -44,6 +44,13 @@ const webSearchButtons: ExamplePromptButton[] = [
     { title: "Options Flow Search", promptName: 'options-flow-web-search', icon: Search },
 ];
 
+interface PipelineDataPayload {
+    stockSnapshotJson?: string;
+    standardTasJson?: string;
+    aiAnalyzedTaJson?: string;
+    marketStatusJson?: string;
+    optionsChainJson?: string;
+}
 
 export function MainTabContent() {
   const { toast } = useToast();
@@ -163,69 +170,24 @@ export function MainTabContent() {
     const newTicker = e.target.value.toUpperCase();
     dispatchGlobalFsmEvent({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: newTicker } });
   };
-
-  const handleAnalyzeStockSubmit = useCallback(async (e?: FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
-    const ticker = globalUserInputTicker.trim();
-    if (!ticker) {
-      toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
-      return;
-    }
-    
-    // 1. Reset state and start
-    dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
-    dispatchGlobalFsmEvent({ type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' });
-    
-    // 2. Fetch Data
-    const dataResult = await fetchStockDataAction({ ticker });
-    if (dataResult.status !== 'success' || !dataResult.data) {
-      dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: dataResult });
-      toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
-      return;
-    }
-    dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
-    
-    // 3. Calculate AI TA
-    dispatchGlobalFsmEvent({ type: 'SET_STATE_CALCULATING_AI_TA' });
-    const aiTaResult = await analyzeTaAction({ stockSnapshotJson: dataResult.data.stockSnapshotJson, ticker });
-    if (aiTaResult.status !== 'success' || !aiTaResult.data) {
-      dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: aiTaResult });
-      toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
-      dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-      return;
-    }
-    dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaResult.data });
-
-    // 4. Customizable Pipeline: Key Takeaways
-    if (globalFsmFlags.isAiKeyTakeawaysSelected) {
-      await handleGenerateKeyTakeaways(true); // Pass flag to indicate it's part of a pipeline
-    }
-
-    // 5. Customizable Pipeline: Options Analysis
-    if (globalFsmFlags.isAiOptionsAnalysisSelected) {
-      await handleGenerateOptionsAnalysis(true); // Pass flag
-    }
-
-    // 6. Finalize
-    dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-    toast({ title: "Analysis Complete", description: `Full analysis for ${ticker} has finished.` });
-
-  }, [globalUserInputTicker, dispatchGlobalFsmEvent, toast, globalFsmFlags.isAiKeyTakeawaysSelected, globalFsmFlags.isAiOptionsAnalysisSelected]);
-
-
-  const handleGenerateKeyTakeaways = useCallback(async (isPipelineCall: boolean = false) => {
+  
+  const handleGenerateKeyTakeaways = useCallback(async (isPipelineCall: boolean = false, pipelineData?: PipelineDataPayload) => {
     const ticker = globalFsmVariables.activeTicker;
     if (!ticker) { 
         if (!isPipelineCall) toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
         return; 
     }
     
+    // Use data from payload if provided (for pipeline), otherwise from context (for manual button click)
+    const stockSnapshotJson = pipelineData?.stockSnapshotJson || contextStockSnapshotJson;
+    const standardTasJson = pipelineData?.standardTasJson || contextStandardTasJson;
+    const aiAnalyzedTaJson = pipelineData?.aiAnalyzedTaJson || contextAiAnalyzedTaJson;
+    const marketStatusJson = pipelineData?.marketStatusJson || contextMarketStatusJson;
+
     dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
     try {
       const keyTakeawaysResult = await performAiAnalysisAction({
-          ticker, stockSnapshotJson: contextStockSnapshotJson,
-          standardTasJson: contextStandardTasJson, aiAnalyzedTaJson: contextAiAnalyzedTaJson,
-          marketStatusJson: contextMarketStatusJson,
+          ticker, stockSnapshotJson, standardTasJson, aiAnalyzedTaJson, marketStatusJson
       });
       dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
       if(keyTakeawaysResult.status !== 'success' && !isPipelineCall) toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message, variant: 'destructive' });
@@ -239,17 +201,20 @@ export function MainTabContent() {
     }
   }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, dispatchGlobalFsmEvent, toast]);
 
-  const handleGenerateOptionsAnalysis = useCallback(async (isPipelineCall: boolean = false) => {
+  const handleGenerateOptionsAnalysis = useCallback(async (isPipelineCall: boolean = false, pipelineData?: PipelineDataPayload) => {
     const ticker = globalFsmVariables.activeTicker;
     if (!ticker) { 
         if (!isPipelineCall) toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
         return; 
     }
 
+    const stockSnapshotJson = pipelineData?.stockSnapshotJson || contextStockSnapshotJson;
+    const optionsChainJson = pipelineData?.optionsChainJson || contextOptionsChainJson;
+
     dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
     try {
       const optionsAnalysisResult = await performAiOptionsAnalysisAction({
-          ticker, stockSnapshotJson: contextStockSnapshotJson, optionsChainJson: contextOptionsChainJson,
+          ticker, stockSnapshotJson, optionsChainJson,
       });
       dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
       if(optionsAnalysisResult.status !== 'success' && !isPipelineCall) toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message, variant: 'destructive' });
@@ -262,6 +227,56 @@ export function MainTabContent() {
       }
     }
   }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast]);
+
+  const handleAnalyzeStockSubmit = useCallback(async (e?: FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    const ticker = globalUserInputTicker.trim();
+    if (!ticker) {
+      toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
+      return;
+    }
+    
+    dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
+    dispatchGlobalFsmEvent({ type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' });
+    
+    const dataResult = await fetchStockDataAction({ ticker });
+    if (dataResult.status !== 'success' || !dataResult.data) {
+      dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: dataResult });
+      toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
+      return;
+    }
+    dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
+    
+    dispatchGlobalFsmEvent({ type: 'SET_STATE_CALCULATING_AI_TA' });
+    const aiTaResult = await analyzeTaAction({ stockSnapshotJson: dataResult.data.stockSnapshotJson, ticker });
+    if (aiTaResult.status !== 'success' || !aiTaResult.data) {
+      dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: aiTaResult });
+      toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
+      dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+      return;
+    }
+    dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaResult.data });
+
+    if (globalFsmFlags.isAiKeyTakeawaysSelected) {
+      await handleGenerateKeyTakeaways(true, {
+        stockSnapshotJson: dataResult.data.stockSnapshotJson,
+        standardTasJson: dataResult.data.standardTasJson,
+        aiAnalyzedTaJson: aiTaResult.data.aiAnalyzedTaJson,
+        marketStatusJson: dataResult.data.marketStatusJson,
+      });
+    }
+
+    if (globalFsmFlags.isAiOptionsAnalysisSelected) {
+      await handleGenerateOptionsAnalysis(true, {
+        stockSnapshotJson: dataResult.data.stockSnapshotJson,
+        optionsChainJson: dataResult.data.optionsChainJson,
+      });
+    }
+
+    dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
+    toast({ title: "Analysis Complete", description: `Full analysis for ${ticker} has finished.` });
+
+  }, [globalUserInputTicker, dispatchGlobalFsmEvent, toast, globalFsmFlags.isAiKeyTakeawaysSelected, globalFsmFlags.isAiOptionsAnalysisSelected, handleGenerateKeyTakeaways, handleGenerateOptionsAnalysis]);
 
   const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
