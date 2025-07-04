@@ -58,6 +58,25 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.4.6.4.10` (Documentation Checkpoint)
+**Tag:** `Phase-66_Task-3.4.6.4.10_DocsCheckpoint`
+**Commit Hash:** `3dedae7b`
+**Subject:** `docs(all): Checkpoint v3.4.6.4.10, consolidate deterministic fixes & prep for testing`
+**Details:**
+This commit is a **documentation-only checkpoint** that consolidates the series of bug fixes implemented under the `v3.4.6.4.x` version series, which finalized the **"Full Deterministic Application Refactor"** feature. This checkpoint brings all project documentation (`README.md`, `CHANGELOG.md`, `FEAT_*.md`) into alignment with the application's current, stable, and feature-complete state, preparing it for a comprehensive final testing phase.
+
+**Key Bug Fixes Consolidated in this Checkpoint (v3.4.6.4.7 - v3.4.6.4.10):**
+*   **AI Analysis Display Fix (`v3.4.6.4.7`):** Corrected a critical flaw in the FSM reducer where successful AI analysis results (Key Takeaways, Options Analysis) were received but never set to state, causing the UI to display stale "pending" data.
+*   **Chat Action Signature Fix (`v3.4.6.4.8`):** Resolved a server-side `TypeError` by aligning the signatures of all AI chat server actions to correctly expect a plain JavaScript object payload instead of a `FormData` object.
+*   **Holistic Chat Prompt Routing Fix (`v3.4.6.4.9` & `v3.4.6.4.10`):**
+    *   Fixed a bug where all example chat prompts were failing with a "user input cannot be empty" error. The root cause was a flawed server-side lookup for prompt templates.
+    *   The architecture was refactored to make prompt construction a **client-side responsibility**. The client now loads the prompt definitions, builds the full prompt text, and sends it to a simplified server action.
+    *   This included creating a new, dedicated `example-web-search-prompts.json` file to correctly separate prompt definitions for the two distinct chatbot UIs.
+
+**Outcome:**
+*   The application's state management is now functionally complete and robust, with all known bugs from the deterministic refactor resolved.
+*   The application is now ready for **final, comprehensive end-to-end testing**.
+---
 **App Version:** `v3.4.6.4` (Pre-Testing Documentation)
 **Tag:** `Phase-65_Task-3.4.6.4_DocsPreTest`
 **Commit Hash:** `2db3e1a9`

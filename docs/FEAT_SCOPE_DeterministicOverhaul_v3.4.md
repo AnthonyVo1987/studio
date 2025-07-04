@@ -1,8 +1,8 @@
 
 # Feature Scope: Full Deterministic Application Refactor (v3.4)
 
-**Document Version:** 2.0
-**Date:** 2025-08-08
+**Document Version:** 3.0
+**Date:** 2025-08-12
 **Target Application Version Series:** 3.4.x.y.z
 **Feature Status:** `IMPLEMENTATION COMPLETE`
 
@@ -40,7 +40,7 @@ The key lesson learned is that for sequential, asynchronous workflows, a simple 
 The entire application has been refactored to follow a simple, deterministic pattern for all asynchronous operations.
 
 *   **UI Triggers:** User actions (e.g., button clicks) now trigger a single, dedicated `async` handler function.
-*   **State Updates:** State is managed by simple `useState` hooks. The `async` handler manually sets pending states (e.g., `setIsLoading(true)`), `await`s the server action, and then manually updates the UI with the result (`setData(...)`, `setIsLoading(false)`).
+*   **State Updates:** State is managed by simple `useState` hooks. The `async` handler manually sets pending states (e.g., `setIsLoading(true)`), `await`s the server action, and then manually updates the UI with the result (`setData(...)`, `setIsLoading(false)`). The `useActionState` hook is used for chat form submissions.
 *   **FSM Simplification:** The global FSM's role has been drastically reduced. It no longer orchestrates complex sequences. Instead, it serves as a simple repository for global state flags and variables, which the new deterministic handlers can read from and write to.
 
 ## 4. Implementation Phased Plan
@@ -50,7 +50,7 @@ This was a high-risk refactor, broken down into discrete phases.
 ### Phase 1: Isolate and Neuter the Core FSM Orchestrator
 *   **Status:** `COMPLETED`
 *   **Tasks:**
-    *   **Task 3.4.1.0:** Prune the dependency array of the main `useEffect` orchestrator in `stock-analysis-context.tsx` to its absolute minimum. (`COMPLETED`)
+    *   **Task 3.4.1.0:** Prune the dependency array of the main `useEffect` orchestrator in `stock-analysis-context.tsx`. (`COMPLETED`)
     *   **Task 3.4.1.1:** Remove all server action calls and complex dispatch logic from within the `useEffect` hook. (`COMPLETED`)
 
 ### Phase 2: Implement Deterministic "Analyze Stock" Pipeline
@@ -71,25 +71,23 @@ This was a high-risk refactor, broken down into discrete phases.
 ### Phase 4: Refactor On-Demand Actions to be Deterministic
 *   **Status:** `COMPLETED`
 *   **Tasks:**
-    *   **Task 3.4.4.0:** Create dedicated `async` handlers for manual AI actions in `MainTabContent.tsx`. (`COMPLETED`)
-    *   **Task 3.4.4.1:** Each function manages its own loading state and `await`s its specific server action. (`COMPLETED`)
-    *   **Task 3.4.4.2:** Remove complex FSM states like `GENERATING_KEY_TAKEAWAYS`. (`COMPLETED`)
+    *   **Task 3.4.4.x:** This phase was merged into the main pipeline refactor in Phase 3, where the on-demand actions became the conditional steps of the deterministic pipeline handler. (`COMPLETED`)
 
 ### Phase 5: Refactor Chat Submissions to be Deterministic
 *   **Status:** `COMPLETED`
 *   **Tasks:**
-    *   **Task 3.4.5.0:** Refactor `Chatbot` to use a direct `formAction` prop instead of the `ChatbotFsmProvider`. (`COMPLETED`)
+    *   **Task 3.4.5.0:** Refactor `Chatbot` to use a direct `onFormSubmit` callback prop instead of a context. (`COMPLETED`)
     *   **Task 3.4.5.1:** Centralize `useActionState` for both chat types in `MainTabContent.tsx`. (`COMPLETED`)
-    *   **Task 3.4.5.2:** Remove all chat-related orchestration from the global FSM. (`COMPLETED`)
+    *   **Task 3.4.5.2:** Create client-side handler functions (`handleAppDataChatSubmit`, etc.) to build prompts and then call the `useActionState` submit function. (`COMPLETED`)
+    *   **Task 3.4.5.3:** Remove all chat-related orchestration from the global FSM. (`COMPLETED`)
 
 ### Phase 6: Final Cleanup & Comprehensive Testing
 *   **Status:** `COMPLETED`
 *   **Tasks:**
-    *   **Task 3.4.6.0:** Audit `stock-analysis-context.tsx` and remove all now-redundant `GlobalFsmState` enums, flags, and variables. (`COMPLETED`)
-    *   **Task 3.4.6.1:** Simplify the FSM reducer to handle only essential state changes that are not part of a sequential flow. (`COMPLETED`)
-    *   **Task 3.4.6.2:** Conduct comprehensive testing of all application features, ensuring stability and correct behavior. (`COMPLETED`)
-    *   **Task 3.4.6.3:** Perform a final "Feature Complete" documentation update for the v3.4 feature series. (`COMPLETED`)
-    *   **Task 3.4.6.4 (This Task):** Pre-testing documentation commit. (`COMPLETED`)
+    *   **Task 3.4.6.0-1:** Audited and removed all redundant `GlobalFsmState` enums and simplified the reducer. (`COMPLETED`)
+    *   **Task 3.4.6.2-7:** A series of debugging and fix tasks to resolve regressions in the new architecture, such as data not appearing in the UI. (`COMPLETED`)
+    *   **Task 3.4.6.8-9:** Fixed `TypeError` in chat actions and resolved all chat prompt routing issues. (`COMPLETED`)
+    *   **Task 3.4.6.4.10 (This Task):** Documentation checkpoint to consolidate all fixes and officially mark implementation as complete. (`COMPLETED`)
 
 ## 5. Value Added & Risk Assessment
 
@@ -99,9 +97,10 @@ This was a high-risk refactor, broken down into discrete phases.
     *   **Debuggability:** Bugs can be pinpointed to a specific `await` call in a specific handler, rather than a mysterious FSM transition.
     *   **Maintainability:** Onboarding new developers and adding features is now significantly easier.
 *   **Risk Assessment:**
-    *   **High Regression Risk (Mitigated):** This was a full-scale refactor. The risk of breaking existing functionality was mitigated through a phased approach and rigorous, step-by-step auditing after each phase.
+    *   **High Regression Risk (Mitigated):** This was a full-scale refactor. The risk of breaking existing functionality was mitigated through a phased approach and rigorous, step-by-step auditing and bug-fixing after each phase.
 
 ## 6. Document Changelog
+*   **v3.0 (2025-08-12):** Marked feature as `IMPLEMENTATION COMPLETE`. Updated all phases and tasks to `COMPLETED` status to reflect the successful refactor and all subsequent bug fixes.
 *   **v2.0 (2025-08-08):** Marked feature as `IMPLEMENTATION COMPLETE`. Updated all phases and tasks to `COMPLETED` status to reflect the successful refactor.
 *   **v1.3 (2025-08-03):** Updated "Note on Prerequisite Stability" to reflect the completion of the `v3.3.16.8.x` features, which provide the necessary stable debugging foundation for this refactor.
 *   **v1.2 (2025-08-01):** Updated `handleAnalyzeStock` task in Phase 2 to correctly reference `analyzeTaAction` instead of `calculateAiTaAction`.
