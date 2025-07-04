@@ -92,22 +92,14 @@ export function MainTabContent() {
       switch (globalFsmStateFromContext) {
         case GlobalFsmState.DATA_FETCH_IN_PROGRESS: {
           const dataResult = await fetchStockDataAction({ ticker: globalFsmVariables.activeTicker! });
-          if (dataResult.status === 'success' && dataResult.data) {
-            dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
-          } else {
-            dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: dataResult });
-            toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
-          }
+          dispatchGlobalFsmEvent({ type: dataResult.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', payload: dataResult });
+          if(dataResult.status !== 'success') toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
           break;
         }
         case GlobalFsmState.CALCULATING_AI_TA: {
           const aiTaResult = await analyzeTaAction({ stockSnapshotJson: contextStockSnapshotJson, ticker: globalFsmVariables.activeTicker! });
-          if (aiTaResult.status === 'success' && aiTaResult.data) {
-            dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaResult.data });
-          } else {
-            dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: aiTaResult });
-            toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
-          }
+          dispatchGlobalFsmEvent({ type: aiTaResult.status === 'success' ? 'AI_TA_SUCCESS' : 'AI_TA_FAILURE', payload: aiTaResult });
+          if(aiTaResult.status !== 'success') toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
           break;
         }
         case GlobalFsmState.GENERATING_KEY_TAKEAWAYS: {
@@ -140,7 +132,7 @@ export function MainTabContent() {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, dispatchGlobalFsmEvent]); // End of Orchestrator
+  }, [globalFsmStateFromContext]); // End of Orchestrator
 
 
   // Effect to handle App Data Chat results

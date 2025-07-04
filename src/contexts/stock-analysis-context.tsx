@@ -7,10 +7,10 @@ import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
 import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
 import { addEntryToRawConsoleBuffer } from '@/lib/raw-console-log-buffer'; // Import for raw console
-import type { StockDataFetchResult } from '@/actions/analyze-stock-server-action';
-import type { AnalyzeTaResult } from '@/actions/analyze-ta-action';
-import type { PerformAiAnalysisResult } from '@/actions/perform-ai-analysis-action';
-import type { PerformAiOptionsAnalysisResult } from '@/actions/perform-ai-options-analysis-action';
+import type { StockDataFetchResult, AnalyzeStockServerActionState } from '@/actions/analyze-stock-server-action';
+import type { AnalyzeTaResult, AnalyzeTaActionState } from '@/actions/analyze-ta-action';
+import type { PerformAiAnalysisResult, PerformAiAnalysisActionState } from '@/actions/perform-ai-analysis-action';
+import type { PerformAiOptionsAnalysisResult, PerformAiOptionsAnalysisActionState } from '@/actions/perform-ai-options-analysis-action';
 import { startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 
@@ -76,15 +76,7 @@ export type FsmDisplayTuple = {
   target: string | null;
 };
 
-interface FetchDataSuccessPayload extends StockDataFetchResult {}
-interface FetchDataFailurePayload { error?: string | null; message?: string | null; polygonApiRequestLogJson?: string; polygonApiResponseLogJson?: string; }
 interface StaleDataFromActionPayload { error: string; message: string; expectedTicker: string; foundTickerInSnapshot?: string; actionStateData?: StockDataFetchResult; }
-interface AiTaSuccessPayload extends AnalyzeTaResult {}
-interface AiTaFailurePayload { error?: string | null; message?: string | null; aiAnalyzedTaRequestJson?: string; }
-interface AiKeyTakeawaysSuccessPayload extends PerformAiAnalysisResult {}
-interface AiKeyTakeawaysFailurePayload { error?: string | null; message?: string | null; aiKeyTakeawaysRequestJson?: string; }
-interface AiOptionsAnalysisSuccessPayload extends PerformAiOptionsAnalysisResult {}
-interface AiOptionsAnalysisFailurePayload { error?: string | null; message?: string | null; aiOptionsAnalysisRequestJson?: string; }
 
 type DebugConsoleMenuType = 'filter' | 'copy' | 'export';
 interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: boolean; }
@@ -104,16 +96,16 @@ export type FsmEvent =
   | { type: 'INITIALIZATION_COMPLETE' }
   | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
   | { type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' }
-  | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
-  | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
+  | { type: 'FETCH_DATA_SUCCESS'; payload: AnalyzeStockServerActionState }
+  | { type: 'FETCH_DATA_FAILURE'; payload: AnalyzeStockServerActionState }
   | { type: 'SET_STATE_CALCULATING_AI_TA' }
-  | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
-  | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
+  | { type: 'AI_TA_SUCCESS'; payload: AnalyzeTaActionState }
+  | { type: 'AI_TA_FAILURE'; payload: AnalyzeTaActionState }
   | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
-  | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: AiKeyTakeawaysSuccessPayload }
-  | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: AiKeyTakeawaysFailurePayload }
-  | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: AiOptionsAnalysisSuccessPayload }
-  | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload }
+  | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: PerformAiAnalysisActionState }
+  | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: PerformAiAnalysisActionState }
+  | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: PerformAiOptionsAnalysisActionState }
+  | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: PerformAiOptionsAnalysisActionState }
   | { type: 'TOGGLE_DEBUG_CONSOLE_MENU'; payload: ToggleDebugConsoleMenuPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' };
@@ -577,19 +569,25 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `USER_INPUT_TICKER_CHANGED. To ${nextCurrentState}.`);
         break;
       case 'FETCH_DATA_SUCCESS':
-        contextSetters.setMarketStatusJson(event.payload.marketStatusJson); contextSetters.setStockSnapshotJson(event.payload.stockSnapshotJson);
-        contextSetters.setStandardTasJson(event.payload.standardTasJson); contextSetters.setOptionsChainJson(event.payload.optionsChainJson);
-        contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson); contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson);
-        nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
-        nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CALCULATING_AI_TA.`);
+        if (event.payload.data) {
+            contextSetters.setMarketStatusJson(event.payload.data.marketStatusJson); contextSetters.setStockSnapshotJson(event.payload.data.stockSnapshotJson);
+            contextSetters.setStandardTasJson(event.payload.data.standardTasJson); contextSetters.setOptionsChainJson(event.payload.data.optionsChainJson);
+            contextSetters.setPolygonApiRequestLogJson(event.payload.data.polygonApiRequestLogJson); contextSetters.setPolygonApiResponseLogJson(event.payload.data.polygonApiResponseLogJson);
+            nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
+            nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CALCULATING_AI_TA.`);
+        } else {
+             handlePipelineError('DataFetchSuccess', 'Payload data missing in success event.');
+        }
         break;
       case 'FETCH_DATA_FAILURE':
         const fetchErr = event.payload; const fetchErrMsg = fetchErr.message || 'Data fetch failed';
         const fetchErrorJson = errorJsonWithDetails(fetchErrMsg, fetchErr.error);
-        contextSetters.setMarketStatusJson(fetchErrorJson); contextSetters.setStockSnapshotJson(fetchErrorJson);
-        contextSetters.setStandardTasJson(fetchErrorJson); contextSetters.setOptionsChainJson(fetchErrorJson);
-        contextSetters.setPolygonApiRequestLogJson(fetchErr.polygonApiRequestLogJson || fetchErrorJson); contextSetters.setPolygonApiResponseLogJson(fetchErr.polygonApiResponseLogJson || fetchErrorJson);
+        if(fetchErr.data) {
+            contextSetters.setMarketStatusJson(fetchErr.data.marketStatusJson); contextSetters.setStockSnapshotJson(fetchErr.data.stockSnapshotJson);
+            contextSetters.setStandardTasJson(fetchErr.data.standardTasJson); contextSetters.setOptionsChainJson(fetchErr.data.optionsChainJson);
+            contextSetters.setPolygonApiRequestLogJson(fetchErr.data.polygonApiRequestLogJson); contextSetters.setPolygonApiResponseLogJson(fetchErr.data.polygonApiResponseLogJson);
+        }
         handlePipelineError('DataFetch', fetchErrMsg, fetchErr.error);
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to FETCH_DATA_FAILURE. Error: ${fetchErrMsg}.`);
         break;
@@ -606,45 +604,57 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to STALE_DATA_FROM_ACTION. Error: ${staleErrMsg}.`);
         break;
       case 'AI_TA_SUCCESS':
-        contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
-        nextFlags.isCalculatedTADataReady = true;
-        nextCurrentState = determineNextStep();
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `AI_TA_SUCCESS. Determining next step: ${nextCurrentState}`);
+        if(event.payload.data) {
+            contextSetters.setAiAnalyzedTaRequestJson(event.payload.data.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.data.aiAnalyzedTaJson);
+            nextFlags.isCalculatedTADataReady = true;
+            nextCurrentState = determineNextStep();
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `AI_TA_SUCCESS. Determining next step: ${nextCurrentState}`);
+        } else {
+            handlePipelineError('AITaCalculationSuccess', 'Payload data missing in success event.');
+        }
         break;
       case 'AI_TA_FAILURE':
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
         const aiTaErrorJson = errorJsonWithDetails(aiTaErrMsg, aiTaErr.error);
-        contextSetters.setAiAnalyzedTaRequestJson(aiTaErr.aiAnalyzedTaRequestJson || aiTaErrorJson); contextSetters.setAiAnalyzedTaJson(aiTaErrorJson);
+        contextSetters.setAiAnalyzedTaRequestJson(aiTaErr.data?.aiAnalyzedTaRequestJson || aiTaErrorJson); contextSetters.setAiAnalyzedTaJson(aiTaErrorJson);
         handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to AI_TA_FAILURE. Error: ${aiTaErrMsg}.`);
         break;
       case 'KEY_TAKEAWAYS_SUCCESS':
-        contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
-        contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
-        nextFlags.isKeyTakeawaysDataAvailable = true;
-        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `KEY_TAKEAWAYS_SUCCESS. Determining next step: ${nextCurrentState}`);
+        if(event.payload.data) {
+            contextSetters.setAiKeyTakeawaysRequestJson(event.payload.data.aiKeyTakeawaysRequestJson);
+            contextSetters.setAiKeyTakeawaysJson(event.payload.data.aiKeyTakeawaysJson);
+            nextFlags.isKeyTakeawaysDataAvailable = true;
+            nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `KEY_TAKEAWAYS_SUCCESS. Determining next step: ${nextCurrentState}`);
+        } else {
+            handlePipelineError('KeyTakeawaysSuccess', 'Payload data missing in success event.');
+        }
         break;
       case 'KEY_TAKEAWAYS_FAILURE':
         const ktErr = event.payload;
-        contextSetters.setAiKeyTakeawaysRequestJson(ktErr.aiKeyTakeawaysRequestJson || errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
+        contextSetters.setAiKeyTakeawaysRequestJson(ktErr.data?.aiKeyTakeawaysRequestJson || errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
         contextSetters.setAiKeyTakeawaysJson(errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
-        handlePipelineError('KeyTakeaways', ktErr.message || 'Unknown', ktErr.error);
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to KEY_TAKEAWAYS_FAILURE. Error: ${ktErr.message}.`);
+        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState} after KEY_TAKEAWAYS_FAILURE. Error: ${ktErr.message}.`);
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
-        contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
-        contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
-        nextFlags.isOptionsAnalysisDataAvailable = true;
-        nextCurrentState = GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `OPTIONS_ANALYSIS_SUCCESS. Finalizing to IDLE.`);
+        if(event.payload.data) {
+            contextSetters.setAiOptionsAnalysisRequestJson(event.payload.data.aiOptionsAnalysisRequestJson);
+            contextSetters.setAiOptionsAnalysisJson(event.payload.data.aiOptionsAnalysisJson);
+            nextFlags.isOptionsAnalysisDataAvailable = true;
+            nextCurrentState = GlobalFsmState.IDLE;
+            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `OPTIONS_ANALYSIS_SUCCESS. Finalizing to IDLE.`);
+        } else {
+            handlePipelineError('OptionsAnalysisSuccess', 'Payload data missing in success event.');
+        }
         break;
       case 'OPTIONS_ANALYSIS_FAILURE':
         const optErr = event.payload;
-        contextSetters.setAiOptionsAnalysisRequestJson(optErr.aiOptionsAnalysisRequestJson || errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
+        contextSetters.setAiOptionsAnalysisRequestJson(optErr.data?.aiOptionsAnalysisRequestJson || errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
         contextSetters.setAiOptionsAnalysisJson(errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
-        handlePipelineError('OptionsAnalysis', optErr.message || 'Unknown', optErr.error);
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to OPTIONS_ANALYSIS_FAILURE. Error: ${optErr.message}.`);
+        nextCurrentState = GlobalFsmState.IDLE;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after OPTIONS_ANALYSIS_FAILURE. Error: ${optErr.message}.`);
         break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextCurrentState = GlobalFsmState.IDLE;
