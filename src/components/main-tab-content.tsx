@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, type FormEvent, useCallback, useRef, useMemo } from "react";
+import React, { useState, type FormEvent, useCallback, useRef, useEffect } from "react";
 import { useActionState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
 import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
 import { useStockAnalysis, GlobalFsmState, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, Brain, BarChartBig, FileText, SearchCode, Search, CandlestickChart } from "lucide-react";
+import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart } from "lucide-react";
 
 // Server Actions
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
@@ -44,20 +44,13 @@ const webSearchButtons: ExamplePromptButton[] = [
     { title: "Options Flow Search", promptName: 'options-flow-web-search', icon: Search },
 ];
 
-interface PipelineDataPayload {
-    stockSnapshotJson?: string;
-    standardTasJson?: string;
-    aiAnalyzedTaJson?: string;
-    marketStatusJson?: string;
-    optionsChainJson?: string;
-}
-
 export function MainTabContent() {
   const { toast } = useToast();
   const {
     marketStatusJson: contextMarketStatusJson, stockSnapshotJson: contextStockSnapshotJson,
     standardTasJson: contextStandardTasJson, optionsChainJson: contextOptionsChainJson,
-    aiAnalyzedTaJson: contextAiAnalyzedTaJson, logDebug,
+    aiAnalyzedTaJson: contextAiAnalyzedTaJson, aiKeyTakeawaysJson: contextKeyTakeawaysJson, 
+    aiOptionsAnalysisJson: contextOptionsAnalysisJson, logDebug,
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent,
     // App Data Chat
@@ -144,9 +137,9 @@ export function MainTabContent() {
     appDataChatFormAction({
       ticker: globalFsmVariables.activeTicker || '',
       stockSnapshotJson: contextStockSnapshotJson,
-      aiKeyTakeawaysJson: useStockAnalysis().aiKeyTakeawaysJson,
+      aiKeyTakeawaysJson: contextKeyTakeawaysJson,
       aiAnalyzedTaJson: contextAiAnalyzedTaJson,
-      aiOptionsAnalysisJson: useStockAnalysis().aiOptionsAnalysisJson,
+      aiOptionsAnalysisJson: contextOptionsAnalysisJson,
       chatHistory: contextAppDataChatHistory,
       userInput: userInput,
       promptName: payload.promptName,
@@ -171,63 +164,6 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: newTicker } });
   };
   
-  const handleGenerateKeyTakeaways = useCallback(async (isPipelineCall: boolean = false, pipelineData?: PipelineDataPayload) => {
-    const ticker = globalFsmVariables.activeTicker;
-    if (!ticker) { 
-        if (!isPipelineCall) toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
-        return; 
-    }
-    
-    // Use data from payload if provided (for pipeline), otherwise from context (for manual button click)
-    const stockSnapshotJson = pipelineData?.stockSnapshotJson || contextStockSnapshotJson;
-    const standardTasJson = pipelineData?.standardTasJson || contextStandardTasJson;
-    const aiAnalyzedTaJson = pipelineData?.aiAnalyzedTaJson || contextAiAnalyzedTaJson;
-    const marketStatusJson = pipelineData?.marketStatusJson || contextMarketStatusJson;
-
-    dispatchGlobalFsmEvent({ type: 'GENERATING_KEY_TAKEAWAYS' });
-    try {
-      const keyTakeawaysResult = await performAiAnalysisAction({
-          ticker, stockSnapshotJson, standardTasJson, aiAnalyzedTaJson, marketStatusJson
-      });
-      dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
-      if(keyTakeawaysResult.status !== 'success' && !isPipelineCall) toast({ title: "AI Key Takeaways Failed", description: keyTakeawaysResult.message, variant: 'destructive' });
-    } catch (error: any) {
-        dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
-        if (!isPipelineCall) toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
-    } finally {
-      if (!isPipelineCall) {
-        setTimeout(() => dispatchGlobalFsmEvent({ type: 'RETURN_TO_IDLE' }), 1000);
-      }
-    }
-  }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, dispatchGlobalFsmEvent, toast]);
-
-  const handleGenerateOptionsAnalysis = useCallback(async (isPipelineCall: boolean = false, pipelineData?: PipelineDataPayload) => {
-    const ticker = globalFsmVariables.activeTicker;
-    if (!ticker) { 
-        if (!isPipelineCall) toast({ title: "No Active Ticker", description: "Please analyze a stock first.", variant: "destructive" });
-        return; 
-    }
-
-    const stockSnapshotJson = pipelineData?.stockSnapshotJson || contextStockSnapshotJson;
-    const optionsChainJson = pipelineData?.optionsChainJson || contextOptionsChainJson;
-
-    dispatchGlobalFsmEvent({ type: 'ANALYZING_OPTIONS' });
-    try {
-      const optionsAnalysisResult = await performAiOptionsAnalysisAction({
-          ticker, stockSnapshotJson, optionsChainJson,
-      });
-      dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
-      if(optionsAnalysisResult.status !== 'success' && !isPipelineCall) toast({ title: "AI Options Analysis Failed", description: optionsAnalysisResult.message, variant: 'destructive' });
-    } catch (error: any) {
-        dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_FAILURE', payload: { error: error.message, message: 'On-demand action failed.' } });
-        if (!isPipelineCall) toast({ title: "Action Failed", description: error.message, variant: 'destructive' });
-    } finally {
-      if (!isPipelineCall) {
-        setTimeout(() => dispatchGlobalFsmEvent({ type: 'RETURN_TO_IDLE' }), 1000);
-      }
-    }
-  }, [globalFsmVariables.activeTicker, contextStockSnapshotJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast]);
-
   const handleAnalyzeStockSubmit = useCallback(async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     const ticker = globalUserInputTicker.trim();
@@ -257,26 +193,33 @@ export function MainTabContent() {
     }
     dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaResult.data });
 
+    // Conditional AI Analysis Steps
     if (globalFsmFlags.isAiKeyTakeawaysSelected) {
-      await handleGenerateKeyTakeaways(true, {
-        stockSnapshotJson: dataResult.data.stockSnapshotJson,
-        standardTasJson: dataResult.data.standardTasJson,
-        aiAnalyzedTaJson: aiTaResult.data.aiAnalyzedTaJson,
-        marketStatusJson: dataResult.data.marketStatusJson,
+      const keyTakeawaysResult = await performAiAnalysisAction({
+          ticker, 
+          stockSnapshotJson: dataResult.data.stockSnapshotJson, 
+          standardTasJson: dataResult.data.standardTasJson, 
+          aiAnalyzedTaJson: aiTaResult.data.aiAnalyzedTaJson, 
+          marketStatusJson: dataResult.data.marketStatusJson
       });
+      dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
+      if(keyTakeawaysResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: keyTakeawaysResult.message, variant: 'destructive' });
     }
 
     if (globalFsmFlags.isAiOptionsAnalysisSelected) {
-      await handleGenerateOptionsAnalysis(true, {
-        stockSnapshotJson: dataResult.data.stockSnapshotJson,
-        optionsChainJson: dataResult.data.optionsChainJson,
+      const optionsAnalysisResult = await performAiOptionsAnalysisAction({
+          ticker, 
+          stockSnapshotJson: dataResult.data.stockSnapshotJson, 
+          optionsChainJson: dataResult.data.optionsChainJson,
       });
+      dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
+      if(optionsAnalysisResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: optionsAnalysisResult.message, variant: 'destructive' });
     }
 
     dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
     toast({ title: "Analysis Complete", description: `Full analysis for ${ticker} has finished.` });
 
-  }, [globalUserInputTicker, dispatchGlobalFsmEvent, toast, globalFsmFlags.isAiKeyTakeawaysSelected, globalFsmFlags.isAiOptionsAnalysisSelected, handleGenerateKeyTakeaways, handleGenerateOptionsAnalysis]);
+  }, [globalUserInputTicker, dispatchGlobalFsmEvent, toast, globalFsmFlags.isAiKeyTakeawaysSelected, globalFsmFlags.isAiOptionsAnalysisSelected]);
 
   const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
@@ -289,9 +232,6 @@ export function MainTabContent() {
 
   const analyzeButtonLoading = isPipelineInProgress;
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
-  
-  const keyTakeawaysButtonLoading = globalFsmStateFromContext === GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
-  const optionsAnalysisButtonLoading = globalFsmStateFromContext === GlobalFsmState.ANALYZING_OPTIONS;
   
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
 
@@ -306,11 +246,11 @@ export function MainTabContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
             <div className="space-y-2">
               <Label htmlFor="ticker">Stock Ticker</Label>
-              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading}/>
+              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataSource">Data Source</Label>
-              <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
+              <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={analyzeButtonLoading}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -328,28 +268,11 @@ export function MainTabContent() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-key-takeaways" className="flex-grow text-sm">AI Key Takeaways</Label>
-              <Switch id="toggle-key-takeaways" checked={globalFsmFlags.isAiKeyTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_key_takeaways', checked)} disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading} />
+              <Switch id="toggle-key-takeaways" checked={globalFsmFlags.isAiKeyTakeawaysSelected} onCheckedChange={(checked) => handleToggleChange('ai_key_takeaways', checked)} disabled={analyzeButtonLoading} />
             </div>
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
-              <Switch id="toggle-options-analysis" checked={globalFsmFlags.isAiOptionsAnalysisSelected} onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} disabled={analyzeButtonLoading || keyTakeawaysButtonLoading || optionsAnalysisButtonLoading} />
-            </div>
-          </CardContent>
-        </Card>
-        <Separator />
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">On-Demand AI Analysis</CardTitle>
-            <CardDescription>Generate specific AI insights for {globalFsmVariables.activeTicker || "the analyzed stock"}. Available after "Analyze Stock" is complete and no macro is active.</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={() => handleGenerateKeyTakeaways()} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualKeyTakeawaysActionPossible || keyTakeawaysButtonLoading}>
-                {keyTakeawaysButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Brain className="mr-2 h-4 w-4" /> Generate AI Key Takeaways
-              </Button>
-              <Button onClick={() => handleGenerateOptionsAnalysis()} className="w-full sm:w-auto" disabled={!globalFsmFlags.isManualOptionsAnalysisActionPossible || optionsAnalysisButtonLoading}>
-                {optionsAnalysisButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <BarChartBig className="mr-2 h-4 w-4" /> Generate AI Options Analysis
-              </Button>
+              <Switch id="toggle-options-analysis" checked={globalFsmFlags.isAiOptionsAnalysisSelected} onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} disabled={analyzeButtonLoading} />
             </div>
           </CardContent>
         </Card>

@@ -22,7 +22,6 @@ export enum GlobalFsmState {
   AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT',
   VALID_TICKER_ENTERED = 'VALID_TICKER_ENTERED',
 
-  // Re-added for deterministic pipeline control
   DATA_FETCH_IN_PROGRESS = 'DATA_FETCH_IN_PROGRESS',
   DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
   DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
@@ -30,15 +29,6 @@ export enum GlobalFsmState {
   CALCULATING_AI_TA = 'CALCULATING_AI_TA',
   AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
-
-  // On-demand states
-  GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
-  KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
-  KEY_TAKEAWAYS_FAILED = 'KEY_TAKEAWAYS_FAILED',
-
-  ANALYZING_OPTIONS = 'ANALYZING_OPTIONS',
-  OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED',
-  OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
   
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
@@ -58,8 +48,6 @@ export interface GlobalFsmFlags {
   isCalculatedTADataReady: boolean;
   isKeyTakeawaysDataAvailable: boolean;
   isOptionsAnalysisDataAvailable: boolean;
-  isManualKeyTakeawaysActionPossible: boolean;
-  isManualOptionsAnalysisActionPossible: boolean;
   isDebugConsoleFilterMenuOpen: boolean;
   isDebugConsoleCopyMenuOpen: boolean;
   isDebugConsoleExportMenuOpen: boolean;
@@ -92,7 +80,6 @@ interface AiOptionsAnalysisFailurePayload { error?: string | null; message?: str
 
 type DebugConsoleMenuType = 'filter' | 'copy' | 'export';
 interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: boolean; }
-interface UpdateManualActionFlagsPayload { ktPossible: boolean; optPossible: boolean; }
 
 export type AnalysisToggleType =
   | 'ai_key_takeaways'
@@ -108,26 +95,20 @@ export type FsmEvent =
   | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
   | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
-  // Re-added for deterministic pipeline control
   | { type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' }
   | { type: 'FETCH_DATA_SUCCESS'; payload: FetchDataSuccessPayload }
   | { type: 'FETCH_DATA_FAILURE'; payload: FetchDataFailurePayload }
   | { type: 'SET_STATE_CALCULATING_AI_TA' }
   | { type: 'AI_TA_SUCCESS'; payload: AiTaSuccessPayload }
   | { type: 'AI_TA_FAILURE'; payload: AiTaFailurePayload }
-  // Existing events
   | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
-  | { type: 'GENERATING_KEY_TAKEAWAYS' }
   | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: AiKeyTakeawaysSuccessPayload }
   | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: AiKeyTakeawaysFailurePayload }
-  | { type: 'ANALYZING_OPTIONS' }
   | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: AiOptionsAnalysisSuccessPayload }
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: AiOptionsAnalysisFailurePayload }
   | { type: 'TOGGLE_DEBUG_CONSOLE_MENU'; payload: ToggleDebugConsoleMenuPayload }
-  | { type: 'UPDATE_MANUAL_ACTION_FLAGS'; payload: UpdateManualActionFlagsPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
-  | { type: 'FINALIZE_AUTOMATED_PIPELINE' }
-  | { type: 'RETURN_TO_IDLE' };
+  | { type: 'FINALIZE_AUTOMATED_PIPELINE' };
 
 export interface AppDataChatMessage {
   id: string;
@@ -255,8 +236,6 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isCalculatedTADataReady: false,
     isKeyTakeawaysDataAvailable: false,
     isOptionsAnalysisDataAvailable: false,
-    isManualKeyTakeawaysActionPossible: false,
-    isManualOptionsAnalysisActionPossible: false,
     isDebugConsoleFilterMenuOpen: false,
     isDebugConsoleCopyMenuOpen: false,
     isDebugConsoleExportMenuOpen: false,
@@ -524,7 +503,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
     logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}.`);
 
-    if ('payload' in event && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'UPDATE_MANUAL_ACTION_FLAGS' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
+    if ('payload' in event && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
     }
 
@@ -551,20 +530,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
 
     switch (event.type) {
-      case 'RETURN_TO_IDLE':
-        if ([
-          GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED,
-          GlobalFsmState.KEY_TAKEAWAYS_FAILED,
-          GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED,
-          GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
-        ].includes(previousState)) {
-          nextCurrentState = GlobalFsmState.IDLE;
-          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `Returning to IDLE from on-demand action state ${previousState}.`);
-        } else {
-          logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `Ignoring RETURN_TO_IDLE from state ${previousState}.`);
-          nextCurrentState = previousState;
-        }
-        break;
       case 'ANALYSIS_TOGGLE_CHANGED':
         const { toggleType, isEnabled } = event.payload;
         switch (toggleType) {
@@ -649,47 +614,32 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_FAILED;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_FAILED. Error: ${aiTaErrMsg}.`);
         break;
-      case 'GENERATING_KEY_TAKEAWAYS':
-          contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
-          contextSetters.setAiKeyTakeawaysJson(pendingJson);
-          nextCurrentState = GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
-          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
-          break;
-      case 'ANALYZING_OPTIONS':
-          contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
-          contextSetters.setAiOptionsAnalysisJson(pendingJson);
-          nextCurrentState = GlobalFsmState.ANALYZING_OPTIONS;
-          logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
-          break;
       case 'KEY_TAKEAWAYS_SUCCESS':
-        contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson); contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
+        contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
+        contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
         nextFlags.isKeyTakeawaysDataAvailable = true;
-        nextCurrentState = GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
+        nextCurrentState = previousState; // Does not transition state
         break;
       case 'KEY_TAKEAWAYS_FAILURE':
-        const ktErr = event.payload; const ktErrMsg = ktErr.message || 'AI Key Takeaways failed';
-        const ktErrorJson = errorJsonWithDetails(ktErrMsg, ktErr.error);
-        contextSetters.setAiKeyTakeawaysRequestJson(ktErr.aiKeyTakeawaysRequestJson || ktErrorJson); contextSetters.setAiKeyTakeawaysJson(ktErrorJson);
-        handlePipelineError('KeyTakeaways', ktErrMsg, ktErr.error);
-        nextCurrentState = GlobalFsmState.KEY_TAKEAWAYS_FAILED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}. Error: ${ktErrMsg}.`);
+        const ktErr = event.payload;
+        contextSetters.setAiKeyTakeawaysRequestJson(ktErr.aiKeyTakeawaysRequestJson || errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
+        contextSetters.setAiKeyTakeawaysJson(errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
+        handlePipelineError('KeyTakeaways', ktErr.message || 'Unknown', ktErr.error);
+        nextCurrentState = previousState; // Does not transition state
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
-        contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson); contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
+        contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
+        contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
         nextFlags.isOptionsAnalysisDataAvailable = true;
-        nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}.`);
+        nextCurrentState = previousState; // Does not transition state
         break;
       case 'OPTIONS_ANALYSIS_FAILURE':
-        const optErr = event.payload; const optErrMsg = optErr.message || 'AI Options Analysis failed';
-        const optErrorJson = errorJsonWithDetails(optErrMsg, optErr.error);
-        contextSetters.setAiOptionsAnalysisRequestJson(optErr.aiOptionsAnalysisRequestJson || optErrorJson); contextSetters.setAiOptionsAnalysisJson(optErrorJson);
-        handlePipelineError('OptionsAnalysis', optErrMsg, optErr.error);
-        nextCurrentState = GlobalFsmState.OPTIONS_ANALYSIS_FAILED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState}. Error: ${optErrMsg}.`);
+        const optErr = event.payload;
+        contextSetters.setAiOptionsAnalysisRequestJson(optErr.aiOptionsAnalysisRequestJson || errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
+        contextSetters.setAiOptionsAnalysisJson(errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
+        handlePipelineError('OptionsAnalysis', optErr.message || 'Unknown', optErr.error);
+        nextCurrentState = previousState; // Does not transition state
         break;
-      
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextCurrentState = GlobalFsmState.IDLE;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after pipeline finalization.`);
@@ -701,20 +651,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isDebugConsoleExportMenuOpen = menu === 'export' && isOpen;
         logDebug(logPrefixFsmReducer as LogSourceId, 'FlagsUpdate_DebugMenu', `Menu: ${menu}, isOpen: ${isOpen}.`);
         break;
-      case 'UPDATE_MANUAL_ACTION_FLAGS':
-        nextFlags.isManualKeyTakeawaysActionPossible = event.payload.ktPossible;
-        nextFlags.isManualOptionsAnalysisActionPossible = event.payload.optPossible;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'FlagsUpdate_ManualActions', `KT possible: ${event.payload.ktPossible}, OPT possible: ${event.payload.optPossible}.`);
-        nextCurrentState = previousState;
-        break;
       default:
         logDebug(logPrefixFsmReducer as LogSourceId, 'UnhandledEvent', `Unhandled event type: ${(event as any).type} in state ${previousState}`);
     }
 
     if ([
         GlobalFsmState.IDLE, GlobalFsmState.VALID_TICKER_ENTERED, GlobalFsmState.AWAITING_TICKER_INPUT,
-        GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED, GlobalFsmState.KEY_TAKEAWAYS_FAILED,
-        GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED, GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
         GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.ERROR_STALE_DATA,
         GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED, GlobalFsmState.AI_TA_CALCULATION_FAILED,
     ].includes(nextCurrentState)) {
@@ -740,56 +682,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       _dispatchFsmEventActual(event);
     });
   }, []);
-  
-  useEffect(() => {
-    const logPrefix = 'StockAnalysisContext:ManualActionFlagEffect';
-    const state = fsmStateRef.current;
-
-    const manualActionsPossibleOverall =
-      (state.current === GlobalFsmState.IDLE ||
-        state.current === GlobalFsmState.VALID_TICKER_ENTERED ||
-        state.current === GlobalFsmState.KEY_TAKEAWAYS_SUCCEEDED ||
-        state.current === GlobalFsmState.KEY_TAKEAWAYS_FAILED ||
-        state.current === GlobalFsmState.OPTIONS_ANALYSIS_SUCCEEDED ||
-        state.current === GlobalFsmState.OPTIONS_ANALYSIS_FAILED) &&
-      !!state.variables.activeTicker &&
-      state.variables.activeTicker === state.variables.userInputTicker;
-
-    const ktPrereqsMet =
-      isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefix as LogSourceId, 'KT_Snapshot', 'Validation') &&
-      isDataReadyForProcessing(_standardTasJson, logDebug, logPrefix as LogSourceId, 'KT_StdTA', 'Validation') &&
-      isDataReadyForProcessing(_aiAnalyzedTaJson, logDebug, logPrefix as LogSourceId, 'KT_AiTA', 'Validation') &&
-      isDataReadyForProcessing(_marketStatusJson, logDebug, logPrefix as LogSourceId, 'KT_MarketStatus', 'Validation');
-    const shouldKtButtonBeEnabled = manualActionsPossibleOverall && ktPrereqsMet;
-
-    const optPrereqsMet =
-      isDataReadyForProcessing(_stockSnapshotJson, logDebug, logPrefix as LogSourceId, 'Opt_Snapshot', 'Validation') &&
-      isDataReadyForProcessing(_optionsChainJson, logDebug, logPrefix as LogSourceId, 'Opt_Chain', 'Validation');
-    const shouldOptButtonBeEnabled = manualActionsPossibleOverall && optPrereqsMet;
-    
-    if (
-      shouldKtButtonBeEnabled !== state.flags.isManualKeyTakeawaysActionPossible ||
-      shouldOptButtonBeEnabled !== state.flags.isManualOptionsAnalysisActionPossible
-    ) {
-      logDebug(logPrefix as LogSourceId, 'Dispatch', `Dispatching UPDATE_MANUAL_ACTION_FLAGS. KT: ${shouldKtButtonBeEnabled}, OPT: ${shouldOptButtonBeEnabled}`);
-      dispatchFsmEvent({
-        type: 'UPDATE_MANUAL_ACTION_FLAGS',
-        payload: {
-          ktPossible: shouldKtButtonBeEnabled,
-          optPossible: shouldOptButtonBeEnabled,
-        },
-      });
-    }
-  }, [
-    globalFsmReducerState.current, 
-    globalFsmReducerState.variables.activeTicker,
-    globalFsmReducerState.variables.userInputTicker,
-    globalFsmReducerState.flags.isManualKeyTakeawaysActionPossible,
-    globalFsmReducerState.flags.isManualOptionsAnalysisActionPossible,
-    _stockSnapshotJson, _standardTasJson, _aiAnalyzedTaJson,
-    _marketStatusJson, _optionsChainJson,
-    dispatchFsmEvent, logDebug
-  ]);
   
   const contextValue: StockAnalysisContextType = useMemo(() => ({
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson: contextSetters.setPolygonApiRequestLogJson,
