@@ -1,10 +1,10 @@
 
 # Feature Scope: Full Deterministic Application Refactor (v3.4)
 
-**Document Version:** 3.0
-**Date:** 2025-08-12
+**Document Version:** 3.1
+**Date:** 2025-08-14
 **Target Application Version Series:** 3.4.x.y.z
-**Feature Status:** `IMPLEMENTATION COMPLETE`
+**Feature Status:** `AWAITING FINAL TESTING`
 
 ## 1. Introduction & Objective
 
@@ -86,8 +86,8 @@ This was a high-risk refactor, broken down into discrete phases.
 *   **Tasks:**
     *   **Task 3.4.6.0-1:** Audited and removed all redundant `GlobalFsmState` enums and simplified the reducer. (`COMPLETED`)
     *   **Task 3.4.6.2-7:** A series of debugging and fix tasks to resolve regressions in the new architecture, such as data not appearing in the UI. (`COMPLETED`)
-    *   **Task 3.4.6.8-9:** Fixed `TypeError` in chat actions and resolved all chat prompt routing issues. (`COMPLETED`)
-    *   **Task 3.4.6.4.10 (This Task):** Documentation checkpoint to consolidate all fixes and officially mark implementation as complete. (`COMPLETED`)
+    *   **Task 3.4.6.8-10:** Fixed `TypeError` in chat actions and resolved all chat prompt routing issues. (`COMPLETED`)
+    *   **Task 3.4.6.4.11:** Performed a comprehensive codebase cleanup, removing 13 obsolete files, refactoring duplicated logic, and eliminating legacy FSM state. (`COMPLETED`)
 
 ## 5. Value Added & Risk Assessment
 
@@ -100,6 +100,7 @@ This was a high-risk refactor, broken down into discrete phases.
     *   **High Regression Risk (Mitigated):** This was a full-scale refactor. The risk of breaking existing functionality was mitigated through a phased approach and rigorous, step-by-step auditing and bug-fixing after each phase.
 
 ## 6. Document Changelog
+*   **v3.1 (2025-08-14):** Updated Phase 6 to include the final cleanup and refactoring task (`v3.4.6.4.11`). Marked feature status as `AWAITING FINAL TESTING`.
 *   **v3.0 (2025-08-12):** Marked feature as `IMPLEMENTATION COMPLETE`. Updated all phases and tasks to `COMPLETED` status to reflect the successful refactor and all subsequent bug fixes.
 *   **v2.0 (2025-08-08):** Marked feature as `IMPLEMENTATION COMPLETE`. Updated all phases and tasks to `COMPLETED` status to reflect the successful refactor.
 *   **v1.3 (2025-08-03):** Updated "Note on Prerequisite Stability" to reflect the completion of the `v3.3.16.8.x` features, which provide the necessary stable debugging foundation for this refactor.

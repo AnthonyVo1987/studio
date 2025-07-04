@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.4.6.4.11` (Code Cleanup & Refactor)
+**Tag:** `Phase-67_Task-3.4.6.4.11_CleanupAndRefactor`
+**Commit Hash:** `9a3cde9f`
+**Subject:** `refactor(all): Comprehensive cleanup and refactoring post-deterministic overhaul`
+**Details:**
+This commit marks a significant codebase cleanup and refactoring initiative following the completion of the "Full Deterministic Application Refactor" (`v3.4.x.y`). The audit identified and removed a substantial amount of obsolete code, legacy FSM logic, and duplicated functions, resulting in a leaner, more maintainable, and less complex application architecture.
+
+**Key Refactoring & Cleanup Actions:**
+*   **Legacy FSM Flag Removal:** Removed three obsolete `GlobalFsmFlags` (`isDebugConsole...`) and the corresponding `TOGGLE_DEBUG_CONSOLE_MENU` event from `stock-analysis-context.tsx`, as this UI state is now managed locally.
+*   **Code De-duplication:** Refactored the two separate functions for loading example chat prompts (`loadExampleAppDataPrompts`, `loadExampleWebSearchPrompts`) into a single, generic `loadExamplePrompts` function in `definition-loader.ts`, simplifying the logic in `main-tab-content.tsx`.
+*   **Obsolete File Deletion:** Deleted **13** obsolete files from the project. These included legacy action/flow/schema files from the pre-deterministic architecture (`augmented-*-...`, `performAi...Action.ts`), deprecated FSM contexts (`chatbot-fsm-context.tsx`, `debug-console-fsm-context.tsx`), and duplicate documentation.
+
+**Outcome:**
+*   The application's codebase is now significantly cleaner, more organized, and easier to navigate.
+*   The risk of future bugs caused by legacy code or confusion over duplicated files is greatly reduced.
+*   The application is in a highly stable state, ready for final end-to-end testing before any new feature development.
+---
 **App Version:** `v3.4.6.4.10` (Documentation Checkpoint)
 **Tag:** `Phase-66_Task-3.4.6.4.10_DocsCheckpoint`
 **Commit Hash:** `3dedae7b`
@@ -1100,7 +1117,7 @@ This commit marks the full completion of the "Debug Log Enhancements" feature, w
     *   (v3.1.2.1) Added a UI toggle switch in `src/components/debug-settings-card.tsx` for `isReducedStartupLoggingEnabled`.
     *   (v3.1.2.2) Implemented conditional logging logic in `StockAnalysisContext`'s console interceptor. Non-critical logs are suppressed during initial app startup if the toggle is enabled, and a "StartupComplete" log message is emitted when full logging resumes.
 *   **FSM Dispatch & Data Flow Bug Fixes (v3.1.3.x):**
-    *   (v3.1.3.0) Corrected `currentPrice` derivation in `src/services/data-sources/adapters/polygon-adapter.ts` to better handle market-closed scenarios for options analysis. Refined FSM display logging in `StockAnalysisContext` to reduce duplicates. Implemented initial `globalDispatchGuardRef` in `MainTabContent.tsx` to prevent duplicate global FSM event dispatches.
+    *   (v3.1.3.0) Corrected `currentPrice` derivation in `src/services/data-sources/adapters/polygon-adapter.ts` to better handle market-closed scenarios for options analysis. Refined FSM display logging in `StockAnalysisContext` to reduce duplicates. Implemented initial `globalDispatchGuardRef` in `MainTabContent` to prevent duplicate global FSM event dispatches.
     *   (v3.1.3.1) Further strengthened `PolygonAdapter`'s `currentPrice` logic. Tweaked AI Options flow/prompt (`analyze-options-chain.json`, `analyze-options-chain-flow.ts`) for improved wall detection. Further refined `globalDispatchGuardRef` reset logic in `MainTabContent.tsx`.
     *   (v3.1.3.2 & v3.1.3.3) Continued refinement of the `globalDispatchGuardRef` reset logic in `MainTabContent.tsx`, making conditions for guard reset more precise based on global FSM terminal states for specific actions and relevant ticker contexts to prevent duplicate global FSM event dispatches.
     *   (v3.1.3.4) Fixed a `ReferenceError: activeAnalysisTickerRef is not defined` in `MainTabContent.tsx` by correctly using `localFsm.activeAnalysisTicker` within the global FSM dispatch guard reset logic.
