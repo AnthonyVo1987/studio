@@ -23,7 +23,7 @@ import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
 import { useStockAnalysis, GlobalFsmState, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart } from "lucide-react";
-import { loadExampleChatPrompts, type ExampleChatPrompt } from '@/ai/definition-loader';
+import { loadExampleAppDataPrompts, loadExampleWebSearchPrompts, type ExamplePrompt } from '@/ai/definition-loader';
 
 // Server Actions
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
@@ -75,12 +75,18 @@ export function MainTabContent() {
 
   const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
   const [webSearchUserInput, setWebSearchUserInput] = useState('');
-  const [examplePrompts, setExamplePrompts] = useState<ExampleChatPrompt[]>([]);
+  
+  const [appDataExamplePrompts, setAppDataExamplePrompts] = useState<ExamplePrompt[]>([]);
+  const [webSearchExamplePrompts, setWebSearchExamplePrompts] = useState<ExamplePrompt[]>([]);
 
   useEffect(() => {
-    loadExampleChatPrompts().then(setExamplePrompts).catch(err => {
-      console.error("Failed to load example chat prompts:", err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not load example prompts.' });
+    loadExampleAppDataPrompts().then(setAppDataExamplePrompts).catch(err => {
+      console.error("Failed to load App Data example prompts:", err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load app data example prompts.' });
+    });
+    loadExampleWebSearchPrompts().then(setWebSearchExamplePrompts).catch(err => {
+      console.error("Failed to load Web Search example prompts:", err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load web search example prompts.' });
     });
   }, [toast]);
 
@@ -128,7 +134,7 @@ export function MainTabContent() {
             setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
             setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
           }
-          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
+          dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: result });
           if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
           break;
         }
@@ -142,7 +148,7 @@ export function MainTabContent() {
             setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
             setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
           }
-          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
+          dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: result });
           if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
           break;
         }
@@ -208,7 +214,7 @@ export function MainTabContent() {
     let messageToHistory = finalUserInput;
 
     if (promptName) {
-      const promptTemplate = examplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
+      const promptTemplate = appDataExamplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
       if (promptTemplate) {
         finalUserInput = promptTemplate.replace(/\{TICKER\}/g, globalFsmVariables.activeTicker || 'the stock');
         messageToHistory = promptName;
@@ -241,12 +247,12 @@ export function MainTabContent() {
     let messageToHistory = finalUserInput;
 
     if (promptName) {
-      const promptTemplate = examplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
+      const promptTemplate = webSearchExamplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
       if (promptTemplate) {
         finalUserInput = promptTemplate.replace(/\{TICKER\}/g, globalFsmVariables.activeTicker || 'the stock');
         messageToHistory = promptName;
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: `Could not find prompt: ${promptName}` });
+        toast({ variant: 'destructive', title: 'Error', description: `Could not find Web Search prompt: ${promptName}` });
         return;
       }
     }

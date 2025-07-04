@@ -129,38 +129,60 @@ export function buildPromptStringFromLlmDefinition(definition: LlmPromptDefiniti
   return fullPrompt.trim();
 }
 
-// --- Schema for example-chat-prompts.json (Loaded by server action) ---
-export const ExampleChatPromptSchema = z.object({
+// --- Schema for example prompt definition files ---
+export const ExamplePromptSchema = z.object({
   title: z.string().describe("The display title for the example prompt button in the UI."),
   promptName: z.string().describe("A unique machine-readable identifier for the prompt."),
   promptTemplate: z.string().describe("The Handlebars template string for the example prompt. {{{TICKER}}} will be replaced."),
 });
-export type ExampleChatPrompt = z.infer<typeof ExampleChatPromptSchema>;
+export type ExamplePrompt = z.infer<typeof ExamplePromptSchema>;
 
-export const ExampleChatPromptsFileSchema = z.array(ExampleChatPromptSchema);
-export type ExampleChatPromptsFile = z.infer<typeof ExampleChatPromptsFileSchema>;
+const ExamplePromptsFileSchema = z.array(ExamplePromptSchema);
 
 /**
- * Loads example chat prompts from the JSON file using dynamic import.
- * This is used by server actions to get the full prompt text based on a promptName.
- * @returns {Promise<ExampleChatPromptsFile>}
+ * Loads example App Data chat prompts from its JSON file.
+ * @returns {Promise<ExamplePrompt[]>}
  * @throws {Error} If the file cannot be read or the content is invalid.
  */
-export async function loadExampleChatPrompts(): Promise<ExampleChatPromptsFile> {
-  const logPrefix = '[DefinitionLoader:loadExampleChatPrompts]';
+export async function loadExampleAppDataPrompts(): Promise<ExamplePrompt[]> {
+  const logPrefix = '[DefinitionLoader:loadExampleAppDataPrompts]';
   console.log(`${logPrefix} Loading example-chat-prompts.json via dynamic import.`);
   try {
     const module = await import(`@/ai/definitions/example-chat-prompts.json`);
     const jsonData = module.default;
-    const validationResult = ExampleChatPromptsFileSchema.safeParse(jsonData);
+    const validationResult = ExamplePromptsFileSchema.safeParse(jsonData);
      if (!validationResult.success) {
       console.error(`${logPrefix} Zod validation FAILED for example-chat-prompts.json:`, JSON.stringify(validationResult.error.issues, null, 2));
-      throw new Error("Invalid example chat prompts structure.");
+      throw new Error("Invalid app data example chat prompts structure.");
     }
-    console.log(`${logPrefix} Successfully loaded and validated example-chat-prompts.json. Count: ${validationResult.data.length}`);
+    console.log(`${logPrefix} Successfully loaded and validated app data example prompts. Count: ${validationResult.data.length}`);
     return validationResult.data;
   } catch (error: any) {
-    console.error(`${logPrefix} CRITICAL ERROR loading example-chat-prompts.json via dynamic import:`, error);
+    console.error(`${logPrefix} CRITICAL ERROR loading app data example prompts:`, error);
     throw new Error(`Failed to load or parse example-chat-prompts.json: ${error.message}`);
+  }
+}
+
+/**
+ * Loads example Web Search chat prompts from its JSON file.
+ * @returns {Promise<ExamplePrompt[]>}
+ * @throws {Error} If the file cannot be read or the content is invalid.
+ */
+export async function loadExampleWebSearchPrompts(): Promise<ExamplePrompt[]> {
+  const logPrefix = '[DefinitionLoader:loadExampleWebSearchPrompts]';
+  console.log(`${logPrefix} Loading example-web-search-prompts.json via dynamic import.`);
+  try {
+    const module = await import(`@/ai/definitions/example-web-search-prompts.json`);
+    const jsonData = module.default;
+    const validationResult = ExamplePromptsFileSchema.safeParse(jsonData);
+     if (!validationResult.success) {
+      console.error(`${logPrefix} Zod validation FAILED for example-web-search-prompts.json:`, JSON.stringify(validationResult.error.issues, null, 2));
+      throw new Error("Invalid web search example chat prompts structure.");
+    }
+    console.log(`${logPrefix} Successfully loaded and validated web search example prompts. Count: ${validationResult.data.length}`);
+    return validationResult.data;
+  } catch (error: any) {
+    console.error(`${logPrefix} CRITICAL ERROR loading web search example prompts:`, error);
+    throw new Error(`Failed to load or parse example-web-search-prompts.json: ${error.message}`);
   }
 }
