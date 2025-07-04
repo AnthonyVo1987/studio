@@ -83,6 +83,65 @@ export function MainTabContent() {
     }
   }, [dispatchGlobalFsmEvent, logDebug]);
 
+  // Reactive Pipeline Orchestrator
+  useEffect(() => {
+    const orchestratorLogPrefix = 'StockAnalysisContext:GlobalFSM_Orchestrator';
+    logDebug(orchestratorLogPrefix as any, 'Entry', `Orchestrator running. Current FSM state: ${globalFsmStateFromContext}`);
+
+    const runPipelineStep = async () => {
+      switch (globalFsmStateFromContext) {
+        case GlobalFsmState.DATA_FETCH_IN_PROGRESS: {
+          const dataResult = await fetchStockDataAction({ ticker: globalFsmVariables.activeTicker! });
+          if (dataResult.status === 'success' && dataResult.data) {
+            dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
+          } else {
+            dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: dataResult });
+            toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
+          }
+          break;
+        }
+        case GlobalFsmState.CALCULATING_AI_TA: {
+          const aiTaResult = await analyzeTaAction({ stockSnapshotJson: contextStockSnapshotJson, ticker: globalFsmVariables.activeTicker! });
+          if (aiTaResult.status === 'success' && aiTaResult.data) {
+            dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaResult.data });
+          } else {
+            dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: aiTaResult });
+            toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
+          }
+          break;
+        }
+        case GlobalFsmState.GENERATING_KEY_TAKEAWAYS: {
+          const keyTakeawaysResult = await performAiAnalysisAction({
+            ticker: globalFsmVariables.activeTicker!, 
+            stockSnapshotJson: contextStockSnapshotJson, 
+            standardTasJson: contextStandardTasJson, 
+            aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
+            marketStatusJson: contextMarketStatusJson
+          });
+          dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
+          if(keyTakeawaysResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: keyTakeawaysResult.message, variant: 'destructive' });
+          break;
+        }
+        case GlobalFsmState.ANALYZING_OPTIONS: {
+          const optionsAnalysisResult = await performAiOptionsAnalysisAction({
+            ticker: globalFsmVariables.activeTicker!, 
+            stockSnapshotJson: contextStockSnapshotJson, 
+            optionsChainJson: contextOptionsChainJson,
+          });
+          dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
+          if(optionsAnalysisResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: optionsAnalysisResult.message, variant: 'destructive' });
+          break;
+        }
+        default:
+          // Do nothing in other states
+          break;
+      }
+    };
+
+    runPipelineStep();
+
+  }, [globalFsmStateFromContext, dispatchGlobalFsmEvent]); // End of Orchestrator
+
 
   // Effect to handle App Data Chat results
   useEffect(() => {
@@ -164,71 +223,32 @@ export function MainTabContent() {
     dispatchGlobalFsmEvent({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: newTicker } });
   };
   
-  const handleAnalyzeStockSubmit = useCallback(async (e?: FormEvent<HTMLFormElement>) => {
+  const handleAnalyzeStockSubmit = (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     const ticker = globalUserInputTicker.trim();
     if (!ticker) {
       toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
       return;
     }
-    
     dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
-    dispatchGlobalFsmEvent({ type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' });
-    
-    const dataResult = await fetchStockDataAction({ ticker });
-    if (dataResult.status !== 'success' || !dataResult.data) {
-      dispatchGlobalFsmEvent({ type: 'FETCH_DATA_FAILURE', payload: dataResult });
-      toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
-      return;
-    }
-    dispatchGlobalFsmEvent({ type: 'FETCH_DATA_SUCCESS', payload: dataResult.data });
-    
-    dispatchGlobalFsmEvent({ type: 'SET_STATE_CALCULATING_AI_TA' });
-    const aiTaResult = await analyzeTaAction({ stockSnapshotJson: dataResult.data.stockSnapshotJson, ticker });
-    if (aiTaResult.status !== 'success' || !aiTaResult.data) {
-      dispatchGlobalFsmEvent({ type: 'AI_TA_FAILURE', payload: aiTaResult });
-      toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
-      dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-      return;
-    }
-    dispatchGlobalFsmEvent({ type: 'AI_TA_SUCCESS', payload: aiTaResult.data });
+  };
 
-    // Conditional AI Analysis Steps
-    if (globalFsmFlags.isAiKeyTakeawaysSelected) {
-      const keyTakeawaysResult = await performAiAnalysisAction({
-          ticker, 
-          stockSnapshotJson: dataResult.data.stockSnapshotJson, 
-          standardTasJson: dataResult.data.standardTasJson, 
-          aiAnalyzedTaJson: aiTaResult.data.aiAnalyzedTaJson, 
-          marketStatusJson: dataResult.data.marketStatusJson
-      });
-      dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
-      if(keyTakeawaysResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: keyTakeawaysResult.message, variant: 'destructive' });
-    }
-
-    if (globalFsmFlags.isAiOptionsAnalysisSelected) {
-      const optionsAnalysisResult = await performAiOptionsAnalysisAction({
-          ticker, 
-          stockSnapshotJson: dataResult.data.stockSnapshotJson, 
-          optionsChainJson: dataResult.data.optionsChainJson,
-      });
-      dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
-      if(optionsAnalysisResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: optionsAnalysisResult.message, variant: 'destructive' });
-    }
-
-    dispatchGlobalFsmEvent({ type: 'FINALIZE_AUTOMATED_PIPELINE' });
-    toast({ title: "Analysis Complete", description: `Full analysis for ${ticker} has finished.` });
-
-  }, [globalUserInputTicker, dispatchGlobalFsmEvent, toast, globalFsmFlags.isAiKeyTakeawaysSelected, globalFsmFlags.isAiOptionsAnalysisSelected]);
 
   const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
   };
 
-  const isPipelineInProgress = [
-    GlobalFsmState.DATA_FETCH_IN_PROGRESS,
-    GlobalFsmState.CALCULATING_AI_TA,
+  const isPipelineInProgress = ![
+    GlobalFsmState.IDLE,
+    GlobalFsmState.AWAITING_TICKER_INPUT,
+    GlobalFsmState.VALID_TICKER_ENTERED,
+    GlobalFsmState.DATA_FETCH_FAILED,
+    GlobalFsmState.ERROR_STALE_DATA,
+    GlobalFsmState.AI_TA_CALCULATION_FAILED,
+    GlobalFsmState.KEY_TAKEAWAYS_FAILED,
+    GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
   ].includes(globalFsmStateFromContext);
+
 
   const analyzeButtonLoading = isPipelineInProgress;
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();

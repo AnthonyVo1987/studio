@@ -30,6 +30,14 @@ export enum GlobalFsmState {
   AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
   
+  GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
+  KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
+  KEY_TAKEAWAYS_FAILED = 'KEY_TAKEAWAYS_FAILED',
+
+  ANALYZING_OPTIONS = 'ANALYZING_OPTIONS',
+  OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED',
+  OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
+
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
 
@@ -507,7 +515,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
     }
 
-
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
     let nextFlags: GlobalFsmFlags = { ...state.flags };
@@ -527,6 +534,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
         nextVariables.lastError = { message: errorMessage, source, details: errorDetails };
+        nextCurrentState = GlobalFsmState.IDLE;
+    };
+    
+    // Helper to determine the next step in the pipeline
+    const determineNextStep = (): GlobalFsmState => {
+        if (nextFlags.isAiKeyTakeawaysSelected) return GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
+        if (nextFlags.isAiOptionsAnalysisSelected) return GlobalFsmState.ANALYZING_OPTIONS;
+        return GlobalFsmState.IDLE;
     };
 
     switch (event.type) {
@@ -541,8 +556,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
-        nextCurrentState = previousState;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'ActionStart', `START_FULL_ANALYSIS for ${event.payload.ticker}. Resetting state.`);
+        nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'ActionStart', `START_FULL_ANALYSIS for ${event.payload.ticker}. Transitioning to DATA_FETCH_IN_PROGRESS.`);
         break;
       case 'INITIALIZATION_COMPLETE':
         if (previousState === GlobalFsmState.APP_INITIALIZING) {
@@ -561,17 +576,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `USER_INPUT_TICKER_CHANGED. To ${nextCurrentState}.`);
         break;
-      case 'SET_STATE_DATA_FETCH_IN_PROGRESS':
-        nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To DATA_FETCH_IN_PROGRESS.`);
-        break;
       case 'FETCH_DATA_SUCCESS':
         contextSetters.setMarketStatusJson(event.payload.marketStatusJson); contextSetters.setStockSnapshotJson(event.payload.stockSnapshotJson);
         contextSetters.setStandardTasJson(event.payload.standardTasJson); contextSetters.setOptionsChainJson(event.payload.optionsChainJson);
         contextSetters.setPolygonApiRequestLogJson(event.payload.polygonApiRequestLogJson); contextSetters.setPolygonApiResponseLogJson(event.payload.polygonApiResponseLogJson);
         nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
-        nextCurrentState = GlobalFsmState.DATA_FETCH_SUCCEEDED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To DATA_FETCH_SUCCEEDED.`);
+        nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CALCULATING_AI_TA.`);
         break;
       case 'FETCH_DATA_FAILURE':
         const fetchErr = event.payload; const fetchErrMsg = fetchErr.message || 'Data fetch failed';
@@ -580,8 +591,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setStandardTasJson(fetchErrorJson); contextSetters.setOptionsChainJson(fetchErrorJson);
         contextSetters.setPolygonApiRequestLogJson(fetchErr.polygonApiRequestLogJson || fetchErrorJson); contextSetters.setPolygonApiResponseLogJson(fetchErr.polygonApiResponseLogJson || fetchErrorJson);
         handlePipelineError('DataFetch', fetchErrMsg, fetchErr.error);
-        nextCurrentState = GlobalFsmState.DATA_FETCH_FAILED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To DATA_FETCH_FAILED. Error: ${fetchErrMsg}.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to FETCH_DATA_FAILURE. Error: ${fetchErrMsg}.`);
         break;
       case 'STALE_DATA_FROM_ACTION':
         const staleErr = event.payload; const staleErrMsg = staleErr.message || 'Stale data error';
@@ -593,52 +603,48 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setPolygonApiRequestLogJson(staleErr.actionStateData?.polygonApiRequestLogJson || errorJsonWithDetails("Req log unavailable for stale data.", null));
         contextSetters.setPolygonApiResponseLogJson(staleErr.actionStateData?.polygonApiResponseLogJson || errorJsonWithDetails("Res log unavailable for stale data.", null));
         handlePipelineError('StaleData', staleErrMsg, staleErr.error);
-        nextCurrentState = GlobalFsmState.ERROR_STALE_DATA;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ERROR_STALE_DATA. Error: ${staleErrMsg}.`);
-        break;
-      case 'SET_STATE_CALCULATING_AI_TA':
-        nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CALCULATING_AI_TA.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to STALE_DATA_FROM_ACTION. Error: ${staleErrMsg}.`);
         break;
       case 'AI_TA_SUCCESS':
         contextSetters.setAiAnalyzedTaRequestJson(event.payload.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.aiAnalyzedTaJson);
         nextFlags.isCalculatedTADataReady = true;
-        nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_SUCCEEDED.`);
+        nextCurrentState = determineNextStep();
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `AI_TA_SUCCESS. Determining next step: ${nextCurrentState}`);
         break;
       case 'AI_TA_FAILURE':
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
         const aiTaErrorJson = errorJsonWithDetails(aiTaErrMsg, aiTaErr.error);
         contextSetters.setAiAnalyzedTaRequestJson(aiTaErr.aiAnalyzedTaRequestJson || aiTaErrorJson); contextSetters.setAiAnalyzedTaJson(aiTaErrorJson);
         handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
-        nextCurrentState = GlobalFsmState.AI_TA_CALCULATION_FAILED;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To AI_TA_CALCULATION_FAILED. Error: ${aiTaErrMsg}.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to AI_TA_FAILURE. Error: ${aiTaErrMsg}.`);
         break;
       case 'KEY_TAKEAWAYS_SUCCESS':
         contextSetters.setAiKeyTakeawaysRequestJson(event.payload.aiKeyTakeawaysRequestJson);
         contextSetters.setAiKeyTakeawaysJson(event.payload.aiKeyTakeawaysJson);
         nextFlags.isKeyTakeawaysDataAvailable = true;
-        nextCurrentState = previousState; // Does not transition state
+        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `KEY_TAKEAWAYS_SUCCESS. Determining next step: ${nextCurrentState}`);
         break;
       case 'KEY_TAKEAWAYS_FAILURE':
         const ktErr = event.payload;
         contextSetters.setAiKeyTakeawaysRequestJson(ktErr.aiKeyTakeawaysRequestJson || errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
         contextSetters.setAiKeyTakeawaysJson(errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
         handlePipelineError('KeyTakeaways', ktErr.message || 'Unknown', ktErr.error);
-        nextCurrentState = previousState; // Does not transition state
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to KEY_TAKEAWAYS_FAILURE. Error: ${ktErr.message}.`);
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
         contextSetters.setAiOptionsAnalysisRequestJson(event.payload.aiOptionsAnalysisRequestJson);
         contextSetters.setAiOptionsAnalysisJson(event.payload.aiOptionsAnalysisJson);
         nextFlags.isOptionsAnalysisDataAvailable = true;
-        nextCurrentState = previousState; // Does not transition state
+        nextCurrentState = GlobalFsmState.IDLE;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `OPTIONS_ANALYSIS_SUCCESS. Finalizing to IDLE.`);
         break;
       case 'OPTIONS_ANALYSIS_FAILURE':
         const optErr = event.payload;
         contextSetters.setAiOptionsAnalysisRequestJson(optErr.aiOptionsAnalysisRequestJson || errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
         contextSetters.setAiOptionsAnalysisJson(errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
         handlePipelineError('OptionsAnalysis', optErr.message || 'Unknown', optErr.error);
-        nextCurrentState = previousState; // Does not transition state
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to OPTIONS_ANALYSIS_FAILURE. Error: ${optErr.message}.`);
         break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextCurrentState = GlobalFsmState.IDLE;
@@ -657,8 +663,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
     if ([
         GlobalFsmState.IDLE, GlobalFsmState.VALID_TICKER_ENTERED, GlobalFsmState.AWAITING_TICKER_INPUT,
-        GlobalFsmState.DATA_FETCH_FAILED, GlobalFsmState.ERROR_STALE_DATA,
-        GlobalFsmState.AI_TA_CALCULATION_SUCCEEDED, GlobalFsmState.AI_TA_CALCULATION_FAILED,
     ].includes(nextCurrentState)) {
         nextFlags.canAnalyzeStock = true;
     } else {
