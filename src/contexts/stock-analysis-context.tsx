@@ -621,6 +621,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to AI_TA_FAILURE. Error: ${aiTaErrMsg}.`);
         break;
       case 'KEY_TAKEAWAYS_SUCCESS':
+        if (event.payload.data) {
+          contextSetters.setAiKeyTakeawaysRequestJson(event.payload.data.aiKeyTakeawaysRequestJson);
+          contextSetters.setAiKeyTakeawaysJson(event.payload.data.aiKeyTakeawaysJson);
+        }
         nextFlags.isKeyTakeawaysDataAvailable = true;
         nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `KEY_TAKEAWAYS_SUCCESS. Determining next step: ${nextCurrentState}`);
@@ -630,6 +634,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState} after KEY_TAKEAWAYS_FAILURE. Error: ${event.payload.message}.`);
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
+        if (event.payload.data) {
+          contextSetters.setAiOptionsAnalysisRequestJson(event.payload.data.aiOptionsAnalysisRequestJson);
+          contextSetters.setAiOptionsAnalysisJson(event.payload.data.aiOptionsAnalysisJson);
+        }
         nextFlags.isOptionsAnalysisDataAvailable = true;
         nextCurrentState = GlobalFsmState.IDLE;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `OPTIONS_ANALYSIS_SUCCESS. Finalizing to IDLE.`);
