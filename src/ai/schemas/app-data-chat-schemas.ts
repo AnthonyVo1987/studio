@@ -27,8 +27,9 @@ export const AppDataChatInputSchema = z.object({
   chatHistory: z.array(z.object({
       role: z.enum(['user', 'model']),
       content: z.string(),
+      id: z.string(), // Added ID for completeness
     })).optional().describe('Previous turns in the conversation. Optional.'),
-  userInput: z.string().describe('The latest question or statement from the user.'),
+  userInput: z.string().describe('The latest question or statement from the user, or the full text from a prompt template.'),
   promptName: z.string().optional().describe("The name of the specific prompt definition to use (e.g., 'stock-trader-takeaways'). If omitted, defaults to general app data chat."),
 });
 export type AppDataChatInput = z.infer<typeof AppDataChatInputSchema>;

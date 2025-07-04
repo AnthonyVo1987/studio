@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, FormEvent } from 'react';
 import type { AppDataChatMessage } from '@/contexts/stock-analysis-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,15 @@ interface ChatbotProps {
   logDebug: (source: string, category: string, ...messages: any[]) => void;
   userInput: string;
   setUserInput: (input: string) => void;
-  formAction: (payload: { userInput?: string; promptName?: string }) => void;
+  formAction: (formData: FormData) => void;
+  contextualData?: {
+    ticker: string;
+    stockSnapshotJson: string;
+    aiKeyTakeawaysJson: string;
+    aiAnalyzedTaJson: string;
+    aiOptionsAnalysisJson: string;
+    chatHistory: string; // Already stringified
+  };
 }
 
 export function Chatbot({
@@ -50,6 +58,7 @@ export function Chatbot({
   userInput,
   setUserInput,
   formAction,
+  contextualData,
 }: ChatbotProps) {
   const { toast } = useToast();
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
@@ -81,27 +90,37 @@ export function Chatbot({
     }
   };
   
-  const handleManualSubmit = () => {
-    if (!userInput.trim() || isProcessing) return;
-    formAction({ userInput });
-    setUserInput('');
+  const HiddenContextInputs = () => {
+    if (!contextualData) return null;
+    return (
+      <>
+        <input type="hidden" name="ticker" value={contextualData.ticker} />
+        <input type="hidden" name="stockSnapshotJson" value={contextualData.stockSnapshotJson} />
+        <input type="hidden" name="aiKeyTakeawaysJson" value={contextualData.aiKeyTakeawaysJson} />
+        <input type="hidden" name="aiAnalyzedTaJson" value={contextualData.aiAnalyzedTaJson} />
+        <input type="hidden" name="aiOptionsAnalysisJson" value={contextualData.aiOptionsAnalysisJson} />
+        <input type="hidden" name="chatHistory" value={contextualData.chatHistory} />
+      </>
+    );
   };
 
   const renderPromptButtons = (buttons: ExamplePromptButton[]) => (
     buttons.map((p, index) => (
+      <form key={index} action={formAction}>
+        <HiddenContextInputs />
+        <input type="hidden" name="promptName" value={p.promptName} />
         <Button 
-            key={index}
-            type="button" 
+            type="submit" 
             variant="outline" 
             size="sm" 
             disabled={isProcessing} 
             className="text-xs px-2 py-1 h-auto w-full justify-start" 
             title={p.title}
-            onClick={() => formAction({ promptName: p.promptName })}
         >
           <p.icon className="mr-1.5 h-3 w-3" />
           {p.title}
         </Button>
+      </form>
     ))
   );
 
@@ -162,10 +181,11 @@ export function Chatbot({
       <CardFooter className="flex-shrink-0 flex flex-col items-start gap-4 p-4 pt-4 border-t">
         <div className="w-full">
             <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1 flex items-center gap-1.5"><Info className="h-3 w-3" /> Example Prompts</div>
-            <div className="flex flex-wrap gap-2">{renderPromptButtons(exampleButtons)}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">{renderPromptButtons(exampleButtons)}</div>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); handleManualSubmit(); }} className="w-full flex items-center space-x-2">
-          <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" />
+        <form action={formAction} className="w-full flex items-center space-x-2">
+          <HiddenContextInputs />
+          <Input name="userInput" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" />
           <Button type="submit" disabled={isProcessing || !userInput.trim()}>
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>

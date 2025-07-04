@@ -7,12 +7,10 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
-  buildPromptStringFromLlmDefinition,
-  LlmPromptDefinitionSchema,
+  loadExampleChatPrompts
 } from '@/ai/definition-loader';
 import {
   type SdkWebSearchChatActionState,
-  type SdkWebSearchChatActionInputs,
 } from '@/ai/schemas/sdk-web-search-chat-schemas';
 
 
@@ -24,42 +22,44 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey);
 const groundedModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite-preview-06-17", tools: [{googleSearch: {}}] });
 
-async function loadPromptText(definitionName: string, ticker: string = "NVDA"): Promise<string> {
-    const module = await import(`@/ai/definitions/${definitionName}.json`);
-    const jsonData = module.default;
-    const validationResult = LlmPromptDefinitionSchema.safeParse(jsonData);
-    if (!validationResult.success) {
-      throw new Error(`Invalid prompt definition structure in ${definitionName}.json`);
-    }
-    const rawPrompt = buildPromptStringFromLlmDefinition(validationResult.data);
-    return rawPrompt.replace(/{{{ticker}}}/g, ticker);
-}
-
 
 export async function sdkWebSearchChatAction(
   prevState: SdkWebSearchChatActionState,
-  payload: SdkWebSearchChatActionInputs
+  formData: FormData
 ): Promise<SdkWebSearchChatActionState> {
-  const { promptName, userInput, ticker } = payload;
+  const ticker = (formData.get('ticker') as string) || '';
+  const promptName = formData.get('promptName') as string | undefined;
+  const userInputFromForm = (formData.get('userInput') as string) || '';
+
   const actionLogPrefix = `[ServerAction:sdkWebSearchChatAction:${promptName || 'user_input'}]`;
   console.log(`${actionLogPrefix} Received request.`);
-
-  const requestJson = JSON.stringify(payload, null, 2);
+  
+  const requestPayloadForLogging = {
+      ticker,
+      promptName,
+      userInputFromForm,
+  };
+  const requestJson = JSON.stringify(requestPayloadForLogging, null, 2);
+  let finalPromptText = userInputFromForm;
 
   try {
-    let currentPrompt: string;
-    
     if (promptName) {
-        currentPrompt = await loadPromptText(promptName, ticker);
-    } else {
-        if (!userInput || userInput.trim() === '') {
-            throw new Error("User input cannot be empty for a general web search query.");
+        const examplePrompts = await loadExampleChatPrompts();
+        const matchedPrompt = examplePrompts.find(p => p.promptName === promptName);
+        if (matchedPrompt) {
+            finalPromptText = matchedPrompt.promptTemplate.replace(/\{TICKER\}/g, ticker || "the stock");
+            console.log(`${actionLogPrefix} Loaded template for promptName '${promptName}'.`);
+        } else {
+            throw new Error(`Could not find web search prompt definition for '${promptName}'.`);
         }
-        currentPrompt = userInput;
     }
 
-    console.log(`${actionLogPrefix} Generating content with prompt (first 100): ${currentPrompt.substring(0, 100)}...`);
-    const result = await groundedModel.generateContent(currentPrompt);
+    if (!finalPromptText || finalPromptText.trim() === '') {
+        throw new Error("User input cannot be empty for a general web search query.");
+    }
+    
+    console.log(`${actionLogPrefix} Generating content with prompt (first 100): ${finalPromptText.substring(0, 100)}...`);
+    const result = await groundedModel.generateContent(finalPromptText);
     const rawTextResponse = result.response.text();
 
     console.log(`${actionLogPrefix} SDK call successful. Returning raw text response.`);

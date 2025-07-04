@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 
+// This is now defined by the server action based on FormData and not used as a direct input type
 export const SdkWebSearchChatActionInputsSchema = z.object({
   ticker: z.string().describe("The stock ticker symbol for context."),
   promptName: z.string().optional().describe("The specific, predefined prompt to use (e.g., 'technical-analysis-web-search')."),

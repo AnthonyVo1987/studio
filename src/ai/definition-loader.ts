@@ -129,9 +129,10 @@ export function buildPromptStringFromLlmDefinition(definition: LlmPromptDefiniti
   return fullPrompt.trim();
 }
 
-// --- Schema for example-chat-prompts.json (Loaded by client component) ---
+// --- Schema for example-chat-prompts.json (Loaded by server action) ---
 export const ExampleChatPromptSchema = z.object({
   title: z.string().describe("The display title for the example prompt button in the UI."),
+  promptName: z.string().describe("A unique machine-readable identifier for the prompt."),
   promptTemplate: z.string().describe("The Handlebars template string for the example prompt. {{{TICKER}}} will be replaced."),
 });
 export type ExampleChatPrompt = z.infer<typeof ExampleChatPromptSchema>;
@@ -141,11 +142,7 @@ export type ExampleChatPromptsFile = z.infer<typeof ExampleChatPromptsFileSchema
 
 /**
  * Loads example chat prompts from the JSON file using dynamic import.
- * This is typically used by client-side components, but for consistency and to ensure
- * it works in server contexts if ever needed there, we can use dynamic import too.
- * However, since example-chat-prompts.json is imported directly by Chatbot.tsx (client component),
- * this server-side loading function might not be strictly necessary for that specific use case if
- * direct import works in the component. Keeping it for utility.
+ * This is used by server actions to get the full prompt text based on a promptName.
  * @returns {Promise<ExampleChatPromptsFile>}
  * @throws {Error} If the file cannot be read or the content is invalid.
  */
