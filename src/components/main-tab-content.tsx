@@ -23,7 +23,7 @@ import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
 import { useStockAnalysis, GlobalFsmState, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart } from "lucide-react";
-import { loadExampleAppDataPrompts, loadExampleWebSearchPrompts, type ExamplePrompt } from '@/ai/definition-loader';
+import { loadExamplePrompts, type ExamplePrompt } from '@/ai/definition-loader';
 
 // Server Actions
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
@@ -55,10 +55,8 @@ export function MainTabContent() {
     fsmState: globalFsmStateFromContext, fsmVariables: globalFsmVariables, fsmFlags: globalFsmFlags,
     dispatchFsmEvent: dispatchGlobalFsmEvent,
     // AI Analysis Setters
-    setAiKeyTakeawaysRequestJson,
-    setAiKeyTakeawaysJson,
-    setAiOptionsAnalysisRequestJson,
-    setAiOptionsAnalysisJson,
+    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
+    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
     // App Data Chat
     appDataChatHistory: contextAppDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
     setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson,
@@ -80,11 +78,11 @@ export function MainTabContent() {
   const [webSearchExamplePrompts, setWebSearchExamplePrompts] = useState<ExamplePrompt[]>([]);
 
   useEffect(() => {
-    loadExampleAppDataPrompts().then(setAppDataExamplePrompts).catch(err => {
+    loadExamplePrompts('example-chat-prompts.json').then(setAppDataExamplePrompts).catch(err => {
       console.error("Failed to load App Data example prompts:", err);
       toast({ variant: 'destructive', title: 'Error', description: 'Could not load app data example prompts.' });
     });
-    loadExampleWebSearchPrompts().then(setWebSearchExamplePrompts).catch(err => {
+    loadExamplePrompts('example-web-search-prompts.json').then(setWebSearchExamplePrompts).catch(err => {
       console.error("Failed to load Web Search example prompts:", err);
       toast({ variant: 'destructive', title: 'Error', description: 'Could not load web search example prompts.' });
     });
@@ -158,7 +156,7 @@ export function MainTabContent() {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysJson, setAiKeyTakeawaysRequestJson, setAiOptionsAnalysisJson, setAiOptionsAnalysisJson]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson]);
 
 
   // Effect to handle App Data Chat results
@@ -219,7 +217,7 @@ export function MainTabContent() {
         finalUserInput = promptTemplate.replace(/\{TICKER\}/g, globalFsmVariables.activeTicker || 'the stock');
         messageToHistory = promptName;
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: `Could not find prompt: ${promptName}` });
+        toast({ variant: 'destructive', title: 'Error', description: `Could not find App Data prompt: ${promptName}` });
         return;
       }
     }

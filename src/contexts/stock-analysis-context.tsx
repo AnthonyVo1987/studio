@@ -56,9 +56,6 @@ export interface GlobalFsmFlags {
   isCalculatedTADataReady: boolean;
   isKeyTakeawaysDataAvailable: boolean;
   isOptionsAnalysisDataAvailable: boolean;
-  isDebugConsoleFilterMenuOpen: boolean;
-  isDebugConsoleCopyMenuOpen: boolean;
-  isDebugConsoleExportMenuOpen: boolean;
   isAiKeyTakeawaysSelected: boolean;
   isAiOptionsAnalysisSelected: boolean;
 }
@@ -77,9 +74,6 @@ export type FsmDisplayTuple = {
 };
 
 interface StaleDataFromActionPayload { error: string; message: string; expectedTicker: string; foundTickerInSnapshot?: string; actionStateData?: StockDataFetchResult; }
-
-type DebugConsoleMenuType = 'filter' | 'copy' | 'export';
-interface ToggleDebugConsoleMenuPayload { menu: DebugConsoleMenuType; isOpen: boolean; }
 
 export type AnalysisToggleType =
   | 'ai_key_takeaways'
@@ -106,7 +100,6 @@ export type FsmEvent =
   | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: PerformAiAnalysisActionState }
   | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: PerformAiOptionsAnalysisActionState }
   | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: PerformAiOptionsAnalysisActionState }
-  | { type: 'TOGGLE_DEBUG_CONSOLE_MENU'; payload: ToggleDebugConsoleMenuPayload }
   | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
   | { type: 'FINALIZE_AUTOMATED_PIPELINE' };
 
@@ -236,9 +229,6 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
     isCalculatedTADataReady: false,
     isKeyTakeawaysDataAvailable: false,
     isOptionsAnalysisDataAvailable: false,
-    isDebugConsoleFilterMenuOpen: false,
-    isDebugConsoleCopyMenuOpen: false,
-    isDebugConsoleExportMenuOpen: false,
     isAiKeyTakeawaysSelected: true,
     isAiOptionsAnalysisSelected: true,
   },
@@ -649,13 +639,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextCurrentState = GlobalFsmState.IDLE;
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after pipeline finalization.`);
-        break;
-      case 'TOGGLE_DEBUG_CONSOLE_MENU':
-        const { menu, isOpen } = event.payload;
-        nextFlags.isDebugConsoleFilterMenuOpen = menu === 'filter' && isOpen;
-        nextFlags.isDebugConsoleCopyMenuOpen = menu === 'copy' && isOpen;
-        nextFlags.isDebugConsoleExportMenuOpen = menu === 'export' && isOpen;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'FlagsUpdate_DebugMenu', `Menu: ${menu}, isOpen: ${isOpen}.`);
         break;
       default:
         logDebug(logPrefixFsmReducer as LogSourceId, 'UnhandledEvent', `Unhandled event type: ${(event as any).type} in state ${previousState}`);

@@ -3,8 +3,6 @@
  * @fileOverview Utility for loading and parsing AI prompt and logic definitions from JSON files.
  * Uses dynamic imports for robust file access in various environments.
  */
-// Removed: import { promises as fs } from 'fs';
-// Removed: import path from 'path';
 import { z } from 'zod'; // Using direct zod import for server-side utility
 
 // --- LLM Prompt Definition Schemas ---
@@ -81,10 +79,8 @@ export async function loadDefinition(definitionName: string): Promise<GenericDef
   console.log(`${logPrefix} Initiating load for definition: ${definitionName} using dynamic import.`);
 
   try {
-    // Dynamic import relies on Next.js resolving `@/` correctly to the src directory.
-    // The .json extension is necessary.
     const module = await import(`@/ai/definitions/${definitionName}.json`);
-    const jsonData = module.default; // JSON modules are typically accessed via .default
+    const jsonData = module.default;
     
     console.log(`${logPrefix} Successfully imported JSON data dynamically.`);
 
@@ -97,7 +93,6 @@ export async function loadDefinition(definitionName: string): Promise<GenericDef
     return validationResult.data;
   } catch (error: any) {
     console.error(`${logPrefix} CRITICAL ERROR loading or parsing definition file ${definitionName}.json via dynamic import. Error: ${error.message}, Stack: ${error.stack}`);
-    // Check if the error is specific to module not found, which might indicate a path or build issue
     if (error.message.includes('Cannot find module') || error.code === 'MODULE_NOT_FOUND') {
         console.error(`${logPrefix} Specific error suggests the file '@src/ai/definitions/${definitionName}.json' was not found by the module resolver.`);
     }
@@ -140,49 +135,26 @@ export type ExamplePrompt = z.infer<typeof ExamplePromptSchema>;
 const ExamplePromptsFileSchema = z.array(ExamplePromptSchema);
 
 /**
- * Loads example App Data chat prompts from its JSON file.
- * @returns {Promise<ExamplePrompt[]>}
- * @throws {Error} If the file cannot be read or the content is invalid.
+ * Loads a set of example prompts from a specified JSON file.
+ * @param {string} fileName The name of the JSON file in `src/ai/definitions/` (e.g., 'example-chat-prompts.json').
+ * @returns {Promise<ExamplePrompt[]>} A promise that resolves to the array of validated example prompts.
+ * @throws {Error} If the file cannot be read or its content is invalid.
  */
-export async function loadExampleAppDataPrompts(): Promise<ExamplePrompt[]> {
-  const logPrefix = '[DefinitionLoader:loadExampleAppDataPrompts]';
-  console.log(`${logPrefix} Loading example-chat-prompts.json via dynamic import.`);
+export async function loadExamplePrompts(fileName: string): Promise<ExamplePrompt[]> {
+  const logPrefix = `[DefinitionLoader:loadExamplePrompts:${fileName}]`;
+  console.log(`${logPrefix} Loading via dynamic import.`);
   try {
-    const module = await import(`@/ai/definitions/example-chat-prompts.json`);
+    const module = await import(`@/ai/definitions/${fileName}`);
     const jsonData = module.default;
     const validationResult = ExamplePromptsFileSchema.safeParse(jsonData);
-     if (!validationResult.success) {
-      console.error(`${logPrefix} Zod validation FAILED for example-chat-prompts.json:`, JSON.stringify(validationResult.error.issues, null, 2));
-      throw new Error("Invalid app data example chat prompts structure.");
+    if (!validationResult.success) {
+      console.error(`${logPrefix} Zod validation FAILED for ${fileName}:`, JSON.stringify(validationResult.error.issues, null, 2));
+      throw new Error(`Invalid structure in ${fileName}.`);
     }
-    console.log(`${logPrefix} Successfully loaded and validated app data example prompts. Count: ${validationResult.data.length}`);
+    console.log(`${logPrefix} Successfully loaded and validated. Count: ${validationResult.data.length}`);
     return validationResult.data;
   } catch (error: any) {
-    console.error(`${logPrefix} CRITICAL ERROR loading app data example prompts:`, error);
-    throw new Error(`Failed to load or parse example-chat-prompts.json: ${error.message}`);
-  }
-}
-
-/**
- * Loads example Web Search chat prompts from its JSON file.
- * @returns {Promise<ExamplePrompt[]>}
- * @throws {Error} If the file cannot be read or the content is invalid.
- */
-export async function loadExampleWebSearchPrompts(): Promise<ExamplePrompt[]> {
-  const logPrefix = '[DefinitionLoader:loadExampleWebSearchPrompts]';
-  console.log(`${logPrefix} Loading example-web-search-prompts.json via dynamic import.`);
-  try {
-    const module = await import(`@/ai/definitions/example-web-search-prompts.json`);
-    const jsonData = module.default;
-    const validationResult = ExamplePromptsFileSchema.safeParse(jsonData);
-     if (!validationResult.success) {
-      console.error(`${logPrefix} Zod validation FAILED for example-web-search-prompts.json:`, JSON.stringify(validationResult.error.issues, null, 2));
-      throw new Error("Invalid web search example chat prompts structure.");
-    }
-    console.log(`${logPrefix} Successfully loaded and validated web search example prompts. Count: ${validationResult.data.length}`);
-    return validationResult.data;
-  } catch (error: any) {
-    console.error(`${logPrefix} CRITICAL ERROR loading web search example prompts:`, error);
-    throw new Error(`Failed to load or parse example-web-search-prompts.json: ${error.message}`);
+    console.error(`${logPrefix} CRITICAL ERROR loading example prompts:`, error);
+    throw new Error(`Failed to load or parse ${fileName}: ${error.message}`);
   }
 }
