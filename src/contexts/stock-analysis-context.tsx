@@ -530,7 +530,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
     
     // Helper to determine the next step in the pipeline
-    const determineNextStep = (): GlobalFsmState => {
+    const determineNextStepAfterTA = (): GlobalFsmState => {
         if (nextFlags.isAiKeyTakeawaysSelected) return GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
         if (nextFlags.isAiOptionsAnalysisSelected) return GlobalFsmState.ANALYZING_OPTIONS;
         return GlobalFsmState.IDLE;
@@ -607,7 +607,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         if(event.payload.data) {
             contextSetters.setAiAnalyzedTaRequestJson(event.payload.data.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.data.aiAnalyzedTaJson);
             nextFlags.isCalculatedTADataReady = true;
-            nextCurrentState = determineNextStep();
+            nextCurrentState = determineNextStepAfterTA();
             logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `AI_TA_SUCCESS. Determining next step: ${nextCurrentState}`);
         } else {
             handlePipelineError('AITaCalculationSuccess', 'Payload data missing in success event.');
@@ -621,40 +621,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to AI_TA_FAILURE. Error: ${aiTaErrMsg}.`);
         break;
       case 'KEY_TAKEAWAYS_SUCCESS':
-        if(event.payload.data) {
-            contextSetters.setAiKeyTakeawaysRequestJson(event.payload.data.aiKeyTakeawaysRequestJson);
-            contextSetters.setAiKeyTakeawaysJson(event.payload.data.aiKeyTakeawaysJson);
-            nextFlags.isKeyTakeawaysDataAvailable = true;
-            nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `KEY_TAKEAWAYS_SUCCESS. Determining next step: ${nextCurrentState}`);
-        } else {
-            handlePipelineError('KeyTakeawaysSuccess', 'Payload data missing in success event.');
-        }
+        nextFlags.isKeyTakeawaysDataAvailable = true;
+        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `KEY_TAKEAWAYS_SUCCESS. Determining next step: ${nextCurrentState}`);
         break;
       case 'KEY_TAKEAWAYS_FAILURE':
-        const ktErr = event.payload;
-        contextSetters.setAiKeyTakeawaysRequestJson(ktErr.data?.aiKeyTakeawaysRequestJson || errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
-        contextSetters.setAiKeyTakeawaysJson(errorJsonWithDetails(ktErr.message || 'Unknown', ktErr.error));
         nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState} after KEY_TAKEAWAYS_FAILURE. Error: ${ktErr.message}.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState} after KEY_TAKEAWAYS_FAILURE. Error: ${event.payload.message}.`);
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
-        if(event.payload.data) {
-            contextSetters.setAiOptionsAnalysisRequestJson(event.payload.data.aiOptionsAnalysisRequestJson);
-            contextSetters.setAiOptionsAnalysisJson(event.payload.data.aiOptionsAnalysisJson);
-            nextFlags.isOptionsAnalysisDataAvailable = true;
-            nextCurrentState = GlobalFsmState.IDLE;
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `OPTIONS_ANALYSIS_SUCCESS. Finalizing to IDLE.`);
-        } else {
-            handlePipelineError('OptionsAnalysisSuccess', 'Payload data missing in success event.');
-        }
+        nextFlags.isOptionsAnalysisDataAvailable = true;
+        nextCurrentState = GlobalFsmState.IDLE;
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `OPTIONS_ANALYSIS_SUCCESS. Finalizing to IDLE.`);
         break;
       case 'OPTIONS_ANALYSIS_FAILURE':
-        const optErr = event.payload;
-        contextSetters.setAiOptionsAnalysisRequestJson(optErr.data?.aiOptionsAnalysisRequestJson || errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
-        contextSetters.setAiOptionsAnalysisJson(errorJsonWithDetails(optErr.message || 'Unknown', optErr.error));
         nextCurrentState = GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after OPTIONS_ANALYSIS_FAILURE. Error: ${optErr.message}.`);
+        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after OPTIONS_ANALYSIS_FAILURE. Error: ${event.payload.message}.`);
         break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextCurrentState = GlobalFsmState.IDLE;

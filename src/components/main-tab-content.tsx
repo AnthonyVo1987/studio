@@ -65,6 +65,8 @@ export function MainTabContent() {
     setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson,
     setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson,
     setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson,
+    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
+    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
   } = useStockAnalysis();
 
   const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
@@ -110,6 +112,10 @@ export function MainTabContent() {
             aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
             marketStatusJson: contextMarketStatusJson
           });
+          if (keyTakeawaysResult.data) {
+            setAiKeyTakeawaysRequestJson(keyTakeawaysResult.data.aiKeyTakeawaysRequestJson);
+            setAiKeyTakeawaysJson(keyTakeawaysResult.data.aiKeyTakeawaysJson);
+          }
           dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
           if(keyTakeawaysResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: keyTakeawaysResult.message, variant: 'destructive' });
           break;
@@ -120,6 +126,10 @@ export function MainTabContent() {
             stockSnapshotJson: contextStockSnapshotJson, 
             optionsChainJson: contextOptionsChainJson,
           });
+          if (optionsAnalysisResult.data) {
+            setAiOptionsAnalysisRequestJson(optionsAnalysisResult.data.aiOptionsAnalysisRequestJson);
+            setAiOptionsAnalysisJson(optionsAnalysisResult.data.aiOptionsAnalysisJson);
+          }
           dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
           if(optionsAnalysisResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: optionsAnalysisResult.message, variant: 'destructive' });
           break;

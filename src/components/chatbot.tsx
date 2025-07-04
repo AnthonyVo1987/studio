@@ -98,10 +98,12 @@ export function Chatbot({
 
   const renderPromptButtons = (buttons: ExamplePromptButton[]) => (
     buttons.map((p, index) => (
-      <Button key={index} variant="outline" size="sm" onClick={() => handleExamplePromptClick(p.promptName)} disabled={isProcessing} className="text-xs px-2 py-1 h-auto" title={p.title}>
-        <p.icon className="mr-1.5 h-3 w-3" />
-        {p.title}
-      </Button>
+      <form key={index} action={() => handleExamplePromptClick(p.promptName)}>
+        <Button type="submit" variant="outline" size="sm" disabled={isProcessing} className="text-xs px-2 py-1 h-auto w-full justify-start" title={p.title}>
+          <p.icon className="mr-1.5 h-3 w-3" />
+          {p.title}
+        </Button>
+      </form>
     ))
   );
 
