@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, type FormEvent, useCallback, useRef, useEffect } from "react";
+import React, { useState, type FormEvent, useCallback, useRef, useEffect, startTransition } from "react";
 import { useActionState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,8 +65,6 @@ export function MainTabContent() {
     setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson,
     setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson,
     setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson,
-    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
-    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
   } = useStockAnalysis();
 
   const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
@@ -87,62 +85,52 @@ export function MainTabContent() {
 
   // Reactive Pipeline Orchestrator
   useEffect(() => {
-    const orchestratorLogPrefix = 'StockAnalysisContext:GlobalFSM_Orchestrator';
-    logDebug(orchestratorLogPrefix as any, 'Entry', `Orchestrator running. Current FSM state: ${globalFsmStateFromContext}`);
+    const orchestratorLogPrefix = 'MainTabContent:Orchestrator';
+    logDebug(orchestratorLogPrefix as any, 'Entry', `Orchestrator running. FSM state: ${globalFsmStateFromContext}`);
 
     const runPipelineStep = async () => {
       switch (globalFsmStateFromContext) {
         case GlobalFsmState.DATA_FETCH_IN_PROGRESS: {
-          const dataResult = await fetchStockDataAction({ ticker: globalFsmVariables.activeTicker! });
-          dispatchGlobalFsmEvent({ type: dataResult.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', payload: dataResult });
-          if(dataResult.status !== 'success') toast({ title: "Data Fetch Failed", description: dataResult.message, variant: 'destructive' });
+          const result = await fetchStockDataAction({ ticker: globalFsmVariables.activeTicker! });
+          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', payload: result });
+          if(result.status !== 'success') toast({ title: "Data Fetch Failed", description: result.message, variant: 'destructive' });
           break;
         }
         case GlobalFsmState.CALCULATING_AI_TA: {
-          const aiTaResult = await analyzeTaAction({ stockSnapshotJson: contextStockSnapshotJson, ticker: globalFsmVariables.activeTicker! });
-          dispatchGlobalFsmEvent({ type: aiTaResult.status === 'success' ? 'AI_TA_SUCCESS' : 'AI_TA_FAILURE', payload: aiTaResult });
-          if(aiTaResult.status !== 'success') toast({ title: "AI TA Calculation Failed", description: aiTaResult.message, variant: 'destructive' });
+          const result = await analyzeTaAction({ stockSnapshotJson: contextStockSnapshotJson, ticker: globalFsmVariables.activeTicker! });
+          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'AI_TA_SUCCESS' : 'AI_TA_FAILURE', payload: result });
+          if(result.status !== 'success') toast({ title: "AI TA Calculation Failed", description: result.message, variant: 'destructive' });
           break;
         }
         case GlobalFsmState.GENERATING_KEY_TAKEAWAYS: {
-          const keyTakeawaysResult = await performAiAnalysisAction({
+          const result = await performAiAnalysisAction({
             ticker: globalFsmVariables.activeTicker!, 
             stockSnapshotJson: contextStockSnapshotJson, 
             standardTasJson: contextStandardTasJson, 
             aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
             marketStatusJson: contextMarketStatusJson
           });
-          if (keyTakeawaysResult.data) {
-            setAiKeyTakeawaysRequestJson(keyTakeawaysResult.data.aiKeyTakeawaysRequestJson);
-            setAiKeyTakeawaysJson(keyTakeawaysResult.data.aiKeyTakeawaysJson);
-          }
-          dispatchGlobalFsmEvent({ type: keyTakeawaysResult.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: keyTakeawaysResult });
-          if(keyTakeawaysResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: keyTakeawaysResult.message, variant: 'destructive' });
+          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
+          if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
           break;
         }
         case GlobalFsmState.ANALYZING_OPTIONS: {
-          const optionsAnalysisResult = await performAiOptionsAnalysisAction({
+          const result = await performAiOptionsAnalysisAction({
             ticker: globalFsmVariables.activeTicker!, 
             stockSnapshotJson: contextStockSnapshotJson, 
             optionsChainJson: contextOptionsChainJson,
           });
-          if (optionsAnalysisResult.data) {
-            setAiOptionsAnalysisRequestJson(optionsAnalysisResult.data.aiOptionsAnalysisRequestJson);
-            setAiOptionsAnalysisJson(optionsAnalysisResult.data.aiOptionsAnalysisJson);
-          }
-          dispatchGlobalFsmEvent({ type: optionsAnalysisResult.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: optionsAnalysisResult });
-          if(optionsAnalysisResult.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: optionsAnalysisResult.message, variant: 'destructive' });
+          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
+          if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
           break;
         }
-        default:
-          // Do nothing in other states
-          break;
+        default: break;
       }
     };
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext]); // End of Orchestrator
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug]);
 
 
   // Effect to handle App Data Chat results
@@ -195,15 +183,17 @@ export function MainTabContent() {
     if (isAppDataChatPending) return;
     const userInput = payload.userInput || payload.promptName || '';
     addAppDataChatMessage({ role: 'user', content: userInput });
-    appDataChatFormAction({
-      ticker: globalFsmVariables.activeTicker || '',
-      stockSnapshotJson: contextStockSnapshotJson,
-      aiKeyTakeawaysJson: contextKeyTakeawaysJson,
-      aiAnalyzedTaJson: contextAiAnalyzedTaJson,
-      aiOptionsAnalysisJson: contextOptionsAnalysisJson,
-      chatHistory: contextAppDataChatHistory,
-      userInput: userInput,
-      promptName: payload.promptName,
+    startTransition(() => {
+        appDataChatFormAction({
+          ticker: globalFsmVariables.activeTicker || '',
+          stockSnapshotJson: contextStockSnapshotJson,
+          aiKeyTakeawaysJson: contextKeyTakeawaysJson,
+          aiAnalyzedTaJson: contextAiAnalyzedTaJson,
+          aiOptionsAnalysisJson: contextOptionsAnalysisJson,
+          chatHistory: contextAppDataChatHistory,
+          userInput: userInput,
+          promptName: payload.promptName,
+        });
     });
   };
 
@@ -211,10 +201,12 @@ export function MainTabContent() {
     if (isWebSearchChatPending) return;
     const userInput = payload.userInput || payload.promptName || '';
     addWebSearchChatMessage({ role: 'user', content: userInput });
-    webSearchChatFormAction({
-        ticker: globalFsmVariables.activeTicker || '',
-        promptName: payload.promptName,
-        userInput: payload.userInput,
+    startTransition(() => {
+        webSearchChatFormAction({
+            ticker: globalFsmVariables.activeTicker || '',
+            promptName: payload.promptName,
+            userInput: payload.userInput,
+        });
     });
   };
   

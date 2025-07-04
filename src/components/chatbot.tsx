@@ -33,10 +33,9 @@ interface ChatbotProps {
   exampleButtons: ExamplePromptButton[];
   currentTickerForDisplay: string;
   logDebug: (source: string, category: string, ...messages: any[]) => void;
-  // New props for deterministic action handling
   userInput: string;
   setUserInput: (input: string) => void;
-  formAction: (payload: any) => void; 
+  formAction: (payload: { userInput?: string; promptName?: string }) => void;
 }
 
 export function Chatbot({
@@ -62,20 +61,6 @@ export function Chatbot({
     }
   }, [chatHistory]);
 
-  const handleFormSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
-    if (!userInput.trim() || isProcessing) return;
-    logDebug(logSourceId, 'UserAction_Submit', `Submitting user input: "${userInput.substring(0,20)}"`);
-    formAction({ userInput });
-    setUserInput(''); // Clear input after submission
-  };
-
-  const handleExamplePromptClick = (promptName: string) => {
-    if (isProcessing) return;
-    logDebug(logSourceId, 'UserAction_ExamplePrompt', `Submitting example prompt: "${promptName}".`);
-    formAction({ promptName });
-  };
-  
   const handleCopyChat = async () => {
     if (chatHistory.length === 0) { logDebug(logSourceId, 'UserAction_CopyChat', 'No history to copy.'); return; }
     const success = await copyToClipboard(JSON.stringify(chatHistory, null, 2));
@@ -95,15 +80,28 @@ export function Chatbot({
       logDebug(logSourceId, 'UserAction_ExportChat_Result', 'Error:', error);
     }
   };
+  
+  const handleManualSubmit = () => {
+    if (!userInput.trim() || isProcessing) return;
+    formAction({ userInput });
+    setUserInput('');
+  };
 
   const renderPromptButtons = (buttons: ExamplePromptButton[]) => (
     buttons.map((p, index) => (
-      <form key={index} action={() => handleExamplePromptClick(p.promptName)}>
-        <Button type="submit" variant="outline" size="sm" disabled={isProcessing} className="text-xs px-2 py-1 h-auto w-full justify-start" title={p.title}>
+        <Button 
+            key={index}
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            disabled={isProcessing} 
+            className="text-xs px-2 py-1 h-auto w-full justify-start" 
+            title={p.title}
+            onClick={() => formAction({ promptName: p.promptName })}
+        >
           <p.icon className="mr-1.5 h-3 w-3" />
           {p.title}
         </Button>
-      </form>
     ))
   );
 
@@ -166,8 +164,8 @@ export function Chatbot({
             <div className="text-xs font-semibold text-muted-foreground mb-1.5 ml-1 flex items-center gap-1.5"><Info className="h-3 w-3" /> Example Prompts</div>
             <div className="flex flex-wrap gap-2">{renderPromptButtons(exampleButtons)}</div>
         </div>
-        <form onSubmit={handleFormSubmit} className="w-full flex items-center space-x-2">
-          <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFormSubmit(); }}} />
+        <form onSubmit={(e) => { e.preventDefault(); handleManualSubmit(); }} className="w-full flex items-center space-x-2">
+          <Input value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={`Ask about ${currentTickerForDisplay || 'the stock'}...`} disabled={isProcessing} className="flex-grow" />
           <Button type="submit" disabled={isProcessing || !userInput.trim()}>
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
