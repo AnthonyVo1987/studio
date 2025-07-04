@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.7
+**README Document Version:** 3.8
 **Application Version (from `app-metadata.json`):** v3.4.6.4.11
-**Last Updated:** 2025-08-14
+**Last Updated:** 2025-08-15
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -147,6 +147,32 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Simplified Global FSM:** The single global FSM's role has been drastically reduced. It **no longer orchestrates complex sequences**. It now serves as a simple repository for global state flags (`GlobalFsmFlags`) and context variables (`GlobalFsmContextVariables`), providing a clear snapshot of the application's overall state. It only handles simple, direct state transitions dispatched by the deterministic handlers.
 *   **No Local FSMs:** All local FSMs, including the `ChatbotFsmContext` and `DebugConsoleFsmContext`, have been removed to simplify the architecture and centralize state in the global context and component-level `useActionState` hooks.
 
+#### 3.2.6. Core Execution Flow (MANDATORY ARCHITECTURE)
+This section outlines the application's core data analysis pipeline. This architecture is the result of the "Deterministic Overhaul" and is **not to be modified or refactored without explicit user approval**, as previous attempts to alter it have resulted in critical application failures.
+
+1.  **Trigger (`main-tab-content.tsx`):**
+    *   The user clicks "Analyze Stock".
+    *   `handleAnalyzeStockSubmit` is called.
+    *   The handler dispatches `START_FULL_ANALYSIS` to the global FSM.
+
+2.  **Initial FSM Transition (`stock-analysis-context.tsx`):**
+    *   The `fsmReducer` receives the event.
+    *   It resets all relevant state and sets all data JSONs to a "pending" status.
+    *   It transitions the FSM state to `DATA_FETCH_IN_PROGRESS`.
+
+3.  **Deterministic Orchestration (`main-tab-content.tsx`):**
+    *   A `useEffect` hook, which listens *only* to changes in the global FSM state, is activated by the transition to `DATA_FETCH_IN_PROGRESS`.
+    *   This hook's `switch` case for `DATA_FETCH_IN_PROGRESS` calls the first server action in the pipeline: `await fetchStockDataAction(...)`.
+
+4.  **Sequential Execution & FSM Feedback Loop:**
+    *   The core of the deterministic model resides in the `useEffect` orchestrator. It executes a sequence of server actions using `async/await`.
+    *   **Crucially, after each `await` completes, a new event is dispatched to the FSM to communicate the result (`_SUCCESS` or `_FAILURE`).** This updates the global FSM state.
+    *   The `useEffect` hook runs again in response to this new state, triggering the `case` for the next step in the pipeline.
+    *   **This feedback loop is the fundamental mechanism for providing UI updates and MUST NOT be removed.**
+
+5.  **Pipeline Completion:**
+    *   After the final step, the orchestrator transitions the FSM back to `IDLE`, which re-enables the UI for the next analysis.
+
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
 *   Flows load definitions using `src/ai/definition-loader.ts`.
@@ -212,9 +238,25 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.7
+*   **This README Document Version:** 3.8
 *   **Current Application Version:** `v3.4.6.4.11`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
 ---
+
+## 6. Post-Mortem & Lessons Learned
+
+This section serves as a permanent record of critical architectural lessons learned during development, primarily from AI agent implementation failures. It is mandatory reading before undertaking any significant refactoring.
+
+### 6.1. The "Deterministic Handler" vs. "Reactive Orchestrator"
+*   **Failure (v3.0 - v3.3):** The application's initial architecture relied on a single, complex `useEffect` hook in `StockAnalysisContext` to act as a reactive "orchestrator." This hook's dependency array grew uncontrollably, leading to **severe race conditions, non-deterministic execution, and infinite loops.** It was the root cause of dozens of hard-to-debug bugs.
+*   **Lesson Learned:** For sequential, asynchronous workflows, the reactive orchestrator pattern is an anti-pattern. **The correct, mandatory architecture is the "Deterministic Handler" pattern now implemented in `main-tab-content.tsx`.** This pattern uses a simple `async/await` handler triggered by a user event.
+
+### 6.2. The FSM Feedback Loop is Non-Negotiable
+*   **Failure (v3.5):** During an attempted refactor, the AI agent (me) correctly kept the `async/await` structure of the Deterministic Handler but **incorrectly removed the `dispatchGlobalFsmEvent` calls** that provide feedback to the FSM after each `await` step.
+*   **Lesson Learned:** This resulted in a "silent" pipeline that did its work but provided no UI feedback, making the app appear frozen. This proved that the **FSM Feedback Loop is a non-removable, core part of the architecture.** The handler *must* communicate its progress back to the global FSM state after each step.
+
+### 6.3. The UI Must be Driven by Control State, Not Data Content
+*   **Failure (v3.5, part 2):** A subsequent debugging attempt revealed that the data display components (e.g., `AiKeyTakeawaysDisplay`) were deriving their loading state by parsing the content of their data props (e.g., looking for `"{ \"status\": \"pending...\" }"`).
+*   **Lesson Learned:** This is an architectural flaw. React may batch state updates, meaning the component might only render once with the final data, skipping all intermediate loading states. **UI components MUST derive their loading/error state from the global FSM `fsmState` variable**, not from parsing data content. This ensures they are always in sync with the application's true control state.
