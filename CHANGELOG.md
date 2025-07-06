@@ -58,6 +58,34 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.4.1` (Complete Selectable Options Expiration Implementation)
+**Tag:** `Phase-68_Task-3.6.4.1_DocsPreTest`
+**Commit Hash:** `85fdae85`
+**Subject:** `feat(docs,core): Checkpoint v3.6.4.1, complete Selectable Options Expiration implementation`
+**Details:**
+This commit is a **documentation-only checkpoint** that marks the completion of the core implementation for the **"Single Selectable Options Expiration"** feature (v3.6 series). It updates all project documentation to reflect the new, stable feature, which is now ready for its final testing and validation phase. The feature was built in a completely isolated staging environment to prevent any disruption to the main application pipeline.
+
+**Key Architectural Changes Completed (Phases 1-4):**
+*   **Phase 1: Backend & Data Layer Foundation (`v3.6.1.x`):**
+    *   The `polygon-adapter.ts` was enhanced with a new `getExpirationDates` method and a refactored, reusable `fetchOptionsChainForDate` method.
+    *   Two new, self-contained server actions (`get-options-expirations-action.ts`, `get-options-chain-for-expiration-action.ts`) were created to support the new user workflow.
+    *   The existing main data pipeline was updated to use the refactored adapter logic, ensuring zero regressions.
+*   **Phase 2: UI Foundation & Staging Tab Setup (`v3.6.2.x`):**
+    *   A new, isolated "Staging: Options" tab was added to the main UI in `page-content.tsx`.
+    *   A placeholder container component, `staging-options-tab-content.tsx`, was created to house the new feature's UI.
+*   **Phase 3: State Management & UI Control Integration (`v3.6.3.x`):**
+    *   A new, isolated React Context, `staging-options-context.tsx`, was created to manage all state for the new feature, ensuring it does not interfere with the global application state.
+    *   The UI controls (ticker input, "Fetch Expirations" button, expiration date dropdown, "Get Options" button) were fully implemented and wired to the new context and server actions.
+*   **Phase 4: Data Display Integration (`v3.6.4.x`):**
+    *   The `OptionsChainTable` component was refactored to be fully data-agnostic by accepting optional `dataSourceJson` and `snapshotDataSourceJson` props. This was a critical fix to decouple it from the global `StockAnalysisContext`.
+    *   The instance of the table in the staging tab was correctly wired to use data from the isolated `StagingOptionsContext`, fixing an initial bug where it was displaying data from the wrong source.
+    *   New raw JSON display areas were added to the staging tab for enhanced debugging.
+
+**Outcome:**
+*   The implementation phase of the feature is complete.
+*   The new functionality is fully isolated and does not impact the stability of the core application.
+*   The application is now ready for **Phase 5: Final Testing & Debugging** of the new selectable options expiration workflow.
+---
 **App Version:** `v3.4.6.4.11` (Code Cleanup & Refactor)
 **Tag:** `Phase-67_Task-3.4.6.4.11_CleanupAndRefactor`
 **Commit Hash:** `9a3cde9f`
@@ -1435,5 +1463,7 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
+
+    
 
     

@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.8
-**Application Version (from `app-metadata.json`):** v3.4.6.4.11
-**Last Updated:** 2025-08-15
+**README Document Version:** 3.9
+**Application Version (from `app-metadata.json`):** v3.6.4.1
+**Last Updated:** 2025-08-16
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -70,7 +70,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Implement robust error handling for API failures.
 
 #### 3.1.2. Options Chain Display
-*   Retrieve options chain data (calls & puts) for a given stock and the next Friday expiration date.
+*   Retrieve options chain data (calls & puts) for a given stock.
+*   **Main Tab:** Defaults to the next weekly expiration.
+*   **Staging Tab:** Allows user to fetch all valid expiration dates and select one for analysis.
 *   Display key options contract details: Strike, IV, % Chg, Bid, Ask, Last, Volume, Open Interest, Delta, Gamma.
 *   Sort options chain table by strike price in descending order.
 *   Highlight the At-The-Money (ATM) strike row in the table.
@@ -89,7 +91,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", and "FSM Debug" tabs. A "Staging" tab is also available for developers.
+*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", "FSM Debug", "Staging", and "Staging: Options" tabs.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -110,9 +112,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables):
     *   **Full Snapshot:** All FSM, data, chats, and both log types.
     *   **Client Debug Snapshot:** The standard report; includes everything except the raw console logs.
-    *   **Console Debug Snapshot:** For deep-dive issues; includes everything except the curated trace logs.
+    *   **Console Debug Snapshot:** For deep-dive issues; includes everything except the raw console logs.
     *   **Data-Only Snapshot:** For AI prompt/data issues; includes FSM data, debug data, and chat histories only.
-*   **"Staging" Tab:** A dedicated area for developers to test experimental features and diagnostic tools in isolation from the main application flow.
+*   **Developer Staging Areas:**
+    *   **"Staging" Tab:** A dedicated area for developers to test experimental features (like SDK diagnostics) in isolation from the main application flow.
+    *   **"Staging: Options" Tab:** A self-contained environment for building and testing the new selectable options expiration date feature.
 
 ### 3.2. System Architecture & Components
 
@@ -139,7 +143,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
 #### 3.2.4. State Management (as of v3.4.6.4.11 - Deterministic)
-*   **React Context (`StockAnalysisContext`):** Centralized global state management.
+*   **React Context:**
+    *   **`StockAnalysisContext`:** Centralized global state management.
+    *   **`StagingOptionsContext`:** An isolated context for managing the state of the new selectable options expiration feature, ensuring it does not interfere with the global context.
 *   **Deterministic Handlers:** All complex asynchronous workflows (e.g., "Analyze Stock" pipeline, AI chat submissions) are now driven by dedicated `async` handler functions within the primary UI component (`MainTabContent.tsx`). These handlers use a simple `await` pattern to ensure a linear, predictable, and sequential execution of server actions, eliminating the race conditions of the previous architecture.
 *   **Simple State Updates:** The application primarily uses `useState` (for local component state) and `useReducer` (for the simplified global FSM) to manage state. The deterministic handlers manually update the UI/FSM state before and after `await` calls. The client-side `useActionState` hook is used for chat form submissions.
 
@@ -187,8 +193,8 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.4.6.4.11):**
-    *   **"Full Deterministic Application Refactor":** Implementation, bug fixing, and cleanup are complete. The application is now ready for a comprehensive end-to-end testing phase.
+*   **Current Feature Focus (as of v3.6.4.1):**
+    *   **"Single Selectable Options Expiration":** Implementation is complete. The feature is now ready for a comprehensive end-to-end testing phase within its isolated staging environment.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -238,8 +244,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.8
-*   **Current Application Version:** `v3.4.6.4.11`
+*   **This README Document Version:** 3.9
+*   **Current Application Version:** `v3.6.4.1`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
@@ -260,3 +266,5 @@ This section serves as a permanent record of critical architectural lessons lear
 ### 6.3. The UI Must be Driven by Control State, Not Data Content
 *   **Failure (v3.5, part 2):** A subsequent debugging attempt revealed that the data display components (e.g., `AiKeyTakeawaysDisplay`) were deriving their loading state by parsing the content of their data props (e.g., looking for `"{ \"status\": \"pending...\" }"`).
 *   **Lesson Learned:** This is an architectural flaw. React may batch state updates, meaning the component might only render once with the final data, skipping all intermediate loading states. **UI components MUST derive their loading/error state from the global FSM `fsmState` variable**, not from parsing data content. This ensures they are always in sync with the application's true control state.
+
+    
