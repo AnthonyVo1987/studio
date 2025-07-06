@@ -133,12 +133,6 @@ function JsonDisplayArea({ title, jsonContent }: { title: string, jsonContent: s
 function StagingOptionsDataDisplay() {
     const { optionsChainJson, requestJson, error } = useStagingOptions();
 
-    // The existing OptionsChainTable component is coupled to the main context.
-    // For true isolation, we either refactor it or use a simplified display here.
-    // For now, we will pass it the data it needs. The component has a fallback to read
-    // the underlying price from the options data itself.
-    // We pass an empty snapshot JSON to satisfy its prop requirements without
-    // polluting this isolated context.
     return (
         <div className="space-y-6 mt-6">
             {error && (
@@ -151,7 +145,7 @@ function StagingOptionsDataDisplay() {
                 <JsonDisplayArea title="Request JSON" jsonContent={requestJson} />
                 <JsonDisplayArea title="Response JSON" jsonContent={optionsChainJson} />
             </div>
-            <OptionsChainTable />
+            <OptionsChainTable dataSourceJson={optionsChainJson} snapshotDataSourceJson="{}" />
         </div>
     );
 }

@@ -77,8 +77,17 @@ const PENDING_STATUS_JSON_VARIANTS = [
   '{ "status": "no_analysis_run_yet" }'
 ];
 
-export function OptionsChainTable() {
-  const { optionsChainJson, stockSnapshotJson, logDebug } = useStockAnalysis();
+interface OptionsChainTableProps {
+  dataSourceJson?: string;
+  snapshotDataSourceJson?: string;
+}
+
+export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: OptionsChainTableProps) {
+  const globalContext = useStockAnalysis();
+  const optionsChainJson = dataSourceJson !== undefined ? dataSourceJson : globalContext.optionsChainJson;
+  const stockSnapshotJson = snapshotDataSourceJson !== undefined ? snapshotDataSourceJson : globalContext.stockSnapshotJson;
+  const { logDebug } = globalContext;
+
   const { toast } = useToast();
   const componentName = 'OptionsChainTable';
   const prevOptionsJsonRef = useRef<string | null>(null);
