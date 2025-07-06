@@ -70,6 +70,127 @@ class PolygonAdapter {
     };
   }
 
+  async getExpirationDates(ticker: string): Promise<string[]> {
+    const logPrefix = `[PolygonAdapter.getExpirationDates ForTicker: ${ticker}]`;
+    console.log(`${logPrefix} Fetching options expiration dates.`);
+    const allExpirations = new Set<string>();
+    try {
+        const paginator = this.client.reference.listOptionsContracts({
+            underlying_ticker: ticker,
+            limit: 1000,
+        }, { query: { _t: Date.now() } });
+
+        for await (const contract of paginator) {
+            if (contract.expiration_date) {
+                allExpirations.add(contract.expiration_date);
+            }
+        }
+      
+        const sortedDates = Array.from(allExpirations).sort();
+        console.log(`${logPrefix} Found ${sortedDates.length} unique expiration dates.`);
+        return sortedDates;
+    } catch (error: any) {
+        console.error(`${logPrefix} Failed to fetch expiration dates. Error: ${error.message}`);
+        throw new Error(`Failed to fetch expiration dates for ${ticker}: ${error.message}`);
+    }
+  }
+  
+  async fetchOptionsChainForDate(
+    ticker: string,
+    expirationDate: string,
+    currentStockPrice: number | undefined
+  ): Promise<OptionsChainData> {
+    const logPrefix = `[PolygonAdapter.fetchOptionsChainForDate ForTicker: ${ticker}, Exp: ${expirationDate}]`;
+    const cacheBustQuery = { query: { _t: Date.now() } };
+    const apiCallDelay = 150;
+  
+    try {
+      console.log(`${logPrefix} Options chain fetch block. Current derived stock price for window calculation: ${currentStockPrice}`);
+      if (currentStockPrice && currentStockPrice > 0) {
+        const strikePriceWindowPercentage = 0.20;
+        const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
+        const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
+        console.log(`${logPrefix} Options fetch params: LowerBound: ${lowerStrikeBound}, UpperBound: ${upperStrikeBound}`);
+        
+        const commonOptionsParams: any = {
+          expiration_date: expirationDate,
+          "strike_price.gte": formatToTwoDecimals(lowerStrikeBound, "0"),
+          "strike_price.lte": formatToTwoDecimals(upperStrikeBound, "0"),
+          limit: 250,
+        };
+
+        console.log(`${logPrefix} Fetching CALLS. Delay: ${apiCallDelay}ms.`);
+        await delay(apiCallDelay);
+        const callsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'call' }, cacheBustQuery);
+
+        console.log(`${logPrefix} Fetching PUTS. Delay: ${apiCallDelay}ms.`);
+        await delay(apiCallDelay);
+        const putsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'put' }, cacheBustQuery);
+
+        const allStrikes = new Set<number>();
+        const callDataByStrike = new Map<number, any>();
+        const putDataByStrike = new Map<number, any>();
+
+        (callsSnapshot.results || []).forEach(contract => {
+          const strike = roundNumber(contract.details.strike_price, 2);
+          if(strike === undefined || strike === null) return;
+          allStrikes.add(strike);
+          callDataByStrike.set(strike, contract);
+        });
+        (putsSnapshot.results || []).forEach(contract => {
+          const strike = roundNumber(contract.details.strike_price, 2);
+          if(strike === undefined || strike === null) return;
+          allStrikes.add(strike);
+          putDataByStrike.set(strike, contract);
+        });
+
+        let sortedStrikes = Array.from(allStrikes).sort((a, b) => a - b);
+        let closestStrikeIndex = 0;
+        if (sortedStrikes.length > 0 && currentStockPrice) { 
+            closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrikeItem, currentIdx) => {
+            return (Math.abs(currentStrikeItem - currentStockPrice!) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice!)) ? currentIdx : prevIdx;
+        }, 0);
+        }
+        const startIndex = Math.max(0, closestStrikeIndex - 10);
+        const endIndex = Math.min(sortedStrikes.length, closestStrikeIndex + 11);
+        const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a); // Keep descending sort
+        console.log(`${logPrefix} Processed ${finalStrikesToProcess.length} strikes for options table out of ${sortedStrikes.length} unique strikes found.`);
+        const optionsTableRows: OptionsTableRow[] = [];
+
+        for (const strike of finalStrikesToProcess) {
+          const callContractData = callDataByStrike.get(strike);
+          const putContractData = putDataByStrike.get(strike);
+          const mapContractData = (data: any, type: 'call' | 'put'): StreamlinedOptionContract | undefined => {
+            if (!data) return undefined;
+            return {
+              strike_price: roundNumber(data.details.strike_price, 2)!, option_type: type,
+              primary_exchange: data.details.primary_exchange, iv: roundNumber(data.implied_volatility, 4),
+              last_price: roundNumber(data.day?.close, 2), change: roundNumber(data.day?.change, 2),
+              percent_change: roundNumber(data.day?.change_percent, 2), volume: roundNumber(data.day?.volume, 0),
+              open_interest: roundNumber(data.open_interest, 0), break_even_price: roundNumber(data.details?.break_even_price, 2),
+              delta: roundNumber(data.greeks?.delta, 4), gamma: roundNumber(data.greeks?.gamma, 4),
+              theta: roundNumber(data.greeks?.theta, 4), vega: roundNumber(data.greeks?.vega, 4),
+              rho: roundNumber(data.greeks?.rho, 4), bid: roundNumber(data.last_quote?.bid, 2),
+              ask: roundNumber(data.last_quote?.ask, 2), bid_size: data.last_quote?.bs, ask_size: data.last_quote?.as,
+            };
+          };
+          optionsTableRows.push({ strike: strike, call: mapContractData(callContractData, 'call'), put: mapContractData(putContractData, 'put') });
+        }
+        return {
+          ticker: ticker, expiration_date: expirationDate, contracts: optionsTableRows, underlying_price: roundNumber(currentStockPrice, 2),
+        };
+      } else {
+        const errMsg = `Valid current stock price for ${ticker} could not be determined (was ${currentStockPrice}). Options chain cannot be fetched.`;
+        console.warn(`${logPrefix} ${errMsg}`);
+        return { error: errMsg, ticker: ticker, contracts: [], underlying_price: currentStockPrice ?? 0 } as any;
+      }
+    } catch (error: any) {
+      const errorMessage = `Failed to fetch options chain for ${ticker} on ${expirationDate}. Polygon client error: ${error.message || String(error)}`;
+      console.error(`${logPrefix} Error fetching options chain:`, error);
+      return { error: errorMessage, rawErrorDetails: this.createSafeErrorObject(error, "Options chain fetch failed"), ticker: ticker, contracts: [], underlying_price: currentStockPrice ?? 0 } as any;
+    }
+  }
+  
   async getFullStockData(ticker: string): Promise<AdapterOutput> {
     const requestedTickerMethodArg = ticker.toUpperCase();
     const logPrefix = `[PolygonAdapter.getFullStockData InstanceFor: ${this.currentTickerForClient}][MethodArg: ${requestedTickerMethodArg}]`;
@@ -235,92 +356,10 @@ class PolygonAdapter {
           technicalIndicators.rawErrorDetails = this.createSafeErrorObject(error, "General TA fetch failed");
           stockDataPackage.technicalIndicators = technicalIndicators;
       }
-
+      
       try {
-        console.log(`${logPrefix} Options chain fetch block. Current derived stock price for window calculation: ${currentStockPrice}`);
-        if (currentStockPrice && currentStockPrice > 0) {
-          const expirationDate = calculateNextFridayExpiration();
-          const strikePriceWindowPercentage = 0.20;
-          const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
-          const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
-          console.log(`${logPrefix} Options fetch params: Expiration: ${expirationDate}, LowerBound: ${lowerStrikeBound}, UpperBound: ${upperStrikeBound}`);
-          
-          const commonOptionsParams: any = {
-            expiration_date: expirationDate,
-            "strike_price.gte": formatToTwoDecimals(lowerStrikeBound, "0"),
-            "strike_price.lte": formatToTwoDecimals(upperStrikeBound, "0"),
-            limit: 250,
-          };
-
-          console.log(`${logPrefix} Fetching CALLS for ${tickerToUse}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms.`);
-          await delay(apiCallDelay);
-          const callsSnapshot = await this.client.options.snapshotOptionChain(tickerToUse, {
-            ...commonOptionsParams, contract_type: 'call',
-          }, cacheBustQuery);
-
-          console.log(`${logPrefix} Fetching PUTS for ${tickerToUse}, expiration ${expirationDate}. Delay: ${apiCallDelay}ms.`);
-          await delay(apiCallDelay);
-          const putsSnapshot = await this.client.options.snapshotOptionChain(tickerToUse, {
-            ...commonOptionsParams, contract_type: 'put',
-          }, cacheBustQuery);
-
-          const allStrikes = new Set<number>();
-          const callDataByStrike = new Map<number, any>();
-          const putDataByStrike = new Map<number, any>();
-
-          (callsSnapshot.results || []).forEach(contract => {
-            const strike = roundNumber(contract.details.strike_price, 2);
-            if(strike === undefined || strike === null) return;
-            allStrikes.add(strike);
-            callDataByStrike.set(strike, contract);
-          });
-          (putsSnapshot.results || []).forEach(contract => {
-            const strike = roundNumber(contract.details.strike_price, 2);
-            if(strike === undefined || strike === null) return;
-            allStrikes.add(strike);
-            putDataByStrike.set(strike, contract);
-          });
-
-          let sortedStrikes = Array.from(allStrikes).sort((a, b) => a - b);
-          let closestStrikeIndex = 0;
-          if (sortedStrikes.length > 0 && currentStockPrice) { 
-             closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrikeItem, currentIdx) => {
-                return (Math.abs(currentStrikeItem - currentStockPrice!) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice!)) ? currentIdx : prevIdx;
-            }, 0);
-          }
-          const startIndex = Math.max(0, closestStrikeIndex - 10);
-          const endIndex = Math.min(sortedStrikes.length, closestStrikeIndex + 11);
-          const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a); // Keep descending sort
-          console.log(`${logPrefix} Processed ${finalStrikesToProcess.length} strikes for options table out of ${sortedStrikes.length} unique strikes found.`);
-          const optionsTableRows: OptionsTableRow[] = [];
-
-          for (const strike of finalStrikesToProcess) {
-            const callContractData = callDataByStrike.get(strike);
-            const putContractData = putDataByStrike.get(strike);
-            const mapContractData = (data: any, type: 'call' | 'put'): StreamlinedOptionContract | undefined => {
-              if (!data) return undefined;
-              return {
-                strike_price: roundNumber(data.details.strike_price, 2)!, option_type: type,
-                primary_exchange: data.details.primary_exchange, iv: roundNumber(data.implied_volatility, 4),
-                last_price: roundNumber(data.day?.close, 2), change: roundNumber(data.day?.change, 2),
-                percent_change: roundNumber(data.day?.change_percent, 2), volume: roundNumber(data.day?.volume, 0),
-                open_interest: roundNumber(data.open_interest, 0), break_even_price: roundNumber(data.details?.break_even_price, 2),
-                delta: roundNumber(data.greeks?.delta, 4), gamma: roundNumber(data.greeks?.gamma, 4),
-                theta: roundNumber(data.greeks?.theta, 4), vega: roundNumber(data.greeks?.vega, 4),
-                rho: roundNumber(data.greeks?.rho, 4), bid: roundNumber(data.last_quote?.bid, 2),
-                ask: roundNumber(data.last_quote?.ask, 2), bid_size: data.last_quote?.bs, ask_size: data.last_quote?.as,
-              };
-            };
-            optionsTableRows.push({ strike: strike, call: mapContractData(callContractData, 'call'), put: mapContractData(putContractData, 'put') });
-          }
-          stockDataPackage.optionsChain = {
-            ticker: tickerToUse, expiration_date: expirationDate, contracts: optionsTableRows, underlying_price: roundNumber(currentStockPrice, 2),
-          };
-        } else {
-            const errMsg = `Valid current stock price for ${tickerToUse} could not be determined (was ${currentStockPrice}). Options chain cannot be reliably fetched.`;
-            console.warn(`${logPrefix} ${errMsg}`);
-            stockDataPackage.optionsChain = { error: errMsg, ticker: tickerToUse, contracts: [], underlying_price: currentStockPrice ?? 0 } as any;
-        }
+        const expirationDate = calculateNextFridayExpiration();
+        stockDataPackage.optionsChain = await this.fetchOptionsChainForDate(tickerToUse, expirationDate, currentStockPrice);
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${tickerToUse}. Polygon client error: ${error.message || String(error)}`;
         console.error(`${logPrefix} Error fetching options chain:`, error);
@@ -360,6 +399,36 @@ class PolygonAdapter {
   }
 }
 
+export async function getExpirationDates(ticker: string): Promise<string[]> {
+    const uppercasedTicker = ticker.toUpperCase();
+    const adapter = new PolygonAdapter(process.env.POLYGON_API_KEY, uppercasedTicker);
+    return adapter.getExpirationDates(uppercasedTicker);
+}
+  
+export async function getOptionsChainForDate(ticker: string, expirationDate: string): Promise<OptionsChainData> {
+    const uppercasedTicker = ticker.toUpperCase();
+    const adapter = new PolygonAdapter(process.env.POLYGON_API_KEY, uppercasedTicker);
+
+    // Need to get current price first for the strike window calculation
+    // This is an isolated call, so it must be self-contained
+    const snapshotResponse = await adapter['client'].stocks.snapshotTicker(uppercasedTicker, undefined, { query: { _t: Date.now() } });
+    let currentStockPrice: number | undefined;
+    if (snapshotResponse.ticker) {
+        const { day, prevDay, lastTrade } = snapshotResponse.ticker;
+        let priceSourceVal: number | null | undefined = null;
+        if (lastTrade?.p && lastTrade.p > 0) {
+            priceSourceVal = lastTrade.p;
+        } else if (day?.c && day.c > 0) {
+            priceSourceVal = day.c;
+        } else if (prevDay?.c && prevDay.c > 0) {
+            priceSourceVal = prevDay.c;
+        }
+        currentStockPrice = roundNumber(priceSourceVal, 2);
+    }
+
+    return adapter.fetchOptionsChainForDate(uppercasedTicker, expirationDate, currentStockPrice);
+}
+
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const apiKeyFromEnv = process.env.POLYGON_API_KEY;
   const uppercasedTicker = ticker.toUpperCase();
@@ -368,5 +437,3 @@ export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
   const adapter = new PolygonAdapter(apiKeyFromEnv, uppercasedTicker);
   return adapter.getFullStockData(uppercasedTicker);
 }
-
-    
