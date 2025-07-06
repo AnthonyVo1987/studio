@@ -72,11 +72,11 @@ class PolygonAdapter {
 
   async getExpirationDates(ticker: string): Promise<string[]> {
     const logPrefix = `[PolygonAdapter.getExpirationDates ForTicker: ${ticker}]`;
-    console.log(`${logPrefix} Fetching options expiration dates using '.optionsContracts' with manual pagination.`);
+    console.log(`${logPrefix} Fetching options expiration dates with manual pagination.`);
     const allExpirations = new Set<string>();
     const MAX_EXPIRATIONS = 10;
-    const MAX_PAGES = 20; // Safety break to avoid infinite loops
-    
+    const MAX_PAGES = 20;
+
     let nextCursor: string | undefined = undefined;
     let pagesFetched = 0;
 
@@ -84,18 +84,18 @@ class PolygonAdapter {
       do {
         pagesFetched++;
         if (pagesFetched > MAX_PAGES) {
-            console.warn(`${logPrefix} Reached max page fetch limit (${MAX_PAGES}). Breaking loop.`);
-            break;
+          console.warn(`${logPrefix} Reached max page fetch limit (${MAX_PAGES}). Breaking loop.`);
+          break;
         }
 
         const query: any = {
-            underlying_ticker: ticker,
-            limit: 1000,
+          underlying_ticker: ticker,
+          limit: 1000,
         };
-        if(nextCursor){
-            query.cursor = nextCursor;
+        if (nextCursor) {
+          query.cursor = nextCursor;
         }
-        
+
         const response = await this.client.reference.optionsContracts(query);
 
         if (response.results) {
@@ -105,21 +105,21 @@ class PolygonAdapter {
               allExpirations.add(contract.expiration_date);
               if (allExpirations.size > previousSize && allExpirations.size >= MAX_EXPIRATIONS) {
                 console.log(`${logPrefix} Reached max ${MAX_EXPIRATIONS} expirations. Halting fetch.`);
-                nextCursor = undefined; 
-                break; 
+                nextCursor = undefined;
+                break;
               }
             }
           }
-        } else {
-            // If there are no results, we can stop.
-            nextCursor = undefined;
         }
 
-        if (nextCursor !== undefined && response.next_url) {
-            const url = new URL(response.next_url);
-            nextCursor = url.searchParams.get("cursor") || undefined;
+        // Corrected Pagination Logic:
+        // Only check for the existence of next_url to continue.
+        // The loop will naturally terminate if nextCursor is not set.
+        if (response.next_url) {
+          const url = new URL(response.next_url);
+          nextCursor = url.searchParams.get("cursor") || undefined;
         } else {
-            nextCursor = undefined;
+          nextCursor = undefined;
         }
 
       } while (nextCursor);
