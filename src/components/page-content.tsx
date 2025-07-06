@@ -12,6 +12,7 @@ import { LogConsole } from "@/components/log-console";
 import { globalLogEntries, clearGlobalLogBuffer } from "@/lib/global-log-buffer";
 import { rawConsoleLogEntries, clearRawConsoleBuffer } from "@/lib/raw-console-log-buffer";
 import { cn } from "@/lib/utils";
+import { StagingOptionsTabContent } from "./staging-options-tab-content";
 
 interface PageContentProps {
   appVersion: string;
@@ -28,13 +29,14 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
         )}
       >
         <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="main">Main</TabsTrigger>
             <TabsTrigger value="debug-data">Debug Data</TabsTrigger>
             <TabsTrigger value="client-trace-logs">Client Debug Trace Logs</TabsTrigger>
             <TabsTrigger value="console-logs">Console Logs</TabsTrigger>
             <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
             <TabsTrigger value="staging">Staging</TabsTrigger>
+            <TabsTrigger value="staging-options">Staging: Options</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
             <MainTabContent /> 
@@ -65,6 +67,9 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
           <TabsContent value="staging">
             <StagingTabContent />
+          </TabsContent>
+          <TabsContent value="staging-options">
+            <StagingOptionsTabContent />
           </TabsContent>
         </Tabs>
       </main>
