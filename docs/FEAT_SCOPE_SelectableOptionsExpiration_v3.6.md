@@ -57,7 +57,30 @@ To ensure stability, this feature will be developed and tested in a **completely
 *   **Code Consolidation:** The intentional code duplication (e.g., of the `OptionsChainTable`) will not be addressed in this phase. Cleanup and refactoring will be part of a future integration task.
 *   **AI Integration:** The new, selectable options chain data will not be plumbed into any AI analysis flows in this phase.
 
-## 5. Document Changelog
-*   **v1.0 (2025-08-15):** Initial document creation.
+## 5. Implementation Phased Plan (Coding Tasks Only)
 
-    
+### Phase 1: Backend & Data Layer Foundation
+*   **Task 3.6.1.0:** Update `polygon-adapter.ts` to add a new method `getExpirationDates(ticker)` that calls the Polygon API (`v3/reference/options/contracts`) to retrieve the list of available expiration dates.
+*   **Task 3.6.1.1:** Create a new server action file `src/actions/get-options-expirations-action.ts`. This action will call the new `getExpirationDates` method from the adapter.
+*   **Task 3.6.1.2:** Update `polygon-adapter.ts` to refactor the options chain fetching logic from `getFullStockData` into a new, reusable internal method that can accept an optional expiration date parameter.
+*   **Task 3.6.1.3:** Create a new server action file `src/actions/get-options-chain-for-expiration-action.ts`. This action will call the new reusable options chain fetching method from the adapter.
+
+### Phase 2: UI Foundation & Staging Tab Setup
+*   **Task 3.6.2.0:** Update `src/components/page-content.tsx` to add a new "Staging: Options" `<TabsTrigger>` and `<TabsContent>` to the main UI.
+*   **Task 3.6.2.1:** Create the main container component for the new tab: `src/components/staging-options-tab-content.tsx`. This will initially be a placeholder component.
+
+### Phase 3: State Management & UI Control Integration
+*   **Task 3.6.3.0:** Create the new isolated React Context for the feature: `src/contexts/staging-options-context.tsx`. This will manage all state for the new tab.
+*   **Task 3.6.3.1:** Update `StagingOptionsTabContent.tsx` to use the `StagingOptionsProvider` and build the layout, including the isolated ticker input and the "Fetch Expirations" button.
+*   **Task 3.6.3.2:** Wire the "Fetch Expirations" button to the `getOptionsExpirationsAction` and populate the new context with the list of dates.
+*   **Task 3.6.3.3:** Implement the `<Select>` dropdown for expiration dates in `StagingOptionsTabContent.tsx`, populating it from the context.
+*   **Task 3.6.3.4:** Implement the "Get Options Chain" button and wire it to the `getOptionsChainForExpirationAction`, passing the ticker and selected expiration date from the context.
+
+### Phase 4: Data Display Integration
+*   **Task 3.6.4.0:** Add a copy of the `OptionsChainTable` component into `StagingOptionsTabContent.tsx` and connect its data source to the options chain data held in the new `StagingOptionsContext`.
+*   **Task 3.6.4.1:** Add two new raw JSON display areas within `StagingOptionsTabContent.tsx` to show the request and response objects from the new state context.
+
+
+## 6. Document Changelog
+*   **v1.0 (2025-08-15):** Initial document creation.
+*   **v1.1 (2025-08-16):** Added the detailed, code-only implementation plan as requested.
