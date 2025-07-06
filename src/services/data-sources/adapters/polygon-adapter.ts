@@ -72,26 +72,64 @@ class PolygonAdapter {
 
   async getExpirationDates(ticker: string): Promise<string[]> {
     const logPrefix = `[PolygonAdapter.getExpirationDates ForTicker: ${ticker}]`;
-    console.log(`${logPrefix} Fetching options expiration dates.`);
+    console.log(`${logPrefix} Fetching options expiration dates using '.optionsContracts' with manual pagination.`);
     const allExpirations = new Set<string>();
+    const MAX_EXPIRATIONS = 10;
+    const MAX_PAGES = 20; // Safety break to avoid infinite loops
+    
+    let nextCursor: string | undefined = undefined;
+    let pagesFetched = 0;
+
     try {
-        const paginator = this.client.reference.listOptionsContracts({
+      do {
+        pagesFetched++;
+        if (pagesFetched > MAX_PAGES) {
+            console.warn(`${logPrefix} Reached max page fetch limit (${MAX_PAGES}). Breaking loop.`);
+            break;
+        }
+
+        const query: any = {
             underlying_ticker: ticker,
             limit: 1000,
-        }, { query: { _t: Date.now() } });
-
-        for await (const contract of paginator) {
-            if (contract.expiration_date) {
-                allExpirations.add(contract.expiration_date);
-            }
+        };
+        if(nextCursor){
+            query.cursor = nextCursor;
         }
-      
-        const sortedDates = Array.from(allExpirations).sort();
-        console.log(`${logPrefix} Found ${sortedDates.length} unique expiration dates.`);
-        return sortedDates;
+        
+        const response = await this.client.reference.optionsContracts(query);
+
+        if (response.results) {
+          for (const contract of response.results) {
+            if (contract.expiration_date) {
+              const previousSize = allExpirations.size;
+              allExpirations.add(contract.expiration_date);
+              if (allExpirations.size > previousSize && allExpirations.size >= MAX_EXPIRATIONS) {
+                console.log(`${logPrefix} Reached max ${MAX_EXPIRATIONS} expirations. Halting fetch.`);
+                nextCursor = undefined; 
+                break; 
+              }
+            }
+          }
+        } else {
+            // If there are no results, we can stop.
+            nextCursor = undefined;
+        }
+
+        if (nextCursor !== undefined && response.next_url) {
+            const url = new URL(response.next_url);
+            nextCursor = url.searchParams.get("cursor") || undefined;
+        } else {
+            nextCursor = undefined;
+        }
+
+      } while (nextCursor);
+
+      const sortedDates = Array.from(allExpirations).sort();
+      console.log(`${logPrefix} Found ${sortedDates.length} unique expiration dates (capped at ${MAX_EXPIRATIONS}).`);
+      return sortedDates;
     } catch (error: any) {
-        console.error(`${logPrefix} Failed to fetch expiration dates. Error: ${error.message}`);
-        throw new Error(`Failed to fetch expiration dates for ${ticker}: ${error.message}`);
+      console.error(`${logPrefix} Failed to fetch expiration dates. Error: ${error.message}`);
+      throw new Error(`Failed to fetch expiration dates for ${ticker}: ${error.message}`);
     }
   }
   
