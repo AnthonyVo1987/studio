@@ -84,6 +84,7 @@ interface OptionsChainTableProps {
 
 export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: OptionsChainTableProps) {
   const globalContext = useStockAnalysis();
+  // Prioritize passed-in props, fallback to global context. This makes the component reusable.
   const optionsChainJson = dataSourceJson !== undefined ? dataSourceJson : globalContext.optionsChainJson;
   const stockSnapshotJson = snapshotDataSourceJson !== undefined ? snapshotDataSourceJson : globalContext.stockSnapshotJson;
   const { logDebug } = globalContext;
@@ -202,18 +203,20 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
     // Calculate ATM Strike only after both parsedData and currentPriceForATM might have updated
     const finalContracts = newParsedData?.contracts || [];
     let newAtmStrikeValue: number | null = null;
-    if (newCurrentPriceForATM !== null && finalContracts.length > 0) {
-        newAtmStrikeValue = finalContracts.reduce((prev, curr) => {
-        return (Math.abs((curr.strike || 0) - (newCurrentPriceForATM!)) < Math.abs((prev.strike || 0) - (newCurrentPriceForATM!))) ? curr : prev;
-        }).strike;
-    } else if (finalContracts.length > 0 && !newCurrentPriceForATM && newParsedData?.underlying_price) {
-        const underlying = newParsedData.underlying_price;
-        if(underlying){
-            newAtmStrikeValue = finalContracts.reduce((prev, curr) => {
-                return (Math.abs((curr.strike || 0) - (underlying!)) < Math.abs((prev.strike || 0) - (underlying!))) ? curr : prev;
-            }).strike;
-        }
+    let priceToUseForAtm = newCurrentPriceForATM;
+
+    // Fallback: If snapshot price is not available, use underlying_price from options data itself.
+    if (priceToUseForAtm === null && newParsedData?.underlying_price) {
+        priceToUseForAtm = newParsedData.underlying_price;
+        logDebug(componentName, "AtmPriceFallback", `Using underlying_price from options data for ATM: ${priceToUseForAtm}`);
     }
+
+    if (priceToUseForAtm !== null && finalContracts.length > 0) {
+        newAtmStrikeValue = finalContracts.reduce((prev, curr) => {
+        return (Math.abs((curr.strike || 0) - (priceToUseForAtm!)) < Math.abs((prev.strike || 0) - (priceToUseForAtm!))) ? curr : prev;
+        }).strike;
+    }
+    
     setAtmStrikeValueState(newAtmStrikeValue);
 
     setIsLoadingState(newIsLoading);
