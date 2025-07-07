@@ -72,10 +72,9 @@ class PolygonAdapter {
 
   async getExpirationDates(ticker: string): Promise<string[]> {
     const logPrefix = `[PolygonAdapter.getExpirationDates ForTicker: ${ticker}]`;
-    console.log(`${logPrefix} Fetching options expiration dates with manual pagination.`);
+    console.log(`${logPrefix} Fetching all options expiration dates with manual pagination.`);
     const allExpirations = new Set<string>();
-    const MAX_EXPIRATIONS = 10;
-    const MAX_PAGES = 20;
+    const MAX_PAGES = 20; // A safeguard against runaway API calls
 
     let nextCursor: string | undefined = undefined;
     let pagesFetched = 0;
@@ -90,7 +89,7 @@ class PolygonAdapter {
 
         const query: any = {
           underlying_ticker: ticker,
-          limit: 1000,
+          limit: 1000, // Fetch 1000 contracts per page
         };
         if (nextCursor) {
           query.cursor = nextCursor;
@@ -101,20 +100,11 @@ class PolygonAdapter {
         if (response.results) {
           for (const contract of response.results) {
             if (contract.expiration_date) {
-              const previousSize = allExpirations.size;
               allExpirations.add(contract.expiration_date);
-              if (allExpirations.size > previousSize && allExpirations.size >= MAX_EXPIRATIONS) {
-                console.log(`${logPrefix} Reached max ${MAX_EXPIRATIONS} expirations. Halting fetch.`);
-                nextCursor = undefined;
-                break;
-              }
             }
           }
         }
 
-        // Corrected Pagination Logic:
-        // Only check for the existence of next_url to continue.
-        // The loop will naturally terminate if nextCursor is not set.
         if (response.next_url) {
           const url = new URL(response.next_url);
           nextCursor = url.searchParams.get("cursor") || undefined;
@@ -125,7 +115,7 @@ class PolygonAdapter {
       } while (nextCursor);
 
       const sortedDates = Array.from(allExpirations).sort();
-      console.log(`${logPrefix} Found ${sortedDates.length} unique expiration dates (capped at ${MAX_EXPIRATIONS}).`);
+      console.log(`${logPrefix} Found ${sortedDates.length} unique expiration dates after fetching ${pagesFetched} page(s).`);
       return sortedDates;
     } catch (error: any) {
       console.error(`${logPrefix} Failed to fetch expiration dates. Error: ${error.message}`);
