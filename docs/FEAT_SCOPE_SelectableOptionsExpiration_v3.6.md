@@ -1,86 +1,78 @@
 
 # Feature Scope: Single Selectable Options Expiration (v3.6)
 
-**Document Version:** 1.0
-**Date:** 2025-08-15
+**Document Version:** 1.1
+**Date:** 2025-08-20
 **Target Application Version Series:** 3.6.x.y.z
-**Feature Status:** `PLANNED`
+**Feature Status:** `IMPLEMENTATION COMPLETE`
 
 ## 1. Introduction & Objective
 
 This document outlines the scope for implementing a selectable options expiration date feature. The primary objective is to allow users to fetch and view options chain data for any valid expiration date, not just the default upcoming Friday.
 
-To ensure stability, this feature will be developed and tested in a **completely isolated staging environment** within the application. This approach prevents any disruption to the existing, stable main analysis pipeline.
+To ensure stability, this feature was developed and tested in a **completely isolated staging environment** within the application. This approach prevents any disruption to the existing, stable main analysis pipeline.
 
 ## 2. Core Concept & High-Level Plan
 
-1.  **Isolate:** A new "Staging: Options" tab will be added to the application's UI. This tab will contain a completely self-contained version of the options analysis feature.
-2.  **Build:** Within this new tab, we will build the new user workflow:
+1.  **Isolate:** A new "Staging: Options" tab was added to the application's UI. This tab contains a completely self-contained version of the options analysis feature.
+2.  **Build:** Within this new tab, the new user workflow was built:
     *   User enters a ticker.
     *   User clicks a button to fetch all available expiration dates for that ticker.
     *   The dates populate a dropdown menu.
     *   The user selects a date from the dropdown.
     *   The user clicks a second button to fetch the options chain for the selected ticker and expiration date.
     *   The options chain table is populated with the new data.
-3.  **Validate:** Once the feature is deemed stable and complete within the staging tab, a separate integration task will be planned to migrate this functionality to the main application tab and remove the redundant code.
+3.  **Validate:** The feature is now stable and complete within the staging tab. A separate integration task will be planned to migrate this functionality to the main application tab and remove the redundant code.
 
 ## 3. Architectural Components & Scope
 
 ### 3.1. New UI Components (Staging Tab)
 
-*   **New Tab:** A "Staging: Options" tab will be added to the main `Tabs` component in `page-content.tsx`.
-*   **New Container Component:** A new component, `StagingOptionsTabContent.tsx`, will be created to house all the UI and logic for this feature, ensuring its isolation.
+*   **New Tab:** A "Staging: Options" tab was added to the main `Tabs` component in `page-content.tsx`.
+*   **New Container Component:** A new component, `StagingOptionsTabContent.tsx`, was created to house all the UI and logic for this feature, ensuring its isolation.
 *   **Isolated Controls:**
     *   A dedicated ticker `<Input>` field.
     *   A "Fetch Expirations" `<Button>`.
     *   A `<Select>` dropdown menu to display and select from the fetched expiration dates. It will be disabled until dates are fetched.
     *   A "Get Options Chain" `<Button>`, which will be disabled until a ticker and expiration date are selected.
-*   **Replicated `OptionsChainTable`:** An exact duplicate of the existing `OptionsChainTable` component will be placed in the new tab to display the results.
-*   **New Raw JSON Displays:** Two new `JsonDisplayArea`-style components will be added to show the raw request and response JSON for the options chain fetching process, aiding in debugging.
+*   **Replicated `OptionsChainTable`:** A copy of the existing `OptionsChainTable` component was placed in the new tab to display the results. This copy was refactored to be data-agnostic.
+*   **New Raw JSON Displays:** Two new `JsonDisplayArea`-style components were added to show the raw request and response JSON for the options chain fetching process, aiding in debugging.
+*   **Enhanced Controls:** New dropdowns were added to control **Option Type** (Both/Calls/Puts), **Strike Count** (20/30/40), and **Table Display** (Side-by-Side/Top-Bottom).
 
 ### 3.2. New Backend & Data Layer Logic
 
 *   **New Server Actions:**
-    *   A new action, `getOptionsExpirationsAction`, will be created to fetch the list of available expiration dates for a given ticker.
-    *   A second new action, `getOptionsChainForExpirationAction`, will be created to fetch the full options chain for a given ticker and a specific expiration date.
+    *   A new action, `getOptionsExpirationsAction`, was created to fetch the list of available expiration dates for a given ticker.
+    *   A second new action, `getOptionsChainForExpirationAction`, was created to fetch the full options chain for a given ticker and a specific expiration date.
 *   **Polygon Adapter Updates:**
-    *   The `polygon-adapter.ts` will be updated with a new method to handle the API call for fetching expiration dates (`v3/reference/options/contracts`).
-    *   The existing `getFullStockData` method may be refactored to extract the options chain fetching logic into a reusable function that can be called by both the old and new server actions.
+    *   The `polygon-adapter.ts` was updated with a new `getExpirationDates` method that handles API pagination to retrieve all expiration dates.
+    *   The existing options chain fetching logic was refactored into a reusable function that can be called by both the old and new server actions.
 
 ### 3.3. State Management
 
-*   **Isolated Context:** To ensure complete isolation, a new React Context (`StagingOptionsContext`) and provider will be created. This context will manage all state related to the staging tab, including the ticker input, the list of expirations, the selected expiration, loading/error states, and the final options chain data. It will operate independently of the main `StockAnalysisContext`.
+*   **Isolated Context:** To ensure complete isolation, a new React Context (`StagingOptionsContext`) and provider were created. This context manages all state related to the staging tab, including the ticker input, the list of expirations, the selected expiration, loading/error states, and the final options chain data. It operates independently of the main `StockAnalysisContext`.
 
 ## 4. Out of Scope for Initial Implementation
 
-*   **Integration with Main Tab:** This initial feature implementation will **not** modify the existing options chain functionality on the "Main" tab.
-*   **Code Consolidation:** The intentional code duplication (e.g., of the `OptionsChainTable`) will not be addressed in this phase. Cleanup and refactoring will be part of a future integration task.
-*   **AI Integration:** The new, selectable options chain data will not be plumbed into any AI analysis flows in this phase.
+*   **Integration with Main Tab:** This initial feature implementation did **not** modify the existing options chain functionality on the "Main" tab.
+*   **Code Consolidation:** The intentional code duplication (e.g., of the `OptionsChainTable`) will be addressed in a future integration task.
+*   **AI Integration:** The new, selectable options chain data is not plumbed into any AI analysis flows in this phase.
 
 ## 5. Implementation Phased Plan (Coding Tasks Only)
 
 ### Phase 1: Backend & Data Layer Foundation
-*   **Task 3.6.1.0:** Update `polygon-adapter.ts` to add a new method `getExpirationDates(ticker)` that calls the Polygon API (`v3/reference/options/contracts`) to retrieve the list of available expiration dates.
-*   **Task 3.6.1.1:** Create a new server action file `src/actions/get-options-expirations-action.ts`. This action will call the new `getExpirationDates` method from the adapter.
-*   **Task 3.6.1.2:** Update `polygon-adapter.ts` to refactor the options chain fetching logic from `getFullStockData` into a new, reusable internal method that can accept an optional expiration date parameter.
-*   **Task 3.6.1.3:** Create a new server action file `src/actions/get-options-chain-for-expiration-action.ts`. This action will call the new reusable options chain fetching method from the adapter.
+*   **Status:** `COMPLETED`
 
 ### Phase 2: UI Foundation & Staging Tab Setup
-*   **Task 3.6.2.0:** Update `src/components/page-content.tsx` to add a new "Staging: Options" `<TabsTrigger>` and `<TabsContent>` to the main UI.
-*   **Task 3.6.2.1:** Create the main container component for the new tab: `src/components/staging-options-tab-content.tsx`. This will initially be a placeholder component.
+*   **Status:** `COMPLETED`
 
 ### Phase 3: State Management & UI Control Integration
-*   **Task 3.6.3.0:** Create the new isolated React Context for the feature: `src/contexts/staging-options-context.tsx`. This will manage all state for the new tab.
-*   **Task 3.6.3.1:** Update `StagingOptionsTabContent.tsx` to use the `StagingOptionsProvider` and build the layout, including the isolated ticker input and the "Fetch Expirations" button.
-*   **Task 3.6.3.2:** Wire the "Fetch Expirations" button to the `getOptionsExpirationsAction` and populate the new context with the list of dates.
-*   **Task 3.6.3.3:** Implement the `<Select>` dropdown for expiration dates in `StagingOptionsTabContent.tsx`, populating it from the context.
-*   **Task 3.6.3.4:** Implement the "Get Options Chain" button and wire it to the `getOptionsChainForExpirationAction`, passing the ticker and selected expiration date from the context.
+*   **Status:** `COMPLETED`
 
 ### Phase 4: Data Display Integration
-*   **Task 3.6.4.0:** Add a copy of the `OptionsChainTable` component into `StagingOptionsTabContent.tsx` and connect its data source to the options chain data held in the new `StagingOptionsContext`.
-*   **Task 3.6.4.1:** Add two new raw JSON display areas within `StagingOptionsTabContent.tsx` to show the request and response objects from the new state context.
+*   **Status:** `COMPLETED`
 
 
 ## 6. Document Changelog
+*   **v1.1 (2025-08-20):** Marked feature as `IMPLEMENTATION COMPLETE`. Updated all sections to reflect the final state of the feature.
 *   **v1.0 (2025-08-15):** Initial document creation.
-*   **v1.1 (2025-08-16):** Added the detailed, code-only implementation plan as requested.

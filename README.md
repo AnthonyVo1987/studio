@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.9
-**Application Version (from `app-metadata.json`):** v3.6.4.1
-**Last Updated:** 2025-08-16
+**README Document Version:** 3.10
+**Application Version (from `app-metadata.json`):** v3.6.4.8
+**Last Updated:** 2025-08-20
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -72,10 +72,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.2. Options Chain Display
 *   Retrieve options chain data (calls & puts) for a given stock.
 *   **Main Tab:** Defaults to the next weekly expiration.
-*   **Staging Tab:** Allows user to fetch all valid expiration dates and select one for analysis.
-*   Display key options contract details: Strike, IV, % Chg, Bid, Ask, Last, Volume, Open Interest, Delta, Gamma.
-*   Sort options chain table by strike price in descending order.
-*   Highlight the At-The-Money (ATM) strike row in the table.
+*   **Staging Tab:** Allows user to fetch all valid expiration dates and select one for analysis. This staging feature includes controls for Option Type (Calls/Puts/Both), Strike Count (20/30/40), and Table Display Format (Side-by-Side/Top-Bottom).
 
 #### 3.1.3. AI-Powered Insights & Analysis
 *   **Customizable Analysis Pipeline (as of v3.4.6.4.11):**
@@ -110,7 +107,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **"Console Logs" Tab:** A new, parallel tab that provides a verbatim, unfiltered duplicate of the browser's developer console output, enabling deep-dive debugging. Includes its own independent filtering, search, and 2000-entry buffer.
 *   **"FSM Debug" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
 *   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables):
-    *   **Full Snapshot:** All FSM, data, chats, and both log types.
+    *   **Full Snapshot:** All FSM data, all debug data, all chat histories, and both log types.
     *   **Client Debug Snapshot:** The standard report; includes everything except the raw console logs.
     *   **Console Debug Snapshot:** For deep-dive issues; includes everything except the raw console logs.
     *   **Data-Only Snapshot:** For AI prompt/data issues; includes FSM data, debug data, and chat histories only.
@@ -193,8 +190,8 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.4.1):**
-    *   **"Single Selectable Options Expiration":** Implementation is complete. The feature is now ready for a comprehensive end-to-end testing phase within its isolated staging environment.
+*   **Current Feature Focus (as of v3.6.4.8):**
+    *   **"Single Selectable Options Expiration":** Implementation is complete and checked in. A future task will integrate this feature into the main application tab.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -244,8 +241,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.9
-*   **Current Application Version:** `v3.6.4.1`
+*   **This README Document Version:** 3.10
+*   **Current Application Version:** `v3.6.4.8`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
