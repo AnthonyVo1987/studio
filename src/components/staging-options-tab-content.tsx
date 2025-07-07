@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StagingOptionsProvider, useStagingOptions } from '@/contexts/staging-options-context';
+import { StagingOptionsProvider, useStagingOptions, type OptionType, type StrikeCount } from '@/contexts/staging-options-context';
 import { getOptionsExpirationsAction } from '@/actions/get-options-expirations-action';
 import { getOptionsChainForExpirationAction } from '@/actions/get-options-chain-for-expiration-action';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +21,8 @@ function StagingOptionsControls() {
         ticker, setTicker,
         expirationDates, setExpirationDates,
         selectedExpiration, setSelectedExpiration,
+        optionType, setOptionType,
+        strikeCount, setStrikeCount,
         setOptionsChainJson, setRequestJson,
         isLoadingExpirations, setIsLoadingExpirations,
         isLoadingOptions, setIsLoadingOptions,
@@ -61,7 +63,7 @@ function StagingOptionsControls() {
         setError(null);
         setOptionsChainJson('{ "status": "pending..." }');
         
-        const requestPayload = { ticker, expirationDate: selectedExpiration };
+        const requestPayload = { ticker, expirationDate: selectedExpiration, optionType, strikeCount };
         setRequestJson(JSON.stringify(requestPayload, null, 2));
         
         const result = await getOptionsChainForExpirationAction(requestPayload);
@@ -82,7 +84,7 @@ function StagingOptionsControls() {
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                 <div className="space-y-2">
                     <Label htmlFor="staging-ticker">Ticker</Label>
                     <Input id="staging-ticker" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} placeholder="e.g., NVDA" disabled={isOverallLoading} />
@@ -97,6 +99,32 @@ function StagingOptionsControls() {
                             {expirationDates.map(date => (
                                 <SelectItem key={date} value={date}>{date}</SelectItem>
                             ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="staging-option-type">Option Type</Label>
+                    <Select value={optionType} onValueChange={(value) => setOptionType(value as OptionType)} disabled={isOverallLoading}>
+                        <SelectTrigger id="staging-option-type">
+                            <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="both">Both</SelectItem>
+                            <SelectItem value="calls">Calls Only</SelectItem>
+                            <SelectItem value="puts">Puts Only</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="staging-strike-count">Strike Count</Label>
+                    <Select value={String(strikeCount)} onValueChange={(value) => setStrikeCount(Number(value) as StrikeCount)} disabled={isOverallLoading}>
+                        <SelectTrigger id="staging-strike-count">
+                            <SelectValue placeholder="Select count" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="20">20 Strikes</SelectItem>
+                            <SelectItem value="30">30 Strikes</SelectItem>
+                            <SelectItem value="40">40 Strikes</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -129,9 +157,8 @@ function JsonDisplayArea({ title, jsonContent }: { title: string, jsonContent: s
   );
 }
 
-
 function StagingOptionsDataDisplay() {
-    const { optionsChainJson, requestJson, error } = useStagingOptions();
+    const { optionsChainJson, requestJson, error, optionType } = useStagingOptions();
 
     return (
         <div className="space-y-6 mt-6">
@@ -145,11 +172,10 @@ function StagingOptionsDataDisplay() {
                 <JsonDisplayArea title="Request JSON" jsonContent={requestJson} />
                 <JsonDisplayArea title="Response JSON" jsonContent={optionsChainJson} />
             </div>
-            <OptionsChainTable dataSourceJson={optionsChainJson} snapshotDataSourceJson="{}" />
+            <OptionsChainTable dataSourceJson={optionsChainJson} snapshotDataSourceJson="{}" optionType={optionType} />
         </div>
     );
 }
-
 
 export function StagingOptionsTabContent() {
     return (

@@ -19,6 +19,7 @@ import type {
   AdapterOutput,
   StockDataPackage,
 } from '@/services/data-sources/types';
+import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
 import { calculateNextFridayExpiration } from '@/lib/date-utils';
 import { formatToTwoDecimals, roundNumber } from '@/lib/number-utils';
 
@@ -74,7 +75,7 @@ class PolygonAdapter {
     const logPrefix = `[PolygonAdapter.getExpirationDates ForTicker: ${ticker}]`;
     console.log(`${logPrefix} Fetching all options expiration dates with manual pagination.`);
     const allExpirations = new Set<string>();
-    const MAX_PAGES = 20; // A safeguard against runaway API calls
+    const MAX_PAGES = 20;
 
     let nextCursor: string | undefined = undefined;
     let pagesFetched = 0;
@@ -89,7 +90,7 @@ class PolygonAdapter {
 
         const query: any = {
           underlying_ticker: ticker,
-          limit: 1000, // Fetch 1000 contracts per page
+          limit: 1000,
         };
         if (nextCursor) {
           query.cursor = nextCursor;
@@ -104,12 +105,12 @@ class PolygonAdapter {
             }
           }
         }
-
+        
         if (response.next_url) {
-          const url = new URL(response.next_url);
-          nextCursor = url.searchParams.get("cursor") || undefined;
+            const url = new URL(response.next_url);
+            nextCursor = url.searchParams.get("cursor") || undefined;
         } else {
-          nextCursor = undefined;
+            nextCursor = undefined;
         }
 
       } while (nextCursor);
@@ -126,8 +127,13 @@ class PolygonAdapter {
   async fetchOptionsChainForDate(
     ticker: string,
     expirationDate: string,
-    currentStockPrice: number | undefined
+    options: { 
+      currentStockPrice?: number;
+      optionType?: OptionType;
+      strikeCount?: StrikeCount;
+    }
   ): Promise<OptionsChainData> {
+    const { currentStockPrice, optionType = 'both', strikeCount = 20 } = options;
     const logPrefix = `[PolygonAdapter.fetchOptionsChainForDate ForTicker: ${ticker}, Exp: ${expirationDate}]`;
     const cacheBustQuery = { query: { _t: Date.now() } };
     const apiCallDelay = 150;
@@ -138,7 +144,7 @@ class PolygonAdapter {
         const strikePriceWindowPercentage = 0.20;
         const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
         const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
-        console.log(`${logPrefix} Options fetch params: LowerBound: ${lowerStrikeBound}, UpperBound: ${upperStrikeBound}`);
+        console.log(`${logPrefix} Options fetch params: LowerBound: ${lowerStrikeBound}, UpperBound: ${upperStrikeBound}, Type: ${optionType}, Strikes: ${strikeCount}`);
         
         const commonOptionsParams: any = {
           expiration_date: expirationDate,
@@ -147,13 +153,22 @@ class PolygonAdapter {
           limit: 250,
         };
 
-        console.log(`${logPrefix} Fetching CALLS. Delay: ${apiCallDelay}ms.`);
-        await delay(apiCallDelay);
-        const callsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'call' }, cacheBustQuery);
+        const fetchCalls = optionType === 'both' || optionType === 'calls';
+        const fetchPuts = optionType === 'both' || optionType === 'puts';
+        
+        let callsSnapshot: any = { results: [] };
+        if (fetchCalls) {
+            console.log(`${logPrefix} Fetching CALLS. Delay: ${apiCallDelay}ms.`);
+            await delay(apiCallDelay);
+            callsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'call' }, cacheBustQuery);
+        }
 
-        console.log(`${logPrefix} Fetching PUTS. Delay: ${apiCallDelay}ms.`);
-        await delay(apiCallDelay);
-        const putsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'put' }, cacheBustQuery);
+        let putsSnapshot: any = { results: [] };
+        if (fetchPuts) {
+            console.log(`${logPrefix} Fetching PUTS. Delay: ${apiCallDelay}ms.`);
+            await delay(apiCallDelay);
+            putsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'put' }, cacheBustQuery);
+        }
 
         const allStrikes = new Set<number>();
         const callDataByStrike = new Map<number, any>();
@@ -179,9 +194,12 @@ class PolygonAdapter {
             return (Math.abs(currentStrikeItem - currentStockPrice!) < Math.abs(sortedStrikes[prevIdx] - currentStockPrice!)) ? currentIdx : prevIdx;
         }, 0);
         }
-        const startIndex = Math.max(0, closestStrikeIndex - 10);
-        const endIndex = Math.min(sortedStrikes.length, closestStrikeIndex + 11);
-        const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a); // Keep descending sort
+
+        const halfStrikeCount = Math.floor(strikeCount / 2);
+        const startIndex = Math.max(0, closestStrikeIndex - halfStrikeCount);
+        const endIndex = Math.min(sortedStrikes.length, closestStrikeIndex + halfStrikeCount + 1);
+
+        const finalStrikesToProcess = sortedStrikes.slice(startIndex, endIndex).sort((a,b) => b - a);
         console.log(`${logPrefix} Processed ${finalStrikesToProcess.length} strikes for options table out of ${sortedStrikes.length} unique strikes found.`);
         const optionsTableRows: OptionsTableRow[] = [];
 
@@ -280,7 +298,7 @@ class PolygonAdapter {
           } else if (prevDay?.c && prevDay.c > 0) {
               priceSourceVal = prevDay.c;
           }
-          currentStockPrice = roundNumber(priceSourceVal, 2); // roundNumber handles null/undefined gracefully, returning undefined
+          currentStockPrice = roundNumber(priceSourceVal, 2); 
           console.log(`${logPrefix} Derived currentStockPrice: ${currentStockPrice} (from lastTrade: ${lastTrade?.p}, day.c: ${day?.c}, prevDay.c: ${prevDay?.c})`);
 
           stockDataPackage.stockSnapshot = {
@@ -387,7 +405,7 @@ class PolygonAdapter {
       
       try {
         const expirationDate = calculateNextFridayExpiration();
-        stockDataPackage.optionsChain = await this.fetchOptionsChainForDate(tickerToUse, expirationDate, currentStockPrice);
+        stockDataPackage.optionsChain = await this.fetchOptionsChainForDate(tickerToUse, expirationDate, { currentStockPrice });
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${tickerToUse}. Polygon client error: ${error.message || String(error)}`;
         console.error(`${logPrefix} Error fetching options chain:`, error);
@@ -433,12 +451,14 @@ export async function getExpirationDates(ticker: string): Promise<string[]> {
     return adapter.getExpirationDates(uppercasedTicker);
 }
   
-export async function getOptionsChainForDate(ticker: string, expirationDate: string): Promise<OptionsChainData> {
+export async function getOptionsChainForDate(
+  ticker: string, 
+  expirationDate: string, 
+  options: { optionType: OptionType, strikeCount: StrikeCount }
+): Promise<OptionsChainData> {
     const uppercasedTicker = ticker.toUpperCase();
     const adapter = new PolygonAdapter(process.env.POLYGON_API_KEY, uppercasedTicker);
 
-    // Need to get current price first for the strike window calculation
-    // This is an isolated call, so it must be self-contained
     const snapshotResponse = await adapter['client'].stocks.snapshotTicker(uppercasedTicker, undefined, { query: { _t: Date.now() } });
     let currentStockPrice: number | undefined;
     if (snapshotResponse.ticker) {
@@ -454,7 +474,7 @@ export async function getOptionsChainForDate(ticker: string, expirationDate: str
         currentStockPrice = roundNumber(priceSourceVal, 2);
     }
 
-    return adapter.fetchOptionsChainForDate(uppercasedTicker, expirationDate, currentStockPrice);
+    return adapter.fetchOptionsChainForDate(uppercasedTicker, expirationDate, { ...options, currentStockPrice });
 }
 
 export async function getFullStockData(ticker: string): Promise<AdapterOutput> {

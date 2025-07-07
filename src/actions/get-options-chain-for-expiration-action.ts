@@ -1,6 +1,8 @@
+
 'use server';
 
 import { getOptionsChainForDate } from '@/services/data-sources/adapters/polygon-adapter';
+import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
 
 export interface GetOptionsChainForExpirationResult {
   optionsChainJson: string;
@@ -16,12 +18,14 @@ export interface GetOptionsChainForExpirationActionState {
 interface GetOptionsChainForExpirationInputs {
   ticker: string;
   expirationDate: string;
+  optionType: OptionType;
+  strikeCount: StrikeCount;
 }
 
 export async function getOptionsChainForExpirationAction(
   payload: GetOptionsChainForExpirationInputs
 ): Promise<GetOptionsChainForExpirationActionState> {
-  const { ticker, expirationDate } = payload;
+  const { ticker, expirationDate, optionType, strikeCount } = payload;
   const actionLogPrefix = `[ServerAction:getOptionsChainForExpirationAction:Ticker:${ticker}:Exp:${expirationDate}]`;
   console.log(`${actionLogPrefix} Received request.`);
 
@@ -32,7 +36,7 @@ export async function getOptionsChainForExpirationAction(
   }
 
   try {
-    const optionsChainData = await getOptionsChainForDate(ticker, expirationDate);
+    const optionsChainData = await getOptionsChainForDate(ticker, expirationDate, { optionType, strikeCount });
     
     if (optionsChainData.error) {
         console.error(`${actionLogPrefix} Adapter returned an error: ${optionsChainData.error}`);

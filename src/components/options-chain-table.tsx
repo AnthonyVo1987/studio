@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils"; 
+import type { OptionType } from '@/contexts/staging-options-context';
 
 interface OptionHeaderConfig {
   key: keyof StreamlinedOptionContract;
@@ -52,24 +53,6 @@ const putHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
-const renderSkeletonRow = (rowIndex: number) => (
-  <TableRow key={`skeleton-options-${rowIndex}`} className={rowIndex % 2 !== 0 ? "bg-muted/20 dark:bg-muted/10" : ""}>
-    {callHeadersConfig.map((header) => (
-      <TableCell key={`call-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
-        <Skeleton className="h-4 w-10 mx-auto" />
-      </TableCell>
-    ))}
-    <TableCell className="p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r">
-      <Skeleton className="h-4 w-12 mx-auto" />
-    </TableCell>
-    {putHeadersConfig.map((header) => (
-      <TableCell key={`put-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
-        <Skeleton className="h-4 w-10 mx-auto" />
-      </TableCell>
-    ))}
-  </TableRow>
-);
-
 const PENDING_STATUS_JSON_VARIANTS = [
   '{ "status": "pending..." }',
   '{ "status": "initializing..." }',
@@ -80,11 +63,11 @@ const PENDING_STATUS_JSON_VARIANTS = [
 interface OptionsChainTableProps {
   dataSourceJson?: string;
   snapshotDataSourceJson?: string;
+  optionType?: OptionType;
 }
 
-export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: OptionsChainTableProps) {
+export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, optionType = 'both' }: OptionsChainTableProps) {
   const globalContext = useStockAnalysis();
-  // Prioritize passed-in props, fallback to global context. This makes the component reusable.
   const optionsChainJson = dataSourceJson !== undefined ? dataSourceJson : globalContext.optionsChainJson;
   const stockSnapshotJson = snapshotDataSourceJson !== undefined ? snapshotDataSourceJson : globalContext.stockSnapshotJson;
   const { logDebug } = globalContext;
@@ -100,6 +83,27 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
   const [parsedDataState, setParsedDataState] = useState<OptionsChainData | null>(null);
   const [currentPriceForATMState, setCurrentPriceForATMState] = useState<number | null>(null);
   const [atmStrikeValueState, setAtmStrikeValueState] = useState<number | null>(null);
+  
+  const showCalls = optionType === 'both' || optionType === 'calls';
+  const showPuts = optionType === 'both' || optionType === 'puts';
+  
+  const renderSkeletonRow = (rowIndex: number) => (
+    <TableRow key={`skeleton-options-${rowIndex}`} className={rowIndex % 2 !== 0 ? "bg-muted/20 dark:bg-muted/10" : ""}>
+      {showCalls && callHeadersConfig.map((header) => (
+        <TableCell key={`call-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
+          <Skeleton className="h-4 w-10 mx-auto" />
+        </TableCell>
+      ))}
+      <TableCell className="p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r">
+        <Skeleton className="h-4 w-12 mx-auto" />
+      </TableCell>
+      {showPuts && putHeadersConfig.map((header) => (
+        <TableCell key={`put-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
+          <Skeleton className="h-4 w-10 mx-auto" />
+        </TableCell>
+      ))}
+    </TableRow>
+  );
 
   useEffect(() => {
     const currentOptionsJson = optionsChainJson;
@@ -128,8 +132,8 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
     let newParsedData = parsedDataState;
     let newCurrentPriceForATM = currentPriceForATMState;
 
-    if (optionsChanged) { // Process options chain data
-        newIsLoading = true; // Assume loading until parsed
+    if (optionsChanged) {
+        newIsLoading = true;
         newIsError = false;
         newErrorMsg = "Options data failed to load.";
         newParsedData = null;
@@ -200,12 +204,10 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
         setCurrentPriceForATMState(newCurrentPriceForATM);
     }
     
-    // Calculate ATM Strike only after both parsedData and currentPriceForATM might have updated
     const finalContracts = newParsedData?.contracts || [];
     let newAtmStrikeValue: number | null = null;
     let priceToUseForAtm = newCurrentPriceForATM;
 
-    // Fallback: If snapshot price is not available, use underlying_price from options data itself.
     if (priceToUseForAtm === null && newParsedData?.underlying_price) {
         priceToUseForAtm = newParsedData.underlying_price;
         logDebug(componentName, "AtmPriceFallback", `Using underlying_price from options data for ATM: ${priceToUseForAtm}`);
@@ -268,6 +270,8 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
   
   logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', contracts=${contractsToDisplay.length}, atmStrike=${atmStrikeValueState}, exportReady=${isDataReadyForExport}`);
 
+  const totalColSpan = (showCalls ? callHeadersConfig.length : 0) + (showPuts ? putHeadersConfig.length : 0) + 1;
+
   return (
     <Card>
       <CardHeader>
@@ -296,18 +300,18 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
         <Table className="min-w-max text-xs">
           <TableHeader>
             <TableRow>
-              <TableHead colSpan={callHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">CALLS</TableHead>
+              {showCalls && <TableHead colSpan={callHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">CALLS</TableHead>}
               <TableHead className="text-center font-semibold text-base p-1.5 whitespace-nowrap sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r border-b-2">STRIKE</TableHead>
-              <TableHead colSpan={putHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">PUTS</TableHead>
+              {showPuts && <TableHead colSpan={putHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">PUTS</TableHead>}
             </TableRow>
             <TableRow>
-              {callHeadersConfig.map((header) => (
+              {showCalls && callHeadersConfig.map((header) => (
                 <TableHead key={`call-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">
                   {header.label}
                 </TableHead>
               ))}
               <TableHead className="p-1.5 whitespace-nowrap text-center sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r text-muted-foreground">Price</TableHead>
-              {putHeadersConfig.map((header) => (
+              {showPuts && putHeadersConfig.map((header) => (
                 <TableHead key={`put-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">
                   {header.label}
                 </TableHead>
@@ -318,11 +322,11 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
             {isLoadingState
               ? Array.from({ length: 15 }).map((_, index) => renderSkeletonRow(index))
               : isErrorState
-                ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">
+                ? <TableRow><TableCell colSpan={totalColSpan} className="text-center h-24 text-muted-foreground">
                     {errorOrSkippedMessageState}
                   </TableCell></TableRow>
                 : !parsedDataState || contractsToDisplay.length === 0
-                    ? <TableRow><TableCell colSpan={callHeadersConfig.length + 1 + putHeadersConfig.length} className="text-center h-24 text-muted-foreground">
+                    ? <TableRow><TableCell colSpan={totalColSpan} className="text-center h-24 text-muted-foreground">
                         {errorOrSkippedMessageState || "No option contracts found for this expiration and strike range."}
                       </TableCell></TableRow>
                     : contractsToDisplay.map((row: OptionsTableRow, index: number) => {
@@ -334,7 +338,7 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
                         );
                         return (
                             <TableRow key={`options-row-${row.strike}-${index}`} className={rowClasses}>
-                                {callHeadersConfig.map((header) => (
+                                {showCalls && callHeadersConfig.map((header) => (
                                 <TableCell key={`call-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
                                     {header.formatter(row.call?.[header.key])}
                                 </TableCell>
@@ -345,7 +349,7 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson }: Op
                                 )}>
                                 {formatCurrency(row.strike, "$", "-", true)}
                                 </TableCell>
-                                {putHeadersConfig.map((header) => (
+                                {showPuts && putHeadersConfig.map((header) => (
                                 <TableCell key={`put-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
                                     {header.formatter(row.put?.[header.key])}
                                 </TableCell>
