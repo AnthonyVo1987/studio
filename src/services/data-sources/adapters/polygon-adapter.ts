@@ -141,15 +141,11 @@ class PolygonAdapter {
     try {
       console.log(`${logPrefix} Options chain fetch block. Current derived stock price for window calculation: ${currentStockPrice}`);
       if (currentStockPrice && currentStockPrice > 0) {
-        const strikePriceWindowPercentage = 0.20;
-        const lowerStrikeBound = currentStockPrice * (1 - strikePriceWindowPercentage);
-        const upperStrikeBound = currentStockPrice * (1 + strikePriceWindowPercentage);
-        console.log(`${logPrefix} Options fetch params: LowerBound: ${lowerStrikeBound}, UpperBound: ${upperStrikeBound}, Type: ${optionType}, Strikes: ${strikeCount}`);
+        
+        console.log(`${logPrefix} Options fetch params: Type: ${optionType}, Strikes: ${strikeCount}. No strike price window filter applied.`);
         
         const commonOptionsParams: any = {
           expiration_date: expirationDate,
-          "strike_price.gte": formatToTwoDecimals(lowerStrikeBound, "0"),
-          "strike_price.lte": formatToTwoDecimals(upperStrikeBound, "0"),
           limit: 250,
         };
 
