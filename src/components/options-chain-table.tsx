@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { OptionsChainData, OptionsTableRow, StreamlinedOptionContract, StockSnapshotData } from "@/services/data-sources/types";
-import { formatCurrency, formatPercentage, formatCompactNumber, formatToTwoDecimals, roundNumber } from "@/lib/number-utils";
+import { formatCurrency, formatPercentage, formatCompactNumber, formatToTwoDecimals } from "@/lib/number-utils";
 import { formatDisplayDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils"; 
-import type { OptionType } from '@/contexts/staging-options-context';
+import type { OptionType, TableDisplayType } from '@/contexts/staging-options-context';
 
 interface OptionHeaderConfig {
   key: keyof StreamlinedOptionContract;
@@ -30,7 +30,6 @@ interface OptionHeaderConfig {
 }
 
 const callHeadersConfig: OptionHeaderConfig[] = [
-  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
   { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
   { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
   { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
@@ -39,6 +38,7 @@ const callHeadersConfig: OptionHeaderConfig[] = [
   { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
   { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
   { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
+  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
 const putHeadersConfig: OptionHeaderConfig[] = [
@@ -53,6 +53,20 @@ const putHeadersConfig: OptionHeaderConfig[] = [
   { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
 ];
 
+const singleTableHeadersConfig: OptionHeaderConfig[] = [
+  // Strike is handled separately
+  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
+  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
+  { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
+  { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
+  { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
+  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
+  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
+];
+
+
 const PENDING_STATUS_JSON_VARIANTS = [
   '{ "status": "pending..." }',
   '{ "status": "initializing..." }',
@@ -64,9 +78,10 @@ interface OptionsChainTableProps {
   dataSourceJson?: string;
   snapshotDataSourceJson?: string;
   optionType?: OptionType;
+  tableDisplayType?: TableDisplayType;
 }
 
-export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, optionType = 'both' }: OptionsChainTableProps) {
+export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, optionType = 'both', tableDisplayType = 'side-by-side' }: OptionsChainTableProps) {
   const globalContext = useStockAnalysis();
   const optionsChainJson = dataSourceJson !== undefined ? dataSourceJson : globalContext.optionsChainJson;
   const stockSnapshotJson = snapshotDataSourceJson !== undefined ? snapshotDataSourceJson : globalContext.stockSnapshotJson;
@@ -87,24 +102,6 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
   const showCalls = optionType === 'both' || optionType === 'calls';
   const showPuts = optionType === 'both' || optionType === 'puts';
   
-  const renderSkeletonRow = (rowIndex: number) => (
-    <TableRow key={`skeleton-options-${rowIndex}`} className={rowIndex % 2 !== 0 ? "bg-muted/20 dark:bg-muted/10" : ""}>
-      {showCalls && callHeadersConfig.map((header) => (
-        <TableCell key={`call-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
-          <Skeleton className="h-4 w-10 mx-auto" />
-        </TableCell>
-      ))}
-      <TableCell className="p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r">
-        <Skeleton className="h-4 w-12 mx-auto" />
-      </TableCell>
-      {showPuts && putHeadersConfig.map((header) => (
-        <TableCell key={`put-skel-${header.key}-${rowIndex}`} className="p-1.5 whitespace-nowrap text-center">
-          <Skeleton className="h-4 w-10 mx-auto" />
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-
   useEffect(() => {
     const currentOptionsJson = optionsChainJson;
     const currentSnapshotJson = stockSnapshotJson;
@@ -220,7 +217,6 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
     }
     
     setAtmStrikeValueState(newAtmStrikeValue);
-
     setIsLoadingState(newIsLoading);
     setIsErrorState(newIsError);
     setErrorOrSkippedMessageState(newErrorMsg);
@@ -270,7 +266,122 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
   
   logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', contracts=${contractsToDisplay.length}, atmStrike=${atmStrikeValueState}, exportReady=${isDataReadyForExport}`);
 
-  const totalColSpan = (showCalls ? callHeadersConfig.length : 0) + (showPuts ? putHeadersConfig.length : 0) + 1;
+  const renderSideBySideTable = () => (
+    <Table className="min-w-max text-xs">
+        <TableHeader>
+        <TableRow>
+            {showCalls && <TableHead colSpan={callHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">CALLS</TableHead>}
+            <TableHead className="text-center font-semibold text-base p-1.5 whitespace-nowrap bg-card z-10 border-l border-r border-b-2">STRIKE</TableHead>
+            {showPuts && <TableHead colSpan={putHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">PUTS</TableHead>}
+        </TableRow>
+        <TableRow>
+            {showCalls && callHeadersConfig.slice().reverse().map((header) => (
+            <TableHead key={`call-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">
+                {header.label}
+            </TableHead>
+            ))}
+            <TableHead className="p-1.5 whitespace-nowrap text-center bg-card z-10 border-l border-r text-muted-foreground">Price</TableHead>
+            {showPuts && putHeadersConfig.map((header) => (
+            <TableHead key={`put-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">
+                {header.label}
+            </TableHead>
+            ))}
+        </TableRow>
+        </TableHeader>
+        <TableBody>
+          {contractsToDisplay.map((row: OptionsTableRow, index: number) => {
+              const isATMRow = row.strike !== null && row.strike !== undefined && atmStrikeValueState !== null && row.strike === atmStrikeValueState;
+              const rowClasses = cn(
+                  "transition-colors",
+                  isATMRow ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 font-semibold" :
+                              (index % 2 !== 0 ? "bg-muted/25 dark:bg-muted/10 hover:bg-muted/40 dark:hover:bg-muted/20" : "hover:bg-muted/40 dark:hover:bg-muted/20")
+              );
+              return (
+                  <TableRow key={`options-row-${row.strike}-${index}`} className={rowClasses}>
+                      {showCalls && callHeadersConfig.slice().reverse().map((header) => (
+                      <TableCell key={`call-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
+                          {header.formatter(row.call?.[header.key])}
+                      </TableCell>
+                      ))}
+                      <TableCell className={cn(
+                          "p-1.5 whitespace-nowrap text-center font-semibold z-10 border-l border-r",
+                          isATMRow ? "bg-primary/20 dark:bg-primary/30 text-primary-foreground" : (index % 2 !== 0 ? "bg-muted/30 dark:bg-muted/15" : "bg-card")
+                      )}>
+                      {formatCurrency(row.strike, "$", "-", true)}
+                      </TableCell>
+                      {showPuts && putHeadersConfig.map((header) => (
+                      <TableCell key={`put-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
+                          {header.formatter(row.put?.[header.key])}
+                      </TableCell>
+                      ))}
+                  </TableRow>
+              );
+          })}
+        </TableBody>
+    </Table>
+  );
+
+  const renderTopBottomTable = (type: 'call' | 'put') => (
+    <div className="mt-4">
+      <h3 className="text-lg font-semibold mb-2">{type === 'call' ? 'Call Options' : 'Put Options'}</h3>
+      <Table className="min-w-max text-xs">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="p-1.5 whitespace-nowrap text-left text-muted-foreground font-semibold">Strike</TableHead>
+            {singleTableHeadersConfig.map(header => (
+              <TableHead key={`${type}-tb-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">{header.label}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {contractsToDisplay.map((row, index) => {
+            const contract = row[type];
+            if (!contract) return null;
+            const isATMRow = row.strike === atmStrikeValueState;
+            const rowClasses = cn(
+              "transition-colors",
+              isATMRow ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 font-semibold" :
+                         (index % 2 !== 0 ? "bg-muted/25 dark:bg-muted/10 hover:bg-muted/40 dark:hover:bg-muted/20" : "hover:bg-muted/40 dark:hover:bg-muted/20")
+            );
+            return (
+              <TableRow key={`${type}-tb-row-${row.strike}`} className={rowClasses}>
+                <TableCell className="p-1.5 whitespace-nowrap text-left font-semibold">{formatCurrency(row.strike, "$", "-", true)}</TableCell>
+                {singleTableHeadersConfig.map(header => (
+                  <TableCell key={`${type}-tb-cell-${header.key}-${row.strike}`} className="p-1.5 whitespace-nowrap text-center">
+                    {header.formatter(contract[header.key])}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const renderContent = () => {
+    if (isLoadingState) {
+      return <div className="p-4"><Skeleton className="h-64 w-full" /></div>;
+    }
+    if (isErrorState) {
+      return <div className="text-center h-24 p-4 text-muted-foreground">{errorOrSkippedMessageState}</div>;
+    }
+    if (!parsedDataState || contractsToDisplay.length === 0) {
+      return <div className="text-center h-24 p-4 text-muted-foreground">{errorOrSkippedMessageState || "No option contracts found for this expiration and strike range."}</div>;
+    }
+
+    if (tableDisplayType === 'top-bottom') {
+      return (
+        <div className="overflow-x-auto">
+          {showCalls && renderTopBottomTable('call')}
+          {showPuts && renderTopBottomTable('put')}
+        </div>
+      );
+    }
+    
+    // Default to side-by-side
+    return <div className="overflow-x-auto">{renderSideBySideTable()}</div>;
+  }
 
   return (
     <Card>
@@ -296,69 +407,8 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
             </div>
         </div>
       </CardHeader>
-      <CardContent className="overflow-x-auto p-2 md:p-3">
-        <Table className="min-w-max text-xs">
-          <TableHeader>
-            <TableRow>
-              {showCalls && <TableHead colSpan={callHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">CALLS</TableHead>}
-              <TableHead className="text-center font-semibold text-base p-1.5 whitespace-nowrap sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r border-b-2">STRIKE</TableHead>
-              {showPuts && <TableHead colSpan={putHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">PUTS</TableHead>}
-            </TableRow>
-            <TableRow>
-              {showCalls && callHeadersConfig.map((header) => (
-                <TableHead key={`call-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">
-                  {header.label}
-                </TableHead>
-              ))}
-              <TableHead className="p-1.5 whitespace-nowrap text-center sticky left-1/2 -translate-x-1/2 bg-card z-10 border-l border-r text-muted-foreground">Price</TableHead>
-              {showPuts && putHeadersConfig.map((header) => (
-                <TableHead key={`put-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">
-                  {header.label}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoadingState
-              ? Array.from({ length: 15 }).map((_, index) => renderSkeletonRow(index))
-              : isErrorState
-                ? <TableRow><TableCell colSpan={totalColSpan} className="text-center h-24 text-muted-foreground">
-                    {errorOrSkippedMessageState}
-                  </TableCell></TableRow>
-                : !parsedDataState || contractsToDisplay.length === 0
-                    ? <TableRow><TableCell colSpan={totalColSpan} className="text-center h-24 text-muted-foreground">
-                        {errorOrSkippedMessageState || "No option contracts found for this expiration and strike range."}
-                      </TableCell></TableRow>
-                    : contractsToDisplay.map((row: OptionsTableRow, index: number) => {
-                        const isATMRow = row.strike !== null && row.strike !== undefined && atmStrikeValueState !== null && row.strike === atmStrikeValueState;
-                        const rowClasses = cn(
-                            "transition-colors",
-                            isATMRow ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 font-semibold" :
-                                       (index % 2 !== 0 ? "bg-muted/25 dark:bg-muted/10 hover:bg-muted/40 dark:hover:bg-muted/20" : "hover:bg-muted/40 dark:hover:bg-muted/20")
-                        );
-                        return (
-                            <TableRow key={`options-row-${row.strike}-${index}`} className={rowClasses}>
-                                {showCalls && callHeadersConfig.map((header) => (
-                                <TableCell key={`call-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
-                                    {header.formatter(row.call?.[header.key])}
-                                </TableCell>
-                                ))}
-                                <TableCell className={cn(
-                                    "p-1.5 whitespace-nowrap text-center font-semibold sticky left-1/2 -translate-x-1/2 z-10 border-l border-r",
-                                    isATMRow ? "bg-primary/20 dark:bg-primary/30 text-primary-foreground" : (index % 2 !== 0 ? "bg-muted/30 dark:bg-muted/15" : "bg-card")
-                                )}>
-                                {formatCurrency(row.strike, "$", "-", true)}
-                                </TableCell>
-                                {showPuts && putHeadersConfig.map((header) => (
-                                <TableCell key={`put-cell-${header.key}-${index}`} className="p-1.5 whitespace-nowrap text-center">
-                                    {header.formatter(row.put?.[header.key])}
-                                </TableCell>
-                                ))}
-                            </TableRow>
-                        );
-                    })}
-          </TableBody>
-        </Table>
+      <CardContent className="p-2 md:p-3">
+        {renderContent()}
       </CardContent>
     </Card>
   );

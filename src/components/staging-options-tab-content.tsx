@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StagingOptionsProvider, useStagingOptions, type OptionType, type StrikeCount } from '@/contexts/staging-options-context';
+import { StagingOptionsProvider, useStagingOptions, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/staging-options-context';
 import { getOptionsExpirationsAction } from '@/actions/get-options-expirations-action';
 import { getOptionsChainForExpirationAction } from '@/actions/get-options-chain-for-expiration-action';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ function StagingOptionsControls() {
         selectedExpiration, setSelectedExpiration,
         optionType, setOptionType,
         strikeCount, setStrikeCount,
+        tableDisplayType, setTableDisplayType,
         setOptionsChainJson, setRequestJson,
         isLoadingExpirations, setIsLoadingExpirations,
         isLoadingOptions, setIsLoadingOptions,
@@ -84,7 +85,7 @@ function StagingOptionsControls() {
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="staging-ticker">Ticker</Label>
                     <Input id="staging-ticker" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} placeholder="e.g., NVDA" disabled={isOverallLoading} />
@@ -128,16 +129,28 @@ function StagingOptionsControls() {
                         </SelectContent>
                     </Select>
                 </div>
-                 <div className="flex gap-2">
-                    <Button onClick={handleFetchExpirations} disabled={!ticker || isOverallLoading} className="w-full">
-                        {isLoadingExpirations ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Fetch Expirations
-                    </Button>
-                    <Button onClick={handleFetchOptionsChain} disabled={!selectedExpiration || isOverallLoading} className="w-full">
-                         {isLoadingOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Get Options
-                    </Button>
+                 <div className="space-y-2">
+                    <Label htmlFor="staging-table-display">Table Display</Label>
+                    <Select value={tableDisplayType} onValueChange={(value) => setTableDisplayType(value as TableDisplayType)} disabled={isOverallLoading}>
+                        <SelectTrigger id="staging-table-display">
+                            <SelectValue placeholder="Select display" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="side-by-side">Side-by-Side</SelectItem>
+                            <SelectItem value="top-bottom">Top/Bottom</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
+            </div>
+             <div className="flex gap-2 pt-2">
+                <Button onClick={handleFetchExpirations} disabled={!ticker || isOverallLoading} className="w-auto">
+                    {isLoadingExpirations ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Fetch Expirations
+                </Button>
+                <Button onClick={handleFetchOptionsChain} disabled={!selectedExpiration || isOverallLoading} className="w-auto">
+                     {isLoadingOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Get Options
+                </Button>
             </div>
         </div>
     );
@@ -158,7 +171,7 @@ function JsonDisplayArea({ title, jsonContent }: { title: string, jsonContent: s
 }
 
 function StagingOptionsDataDisplay() {
-    const { optionsChainJson, requestJson, error, optionType } = useStagingOptions();
+    const { optionsChainJson, requestJson, error, optionType, tableDisplayType } = useStagingOptions();
 
     return (
         <div className="space-y-6 mt-6">
@@ -172,7 +185,7 @@ function StagingOptionsDataDisplay() {
                 <JsonDisplayArea title="Request JSON" jsonContent={requestJson} />
                 <JsonDisplayArea title="Response JSON" jsonContent={optionsChainJson} />
             </div>
-            <OptionsChainTable dataSourceJson={optionsChainJson} snapshotDataSourceJson="{}" optionType={optionType} />
+            <OptionsChainTable dataSourceJson={optionsChainJson} snapshotDataSourceJson="{}" optionType={optionType} tableDisplayType={tableDisplayType} />
         </div>
     );
 }

@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 
 export type OptionType = 'both' | 'calls' | 'puts';
 export type StrikeCount = 20 | 30 | 40;
+export type TableDisplayType = 'side-by-side' | 'top-bottom';
 
 interface StagingOptionsState {
   ticker: string;
@@ -19,6 +20,8 @@ interface StagingOptionsState {
   setOptionType: (type: OptionType) => void;
   strikeCount: StrikeCount;
   setStrikeCount: (count: StrikeCount) => void;
+  tableDisplayType: TableDisplayType;
+  setTableDisplayType: (type: TableDisplayType) => void;
   optionsChainJson: string;
   setOptionsChainJson: (json: string) => void;
   requestJson: string;
@@ -39,6 +42,7 @@ export function StagingOptionsProvider({ children }: { children: ReactNode }) {
   const [selectedExpiration, setSelectedExpiration] = useState<string | undefined>(undefined);
   const [optionType, setOptionType] = useState<OptionType>('both');
   const [strikeCount, setStrikeCount] = useState<StrikeCount>(20);
+  const [tableDisplayType, setTableDisplayType] = useState<TableDisplayType>('side-by-side');
   const [optionsChainJson, setOptionsChainJson] = useState('{}');
   const [requestJson, setRequestJson] = useState('{}');
   const [isLoadingExpirations, setIsLoadingExpirations] = useState(false);
@@ -95,6 +99,7 @@ export function StagingOptionsProvider({ children }: { children: ReactNode }) {
     selectedExpiration, setSelectedExpiration,
     optionType, setOptionType,
     strikeCount, setStrikeCount,
+    tableDisplayType, setTableDisplayType,
     optionsChainJson, setOptionsChainJson,
     requestJson, setRequestJson,
     isLoadingExpirations, setIsLoadingExpirations,
