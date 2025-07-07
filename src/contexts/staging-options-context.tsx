@@ -1,7 +1,9 @@
 
 'use client';
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+import { getOptionsExpirationsAction } from '@/actions/get-options-expirations-action';
+import { format } from 'date-fns';
 
 export type OptionType = 'both' | 'calls' | 'puts';
 export type StrikeCount = 20 | 30 | 40;
@@ -42,6 +44,50 @@ export function StagingOptionsProvider({ children }: { children: ReactNode }) {
   const [isLoadingExpirations, setIsLoadingExpirations] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDefaultExpiration = async () => {
+      setIsLoadingExpirations(true);
+      setError(null);
+      
+      const result = await getOptionsExpirationsAction({ ticker });
+
+      if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const allDates = result.data.expirationDates;
+        
+        let targetDate: string | undefined = undefined;
+
+        // Find the first expiration date that is on or after today
+        const firstAvailableIndex = allDates.findIndex(date => date >= todayStr);
+
+        if (firstAvailableIndex !== -1) {
+          const firstAvailableDate = allDates[firstAvailableIndex];
+          // If today is an expiration day, we want the *next* one.
+          if (firstAvailableDate === todayStr && allDates.length > firstAvailableIndex + 1) {
+            targetDate = allDates[firstAvailableIndex + 1];
+          } else {
+            targetDate = firstAvailableDate;
+          }
+        }
+        
+        if (targetDate) {
+          setExpirationDates([targetDate]);
+          setSelectedExpiration(targetDate);
+        } else {
+          setError('Could not determine a valid upcoming expiration date.');
+        }
+
+      } else {
+        setError(result.error || 'Failed to fetch any expiration dates.');
+      }
+      setIsLoadingExpirations(false);
+    };
+
+    fetchDefaultExpiration();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on initial mount
+
 
   const value = {
     ticker, setTicker,
