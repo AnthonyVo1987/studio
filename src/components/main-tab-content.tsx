@@ -124,7 +124,12 @@ export function MainTabContent() {
     const runPipelineStep = async () => {
       switch (globalFsmStateFromContext) {
         case GlobalFsmState.DATA_FETCH_IN_PROGRESS: {
-          const result = await fetchStockDataAction({ ticker: globalFsmVariables.activeTicker! });
+          const result = await fetchStockDataAction({
+            ticker: globalFsmVariables.activeTicker!,
+            expirationDate: selectedExpirationDate,
+            optionType: optionType,
+            strikeCount: strikeCount,
+          });
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', payload: result });
           if(result.status !== 'success') toast({ title: "Data Fetch Failed", description: result.message, variant: 'destructive' });
           break;
@@ -171,7 +176,7 @@ export function MainTabContent() {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, selectedExpirationDate, optionType, strikeCount]);
 
 
   // Effect to handle App Data Chat results

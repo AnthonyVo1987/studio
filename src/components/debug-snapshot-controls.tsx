@@ -30,6 +30,7 @@ export function DebugSnapshotControls() {
         userInputWebSearchChatResponseJson, rawTaWebSearchRequestJson, rawTaWebSearchResponseJson,
         rawOptionsWebSearchRequestJson, rawOptionsWebSearchResponseJson,
         appDataChatHistory, webSearchChatHistory,
+        optionType, strikeCount, tableDisplayType, // Added for snapshot
     } = context;
 
     // Helper to safely parse JSON strings
@@ -47,6 +48,11 @@ export function DebugSnapshotControls() {
             previousState: previousFsmState,
             flags: fsmFlags,
             variables: fsmVariables,
+            optionsChainSettings: {
+                optionType,
+                strikeCount,
+                tableDisplayType,
+            },
         },
         debugData: {
             polygonApiRequestLog: safeJsonParse(polygonApiRequestLogJson),
