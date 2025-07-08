@@ -1,4 +1,3 @@
-
 ### AI Coding Agent Operating Procedure & Audit Protocol
 
 To prevent the severe audit failures of the v3.3.15.x series, the following procedures are now in effect and strictly enforced.
@@ -32,9 +31,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.10
-**Application Version (from `app-metadata.json`):** v3.6.4.8
-**Last Updated:** 2025-08-20
+**README Document Version:** 3.11
+**Application Version (from `app-metadata.json`):** v3.6.4.18
+**Last Updated:** 2025-08-23
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -70,9 +69,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Implement robust error handling for API failures.
 
 #### 3.1.2. Options Chain Display
-*   Retrieve options chain data (calls & puts) for a given stock.
-*   **Main Tab:** Defaults to the next weekly expiration.
-*   **Staging Tab:** Allows user to fetch all valid expiration dates and select one for analysis. This staging feature includes controls for Option Type (Calls/Puts/Both), Strike Count (20/30/40), and Table Display Format (Side-by-Side/Top-Bottom).
+*   **Dynamic & Intelligent Fetching:** The application provides a user-configurable options analysis experience.
+*   **Intelligent Default:** On startup, the app automatically fetches all available expiration dates for the default ticker and pre-selects the next available date. This replaces the old hardcoded "next Friday" logic.
+*   **User Controls:** The "Options Chain Settings" card allows the user to manually fetch all expirations for a ticker and select a specific date. Users can also configure the Option Type (Calls/Puts/Both), Strike Count, and Table Display Format.
+*   **Integrated Pipeline:** The main "Analyze Stock" pipeline is now fully dynamic. It consumes all of the user's options settings, ensuring the subsequent data fetch, UI display, and AI analysis are performed on the exact data the user has configured.
 
 #### 3.1.3. AI-Powered Insights & Analysis
 *   **Customizable Analysis Pipeline (as of v3.4.6.4.11):**
@@ -88,7 +88,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", "FSM Debug", "Staging", and "Staging: Options" tabs.
+*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", "FSM Debug", and "Staging" tabs. The isolated "Staging: Options" tab has been deprecated following successful feature integration.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -106,14 +106,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **"Client Debug Trace Logs" Tab:** A dedicated tab housing a large, persistent console that displays curated, high-level trace logs from the application's internal logging system. Includes filtering, search, and a 2000-entry buffer.
 *   **"Console Logs" Tab:** A new, parallel tab that provides a verbatim, unfiltered duplicate of the browser's developer console output, enabling deep-dive debugging. Includes its own independent filtering, search, and 2000-entry buffer.
 *   **"FSM Debug" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
-*   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables):
-    *   **Full Snapshot:** All FSM data, all debug data, all chat histories, and both log types.
-    *   **Client Debug Snapshot:** The standard report; includes everything except the raw console logs.
-    *   **Console Debug Snapshot:** For deep-dive issues; includes everything except the raw console logs.
-    *   **Data-Only Snapshot:** For AI prompt/data issues; includes FSM data, debug data, and chat histories only.
+*   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables). The snapshot now correctly includes the user's dynamic options settings (`optionType`, `strikeCount`, `tableDisplayType`).
 *   **Developer Staging Areas:**
     *   **"Staging" Tab:** A dedicated area for developers to test experimental features (like SDK diagnostics) in isolation from the main application flow.
-    *   **"Staging: Options" Tab:** A self-contained environment for building and testing the new selectable options expiration date feature.
 
 ### 3.2. System Architecture & Components
 
@@ -141,10 +136,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.2.4. State Management (as of v3.4.6.4.11 - Deterministic)
 *   **React Context:**
-    *   **`StockAnalysisContext`:** Centralized global state management.
-    *   **`StagingOptionsContext`:** An isolated context for managing the state of the new selectable options expiration feature, ensuring it does not interfere with the global context.
+    *   **`StockAnalysisContext`:** Centralized global state management. It now also manages all state for the dynamic options settings (`selectedExpirationDate`, `optionType`, etc.).
 *   **Deterministic Handlers:** All complex asynchronous workflows (e.g., "Analyze Stock" pipeline, AI chat submissions) are now driven by dedicated `async` handler functions within the primary UI component (`MainTabContent.tsx`). These handlers use a simple `await` pattern to ensure a linear, predictable, and sequential execution of server actions, eliminating the race conditions of the previous architecture.
-*   **Simple State Updates:** The application primarily uses `useState` (for local component state) and `useReducer` (for the simplified global FSM) to manage state. The deterministic handlers manually update the UI/FSM state before and after `await` calls. The client-side `useActionState` hook is used for chat form submissions.
+*   **Simple State Updates:** The application primarily uses `useState` (for local component state) and `useReducer` (for the simplified global FSM) to manage state. The client-side `useActionState` hook is used for chat form submissions.
 
 #### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.4.6.4.11)
 *   **Simplified Global FSM:** The single global FSM's role has been drastically reduced. It **no longer orchestrates complex sequences**. It now serves as a simple repository for global state flags (`GlobalFsmFlags`) and context variables (`GlobalFsmContextVariables`), providing a clear snapshot of the application's overall state. It only handles simple, direct state transitions dispatched by the deterministic handlers.
@@ -155,25 +149,20 @@ This section outlines the application's core data analysis pipeline. This archit
 
 1.  **Trigger (`main-tab-content.tsx`):**
     *   The user clicks "Analyze Stock".
-    *   `handleAnalyzeStockSubmit` is called.
-    *   The handler dispatches `START_FULL_ANALYSIS` to the global FSM.
+    *   The `useEffect` orchestrator is triggered.
+    *   The handler reads the user's dynamic options selections from context and passes them into the server action payload.
 
-2.  **Initial FSM Transition (`stock-analysis-context.tsx`):**
-    *   The `fsmReducer` receives the event.
-    *   It resets all relevant state and sets all data JSONs to a "pending" status.
-    *   It transitions the FSM state to `DATA_FETCH_IN_PROGRESS`.
+2.  **Intelligent Defaulting (`polygon-adapter.ts`):**
+    *   If the user's selections are stale (e.g., after a ticker change), the orchestrator deliberately sends an `undefined` expiration date.
+    *   The adapter detects this and is now responsible for automatically fetching all available expirations and choosing the correct default before proceeding. **This removes all hardcoded expiration logic.**
 
-3.  **Deterministic Orchestration (`main-tab-content.tsx`):**
-    *   A `useEffect` hook, which listens *only* to changes in the global FSM state, is activated by the transition to `DATA_FETCH_IN_PROGRESS`.
-    *   This hook's `switch` case for `DATA_FETCH_IN_PROGRESS` calls the first server action in the pipeline: `await fetchStockDataAction(...)`.
-
-4.  **Sequential Execution & FSM Feedback Loop:**
+3.  **Sequential Execution & FSM Feedback Loop:**
     *   The core of the deterministic model resides in the `useEffect` orchestrator. It executes a sequence of server actions using `async/await`.
     *   **Crucially, after each `await` completes, a new event is dispatched to the FSM to communicate the result (`_SUCCESS` or `_FAILURE`).** This updates the global FSM state.
     *   The `useEffect` hook runs again in response to this new state, triggering the `case` for the next step in the pipeline.
     *   **This feedback loop is the fundamental mechanism for providing UI updates and MUST NOT be removed.**
 
-5.  **Pipeline Completion:**
+4.  **Pipeline Completion:**
     *   After the final step, the orchestrator transitions the FSM back to `IDLE`, which re-enables the UI for the next analysis.
 
 ### 3.3. AI Flow & Prompt Design
@@ -190,8 +179,8 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.4.8):**
-    *   **"Single Selectable Options Expiration":** Implementation is complete and checked in. A future task will integrate this feature into the main application tab.
+*   **Current Feature Focus (as of v3.6.4.18):**
+    *   **"Single Selectable Options Expiration":** Full implementation and integration are complete. The feature is now pending final testing and validation.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -241,8 +230,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.10
-*   **Current Application Version:** `v3.6.4.8`
+*   **This README Document Version:** 3.11
+*   **Current Application Version:** `v3.6.4.18`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 

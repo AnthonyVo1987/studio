@@ -58,31 +58,31 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
-**App Version:** `v3.6.4.8` (Complete Selectable Options Expiration Implementation)
-**Tag:** `Phase-68_Task-3.6.4.8_FeatureComplete`
-**Commit Hash:** `6f1887e6`
-**Subject:** `feat(core,docs): Complete Selectable Options Expiration feature (v3.6.4.8)`
+**App Version:** `v3.6.4.18` (Complete Selectable Options Integration)
+**Tag:** `Phase-68_Task-3.6.4.18_FeatureIntegrated`
+**Commit Hash:** `4a594eab`
+**Subject:** `feat(core,docs): Complete full integration of Selectable Options feature (v3.6.4.18)`
 **Details:**
-This commit marks the completion of the core implementation and testing for the **"Single Selectable Options Expiration"** feature (v3.6 series). All work was performed in an isolated staging environment to prevent any disruption to the main application. The feature is now stable and ready for a future integration task.
+This commit marks the completion of the "Single Selectable Options Expiration" feature (`v3.6` series), which was first built in an isolated staging tab and is now **fully integrated into the main application pipeline**. This refactor makes the application's default behavior more intelligent and robust, while giving users full control over the options data they wish to analyze.
 
-**Key Architectural Changes Completed (v3.6.1.x - v3.6.4.8):**
-*   **Phase 1 & 2: Backend & UI Foundation (`v3.6.1.x`, `v3.6.2.x`):**
-    *   A new, isolated "Staging: Options" tab was added to `page-content.tsx` and a container component `staging-options-tab-content.tsx` was created.
-    *   The `polygon-adapter.ts` was enhanced with a robust, paginated `getExpirationDates` method and a refactored `fetchOptionsChainForDate` method.
-    *   Two new server actions (`get-options-expirations-action.ts`, `get-options-chain-for-expiration-action.ts`) were created.
-*   **Phase 3: State Management & UI Control Integration (`v3.6.3.x`, `v3.6.4.5`):**
-    *   A new, isolated React Context, `staging-options-context.tsx`, was created to manage all state for the new feature independently.
-    *   The UI controls (ticker input, buttons) and new dropdowns for **Option Type** (Both/Calls/Puts), **Strike Count** (20/30/40), and **Table Display** (Side-by-Side/Top-Bottom) were implemented and wired to the new context.
-*   **Phase 4: Data Display & Bug Fixes (`v3.6.4.x`):**
-    *   The `OptionsChainTable` was refactored to be data-agnostic, accepting its data via props and correctly displaying data from the isolated staging context.
-    *   Fixed a critical bug where the expiration date pagination logic was prematurely terminating after the first page (`v3.6.4.3`).
-    *   Fixed a bug where the strike price window was too narrow for far-dated options, causing truncated results (`v3.6.4.6`).
-    *   Implemented dynamic default expiration date selection on load (`v3.6.4.7`).
-    *   Finalized the UI layout and fixed the sticky-column rendering issue in the options table (`v3.6.4.8`).
+**Key Integration Changes (v3.6.4.13 - v3.6.4.18):**
+*   **UI Consolidation (`v3.6.4.13`):**
+    *   The "Options Chain Settings" controls (Expiration Date, Option Type, Strike Count, Table Display Format) were moved from the staging tab directly into the Main tab, placed logically below the "Stock Analysis Input" card.
+*   **Centralized Startup Logic (`v3.6.4.16`):**
+    *   The application now automatically fetches all available expiration dates on startup for the default ticker.
+    *   It intelligently selects the *next available date* as the default, replacing the old, hardcoded "next Friday" logic.
+*   **Intelligent Data Fetching (`v3.6.4.17`):**
+    *   The core data adapter (`polygon-adapter.ts`) was refactored to remove all hardcoded expiration logic.
+    *   If no expiration date is provided to the main `getFullStockData` function, it now automatically fetches all available dates and selects the correct default for the given ticker, making the main pipeline self-sufficient.
+*   **Dynamic Pipeline Integration (`v3.6.4.14` & `v3.6.4.15`):**
+    *   The "Analyze Stock" button's execution path was re-wired. It now correctly passes the user's selections for expiration date, option type, and strike count from the global context to the backend.
+*   **Stale Context Bug Fix (`v3.6.4.18`):**
+    *   A critical bug was fixed where changing the ticker would not clear the old expiration date. The pipeline now intelligently detects a mismatched context (new ticker vs. old options data) and forces a refetch of a correct default expiration date for the new ticker.
 
 **Outcome:**
-*   The implementation and testing of the feature is complete within the isolated staging tab.
-*   The application is ready for a future task to integrate this functionality into the main application tab.
+*   The "Selectable Options Chain" feature is no longer a separate staging experiment but a core, fully integrated part of the main user experience.
+*   The application's default behavior is more robust, as it no longer relies on guessing expiration dates that may not exist on holidays.
+*   The entire analysis pipeline, including all AI steps, is now fully dynamic and respects the user's settings.
 ---
 **App Version:** `v3.4.6.4.11` (Code Cleanup & Refactor)
 **Tag:** `Phase-67_Task-3.4.6.4.11_CleanupAndRefactor`
@@ -1463,5 +1463,8 @@ Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsm
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
 
     
+
+    
+
 
     
