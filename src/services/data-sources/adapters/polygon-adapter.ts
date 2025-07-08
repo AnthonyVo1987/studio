@@ -233,7 +233,7 @@ class PolygonAdapter {
     }
   }
   
-  async getFullStockData(ticker: string): Promise<AdapterOutput> {
+  async getFullStockData(ticker: string, options?: { expirationDate?: string; optionType?: OptionType; strikeCount?: StrikeCount }): Promise<AdapterOutput> {
     const requestedTickerMethodArg = ticker.toUpperCase();
     const logPrefix = `[PolygonAdapter.getFullStockData InstanceFor: ${this.currentTickerForClient}][MethodArg: ${requestedTickerMethodArg}]`;
 
@@ -244,7 +244,7 @@ class PolygonAdapter {
         console.error(criticalErrorMsg);
         return {
             stockData: { ticker: requestedTickerMethodArg, error: criticalErrorMsg, rawOverallError: this.createSafeErrorObject({ message: criticalErrorMsg }, "Adapter instance mismatch") },
-            rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient },
+            rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, ...options },
             rawResponseSummary: { error: criticalErrorMsg, requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient },
         };
     }
@@ -400,8 +400,18 @@ class PolygonAdapter {
       }
       
       try {
-        const expirationDate = calculateNextFridayExpiration();
-        stockDataPackage.optionsChain = await this.fetchOptionsChainForDate(tickerToUse, expirationDate, { currentStockPrice });
+        const expirationDateToUse = options?.expirationDate || calculateNextFridayExpiration();
+        const optionTypeToUse = options?.optionType;
+        const strikeCountToUse = options?.strikeCount;
+        
+        console.log(`${logPrefix} Fetching options chain. Expiration: ${expirationDateToUse}. Type: ${optionTypeToUse}. Strikes: ${strikeCountToUse}.`);
+        
+        stockDataPackage.optionsChain = await this.fetchOptionsChainForDate(tickerToUse, expirationDateToUse, { 
+            currentStockPrice,
+            optionType: optionTypeToUse,
+            strikeCount: strikeCountToUse,
+        });
+
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${tickerToUse}. Polygon client error: ${error.message || String(error)}`;
         console.error(`${logPrefix} Error fetching options chain:`, error);
@@ -411,7 +421,7 @@ class PolygonAdapter {
       console.log(`${logPrefix} All data fetching operations for ${tickerToUse} complete.`);
       return {
         stockData: stockDataPackage,
-        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValueForRun: cacheBustQuery.query._t },
+        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValueForRun: cacheBustQuery.query._t, ...options },
         rawResponseSummary: {
           requestedTicker: requestedTickerMethodArg,
           adapterInstanceFor: this.currentTickerForClient,
@@ -434,7 +444,7 @@ class PolygonAdapter {
           error: overallErrorMessage,
           rawOverallError: this.createSafeErrorObject(error, "Overall data fetch failed")
         } as StockDataPackage,
-        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValueForRun: cacheBustQuery.query._t },
+        rawRequestParams: { requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, cacheBustValueForRun: cacheBustQuery.query._t, ...options },
         rawResponseSummary: { error: overallErrorMessage, requestedTicker: requestedTickerMethodArg, adapterInstanceFor: this.currentTickerForClient, responseTicker: tickerToUse },
       };
     }
@@ -473,11 +483,11 @@ export async function getOptionsChainForDate(
     return adapter.fetchOptionsChainForDate(uppercasedTicker, expirationDate, { ...options, currentStockPrice });
 }
 
-export async function getFullStockData(ticker: string): Promise<AdapterOutput> {
+export async function getFullStockData(ticker: string, options?: { expirationDate?: string; optionType?: OptionType; strikeCount?: StrikeCount }): Promise<AdapterOutput> {
   const apiKeyFromEnv = process.env.POLYGON_API_KEY;
   const uppercasedTicker = ticker.toUpperCase();
   const logPrefix = `[adapter.getFullStockData GlobalExport ForTicker: ${uppercasedTicker}]`;
   console.log(`${logPrefix} Creating NEW PolygonAdapter instance.`);
   const adapter = new PolygonAdapter(apiKeyFromEnv, uppercasedTicker);
-  return adapter.getFullStockData(uppercasedTicker);
+  return adapter.getFullStockData(uppercasedTicker, options);
 }

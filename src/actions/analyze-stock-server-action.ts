@@ -3,6 +3,7 @@
 
 import { getFullStockData } from '@/services/data-sources/adapters/polygon-adapter';
 import type { AdapterOutput } from '@/services/data-sources/types';
+import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
 
 export interface StockDataFetchResult {
   marketStatusJson: string;
@@ -23,13 +24,16 @@ export interface AnalyzeStockServerActionState {
 interface FetchStockDataActionInputs {
   ticker: string;
   dataSource?: string; 
-  analysisType?: string; 
+  analysisType?: string;
+  expirationDate?: string;
+  optionType?: OptionType;
+  strikeCount?: StrikeCount;
 }
 
 export async function fetchStockDataAction(
   payload: FetchStockDataActionInputs
 ): Promise<AnalyzeStockServerActionState> {
-  const { ticker } = payload;
+  const { ticker, expirationDate, optionType, strikeCount } = payload;
   const requestedTickerUpperCase = ticker.toUpperCase();
   const actionLogPrefix = `[ServerAction:fetchStockDataAction:Ticker:${requestedTickerUpperCase}]`;
   console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}.`);
@@ -47,7 +51,7 @@ export async function fetchStockDataAction(
 
   try {
     console.log(`${actionLogPrefix} Calling getFullStockData for ${requestedTickerUpperCase}.`);
-    const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase);
+    const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase, { expirationDate, optionType, strikeCount });
     
     console.log(`${actionLogPrefix} getFullStockData returned. Raw request params keys: ${adapterOutput.rawRequestParams ? Object.keys(adapterOutput.rawRequestParams).join(', ') : 'N/A'}. Raw response summary keys: ${adapterOutput.rawResponseSummary ? Object.keys(adapterOutput.rawResponseSummary).join(', ') : 'N/A'}`);
     
