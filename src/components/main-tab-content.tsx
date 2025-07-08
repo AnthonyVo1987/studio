@@ -320,12 +320,6 @@ export function MainTabContent() {
   ].includes(globalFsmStateFromContext);
 
 
-  const analyzeButtonLoading = isPipelineInProgress;
-  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || analyzeButtonLoading || !globalUserInputTicker.trim();
-  
-  const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
-
-  // NEW HANDLER FOR FETCHING EXPIRATIONS
   const handleFetchExpirations = async () => {
     const ticker = globalFsmVariables.userInputTicker.trim();
     logDebug('MainTabContent', 'UserAction', `handleFetchExpirations called for ticker: '${ticker}'`);
@@ -348,7 +342,6 @@ export function MainTabContent() {
     setIsLoadingExpirations(false);
   };
   
-  // NEW HANDLER FOR FETCHING OPTIONS CHAIN FOR SELECTED DATE
   const handleFetchSelectedOptionsChain = async () => {
     const ticker = globalFsmVariables.userInputTicker.trim();
     logDebug('MainTabContent', 'UserAction', `handleFetchSelectedOptionsChain called for ticker: '${ticker}', expiration: '${selectedExpirationDate}', type: '${optionType}', count: ${strikeCount}`);
@@ -375,32 +368,107 @@ export function MainTabContent() {
     setIsLoadingOnDemandOptions(false);
   };
 
+  const analyzeButtonLoading = isPipelineInProgress;
+  const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
   const isOnDemandLoading = isLoadingExpirations || isLoadingOnDemandOptions;
+  const isOverallLoading = analyzeButtonLoading || isOnDemandLoading;
+  
+  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || isOverallLoading || isAnyChatPending || !globalUserInputTicker.trim();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Stock Analysis Input</CardTitle>
-        <CardDescription>Enter a stock ticker to begin the analysis pipeline. Use the toggles to customize the AI-driven steps.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <form className="space-y-4" onSubmit={handleAnalyzeStockSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-            <div className="space-y-2">
-              <Label htmlFor="ticker">Stock Ticker</Label>
-              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading || isOnDemandLoading}/>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dataSource">Data Source</Label>
-              <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={analyzeButtonLoading || isOnDemandLoading}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAnyChatPending || isOnDemandLoading}>
-              {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock (Full Pipeline)
-            </Button>
-          </div>
-        </form>
+    <div className="space-y-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Stock Analysis Input</CardTitle>
+                <CardDescription>Enter a stock ticker to begin the analysis pipeline. Use the toggles to customize the AI-driven steps.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form className="space-y-4" onSubmit={handleAnalyzeStockSubmit}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <div className="space-y-2">
+                        <Label htmlFor="ticker">Stock Ticker</Label>
+                        <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={isOverallLoading}/>
+                        </div>
+                        <div className="space-y-2">
+                        <Label htmlFor="dataSource">Data Source</Label>
+                        <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={isOverallLoading}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
+                        </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled}>
+                        {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock (Full Pipeline)
+                        </Button>
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle>Options Chain Settings</CardTitle>
+                <CardDescription>Fetch options data for a specific expiration date without running the full pipeline.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+                <div className="flex flex-col gap-2">
+                    <Label className="text-xs text-muted-foreground">Step 1</Label>
+                    <Button onClick={handleFetchExpirations} disabled={!globalUserInputTicker || isOverallLoading} className="w-full">
+                        {isLoadingExpirations ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CalendarDays className="mr-2 h-4 w-4" />}
+                        Fetch Expirations
+                    </Button>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="on-demand-expiration">Step 2: Select Date</Label>
+                    <Select value={selectedExpirationDate || ''} onValueChange={setSelectedExpirationDate} disabled={availableExpirationDates.length === 0 || isOverallLoading}>
+                        <SelectTrigger id="on-demand-expiration"><SelectValue placeholder="Select date..."/></SelectTrigger>
+                        <SelectContent>
+                            {availableExpirationDates.map(date => <SelectItem key={date} value={date}>{date}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="on-demand-strike-count">Strike Count</Label>
+                    <Select value={String(strikeCount)} onValueChange={(val) => setStrikeCount(Number(val) as typeof strikeCount)} disabled={isOverallLoading}>
+                        <SelectTrigger id="on-demand-strike-count"><SelectValue placeholder="Strikes"/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="30">30</SelectItem>
+                            <SelectItem value="40">40</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="on-demand-option-type">Option Type</Label>
+                    <Select value={optionType} onValueChange={(val) => setOptionType(val as typeof optionType)} disabled={isOverallLoading}>
+                        <SelectTrigger id="on-demand-option-type"><SelectValue placeholder="Type"/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="both">Both</SelectItem>
+                            <SelectItem value="calls">Calls</SelectItem>
+                            <SelectItem value="puts">Puts</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                        <Label htmlFor="main-table-display">Table Display</Label>
+                        <Select value={tableDisplayType} onValueChange={(val) => setTableDisplayType(val as typeof tableDisplayType)} disabled={isOverallLoading}>
+                            <SelectTrigger id="main-table-display">
+                                <SelectValue placeholder="Select display" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="side-by-side">Side-by-Side</SelectItem>
+                                <SelectItem value="top-bottom">Top/Bottom</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                    <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOverallLoading} className="w-auto">
+                        {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4" />}
+                        Get Options
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
         <Separator />
         <Card>
           <CardHeader>
@@ -415,73 +483,6 @@ export function MainTabContent() {
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
               <Switch id="toggle-options-analysis" checked={globalFsmFlags.isAiOptionsAnalysisSelected} onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} disabled={analyzeButtonLoading} />
-            </div>
-          </CardContent>
-        </Card>
-        <Separator />
-        <Card>
-          <CardHeader>
-            <CardTitle>Options Chain Settings</CardTitle>
-            <CardDescription>Fetch options data for a specific expiration date without running the full pipeline.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
-              <div className="flex flex-col gap-2">
-                  <Label className="text-xs text-muted-foreground">Step 1</Label>
-                  <Button onClick={handleFetchExpirations} disabled={!globalUserInputTicker || isOnDemandLoading || analyzeButtonLoading} className="w-full">
-                      {isLoadingExpirations ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CalendarDays className="mr-2 h-4 w-4" />}
-                      Fetch Expirations
-                  </Button>
-              </div>
-              <div className="space-y-2">
-                  <Label htmlFor="on-demand-expiration">Step 2: Select Date</Label>
-                  <Select value={selectedExpirationDate || ''} onValueChange={setSelectedExpirationDate} disabled={availableExpirationDates.length === 0 || isOnDemandLoading || analyzeButtonLoading}>
-                      <SelectTrigger id="on-demand-expiration"><SelectValue placeholder="Select date..."/></SelectTrigger>
-                      <SelectContent>
-                          {availableExpirationDates.map(date => <SelectItem key={date} value={date}>{date}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-              </div>
-              <div className="space-y-2">
-                  <Label htmlFor="on-demand-strike-count">Strike Count</Label>
-                  <Select value={String(strikeCount)} onValueChange={(val) => setStrikeCount(Number(val) as typeof strikeCount)} disabled={isOnDemandLoading || analyzeButtonLoading}>
-                      <SelectTrigger id="on-demand-strike-count"><SelectValue placeholder="Strikes"/></SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="20">20</SelectItem>
-                          <SelectItem value="30">30</SelectItem>
-                          <SelectItem value="40">40</SelectItem>
-                      </SelectContent>
-                  </Select>
-              </div>
-              <div className="space-y-2">
-                  <Label htmlFor="on-demand-option-type">Option Type</Label>
-                  <Select value={optionType} onValueChange={(val) => setOptionType(val as typeof optionType)} disabled={isOnDemandLoading || analyzeButtonLoading}>
-                      <SelectTrigger id="on-demand-option-type"><SelectValue placeholder="Type"/></SelectTrigger>
-                      <SelectContent>
-                           <SelectItem value="both">Both</SelectItem>
-                           <SelectItem value="calls">Calls</SelectItem>
-                           <SelectItem value="puts">Puts</SelectItem>
-                      </SelectContent>
-                  </Select>
-              </div>
-               <div className="space-y-2">
-                    <Label htmlFor="main-table-display">Table Display</Label>
-                    <Select value={tableDisplayType} onValueChange={(val) => setTableDisplayType(val as typeof tableDisplayType)} disabled={isOnDemandLoading || analyzeButtonLoading}>
-                        <SelectTrigger id="main-table-display">
-                            <SelectValue placeholder="Select display" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="side-by-side">Side-by-Side</SelectItem>
-                            <SelectItem value="top-bottom">Top/Bottom</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <div className="flex gap-2 pt-2">
-                <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOnDemandLoading || analyzeButtonLoading} className="w-auto">
-                     {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4" />}
-                    Get Options
-                </Button>
             </div>
           </CardContent>
         </Card>
@@ -527,9 +528,6 @@ export function MainTabContent() {
           <Separator />
           <DebugSnapshotControls />
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
-
-    

@@ -13,6 +13,8 @@ import type { PerformAiAnalysisResult, PerformAiAnalysisActionState } from '@/ac
 import type { PerformAiOptionsAnalysisResult, PerformAiOptionsAnalysisActionState } from '@/actions/perform-ai-options-analysis-action';
 import { startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
+import { getOptionsExpirationsAction } from '@/actions/get-options-expirations-action';
+import { format } from 'date-fns';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 
@@ -509,6 +511,44 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', 'ResetState', 'Resetting on-demand options state for new analysis.');
   }, [logDebug]);
 
+  // Effect for fetching initial expirations on app startup
+  useEffect(() => {
+    const fetchInitialExpirations = async () => {
+      logDebug('StockAnalysisContext', 'InitialDataFetch', 'Fetching initial expirations for default ticker...');
+      _setIsLoadingExpirations(true);
+      const result = await getOptionsExpirationsAction({ ticker: defaultState.globalFsmState.variables.userInputTicker });
+      if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+        
+        const allDates = result.data.expirationDates;
+        let nextExpDate: string | undefined = undefined;
+        // Find first date on or after today
+        const firstAvailableIndex = allDates.findIndex(date => date >= todayStr);
+
+        if (firstAvailableIndex !== -1) {
+            const firstAvailableDate = allDates[firstAvailableIndex];
+            // If today is an exp date, take the next one if available
+            if (firstAvailableDate === todayStr && allDates.length > firstAvailableIndex + 1) {
+                nextExpDate = allDates[firstAvailableIndex + 1];
+            } else {
+                nextExpDate = firstAvailableDate;
+            }
+        }
+        
+        _setAvailableExpirationDates(allDates);
+        _setSelectedExpirationDate(nextExpDate);
+        logDebug('StockAnalysisContext', 'InitialDataFetch', `Initial expirations loaded. Count: ${allDates.length}. Default selected: ${nextExpDate}`);
+      } else {
+        logDebug('StockAnalysisContext', 'InitialDataFetchError', `Failed to fetch initial expirations: ${result.error}`);
+      }
+      _setIsLoadingExpirations(false);
+    };
+
+    fetchInitialExpirations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logDebug]);
+
 
   const enableAllLogSources = useCallback(() => {
     logDebug('StockAnalysisContext', 'LogConfigChange', 'Enable All Log Sources button clicked.');
@@ -575,8 +615,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isCalculatedTADataReady = false;
         nextFlags.isKeyTakeawaysDataAvailable = false;
         nextFlags.isOptionsAnalysisDataAvailable = false;
-        setAllPlaceholdersInternal(ticker, true);
-        resetOnDemandOptionsState(); // Reset new on-demand states
+        // The side-effects for resetting JSON data and options state are now handled
+        // by useEffects watching the FSM state, so they are removed from this pure function.
     };
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
@@ -728,6 +768,21 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     fsmStateRef.current = globalFsmReducerState;
     logDebug('StockAnalysisContext:GlobalFSM', 'StateChange', `Actual state updated. Prev: ${globalFsmReducerState.previous}, Curr: ${globalFsmReducerState.current}.`);
   }, [globalFsmReducerState, logDebug]);
+  
+  // Side-effect handler for FSM state transitions
+  useEffect(() => {
+    const isNewAnalysis = globalFsmReducerState.current === GlobalFsmState.DATA_FETCH_IN_PROGRESS && 
+                          globalFsmReducerState.previous !== GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+
+    if (isNewAnalysis) {
+      const ticker = globalFsmReducerState.variables.activeTicker;
+      if (ticker) {
+        logDebug('StockAnalysisContext', 'StateEffect', `Detected start of new analysis for ${ticker}. Resetting data JSONs and on-demand options state.`);
+        setAllPlaceholdersInternal(ticker, true);
+        resetOnDemandOptionsState();
+      }
+    }
+  }, [globalFsmReducerState, setAllPlaceholdersInternal, resetOnDemandOptionsState, logDebug]);
 
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
     startTransition(() => {
