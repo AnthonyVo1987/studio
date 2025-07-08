@@ -416,7 +416,7 @@ export function MainTabContent() {
         <Separator />
         <Card>
           <CardHeader>
-            <CardTitle>On-Demand Options Analysis</CardTitle>
+            <CardTitle>Options Chain Settings</CardTitle>
             <CardDescription>Fetch options data for a specific expiration date without running the full pipeline.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -459,13 +459,24 @@ export function MainTabContent() {
                       </SelectContent>
                   </Select>
               </div>
-              <div className="flex flex-col gap-2">
-                  <Label className="text-xs text-muted-foreground">Step 3</Label>
-                  <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOnDemandLoading || analyzeButtonLoading} className="w-full">
-                       {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4" />}
-                      Get Options
-                  </Button>
-              </div>
+               <div className="space-y-2">
+                    <Label htmlFor="main-table-display">Table Display</Label>
+                    <Select value={tableDisplayType} onValueChange={(val) => setTableDisplayType(val as typeof tableDisplayType)} disabled={isOnDemandLoading || analyzeButtonLoading}>
+                        <SelectTrigger id="main-table-display">
+                            <SelectValue placeholder="Select display" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="side-by-side">Side-by-Side</SelectItem>
+                            <SelectItem value="top-bottom">Top/Bottom</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+                <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOnDemandLoading || analyzeButtonLoading} className="w-auto">
+                     {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4" />}
+                    Get Options
+                </Button>
             </div>
           </CardContent>
         </Card>
@@ -476,7 +487,7 @@ export function MainTabContent() {
           <StandardTaDisplay />
           <AiAnalyzedTaDisplay />
           <AiKeyTakeawaysDisplay />
-          <OptionsChainTable optionType={optionType} tableDisplayType={tableDisplayType}/>
+          <OptionsChainTable />
           <AiOptionsAnalysisDisplay />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <Chatbot
@@ -515,3 +526,5 @@ export function MainTabContent() {
     </Card>
   );
 }
+
+    
