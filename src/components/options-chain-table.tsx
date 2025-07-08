@@ -81,14 +81,24 @@ interface OptionsChainTableProps {
   tableDisplayType?: TableDisplayType;
 }
 
-export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, optionType = 'both', tableDisplayType = 'side-by-side' }: OptionsChainTableProps) {
+export function OptionsChainTable({ 
+  dataSourceJson, 
+  snapshotDataSourceJson, 
+  optionType: propOptionType, 
+  tableDisplayType: propTableDisplayType 
+}: OptionsChainTableProps) {
   const globalContext = useStockAnalysis();
-  const optionsChainJson = dataSourceJson !== undefined ? dataSourceJson : globalContext.optionsChainJson;
-  const stockSnapshotJson = snapshotDataSourceJson !== undefined ? snapshotDataSourceJson : globalContext.stockSnapshotJson;
-  const { logDebug } = globalContext;
-
   const { toast } = useToast();
   const componentName = 'OptionsChainTable';
+
+  // Use props if provided (for staging), otherwise fall back to global context (for main tab)
+  const optionsChainJson = dataSourceJson !== undefined ? dataSourceJson : globalContext.optionsChainJson;
+  const stockSnapshotJson = snapshotDataSourceJson !== undefined ? snapshotDataSourceJson : globalContext.stockSnapshotJson;
+  const optionType = propOptionType !== undefined ? propOptionType : globalContext.optionType;
+  const tableDisplayType = propTableDisplayType !== undefined ? propTableDisplayType : globalContext.tableDisplayType;
+
+  const { logDebug } = globalContext;
+
   const prevOptionsJsonRef = useRef<string | null>(null);
   const prevSnapshotJsonRef = useRef<string | null>(null);
 
@@ -221,7 +231,7 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
     setIsErrorState(newIsError);
     setErrorOrSkippedMessageState(newErrorMsg);
 
-  }, [optionsChainJson, stockSnapshotJson, logDebug, isLoadingState, isErrorState, errorOrSkippedMessageState, parsedDataState, currentPriceForATMState]);
+  }, [optionsChainJson, stockSnapshotJson, logDebug]);
 
   const displayTicker = parsedDataState?.ticker || (isLoadingState ? "" : "N/A");
   const displayExpirationDate = parsedDataState?.expiration_date ? formatDisplayDate(parsedDataState.expiration_date) : (isLoadingState ? "" : "N/A");
@@ -264,14 +274,14 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
     }
   };
   
-  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', contracts=${contractsToDisplay.length}, atmStrike=${atmStrikeValueState}, exportReady=${isDataReadyForExport}`);
+  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', contracts=${contractsToDisplay.length}, atmStrike=${atmStrikeValueState}, exportReady=${isDataReadyForExport}, tableDisplayType=${tableDisplayType}, optionType=${optionType}`);
 
   const renderSideBySideTable = () => (
     <Table className="min-w-max text-xs">
         <TableHeader>
         <TableRow>
             {showCalls && <TableHead colSpan={callHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">CALLS</TableHead>}
-            <TableHead className="text-center font-semibold text-base p-1.5 whitespace-nowrap bg-card z-10 border-l border-r border-b-2">STRIKE</TableHead>
+            <TableHead className="text-center font-semibold text-base p-1.5 whitespace-nowrap bg-card border-l border-r border-b-2">STRIKE</TableHead>
             {showPuts && <TableHead colSpan={putHeadersConfig.length} className="text-center font-semibold text-base p-1.5 whitespace-nowrap border-b-2">PUTS</TableHead>}
         </TableRow>
         <TableRow>
@@ -280,7 +290,7 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
                 {header.label}
             </TableHead>
             ))}
-            <TableHead className="p-1.5 whitespace-nowrap text-center bg-card z-10 border-l border-r text-muted-foreground">Price</TableHead>
+            <TableHead className="p-1.5 whitespace-nowrap text-center bg-card border-l border-r text-muted-foreground">Price</TableHead>
             {showPuts && putHeadersConfig.map((header) => (
             <TableHead key={`put-header-${header.key}`} className="p-1.5 whitespace-nowrap text-center text-muted-foreground">
                 {header.label}
@@ -304,7 +314,7 @@ export function OptionsChainTable({ dataSourceJson, snapshotDataSourceJson, opti
                       </TableCell>
                       ))}
                       <TableCell className={cn(
-                          "p-1.5 whitespace-nowrap text-center font-semibold z-10 border-l border-r",
+                          "p-1.5 whitespace-nowrap text-center font-semibold border-l border-r",
                           isATMRow ? "bg-primary/20 dark:bg-primary/30 text-primary-foreground" : (index % 2 !== 0 ? "bg-muted/30 dark:bg-muted/15" : "bg-card")
                       )}>
                       {formatCurrency(row.strike, "$", "-", true)}

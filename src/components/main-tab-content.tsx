@@ -437,13 +437,6 @@ export function MainTabContent() {
                       </SelectContent>
                   </Select>
               </div>
-              <div className="flex flex-col gap-2">
-                  <Label className="text-xs text-muted-foreground">Step 3</Label>
-                  <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOnDemandLoading || analyzeButtonLoading} className="w-full">
-                       {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4" />}
-                      Get Options
-                  </Button>
-              </div>
               <div className="space-y-2">
                   <Label htmlFor="on-demand-strike-count">Strike Count</Label>
                   <Select value={String(strikeCount)} onValueChange={(val) => setStrikeCount(Number(val) as typeof strikeCount)} disabled={isOnDemandLoading || analyzeButtonLoading}>
@@ -466,6 +459,13 @@ export function MainTabContent() {
                       </SelectContent>
                   </Select>
               </div>
+              <div className="flex flex-col gap-2">
+                  <Label className="text-xs text-muted-foreground">Step 3</Label>
+                  <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOnDemandLoading || analyzeButtonLoading} className="w-full">
+                       {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4" />}
+                      Get Options
+                  </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -476,7 +476,7 @@ export function MainTabContent() {
           <StandardTaDisplay />
           <AiAnalyzedTaDisplay />
           <AiKeyTakeawaysDisplay />
-          <OptionsChainTable />
+          <OptionsChainTable optionType={optionType} tableDisplayType={tableDisplayType}/>
           <AiOptionsAnalysisDisplay />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <Chatbot
