@@ -6,6 +6,39 @@
 import { format, addDays, getDay, nextFriday as dateFnsNextFriday, parseISO, subDays } from 'date-fns';
 
 /**
+ * Finds the next available expiration date from a list.
+ * It finds the first date that is on or after today. If today is an expiration,
+ * it prefers the next available date if one exists.
+ * @param {string[]} expirationDates An array of sorted date strings ('yyyy-MM-dd').
+ * @returns {string | undefined} The next available date, or undefined if none are suitable.
+ */
+export function findNextAvailableDate(expirationDates: string[]): string | undefined {
+  if (!expirationDates || expirationDates.length === 0) {
+    return undefined;
+  }
+  const today = new Date();
+  const todayStr = format(today, 'yyyy-MM-dd');
+
+  const firstAvailableIndex = expirationDates.findIndex(date => date >= todayStr);
+
+  if (firstAvailableIndex === -1) {
+    // No dates are in the future, maybe return the last one? Or none. Undefined is safer.
+    return undefined;
+  }
+
+  const firstAvailableDate = expirationDates[firstAvailableIndex];
+  // If the found date is today, and there's another date after it, prefer the next one.
+  if (firstAvailableDate === todayStr && expirationDates.length > firstAvailableIndex + 1) {
+    return expirationDates[firstAvailableIndex + 1];
+  }
+  
+  // Otherwise, the first available date is the one to use.
+  return firstAvailableDate;
+}
+
+
+/**
+ * @deprecated This function uses a hardcoded day-of-the-week assumption and is being replaced by findNextAvailableDate with actual API data.
  * Calculates the nearest Friday expiration date.
  * If today is Friday, it will return next Friday.
  * Otherwise, it returns the upcoming Friday.

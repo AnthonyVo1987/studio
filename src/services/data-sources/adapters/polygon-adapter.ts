@@ -20,7 +20,7 @@ import type {
   StockDataPackage,
 } from '@/services/data-sources/types';
 import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
-import { calculateNextFridayExpiration } from '@/lib/date-utils';
+import { findNextAvailableDate } from '@/lib/date-utils';
 import { formatToTwoDecimals, roundNumber } from '@/lib/number-utils';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -400,17 +400,34 @@ class PolygonAdapter {
       }
       
       try {
-        const expirationDateToUse = options?.expirationDate || calculateNextFridayExpiration();
+        let expirationDateToUse: string | undefined = options?.expirationDate;
+
+        if (!expirationDateToUse) {
+          console.log(`${logPrefix} No expiration date provided. Fetching all available dates to determine default.`);
+          const allExpirations = await this.getExpirationDates(tickerToUse);
+          expirationDateToUse = findNextAvailableDate(allExpirations);
+          console.log(`${logPrefix} Automatically selected default expiration date: ${expirationDateToUse}`);
+        }
+        
         const optionTypeToUse = options?.optionType;
         const strikeCountToUse = options?.strikeCount;
         
-        console.log(`${logPrefix} Fetching options chain. Expiration: ${expirationDateToUse}. Type: ${optionTypeToUse}. Strikes: ${strikeCountToUse}.`);
-        
-        stockDataPackage.optionsChain = await this.fetchOptionsChainForDate(tickerToUse, expirationDateToUse, { 
-            currentStockPrice,
-            optionType: optionTypeToUse,
-            strikeCount: strikeCountToUse,
-        });
+        if (expirationDateToUse) {
+            console.log(`${logPrefix} Fetching options chain. Expiration: ${expirationDateToUse}. Type: ${optionTypeToUse}. Strikes: ${strikeCountToUse}.`);
+            
+            stockDataPackage.optionsChain = await this.fetchOptionsChainForDate(tickerToUse, expirationDateToUse, { 
+                currentStockPrice,
+                optionType: optionTypeToUse,
+                strikeCount: strikeCountToUse,
+            });
+        } else {
+             console.warn(`${logPrefix} No suitable expiration date found for ${tickerToUse}. Skipping options chain fetch.`);
+             stockDataPackage.optionsChain = {
+                 ticker: tickerToUse,
+                 contracts: [],
+                 error: "No valid expiration dates found for this ticker.",
+             } as any;
+        }
 
       } catch (error: any) {
         const errorMessage = `Failed to fetch options chain for ${tickerToUse}. Polygon client error: ${error.message || String(error)}`;
