@@ -22,7 +22,7 @@ import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
 import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
 import { useStockAnalysis, GlobalFsmState, type AnalysisToggleType } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart } from "lucide-react";
+import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart, CalendarDays } from "lucide-react";
 import { loadExamplePrompts, type ExamplePrompt } from '@/ai/definition-loader';
 
 // Server Actions
@@ -32,6 +32,8 @@ import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs } from '@/actions/app-data-chat-action';
 import { sdkWebSearchChatAction, type SdkWebSearchChatActionState, type SdkWebSearchChatActionInputs } from '@/actions/sdk-web-search-chat-action';
+import { getOptionsExpirationsAction } from '@/actions/get-options-expirations-action';
+import { getOptionsChainForExpirationAction } from '@/actions/get-options-chain-for-expiration-action';
 
 const appDataButtons: ExamplePromptButton[] = [
   { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
@@ -45,6 +47,9 @@ const webSearchButtons: ExamplePromptButton[] = [
     { title: "Options Flow Search", promptName: 'options-flow-web-search', icon: Search },
 ];
 
+const pendingJson = '{ "status": "pending..." }';
+const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
+
 export function MainTabContent() {
   const { toast } = useToast();
   const {
@@ -57,6 +62,7 @@ export function MainTabContent() {
     // AI Analysis Setters
     setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
     setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
+    setOptionsChainJson,
     // App Data Chat
     appDataChatHistory: contextAppDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
     setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson,
@@ -69,6 +75,15 @@ export function MainTabContent() {
     setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson,
     setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson,
     setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson,
+    // New On-Demand Options State
+    availableExpirationDates, setAvailableExpirationDates,
+    selectedExpirationDate, setSelectedExpirationDate,
+    setOnDemandOptionsChainRequestJson,
+    isLoadingExpirations, setIsLoadingExpirations,
+    isLoadingOnDemandOptions, setIsLoadingOnDemandOptions,
+    optionType, setOptionType,
+    strikeCount, setStrikeCount,
+    tableDisplayType, setTableDisplayType,
   } = useStockAnalysis();
 
   const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
@@ -305,6 +320,58 @@ export function MainTabContent() {
   
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
 
+  // NEW HANDLER FOR FETCHING EXPIRATIONS
+  const handleFetchExpirations = async () => {
+    const ticker = globalFsmVariables.userInputTicker.trim();
+    logDebug('MainTabContent', 'UserAction', `handleFetchExpirations called for ticker: '${ticker}'`);
+    if (!ticker) {
+        toast({ variant: 'destructive', title: 'Invalid Ticker', description: 'Please enter a ticker symbol first.' });
+        return;
+    }
+    setIsLoadingExpirations(true);
+    setAvailableExpirationDates([]);
+    setSelectedExpirationDate(undefined);
+
+    const result = await getOptionsExpirationsAction({ ticker });
+
+    if (result.status === 'success' && result.data) {
+        setAvailableExpirationDates(result.data.expirationDates);
+        toast({ title: 'Success', description: `Found ${result.data.expirationDates.length} expiration dates.` });
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to fetch expiration dates.' });
+    }
+    setIsLoadingExpirations(false);
+  };
+  
+  // NEW HANDLER FOR FETCHING OPTIONS CHAIN FOR SELECTED DATE
+  const handleFetchSelectedOptionsChain = async () => {
+    const ticker = globalFsmVariables.userInputTicker.trim();
+    logDebug('MainTabContent', 'UserAction', `handleFetchSelectedOptionsChain called for ticker: '${ticker}', expiration: '${selectedExpirationDate}', type: '${optionType}', count: ${strikeCount}`);
+    if (!ticker || !selectedExpirationDate) {
+        toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please enter a ticker and select an expiration date.' });
+        return;
+    }
+    setIsLoadingOnDemandOptions(true);
+    setOptionsChainJson(pendingJson); // Set main display to pending
+    
+    const requestPayload = { ticker, expirationDate: selectedExpirationDate, optionType, strikeCount };
+    setOnDemandOptionsChainRequestJson(JSON.stringify(requestPayload, null, 2));
+
+    const result = await getOptionsChainForExpirationAction(requestPayload);
+
+    if (result.status === 'success' && result.data) {
+        setOptionsChainJson(result.data.optionsChainJson);
+        toast({ title: 'Success', description: 'Options chain fetched.' });
+    } else {
+        const errorJson = `{ "status": "error", "message": "${result.error?.replace(/"/g, '\\"') || 'Failed to fetch options chain.'}" }`;
+        setOptionsChainJson(errorJson);
+        toast({ variant: 'destructive', title: 'Error', description: result.error || 'An unknown error occurred.' });
+    }
+    setIsLoadingOnDemandOptions(false);
+  };
+
+  const isOnDemandLoading = isLoadingExpirations || isLoadingOnDemandOptions;
+
   return (
     <Card>
       <CardHeader>
@@ -316,16 +383,16 @@ export function MainTabContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
             <div className="space-y-2">
               <Label htmlFor="ticker">Stock Ticker</Label>
-              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading}/>
+              <Input id="ticker" value={globalUserInputTicker} onChange={handleTickerInputChange} placeholder="e.g., AAPL, MSFT" disabled={analyzeButtonLoading || isOnDemandLoading}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataSource">Data Source</Label>
-              <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={analyzeButtonLoading}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
+              <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={analyzeButtonLoading || isOnDemandLoading}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAnyChatPending}>
-              {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock
+            <Button type="submit" className="w-full sm:w-auto" disabled={analyzeButtonDisabled || isAnyChatPending || isOnDemandLoading}>
+              {analyzeButtonLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} <Zap className="mr-2 h-4 w-4" /> Analyze Stock (Full Pipeline)
             </Button>
           </div>
         </form>
@@ -343,6 +410,62 @@ export function MainTabContent() {
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
               <Switch id="toggle-options-analysis" checked={globalFsmFlags.isAiOptionsAnalysisSelected} onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} disabled={analyzeButtonLoading} />
+            </div>
+          </CardContent>
+        </Card>
+        <Separator />
+        <Card>
+          <CardHeader>
+            <CardTitle>On-Demand Options Analysis</CardTitle>
+            <CardDescription>Fetch options data for a specific expiration date without running the full pipeline.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+              <div className="flex flex-col gap-2">
+                  <Label className="text-xs text-muted-foreground">Step 1</Label>
+                  <Button onClick={handleFetchExpirations} disabled={!globalUserInputTicker || isOnDemandLoading || analyzeButtonLoading} className="w-full">
+                      {isLoadingExpirations ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <CalendarDays className="mr-2 h-4 w-4" />}
+                      Fetch Expirations
+                  </Button>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="on-demand-expiration">Step 2: Select Date</Label>
+                  <Select value={selectedExpirationDate || ''} onValueChange={setSelectedExpirationDate} disabled={availableExpirationDates.length === 0 || isOnDemandLoading || analyzeButtonLoading}>
+                      <SelectTrigger id="on-demand-expiration"><SelectValue placeholder="Select date..."/></SelectTrigger>
+                      <SelectContent>
+                          {availableExpirationDates.map(date => <SelectItem key={date} value={date}>{date}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="flex flex-col gap-2">
+                  <Label className="text-xs text-muted-foreground">Step 3</Label>
+                  <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOnDemandLoading || analyzeButtonLoading} className="w-full">
+                       {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4" />}
+                      Get Options
+                  </Button>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="on-demand-strike-count">Strike Count</Label>
+                  <Select value={String(strikeCount)} onValueChange={(val) => setStrikeCount(Number(val) as typeof strikeCount)} disabled={isOnDemandLoading || analyzeButtonLoading}>
+                      <SelectTrigger id="on-demand-strike-count"><SelectValue placeholder="Strikes"/></SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="30">30</SelectItem>
+                          <SelectItem value="40">40</SelectItem>
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="on-demand-option-type">Option Type</Label>
+                  <Select value={optionType} onValueChange={(val) => setOptionType(val as typeof optionType)} disabled={isOnDemandLoading || analyzeButtonLoading}>
+                      <SelectTrigger id="on-demand-option-type"><SelectValue placeholder="Type"/></SelectTrigger>
+                      <SelectContent>
+                           <SelectItem value="both">Both</SelectItem>
+                           <SelectItem value="calls">Calls</SelectItem>
+                           <SelectItem value="puts">Puts</SelectItem>
+                      </SelectContent>
+                  </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
