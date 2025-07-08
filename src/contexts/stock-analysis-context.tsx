@@ -41,6 +41,11 @@ export enum GlobalFsmState {
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
 
+// Types for the new on-demand options UI controls
+export type OptionType = 'both' | 'calls' | 'puts';
+export type StrikeCount = 20 | 30 | 40;
+export type TableDisplayType = 'side-by-side' | 'top-bottom';
+
 export interface GlobalFsmContextVariables {
   activeTicker: string | null;
   userInputTicker: string;
@@ -156,6 +161,15 @@ interface StockAnalysisState {
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
   isReducedStartupLoggingEnabled: boolean;
   isUiRenderLoggingEnabled: boolean;
+  // New state for on-demand options
+  availableExpirationDates: string[];
+  selectedExpirationDate: string | undefined;
+  onDemandOptionsChainRequestJson: string;
+  isLoadingExpirations: boolean;
+  isLoadingOnDemandOptions: boolean;
+  optionType: OptionType;
+  strikeCount: StrikeCount;
+  tableDisplayType: TableDisplayType;
 }
 
 interface StockAnalysisContextSetters {
@@ -187,6 +201,15 @@ interface StockAnalysisContextSetters {
   setRawOptionsWebSearchResponseJson: (json: string) => void;
   setRawSupportResistanceWebSearchRequestJson: (json: string) => void;
   setRawSupportResistanceWebSearchResponseJson: (json: string) => void;
+  // New setters for on-demand options
+  setAvailableExpirationDates: (dates: string[]) => void;
+  setSelectedExpirationDate: (date: string | undefined) => void;
+  setOnDemandOptionsChainRequestJson: (json: string) => void;
+  setIsLoadingExpirations: (loading: boolean) => void;
+  setIsLoadingOnDemandOptions: (loading: boolean) => void;
+  setOptionType: (type: OptionType) => void;
+  setStrikeCount: (count: StrikeCount) => void;
+  setTableDisplayType: (type: TableDisplayType) => void;
 }
 
 interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState'>, StockAnalysisContextSetters {
@@ -275,6 +298,15 @@ const defaultState: StockAnalysisState = {
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   isReducedStartupLoggingEnabled: false,
   isUiRenderLoggingEnabled: true,
+  // New state defaults
+  availableExpirationDates: [],
+  selectedExpirationDate: undefined,
+  onDemandOptionsChainRequestJson: initialJsonPlaceholder,
+  isLoadingExpirations: false,
+  isLoadingOnDemandOptions: false,
+  optionType: 'both',
+  strikeCount: 20,
+  tableDisplayType: 'side-by-side',
 };
 
 const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>(undefined);
@@ -328,6 +360,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
   const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
   const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
+
+  // New states for on-demand options
+  const [_availableExpirationDates, _setAvailableExpirationDates] = useState<string[]>(defaultState.availableExpirationDates);
+  const [_selectedExpirationDate, _setSelectedExpirationDate] = useState<string | undefined>(defaultState.selectedExpirationDate);
+  const [_onDemandOptionsChainRequestJson, _setOnDemandOptionsChainRequestJson] = useState<string>(defaultState.onDemandOptionsChainRequestJson);
+  const [_isLoadingExpirations, _setIsLoadingExpirations] = useState<boolean>(defaultState.isLoadingExpirations);
+  const [_isLoadingOnDemandOptions, _setIsLoadingOnDemandOptions] = useState<boolean>(defaultState.isLoadingOnDemandOptions);
+  const [_optionType, _setOptionType] = useState<OptionType>(defaultState.optionType);
+  const [_strikeCount, _setStrikeCount] = useState<StrikeCount>(defaultState.strikeCount);
+  const [_tableDisplayType, _setTableDisplayType] = useState<TableDisplayType>(defaultState.tableDisplayType);
   
   const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
@@ -366,6 +408,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setRawOptionsWebSearchResponseJson: (json: string) => setAndLogJson(_setRawOptionsWebSearchResponseJson, 'rawOptionsWebSearchResponseJson', json),
     setRawSupportResistanceWebSearchRequestJson: (json: string) => setAndLogJson(_setRawSupportResistanceWebSearchRequestJson, 'rawSupportResistanceWebSearchRequestJson', json),
     setRawSupportResistanceWebSearchResponseJson: (json: string) => setAndLogJson(_setRawSupportResistanceWebSearchResponseJson, 'rawSupportResistanceWebSearchResponseJson', json),
+    // New setters
+    setAvailableExpirationDates: _setAvailableExpirationDates,
+    setSelectedExpirationDate: _setSelectedExpirationDate,
+    setOnDemandOptionsChainRequestJson: _setOnDemandOptionsChainRequestJson,
+    setIsLoadingExpirations: _setIsLoadingExpirations,
+    setIsLoadingOnDemandOptions: _setIsLoadingOnDemandOptions,
+    setOptionType: _setOptionType,
+    setStrikeCount: _setStrikeCount,
+    setTableDisplayType: _setTableDisplayType,
   }), [setAndLogJson]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
@@ -446,6 +497,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
   }, [logDebug, contextSetters]);
 
+  const resetOnDemandOptionsState = useCallback(() => {
+    _setAvailableExpirationDates([]);
+    _setSelectedExpirationDate(undefined);
+    _setOnDemandOptionsChainRequestJson(initialJsonPlaceholder);
+    _setIsLoadingExpirations(false);
+    _setIsLoadingOnDemandOptions(false);
+    _setOptionType('both');
+    _setStrikeCount(20);
+    _setTableDisplayType('side-by-side');
+    logDebug('StockAnalysisContext', 'ResetState', 'Resetting on-demand options state for new analysis.');
+  }, [logDebug]);
+
+
   const enableAllLogSources = useCallback(() => {
     logDebug('StockAnalysisContext', 'LogConfigChange', 'Enable All Log Sources button clicked.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
@@ -512,6 +576,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isKeyTakeawaysDataAvailable = false;
         nextFlags.isOptionsAnalysisDataAvailable = false;
         setAllPlaceholdersInternal(ticker, true);
+        resetOnDemandOptionsState(); // Reset new on-demand states
     };
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
@@ -712,6 +777,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
     setUiRenderLoggingEnabled,
     isUiRenderLoggingEnabled: _isUiRenderLoggingEnabled,
+    // Expose new state and setters
+    availableExpirationDates: _availableExpirationDates, setAvailableExpirationDates: contextSetters.setAvailableExpirationDates,
+    selectedExpirationDate: _selectedExpirationDate, setSelectedExpirationDate: contextSetters.setSelectedExpirationDate,
+    onDemandOptionsChainRequestJson: _onDemandOptionsChainRequestJson, setOnDemandOptionsChainRequestJson: contextSetters.setOnDemandOptionsChainRequestJson,
+    isLoadingExpirations: _isLoadingExpirations, setIsLoadingExpirations: contextSetters.setIsLoadingExpirations,
+    isLoadingOnDemandOptions: _isLoadingOnDemandOptions, setIsLoadingOnDemandOptions: contextSetters.setIsLoadingOnDemandOptions,
+    optionType: _optionType, setOptionType: contextSetters.setOptionType,
+    strikeCount: _strikeCount, setStrikeCount: contextSetters.setStrikeCount,
+    tableDisplayType: _tableDisplayType, setTableDisplayType: contextSetters.setTableDisplayType,
   }), [
     _polygonApiRequestLogJson, contextSetters, _polygonApiResponseLogJson,
     _marketStatusJson, _stockSnapshotJson, _standardTasJson, _optionsChainJson,
@@ -732,6 +806,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
     _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled,
     _isUiRenderLoggingEnabled, setUiRenderLoggingEnabled,
+    _availableExpirationDates, _selectedExpirationDate, _onDemandOptionsChainRequestJson,
+    _isLoadingExpirations, _isLoadingOnDemandOptions, _optionType, _strikeCount, _tableDisplayType,
   ]);
   
   useEffect(() => {
