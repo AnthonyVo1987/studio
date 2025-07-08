@@ -409,6 +409,11 @@ export function MainTabContent() {
                         <Select defaultValue="polygon" disabled><SelectTrigger id="dataSource" disabled={isOverallLoading}><SelectValue placeholder="Select data source" /></SelectTrigger><SelectContent><SelectItem value="polygon">Polygon.io</SelectItem></SelectContent></Select>
                         </div>
                     </div>
+                     <div className="flex gap-2 pt-2">
+                        <Button type="submit" className="w-auto" disabled={analyzeButtonDisabled}>
+                            {analyzeButtonLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />} Analyze Stock (Full Pipeline)
+                        </Button>
+                    </div>
                 </form>
             </CardContent>
         </Card>
@@ -472,9 +477,6 @@ export function MainTabContent() {
                 </div>
                 </div>
                 <div className="flex gap-2 pt-2">
-                    <Button onClick={handleAnalyzeStockSubmit} className="w-auto" disabled={analyzeButtonDisabled}>
-                        {analyzeButtonLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />} Analyze Stock (Full Pipeline)
-                    </Button>
                     <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOverallLoading} className="w-auto" variant="secondary">
                         {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4" />}
                         Just Get Options
