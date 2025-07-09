@@ -170,8 +170,6 @@ export function KeyMetricsDisplay() {
 
   }, [stockSnapshotJson, logDebug]);
   
-  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, ticker=${tickerDisplayState}, price=${currentPriceDisplayState}, changePerc=${todaysChangePercState}`);
-
   const displayValueForDayChange = isLoadingState ? "Loading..." : (isErrorState || todaysChangePercState === null ? "N/A" : formatPercentage(todaysChangePercState, "N/A", true, 2));
 
   return (

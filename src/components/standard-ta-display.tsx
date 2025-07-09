@@ -135,8 +135,6 @@ export function StandardTaDisplay() {
 
   }, [standardTasJson, logDebug]);
   
-  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', parsedData=${!!parsedTaDataState}`);
-
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';
     if (val < 30) return 'bullish';

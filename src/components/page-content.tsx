@@ -35,7 +35,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
             <TabsTrigger value="staging-options">Staging: Options</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
-            <MainTabContent /> 
+            <MainTabContent appVersion={appVersion} /> 
           </TabsContent>
           <TabsContent value="debug-data">
             <DebugTabContent />

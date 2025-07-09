@@ -10,7 +10,11 @@ import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { globalLogEntries } from "@/lib/global-log-buffer";
 import { Download, Copy } from "lucide-react";
 
-export function DebugSnapshotControls() {
+interface DebugSnapshotControlsProps {
+    appVersion: string;
+}
+
+export function DebugSnapshotControls({ appVersion }: DebugSnapshotControlsProps) {
   const { toast } = useToast();
   const context = useStockAnalysis();
 
@@ -23,9 +27,7 @@ export function DebugSnapshotControls() {
         aiOptionsAnalysisRequestJson, aiOptionsAnalysisJson, aiKeyTakeawaysRequestJson, aiKeyTakeawaysJson,
         userInputAppDataChatRequestJson, userInputAppDataChatResponseJson, stockTraderTakeawaysRequestJson,
         stockTraderTakeawaysResponseJson, optionsTraderTakeawaysRequestJson, optionsTraderTakeawaysResponseJson,
-        holisticTakeawaysRequestJson, holisticTakeawaysResponseJson, userInputWebSearchChatRequestJson,
-        userInputWebSearchChatResponseJson, rawTaWebSearchRequestJson, rawTaWebSearchResponseJson,
-        rawOptionsWebSearchRequestJson, rawOptionsWebSearchResponseJson,
+        holisticTakeawaysRequestJson, holisticTakeawaysResponseJson,
         appDataChatHistory, webSearchChatHistory,
         optionType, strikeCount, tableDisplayType,
     } = context;
@@ -40,6 +42,7 @@ export function DebugSnapshotControls() {
     };
 
     return {
+        appVersion: appVersion,
         snapshotType: 'debug_snapshot',
         timestamp: new Date().toISOString(),
         fsmSnapshot: {
@@ -74,12 +77,6 @@ export function DebugSnapshotControls() {
             optionsTraderTakeawaysResponse: safeJsonParse(optionsTraderTakeawaysResponseJson),
             holisticTakeawaysRequest: safeJsonParse(holisticTakeawaysRequestJson),
             holisticTakeawaysResponse: safeJsonParse(holisticTakeawaysResponseJson),
-            userInputWebSearchChatRequest: safeJsonParse(userInputWebSearchChatRequestJson),
-            userInputWebSearchChatResponse: safeJsonParse(userInputWebSearchChatResponseJson),
-            rawTaWebSearchRequest: safeJsonParse(rawTaWebSearchRequestJson),
-            rawTaWebSearchResponse: safeJsonParse(rawTaWebSearchResponseJson),
-            rawOptionsWebSearchRequest: safeJsonParse(rawOptionsWebSearchRequestJson),
-            rawOptionsWebSearchResponse: safeJsonParse(rawOptionsWebSearchResponseJson),
         },
         chatHistories: {
             appDataChat: appDataChatHistory,
@@ -87,7 +84,7 @@ export function DebugSnapshotControls() {
         },
         clientTraceLogs: [...globalLogEntries],
     };
-  }, [context]);
+  }, [context, appVersion]);
 
   const handleAction = async (action: 'copy' | 'export') => {
     const snapshotData = generateSnapshot();

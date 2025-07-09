@@ -274,8 +274,6 @@ export function OptionsChainTable({
     }
   };
   
-  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', contracts=${contractsToDisplay.length}, atmStrike=${atmStrikeValueState}, exportReady=${isDataReadyForExport}, tableDisplayType=${tableDisplayType}, optionType=${optionType}`);
-
   const renderSideBySideTable = () => (
     <Table className="min-w-max text-xs">
         <TableHeader>

@@ -50,7 +50,11 @@ const webSearchButtons: ExamplePromptButton[] = [
 const pendingJson = '{ "status": "pending..." }';
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
 
-export function MainTabContent() {
+interface MainTabContentProps {
+  appVersion: string;
+}
+
+export function MainTabContent({ appVersion }: MainTabContentProps) {
   const { toast } = useToast();
   const {
     marketStatusJson: contextMarketStatusJson, stockSnapshotJson: contextStockSnapshotJson,
@@ -370,7 +374,7 @@ export function MainTabContent() {
     
     const requestPayload = { ticker, expirationDate: selectedExpirationDate, optionType, strikeCount };
     setOnDemandOptionsChainRequestJson(JSON.stringify(requestPayload, null, 2));
-
+    
     const result = await getOptionsChainForExpirationAction(requestPayload);
 
     if (result.status === 'success' && result.data) {
@@ -541,7 +545,7 @@ export function MainTabContent() {
           <Separator />
           <MarketStatusDisplay />
           <Separator />
-          <DebugSnapshotControls />
+          <DebugSnapshotControls appVersion={appVersion} />
         </div>
     </div>
   );

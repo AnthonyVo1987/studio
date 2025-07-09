@@ -112,8 +112,6 @@ export function AiOptionsAnalysisDisplay() {
 
   }, [aiOptionsAnalysisJson, logDebug]);
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorMessageForDisplayState}', parsedData=${!!parsedDataState}`);
-  
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug, componentName);
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedDataState &&
     ( (parsedDataState.callWalls && parsedDataState.callWalls.length > 0) ||

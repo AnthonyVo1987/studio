@@ -57,8 +57,6 @@ export function MarketStatusDisplay() {
       logDebug(componentName, "PropsReceived", "marketStatusJson prop changed. New Length:", currentJson?.length, "Is empty/null:", !currentJson || currentJson === '{}');
       prevMarketStatusJsonRef.current = currentJson;
     } else {
-      // If prop string reference hasn't changed, no need to re-process or log "PropsReceived" again.
-      // The component might re-render due to parent, but this effect shouldn't re-log this specific message.
       return;
     }
     
@@ -170,11 +168,6 @@ export function MarketStatusDisplay() {
     }
   }
   
-  // This log now more accurately reflects the processed state after useEffect.
-  // It will still log on re-renders not caused by marketStatusJson change, but its content will be stable then.
-  // The key is that the "PropsReceived" and parsing logic logs inside useEffect are now conditional.
-  logDebug(componentName, 'RenderState', `isLoading=${isLoading}, isError=${isError}, errorMsg='${errorOrSkippedMessage}', details=${finalDetailsToRender.length}`);
-
   const placeholderRows = Math.max(1, details.filter(d => d.value !== "N/A" && d.value !== "").length || 4);
 
   return (

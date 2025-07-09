@@ -148,8 +148,6 @@ export function AiAnalyzedTaDisplay() {
     }
   }, [isLoadingState, isErrorState, parsedTaDataState, stockSnapshotJson, logDebug]);
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', parsedData=${!!parsedTaDataState}, currentPrice=${currentPriceState}`);
-
   return (
     <Card>
       <CardHeader>

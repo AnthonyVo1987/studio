@@ -171,8 +171,6 @@ export function AiKeyTakeawaysDisplay() {
 
   }, [aiKeyTakeawaysJson, logDebug]);
 
-  logDebug(componentName, 'RenderState', `isLoading=${isLoadingState}, isError=${isErrorState}, errorMsg='${errorOrSkippedMessageState}', parsedData=${!!parsedTakeawaysDataState}, displayItems=${displayTakeawaysState.length}`);
-
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedTakeawaysDataState && Object.keys(parsedTakeawaysDataState).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug, componentName);
 
