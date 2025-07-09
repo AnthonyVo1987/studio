@@ -422,39 +422,32 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       const uniqueMessageId = `${Date.now()}_${chatMessageIdCounter++}_${message.role}_ctx_app`;
       const uniqueMessage: AppDataChatMessage = { ...message, id: uniqueMessageId };
       if (prev.length > 0 && prev[prev.length - 1].role === message.role && prev[prev.length - 1].content === message.content) {
-        logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Guard', `Skipped adding duplicate app data chat message from ${message.role}.`);
         return prev;
       }
-      logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Add', `Added app data chat message from ${uniqueMessage.role} with ID ${uniqueMessage.id}.`);
       return [...prev, uniqueMessage];
     });
-  }, [_setAppDataChatHistory, logDebug]);
+  }, [_setAppDataChatHistory]);
 
   const clearAppDataChatHistory = useCallback(() => {
     _setAppDataChatHistory([]);
-    logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Clear', 'App data chat history CLEARED.');
-  }, [_setAppDataChatHistory, logDebug]);
+  }, [_setAppDataChatHistory]);
 
   const addWebSearchChatMessage = useCallback((message: AppDataChatMessage) => {
     _setWebSearchChatHistory(prev => {
       const uniqueMessageId = `${Date.now()}_${chatMessageIdCounter++}_${message.role}_ctx_web`;
       const uniqueMessage: AppDataChatMessage = { ...message, id: uniqueMessageId };
       if (prev.length > 0 && prev[prev.length - 1].role === message.role && prev[prev.length - 1].content === message.content) {
-        logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Guard', `Skipped adding duplicate web search chat message from ${message.role}.`);
         return prev;
       }
-      logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Add', `Added web search chat message from ${uniqueMessage.role} with ID ${uniqueMessage.id}.`);
       return [...prev, uniqueMessage];
     });
-  }, [_setWebSearchChatHistory, logDebug]);
+  }, [_setWebSearchChatHistory]);
 
   const clearWebSearchChatHistory = useCallback(() => {
     _setWebSearchChatHistory([]);
-    logDebug('StockAnalysisContext', 'GlobalChatHistoryUpdate_Clear', 'Web search chat history CLEARED.');
-  }, [_setWebSearchChatHistory, logDebug]);
+  }, [_setWebSearchChatHistory]);
 
   const setAllPlaceholdersInternal = useCallback((currentTickerForLogOnly: string, isFullAnalysis: boolean) => {
-    logDebug('StockAnalysisContext','GlobalFSM_Action_Util', `Resetting analysis JSONs to PENDING for ${currentTickerForLogOnly}. Full analysis: ${isFullAnalysis}.`);
     contextSetters.setPolygonApiRequestLogJson(pendingJson);
     contextSetters.setPolygonApiResponseLogJson(pendingJson);
     contextSetters.setMarketStatusJson(pendingJson);
@@ -485,7 +478,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setRawSupportResistanceWebSearchRequestJson(initialJsonPlaceholder);
         contextSetters.setRawSupportResistanceWebSearchResponseJson(initialJsonPlaceholder);
     }
-  }, [logDebug, contextSetters]);
+  }, [contextSetters]);
 
   const resetOnDemandOptionsState = useCallback(() => {
     _setAvailableExpirationDates([]);
@@ -496,17 +489,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setOptionType('both');
     _setStrikeCount(20);
     _setTableDisplayType('side-by-side');
-    logDebug('StockAnalysisContext', 'ResetState', 'Resetting on-demand options state for new analysis.');
-  }, [logDebug]);
+  }, []);
 
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
     const previousState = state.current;
     const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
-    logDebug(logPrefixFsmReducer as LogSourceId, 'ReducerEntry', `Event: ${event.type}, FromState: ${previousState}.`);
-
-    if ('payload' in event && event.type !== 'USER_INPUT_TICKER_CHANGED' && event.type !== 'ANALYSIS_TOGGLE_CHANGED') {
-      logDebug(logPrefixFsmReducer as LogSourceId, 'EventPayload', `For ${event.type}:`, JSON.stringify(event.payload).substring(0, 150));
-    }
 
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
@@ -543,19 +530,16 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
           case 'ai_key_takeaways': nextFlags.isAiKeyTakeawaysSelected = isEnabled; break;
           case 'ai_options_analysis': nextFlags.isAiOptionsAnalysisSelected = isEnabled; break;
         }
-        logDebug(logPrefixFsmReducer as LogSourceId, 'FlagsUpdate_Toggle', `Flag '${toggleType}' set to ${isEnabled}.`);
         nextCurrentState = previousState;
         break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
         nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'ActionStart', `START_FULL_ANALYSIS for ${event.payload.ticker}. Transitioning to DATA_FETCH_IN_PROGRESS.`);
         break;
       case 'INITIALIZATION_COMPLETE':
         if (previousState === GlobalFsmState.APP_INITIALIZING) {
             nextCurrentState = nextVariables.userInputTicker.trim() !== "" ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `APP_INITIALIZING -> INITIALIZATION_COMPLETE. To ${nextCurrentState}.`);
-        } else { logDebug(logPrefixFsmReducer as LogSourceId, 'Guard', `Ignoring INITIALIZATION_COMPLETE, not in APP_INITIALIZING state.`); }
+        }
         break;
       case 'USER_INPUT_TICKER_CHANGED':
         nextVariables.userInputTicker = event.payload.ticker;
@@ -566,16 +550,27 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         } else {
              nextCurrentState = previousState;
         }
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `USER_INPUT_TICKER_CHANGED. To ${nextCurrentState}.`);
         break;
       case 'FETCH_DATA_SUCCESS':
         if (event.payload.data) {
             contextSetters.setMarketStatusJson(event.payload.data.marketStatusJson); contextSetters.setStockSnapshotJson(event.payload.data.stockSnapshotJson);
             contextSetters.setStandardTasJson(event.payload.data.standardTasJson); contextSetters.setOptionsChainJson(event.payload.data.optionsChainJson);
-            contextSetters.setPolygonApiRequestLogJson(event.payload.data.polygonApiRequestLogJson); contextSetters.setPolygonApiResponseLogJson(event.payload.data.polygonApiResponseLogJson);
+            contextSetters.setPolygonApiRequestLogJson(event.payload.data.polygonApiRequestLogJson); 
+            const responseLogJson = event.payload.data.polygonApiResponseLogJson;
+            contextSetters.setPolygonApiResponseLogJson(responseLogJson);
+            
+            // New logic to handle auto-selected expiration date
+            try {
+              const responseLog = JSON.parse(responseLogJson);
+              if (responseLog.autoSelectedExpirationDate) {
+                _setSelectedExpirationDate(responseLog.autoSelectedExpirationDate);
+              }
+            } catch (e) {
+              // Ignore parse error
+            }
+
             nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
             nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To CALCULATING_AI_TA.`);
         } else {
              handlePipelineError('DataFetchSuccess', 'Payload data missing in success event.');
         }
@@ -589,7 +584,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             contextSetters.setPolygonApiRequestLogJson(fetchErr.data.polygonApiRequestLogJson); contextSetters.setPolygonApiResponseLogJson(fetchErr.data.polygonApiResponseLogJson);
         }
         handlePipelineError('DataFetch', fetchErrMsg, fetchErr.error);
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to FETCH_DATA_FAILURE. Error: ${fetchErrMsg}.`);
         break;
       case 'STALE_DATA_FROM_ACTION':
         const staleErr = event.payload; const staleErrMsg = staleErr.message || 'Stale data error';
@@ -601,14 +595,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         contextSetters.setPolygonApiRequestLogJson(staleErr.actionStateData?.polygonApiRequestLogJson || errorJsonWithDetails("Req log unavailable for stale data.", null));
         contextSetters.setPolygonApiResponseLogJson(staleErr.actionStateData?.polygonApiResponseLogJson || errorJsonWithDetails("Res log unavailable for stale data.", null));
         handlePipelineError('StaleData', staleErrMsg, staleErr.error);
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to STALE_DATA_FROM_ACTION. Error: ${staleErrMsg}.`);
         break;
       case 'AI_TA_SUCCESS':
         if(event.payload.data) {
             contextSetters.setAiAnalyzedTaRequestJson(event.payload.data.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.data.aiAnalyzedTaJson);
             nextFlags.isCalculatedTADataReady = true;
             nextCurrentState = determineNextStepAfterTA();
-            logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `AI_TA_SUCCESS. Determining next step: ${nextCurrentState}`);
         } else {
             handlePipelineError('AITaCalculationSuccess', 'Payload data missing in success event.');
         }
@@ -618,7 +610,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         const aiTaErrorJson = errorJsonWithDetails(aiTaErrMsg, aiTaErr.error);
         contextSetters.setAiAnalyzedTaRequestJson(aiTaErr.data?.aiAnalyzedTaRequestJson || aiTaErrorJson); contextSetters.setAiAnalyzedTaJson(aiTaErrorJson);
         handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE due to AI_TA_FAILURE. Error: ${aiTaErrMsg}.`);
         break;
       case 'KEY_TAKEAWAYS_SUCCESS':
         if (event.payload.data) {
@@ -627,11 +618,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         nextFlags.isKeyTakeawaysDataAvailable = true;
         nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `KEY_TAKEAWAYS_SUCCESS. Determining next step: ${nextCurrentState}`);
         break;
       case 'KEY_TAKEAWAYS_FAILURE':
         nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To ${nextCurrentState} after KEY_TAKEAWAYS_FAILURE. Error: ${event.payload.message}.`);
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
         if (event.payload.data) {
@@ -640,18 +629,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         nextFlags.isOptionsAnalysisDataAvailable = true;
         nextCurrentState = GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `OPTIONS_ANALYSIS_SUCCESS. Finalizing to IDLE.`);
         break;
       case 'OPTIONS_ANALYSIS_FAILURE':
         nextCurrentState = GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after OPTIONS_ANALYSIS_FAILURE. Error: ${event.payload.message}.`);
         break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
         nextCurrentState = GlobalFsmState.IDLE;
-        logDebug(logPrefixFsmReducer as LogSourceId, 'Transition', `To IDLE after pipeline finalization.`);
         break;
       default:
-        logDebug(logPrefixFsmReducer as LogSourceId, 'UnhandledEvent', `Unhandled event type: ${(event as any).type} in state ${previousState}`);
+        break;
     }
 
     if ([
@@ -662,7 +648,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.canAnalyzeStock = false;
     }
 
-    logDebug(logPrefixFsmReducer as LogSourceId, 'StateExit', `Exiting reducer. OldState: ${previousState}, NewState: ${nextCurrentState}, CanAnalyze: ${nextFlags.canAnalyzeStock}`);
     return { current: nextCurrentState, previous: previousState, variables: nextVariables, flags: nextFlags };
   };
 
@@ -671,8 +656,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fsmStateRef.current = globalFsmReducerState;
-    logDebug('StockAnalysisContext:GlobalFSM', 'StateChange', `Actual state updated. Prev: ${globalFsmReducerState.previous}, Curr: ${globalFsmReducerState.current}.`);
-  }, [globalFsmReducerState, logDebug]);
+  }, [globalFsmReducerState]);
   
   // Side-effect handler for FSM state transitions
   useEffect(() => {
@@ -682,34 +666,29 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     if (isNewAnalysis) {
       const ticker = globalFsmReducerState.variables.activeTicker;
       if (ticker) {
-        logDebug('StockAnalysisContext', 'StateEffect', `Detected start of new analysis for ${ticker}. Resetting data JSONs.`);
         setAllPlaceholdersInternal(ticker, true);
       }
     }
-  }, [globalFsmReducerState.current, globalFsmReducerState.previous, globalFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal, logDebug]);
+  }, [globalFsmReducerState.current, globalFsmReducerState.previous, globalFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal]);
   
   const userInputTickerForEffect = globalFsmReducerState.variables.userInputTicker;
   const previousUserInputTickerRef = useRef<string | null>(null);
 
   useEffect(() => {
-      const currentUserInputTicker = userInputTickerForEffect;
-      const previousUserInputTicker = previousUserInputTickerRef.current;
-      
-      if (currentUserInputTicker && previousUserInputTicker && currentUserInputTicker !== previousUserInputTicker) {
-          logDebug('StockAnalysisContext', 'UserInputTickerChangeEffect', `User input ticker changed from '${previousUserInputTicker}' to '${currentUserInputTicker}'. Resetting options state.`);
-          resetOnDemandOptionsState();
-      } else {
-          logDebug('StockAnalysisContext', 'UserInputTickerChangeEffect_NoOp', `Effect ran, but conditions not met for reset. Current: ${currentUserInputTicker}, Previous: ${previousUserInputTicker}`);
-      }
-      
-      previousUserInputTickerRef.current = currentUserInputTicker;
-  }, [userInputTickerForEffect, resetOnDemandOptionsState, logDebug]);
+    const currentUserInputTicker = userInputTickerForEffect;
+    const previousUserInputTicker = previousUserInputTickerRef.current;
+
+    if (currentUserInputTicker && previousUserInputTicker && currentUserInputTicker !== previousUserInputTicker) {
+      resetOnDemandOptionsState();
+    }
+    
+    previousUserInputTickerRef.current = currentUserInputTicker;
+  }, [userInputTickerForEffect, resetOnDemandOptionsState]);
 
 
   // Effect for fetching initial expirations on app startup
   useEffect(() => {
     const fetchInitialExpirations = async () => {
-      logDebug('StockAnalysisContext', 'InitialDataFetch', 'Fetching initial expirations for default ticker...');
       _setIsLoadingExpirations(true);
       const result = await getOptionsExpirationsAction({ ticker: defaultState.globalFsmState.variables.userInputTicker });
       if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
@@ -718,16 +697,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         
         _setAvailableExpirationDates(allDates);
         _setSelectedExpirationDate(nextExpDate);
-        logDebug('StockAnalysisContext', 'InitialDataFetch', `Initial expirations loaded. Count: ${allDates.length}. Default selected: ${nextExpDate}`);
-      } else {
-        logDebug('StockAnalysisContext', 'InitialDataFetchError', `Failed to fetch initial expirations: ${result.error}`);
       }
       _setIsLoadingExpirations(false);
     };
 
     fetchInitialExpirations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logDebug]);
+  }, []);
 
   const enableAllLogSources = useCallback(() => {
     _setLogSourceConfig(prevConfig => {
@@ -738,27 +714,26 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disableAllLogSources = useCallback(() => {
-    logDebug('StockAnalysisContext', 'LogConfigChange', 'Disable All Log Sources button clicked.');
     const newConfig: LogSourceConfig = {} as LogSourceConfig;
     logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; });
     _setLogSourceConfig(newConfig);
-  }, [logDebug]);
+  }, []);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
       const hasChanged = !prevDisplay || !(prevDisplay.current === display?.current && prevDisplay.previous === display?.previous && prevDisplay.target === display?.target);
-      if (hasChanged) { logDebug('StockAnalysisContext', 'FSMDisplayTupleUpdate', 'MainTabFsmDisplay updated.', display); return display; }
+      if (hasChanged) { return display; }
       return prevDisplay;
     });
-  }, [_setMainTabFsmDisplay, logDebug]);
+  }, [_setMainTabFsmDisplay]);
 
   const setChatbotFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setChatbotFsmDisplay(prevDisplay => {
       const hasChanged = !prevDisplay || !(prevDisplay.current === display?.current && prevDisplay.previous === display?.previous && prevDisplay.target === display?.target);
-      if (hasChanged) { logDebug('StockAnalysisContext', 'FSMDisplayTupleUpdate', 'ChatbotFsmDisplay updated.', display); return display; }
+      if (hasChanged) { return display; }
       return prevDisplay;
     });
-  }, [_setChatbotFsmDisplay, logDebug]);
+  }, [_setChatbotFsmDisplay]);
   
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
     startTransition(() => {

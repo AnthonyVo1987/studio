@@ -24,6 +24,7 @@ import { useStockAnalysis, GlobalFsmState, type AnalysisToggleType } from "@/con
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart, CalendarDays } from "lucide-react";
 import { loadExamplePrompts, type ExamplePrompt } from '@/ai/definition-loader';
+import { findNextAvailableDate } from '@/lib/date-utils';
 
 // Server Actions
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
@@ -114,16 +115,14 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
   useEffect(() => {
     if (!initialInitializationDispatchedRef.current) {
-        logDebug('MainTabContent', 'Initialization', 'Dispatching INITIALIZATION_COMPLETE event on mount.');
         dispatchGlobalFsmEvent({ type: 'INITIALIZATION_COMPLETE' });
         initialInitializationDispatchedRef.current = true;
     }
-  }, [dispatchGlobalFsmEvent, logDebug]);
+  }, [dispatchGlobalFsmEvent]);
 
   // Reactive Pipeline Orchestrator
   useEffect(() => {
     const orchestratorLogPrefix = 'MainTabContent:Orchestrator';
-    logDebug(orchestratorLogPrefix as any, 'Entry', `Orchestrator running. FSM state: ${globalFsmStateFromContext}`);
 
     const runPipelineStep = async () => {
       switch (globalFsmStateFromContext) {
@@ -136,13 +135,9 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
               currentOptionsTicker = parsed?.ticker;
             }
           } catch (e) {
-            logDebug(orchestratorLogPrefix as any, 'ParseWarning', `Could not parse existing options JSON to check ticker. Proceeding without check.`);
           }
 
           const isContextStale = newTicker && currentOptionsTicker && newTicker !== currentOptionsTicker;
-          if (isContextStale) {
-            logDebug(orchestratorLogPrefix as any, 'StaleContextDetected', `New ticker (${newTicker}) differs from current options context ticker (${currentOptionsTicker}). Forcing expiration refetch by sending 'undefined'.`);
-          }
 
           const result = await fetchStockDataAction({
             ticker: newTicker!,
@@ -196,7 +191,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, logDebug, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, selectedExpirationDate, optionType, strikeCount]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, selectedExpirationDate, optionType, strikeCount]);
 
 
   // Effect to handle App Data Chat results
@@ -342,7 +337,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
   const handleFetchExpirations = async () => {
     const ticker = globalFsmVariables.userInputTicker.trim();
-    logDebug('MainTabContent', 'UserAction', `handleFetchExpirations called for ticker: '${ticker}'`);
     if (!ticker) {
         toast({ variant: 'destructive', title: 'Invalid Ticker', description: 'Please enter a ticker symbol first.' });
         return;
@@ -354,8 +348,13 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     const result = await getOptionsExpirationsAction({ ticker });
 
     if (result.status === 'success' && result.data) {
-        setAvailableExpirationDates(result.data.expirationDates);
-        toast({ title: 'Success', description: `Found ${result.data.expirationDates.length} expiration dates.` });
+        const allDates = result.data.expirationDates;
+        setAvailableExpirationDates(allDates);
+        if (allDates.length > 0) {
+            const nextExpDate = findNextAvailableDate(allDates);
+            setSelectedExpirationDate(nextExpDate);
+        }
+        toast({ title: 'Success', description: `Found ${allDates.length} expiration dates.` });
     } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to fetch expiration dates.' });
     }
@@ -364,7 +363,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
   
   const handleFetchSelectedOptionsChain = async () => {
     const ticker = globalFsmVariables.userInputTicker.trim();
-    logDebug('MainTabContent', 'UserAction', `handleFetchSelectedOptionsChain called for ticker: '${ticker}', expiration: '${selectedExpirationDate}', type: '${optionType}', count: ${strikeCount}`);
     if (!ticker || !selectedExpirationDate) {
         toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please enter a ticker and select an expiration date.' });
         return;

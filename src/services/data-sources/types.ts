@@ -114,8 +114,20 @@ export interface StockDataPackage {
   [key: string]: any;
 }
 
+export interface RawResponseSummary {
+  requestedTicker: string;
+  adapterInstanceFor: string;
+  responseTicker: string | null;
+  marketStatusLoaded: boolean;
+  snapshotLoaded: boolean;
+  tasLoaded: boolean;
+  optionsLoaded: boolean;
+  error?: string;
+  autoSelectedExpirationDate?: string;
+}
+
 export interface AdapterOutput {
   stockData: StockDataPackage;
   rawRequestParams?: any;
-  rawResponseSummary?: any;
+  rawResponseSummary?: RawResponseSummary;
 }
