@@ -423,12 +423,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }), [setAndLogJson]);
 
   const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
-    _setLogSourceConfig(prevConfig => {
-      const newConfig = { ...prevConfig, [source]: enabled };
-      logDebug('StockAnalysisContext', 'LogConfigChange', `Log source '${source}' ${enabled ? 'ENABLED' : 'DISABLED'}.`);
-      return newConfig;
-    });
-  }, [_setLogSourceConfig, logDebug]);
+    _setLogSourceConfig(prevConfig => ({ ...prevConfig, [source]: enabled }));
+  }, []);
 
   const addAppDataChatMessage = useCallback((message: AppDataChatMessage) => {
     _setAppDataChatHistory(prev => {
@@ -560,7 +556,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = previousState;
         break;
       case 'START_FULL_ANALYSIS':
-        if (state.variables.activeTicker !== event.payload.ticker) {
+        if (state.variables.activeTicker && state.variables.activeTicker !== event.payload.ticker) {
             logDebug(logPrefixFsmReducer as LogSourceId, 'SideEffectTrigger', 'New ticker detected in reducer. Options state will be reset by the effect hook.');
         }
         resetForNewAnalysis(event.payload.ticker);
@@ -705,19 +701,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [globalFsmReducerState.current, globalFsmReducerState.previous, globalFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal, logDebug]);
   
   const activeTickerForEffect = globalFsmReducerState.variables.activeTicker;
-  const isInitialMount = useRef(true);
-  
+  const previousTickerRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (isInitialMount.current) {
-        isInitialMount.current = false;
-        logDebug('StockAnalysisContext', 'TickerChangeEffect', 'Initial mount, skipping options state reset.');
-        return;
-    }
-    // Only reset if the active ticker actually changes to a different value
-    if(activeTickerForEffect) {
-      logDebug('StockAnalysisContext', 'TickerChangeEffect', `Active ticker changed to ${activeTickerForEffect}. Resetting options state.`);
+    const currentTicker = activeTickerForEffect;
+    const previousTicker = previousTickerRef.current;
+
+    logDebug('StockAnalysisContext', 'TickerChangeEffect', `Effect running. Prev Ticker: ${previousTicker}, Curr Ticker: ${currentTicker}`);
+
+    if (currentTicker && previousTicker && currentTicker !== previousTicker) {
+      logDebug('StockAnalysisContext', 'TickerChangeEffect', `Ticker changed from ${previousTicker} to ${currentTicker}. Resetting options state.`);
       resetOnDemandOptionsState();
+    } else {
+      logDebug('StockAnalysisContext', 'TickerChangeEffect', 'Ticker change condition not met. Not resetting options state.');
     }
+    
+    previousTickerRef.current = currentTicker;
   }, [activeTickerForEffect, resetOnDemandOptionsState, logDebug]);
 
 
@@ -745,19 +744,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [logDebug]);
 
   const enableAllLogSources = useCallback(() => {
-    logDebug('StockAnalysisContext', 'LogConfigChange', 'Enable All Log Sources button clicked.');
-    const newConfig: LogSourceConfig = {} as LogSourceConfig;
-    logSourceIds.forEach(id => { newConfig[id] = true; });
-    newConfig.DebugConsole = true; 
-    _setLogSourceConfig(newConfig);
-  }, [_setLogSourceConfig, logDebug]);
+    _setLogSourceConfig(prevConfig => {
+        const newConfig = { ...prevConfig };
+        logSourceIds.forEach(id => { newConfig[id] = true; });
+        return newConfig;
+    });
+  }, []);
 
   const disableAllLogSources = useCallback(() => {
-    logDebug('StockAnalysisContext', 'LogConfigChange', 'Disable All Log Sources button clicked.');
-    const newConfig: LogSourceConfig = {} as LogSourceConfig;
-    logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; }); 
-    _setLogSourceConfig(newConfig);
-  }, [_setLogSourceConfig, logDebug]);
+    _setLogSourceConfig(prevConfig => {
+        const newConfig = { ...prevConfig };
+        logSourceIds.forEach(id => {
+            if (id !== 'DebugConsole') newConfig[id] = false;
+        });
+        return newConfig;
+    });
+  }, []);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -776,14 +778,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setChatbotFsmDisplay, logDebug]);
 
   const setReducedStartupLoggingEnabled = useCallback((enabled: boolean) => {
-    logDebug('DebugSettingsCard', 'Reduced startup logging toggled to: ${enabled}');
     _setIsReducedStartupLoggingEnabled(enabled);
-  }, [logDebug]);
+  }, []);
 
   const setUiRenderLoggingEnabled = useCallback((enabled: boolean) => {
-    logDebug('DebugSettingsCard', 'UI Render log spam toggled to: ${enabled}');
     _setIsUiRenderLoggingEnabled(enabled);
-  }, [logDebug]);
+  }, []);
 
 
   
@@ -875,13 +875,13 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
     const isInitialLoad = fsmStateRef.current.current === GlobalFsmState.APP_INITIALIZING;
 
-    const interceptAndProcessLog = (type: LogType, ...args: any[]) => {
+    const interceptAndProcessLog = (type: any, ...args: any[]) => {
       currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
       
       queueMicrotask(() => {
         let sourceForBuffer: LogSourceId = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
-        let typeForBuffer = type;
+        let typeForBuffer: LogType = type;
 
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
           sourceForBuffer = args[1] as LogSourceId;
