@@ -1,3 +1,4 @@
+
 ### AI Coding Agent Operating Procedure & Audit Protocol
 
 To prevent the severe audit failures of the v3.3.15.x series, the following procedures are now in effect and strictly enforced.
@@ -31,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.13
-**Application Version (from `app-metadata.json`):** v3.6.4.22
-**Last Updated:** 2025-08-28
+**README Document Version:** 3.14
+**Application Version (from `app-metadata.json`):** v3.6.5.0
+**Last Updated:** 2025-08-29
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -88,7 +89,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", "FSM Debug", and "Staging" tabs. The isolated "Staging: Options" tab has been deprecated following successful feature integration.
+*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", "FSM Debug", and "Staging: Options" tabs. The obsolete diagnostic "Staging" tab has been removed.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -108,7 +109,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **"FSM Debug" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
 *   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables). The snapshot now correctly includes the user's dynamic options settings (`optionType`, `strikeCount`, `tableDisplayType`).
 *   **Developer Staging Areas:**
-    *   **"Staging" Tab:** A dedicated area for developers to test experimental features (like SDK diagnostics) in isolation from the main application flow.
+    *   **"Staging: Options" Tab:** A dedicated area for developers to test experimental options-related features in isolation from the main application flow.
 
 ### 3.2. System Architecture & Components
 
@@ -179,8 +180,8 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.4.22):**
-    *   **"Single Selectable Options Expiration":** Full implementation, integration, and stabilization are complete. The feature is now pending final comprehensive testing.
+*   **Current Feature Focus (as of v3.6.5.0):**
+    *   **Codebase Cleanup:** Post-feature cleanup and refactoring is underway to reduce complexity and prepare for the next feature.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -257,8 +258,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.13
-*   **Current Application Version:** `v3.6.4.22`
+*   **This README Document Version:** 3.14
+*   **Current Application Version:** `v3.6.5.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
@@ -279,3 +280,5 @@ This section serves as a permanent record of critical architectural lessons lear
 ### 7.3. The UI Must be Driven by Control State, Not Data Content
 *   **Failure (v3.5, part 2):** A subsequent debugging attempt revealed that the data display components (e.g., `AiKeyTakeawaysDisplay`) were deriving their loading state by parsing the content of their data props (e.g., looking for `"{ \"status\": \"pending...\" }"`).
 *   **Lesson Learned:** This is an architectural flaw. React may batch state updates, meaning the component might only render once with the final data, skipping all intermediate loading states. **UI components MUST derive their loading/error state from the global FSM `fsmState` variable**, not from parsing data content. This ensures they are always in sync with the application's true control state.
+
+  

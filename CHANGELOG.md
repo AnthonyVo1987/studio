@@ -58,6 +58,27 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.5.0` (Cleanup)
+**Tag:** `Phase-70_Task-3.6.5.0_CleanupStagingTab`
+**Commit Hash:** `81412437`
+**Subject:** `refactor(core): Cleanup and remove obsolete diagnostic Staging tab`
+**Details:**
+This commit marks a significant cleanup of the codebase by removing the obsolete **"Staging"** tab and all its associated diagnostic tools. These tools, which included the `RawDebugChatbot` and `SdkDebugChatbot`, were created for isolated testing of Genkit and the Google AI SDK during a period of instability. With the stabilization of the application's core "Dual AI Chat Architecture", these experimental components are no longer necessary.
+
+**Key Cleanup Actions:**
+*   **File Deletion:** Deleted **6** obsolete files:
+    *   `src/components/staging-tab-content.tsx`
+    *   `src/components/raw-debug-chatbot.tsx`
+    *   `src/components/sdk-debug-chatbot.tsx`
+    *   `src/actions/raw-debug-chat-action.ts`
+    *   `src/actions/sdk-debug-chat-action.ts`
+    *   `src/ai/schemas/raw-debug-chat-schemas.ts`
+*   **UI Refactoring:** Modified `src/components/page-content.tsx` to remove the "Staging" tab trigger and its content block, reducing the main tab count from 7 to 6.
+*   **No Impact on Production Code:** A full audit confirmed that all removed components and actions were completely isolated and had no dependencies on the main application's state, data pipelines, or UI, ensuring a safe cleanup. The "Staging: Options" tab remains for future options-related development.
+
+**Outcome:**
+*   The application's codebase is now cleaner, more focused, and has a reduced context size, making it easier to maintain.
+---
 **App Version:** `v3.6.4.22` (Checkpoint & Document Feature Completion)
 **Tag:** `Phase-69_Task-3.6.4.22_DocsCommit`
 **Commit Hash:** `5c76c7e4`
@@ -1488,3 +1509,5 @@ Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsm
 
 
     
+
+  

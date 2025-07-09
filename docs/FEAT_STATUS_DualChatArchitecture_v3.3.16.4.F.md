@@ -1,19 +1,19 @@
 
 # Feature Status Report: Dual AI Chat Architecture (v3.3.16.4.F)
 
-**Document Version:** 13.1
-**Date:** 2025-08-14
+**Document Version:** 13.2
+**Date:** 2025-08-29
 **Feature Target Application Version Series:** 3.3.16.4.F+
 
 ## 1. Overall Feature Status
 
 **Current Status:** `COMPLETED & STABLE`
-**Last Updated:** 2025-08-14
+**Last Updated:** 2025-08-29
 
-**Summary:** The architectural refactor for this feature is **complete**. The non-functional Genkit Web Search chat has been successfully replaced with a stable implementation using the raw Google AI SDK. All chat prompts have been decoupled from the automated analysis pipeline, making them purely manual actions. Obsolete code, including the legacy `ChatbotFsmContext`, has been cleaned up and removed in the `v3.4.6.4.11` refactor. This has resolved the critical stability issues and significantly simplified the application's control flow. The feature is now considered stable.
+**Summary:** The architectural refactor for this feature is **complete**. The non-functional Genkit Web Search chat has been successfully replaced with a stable implementation using the raw Google AI SDK. All chat prompts have been decoupled from the automated analysis pipeline, making them purely manual actions. Obsolete code, including the legacy `ChatbotFsmContext`, was successfully removed in the `v3.4.6.4.11` refactor. The diagnostic staging tools were also removed in `v3.6.5.0`. The feature is now considered stable.
 
 ## 2. Known Issues
-*   **RESOLVED (as of v3.4.6.4.11):** All obsolete files related to this feature (e.g., `ChatbotFsmContext`) have been removed.
+*   **RESOLVED (as of v3.6.5.0):** All obsolete files and FSM contexts related to this feature (e.g., `ChatbotFsmContext`, `sdk-debug-chatbot`, `raw-debug-chat-action`) have been removed.
 *   **RESOLVED:** The critical `Unable to determine type of tool` error and the associated FSM race conditions have been resolved by replacing the underlying technology and simplifying the architecture.
 *   **UNRESOLVED:** The scrollbars in both the App Data Chat and Web Search Chat components do not function correctly. This is a known UI bug to be addressed in a future task.
 
@@ -34,13 +34,15 @@
     *   **v3.3.16.7.51:** Code cleanup of obsolete files and renaming of AI TA pipeline files. (`COMPLETED`)
     *   **v3.3.16.7.52:** Added dedicated "Support/Resistance" web search prompt and mirrored in SDK debug tool. (`COMPLETED`)
     *   **v3.4.6.4.11 (Cleanup):** Final removal of the `ChatbotFsmContext` and other related legacy files. (`COMPLETED`)
+    *   **v3.6.5.0 (Cleanup):** Final removal of the obsolete diagnostic `Staging` tab and its related components/actions. (`COMPLETED`)
     *   End-to-end testing was successful.
 
 ## 4. Feature Changelog & Commit History
 
 | Date       | Version Tag (Task ID)                         | Commit Hash (if applicable) | Summary of Changes                                                                                                                                                              | Status    |
 | :--------- | :-------------------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :-------- |
-| 2025-08-14 | `v3.4.6.4.11` (Final Cleanup)                 | `9a3cde9f`                  | **Completed final cleanup.** Removed the legacy `ChatbotFsmContext` and other obsolete files, officially completing this feature's lifecycle.                           | COMPLETED |
+| 2025-08-29 | `v3.6.5.0` (Final Cleanup)                    | `81412437`                  | **Completed final cleanup.** Removed the obsolete diagnostic "Staging" tab and its related files, officially completing this feature's lifecycle.                         | COMPLETED |
+| 2025-08-14 | `v3.4.6.4.11` (Refactor Cleanup)              | `9a3cde9f`                  | **Completed refactor cleanup.** Removed the legacy `ChatbotFsmContext` and other obsolete files as part of the Deterministic Overhaul.                                       | COMPLETED |
 | 2025-08-01 | `v3.3.16.7.52` (Final Prompt Fix)             | `2d5de6e1`                  | **Completed prompt alignment.** Added dedicated S/R web search prompt. Removed redundant example buttons. Mirrored functionality in SDK debug tool for baseline testing.        | COMPLETED |
 | 2025-08-01 | `v3.3.16.7.51` (Code Cleanup)                 | `(prev_commit)`             | **Completed code cleanup.** Removed 11 obsolete files from prior refactors. Renamed AI TA pipeline files from `calculate-` to `analyze-` for consistency.               | COMPLETED |
 | 2025-07-31 | `v3.3.16.7.50` (Chat Decoupling)              | `36748225`                  | **Completed Part B.** Decoupled all chat prompts from the automated analysis pipeline by removing UI toggles and FSM orchestrator logic. All chat is now manual.           | COMPLETED |
@@ -84,6 +86,7 @@ The process of stabilizing the "Google GenAI SDK Direct Diagnostics" tool reveal
 *   **Trust the User's Logs:** I repeatedly failed to correctly interpret the logs provided by the user, leading me down the wrong path. My analysis must be more thorough and less driven by my own preconceived notions.
 
 ## 6. Document Changelog (for this FEAT_STATUS_xxx.md file)
+*   **v13.2 (2025-08-29):** Updated changelog and summary to reflect the removal of the diagnostic Staging tab in `v3.6.5.0`.
 *   **v13.1 (2025-08-14):** Updated status to `COMPLETED & STABLE`. Added changelog entry for the final cleanup task.
 *   **v13.0 (2025-08-01):** Updated changelog and status for commits `v3.3.16.7.51` and `v3.3.16.7.52`. Marked feature as `READY FOR FINAL TESTING`.
 *   **v12.0 (2025-07-31):** Updated changelog and status for commits `v3.3.16.7.49` and `v3.3.16.7.50`. Updated summary to reflect completion of the refactor. Marked feature as `READY FOR FINAL TESTING`.
@@ -98,3 +101,5 @@ The process of stabilizing the "Google GenAI SDK Direct Diagnostics" tool reveal
 *   **v3.0 (2025-07-19):** Marked Phase 2 and all its tasks as `COMPLETED`. Updated overall status and summary.
 *   **v2.0 (2025-07-19):** Marked Phase 1 and all its tasks as `COMPLETED`. Updated overall status and summary. Added new entry to changelog table.
 *   **v1.0 (2025-07-19):** Initial document creation.
+
+  
