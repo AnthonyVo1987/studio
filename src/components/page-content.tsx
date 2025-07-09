@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Header } from "@/components/layout/header";
@@ -7,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
-import { StagingTabContent } from "@/components/staging-tab-content";
 import { LogConsole } from "@/components/log-console";
 import { globalLogEntries, clearGlobalLogBuffer } from "@/lib/global-log-buffer";
 import { rawConsoleLogEntries, clearRawConsoleBuffer } from "@/lib/raw-console-log-buffer";
@@ -29,13 +27,12 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
         )}
       >
         <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="main">Main</TabsTrigger>
             <TabsTrigger value="debug-data">Debug Data</TabsTrigger>
             <TabsTrigger value="client-trace-logs">Client Debug Trace Logs</TabsTrigger>
             <TabsTrigger value="console-logs">Console Logs</TabsTrigger>
             <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
-            <TabsTrigger value="staging">Staging</TabsTrigger>
             <TabsTrigger value="staging-options">Staging: Options</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
@@ -64,9 +61,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
           </TabsContent>
           <TabsContent value="fsm-debug">
             <FsmDebugTabContent />
-          </TabsContent>
-          <TabsContent value="staging">
-            <StagingTabContent />
           </TabsContent>
           <TabsContent value="staging-options">
             <StagingOptionsTabContent />
