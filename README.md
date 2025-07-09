@@ -202,38 +202,26 @@ This section outlines the application's core data analysis pipeline. This archit
 
 A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development. This analysis helps diagnose and mitigate issues like AI "tunnel vision."
 
-### 4.1. Estimated Total Context Window Requirement
+### 4.1. Estimated Context Window Requirements
 
-The total estimated context size required to fully and accurately reason about the entire codebase is **250,000 to 350,000+ tokens**.
+Two estimations were performed to understand the codebase complexity:
 
-This size is at the upper limit of what current AI models can handle for high-fidelity reasoning, confirming that context size is a critical factor in development performance. The `CONTEXT_PURGE` directive is the primary mitigation for this risk.
+1.  **Full Context (Including Documentation): 250,000 to 350,000+ tokens**
+    *   This represents the total cognitive load required to understand the code, operational rules, architectural decisions, and historical context stored in all `.md` documentation files.
 
-The codebase complexity can be broken down into the following tiers:
+2.  **Code-Only Context (Excluding Documentation): 175,000 to 225,000 tokens**
+    *   This represents the pure architectural complexity of the application, focusing only on executable code, type definitions, and active configuration files (e.g., `.json` prompts).
 
-1.  **Tier 1: Critical Core Logic**
-    *   **Files:** 4
-    *   **Est. LoC:** ~1,500
-    *   **Importance (Highest):** These files (`stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`) define the application's core state, execution flow, and data contracts. Full comprehension is non-negotiable.
+### 4.2. Conclusion on Context Size
 
-2.  **Tier 2: Primary Actions & Flows**
-    *   **Files:** ~12
-    *   **Est. LoC:** ~1,200
-    *   **Importance (High):** Files in `src/actions/` and `src/ai/flows/` that implement the application's primary features.
+The large context size, even for code-only analysis, confirms that the application is architecturally complex. This scale is at the upper limit of what current AI models can handle for high-fidelity reasoning, which can contribute to development errors. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy for ensuring the AI agent operates with the most accurate and relevant information for each task.
 
-3.  **Tier 3: UI Display Components**
-    *   **Files:** ~15
-    *   **Est. LoC:** ~2,500
-    *   **Importance (Medium):** Components in `src/components/` that are primarily concerned with rendering data from the global state.
-
-4.  **Tier 4: Supporting Docs & Configuration**
-    *   **Files:** ~25
-    *   **Est. LoC:** ~4,000+
-    *   **Importance (Medium-Low):** All documentation (`.md` files) and AI prompt definitions (`.json` files). These provide essential operational rules and historical context.
-
-5.  **Tier 5: Boilerplate & UI Primitives**
-    *   **Files:** ~25+
-    *   **Est. LoC:** ~2,000+
-    *   **Importance (Low):** ShadCN UI primitives, basic utilities, and top-level configuration files.
+The complexity is broken down into the following tiers of importance:
+*   **Tier 1 (Highest): Critical Core Logic.** The core state, execution flow, and data contracts (`stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`).
+*   **Tier 2 (High): Primary Actions & Flows.** All files in `src/actions/` and `src/ai/flows/`.
+*   **Tier 3 (Medium): UI Display Components.** All primary UI components in `src/components/`.
+*   **Tier 4 (Medium-Low): Supporting Config.** All `.json` prompt definitions and key config files.
+*   **Tier 5 (Low): Boilerplate & UI Primitives.** ShadCN UI primitives, utilities, etc.
 
 ---
 

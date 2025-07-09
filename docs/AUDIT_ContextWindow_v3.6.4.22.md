@@ -50,9 +50,9 @@ The application's architecture has stabilized around a deterministic model drive
 *   **AI Flows (`src/ai/flows/`):** These Genkit modules contain the core AI logic, which is made highly configurable by loading all prompt details from `.json` files in `src/ai/definitions/`.
 *   **State Propagation:** Results from server actions are received in `main-tab-content.tsx` and used to update the global state via setters from `stock-analysis-context.tsx`. UI components subscribe to this context and re-render reactively.
 
-## 3. Estimated Total Context Window Requirement
+## 3. Estimated Total Context Window Requirement (Including Documentation)
 
-The total estimated context size required to fully and accurately reason about the entire codebase is **250,000 to 350,000+ tokens**.
+The total estimated context size required to fully and accurately reason about the entire codebase, including all documentation, is **250,000 to 350,000+ tokens**.
 
 This estimation is broken down by the cognitive load and importance of different parts of the codebase:
 
@@ -81,8 +81,32 @@ This estimation is broken down by the cognitive load and importance of different
     *   **Est. LoC:** ~2,000+
     *   **Importance (Low):** These include the ShadCN UI primitives in `src/components/ui/`, utility functions, and top-level configuration files. For these, I only need to understand their existence and basic function, not their detailed implementation.
 
-### 3.1. Conclusion on Context Size
+### 3.1. Conclusion on Full Context Size
 
 The estimated context size of **250k - 350k+ tokens** is at the upper limit of what current-generation AI models can effectively handle for high-fidelity, complex reasoning tasks. This large context requirement directly contributes to the risk of "tunnel vision" and the generation of fixes based on an incomplete or imperfectly summarized understanding of the codebase.
 
 The use of the `CONTEXT_PURGE` directive is the most critical mitigation strategy, as it forces a re-evaluation of the codebase for each new task, but the inherent risk due to the project's scale remains a key factor in development.
+
+---
+
+## 4. Code-Only Context Window Requirement (Excluding Documentation)
+
+To get a clearer picture of the application's pure architectural complexity, this second audit estimates the context window required for only the codebase files, excluding all narrative documentation (`.md` files).
+
+**Estimated Code-Only Context Window: 175,000 - 225,000 tokens**
+
+Even after removing documentation, the core application logic remains substantial. The breakdown of cognitive load is as follows:
+
+1.  **Tier 1: Critical Core Logic (Highest):** This tier is unchanged and includes the essential files: `stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`.
+
+2.  **Tier 2: Primary Actions, Flows & Schemas (High):** This tier remains unchanged, covering all files in `src/actions/`, `src/ai/flows/`, and `src/ai/schemas/`.
+
+3.  **Tier 3: UI Display & Core Components (Medium):** This tier includes all primary UI components in `src/components/`, excluding the primitives.
+
+4.  **Tier 4: AI Prompt Definitions & Configurations (Medium-Low):** This tier is now refined to include only active configuration files, such as the `.json` prompt definitions and config files like `genkit.ts`, `next.config.ts`, etc.
+
+5.  **Tier 5: Boilerplate & UI Primitives (Low):** This tier remains the same, covering `src/components/ui/` and utility files.
+
+### 4.1. Conclusion on Code-Only Context Size
+
+While the reduction to **175k - 225k tokens** is significant, it confirms that the application's *architectural complexity* is the primary driver of the high context requirement. This size is still extremely large for high-reasoning tasks, reinforcing the importance of our strict development protocols and the use of the `CONTEXT_PURGE` directive to mitigate the risk of AI-induced errors.
