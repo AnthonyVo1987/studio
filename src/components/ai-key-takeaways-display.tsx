@@ -63,14 +63,14 @@ const categoryLabels: Record<TakeawayCategory, string> = {
   patterns: "Patterns",
 };
 
-const getTickerFromSnapshot = (snapshotJson: string, logDebugFn: Function, compName: string): string => {
+const getTickerFromSnapshot = (snapshotJson: string): string => {
   try {
     if (snapshotJson && snapshotJson !== '{}' && !snapshotJson.includes('"status":') && !snapshotJson.includes('"error":')) {
       const snapshotData = JSON.parse(snapshotJson) as StockSnapshotData;
       return snapshotData?.ticker?.toUpperCase() || "STOCK";
     }
   } catch (e) {
-    logDebugFn(compName, "GetTickerError", "Failed to parse stockSnapshotJson for ticker", e);
+    console.error("Failed to parse stockSnapshotJson for ticker", e);
   }
   return "STOCK";
 };
@@ -86,7 +86,6 @@ export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
   const componentName = 'AiKeyTakeawaysDisplay';
-  const prevJsonRef = useRef<string | null>(null);
 
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
@@ -96,12 +95,6 @@ export function AiKeyTakeawaysDisplay() {
   
   useEffect(() => {
     const currentJson = aiKeyTakeawaysJson;
-    if (currentJson !== prevJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "aiKeyTakeawaysJson prop changed. New Length:", currentJson?.length);
-      prevJsonRef.current = currentJson;
-    } else {
-      return;
-    }
 
     let newIsLoading = true;
     let newIsError = false;
@@ -112,11 +105,9 @@ export function AiKeyTakeawaysDisplay() {
     if (!currentJson || currentJson === '{}') {
       newIsLoading = false;
       newErrorMsg = "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
-      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
     } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
       newIsLoading = true;
       newErrorMsg = "Loading AI Key Takeaways...";
-      logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
     } else {
       try {
         const parsedJson = JSON.parse(currentJson);
@@ -124,7 +115,6 @@ export function AiKeyTakeawaysDisplay() {
           newIsLoading = false;
           newIsError = true;
           newErrorMsg = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
-          logDebug(componentName, "StateUpdate:DataErrorDirect", newErrorMsg);
         } else if (parsedJson.status === 'error' || parsedJson.status === 'skipped') {
           newIsLoading = false;
           newIsError = true;
@@ -133,7 +123,6 @@ export function AiKeyTakeawaysDisplay() {
           } else { 
             newErrorMsg = parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
           }
-          logDebug(componentName, "StateUpdate:DataErrorStatus", `Status: ${parsedJson.status}. Message: ${newErrorMsg}`);
         } else if (parsedJson && typeof parsedJson === 'object' && parsedJson.priceAction && parsedJson.trend && parsedJson.volatility && parsedJson.momentum && parsedJson.patterns) {
           newIsLoading = false;
           newIsError = false;
@@ -147,19 +136,16 @@ export function AiKeyTakeawaysDisplay() {
               badgeSentimentClass: getSemanticBadgeClass(parsedJson[key]?.sentiment)
           }));
           newErrorMsg = ""; // Clear error on success
-          logDebug(componentName, "DataParsed", "Successfully parsed aiKeyTakeawaysJson. Display items:", newDisplayTakeaways.length);
         } else {
           newIsLoading = false;
           newIsError = true;
           newErrorMsg = "AI Key Takeaways data is malformed or incomplete.";
-          logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
         }
       } catch (e) {
         console.error(`[${componentName}] Failed to parse aiKeyTakeawaysJson:`, e, "JSON:", currentJson.substring(0,200));
         newIsLoading = false;
         newIsError = true;
         newErrorMsg = "Failed to parse AI Key Takeaways data.";
-        logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg, e);
       }
     }
 
@@ -169,10 +155,10 @@ export function AiKeyTakeawaysDisplay() {
     setParsedTakeawaysDataState(newParsedData);
     setDisplayTakeawaysState(newDisplayTakeaways);
 
-  }, [aiKeyTakeawaysJson, logDebug]);
+  }, [aiKeyTakeawaysJson]);
 
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedTakeawaysDataState && Object.keys(parsedTakeawaysDataState).length > 0;
-  const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug, componentName);
+  const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
 
   const handleExport = () => {
     logDebug(componentName, `ExportAction`, `Attempting to export takeaways as JSON for ${currentTicker}`);

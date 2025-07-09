@@ -47,9 +47,8 @@ const PENDING_STATUS_JSON_VARIANTS = [
 ];
 
 export function StockSnapshotDetailsDisplay() {
-  const { stockSnapshotJson, logDebug } = useStockAnalysis();
+  const { stockSnapshotJson } = useStockAnalysis();
   const componentName = 'StockSnapshotDetailsDisplay';
-  const prevJsonRef = useRef<string | null>(null);
 
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
@@ -59,12 +58,6 @@ export function StockSnapshotDetailsDisplay() {
 
   useEffect(() => {
     const currentJson = stockSnapshotJson;
-    if (currentJson !== prevJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "stockSnapshotJson prop changed. New Length:", currentJson?.length);
-      prevJsonRef.current = currentJson;
-    } else {
-      return;
-    }
 
     let newIsLoading = true;
     let newIsError = false;
@@ -76,7 +69,6 @@ export function StockSnapshotDetailsDisplay() {
       if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
         newIsLoading = true;
         newErrorMsg = "Loading snapshot details...";
-        logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
       } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
         newIsLoading = false;
         newIsError = true;
@@ -85,7 +77,6 @@ export function StockSnapshotDetailsDisplay() {
         } else {
           newErrorMsg = "Error loading snapshot data.";
         }
-        logDebug(componentName, "StateUpdate:ErrorOrSkipped", newErrorMsg);
       } else {
         try {
           const data = JSON.parse(currentJson) as StockSnapshotData;
@@ -93,7 +84,6 @@ export function StockSnapshotDetailsDisplay() {
             newIsLoading = false;
             newIsError = false;
             newParsedSnapshotData = data;
-            logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Ticker:", newParsedSnapshotData.ticker);
 
             const change = newParsedSnapshotData.todaysChange ?? 0;
             const changePerc = newParsedSnapshotData.todaysChangePerc ?? null;
@@ -125,20 +115,17 @@ export function StockSnapshotDetailsDisplay() {
             newIsLoading = false;
             newIsError = true;
             newErrorMsg = "Snapshot data malformed for details display.";
-            logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
           }
         } catch (e) {
           console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e, "JSON:", currentJson.substring(0,200));
           newIsLoading = false;
           newIsError = true;
           newErrorMsg = "Failed to parse snapshot data for details display.";
-          logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg);
         }
       }
     } else {
       newIsLoading = false;
       newErrorMsg = "No snapshot data available for details display.";
-      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
     }
 
     setIsLoadingState(newIsLoading);
@@ -147,7 +134,7 @@ export function StockSnapshotDetailsDisplay() {
     setDetailsState(newDetails);
     setParsedSnapshotDataState(newParsedSnapshotData);
 
-  }, [stockSnapshotJson, logDebug]);
+  }, [stockSnapshotJson]);
 
   const placeholderRowCount = 10;
 

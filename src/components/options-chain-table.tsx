@@ -99,9 +99,6 @@ export function OptionsChainTable({
 
   const { logDebug } = globalContext;
 
-  const prevOptionsJsonRef = useRef<string | null>(null);
-  const prevSnapshotJsonRef = useRef<string | null>(null);
-
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
   const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState("Options data failed to load.");
@@ -115,23 +112,6 @@ export function OptionsChainTable({
   useEffect(() => {
     const currentOptionsJson = optionsChainJson;
     const currentSnapshotJson = stockSnapshotJson;
-    let optionsChanged = false;
-    let snapshotChanged = false;
-
-    if (currentOptionsJson !== prevOptionsJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "optionsChainJson prop changed. New Length:", currentOptionsJson?.length);
-      prevOptionsJsonRef.current = currentOptionsJson;
-      optionsChanged = true;
-    }
-    if (currentSnapshotJson !== prevSnapshotJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "stockSnapshotJson prop changed. New Length:", currentSnapshotJson?.length);
-      prevSnapshotJsonRef.current = currentSnapshotJson;
-      snapshotChanged = true;
-    }
-
-    if (!optionsChanged && !snapshotChanged) {
-      return; 
-    }
 
     let newIsLoading = isLoadingState;
     let newIsError = isErrorState;
@@ -139,68 +119,60 @@ export function OptionsChainTable({
     let newParsedData = parsedDataState;
     let newCurrentPriceForATM = currentPriceForATMState;
 
-    if (optionsChanged) {
+    // Process options data if it changed
+    newIsLoading = true;
+    newIsError = false;
+    newErrorMsg = "Options data failed to load.";
+    newParsedData = null;
+
+    if (!currentOptionsJson || currentOptionsJson === '{}') {
+        newIsLoading = false;
+        newErrorMsg = "No options chain data. This data is fetched with 'Analyze Stock'.";
+    } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentOptionsJson.trim())) {
         newIsLoading = true;
-        newIsError = false;
-        newErrorMsg = "Options data failed to load.";
-        newParsedData = null;
-
-        if (!currentOptionsJson || currentOptionsJson === '{}') {
+        newErrorMsg = "Loading options chain...";
+    } else if (currentOptionsJson.includes('"status": "error"') || currentOptionsJson.includes('"error":')) {
+        newIsLoading = false;
+        newIsError = true;
+        try {
+            const statusObj = JSON.parse(currentOptionsJson);
+            newErrorMsg = statusObj.message || statusObj.error || "Error loading options data.";
+        } catch(e) { newErrorMsg = "Error loading options data (malformed error JSON)."; }
+    } else if (currentOptionsJson.includes('"status": "skipped"')) {
+        newIsLoading = false;
+        newIsError = true;
+        try {
+            const statusObj = JSON.parse(currentOptionsJson);
+            newErrorMsg = statusObj.message || "Options data loading was skipped.";
+        } catch(e) { newErrorMsg = "Options data loading was skipped (malformed skipped JSON)."; }
+    } else {
+        try {
+        const data = JSON.parse(currentOptionsJson) as OptionsChainData;
+        if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
             newIsLoading = false;
-            newErrorMsg = "No options chain data. This data is fetched with 'Analyze Stock'.";
-            logDebug(componentName, "OptionsStateUpdate:NoData", newErrorMsg);
-        } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentOptionsJson.trim())) {
-            newIsLoading = true;
-            newErrorMsg = "Loading options chain...";
-            logDebug(componentName, "OptionsStateUpdate:Loading", newErrorMsg);
-        } else if (currentOptionsJson.includes('"status": "error"') || currentOptionsJson.includes('"error":')) {
-            newIsLoading = false;
-            newIsError = true;
-            try {
-                const statusObj = JSON.parse(currentOptionsJson);
-                newErrorMsg = statusObj.message || statusObj.error || "Error loading options data.";
-            } catch(e) { newErrorMsg = "Error loading options data (malformed error JSON)."; }
-            logDebug(componentName, "OptionsStateUpdate:Error", newErrorMsg);
-        } else if (currentOptionsJson.includes('"status": "skipped"')) {
-            newIsLoading = false;
-            newIsError = true;
-            try {
-                const statusObj = JSON.parse(currentOptionsJson);
-                newErrorMsg = statusObj.message || "Options data loading was skipped.";
-            } catch(e) { newErrorMsg = "Options data loading was skipped (malformed skipped JSON)."; }
-            logDebug(componentName, "OptionsStateUpdate:Skipped", newErrorMsg);
+            newIsError = false;
+            newParsedData = data;
+            newErrorMsg = ""; 
         } else {
-            try {
-            const data = JSON.parse(currentOptionsJson) as OptionsChainData;
-            if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
-                newIsLoading = false;
-                newIsError = false;
-                newParsedData = data;
-                newErrorMsg = ""; 
-                logDebug(componentName, "OptionsDataParsed", "Successfully parsed optionsChainJson. Contracts:", newParsedData.contracts?.length);
-            } else {
-                newIsLoading = false;
-                newIsError = true;
-                newErrorMsg = "Options data is malformed or incomplete.";
-                logDebug(componentName, "OptionsStateUpdate:Malformed", newErrorMsg);
-            }
-            } catch (e) {
-            console.error(`[${componentName}] Failed to parse optionsChainJson:`, e, "JSON:", currentOptionsJson.substring(0,200));
             newIsLoading = false;
             newIsError = true;
-            newErrorMsg = "Failed to parse options data.";
-            logDebug(componentName, "OptionsStateUpdate:ParseFailed", newErrorMsg);
-            }
+            newErrorMsg = "Options data is malformed or incomplete.";
         }
-        setParsedDataState(newParsedData);
+        } catch (e) {
+        console.error(`[${componentName}] Failed to parse optionsChainJson:`, e, "JSON:", currentOptionsJson.substring(0,200));
+        newIsLoading = false;
+        newIsError = true;
+        newErrorMsg = "Failed to parse options data.";
+        }
     }
+    setParsedDataState(newParsedData);
 
-    if (snapshotChanged && currentSnapshotJson && currentSnapshotJson !== '{}') {
+    // Process snapshot data if it changed
+    if (currentSnapshotJson && currentSnapshotJson !== '{}') {
         try {
           if (!PENDING_STATUS_JSON_VARIANTS.includes(currentSnapshotJson.trim()) && !currentSnapshotJson.includes('"status":') && !currentSnapshotJson.includes('"error":')) {
             const parsedSnapshotData = JSON.parse(currentSnapshotJson) as StockSnapshotData;
             newCurrentPriceForATM = parsedSnapshotData?.currentPrice ?? parsedSnapshotData?.day?.c ?? null;
-            logDebug(componentName, "SnapshotPriceUpdate", "Current price for ATM calculation:", newCurrentPriceForATM);
           } else {
             newCurrentPriceForATM = null; 
           }
@@ -217,7 +189,6 @@ export function OptionsChainTable({
 
     if (priceToUseForAtm === null && newParsedData?.underlying_price) {
         priceToUseForAtm = newParsedData.underlying_price;
-        logDebug(componentName, "AtmPriceFallback", `Using underlying_price from options data for ATM: ${priceToUseForAtm}`);
     }
 
     if (priceToUseForAtm !== null && finalContracts.length > 0) {
@@ -231,7 +202,7 @@ export function OptionsChainTable({
     setIsErrorState(newIsError);
     setErrorOrSkippedMessageState(newErrorMsg);
 
-  }, [optionsChainJson, stockSnapshotJson, logDebug]);
+  }, [optionsChainJson, stockSnapshotJson]);
 
   const displayTicker = parsedDataState?.ticker || (isLoadingState ? "" : "N/A");
   const displayExpirationDate = parsedDataState?.expiration_date ? formatDisplayDate(parsedDataState.expiration_date) : (isLoadingState ? "" : "N/A");

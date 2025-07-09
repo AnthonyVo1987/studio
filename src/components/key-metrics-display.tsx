@@ -87,9 +87,8 @@ const PENDING_STATUS_JSON_VARIANTS = [
 ];
 
 export function KeyMetricsDisplay() {
-  const { stockSnapshotJson, logDebug } = useStockAnalysis();
+  const { stockSnapshotJson } = useStockAnalysis();
   const componentName = 'KeyMetricsDisplay';
-  const prevJsonRef = useRef<string | null>(null);
 
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
@@ -100,12 +99,6 @@ export function KeyMetricsDisplay() {
   
   useEffect(() => {
     const currentJson = stockSnapshotJson;
-    if (currentJson !== prevJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "stockSnapshotJson prop changed. New Length:", currentJson?.length);
-      prevJsonRef.current = currentJson;
-    } else {
-      return; 
-    }
 
     let newIsLoading = true;
     let newIsError = false;
@@ -119,12 +112,10 @@ export function KeyMetricsDisplay() {
       if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
         newIsLoading = true;
         errorMsg = "Loading key metrics...";
-        logDebug(componentName, "StateUpdate:Loading", errorMsg);
       } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
         newIsLoading = false;
         newIsError = true;
         errorMsg = "Error loading snapshot data for metrics.";
-        logDebug(componentName, "StateUpdate:ErrorOrSkipped", errorMsg);
       } else {
         try {
           const snapshot = JSON.parse(currentJson) as StockSnapshotData;
@@ -140,25 +131,21 @@ export function KeyMetricsDisplay() {
               if (newTodaysChangePerc > 0) newDayChangeSentiment = 'bullish';
               else if (newTodaysChangePerc < 0) newDayChangeSentiment = 'bearish';
             }
-            logDebug(componentName, "DataParsed", "Successfully parsed stockSnapshotJson. Ticker:", newTickerDisplay);
           } else {
             newIsLoading = false;
             newIsError = true;
             errorMsg = "Snapshot data malformed for metrics.";
-            logDebug(componentName, "StateUpdate:Malformed", errorMsg);
           }
         } catch (e) {
           console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e, "JSON:", currentJson.substring(0,200));
           newIsLoading = false;
           newIsError = true;
           errorMsg = "Failed to parse snapshot data for metrics.";
-          logDebug(componentName, "StateUpdate:ParseFailed", errorMsg);
         }
       }
     } else {
       newIsLoading = false; // No JSON means not loading, just default/empty state
       errorMsg = "No snapshot data available for metrics.";
-      logDebug(componentName, "StateUpdate:NoData", errorMsg);
     }
     
     setIsLoadingState(newIsLoading);
@@ -168,7 +155,7 @@ export function KeyMetricsDisplay() {
     setTodaysChangePercState(newTodaysChangePerc);
     setDayChangeSentimentState(newDayChangeSentiment);
 
-  }, [stockSnapshotJson, logDebug]);
+  }, [stockSnapshotJson]);
   
   const displayValueForDayChange = isLoadingState ? "Loading..." : (isErrorState || todaysChangePercState === null ? "N/A" : formatPercentage(todaysChangePercState, "N/A", true, 2));
 

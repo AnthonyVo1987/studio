@@ -54,9 +54,8 @@ const PENDING_STATUS_JSON_VARIANTS = [
 ];
 
 export function StandardTaDisplay() {
-  const { standardTasJson, logDebug } = useStockAnalysis();
+  const { standardTasJson } = useStockAnalysis();
   const componentName = 'StandardTaDisplay';
-  const prevJsonRef = useRef<string | null>(null);
 
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
@@ -65,12 +64,6 @@ export function StandardTaDisplay() {
 
   useEffect(() => {
     const currentJson = standardTasJson;
-    if (currentJson !== prevJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "standardTasJson prop changed. New Length:", currentJson?.length);
-      prevJsonRef.current = currentJson;
-    } else {
-      return;
-    }
 
     let newIsLoading = true;
     let newIsError = false;
@@ -81,7 +74,6 @@ export function StandardTaDisplay() {
       if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
         newIsLoading = true;
         newErrorMsg = "Loading standard TAs...";
-        logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
       } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
         newIsLoading = false;
         newIsError = true;
@@ -94,7 +86,6 @@ export function StandardTaDisplay() {
             if (tempData.error) newErrorMsg = tempData.error;
           } catch(e) { /* Ignore parse error for error message itself */ }
         }
-        logDebug(componentName, "StateUpdate:ErrorOrSkipped", newErrorMsg);
       } else {
         try {
           const data = JSON.parse(currentJson) as TechnicalIndicatorsData;
@@ -102,30 +93,25 @@ export function StandardTaDisplay() {
             newIsLoading = false;
             newIsError = false;
             newParsedData = data;
-            logDebug(componentName, "DataParsed", "Successfully parsed standardTasJson. Keys:", Object.keys(newParsedData));
           } else if (data && data.error) {
             newIsLoading = false;
             newIsError = true;
             newErrorMsg = data.error;
-            logDebug(componentName, "StateUpdate:DataErrorField", newErrorMsg);
           } else {
             newIsLoading = false;
             newIsError = true;
             newErrorMsg = "Standard TA data is malformed or incomplete.";
-            logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
           }
         } catch (e) {
           console.error(`[${componentName}] Failed to parse standardTasJson:`, e, "JSON:", currentJson.substring(0,200));
           newIsLoading = false;
           newIsError = true;
           newErrorMsg = "Failed to parse standard TA data.";
-          logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg);
         }
       }
     } else {
       newIsLoading = false;
       newErrorMsg = "No standard TA data to display.";
-      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
     }
 
     setIsLoadingState(newIsLoading);
@@ -133,7 +119,7 @@ export function StandardTaDisplay() {
     setErrorOrSkippedMessageState(newErrorMsg);
     setParsedTaDataState(newParsedData);
 
-  }, [standardTasJson, logDebug]);
+  }, [standardTasJson]);
   
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';

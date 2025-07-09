@@ -15,14 +15,14 @@ import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { formatCurrency, formatCompactNumber } from "@/lib/number-utils";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 
-const getTickerFromSnapshot = (snapshotJson: string, logDebugFn: Function, compName: string): string => {
+const getTickerFromSnapshot = (snapshotJson: string): string => {
   try {
     if (snapshotJson && snapshotJson !== '{}' && !snapshotJson.includes('"status":') && !snapshotJson.includes('"error":')) {
       const snapshotData = JSON.parse(snapshotJson) as StockSnapshotData;
       return snapshotData?.ticker?.toUpperCase() || "STOCK";
     }
   } catch (e) {
-    logDebugFn(compName, "GetTickerError", "Failed to parse stockSnapshotJson for ticker", e);
+    console.error("Failed to parse stockSnapshotJson for ticker", e);
   }
   return "STOCK";
 };
@@ -38,7 +38,6 @@ export function AiOptionsAnalysisDisplay() {
   const { aiOptionsAnalysisJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
   const componentName = 'AiOptionsAnalysisDisplay';
-  const prevJsonRef = useRef<string | null>(null);
 
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
@@ -47,12 +46,6 @@ export function AiOptionsAnalysisDisplay() {
 
   useEffect(() => {
     const currentJson = aiOptionsAnalysisJson;
-    if (currentJson !== prevJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "aiOptionsAnalysisJson prop changed. New Length:", currentJson?.length);
-      prevJsonRef.current = currentJson;
-    } else {
-      return;
-    }
 
     let newIsLoading = true;
     let newIsError = false;
@@ -62,11 +55,9 @@ export function AiOptionsAnalysisDisplay() {
     if (!currentJson || currentJson === '{}') {
       newIsLoading = false;
       newErrorMsg = "No AI Options Analysis data. Ensure options chain was processed by AI.";
-      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
     } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
       newIsLoading = true;
       newErrorMsg = "Loading AI Options Analysis...";
-      logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
     } else {
       try {
         const parsedJson = JSON.parse(currentJson);
@@ -74,7 +65,6 @@ export function AiOptionsAnalysisDisplay() {
           newIsLoading = false;
           newIsError = true;
           newErrorMsg = parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
-          logDebug(componentName, "StateUpdate:DataErrorDirect", newErrorMsg);
         } else if (parsedJson.status === 'error' || parsedJson.status === 'skipped') {
           newIsLoading = false;
           newIsError = true;
@@ -83,25 +73,21 @@ export function AiOptionsAnalysisDisplay() {
           } else { 
             newErrorMsg = parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
           }
-          logDebug(componentName, "StateUpdate:DataErrorStatus", `Status: ${parsedJson.status}. Message: ${newErrorMsg}`);
         } else if (typeof parsedJson === 'object' && parsedJson !== null && Array.isArray(parsedJson.callWalls) && Array.isArray(parsedJson.putWalls)) {
           newIsLoading = false;
           newIsError = false;
           newParsedData = parsedJson as AiOptionsAnalysisOutput;
           newErrorMsg = null;
-          logDebug(componentName, "DataParsed", "Successfully parsed aiOptionsAnalysisJson. CallWalls:", newParsedData.callWalls.length, "PutWalls:", newParsedData.putWalls.length);
         } else {
           newIsLoading = false;
           newIsError = true;
           newErrorMsg = "AI Options Analysis data is malformed or incomplete.";
-          logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
         }
       } catch (e) {
         console.error(`[${componentName}] Failed to parse aiOptionsAnalysisJson:`, e, "JSON:", currentJson.substring(0,200));
         newIsLoading = false;
         newIsError = true;
         newErrorMsg = "Failed to parse AI Options Analysis data.";
-        logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg);
       }
     }
     
@@ -110,9 +96,9 @@ export function AiOptionsAnalysisDisplay() {
     setErrorMessageForDisplayState(newErrorMsg);
     setParsedDataState(newParsedData);
 
-  }, [aiOptionsAnalysisJson, logDebug]);
+  }, [aiOptionsAnalysisJson]);
 
-  const currentTicker = getTickerFromSnapshot(stockSnapshotJson, logDebug, componentName);
+  const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedDataState &&
     ( (parsedDataState.callWalls && parsedDataState.callWalls.length > 0) ||
       (parsedDataState.putWalls && parsedDataState.putWalls.length > 0)

@@ -42,7 +42,6 @@ const PENDING_STATUS_JSON_VARIANTS = [
 export function AiAnalyzedTaDisplay() { 
   const { aiAnalyzedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis(); 
   const componentName = 'AiAnalyzedTaDisplay';
-  const prevJsonRef = useRef<string | null>(null);
 
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
@@ -52,12 +51,6 @@ export function AiAnalyzedTaDisplay() {
 
   useEffect(() => {
     const currentJson = aiAnalyzedTaJson;
-    if (currentJson !== prevJsonRef.current) {
-      logDebug(componentName, "PropsReceived", "aiAnalyzedTaJson prop changed. New Length:", currentJson?.length);
-      prevJsonRef.current = currentJson;
-    } else {
-      return;
-    }
     
     let newIsLoading = true;
     let newIsError = false;
@@ -67,11 +60,9 @@ export function AiAnalyzedTaDisplay() {
     if (!currentJson || currentJson === '{}') {
       newIsLoading = false; 
       newErrorMsg = "No AI Analyzed TA data. Ensure stock data was fetched and AI TA processed.";
-      logDebug(componentName, "StateUpdate:NoData", newErrorMsg);
     } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
       newIsLoading = true;
       newErrorMsg = "Loading AI Analyzed TA...";
-      logDebug(componentName, "StateUpdate:Loading", newErrorMsg);
     } else if (currentJson.includes('"status": "error"') || currentJson.includes('"error":')) {
       newIsLoading = false;
       newIsError = true;
@@ -81,7 +72,6 @@ export function AiAnalyzedTaDisplay() {
       } catch (e) {
         newErrorMsg = "Error loading AI Analyzed TA (malformed error JSON).";
       }
-      logDebug(componentName, "StateUpdate:Error", newErrorMsg);
     } else if (currentJson.includes('"status": "skipped"')) {
       newIsLoading = false;
       newIsError = true; // Treat skipped as an error for display
@@ -91,7 +81,6 @@ export function AiAnalyzedTaDisplay() {
       } catch (e) {
         newErrorMsg = "AI Analyzed TA was skipped (malformed skipped JSON).";
       }
-      logDebug(componentName, "StateUpdate:Skipped", newErrorMsg);
     } else {
       try {
         const data = JSON.parse(currentJson) as AnalyzeTaOutput;
@@ -100,19 +89,16 @@ export function AiAnalyzedTaDisplay() {
           newIsError = false;
           newParsedData = data;
           newErrorMsg = ""; // Clear error message on successful parse
-          logDebug(componentName, "DataParsed", "Successfully parsed aiAnalyzedTaJson. Keys:", Object.keys(newParsedData));
         } else {
           newIsLoading = false;
           newIsError = true;
           newErrorMsg = "AI Analyzed TA data is malformed or incomplete.";
-          logDebug(componentName, "StateUpdate:Malformed", newErrorMsg);
         }
       } catch (e) {
         console.error(`[${componentName}] Failed to parse aiAnalyzedTaJson:`, e, "JSON:", currentJson.substring(0,200));
         newIsLoading = false;
         newIsError = true;
         newErrorMsg = "Failed to parse AI Analyzed TA data.";
-        logDebug(componentName, "StateUpdate:ParseFailed", newErrorMsg);
       }
     }
     
@@ -121,7 +107,7 @@ export function AiAnalyzedTaDisplay() {
     setErrorOrSkippedMessageState(newErrorMsg);
     setParsedTaDataState(newParsedData);
 
-  }, [aiAnalyzedTaJson, logDebug]);
+  }, [aiAnalyzedTaJson]);
 
   useEffect(() => {
     // Effect for current price, separate from TA data processing
@@ -140,13 +126,13 @@ export function AiAnalyzedTaDisplay() {
            setCurrentPriceState(null);
         }
       } catch (e) {
-        logDebug(componentName, "ParseStockSnapshotError", "Failed to parse stockSnapshotJson for current price:", e);
+        console.error(`[${componentName}] Failed to parse stockSnapshotJson for current price:`, e);
         setCurrentPriceState(null);
       }
     } else if (isLoadingState || isErrorState || !parsedTaDataState) {
         setCurrentPriceState(null); // Reset if TA data is not ready
     }
-  }, [isLoadingState, isErrorState, parsedTaDataState, stockSnapshotJson, logDebug]);
+  }, [isLoadingState, isErrorState, parsedTaDataState, stockSnapshotJson]);
 
   return (
     <Card>
