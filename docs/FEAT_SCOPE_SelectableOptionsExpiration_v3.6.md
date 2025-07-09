@@ -1,7 +1,7 @@
 # Feature Scope: Single Selectable Options Expiration (v3.6)
 
-**Document Version:** 1.2
-**Date:** 2025-08-23
+**Document Version:** 2.0
+**Date:** 2025-08-27
 **Target Application Version Series:** 3.6.x.y.z
 **Feature Status:** `AWAITING FINAL TESTING`
 
@@ -9,7 +9,7 @@
 
 This document outlines the scope for implementing a selectable options expiration date feature. The primary objective is to allow users to fetch and view options chain data for any valid expiration date, not just a system-guessed default.
 
-To ensure stability, this feature was first developed in an isolated staging environment and is now **fully integrated into the main application tab and its analysis pipeline**.
+To ensure stability, this feature was first developed in an isolated staging environment and is now **fully integrated into the main application tab and its analysis pipeline**. All known implementation and state management bugs have been resolved.
 
 ## 2. Core Concept & High-Level Plan
 
@@ -56,15 +56,21 @@ To ensure stability, this feature was first developed in an isolated staging env
     *   **v3.6.4.14:** Updated data-fetching layer (action & adapter) to accept options. (`COMPLETED`)
     *   **v3.6.4.15:** Integrated user selections into the main pipeline trigger. (`COMPLETED`)
     *   **v3.6.4.16:** Centralized startup logic to fetch expirations automatically. (`COMPLETED`)
-    *   **v3.6.4.17:** Made data fetching "intelligent" by removing hardcoded Friday logic. (`COMPLETED`)
-    *   **v3.6.4.18:** Implemented stale context detection to handle ticker changes correctly. (`COMPLETED`)
+    *   **v3.6.4.17:** Made Data Fetching "Intelligent". (`COMPLETED`)
+    *   **v3.6.4.18:** Implemented Stale Context Detection & Correction. (`COMPLETED`)
 
-### Phase 3: Final Testing & Validation
+### Phase 3: Final Debugging & Stabilization
+*   **Status:** `COMPLETED`
+*   **Tasks:**
+    *   **v3.6.4.19:** Fix incorrect pipeline logic for options selection. (`COMPLETED`)
+    *   **v3.6.4.20 - v3.6.4.21:** Resolve recurring bug where expiration date state is wiped on initial analysis. (`COMPLETED`)
+    *   **v3.6.4.22:** Fix critical bug in console logging system that was hiding debug information. (`COMPLETED`)
+
+### Phase 4: Final Testing & Validation
 *   **Status:** `PLANNED`
 
 ## 5. Document Changelog
+*   **v2.0 (2025-08-27):** Updated document to reflect the full integration and stabilization of the feature. Status changed to `AWAITING FINAL TESTING`. All implementation and debugging tasks marked as complete.
 *   **v1.2 (2025-08-23):** Updated document to reflect the full integration of the feature. Status changed to `AWAITING FINAL TESTING`.
 *   **v1.1 (2025-08-20):** Marked staging implementation as complete.
 *   **v1.0 (2025-08-15):** Initial document creation for staging feature.
-
-    

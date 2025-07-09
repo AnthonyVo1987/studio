@@ -31,9 +31,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.11
-**Application Version (from `app-metadata.json`):** v3.6.4.18
-**Last Updated:** 2025-08-23
+**README Document Version:** 3.12
+**Application Version (from `app-metadata.json`):** v3.6.4.22
+**Last Updated:** 2025-08-27
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -68,7 +68,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Display detailed stock snapshot data including open, high, low, close, volume, VWAP for current and previous day.
 *   Implement robust error handling for API failures.
 
-#### 3.1.2. Options Chain Display
+#### 3.1.2. Options Chain Display & Configuration
 *   **Dynamic & Intelligent Fetching:** The application provides a user-configurable options analysis experience.
 *   **Intelligent Default:** On startup, the app automatically fetches all available expiration dates for the default ticker and pre-selects the next available date. This replaces the old hardcoded "next Friday" logic.
 *   **User Controls:** The "Options Chain Settings" card allows the user to manually fetch all expirations for a ticker and select a specific date. Users can also configure the Option Type (Calls/Puts/Both), Strike Count, and Table Display Format.
@@ -173,14 +173,14 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ### 3.4. Error Handling & Logging
 *   **Error Handling:** `try...catch` in Server Actions and AI Flows.
-*   **Logging System:** `logDebug()` for client-side, `console.*` for server-side.
+*   **Logging System:** `logDebug()` for client-side, `console.*` for server-side. The in-app consoles are now reliable after the `v3.6.4.22` logging system fix.
 *   **Debug Console (New Tab System):** Two dedicated tabs display logs: "Client Debug Trace Logs" (curated) and "Console Logs" (raw). Both feature filtering, search, and a 2000-entry buffer.
 
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.4.18):**
-    *   **"Single Selectable Options Expiration":** Full implementation and integration are complete. The feature is now pending final testing and validation.
+*   **Current Feature Focus (as of v3.6.4.22):**
+    *   **"Single Selectable Options Expiration":** Full implementation, integration, and stabilization are complete. The feature is now pending final comprehensive testing.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -230,8 +230,8 @@ npm run start
 ---
 
 ## 5. Change History & Versioning
-*   **This README Document Version:** 3.11
-*   **Current Application Version:** `v3.6.4.18`
+*   **This README Document Version:** 3.12
+*   **Current Application Version:** `v3.6.4.22`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
@@ -252,5 +252,3 @@ This section serves as a permanent record of critical architectural lessons lear
 ### 6.3. The UI Must be Driven by Control State, Not Data Content
 *   **Failure (v3.5, part 2):** A subsequent debugging attempt revealed that the data display components (e.g., `AiKeyTakeawaysDisplay`) were deriving their loading state by parsing the content of their data props (e.g., looking for `"{ \"status\": \"pending...\" }"`).
 *   **Lesson Learned:** This is an architectural flaw. React may batch state updates, meaning the component might only render once with the final data, skipping all intermediate loading states. **UI components MUST derive their loading/error state from the global FSM `fsmState` variable**, not from parsing data content. This ensures they are always in sync with the application's true control state.
-
-    

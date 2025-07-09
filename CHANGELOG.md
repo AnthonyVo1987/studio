@@ -58,6 +58,26 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.4.22` (Checkpoint & Document Feature Completion)
+**Tag:** `Phase-69_Task-3.6.4.22_DocsCommit`
+**Commit Hash:** `5c76c7e4`
+**Subject:** `feat(docs,core): Checkpoint v3.6.4.22, document completion of Selectable Options feature`
+**Details:**
+This commit is a **documentation-only checkpoint** that consolidates the full implementation, integration, and debugging of the **"Single Selectable Options Expiration"** feature (`v3.6.x.y.z`). This brings all project documentation (`README.md`, `CHANGELOG.md`, `FEAT_*.md`) into alignment with the application's current, stable, and feature-complete state, preparing it for a final testing phase.
+
+**Key Architectural Changes, Fixes, and Enhancements Completed (v3.6.1.0 - v3.6.4.22):**
+*   **Isolated Build (`v3.6.1.0 - v3.6.4.12`):** The feature was initially developed and validated in an isolated "Staging: Options" tab to prevent disruption to the main application.
+*   **Full UI Integration (`v3.6.4.13`):** All options-related controls (expiration date, option type, strike count) were moved from the staging tab directly into the main application tab, creating a unified user experience.
+*   **Intelligent & Dynamic Pipeline (`v3.6.4.14 - v3.6.4.17`):** The application's core data pipeline was refactored. It now intelligently fetches all available expiration dates on startup, defaults to the next valid date (eliminating hardcoded "next Friday" logic), and dynamically uses the user's settings for all data fetching and AI analysis.
+*   **State Management Bug Fixes (`v3.6.4.18 - v3.6.4.21`):** A series of critical bugs related to state management were resolved:
+    *   Fixed a bug where changing the ticker would not clear a stale expiration date (`v3.6.4.18`).
+    *   Fixed a recurring bug where the initial analysis run would incorrectly wipe the default expiration date state (`v3.6.4.20`, `v3.6.4.21`). The final fix involved making the state-resetting `useEffect` hook more precise, ensuring it only triggers on a legitimate change between two different tickers, not on the initial `null` -> `ticker` transition.
+*   **Logging System Fix (`v3.6.4.22`):** Resolved a critical bug where a stale closure in the console logging interceptor was preventing most logs from appearing in the in-app debug consoles after startup. This fix makes the application's own debugging tools reliable again.
+
+**Outcome:**
+*   The "Selectable Options Chain" feature is now fully integrated, stable, and robust.
+*   The application is ready for **final, comprehensive end-to-end testing**.
+---
 **App Version:** `v3.6.4.18` (Complete Selectable Options Integration)
 **Tag:** `Phase-68_Task-3.6.4.18_FeatureIntegrated`
 **Commit Hash:** `4a594eab`
