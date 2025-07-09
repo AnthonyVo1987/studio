@@ -6,7 +6,6 @@ import { createContext, useContext, useState, useCallback, useEffect, useReducer
 import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
 import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
 import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
-import { addEntryToRawConsoleBuffer } from '@/lib/raw-console-log-buffer'; // Import for raw console
 import type { StockDataFetchResult, AnalyzeStockServerActionState } from '@/actions/analyze-stock-server-action';
 import type { AnalyzeTaResult, AnalyzeTaActionState } from '@/actions/analyze-ta-action';
 import type { PerformAiAnalysisResult, PerformAiAnalysisActionState } from '@/actions/perform-ai-analysis-action';
@@ -162,8 +161,6 @@ interface StockAnalysisState {
   mainTabFsmDisplay: FsmDisplayTuple | null;
   chatbotFsmDisplay: FsmDisplayTuple | null;
   debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
-  isReducedStartupLoggingEnabled: boolean;
-  isUiRenderLoggingEnabled: boolean;
   // New state for on-demand options
   availableExpirationDates: string[];
   selectedExpirationDate: string | undefined;
@@ -231,8 +228,6 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   dispatchFsmEvent: (event: FsmEvent) => void;
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
-  setReducedStartupLoggingEnabled: (enabled: boolean) => void;
-  setUiRenderLoggingEnabled: (enabled: boolean) => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -299,8 +294,6 @@ const defaultState: StockAnalysisState = {
   mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: GlobalFsmState.IDLE.toString() },
   chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
   debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
-  isReducedStartupLoggingEnabled: false,
-  isUiRenderLoggingEnabled: true,
   // New state defaults
   availableExpirationDates: [],
   selectedExpirationDate: undefined,
@@ -361,8 +354,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
   const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
   const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
-  const [_isReducedStartupLoggingEnabled, _setIsReducedStartupLoggingEnabled] = useState<boolean>(defaultState.isReducedStartupLoggingEnabled);
-  const [_isUiRenderLoggingEnabled, _setIsUiRenderLoggingEnabled] = useState<boolean>(defaultState.isUiRenderLoggingEnabled);
 
   // New states for on-demand options
   const [_availableExpirationDates, _setAvailableExpirationDates] = useState<string[]>(defaultState.availableExpirationDates);
@@ -711,7 +702,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       logDebug('StockAnalysisContext', 'TickerChangeEffect', `Active ticker changed from ${previousTicker} to ${currentTicker}. Resetting options state.`);
       resetOnDemandOptionsState();
     } else {
-       logDebug('StockAnalysisContext', 'TickerChangeEffect', `Effect ran, but conditions not met for reset. Current: ${currentTicker}, Previous: ${previousTicker}`);
+       logDebug('StockAnalysisContext', 'TickerChangeEffect_NoOp', `Effect ran, but conditions not met for reset. Current: ${currentTicker}, Previous: ${previousTicker}`);
     }
     
     previousTickerRef.current = currentTicker;
@@ -771,16 +762,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       return prevDisplay;
     });
   }, [_setChatbotFsmDisplay, logDebug]);
-
-  const setReducedStartupLoggingEnabled = useCallback((enabled: boolean) => {
-    _setIsReducedStartupLoggingEnabled(enabled);
-  }, []);
-
-  const setUiRenderLoggingEnabled = useCallback((enabled: boolean) => {
-    _setIsUiRenderLoggingEnabled(enabled);
-  }, []);
-
-
   
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
     startTransition(() => {
@@ -826,10 +807,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     targetFsmDisplayState: _targetFsmDisplayState, dispatchFsmEvent,
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
-    setReducedStartupLoggingEnabled, 
-    isReducedStartupLoggingEnabled: _isReducedStartupLoggingEnabled,
-    setUiRenderLoggingEnabled,
-    isUiRenderLoggingEnabled: _isUiRenderLoggingEnabled,
     // Expose new state and setters
     availableExpirationDates: _availableExpirationDates, setAvailableExpirationDates: contextSetters.setAvailableExpirationDates,
     selectedExpirationDate: _selectedExpirationDate, setSelectedExpirationDate: contextSetters.setSelectedExpirationDate,
@@ -857,18 +834,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
-    _isReducedStartupLoggingEnabled, setReducedStartupLoggingEnabled,
-    _isUiRenderLoggingEnabled, setUiRenderLoggingEnabled,
     _availableExpirationDates, _selectedExpirationDate, _onDemandOptionsChainRequestJson,
     _isLoadingExpirations, _isLoadingOnDemandOptions, _optionType, _strikeCount, _tableDisplayType,
     _aiKeyTakeawaysRequestJson,
   ]);
   
   useEffect(() => {
-    const logPrefix = 'StockAnalysisContext:ConsoleInterceptor';
     if (typeof window === 'undefined') { return; }
     const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
-    const isInitialLoad = globalFsmReducerState.current === GlobalFsmState.APP_INITIALIZING;
 
     const interceptAndProcessLog = (type: any, ...args: any[]) => {
       currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
@@ -876,36 +849,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       queueMicrotask(() => {
         let sourceForBuffer: LogSourceId = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
-        let typeForBuffer: LogType = type;
-
+        
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
           sourceForBuffer = args[1] as LogSourceId;
-          typeForBuffer = 'debug';
           messagesForBuffer = args.slice(2); 
         }
-
-        addEntryToRawConsoleBuffer({ type: typeForBuffer, messages: messagesForBuffer, source: sourceForBuffer });
-
-        if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
-            const category = args[2] as string;
-            const finalMessages = args.slice(3);
-            const noisyUiCategories = ['RenderState', 'PropsReceived', 'Validation'];
-            if (!_isUiRenderLoggingEnabled && noisyUiCategories.includes(category)) {
-                return; 
-            }
-            if (!_logSourceConfig[sourceForBuffer]) return;
-
-            if (isInitialLoad && _isReducedStartupLoggingEnabled) {
-                const criticalSources: LogSourceId[] = ['StockAnalysisContext', 'DefinitionLoader', 'PolygonAdapter', 'StockAnalysisContext:GlobalFSM_Orchestrator', 'StockAnalysisContext:GlobalFSM'];
-                let allowLog = criticalSources.includes(sourceForBuffer);
-                if (!allowLog && String(finalMessages[0]).startsWith('[[ORCHESTRATOR_EFFECT_ENTRY]]')) { allowLog = true; }
-                if (!allowLog) return;
-            }
-            addEntryToGlobalLogBuffer({ type: 'debug', messages: finalMessages, source: sourceForBuffer });
-        } else {
-            if (!_logSourceConfig['NATIVE_CONSOLE']) return;
-            if (isInitialLoad && _isReducedStartupLoggingEnabled && type !== 'error' && type !== 'warn') { return; }
-            addEntryToGlobalLogBuffer({ type, messages: args, source: 'NATIVE_CONSOLE' });
+        
+        if (_logSourceConfig[sourceForBuffer]) {
+            addEntryToGlobalLogBuffer({ type, messages: messagesForBuffer, source: sourceForBuffer });
         }
       });
     };
@@ -919,7 +870,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     return () => {
       if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
     };
-  }, [_logSourceConfig, contextOriginals, globalFsmReducerState.current, _isReducedStartupLoggingEnabled, _isUiRenderLoggingEnabled]);
+  }, [_logSourceConfig, contextOriginals]);
   
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
 }

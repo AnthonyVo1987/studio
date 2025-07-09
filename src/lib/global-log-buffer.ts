@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Global log buffer for client-side debug console.
  * This buffer is outside of React state to avoid re-render issues.
@@ -22,7 +23,7 @@ function generateId(): string {
 }
 
 export function addEntryToGlobalLogBuffer(entry: Omit<GlobalLogEntry, 'id' | 'timestamp'>): void {
-  // De-duplication logic moved here to fix stale closure bug.
+  // De-duplication logic
   const lastLog = globalLogEntries[globalLogEntries.length - 1];
   if (lastLog) {
       try {
@@ -31,7 +32,7 @@ export function addEntryToGlobalLogBuffer(entry: Omit<GlobalLogEntry, 'id' | 'ti
               lastLog.type === entry.type && 
               JSON.stringify(lastLog.messages) === JSON.stringify(entry.messages);
           if (isDuplicate) {
-              return; // Abort adding the duplicate log
+              return;
           }
       } catch (e) {
           // JSON.stringify can fail on complex objects, proceed with logging in that case.

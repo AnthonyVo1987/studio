@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { logSourceIds, logSourceLabels, type LogSourceId } from "@/lib/debug-log-types";
-import { Separator } from "./ui/separator";
 
 export function DebugSettingsCard() {
   const { 
@@ -15,10 +14,6 @@ export function DebugSettingsCard() {
     setLogSourceEnabled, 
     enableAllLogSources,
     disableAllLogSources,
-    isReducedStartupLoggingEnabled,
-    setReducedStartupLoggingEnabled,
-    isUiRenderLoggingEnabled,
-    setUiRenderLoggingEnabled,
     logDebug 
   } = useStockAnalysis();
 
@@ -26,62 +21,16 @@ export function DebugSettingsCard() {
     setLogSourceEnabled(source, checked);
   };
 
-  const handleStartupLogToggle = (checked: boolean) => {
-    setReducedStartupLoggingEnabled(checked);
-    logDebug('DebugSettingsCard', `Reduced startup logging toggled to: ${checked}`);
-  };
-
-  const handleUiRenderLogToggle = (checked: boolean) => {
-    setUiRenderLoggingEnabled(checked);
-    logDebug('DebugSettingsCard', `UI Render log spam toggled to: ${checked}`);
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Client Debug Log Settings</CardTitle>
         <CardDescription>
-          Configure client-side debug logging behavior.
+          Toggle specific sources of client-side debug logs. These settings only affect logs shown in the custom debug console panel below.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h4 className="text-md font-medium mb-2">General Log Controls</h4>
-          <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
-            <Label htmlFor="startup-log-toggle" className="flex-grow text-sm">
-              Enable Reduced Logging During Initial App Startup
-            </Label>
-            <Switch
-              id="startup-log-toggle"
-              checked={isReducedStartupLoggingEnabled}
-              onCheckedChange={handleStartupLogToggle}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-1 px-2">
-            When enabled (default), suppresses many non-critical logs during the initial application load to reduce console noise.
-          </p>
-          <div className="flex items-center justify-between space-x-2 p-2 border rounded-md mt-2">
-            <Label htmlFor="ui-render-log-toggle" className="flex-grow text-sm">
-              Enable UI/Render Log Spam
-            </Label>
-            <Switch
-              id="ui-render-log-toggle"
-              checked={isUiRenderLoggingEnabled}
-              onCheckedChange={handleUiRenderLogToggle}
-            />
-          </div>
-           <p className="text-xs text-muted-foreground mt-1 px-2">
-            When enabled, shows high-frequency logs from UI components related to re-renders and prop changes. Disabled by default.
-          </p>
-        </div>
-
-        <Separator />
-        
-        <div>
-          <h4 className="text-md font-medium mb-3">Individual Log Source Toggles</h4>
-           <p className="text-xs text-muted-foreground mb-3">
-            Toggle specific sources of client-side debug logs. These settings only affect logs shown in the custom debug console panel below.
-          </p>
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
             <Button 
               variant="outline" 
@@ -124,7 +73,3 @@ export function DebugSettingsCard() {
     </Card>
   );
 }
-
-
-
-    

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Header } from "@/components/layout/header";
@@ -8,7 +9,6 @@ import { MainTabContent } from "@/components/main-tab-content";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
 import { LogConsole } from "@/components/log-console";
 import { globalLogEntries, clearGlobalLogBuffer } from "@/lib/global-log-buffer";
-import { rawConsoleLogEntries, clearRawConsoleBuffer } from "@/lib/raw-console-log-buffer";
 import { cn } from "@/lib/utils";
 import { StagingOptionsTabContent } from "./staging-options-tab-content";
 
@@ -27,11 +27,10 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
         )}
       >
         <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="main">Main</TabsTrigger>
             <TabsTrigger value="debug-data">Debug Data</TabsTrigger>
             <TabsTrigger value="client-trace-logs">Client Debug Trace Logs</TabsTrigger>
-            <TabsTrigger value="console-logs">Console Logs</TabsTrigger>
             <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
             <TabsTrigger value="staging-options">Staging: Options</TabsTrigger>
           </TabsList>
@@ -48,15 +47,6 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
               clearLogs={clearGlobalLogBuffer}
               consoleTitle="Client Debug Trace Logs"
               consoleDescription="Curated, high-level trace logs from the application's internal logging system."
-            />
-          </TabsContent>
-           <TabsContent value="console-logs">
-            <LogConsole
-              appVersion={appVersion}
-              logEntries={rawConsoleLogEntries}
-              clearLogs={clearRawConsoleBuffer}
-              consoleTitle="Console Logs"
-              consoleDescription="A raw, unfiltered duplicate of the browser's developer console output."
             />
           </TabsContent>
           <TabsContent value="fsm-debug">
