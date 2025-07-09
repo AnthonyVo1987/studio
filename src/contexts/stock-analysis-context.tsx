@@ -547,9 +547,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = previousState;
         break;
       case 'START_FULL_ANALYSIS':
-        if (state.variables.activeTicker && state.variables.activeTicker !== event.payload.ticker) {
-            logDebug(logPrefixFsmReducer as LogSourceId, 'SideEffectTrigger', 'New ticker detected in reducer. Options state will be reset by the effect hook.');
-        }
         resetForNewAnalysis(event.payload.ticker);
         nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
         logDebug(logPrefixFsmReducer as LogSourceId, 'ActionStart', `START_FULL_ANALYSIS for ${event.payload.ticker}. Transitioning to DATA_FETCH_IN_PROGRESS.`);
@@ -691,22 +688,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     }
   }, [globalFsmReducerState.current, globalFsmReducerState.previous, globalFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal, logDebug]);
   
-  const activeTickerForEffect = globalFsmReducerState.variables.activeTicker;
-  const previousTickerRef = useRef<string | null>(null);
+  const userInputTickerForEffect = globalFsmReducerState.variables.userInputTicker;
+  const previousUserInputTickerRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const currentTicker = activeTickerForEffect;
-    const previousTicker = previousTickerRef.current;
-    
-    if (currentTicker && previousTicker && currentTicker !== previousTicker) {
-      logDebug('StockAnalysisContext', 'TickerChangeEffect', `Active ticker changed from ${previousTicker} to ${currentTicker}. Resetting options state.`);
-      resetOnDemandOptionsState();
-    } else {
-       logDebug('StockAnalysisContext', 'TickerChangeEffect_NoOp', `Effect ran, but conditions not met for reset. Current: ${currentTicker}, Previous: ${previousTicker}`);
-    }
-    
-    previousTickerRef.current = currentTicker;
-  }, [activeTickerForEffect, resetOnDemandOptionsState, logDebug]);
+      const currentUserInputTicker = userInputTickerForEffect;
+      const previousUserInputTicker = previousUserInputTickerRef.current;
+      
+      if (currentUserInputTicker && previousUserInputTicker && currentUserInputTicker !== previousUserInputTicker) {
+          logDebug('StockAnalysisContext', 'UserInputTickerChangeEffect', `User input ticker changed from '${previousUserInputTicker}' to '${currentUserInputTicker}'. Resetting options state.`);
+          resetOnDemandOptionsState();
+      } else {
+          logDebug('StockAnalysisContext', 'UserInputTickerChangeEffect_NoOp', `Effect ran, but conditions not met for reset. Current: ${currentUserInputTicker}, Previous: ${previousUserInputTicker}`);
+      }
+      
+      previousUserInputTickerRef.current = currentUserInputTicker;
+  }, [userInputTickerForEffect, resetOnDemandOptionsState, logDebug]);
 
 
   // Effect for fetching initial expirations on app startup
