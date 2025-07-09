@@ -512,72 +512,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', 'ResetState', 'Resetting on-demand options state for new analysis.');
   }, [logDebug]);
 
-  // Effect for fetching initial expirations on app startup
-  useEffect(() => {
-    const fetchInitialExpirations = async () => {
-      logDebug('StockAnalysisContext', 'InitialDataFetch', 'Fetching initial expirations for default ticker...');
-      _setIsLoadingExpirations(true);
-      const result = await getOptionsExpirationsAction({ ticker: defaultState.globalFsmState.variables.userInputTicker });
-      if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
-        const allDates = result.data.expirationDates;
-        const nextExpDate = findNextAvailableDate(allDates);
-        
-        _setAvailableExpirationDates(allDates);
-        _setSelectedExpirationDate(nextExpDate);
-        logDebug('StockAnalysisContext', 'InitialDataFetch', `Initial expirations loaded. Count: ${allDates.length}. Default selected: ${nextExpDate}`);
-      } else {
-        logDebug('StockAnalysisContext', 'InitialDataFetchError', `Failed to fetch initial expirations: ${result.error}`);
-      }
-      _setIsLoadingExpirations(false);
-    };
-
-    fetchInitialExpirations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logDebug]);
-
-
-  const enableAllLogSources = useCallback(() => {
-    logDebug('StockAnalysisContext', 'LogConfigChange', 'Enable All Log Sources button clicked.');
-    const newConfig: LogSourceConfig = {} as LogSourceConfig;
-    logSourceIds.forEach(id => { newConfig[id] = true; });
-    newConfig.DebugConsole = true; 
-    _setLogSourceConfig(newConfig);
-  }, [_setLogSourceConfig, logDebug]);
-
-  const disableAllLogSources = useCallback(() => {
-    logDebug('StockAnalysisContext', 'LogConfigChange', 'Disable All Log Sources button clicked.');
-    const newConfig: LogSourceConfig = {} as LogSourceConfig;
-    logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; }); 
-    _setLogSourceConfig(newConfig);
-  }, [_setLogSourceConfig, logDebug]);
-
-  const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
-    _setMainTabFsmDisplay(prevDisplay => {
-      const hasChanged = !prevDisplay || !(prevDisplay.current === display?.current && prevDisplay.previous === display?.previous && prevDisplay.target === display?.target);
-      if (hasChanged) { logDebug('StockAnalysisContext', 'FSMDisplayTupleUpdate', 'MainTabFsmDisplay updated.', display); return display; }
-      return prevDisplay;
-    });
-  }, [_setMainTabFsmDisplay, logDebug]);
-
-  const setChatbotFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
-    _setChatbotFsmDisplay(prevDisplay => {
-      const hasChanged = !prevDisplay || !(prevDisplay.current === display?.current && prevDisplay.previous === display?.previous && prevDisplay.target === display?.target);
-      if (hasChanged) { logDebug('StockAnalysisContext', 'FSMDisplayTupleUpdate', 'ChatbotFsmDisplay updated.', display); return display; }
-      return prevDisplay;
-    });
-  }, [_setChatbotFsmDisplay, logDebug]);
-
-  const setReducedStartupLoggingEnabled = useCallback((enabled: boolean) => {
-    logDebug('DebugSettingsCard', 'Reduced startup logging toggled to: ${enabled}');
-    _setIsReducedStartupLoggingEnabled(enabled);
-  }, [logDebug]);
-
-  const setUiRenderLoggingEnabled = useCallback((enabled: boolean) => {
-    logDebug('DebugSettingsCard', 'UI Render log spam toggled to: ${enabled}');
-    _setIsUiRenderLoggingEnabled(enabled);
-  }, [logDebug]);
-
-
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
     const previousState = state.current;
     const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
@@ -593,7 +527,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const errorJsonWithDetails = (message: string, details: string | null | undefined) => `{ "status": "error", "message": "${message.replace(/"/g, '\\"')}", "details": "${(details || '').replace(/"/g, '\\"')}" }`;
 
     const resetForNewAnalysis = (ticker: string) => {
-        const isNewTicker = ticker !== state.variables.activeTicker;
         nextVariables.activeTicker = ticker;
         nextVariables.lastError = null;
         nextFlags.canAnalyzeStock = false;
@@ -602,11 +535,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextFlags.isCalculatedTADataReady = false;
         nextFlags.isKeyTakeawaysDataAvailable = false;
         nextFlags.isOptionsAnalysisDataAvailable = false;
-        
-        if (isNewTicker) {
-          // This will be caught by the new useEffect hook to trigger a side effect
-          logDebug('StockAnalysisContext:GlobalFSM', 'SideEffectTrigger', 'New ticker detected in reducer. Options state will be reset by the effect hook.');
-        }
     };
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
@@ -632,6 +560,9 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = previousState;
         break;
       case 'START_FULL_ANALYSIS':
+        if (state.variables.activeTicker !== event.payload.ticker) {
+            logDebug(logPrefixFsmReducer as LogSourceId, 'SideEffectTrigger', 'New ticker detected in reducer. Options state will be reset by the effect hook.');
+        }
         resetForNewAnalysis(event.payload.ticker);
         nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
         logDebug(logPrefixFsmReducer as LogSourceId, 'ActionStart', `START_FULL_ANALYSIS for ${event.payload.ticker}. Transitioning to DATA_FETCH_IN_PROGRESS.`);
@@ -777,15 +708,85 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const isInitialMount = useRef(true);
   
   useEffect(() => {
-      if (isInitialMount.current) {
-          isInitialMount.current = false;
-          return;
-      }
+    if (isInitialMount.current) {
+        isInitialMount.current = false;
+        logDebug('StockAnalysisContext', 'TickerChangeEffect', 'Initial mount, skipping options state reset.');
+        return;
+    }
+    // Only reset if the active ticker actually changes to a different value
+    if(activeTickerForEffect) {
       logDebug('StockAnalysisContext', 'TickerChangeEffect', `Active ticker changed to ${activeTickerForEffect}. Resetting options state.`);
       resetOnDemandOptionsState();
+    }
   }, [activeTickerForEffect, resetOnDemandOptionsState, logDebug]);
 
 
+  // Effect for fetching initial expirations on app startup
+  useEffect(() => {
+    const fetchInitialExpirations = async () => {
+      logDebug('StockAnalysisContext', 'InitialDataFetch', 'Fetching initial expirations for default ticker...');
+      _setIsLoadingExpirations(true);
+      const result = await getOptionsExpirationsAction({ ticker: defaultState.globalFsmState.variables.userInputTicker });
+      if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
+        const allDates = result.data.expirationDates;
+        const nextExpDate = findNextAvailableDate(allDates);
+        
+        _setAvailableExpirationDates(allDates);
+        _setSelectedExpirationDate(nextExpDate);
+        logDebug('StockAnalysisContext', 'InitialDataFetch', `Initial expirations loaded. Count: ${allDates.length}. Default selected: ${nextExpDate}`);
+      } else {
+        logDebug('StockAnalysisContext', 'InitialDataFetchError', `Failed to fetch initial expirations: ${result.error}`);
+      }
+      _setIsLoadingExpirations(false);
+    };
+
+    fetchInitialExpirations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logDebug]);
+
+  const enableAllLogSources = useCallback(() => {
+    logDebug('StockAnalysisContext', 'LogConfigChange', 'Enable All Log Sources button clicked.');
+    const newConfig: LogSourceConfig = {} as LogSourceConfig;
+    logSourceIds.forEach(id => { newConfig[id] = true; });
+    newConfig.DebugConsole = true; 
+    _setLogSourceConfig(newConfig);
+  }, [_setLogSourceConfig, logDebug]);
+
+  const disableAllLogSources = useCallback(() => {
+    logDebug('StockAnalysisContext', 'LogConfigChange', 'Disable All Log Sources button clicked.');
+    const newConfig: LogSourceConfig = {} as LogSourceConfig;
+    logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; }); 
+    _setLogSourceConfig(newConfig);
+  }, [_setLogSourceConfig, logDebug]);
+
+  const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
+    _setMainTabFsmDisplay(prevDisplay => {
+      const hasChanged = !prevDisplay || !(prevDisplay.current === display?.current && prevDisplay.previous === display?.previous && prevDisplay.target === display?.target);
+      if (hasChanged) { logDebug('StockAnalysisContext', 'FSMDisplayTupleUpdate', 'MainTabFsmDisplay updated.', display); return display; }
+      return prevDisplay;
+    });
+  }, [_setMainTabFsmDisplay, logDebug]);
+
+  const setChatbotFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
+    _setChatbotFsmDisplay(prevDisplay => {
+      const hasChanged = !prevDisplay || !(prevDisplay.current === display?.current && prevDisplay.previous === display?.previous && prevDisplay.target === display?.target);
+      if (hasChanged) { logDebug('StockAnalysisContext', 'FSMDisplayTupleUpdate', 'ChatbotFsmDisplay updated.', display); return display; }
+      return prevDisplay;
+    });
+  }, [_setChatbotFsmDisplay, logDebug]);
+
+  const setReducedStartupLoggingEnabled = useCallback((enabled: boolean) => {
+    logDebug('DebugSettingsCard', 'Reduced startup logging toggled to: ${enabled}');
+    _setIsReducedStartupLoggingEnabled(enabled);
+  }, [logDebug]);
+
+  const setUiRenderLoggingEnabled = useCallback((enabled: boolean) => {
+    logDebug('DebugSettingsCard', 'UI Render log spam toggled to: ${enabled}');
+    _setIsUiRenderLoggingEnabled(enabled);
+  }, [logDebug]);
+
+
+  
   const dispatchFsmEvent = useCallback((event: FsmEvent) => {
     startTransition(() => {
       _dispatchFsmEventActual(event);
