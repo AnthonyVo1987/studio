@@ -706,14 +706,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const currentTicker = activeTickerForEffect;
     const previousTicker = previousTickerRef.current;
-
-    logDebug('StockAnalysisContext', 'TickerChangeEffect', `Effect running. Prev Ticker: ${previousTicker}, Curr Ticker: ${currentTicker}`);
-
+    
     if (currentTicker && previousTicker && currentTicker !== previousTicker) {
-      logDebug('StockAnalysisContext', 'TickerChangeEffect', `Ticker changed from ${previousTicker} to ${currentTicker}. Resetting options state.`);
+      logDebug('StockAnalysisContext', 'TickerChangeEffect', `Active ticker changed from ${previousTicker} to ${currentTicker}. Resetting options state.`);
       resetOnDemandOptionsState();
     } else {
-      logDebug('StockAnalysisContext', 'TickerChangeEffect', 'Ticker change condition not met. Not resetting options state.');
+       logDebug('StockAnalysisContext', 'TickerChangeEffect', `Effect ran, but conditions not met for reset. Current: ${currentTicker}, Previous: ${previousTicker}`);
     }
     
     previousTickerRef.current = currentTicker;
@@ -752,14 +750,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const disableAllLogSources = useCallback(() => {
-    _setLogSourceConfig(prevConfig => {
-        const newConfig = { ...prevConfig };
-        logSourceIds.forEach(id => {
-            if (id !== 'DebugConsole') newConfig[id] = false;
-        });
-        return newConfig;
-    });
-  }, []);
+    logDebug('StockAnalysisContext', 'LogConfigChange', 'Disable All Log Sources button clicked.');
+    const newConfig: LogSourceConfig = {} as LogSourceConfig;
+    logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; });
+    _setLogSourceConfig(newConfig);
+  }, [logDebug]);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -873,7 +868,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     const logPrefix = 'StockAnalysisContext:ConsoleInterceptor';
     if (typeof window === 'undefined') { return; }
     const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
-    const isInitialLoad = fsmStateRef.current.current === GlobalFsmState.APP_INITIALIZING;
+    const isInitialLoad = globalFsmReducerState.current === GlobalFsmState.APP_INITIALIZING;
 
     const interceptAndProcessLog = (type: any, ...args: any[]) => {
       currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
