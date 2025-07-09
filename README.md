@@ -32,8 +32,8 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.14
-**Application Version (from `app-metadata.json`):** v3.6.5.0
+**README Document Version:** 3.15
+**Application Version (from `app-metadata.json`):** v3.6.5.3
 **Last Updated:** 2025-08-29
 
 ## 1. Introduction
@@ -89,7 +89,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "Console Logs", "FSM Debug", and "Staging: Options" tabs. The obsolete diagnostic "Staging" tab has been removed.
+*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "FSM Debug", and "Staging: Options" tabs. The obsolete "Console Logs" tab and other diagnostic tabs have been removed.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -101,13 +101,12 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Tailwind CSS for styling, using HSL theme variables in `globals.css`.
 *   Dark mode support.
 
-#### 3.1.5. Data Export & Debugging (as of v3.3.16.8.7)
+#### 3.1.5. Data Export & Debugging (as of v3.6.5.3)
 *   **JSON-Only Export:** All data export functions on individual UI cards (e.g., Key Takeaways, Options Chain) now exclusively support "Copy JSON" and "Export JSON".
 *   **"Debug Data" Tab:** The former "Debug" tab is now the "Debug Data" tab. Its sole purpose is to display the raw JSON inputs and outputs for all major data segments and AI flows.
-*   **"Client Debug Trace Logs" Tab:** A dedicated tab housing a large, persistent console that displays curated, high-level trace logs from the application's internal logging system. Includes filtering, search, and a 2000-entry buffer.
-*   **"Console Logs" Tab:** A new, parallel tab that provides a verbatim, unfiltered duplicate of the browser's developer console output, enabling deep-dive debugging. Includes its own independent filtering, search, and 2000-entry buffer.
+*   **"Client Debug Trace Logs" Tab:** This is now the **single source of truth for log-based debugging**. It houses a large, persistent console that displays curated trace logs from the application's internal logging system, free from UI render spam. Includes filtering, search, and a 2000-entry buffer.
 *   **"FSM Debug" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
-*   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides one-click buttons to copy or export four distinct types of system snapshots, each including the full FSM state (state, flags, variables). The snapshot now correctly includes the user's dynamic options settings (`optionType`, `strikeCount`, `tableDisplayType`).
+*   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides a single "Debug Snapshot" button to copy or export a comprehensive JSON snapshot of the application state for bug reporting. This snapshot includes the app version, FSM state, all data JSONs, chat histories, and the full "Client Debug Trace Logs" buffer.
 *   **Developer Staging Areas:**
     *   **"Staging: Options" Tab:** A dedicated area for developers to test experimental options-related features in isolation from the main application flow.
 
@@ -175,13 +174,13 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.4. Error Handling & Logging
 *   **Error Handling:** `try...catch` in Server Actions and AI Flows.
 *   **Logging System:** `logDebug()` for client-side, `console.*` for server-side. The in-app consoles are now reliable after the `v3.6.4.22` logging system fix.
-*   **Debug Console (New Tab System):** Two dedicated tabs display logs: "Client Debug Trace Logs" (curated) and "Console Logs" (raw). Both feature filtering, search, and a 2000-entry buffer.
+*   **Debug Console (Simplified):** A single "Client Debug Trace Logs" tab now serves as the primary debugging view, displaying curated, high-level trace logs free of UI render spam.
 
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.5.0):**
-    *   **Codebase Cleanup:** Post-feature cleanup and refactoring is underway to reduce complexity and prepare for the next feature.
+*   **Current Feature Focus (as of v3.6.5.3):**
+    *   **Codebase Cleanup:** The application is in a highly stable, lean state after several successful cleanup phases. It is ready for the next feature development cycle.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -199,7 +198,7 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ---
 
-## 4. Codebase & Context Window Audit (v3.6.4.22)
+## 4. Codebase & Context Window Audit (v3.6.5.3)
 
 A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development. This analysis helps diagnose and mitigate issues like AI "tunnel vision."
 
@@ -210,12 +209,12 @@ Two estimations were performed to understand the codebase complexity:
 1.  **Full Context (Including Documentation): 250,000 to 350,000+ tokens**
     *   This represents the total cognitive load required to understand the code, operational rules, architectural decisions, and historical context stored in all `.md` documentation files.
 
-2.  **Code-Only Context (Excluding Documentation): 175,000 to 225,000 tokens**
-    *   This represents the pure architectural complexity of the application, focusing only on executable code, type definitions, and active configuration files (e.g., `.json` prompts).
+2.  **Code-Only Context (Excluding Documentation): 145,000 to 185,000 tokens**
+    *   This represents the pure architectural complexity of the application after the recent cleanup phases. The simplification of the logging system, particularly in the critical `stock-analysis-context.tsx` file, has significantly reduced this number.
 
 ### 4.2. Conclusion on Context Size
 
-The large context size, even for code-only analysis, confirms that the application is architecturally complex. This scale is at the upper limit of what current AI models can handle for high-fidelity reasoning, which can contribute to development errors. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy for ensuring the AI agent operates with the most accurate and relevant information for each task.
+The current code-only context size is significantly more manageable than in previous versions. While still large, this reduction makes the codebase healthier and less prone to AI-induced errors during development. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy for ensuring the AI agent operates with the most accurate and relevant information for each task.
 
 The complexity is broken down into the following tiers of importance:
 *   **Tier 1 (Highest): Critical Core Logic.** The core state, execution flow, and data contracts (`stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`).
@@ -258,8 +257,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.14
-*   **Current Application Version:** `v3.6.5.0`
+*   **This README Document Version:** 3.15
+*   **Current Application Version:** `v3.6.5.3`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 

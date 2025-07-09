@@ -58,6 +58,25 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.5.3` (Final Log Cleanup)
+**Tag:** `Phase-71_Task-3.6.5.3_FinalLogCleanup`
+**Commit Hash:** `85e50a43`
+**Subject:** `fix(debug): Finalize log cleanup, remove all UI render/state logs (v3.6.5.3)`
+**Details:**
+This commit represents the **final and complete cleanup of the client-side logging system**. It addresses an oversight from the previous cleanup (`v3.6.5.1`) by removing all remaining high-frequency, render-cycle logs from the UI components. This ensures the "Client Debug Trace Logs" are streamlined and focused exclusively on application state changes, user actions, and server/AI responses.
+
+**Key Cleanup Actions (Consolidating `v3.6.5.1` - `v3.6.5.3`):**
+*   **Redundant Log System Removal (`v3.6.5.1`):** The "Console Logs" tab, its dedicated log buffer (`raw-console-log-buffer.ts`), and all associated UI toggles/filtering logic were completely removed.
+*   **Render Spam Removal (`v3.6.5.2` & `v3.6.5.3`):**
+    *   A full audit identified and **removed all `logDebug` calls** from the `useEffect` hooks within all data display components (e.g., `AiKeyTakeawaysDisplay`, `StockSnapshotDetailsDisplay`, `OptionsChainTable`, etc.).
+    *   This specifically eliminates all logs with categories like **`"RenderState"`**, **`"PropsReceived"`**, and **`"StateUpdate"`**, which were the source of the remaining log spam.
+*   **Debug Snapshot Fix (`v3.6.5.2`):** Corrected a regression where the `appVersion` was missing from the generated debug snapshot JSON.
+
+**Outcome:**
+*   The "Client Debug Trace Logs" are now clean and highly focused, making it significantly easier to trace the application's core execution flow.
+*   All known sources of UI-related log spam have been eliminated.
+*   The application's debugging architecture is now leaner and more maintainable.
+---
 **App Version:** `v3.6.5.0` (Cleanup)
 **Tag:** `Phase-70_Task-3.6.5.0_CleanupStagingTab`
 **Commit Hash:** `81412437`
