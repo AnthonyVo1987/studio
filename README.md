@@ -31,9 +31,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.12
+**README Document Version:** 3.13
 **Application Version (from `app-metadata.json`):** v3.6.4.22
-**Last Updated:** 2025-08-27
+**Last Updated:** 2025-08-28
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -198,30 +198,69 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ---
 
-## 4. Project Setup & Running Locally
+## 4. Codebase & Context Window Audit (v3.6.4.22)
+
+A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development. This analysis helps diagnose and mitigate issues like AI "tunnel vision."
+
+### 4.1. Estimated Total Context Window Requirement
+
+The total estimated context size required to fully and accurately reason about the entire codebase is **250,000 to 350,000+ tokens**.
+
+This size is at the upper limit of what current AI models can handle for high-fidelity reasoning, confirming that context size is a critical factor in development performance. The `CONTEXT_PURGE` directive is the primary mitigation for this risk.
+
+The codebase complexity can be broken down into the following tiers:
+
+1.  **Tier 1: Critical Core Logic**
+    *   **Files:** 4
+    *   **Est. LoC:** ~1,500
+    *   **Importance (Highest):** These files (`stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`) define the application's core state, execution flow, and data contracts. Full comprehension is non-negotiable.
+
+2.  **Tier 2: Primary Actions & Flows**
+    *   **Files:** ~12
+    *   **Est. LoC:** ~1,200
+    *   **Importance (High):** Files in `src/actions/` and `src/ai/flows/` that implement the application's primary features.
+
+3.  **Tier 3: UI Display Components**
+    *   **Files:** ~15
+    *   **Est. LoC:** ~2,500
+    *   **Importance (Medium):** Components in `src/components/` that are primarily concerned with rendering data from the global state.
+
+4.  **Tier 4: Supporting Docs & Configuration**
+    *   **Files:** ~25
+    *   **Est. LoC:** ~4,000+
+    *   **Importance (Medium-Low):** All documentation (`.md` files) and AI prompt definitions (`.json` files). These provide essential operational rules and historical context.
+
+5.  **Tier 5: Boilerplate & UI Primitives**
+    *   **Files:** ~25+
+    *   **Est. LoC:** ~2,000+
+    *   **Importance (Low):** ShadCN UI primitives, basic utilities, and top-level configuration files.
+
+---
+
+## 5. Project Setup & Running Locally
 *(This section remains largely unchanged but is present for completeness)*
 
-### 4.1. Prerequisites
+### 5.1. Prerequisites
 *   Node.js (latest LTS)
 *   npm
 
-### 4.2. Environment Variables
+### 5.2. Environment Variables
 Create `.env`:
 ```env
 POLYGON_API_KEY=your_polygon_api_key
 GEMINI_API_KEY=your_google_ai_api_key
 ```
 
-### 4.3. Installation
+### 5.3. Installation
 ```bash
 npm install
 ```
 
-### 4.4. Running the Development Server
+### 5.4. Running the Development Server
 1.  Next.js: `npm run dev` (App: `http://localhost:9002`)
 2.  Genkit: `npm run genkit:watch` (Genkit Dev UI: `http://localhost:3400`)
 
-### 4.5. Building for Production
+### 5.5. Building for Production
 ```bash
 npm run build
 npm run start
@@ -229,26 +268,26 @@ npm run start
 
 ---
 
-## 5. Change History & Versioning
-*   **This README Document Version:** 3.12
+## 6. Change History & Versioning
+*   **This README Document Version:** 3.13
 *   **Current Application Version:** `v3.6.4.22`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
 ---
 
-## 6. Post-Mortem & Lessons Learned
+## 7. Post-Mortem & Lessons Learned
 
 This section serves as a permanent record of critical architectural lessons learned during development, primarily from AI agent implementation failures. It is mandatory reading before undertaking any significant refactoring.
 
-### 6.1. The "Deterministic Handler" vs. "Reactive Orchestrator"
+### 7.1. The "Deterministic Handler" vs. "Reactive Orchestrator"
 *   **Failure (v3.0 - v3.3):** The application's initial architecture relied on a single, complex `useEffect` hook in `StockAnalysisContext` to act as a reactive "orchestrator." This hook's dependency array grew uncontrollably, leading to **severe race conditions, non-deterministic execution, and infinite loops.** It was the root cause of dozens of hard-to-debug bugs.
 *   **Lesson Learned:** For sequential, asynchronous workflows, the reactive orchestrator pattern is an anti-pattern. **The correct, mandatory architecture is the "Deterministic Handler" pattern now implemented in `main-tab-content.tsx`.** This pattern uses a simple `async/await` handler triggered by a user event.
 
-### 6.2. The FSM Feedback Loop is Non-Negotiable
+### 7.2. The FSM Feedback Loop is Non-Negotiable
 *   **Failure (v3.5):** During an attempted refactor, the AI agent (me) correctly kept the `async/await` structure of the Deterministic Handler but **incorrectly removed the `dispatchGlobalFsmEvent` calls** that provide feedback to the FSM after each `await` step.
 *   **Lesson Learned:** This resulted in a "silent" pipeline that did its work but provided no UI feedback, making the app appear frozen. This proved that the **FSM Feedback Loop is a non-removable, core part of the architecture.** The handler *must* communicate its progress back to the global FSM state after each step.
 
-### 6.3. The UI Must be Driven by Control State, Not Data Content
+### 7.3. The UI Must be Driven by Control State, Not Data Content
 *   **Failure (v3.5, part 2):** A subsequent debugging attempt revealed that the data display components (e.g., `AiKeyTakeawaysDisplay`) were deriving their loading state by parsing the content of their data props (e.g., looking for `"{ \"status\": \"pending...\" }"`).
 *   **Lesson Learned:** This is an architectural flaw. React may batch state updates, meaning the component might only render once with the final data, skipping all intermediate loading states. **UI components MUST derive their loading/error state from the global FSM `fsmState` variable**, not from parsing data content. This ensures they are always in sync with the application's true control state.
