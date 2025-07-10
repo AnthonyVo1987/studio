@@ -58,6 +58,23 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.5.7` (Checkpoint & Document Ticker Input Fixes)
+**Tag:** `Phase-72_Task-3.6.5.7_DocsCommit`
+**Commit Hash:** `3d644bad`
+**Subject:** `docs(all): Checkpoint v3.6.5.7, document ticker input & expiration fixes`
+**Details:**
+This commit is a **documentation-only checkpoint** that consolidates the full implementation and stabilization of the ticker input and options expiration handling logic (`v3.6.5.4` - `v3.6.5.7`). This brings all project documentation (`README.md`, `CHANGELOG.md`, `FEAT_*.md`) into alignment with the application's current, stable, and robust state.
+
+**Key Architectural Changes, Fixes, and Enhancements Completed (v3.6.5.4 - v3.6.5.7):**
+*   **State Reset Logic Fix (`v3.6.5.4`):** The trigger for resetting the options state was corrected to fire on `userInputTicker` change instead of `activeTicker` change, fixing a bug where the expiration date was cleared incorrectly.
+*   **Unified Default Selection (`v3.6.5.5`):** The application logic was enhanced to ensure a default expiration date is *always* selected, both on a manual "Fetch Expirations" click and when the main "Analyze Stock" pipeline is run directly with a new ticker. This was achieved by updating the client-side handler and making the backend adapter report its auto-selected date back to the client.
+*   **Debounced Proactive Fetching (`v3.6.5.7`):** A critical performance issue was resolved by implementing a **debouncing mechanism** (with a 1-second delay) for the proactive expiration date fetching. This prevents excessive API calls from being made on every keystroke as a user types a new ticker, ensuring the fetch only happens once the user has paused typing.
+
+**Outcome:**
+*   The user experience when switching tickers is now smooth, efficient, and correct.
+*   The application intelligently and proactively handles fetching and setting default expiration dates without unnecessary network requests.
+*   The state management for options settings is stable and robust.
+---
 **App Version:** `v3.6.5.3` (Final Log Cleanup)
 **Tag:** `Phase-71_Task-3.6.5.3_FinalLogCleanup`
 **Commit Hash:** `85e50a43`
@@ -442,7 +459,7 @@ This commit establishes the new architectural direction by:
 This commit implements the correct architectural fix for the `Unable to determine type of tool` error.
 *   **Architectural Correction:** The `getChatPrompt` function in `src/ai/flows/chat-flow.ts` was refactored to be truly polymorphic. It now dynamically constructs the `ai.definePrompt` options based on the `useGoogleSearch` flag from the loaded JSON definition.
     *   If `useGoogleSearch` is true, the prompt is defined **with** `tools` and **without** `output.schema`.
-    *   If `useGoogleSearch` is false, the prompt is defined **with** `output.schema` and **without** `tools`.
+    *   If `useGoogleSearch` is false, a new `getGroundedJsonInTextPrompt` is used.
 *   The main `chatFlow` logic was updated to handle both the `result.text` (from grounded prompts) and `result.output` (from non-grounded prompts) response formats.
 *   This resolves the mutual exclusivity conflict that was causing the error and aligns the implementation with the mandatory pattern in `docs/Gemini_AI_Grounding_Google_Search.md`.
 ---

@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.15
-**Application Version (from `app-metadata.json`):** v3.6.5.3
-**Last Updated:** 2025-08-29
+**README Document Version:** 3.16
+**Application Version (from `app-metadata.json`):** v3.6.5.7
+**Last Updated:** 2025-07-10
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -70,10 +70,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Implement robust error handling for API failures.
 
 #### 3.1.2. Options Chain Display & Configuration
-*   **Dynamic & Intelligent Fetching:** The application provides a user-configurable options analysis experience.
-*   **Intelligent Default:** On startup, the app automatically fetches all available expiration dates for the default ticker and pre-selects the next available date. This replaces the old hardcoded "next Friday" logic.
-*   **User Controls:** The "Options Chain Settings" card allows the user to manually fetch all expirations for a ticker and select a specific date. Users can also configure the Option Type (Calls/Puts/Both), Strike Count, and Table Display Format.
-*   **Integrated Pipeline:** The main "Analyze Stock" pipeline is now fully dynamic. It consumes all of the user's options settings, ensuring the subsequent data fetch, UI display, and AI analysis are performed on the exact data the user has configured.
+*   **Proactive & Debounced Expiration Fetching:** The application now features a robust, state-driven mechanism for handling options expiration dates.
+    *   When a user types a new ticker, the application waits for them to pause (a 1-second debounce) before automatically fetching all available expiration dates for that ticker.
+    *   This prevents excessive API calls during typing and provides a smoother user experience.
+*   **Intelligent Default Selection:** Upon a successful fetch (either automatically on ticker change or manually via the "Fetch Expirations" button), the application intelligently selects the next available expiration date as the default and updates the UI dropdown accordingly.
+*   **User Control & Pipeline Integration:** The user can override the default by selecting any other available date from the dropdown. The main "Analyze Stock" pipeline is fully dynamic and will use whichever date is currently selected (either the auto-selected default or the user's manual choice) for its data fetching and AI analysis.
 
 #### 3.1.3. AI-Powered Insights & Analysis
 *   **Customizable Analysis Pipeline (as of v3.4.6.4.11):**
@@ -134,36 +135,36 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Policy (Strictly Enforced):** Sole source for `appVersion`. Dynamically loaded and used.
     *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
-#### 3.2.4. State Management (as of v3.4.6.4.11 - Deterministic)
-*   **React Context:**
-    *   **`StockAnalysisContext`:** Centralized global state management. It now also manages all state for the dynamic options settings (`selectedExpirationDate`, `optionType`, etc.).
-*   **Deterministic Handlers:** All complex asynchronous workflows (e.g., "Analyze Stock" pipeline, AI chat submissions) are now driven by dedicated `async` handler functions within the primary UI component (`MainTabContent.tsx`). These handlers use a simple `await` pattern to ensure a linear, predictable, and sequential execution of server actions, eliminating the race conditions of the previous architecture.
+#### 3.2.4. State Management (as of v3.6.5.7)
+*   **React Context (`StockAnalysisContext`):**
+    *   Serves as the central provider for global state and actions.
+    *   Manages all state for dynamic options settings (`selectedExpirationDate`, `availableExpirationDates`, etc.).
+    *   **Proactive Expiration Hook:** Contains a new, debounced `useEffect` hook that automatically fetches expiration dates for a new ticker after the user has paused typing. This is now the primary mechanism for ensuring expiration data is available.
+*   **Deterministic Handlers:** All complex asynchronous workflows (e.g., "Analyze Stock" pipeline, AI chat submissions) are now driven by dedicated `async` handler functions within the primary UI component (`MainTabContent.tsx`). These handlers use a simple `await` pattern to ensure a linear, predictable, and sequential execution of server actions.
 *   **Simple State Updates:** The application primarily uses `useState` (for local component state) and `useReducer` (for the simplified global FSM) to manage state. The client-side `useActionState` hook is used for chat form submissions.
 
 #### 3.2.5. FSM (Finite State Machines) - (Reflecting v3.4.6.4.11)
 *   **Simplified Global FSM:** The single global FSM's role has been drastically reduced. It **no longer orchestrates complex sequences**. It now serves as a simple repository for global state flags (`GlobalFsmFlags`) and context variables (`GlobalFsmContextVariables`), providing a clear snapshot of the application's overall state. It only handles simple, direct state transitions dispatched by the deterministic handlers.
-*   **No Local FSMs:** All local FSMs, including the `ChatbotFsmContext` and `DebugConsoleFsmContext`, have been removed to simplify the architecture and centralize state in the global context and component-level `useActionState` hooks.
+*   **No Local FSMs:** All local FSMs have been removed to simplify the architecture and centralize state.
 
 #### 3.2.6. Core Execution Flow (MANDATORY ARCHITECTURE)
-This section outlines the application's core data analysis pipeline. This architecture is the result of the "Deterministic Overhaul" and is **not to be modified or refactored without explicit user approval**, as previous attempts to alter it have resulted in critical application failures.
+This section outlines the application's core data analysis pipeline. This architecture is the result of the "Deterministic Overhaul" and is **not to be modified or refactored without explicit user approval**.
 
-1.  **Trigger (`main-tab-content.tsx`):**
+1.  **Proactive Expiration Fetch (`stock-analysis-context.tsx`):**
+    *   User types a new ticker. A debounced `useEffect` hook waits for the user to pause, then automatically fetches all available expiration dates and sets the nearest valid one as the default `selectedExpirationDate`.
+
+2.  **Trigger (`main-tab-content.tsx`):**
     *   The user clicks "Analyze Stock".
-    *   The `useEffect` orchestrator is triggered.
-    *   The handler reads the user's dynamic options selections from context and passes them into the server action payload.
-
-2.  **Intelligent Defaulting (`polygon-adapter.ts`):**
-    *   If the user's selections are stale (e.g., after a ticker change), the orchestrator deliberately sends an `undefined` expiration date.
-    *   The adapter detects this and is now responsible for automatically fetching all available expirations and choosing the correct default before proceeding. **This removes all hardcoded expiration logic.**
+    *   The `handleAnalyzeStockSubmit` handler is invoked.
+    *   It reads the `selectedExpirationDate` (which is now guaranteed to be set) from context and passes it into the server action payload.
 
 3.  **Sequential Execution & FSM Feedback Loop:**
-    *   The core of the deterministic model resides in the `useEffect` orchestrator. It executes a sequence of server actions using `async/await`.
-    *   **Crucially, after each `await` completes, a new event is dispatched to the FSM to communicate the result (`_SUCCESS` or `_FAILURE`).** This updates the global FSM state.
-    *   The `useEffect` hook runs again in response to this new state, triggering the `case` for the next step in the pipeline.
-    *   **This feedback loop is the fundamental mechanism for providing UI updates and MUST NOT be removed.**
+    *   The orchestrator `useEffect` in `main-tab-content.tsx` is triggered by an FSM state change.
+    *   It executes a sequence of server actions using `async/await`.
+    *   After each `await` completes, an event is dispatched to the FSM to communicate the result (`_SUCCESS` or `_FAILURE`), which updates the global state and provides UI feedback. **This loop is non-removable.**
 
 4.  **Pipeline Completion:**
-    *   After the final step, the orchestrator transitions the FSM back to `IDLE`, which re-enables the UI for the next analysis.
+    *   After the final step, the orchestrator transitions the FSM back to `IDLE`.
 
 ### 3.3. AI Flow & Prompt Design
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
@@ -179,8 +180,8 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.5.3):**
-    *   **Codebase Cleanup:** The application is in a highly stable, lean state after several successful cleanup phases. It is ready for the next feature development cycle.
+*   **Current Feature Focus (as of v3.6.5.7):**
+    *   **Codebase Cleanup & Hardening:** The application is in a highly stable, lean state after several successful cleanup and hardening phases. It is ready for the next feature development cycle.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -257,8 +258,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.15
-*   **Current Application Version:** `v3.6.5.3`
+*   **This README Document Version:** 3.16
+*   **Current Application Version:** `v3.6.5.7`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
@@ -279,5 +280,3 @@ This section serves as a permanent record of critical architectural lessons lear
 ### 7.3. The UI Must be Driven by Control State, Not Data Content
 *   **Failure (v3.5, part 2):** A subsequent debugging attempt revealed that the data display components (e.g., `AiKeyTakeawaysDisplay`) were deriving their loading state by parsing the content of their data props (e.g., looking for `"{ \"status\": \"pending...\" }"`).
 *   **Lesson Learned:** This is an architectural flaw. React may batch state updates, meaning the component might only render once with the final data, skipping all intermediate loading states. **UI components MUST derive their loading/error state from the global FSM `fsmState` variable**, not from parsing data content. This ensures they are always in sync with the application's true control state.
-
-  
