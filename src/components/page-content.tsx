@@ -27,11 +27,11 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
         )}
       >
         <Tabs defaultValue="main" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="flex w-full overflow-x-auto">
             <TabsTrigger value="main">Main</TabsTrigger>
-            <TabsTrigger value="debug-data">Debug Data</TabsTrigger>
-            <TabsTrigger value="client-trace-logs">Client Debug Trace Logs</TabsTrigger>
-            <TabsTrigger value="fsm-debug">FSM Debug</TabsTrigger>
+            <TabsTrigger value="debug-data">Debug</TabsTrigger>
+            <TabsTrigger value="client-trace-logs">Debug Logs</TabsTrigger>
+            <TabsTrigger value="fsm-debug">Debug FSM</TabsTrigger>
             <TabsTrigger value="staging-options">Staging: Options</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
