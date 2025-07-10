@@ -1,7 +1,7 @@
 
 # Feature Status Report: Single Selectable Options Expiration (v3.6)
 
-**Document Version:** 2.1
+**Document Version:** 2.2
 **Date:** 2025-07-10
 **Feature Target Application Version Series:** 3.6.x.y.z
 
@@ -50,6 +50,7 @@
     *   **v3.6.6.1:** Final "Feature Complete" documentation update post-testing. (`PLANNED`)
 
 ## 4. Document Changelog
+*   **v2.2 (2025-07-10):** Updated document version and date to align with project checkpoint v3.6.5.8.
 *   **v2.1 (2025-07-10):** Updated status for final debugging tasks `v3.6.5.4` through `v3.6.5.7`.
 *   **v2.0 (2025-08-27):** Updated status to `AWAITING FINAL TESTING`. Marked all implementation and stabilization tasks as complete and set up Phase 4 for final validation.
 *   **v1.2 (2025-08-23):** Updated status to `AWAITING FINAL TESTING`. Marked all integration tasks as complete and set up Phase 3 for final validation.

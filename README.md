@@ -32,8 +32,8 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.16
-**Application Version (from `app-metadata.json`):** v3.6.5.7
+**README Document Version:** 3.17
+**Application Version (from `app-metadata.json`):** v3.6.5.8
 **Last Updated:** 2025-07-10
 
 ## 1. Introduction
@@ -90,7 +90,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug Data", "Client Debug Trace Logs", "FSM Debug", and "Staging: Options" tabs. The obsolete "Console Logs" tab and other diagnostic tabs have been removed.
+*   Main application interface organized into "Main", "Debug", "Debug Logs", "Debug FSM", and "(EXP) Options" tabs, which are horizontally scrollable on narrow viewports.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -104,12 +104,12 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 
 #### 3.1.5. Data Export & Debugging (as of v3.6.5.3)
 *   **JSON-Only Export:** All data export functions on individual UI cards (e.g., Key Takeaways, Options Chain) now exclusively support "Copy JSON" and "Export JSON".
-*   **"Debug Data" Tab:** The former "Debug" tab is now the "Debug Data" tab. Its sole purpose is to display the raw JSON inputs and outputs for all major data segments and AI flows.
-*   **"Client Debug Trace Logs" Tab:** This is now the **single source of truth for log-based debugging**. It houses a large, persistent console that displays curated trace logs from the application's internal logging system, free from UI render spam. Includes filtering, search, and a 2000-entry buffer.
-*   **"FSM Debug" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
-*   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides a single "Debug Snapshot" button to copy or export a comprehensive JSON snapshot of the application state for bug reporting. This snapshot includes the app version, FSM state, all data JSONs, chat histories, and the full "Client Debug Trace Logs" buffer.
+*   **"Debug" Tab:** The former "Debug Data" tab is now simply "Debug". Its sole purpose is to display the raw JSON inputs and outputs for all major data segments and AI flows.
+*   **"Debug Logs" Tab:** This is now the **single source of truth for log-based debugging**. It houses a large, persistent console that displays curated trace logs from the application's internal logging system, free from UI render spam. Includes filtering, search, and a 2000-entry buffer.
+*   **"Debug FSM" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
+*   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides a single "Debug Snapshot" button to copy or export a comprehensive JSON snapshot of the application state for bug reporting. This snapshot includes the app version, FSM state, all data JSONs, chat histories, and the full "Debug Logs" buffer.
 *   **Developer Staging Areas:**
-    *   **"Staging: Options" Tab:** A dedicated area for developers to test experimental options-related features in isolation from the main application flow.
+    *   **"(EXP) Options" Tab:** A dedicated area for developers to test experimental options-related features (such as future E*Trade API integration) in isolation from the main application flow.
 
 ### 3.2. System Architecture & Components
 
@@ -139,7 +139,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **React Context (`StockAnalysisContext`):**
     *   Serves as the central provider for global state and actions.
     *   Manages all state for dynamic options settings (`selectedExpirationDate`, `availableExpirationDates`, etc.).
-    *   **Proactive Expiration Hook:** Contains a new, debounced `useEffect` hook that automatically fetches expiration dates for a new ticker after the user has paused typing. This is now the primary mechanism for ensuring expiration data is available.
+    *   **Proactive & Debounced Expiration Hook:** Contains a new, debounced `useEffect` hook that automatically fetches expiration dates for a new ticker after the user has paused typing (1-second debounce). This is now the primary mechanism for ensuring expiration data is available.
 *   **Deterministic Handlers:** All complex asynchronous workflows (e.g., "Analyze Stock" pipeline, AI chat submissions) are now driven by dedicated `async` handler functions within the primary UI component (`MainTabContent.tsx`). These handlers use a simple `await` pattern to ensure a linear, predictable, and sequential execution of server actions.
 *   **Simple State Updates:** The application primarily uses `useState` (for local component state) and `useReducer` (for the simplified global FSM) to manage state. The client-side `useActionState` hook is used for chat form submissions.
 
@@ -175,12 +175,12 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.4. Error Handling & Logging
 *   **Error Handling:** `try...catch` in Server Actions and AI Flows.
 *   **Logging System:** `logDebug()` for client-side, `console.*` for server-side. The in-app consoles are now reliable after the `v3.6.4.22` logging system fix.
-*   **Debug Console (Simplified):** A single "Client Debug Trace Logs" tab now serves as the primary debugging view, displaying curated, high-level trace logs free of UI render spam.
+*   **Debug Console (Simplified):** A single "Debug Logs" tab now serves as the primary debugging view, displaying curated, high-level trace logs free of UI render spam.
 
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.5.7):**
+*   **Current Feature Focus (as of v3.6.5.8):**
     *   **Codebase Cleanup & Hardening:** The application is in a highly stable, lean state after several successful cleanup and hardening phases. It is ready for the next feature development cycle.
 
 #### 3.5.2. UI/UX Conventions
@@ -199,7 +199,7 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ---
 
-## 4. Codebase & Context Window Audit (v3.6.5.3)
+## 4. Codebase & Context Window Audit (v3.6.5.8)
 
 A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development. This analysis helps diagnose and mitigate issues like AI "tunnel vision."
 
@@ -211,7 +211,7 @@ Two estimations were performed to understand the codebase complexity:
     *   This represents the total cognitive load required to understand the code, operational rules, architectural decisions, and historical context stored in all `.md` documentation files.
 
 2.  **Code-Only Context (Excluding Documentation): 145,000 to 185,000 tokens**
-    *   This represents the pure architectural complexity of the application after the recent cleanup phases. The simplification of the logging system, particularly in the critical `stock-analysis-context.tsx` file, has significantly reduced this number.
+    *   This represents the pure architectural complexity of the application after the recent cleanup phases. The simplification of the logging system and the removal of obsolete debug/staging features have significantly reduced this number.
 
 ### 4.2. Conclusion on Context Size
 
@@ -258,8 +258,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.16
-*   **Current Application Version:** `v3.6.5.7`
+*   **This README Document Version:** 3.17
+*   **Current Application Version:** `v3.6.5.8`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 

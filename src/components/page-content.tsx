@@ -32,7 +32,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
             <TabsTrigger value="debug-data">Debug</TabsTrigger>
             <TabsTrigger value="client-trace-logs">Debug Logs</TabsTrigger>
             <TabsTrigger value="fsm-debug">Debug FSM</TabsTrigger>
-            <TabsTrigger value="staging-options">Staging: Options</TabsTrigger>
+            <TabsTrigger value="staging-options">(EXP) Options</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
             <MainTabContent appVersion={appVersion} /> 

@@ -1,62 +1,34 @@
 
 # StockSage Change History
 
-## Changelog (CHANGELOG.md)
-*   **Version 1.58 (Task v3.1.3.4 Docs):** 2025-06-20 - Firebase Studio (AI Prototyper)
-    *   Finalized documentation for the "Debug Log Enhancements" feature (v3.1.x.y series, culminating in App Version `v3.1.3.4` / commit `9aef8261`).
-    *   Updated `docs/FEAT_SCOPE_DebugLogEnhancements_v3.1.md` and `docs/FEAT_STATUS_DebugLogEnhancements_v3.1.md` to mark all phases and tasks as complete.
-    *   Updated `README.md` to `v1.57`, prepending new AI Coding Agent Operating Procedures and reflecting the current application state (PRD, Design, Architecture) as of App Version `v3.1.3.4`.
-    *   Added a consolidated entry to this `CHANGELOG.md` summarizing the completion of the "Debug Log Enhancements" feature under app version `v3.1.3.4`.
-*   **Version 1.56 (Task v3.0.0.1):** 2025-06-19 - Firebase Studio (AI Prototyper)
-    *   **BUG FIX (Critical):** Enforced fully dynamic application versioning.
-        *   Removed hardcoded `APP_VERSION_FOR_EXPORT` constant from `src/components/debug-console.tsx`.
-        *   Modified `DebugConsole` component to receive `appVersion` as a prop (sourced dynamically from `app-metadata.json` via `PageContent` -> `Home`).
-        *   Updated export helper functions (`getFsmStatesAndTimestampForExport`, `generateLogsTxtWithMetadata`, `generateLogsCsvWithMetadata`) within `debug-console.tsx` to use the dynamic `appVersion` prop for all log export metadata.
-        *   Updated `src/components/page-content.tsx` to pass the dynamic `appVersion` to the `DebugConsole` component.
-    *   Updated `README_3.0.md` (to v3.0.1) to strictly reflect this dynamic versioning policy: `app-metadata.json` is the sole source of truth for `appVersion`, and all UI/export versioning is dynamic. Hardcoded versions are prohibited.
-    *   Updated `CHANGELOG.md` (this file) with this commit log for `v3.0.0.1`.
-    *   `src/config/app-metadata.json` remains at `v3.0.0.1` from the previous AI definition loading fix.
-*   **Version 1.55 (Task v2.9.D.U Docs):** 2025-06-19 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.55) to reflect application functional version `v2.9.D.U` (commit `cd5e3a46`).
-    *   Codified new versioning procedures in `README.md` (Section 3.7): version updates strictly in `app-metadata.json`; manual version updates in `header.tsx` and `debug-console.tsx` are prohibited for app versioning.
-    *   Reinforced strict policy against placeholder timestamps in `app-metadata.json` within `README.md`.
-    *   Updated `CHANGELOG.md` (this file) with this commit log detailing the documentation consolidation for `v2.9.D.U`.
-    *   No changes to `src/config/app-metadata.json`, `src/components/layout/header.tsx`, or `src/components/debug-console.tsx` were made as part of this documentation-only update, as their `v2.9.D.U` state was established by prior commit `cd5e3a46`.
-*   **Version 1.54 (Task v2.9.D.U):** 2025-06-19 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.54) with current app version `v2.9.D.U`. Codified AI `thinkingConfig` usage and metadata timestamp policy.
-    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.U`.
-    *   Updated `src/config/app-metadata.json` to app version `v2.9.D.U` and a new real timestamp.
-    *   Updated `src/components/layout/header.tsx` and `src/components/debug-console.tsx` (`APP_VERSION_FOR_EXPORT`) to `v2.9.D.U`.
-*   **Version 1.53 (Task v2.9.D.M):** 2025-06-19 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.53) with current app version `v2.9.D.M`.
-    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.M`.
-    *   Updated `docs/Issue-Report_AI_Analysis_Buttons.md` to reflect debugging progress and final resolution through task `v2.9.D.M`.
-    *   Updated `src/components/layout/header.tsx` and `src/components/debug-console.tsx` (`APP_VERSION_FOR_EXPORT`) to `v2.9.D.M`.
-*   **Version 1.52 (Task v2.9.D.L):** 2025-06-19 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.52) with current app version `v2.9.D.L`, acknowledging fixed AI prompt safety settings and improved client-side error display for AI takeaways.
-    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.L`.
-    *   Updated `docs/Issue-Report_AI_Analysis_Buttons.md` to reflect debugging progress up to task `v2.9.D.L`, noting the AI safety setting fix and outlining the scope for `v2.9.D.M`.
-    *   Updated `src/components/layout/header.tsx` and `src/components/debug-console.tsx` (`APP_VERSION_FOR_EXPORT`) to `v2.9.D.L`.
-*   **Version 1.51 (Task v2.9.D.I):** 2025-06-18 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.51) with current app version `v2.9.D.I`, Gemini model update to `googleai/gemini-2.5-flash-lite-preview-06-17`, and refined details in architecture, AI flow, and logging sections.
-    *   Updated `CHANGELOG.md` (this file) with new commit log for `v2.9.D.I`.
-    *   Updated `docs/Issue-Report_AI_Analysis_Buttons.md` to reflect debugging progress up to task `v2.9.D.I`.
-    *   Updated AI model ID to `googleai/gemini-2.5-flash-lite-preview-06-17` in `src/ai/models.ts`, `src/ai/genkit.ts`, and all relevant `modelId` fields in JSON prompt definitions under `src/ai/definitions/`.
-    *   Updated `APP_VERSION_FOR_EXPORT` in `src/components/debug-console.tsx` to `v2.9.D.I`.
-*   **Version 1.50 (Task v2.9.C.0):** 2025-06-15 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.50) with version `v2.9.C.0` after Chatbot FSM pilot. Added new Task 9.C.0 to Phased Plan. Updated AI operational rules for XML output (Section 0.5).
-*   **Version 1.1 (Task v2.9.B.9):** 2025-06-15 - Firebase Studio (AI Prototyper)
-    *   Updated `README.md` (to v1.49) with new AI operational rules (XML output, token efficiency, immediate coding post-approval).
-*   **Version 1.0 (Task v2.9.B.4):** 2025-06-15 - Firebase Studio (AI Prototyper)
-    *   Created `CHANGELOG.md` to decouple detailed changelogs from `README.md`.
-    *   Migrated "StockSage Application Commit Log" from `README.md`.
-    *   This section will track changes to `CHANGELOG.md` itself. Future updates to the application commit log will be prepended to the section below.
-
 ---
 ## StockSage Application Commit Log (v3.x.x.x and v2.x.y.z)
 
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
+---
+**App Version:** `v3.6.5.8` (UI: Adjust Tab Selection & Docs Cleanup)
+**Tag:** `Phase-73_Task-3.6.5.8_UiTabAdjustmentsDocsCleanup`
+**Commit Hash:** `dd0464d3`
+**Subject:** `feat(ui,docs): Implement scrollable tabs, shorten tab names, cleanup docs`
+**Details:**
+This commit addresses several UI and documentation improvements to enhance usability and maintainability.
+
+**Key UI Changes (to improve mobile viewport usability):**
+*   **Horizontally Scrollable Tabs:** The main application tab list in `src/components/page-content.tsx` was modified to allow for horizontal scrolling, preventing the tabs from becoming squished and unusable on narrow screens.
+*   **Shortened Tab Names:** The text for several tabs was shortened to reduce horizontal crowding:
+    *   "Debug Data" → "Debug"
+    *   "Client Debug Trace Logs" → "Debug Logs"
+    *   "FSM Debug" → "Debug FSM"
+    *   "Staging: Options" → "(EXP) Options"
+
+**Documentation & Codebase Cleanup:**
+*   **Obsolete Docs Removed:** A number of obsolete documentation files from the `docs/` folder were removed to reduce project clutter and eliminate confusion from deprecated architectural plans.
+*   **Changelog Refinement:** The `CHANGELOG.md` file itself was cleaned up to remove a redundant, high-level summary section, making the commit log easier to read.
+
+**Outcome:**
+*   The application's main navigation is now more user-friendly on smaller devices.
+*   The project's documentation is cleaner and more accurately reflects the current state of the application.
 ---
 **App Version:** `v3.6.5.7` (Checkpoint & Document Ticker Input Fixes)
 **Tag:** `Phase-72_Task-3.6.5.7_DocsCommit`
@@ -1066,7 +1038,6 @@ This commit (`f34f5128`) represents the consolidation of bug fixes for the "FSM 
 *   The "Reduced Startup Logging" feature now functions as intended, only affecting the initial app load.
 *   Client-side debug logging is more reliable and accurately reflects the application's state throughout its lifecycle.
 *   Phase 5 (Testing & Debugging) of the FSM consolidation feature can now proceed on a more stable foundation.
-
 ---
 **App Version:** `v3.2.5.0.C` (Consolidated FSM Debugging Iteration)
 **Tag:** `Phase-16_Task-3.2.5.0.C_FSM_Debugging_Consolidation` (Commit `2338c4f8`)
@@ -1091,7 +1062,6 @@ This commit (`2338c4f8`) represents a significant bug-fixing iteration for the "
     *   Version updated to `v3.2.5.0.C`. Addressed `lastUpdatedTimestamp` validation by making it optional.
 
 This commit consolidates these fixes, improving stability for Phase 5 (Testing and Debugging) of the FSM Consolidation feature.
-
 ---
 **App Version:** `v3.2.4.1.0` (Complete FSM Consolidation Phase 4)
 **Tag:** `Phase-15_Task-3.2.4.1.0_FSM_Consolidation_Phase4_Complete` (Commit `c661f9d1`)
@@ -1118,7 +1088,6 @@ This commit marks the completion of Phase 4 ("Clean Up & Finalize Debugging Tool
 *   All FSM-related debug logging throughout the application is now consistent with the single global FSM architecture, enhancing debuggability and traceability.
 *   The application version is now consistently `v3.2.4.1.0`.
 *   The FSM consolidation feature is now in its final stages, with Phase 5 (Testing & Debugging) and Phase 6 (Documentation) remaining.
-
 ---
 **App Version:** `v3.2.3.2.0` (Complete FSM Consolidation Phase 3)
 **Tag:** `Phase-14_Task-3.2.3.2.0_FSM_Consolidation_Phase3_Complete` (Commit `7f0e552b`)
@@ -1146,7 +1115,6 @@ This commit marks the completion of Phase 3 ("Integrating Chat & Debug Console M
 *   The `DebugConsoleFsmContext` has been successfully removed, simplifying the context architecture.
 *   The application version is now consistently `v3.2.3.2.0`.
 *   The FSM consolidation feature is nearing completion, with major UI interactions (automated pipeline, manual AI actions, chat, debug menus) now integrated. The next phase (Phase 4) will focus on comprehensive testing and debugging.
-
 ---
 **App Version:** `v3.2.2.1.0` (Complete FSM Consolidation Phase 2)
 **Tag:** `Phase-13_Task-3.2.2.1.0_FSM_Consolidation_Phase2_Complete` (Commit `0a0ba41c`)
@@ -1170,7 +1138,6 @@ This commit marks the completion of Phase 2 ("Integrating Manual AI Actions") fo
 *   State management for these user-triggered AI actions is centralized, improving UI consistency for button enablement and action feedback.
 *   The application version is now consistently `v3.2.2.1.0`.
 *   The FSM consolidation feature is progressing, with the automated pipeline and manual AI actions now integrated. The next phase will focus on integrating Chat and Debug Console menu states.
-
 ---
 **App Version:** `v3.2.1.3.0` (Complete FSM Consolidation Phase 1)
 **Tag:** `Phase-12_Task-3.2.1.3.0_FSM_Consolidation_Phase1_Complete` (Commit `57c7e8b0`)
@@ -1200,7 +1167,6 @@ This commit marks the completion of Phase 1 ("Foundation & Core FSM Setup") for 
 *   State management for this critical pipeline is centralized, improving clarity, reducing complexity by removing a local FSM from `MainTabContent`, and enhancing predictability.
 *   The foundation is now solidly laid for migrating manual AI actions (Key Takeaways, Options Analysis) and other UI state logic (Chat, Debug Console Menus) to this consolidated FSM in subsequent phases of Feature `v3.2`.
 *   The application version is now consistently `v3.2.1.3.0`.
-
 ---
 **App Version:** `v3.1.3.4` (Complete Debug Log Enhancements Feature)
 **Tag:** `Phase-11_Task-3.1.3.4_CompleteDebugLogEnhancements` (Commit `9aef8261`)
@@ -1231,7 +1197,6 @@ This commit marks the full completion of the "Debug Log Enhancements" feature, w
 *   FSM state management is more robust, especially in preventing duplicate dispatches of global events.
 *   Data integrity for options analysis is improved due to more accurate `currentPrice` handling in the data adapter.
 *   The application version is now consistently `v3.1.3.4`.
-
 ---
 **App Version:** `v3.0.0.1` (Enforce Fully Dynamic Versioning)
 **Tag:** `Phase-10_Task-3.0.0.1_DynamicVersioningFix`
@@ -1517,7 +1482,6 @@ Key changes included up to v2.9.C.Y:
 -   **Comprehensive Debug Logging (v2.9.C.W, v2.9.C.X):** Added extensive `logDebug` calls across server-side (definition loader, flows, actions) and client-side (contexts, components) to provide full traceability.
 -   **Log Streamlining (v2.9.C.Y):** Reduced verbosity of non-critical logs (e.g., logging JSON length instead of snippets) while retaining essential trace information.
 -   Application version updated incrementally throughout these tasks.
-
 ---
 **App Version:** `v2.9.C.S` (Modularize AI Prompts)
 **Tag:** `Phase-9_Task-9.C.S_ModularizeAiPrompts`
@@ -1538,12 +1502,3 @@ Addressed a critical bug where the AI Chat was non-functional by correcting the 
 Introduced a dedicated Finite State Machine (FSM) and React Context (`ChatbotFsmContext`) to manage the UI states of the `Chatbot.tsx` component.
 ---
 *(Older commit logs would continue here if they existed in the original README.md Section 7)*
-
-    
-
-    
-
-
-    
-
-  
