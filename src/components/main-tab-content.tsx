@@ -325,7 +325,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
   ].includes(globalFsmStateFromContext);
 
   const handleFetchExpirations = async () => {
-    // This function can be kept for manual override, but the new proactive hook handles the primary logic.
     const ticker = globalFsmVariables.userInputTicker.trim();
     if (!ticker) {
         toast({ variant: 'destructive', title: 'Invalid Ticker', description: 'Please enter a ticker symbol first.' });

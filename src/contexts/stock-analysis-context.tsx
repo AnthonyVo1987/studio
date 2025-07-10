@@ -669,52 +669,53 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [globalFsmReducerState.current, globalFsmReducerState.previous, globalFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal]);
   
   const userInputTickerForEffect = globalFsmReducerState.variables.userInputTicker;
-  const previousUserInputTickerRef = useRef<string | null>(null);
 
-  // Proactive expiration date management hook
+  // Proactive expiration date management hook with debouncing
   useEffect(() => {
     const logPrefix = 'ProactiveExpirationHook';
     const currentTicker = userInputTickerForEffect.trim();
-    const previousTicker = previousUserInputTickerRef.current;
 
-    // Only run if the ticker has meaningfully changed.
-    if (!currentTicker || currentTicker === previousTicker) {
-      previousUserInputTickerRef.current = currentTicker;
-      return;
+    if (!currentTicker || currentTicker === globalFsmReducerState.variables.activeTicker) {
+      return; // Do nothing if ticker is empty or hasn't changed from the last *analyzed* ticker
     }
     
-    // This is a new ticker, so reset all previous options state.
-    resetOnDemandOptionsState();
+    // Set a timer to fetch expirations after user stops typing
+    const handler = setTimeout(() => {
+      // This is a new ticker, so reset all previous options state first
+      resetOnDemandOptionsState();
 
-    const fetchAndSetDefaultExpiration = async () => {
-      _setIsLoadingExpirations(true);
-      logDebug('StockAnalysisContext', logPrefix, `Ticker changed to '${currentTicker}'. Fetching new expirations.`);
-      
-      const result = await getOptionsExpirationsAction({ ticker: currentTicker });
-      
-      if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
-        const allDates = result.data.expirationDates;
-        const nextExpDate = findNextAvailableDate(allDates);
+      const fetchAndSetDefaultExpiration = async () => {
+        _setIsLoadingExpirations(true);
+        logDebug('StockAnalysisContext', logPrefix, `Debounced fetch for '${currentTicker}'.`);
         
-        _setAvailableExpirationDates(allDates);
+        const result = await getOptionsExpirationsAction({ ticker: currentTicker });
         
-        // This is the key logic: set the default date after fetching.
-        if (nextExpDate) {
-          _setSelectedExpirationDate(nextExpDate);
-          logDebug('StockAnalysisContext', logPrefix, `Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
+        if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
+          const allDates = result.data.expirationDates;
+          const nextExpDate = findNextAvailableDate(allDates);
+          
+          _setAvailableExpirationDates(allDates);
+          
+          if (nextExpDate) {
+            _setSelectedExpirationDate(nextExpDate);
+            logDebug('StockAnalysisContext', logPrefix, `Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
+          } else {
+            logDebug('StockAnalysisContext', logPrefix, `Success, but no suitable future date found.`);
+          }
         } else {
-          logDebug('StockAnalysisContext', logPrefix, `Success, but no suitable future date found.`);
+          logDebug('StockAnalysisContext', logPrefix, `Failed to fetch expirations for '${currentTicker}'. Error: ${result.error}`);
         }
-      } else {
-        logDebug('StockAnalysisContext', logPrefix, `Failed to fetch expirations for '${currentTicker}'. Error: ${result.error}`);
-      }
-      _setIsLoadingExpirations(false);
+        _setIsLoadingExpirations(false);
+      };
+
+      fetchAndSetDefaultExpiration();
+    }, 1000); // 1-second debounce timer
+
+    // Cleanup function to clear the timeout if the user types again
+    return () => {
+      clearTimeout(handler);
     };
-
-    fetchAndSetDefaultExpiration();
-    previousUserInputTickerRef.current = currentTicker;
-
-  }, [userInputTickerForEffect, resetOnDemandOptionsState, logDebug]);
+  }, [userInputTickerForEffect, globalFsmReducerState.variables.activeTicker, resetOnDemandOptionsState, logDebug]);
 
 
   const enableAllLogSources = useCallback(() => {
