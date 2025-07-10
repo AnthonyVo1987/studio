@@ -481,6 +481,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [contextSetters]);
 
   const resetOnDemandOptionsState = useCallback(() => {
+    logDebug('StockAnalysisContext', 'ResetState', "Resetting on-demand options state for new analysis.");
     _setAvailableExpirationDates([]);
     _setSelectedExpirationDate(undefined);
     _setOnDemandOptionsChainRequestJson(initialJsonPlaceholder);
@@ -489,7 +490,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setOptionType('both');
     _setStrikeCount(20);
     _setTableDisplayType('side-by-side');
-  }, []);
+  }, [logDebug]);
 
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
     const previousState = state.current;
@@ -559,15 +560,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             const responseLogJson = event.payload.data.polygonApiResponseLogJson;
             contextSetters.setPolygonApiResponseLogJson(responseLogJson);
             
-            // New logic to handle auto-selected expiration date
             try {
               const responseLog = JSON.parse(responseLogJson);
               if (responseLog.autoSelectedExpirationDate) {
                 _setSelectedExpirationDate(responseLog.autoSelectedExpirationDate);
               }
-            } catch (e) {
-              // Ignore parse error
-            }
+            } catch (e) { }
 
             nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
             nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
@@ -658,7 +656,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     fsmStateRef.current = globalFsmReducerState;
   }, [globalFsmReducerState]);
   
-  // Side-effect handler for FSM state transitions
   useEffect(() => {
     const isNewAnalysis = globalFsmReducerState.current === GlobalFsmState.DATA_FETCH_IN_PROGRESS && 
                           globalFsmReducerState.previous !== GlobalFsmState.DATA_FETCH_IN_PROGRESS;
@@ -674,36 +671,51 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const userInputTickerForEffect = globalFsmReducerState.variables.userInputTicker;
   const previousUserInputTickerRef = useRef<string | null>(null);
 
+  // Proactive expiration date management hook
   useEffect(() => {
-    const currentUserInputTicker = userInputTickerForEffect;
-    const previousUserInputTicker = previousUserInputTickerRef.current;
+    const logPrefix = 'ProactiveExpirationHook';
+    const currentTicker = userInputTickerForEffect.trim();
+    const previousTicker = previousUserInputTickerRef.current;
 
-    if (currentUserInputTicker && previousUserInputTicker && currentUserInputTicker !== previousUserInputTicker) {
-      resetOnDemandOptionsState();
+    // Only run if the ticker has meaningfully changed.
+    if (!currentTicker || currentTicker === previousTicker) {
+      previousUserInputTickerRef.current = currentTicker;
+      return;
     }
     
-    previousUserInputTickerRef.current = currentUserInputTicker;
-  }, [userInputTickerForEffect, resetOnDemandOptionsState]);
+    // This is a new ticker, so reset all previous options state.
+    resetOnDemandOptionsState();
 
-
-  // Effect for fetching initial expirations on app startup
-  useEffect(() => {
-    const fetchInitialExpirations = async () => {
+    const fetchAndSetDefaultExpiration = async () => {
       _setIsLoadingExpirations(true);
-      const result = await getOptionsExpirationsAction({ ticker: defaultState.globalFsmState.variables.userInputTicker });
+      logDebug('StockAnalysisContext', logPrefix, `Ticker changed to '${currentTicker}'. Fetching new expirations.`);
+      
+      const result = await getOptionsExpirationsAction({ ticker: currentTicker });
+      
       if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
         const allDates = result.data.expirationDates;
         const nextExpDate = findNextAvailableDate(allDates);
         
         _setAvailableExpirationDates(allDates);
-        _setSelectedExpirationDate(nextExpDate);
+        
+        // This is the key logic: set the default date after fetching.
+        if (nextExpDate) {
+          _setSelectedExpirationDate(nextExpDate);
+          logDebug('StockAnalysisContext', logPrefix, `Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
+        } else {
+          logDebug('StockAnalysisContext', logPrefix, `Success, but no suitable future date found.`);
+        }
+      } else {
+        logDebug('StockAnalysisContext', logPrefix, `Failed to fetch expirations for '${currentTicker}'. Error: ${result.error}`);
       }
       _setIsLoadingExpirations(false);
     };
 
-    fetchInitialExpirations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    fetchAndSetDefaultExpiration();
+    previousUserInputTickerRef.current = currentTicker;
+
+  }, [userInputTickerForEffect, resetOnDemandOptionsState, logDebug]);
+
 
   const enableAllLogSources = useCallback(() => {
     _setLogSourceConfig(prevConfig => {

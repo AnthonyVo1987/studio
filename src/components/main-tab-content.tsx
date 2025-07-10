@@ -128,20 +128,10 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
       switch (globalFsmStateFromContext) {
         case GlobalFsmState.DATA_FETCH_IN_PROGRESS: {
           const newTicker = globalFsmVariables.activeTicker;
-          let currentOptionsTicker: string | undefined;
-          try {
-            if (contextOptionsChainJson && contextOptionsChainJson !== '{}' && !contextOptionsChainJson.includes('"status":')) {
-              const parsed = JSON.parse(contextOptionsChainJson);
-              currentOptionsTicker = parsed?.ticker;
-            }
-          } catch (e) {
-          }
-
-          const isContextStale = newTicker && currentOptionsTicker && newTicker !== currentOptionsTicker;
-
+          
           const result = await fetchStockDataAction({
             ticker: newTicker!,
-            expirationDate: isContextStale ? undefined : selectedExpirationDate,
+            expirationDate: selectedExpirationDate, // This is now guaranteed to be set correctly by proactive hook
             optionType: optionType,
             strikeCount: strikeCount,
           });
@@ -334,27 +324,22 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     GlobalFsmState.OPTIONS_ANALYSIS_FAILED,
   ].includes(globalFsmStateFromContext);
 
-
   const handleFetchExpirations = async () => {
+    // This function can be kept for manual override, but the new proactive hook handles the primary logic.
     const ticker = globalFsmVariables.userInputTicker.trim();
     if (!ticker) {
         toast({ variant: 'destructive', title: 'Invalid Ticker', description: 'Please enter a ticker symbol first.' });
         return;
     }
     setIsLoadingExpirations(true);
-    setAvailableExpirationDates([]);
-    setSelectedExpirationDate(undefined);
-
     const result = await getOptionsExpirationsAction({ ticker });
-
     if (result.status === 'success' && result.data) {
-        const allDates = result.data.expirationDates;
-        setAvailableExpirationDates(allDates);
-        if (allDates.length > 0) {
-            const nextExpDate = findNextAvailableDate(allDates);
+        setAvailableExpirationDates(result.data.expirationDates);
+        if (result.data.expirationDates.length > 0) {
+            const nextExpDate = findNextAvailableDate(result.data.expirationDates);
             setSelectedExpirationDate(nextExpDate);
         }
-        toast({ title: 'Success', description: `Found ${allDates.length} expiration dates.` });
+        toast({ title: 'Success', description: `Found ${result.data.expirationDates.length} expiration dates.` });
     } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to fetch expiration dates.' });
     }
@@ -390,7 +375,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
   const isOverallLoading = analyzeButtonLoading || isLoadingExpirations || isLoadingOnDemandOptions;
   
-  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || isOverallLoading || isAnyChatPending || !globalUserInputTicker.trim();
+  const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || isOverallLoading || isAnyChatPending || !globalUserInputTicker.trim() || !selectedExpirationDate;
 
   return (
     <div className="space-y-6">
