@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardCopy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { DebugSettingsCard } from "./debug-settings-card";
 import { Separator } from "./ui/separator";
 import { copyToClipboard } from "@/lib/export-utils";
 
@@ -137,14 +136,12 @@ export function DebugTabContent() {
       <CardHeader>
         <CardTitle>Debug Information</CardTitle>
         <CardDescription>
-          Raw JSON data from APIs and AI flows. Client-side logs are in the Client Debug Console panel.
+          Raw JSON data from APIs and AI flows. Client-side logs are in the Debug Logs tab.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[calc(100vh-20rem)] pr-4">
           <div className="space-y-4">
-            <DebugSettingsCard />
-            <Separator className="my-6" />
             {debugAreasConfig.map((area) => (
               <JsonDisplayArea
                 key={area.title}

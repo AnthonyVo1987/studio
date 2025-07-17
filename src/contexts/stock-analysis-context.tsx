@@ -3,9 +3,7 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, useMemo } from 'react';
-import type { LogSourceId, LogSourceConfig } from '@/lib/debug-log-types';
-import { logSourceIds, defaultLogSourceConfig } from '@/lib/debug-log-types';
-import { addEntryToGlobalLogBuffer, clearGlobalLogBuffer, globalLogEntries } from '@/lib/global-log-buffer';
+import { addEntryToGlobalLogBuffer } from '@/lib/global-log-buffer';
 import type { StockDataFetchResult, AnalyzeStockServerActionState } from '@/actions/analyze-stock-server-action';
 import type { AnalyzeTaResult, AnalyzeTaActionState } from '@/actions/analyze-ta-action';
 import type { PerformAiAnalysisResult, PerformAiAnalysisActionState } from '@/actions/perform-ai-analysis-action';
@@ -17,6 +15,7 @@ import { format } from 'date-fns';
 import { findNextAvailableDate } from '@/lib/date-utils';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
+type LogType = 'debug' | 'info' | 'log' | 'warn' | 'error' | 'system';
 
 export enum GlobalFsmState {
   APP_INITIALIZING = 'APP_INITIALIZING',
@@ -155,7 +154,6 @@ interface StockAnalysisState {
   rawSupportResistanceWebSearchRequestJson: string;
   rawSupportResistanceWebSearchResponseJson: string;
   webSearchChatHistory: AppDataChatMessage[];
-  logSourceConfig: LogSourceConfig;
   globalFsmState: GlobalFsmReducerManagedState;
   targetFsmDisplayState: GlobalFsmState | null;
   mainTabFsmDisplay: FsmDisplayTuple | null;
@@ -217,10 +215,7 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   clearAppDataChatHistory: () => void;
   addWebSearchChatMessage: (message: AppDataChatMessage) => void;
   clearWebSearchChatHistory: () => void;
-  setLogSourceEnabled: (source: LogSourceId, enabled: boolean) => void;
-  enableAllLogSources: () => void;
-  disableAllLogSources: () => void;
-  logDebug: (source: LogSourceId, category: string, ...messages: any[]) => void;
+  logDebug: (source: string, category: string, ...messages: any[]) => void;
   dispatchFsmEvent: (event: FsmEvent) => void;
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
@@ -284,7 +279,6 @@ const defaultState: StockAnalysisState = {
   rawSupportResistanceWebSearchRequestJson: initialJsonPlaceholder,
   rawSupportResistanceWebSearchResponseJson: initialJsonPlaceholder,
   webSearchChatHistory: [],
-  logSourceConfig: defaultLogSourceConfig,
   globalFsmState: initialGlobalFsmReducerState,
   targetFsmDisplayState: null,
   mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: GlobalFsmState.IDLE.toString() },
@@ -343,7 +337,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_rawSupportResistanceWebSearchRequestJson, _setRawSupportResistanceWebSearchRequestJson] = useState<string>(defaultState.rawSupportResistanceWebSearchRequestJson);
   const [_rawSupportResistanceWebSearchResponseJson, _setRawSupportResistanceWebSearchResponseJson] = useState<string>(defaultState.rawSupportResistanceWebSearchResponseJson);
   const [_webSearchChatHistory, _setWebSearchChatHistory] = useState<AppDataChatMessage[]>(defaultState.webSearchChatHistory);
-  const [_logSourceConfig, _setLogSourceConfig] = useState<LogSourceConfig>(defaultState.logSourceConfig);
   const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<GlobalFsmState | null>(defaultState.targetFsmDisplayState);
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
   const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
@@ -357,7 +350,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_strikeCount, _setStrikeCount] = useState<StrikeCount>(defaultState.strikeCount);
   const [_tableDisplayType, _setTableDisplayType] = useState<TableDisplayType>(defaultState.tableDisplayType);
   
-  const logDebug = useCallback((source: LogSourceId, category: string, ...messages: any[]) => {
+  const logDebug = useCallback((source: string, category: string, ...messages: any[]) => {
       console.debug(LOGDEBUG_MARKER, source, category, ...messages);
   }, []);
 
@@ -402,10 +395,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setStrikeCount: _setStrikeCount,
     setTableDisplayType: _setTableDisplayType,
   }), [setAndLogJson]);
-
-  const setLogSourceEnabled = useCallback((source: LogSourceId, enabled: boolean) => {
-    _setLogSourceConfig(prevConfig => ({ ...prevConfig, [source]: enabled }));
-  }, []);
 
   const addAppDataChatMessage = useCallback((message: AppDataChatMessage) => {
     _setAppDataChatHistory(prev => {
@@ -704,21 +693,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     };
   }, [userInputTickerForEffect, globalFsmReducerState.variables.activeTicker, resetOnDemandOptionsState, logDebug]);
 
-
-  const enableAllLogSources = useCallback(() => {
-    _setLogSourceConfig(prevConfig => {
-        const newConfig = { ...prevConfig };
-        logSourceIds.forEach(id => { newConfig[id] = true; });
-        return newConfig;
-    });
-  }, []);
-
-  const disableAllLogSources = useCallback(() => {
-    const newConfig: LogSourceConfig = {} as LogSourceConfig;
-    logSourceIds.forEach(id => { newConfig[id] = id === 'DebugConsole'; });
-    _setLogSourceConfig(newConfig);
-  }, []);
-
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
       const hasChanged = !prevDisplay || !(prevDisplay.current === display?.current && prevDisplay.previous === display?.previous && prevDisplay.target === display?.target);
@@ -772,8 +746,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     rawSupportResistanceWebSearchRequestJson: _rawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchRequestJson: contextSetters.setRawSupportResistanceWebSearchRequestJson,
     rawSupportResistanceWebSearchResponseJson: _rawSupportResistanceWebSearchResponseJson, setRawSupportResistanceWebSearchResponseJson: contextSetters.setRawSupportResistanceWebSearchResponseJson,
     webSearchChatHistory: _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    logSourceConfig: _logSourceConfig,
-    setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
+    logDebug,
     fsmState: globalFsmReducerState.current, previousFsmState: globalFsmReducerState.previous,
     fsmVariables: globalFsmReducerState.variables, fsmFlags: globalFsmReducerState.flags,
     targetFsmDisplayState: _targetFsmDisplayState, dispatchFsmEvent,
@@ -800,8 +773,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _rawTaWebSearchRequestJson, _rawTaWebSearchResponseJson, _rawOptionsWebSearchRequestJson, _rawOptionsWebSearchResponseJson,
     _rawSupportResistanceWebSearchRequestJson, _rawSupportResistanceWebSearchResponseJson,
     _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    _logSourceConfig,
-    setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
+    logDebug,
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
     _availableExpirationDates, _selectedExpirationDate,
@@ -817,17 +789,15 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
       
       queueMicrotask(() => {
-        let sourceForBuffer: LogSourceId = 'NATIVE_CONSOLE';
+        let sourceForBuffer: string = 'NATIVE_CONSOLE';
         let messagesForBuffer = args;
         
         if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
-          sourceForBuffer = args[1] as LogSourceId;
+          sourceForBuffer = args[1] as string;
           messagesForBuffer = args.slice(2); 
         }
         
-        if (_logSourceConfig[sourceForBuffer]) {
-            addEntryToGlobalLogBuffer({ type, messages: messagesForBuffer, source: sourceForBuffer });
-        }
+        addEntryToGlobalLogBuffer({ type, messages: messagesForBuffer, source: sourceForBuffer });
       });
     };
 
@@ -840,7 +810,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     return () => {
       if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
     };
-  }, [_logSourceConfig, contextOriginals]);
+  }, [contextOriginals]);
   
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
 }

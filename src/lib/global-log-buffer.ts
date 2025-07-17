@@ -3,14 +3,15 @@
  * @fileOverview Global log buffer for client-side debug console.
  * This buffer is outside of React state to avoid re-render issues.
  */
-import type { LogSourceId, LogType } from './debug-log-types'; // Corrected import to include LogType
+
+type LogType = 'debug' | 'info' | 'log' | 'warn' | 'error' | 'system';
 
 export interface GlobalLogEntry {
   id: string;
   timestamp: string;
   type: LogType; 
   messages: any[];
-  source?: LogSourceId;
+  source?: string;
 }
 
 export const globalLogEntries: GlobalLogEntry[] = [];
