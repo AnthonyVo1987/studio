@@ -57,7 +57,6 @@ export function DebugTabContent() {
     aiAnalyzedTaJson,        
     aiOptionsAnalysisRequestJson, 
     aiOptionsAnalysisJson,
-    onDemandOptionsChainRequestJson,
     aiKeyTakeawaysRequestJson,
     aiKeyTakeawaysJson,
     userInputAppDataChatRequestJson,
@@ -81,7 +80,6 @@ export function DebugTabContent() {
   const { toast } = useToast();
 
   logDebug('DebugTabContent', "Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
-  logDebug('DebugTabContent', "RenderState_OnDemandOptions", `onDemandOptionsChainRequestJson (start): ${onDemandOptionsChainRequestJson.substring(0,100)}`);
 
   const handleCopy = (title: string, content: string) => {
     logDebug('DebugTabContent', `Attempting to copy JSON for: ${title}`);
@@ -114,7 +112,6 @@ export function DebugTabContent() {
     { title: "AI Analyzed TA JSON", data: aiAnalyzedTaJson },               
     { title: "AI Options Analysis Request JSON", data: aiOptionsAnalysisRequestJson }, 
     { title: "AI Options Analysis JSON", data: aiOptionsAnalysisJson },
-    { title: "On-Demand Options Chain Request JSON", data: onDemandOptionsChainRequestJson, description: "Request for a specific, on-demand options chain fetch." },
     { title: "AI Key Takeaways Request JSON", data: aiKeyTakeawaysRequestJson },
     { title: "AI Key Takeaways JSON", data: aiKeyTakeawaysJson },
     { title: "User Input App Data Chat Request", data: userInputAppDataChatRequestJson, description: "Request for interactive app data chat." },

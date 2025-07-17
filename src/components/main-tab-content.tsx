@@ -33,8 +33,8 @@ import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs } from '@/actions/app-data-chat-action';
 import { sdkWebSearchChatAction, type SdkWebSearchChatActionState, type SdkWebSearchChatActionInputs } from '@/actions/sdk-web-search-chat-action';
-import { getOptionsExpirationsAction } from '@/actions/get-options-expirations-action';
-import { getOptionsChainForExpirationAction } from '@/actions/get-options-chain-for-expiration-action';
+import { getExpirationDates, getOptionsChainForDate } from "@/services/data-sources/adapters/polygon-adapter";
+
 
 const appDataButtons: ExamplePromptButton[] = [
   { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
@@ -331,45 +331,20 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
         return;
     }
     setIsLoadingExpirations(true);
-    const result = await getOptionsExpirationsAction({ ticker });
-    if (result.status === 'success' && result.data) {
-        setAvailableExpirationDates(result.data.expirationDates);
-        if (result.data.expirationDates.length > 0) {
-            const nextExpDate = findNextAvailableDate(result.data.expirationDates);
+    try {
+        const expirationDates = await getExpirationDates(ticker);
+        setAvailableExpirationDates(expirationDates);
+        if (expirationDates.length > 0) {
+            const nextExpDate = findNextAvailableDate(expirationDates);
             setSelectedExpirationDate(nextExpDate);
         }
-        toast({ title: 'Success', description: `Found ${result.data.expirationDates.length} expiration dates.` });
-    } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to fetch expiration dates.' });
+        toast({ title: 'Success', description: `Found ${expirationDates.length} expiration dates.` });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to fetch expiration dates.' });
     }
     setIsLoadingExpirations(false);
   };
   
-  const handleFetchSelectedOptionsChain = async () => {
-    const ticker = globalFsmVariables.userInputTicker.trim();
-    if (!ticker || !selectedExpirationDate) {
-        toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please enter a ticker and select an expiration date.' });
-        return;
-    }
-    setIsLoadingOnDemandOptions(true);
-    setOptionsChainJson(pendingJson); // Set main display to pending
-    
-    const requestPayload = { ticker, expirationDate: selectedExpirationDate, optionType, strikeCount };
-    setOnDemandOptionsChainRequestJson(JSON.stringify(requestPayload, null, 2));
-    
-    const result = await getOptionsChainForExpirationAction(requestPayload);
-
-    if (result.status === 'success' && result.data) {
-        setOptionsChainJson(result.data.optionsChainJson);
-        toast({ title: 'Success', description: 'Options chain fetched.' });
-    } else {
-        const errorJson = `{ "status": "error", "message": "${result.error?.replace(/"/g, '\\"') || 'Failed to fetch options chain.'}" }`;
-        setOptionsChainJson(errorJson);
-        toast({ variant: 'destructive', title: 'Error', description: result.error || 'An unknown error occurred.' });
-    }
-    setIsLoadingOnDemandOptions(false);
-  };
-
   const analyzeButtonLoading = isPipelineInProgress;
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
   const isOverallLoading = analyzeButtonLoading || isLoadingExpirations || isLoadingOnDemandOptions;
@@ -410,7 +385,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
                 <CardDescription>Fetch options data for a specific expiration date. This selection will also be used by the "Analyze Stock" pipeline.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
                 <div className="flex flex-col gap-2">
                     <Label className="text-xs text-muted-foreground">Step 1</Label>
                     <Button onClick={handleFetchExpirations} disabled={!globalUserInputTicker || isOverallLoading} className="w-full">
@@ -461,12 +436,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
                         </SelectContent>
                     </Select>
                 </div>
-                </div>
-                <div className="flex gap-2 pt-2">
-                    <Button onClick={handleFetchSelectedOptionsChain} disabled={!selectedExpirationDate || isOverallLoading} className="w-auto" variant="secondary">
-                        {isLoadingOnDemandOptions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4" />}
-                        Just Get Options
-                    </Button>
                 </div>
             </CardContent>
         </Card>

@@ -12,7 +12,7 @@ import type { PerformAiAnalysisResult, PerformAiAnalysisActionState } from '@/ac
 import type { PerformAiOptionsAnalysisResult, PerformAiOptionsAnalysisActionState } from '@/actions/perform-ai-options-analysis-action';
 import { startTransition } from 'react';
 import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
-import { getOptionsExpirationsAction } from '@/actions/get-options-expirations-action';
+import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
 import { format } from 'date-fns';
 import { findNextAvailableDate } from '@/lib/date-utils';
 
@@ -164,7 +164,6 @@ interface StockAnalysisState {
   // New state for on-demand options
   availableExpirationDates: string[];
   selectedExpirationDate: string | undefined;
-  onDemandOptionsChainRequestJson: string;
   isLoadingExpirations: boolean;
   isLoadingOnDemandOptions: boolean;
   optionType: OptionType;
@@ -204,7 +203,6 @@ interface StockAnalysisContextSetters {
   // New setters for on-demand options
   setAvailableExpirationDates: (dates: string[]) => void;
   setSelectedExpirationDate: (date: string | undefined) => void;
-  setOnDemandOptionsChainRequestJson: (json: string) => void;
   setIsLoadingExpirations: (loading: boolean) => void;
   setIsLoadingOnDemandOptions: (loading: boolean) => void;
   setOptionType: (type: OptionType) => void;
@@ -297,7 +295,6 @@ const defaultState: StockAnalysisState = {
   // New state defaults
   availableExpirationDates: [],
   selectedExpirationDate: undefined,
-  onDemandOptionsChainRequestJson: initialJsonPlaceholder,
   isLoadingExpirations: false,
   isLoadingOnDemandOptions: false,
   optionType: 'both',
@@ -358,7 +355,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   // New states for on-demand options
   const [_availableExpirationDates, _setAvailableExpirationDates] = useState<string[]>(defaultState.availableExpirationDates);
   const [_selectedExpirationDate, _setSelectedExpirationDate] = useState<string | undefined>(defaultState.selectedExpirationDate);
-  const [_onDemandOptionsChainRequestJson, _setOnDemandOptionsChainRequestJson] = useState<string>(defaultState.onDemandOptionsChainRequestJson);
   const [_isLoadingExpirations, _setIsLoadingExpirations] = useState<boolean>(defaultState.isLoadingExpirations);
   const [_isLoadingOnDemandOptions, _setIsLoadingOnDemandOptions] = useState<boolean>(defaultState.isLoadingOnDemandOptions);
   const [_optionType, _setOptionType] = useState<OptionType>(defaultState.optionType);
@@ -405,7 +401,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     // New setters
     setAvailableExpirationDates: _setAvailableExpirationDates,
     setSelectedExpirationDate: _setSelectedExpirationDate,
-    setOnDemandOptionsChainRequestJson: _setOnDemandOptionsChainRequestJson,
     setIsLoadingExpirations: _setIsLoadingExpirations,
     setIsLoadingOnDemandOptions: _setIsLoadingOnDemandOptions,
     setOptionType: _setOptionType,
@@ -484,7 +479,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     logDebug('StockAnalysisContext', 'ResetState', "Resetting on-demand options state for new analysis.");
     _setAvailableExpirationDates([]);
     _setSelectedExpirationDate(undefined);
-    _setOnDemandOptionsChainRequestJson(initialJsonPlaceholder);
     _setIsLoadingExpirations(false);
     _setIsLoadingOnDemandOptions(false);
     _setOptionType('both');
@@ -688,23 +682,22 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         _setIsLoadingExpirations(true);
         logDebug('StockAnalysisContext', logPrefix, `Debounced fetch for '${currentTicker}'.`);
         
-        const result = await getOptionsExpirationsAction({ ticker: currentTicker });
-        
-        if (result.status === 'success' && result.data && result.data.expirationDates.length > 0) {
-          const allDates = result.data.expirationDates;
-          const nextExpDate = findNextAvailableDate(allDates);
-          
-          _setAvailableExpirationDates(allDates);
-          
-          if (nextExpDate) {
-            _setSelectedExpirationDate(nextExpDate);
-            logDebug('StockAnalysisContext', logPrefix, `Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
-          } else {
-            logDebug('StockAnalysisContext', logPrefix, `Success, but no suitable future date found.`);
-          }
-        } else {
-          logDebug('StockAnalysisContext', logPrefix, `Failed to fetch expirations for '${currentTicker}'. Error: ${result.error}`);
+        try {
+            const allDates = await getExpirationDates(currentTicker);
+            const nextExpDate = findNextAvailableDate(allDates);
+            
+            _setAvailableExpirationDates(allDates);
+            
+            if (nextExpDate) {
+              _setSelectedExpirationDate(nextExpDate);
+              logDebug('StockAnalysisContext', logPrefix, `Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
+            } else {
+              logDebug('StockAnalysisContext', logPrefix, `Success, but no suitable future date found.`);
+            }
+        } catch (error: any) {
+            logDebug('StockAnalysisContext', logPrefix, `Failed to fetch expirations for '${currentTicker}'. Error: ${error.message}`);
         }
+        
         _setIsLoadingExpirations(false);
       };
 
@@ -795,7 +788,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     // Expose new state and setters
     availableExpirationDates: _availableExpirationDates, setAvailableExpirationDates: contextSetters.setAvailableExpirationDates,
     selectedExpirationDate: _selectedExpirationDate, setSelectedExpirationDate: contextSetters.setSelectedExpirationDate,
-    onDemandOptionsChainRequestJson: _onDemandOptionsChainRequestJson, setOnDemandOptionsChainRequestJson: contextSetters.setOnDemandOptionsChainRequestJson,
     isLoadingExpirations: _isLoadingExpirations, setIsLoadingExpirations: contextSetters.setIsLoadingExpirations,
     isLoadingOnDemandOptions: _isLoadingOnDemandOptions, setIsLoadingOnDemandOptions: contextSetters.setIsLoadingOnDemandOptions,
     optionType: _optionType, setOptionType: contextSetters.setOptionType,
@@ -819,7 +811,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setLogSourceEnabled, enableAllLogSources, disableAllLogSources, logDebug,
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
-    _availableExpirationDates, _selectedExpirationDate, _onDemandOptionsChainRequestJson,
+    _availableExpirationDates, _selectedExpirationDate,
     _isLoadingExpirations, _isLoadingOnDemandOptions, _optionType, _strikeCount, _tableDisplayType,
     _aiKeyTakeawaysRequestJson,
   ]);

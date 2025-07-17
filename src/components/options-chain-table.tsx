@@ -74,30 +74,18 @@ const PENDING_STATUS_JSON_VARIANTS = [
   '{ "status": "no_analysis_run_yet" }'
 ];
 
-interface OptionsChainTableProps {
-  dataSourceJson?: string;
-  snapshotDataSourceJson?: string;
-  optionType?: OptionType;
-  tableDisplayType?: TableDisplayType;
-}
-
-export function OptionsChainTable({ 
-  dataSourceJson, 
-  snapshotDataSourceJson, 
-  optionType: propOptionType, 
-  tableDisplayType: propTableDisplayType 
-}: OptionsChainTableProps) {
+export function OptionsChainTable() {
   const globalContext = useStockAnalysis();
   const { toast } = useToast();
   const componentName = 'OptionsChainTable';
 
-  // Use props if provided (for staging), otherwise fall back to global context (for main tab)
-  const optionsChainJson = dataSourceJson !== undefined ? dataSourceJson : globalContext.optionsChainJson;
-  const stockSnapshotJson = snapshotDataSourceJson !== undefined ? snapshotDataSourceJson : globalContext.stockSnapshotJson;
-  const optionType = propOptionType !== undefined ? propOptionType : globalContext.optionType;
-  const tableDisplayType = propTableDisplayType !== undefined ? propTableDisplayType : globalContext.tableDisplayType;
-
-  const { logDebug } = globalContext;
+  const { 
+    optionsChainJson, 
+    stockSnapshotJson, 
+    optionType, 
+    tableDisplayType,
+    logDebug 
+  } = globalContext;
 
   const [isLoadingState, setIsLoadingState] = useState(true);
   const [isErrorState, setIsErrorState] = useState(false);
