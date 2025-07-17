@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.17
-**Application Version (from `app-metadata.json`):** v3.6.5.8
-**Last Updated:** 2025-07-10
+**README Document Version:** 3.18
+**Application Version (from `app-metadata.json`):** v3.6.5.11
+**Last Updated:** 2025-07-12
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -90,7 +90,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug", "Debug Logs", "Debug FSM", and "(EXP) Options" tabs, which are horizontally scrollable on narrow viewports.
+*   Main application interface organized into "Main", "Debug", "Debug Logs", and "Debug FSM" tabs, which are horizontally scrollable on narrow viewports.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -102,14 +102,12 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Tailwind CSS for styling, using HSL theme variables in `globals.css`.
 *   Dark mode support.
 
-#### 3.1.5. Data Export & Debugging (as of v3.6.5.3)
+#### 3.1.5. Data Export & Debugging (as of v3.6.5.11)
 *   **JSON-Only Export:** All data export functions on individual UI cards (e.g., Key Takeaways, Options Chain) now exclusively support "Copy JSON" and "Export JSON".
 *   **"Debug" Tab:** The former "Debug Data" tab is now simply "Debug". Its sole purpose is to display the raw JSON inputs and outputs for all major data segments and AI flows.
 *   **"Debug Logs" Tab:** This is now the **single source of truth for log-based debugging**. It houses a large, persistent console that displays curated trace logs from the application's internal logging system, free from UI render spam. Includes filtering, search, and a 2000-entry buffer.
 *   **"Debug FSM" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
 *   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides a single "Debug Snapshot" button to copy or export a comprehensive JSON snapshot of the application state for bug reporting. This snapshot includes the app version, FSM state, all data JSONs, chat histories, and the full "Debug Logs" buffer.
-*   **Developer Staging Areas:**
-    *   **"(EXP) Options" Tab:** A dedicated area for developers to test experimental options-related features (such as future E*Trade API integration) in isolation from the main application flow.
 
 ### 3.2. System Architecture & Components
 
@@ -135,11 +133,11 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Policy (Strictly Enforced):** Sole source for `appVersion`. Dynamically loaded and used.
     *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
-#### 3.2.4. State Management (as of v3.6.5.7)
+#### 3.2.4. State Management (as of v3.6.5.11)
 *   **React Context (`StockAnalysisContext`):**
     *   Serves as the central provider for global state and actions.
     *   Manages all state for dynamic options settings (`selectedExpirationDate`, `availableExpirationDates`, etc.).
-    *   **Proactive & Debounced Expiration Hook:** Contains a new, debounced `useEffect` hook that automatically fetches expiration dates for a new ticker after the user has paused typing (1-second debounce). This is now the primary mechanism for ensuring expiration data is available.
+    *   **Proactive & Debounced Expiration Hook:** Contains a debounced `useEffect` hook that automatically fetches expiration dates for a new ticker after the user has paused typing (1-second debounce). This is the primary mechanism for ensuring expiration data is available.
 *   **Deterministic Handlers:** All complex asynchronous workflows (e.g., "Analyze Stock" pipeline, AI chat submissions) are now driven by dedicated `async` handler functions within the primary UI component (`MainTabContent.tsx`). These handlers use a simple `await` pattern to ensure a linear, predictable, and sequential execution of server actions.
 *   **Simple State Updates:** The application primarily uses `useState` (for local component state) and `useReducer` (for the simplified global FSM) to manage state. The client-side `useActionState` hook is used for chat form submissions.
 
@@ -180,7 +178,7 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.5.8):**
+*   **Current Feature Focus (as of v3.6.5.11):**
     *   **Codebase Cleanup & Hardening:** The application is in a highly stable, lean state after several successful cleanup and hardening phases. It is ready for the next feature development cycle.
 
 #### 3.5.2. UI/UX Conventions
@@ -199,23 +197,18 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ---
 
-## 4. Codebase & Context Window Audit (v3.6.5.8)
+## 4. Codebase & Context Window Audit (v3.6.5.11)
 
-A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development. This analysis helps diagnose and mitigate issues like AI "tunnel vision."
+A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development.
 
 ### 4.1. Estimated Context Window Requirements
 
-Two estimations were performed to understand the codebase complexity:
-
-1.  **Full Context (Including Documentation): 250,000 to 350,000+ tokens**
-    *   This represents the total cognitive load required to understand the code, operational rules, architectural decisions, and historical context stored in all `.md` documentation files.
-
-2.  **Code-Only Context (Excluding Documentation): 145,000 to 185,000 tokens**
-    *   This represents the pure architectural complexity of the application after the recent cleanup phases. The simplification of the logging system and the removal of obsolete debug/staging features have significantly reduced this number.
+*   **Full Context (Including Documentation):** `230,000 - 320,000` tokens
+*   **Code-Only Context (Excluding Documentation):** `120,000 - 150,000` tokens
 
 ### 4.2. Conclusion on Context Size
 
-The current code-only context size is significantly more manageable than in previous versions. While still large, this reduction makes the codebase healthier and less prone to AI-induced errors during development. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy for ensuring the AI agent operates with the most accurate and relevant information for each task.
+The recent cleanup phases (`v3.6.5.x`) have successfully reduced the code-only context size to a more manageable level. The removal of obsolete staging features and their associated components, contexts, and server actions has made the codebase healthier and less prone to AI-induced errors during development. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy.
 
 The complexity is broken down into the following tiers of importance:
 *   **Tier 1 (Highest): Critical Core Logic.** The core state, execution flow, and data contracts (`stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`).
@@ -258,8 +251,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.17
-*   **Current Application Version:** `v3.6.5.8`
+*   **This README Document Version:** 3.18
+*   **Current Application Version:** `v3.6.5.11`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 

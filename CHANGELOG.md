@@ -7,6 +7,31 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.5.11` (Staging Options Cleanup)
+**Tag:** `Phase-74_Task-3.6.5.11_StagingOptionsCleanup`
+**Commit Hash:** `8c1521fd`
+**Subject:** `refactor(core): Complete removal of obsolete Experimental Options staging tab`
+**Details:**
+This commit represents a comprehensive, multi-phase cleanup that completely removes all remnants of the obsolete **"(EXP) Options"** staging tab. This feature was created for isolated development and is now fully redundant, as its functionality has been integrated into the main application's core data pipeline. This refactoring significantly simplifies the codebase and reduces context token usage for future development.
+
+**Key Cleanup Actions (Consolidating `v3.6.5.9` - `v3.6.5.11`):**
+*   **UI & Component Removal (`v3.6.5.9`):**
+    *   Deleted the main UI component `src/components/staging-options-tab-content.tsx`.
+    *   Deleted the dedicated React context `src/contexts/staging-options-context.tsx`.
+    *   Modified `src/components/page-content.tsx` to remove the "(EXP) Options" tab trigger and its content panel.
+*   **Orphaned Server Action Removal (`v3.6.5.10`):**
+    *   An audit revealed and subsequently removed two orphaned server actions that were used exclusively by the deleted staging tab:
+        *   `src/actions/get-options-expirations-action.ts`
+        *   `src/actions/get-options-chain-for-expiration-action.ts`
+*   **Dead State & Prop Removal (`v3.6.5.10` & `v3.6.5.11`):**
+    *   A final audit identified and removed several dead state variables from `StockAnalysisContext` that were only used by the staging tab (e.g., `onDemandOptionsChainRequestJson`, `isLoadingOnDemandOptions`).
+    *   Removed the corresponding obsolete `JsonDisplayArea` from the `Debug` tab.
+    *   Simplified `OptionsChainTable` by removing unused props that were only for the staging tab's isolated data flow.
+
+**Outcome:**
+*   The application codebase is now significantly leaner, more maintainable, and easier to understand.
+*   All known traces of the obsolete staging feature have been successfully removed.
+---
 **App Version:** `v3.6.5.8` (UI: Adjust Tab Selection & Docs Cleanup)
 **Tag:** `Phase-73_Task-3.6.5.8_UiTabAdjustmentsDocsCleanup`
 **Commit Hash:** `dd0464d3`
@@ -878,7 +903,7 @@ This commit (`1ca4bd54`) marks the full and successful completion of the **"FSM 
 **Outcome of v3.2.5.0.Z:**
 *   The application is more stable, predictable, and easier to debug.
 *   The state management architecture is now scalable and prepared for future feature development.
-*   The application version is consistently `v3.2.5.0.Z`, reflecting the completion of this major refactoring effort.
+*   The application version is consistently `v3.2.5.0.Z`.
 ---
 **App Version:** `v3.2.5.0.U` (Fix Chat Grounding with Tools)
 **Tag:** `Phase-23_Task-3.2.5.0.U_FixChatGroundingWithTools` (Commit `6645e792`)
