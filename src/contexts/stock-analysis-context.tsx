@@ -165,7 +165,6 @@ interface StockAnalysisState {
   availableExpirationDates: string[];
   selectedExpirationDate: string | undefined;
   isLoadingExpirations: boolean;
-  isLoadingOnDemandOptions: boolean;
   optionType: OptionType;
   strikeCount: StrikeCount;
   tableDisplayType: TableDisplayType;
@@ -204,7 +203,6 @@ interface StockAnalysisContextSetters {
   setAvailableExpirationDates: (dates: string[]) => void;
   setSelectedExpirationDate: (date: string | undefined) => void;
   setIsLoadingExpirations: (loading: boolean) => void;
-  setIsLoadingOnDemandOptions: (loading: boolean) => void;
   setOptionType: (type: OptionType) => void;
   setStrikeCount: (count: StrikeCount) => void;
   setTableDisplayType: (type: TableDisplayType) => void;
@@ -296,7 +294,6 @@ const defaultState: StockAnalysisState = {
   availableExpirationDates: [],
   selectedExpirationDate: undefined,
   isLoadingExpirations: false,
-  isLoadingOnDemandOptions: false,
   optionType: 'both',
   strikeCount: 20,
   tableDisplayType: 'side-by-side',
@@ -356,7 +353,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_availableExpirationDates, _setAvailableExpirationDates] = useState<string[]>(defaultState.availableExpirationDates);
   const [_selectedExpirationDate, _setSelectedExpirationDate] = useState<string | undefined>(defaultState.selectedExpirationDate);
   const [_isLoadingExpirations, _setIsLoadingExpirations] = useState<boolean>(defaultState.isLoadingExpirations);
-  const [_isLoadingOnDemandOptions, _setIsLoadingOnDemandOptions] = useState<boolean>(defaultState.isLoadingOnDemandOptions);
   const [_optionType, _setOptionType] = useState<OptionType>(defaultState.optionType);
   const [_strikeCount, _setStrikeCount] = useState<StrikeCount>(defaultState.strikeCount);
   const [_tableDisplayType, _setTableDisplayType] = useState<TableDisplayType>(defaultState.tableDisplayType);
@@ -402,7 +398,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setAvailableExpirationDates: _setAvailableExpirationDates,
     setSelectedExpirationDate: _setSelectedExpirationDate,
     setIsLoadingExpirations: _setIsLoadingExpirations,
-    setIsLoadingOnDemandOptions: _setIsLoadingOnDemandOptions,
     setOptionType: _setOptionType,
     setStrikeCount: _setStrikeCount,
     setTableDisplayType: _setTableDisplayType,
@@ -480,7 +475,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setAvailableExpirationDates([]);
     _setSelectedExpirationDate(undefined);
     _setIsLoadingExpirations(false);
-    _setIsLoadingOnDemandOptions(false);
     _setOptionType('both');
     _setStrikeCount(20);
     _setTableDisplayType('side-by-side');
@@ -789,7 +783,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     availableExpirationDates: _availableExpirationDates, setAvailableExpirationDates: contextSetters.setAvailableExpirationDates,
     selectedExpirationDate: _selectedExpirationDate, setSelectedExpirationDate: contextSetters.setSelectedExpirationDate,
     isLoadingExpirations: _isLoadingExpirations, setIsLoadingExpirations: contextSetters.setIsLoadingExpirations,
-    isLoadingOnDemandOptions: _isLoadingOnDemandOptions, setIsLoadingOnDemandOptions: contextSetters.setIsLoadingOnDemandOptions,
     optionType: _optionType, setOptionType: contextSetters.setOptionType,
     strikeCount: _strikeCount, setStrikeCount: contextSetters.setStrikeCount,
     tableDisplayType: _tableDisplayType, setTableDisplayType: contextSetters.setTableDisplayType,
@@ -812,7 +805,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
     _availableExpirationDates, _selectedExpirationDate,
-    _isLoadingExpirations, _isLoadingOnDemandOptions, _optionType, _strikeCount, _tableDisplayType,
+    _isLoadingExpirations, _optionType, _strikeCount, _tableDisplayType,
     _aiKeyTakeawaysRequestJson,
   ]);
   

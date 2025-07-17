@@ -83,9 +83,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     // New On-Demand Options State
     availableExpirationDates, setAvailableExpirationDates,
     selectedExpirationDate, setSelectedExpirationDate,
-    setOnDemandOptionsChainRequestJson,
     isLoadingExpirations, setIsLoadingExpirations,
-    isLoadingOnDemandOptions, setIsLoadingOnDemandOptions,
     optionType, setOptionType,
     strikeCount, setStrikeCount,
     tableDisplayType, setTableDisplayType,
@@ -347,7 +345,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
   
   const analyzeButtonLoading = isPipelineInProgress;
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
-  const isOverallLoading = analyzeButtonLoading || isLoadingExpirations || isLoadingOnDemandOptions;
+  const isOverallLoading = analyzeButtonLoading || isLoadingExpirations;
   
   const analyzeButtonDisabled = !globalFsmFlags.canAnalyzeStock || isOverallLoading || isAnyChatPending || !globalUserInputTicker.trim() || !selectedExpirationDate;
 
