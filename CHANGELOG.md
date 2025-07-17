@@ -7,6 +7,28 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.5.13` (AI Prompt Cleanup)
+**Tag:** `Phase-75_Task-3.6.5.13_AiPromptCleanup`
+**Commit Hash:** `08bf783c`
+**Subject:** `refactor(ai): Remove 9 obsolete AI prompt definitions, refactor App Data Chat flow`
+**Details:**
+This commit represents a major architectural simplification and codebase cleanup, focused on the AI layer. A full audit identified and removed a total of **nine** obsolete AI prompt definition (`.json`) files that were remnants of deprecated architectural patterns. This significantly reduces the application's context window size and improves maintainability.
+
+**Key Cleanup Actions (Consolidating `v3.6.5.12` & `v3.6.5.13`):**
+*   **Obsolete Web Search Prompts Removed (`v3.6.5.12`):**
+    *   Deleted **six** obsolete JSON files related to the old, Genkit-based web search implementation (e.g., `web-search-chatbot.json`, `technical-analysis-web-search.json`).
+    *   This was possible because the current, stable web search feature uses the raw Google AI SDK and a simpler set of prompt templates from `example-web-search-prompts.json`.
+*   **Obsolete App Data Prompts Removed & Flow Refactored (`v3.6.5.13`):**
+    *   Deleted **three** redundant JSON files for the "App Data Chat" example prompts (e.g., `stock-trader-takeaways.json`).
+    *   The `app-data-chat-flow.ts` was refactored to be more efficient. It now uses a single, core prompt definition (`app-data-chatbot.json`) and intelligently injects the text from `example-chat-prompts.json` as the user's query. This eliminates the need for separate, bloated prompt files for each example.
+*   **Web Search Prompt Refined (`v3.6.5.13`):**
+    *   As part of the cleanup, the "Technical Analysis Search" template in `example-web-search-prompts.json` was refined to remove the request for Fibonacci levels, making the query more focused.
+
+**Outcome:**
+*   The AI definition directory (`src/ai/definitions/`) is significantly cleaner and smaller.
+*   The App Data Chat and Web Search Chat architectures are now consistent, both using a lean "single base prompt + text template" pattern.
+*   The application's context window size has been substantially reduced, improving future development efficiency.
+---
 **App Version:** `v3.6.5.11` (Staging Options Cleanup)
 **Tag:** `Phase-74_Task-3.6.5.11_StagingOptionsCleanup`
 **Commit Hash:** `8c1521fd`
@@ -1257,7 +1279,7 @@ This version (`v3.0.0.1`) implements a critical fix to ensure all application ve
 *   Documentation (`README_3.0.md`) accurately reflects the enforced dynamic versioning policy.
 ---
 **App Version:** `v3.0.0.1` (Fix AI Definition Loading for Deployment)
-**Tag:** `Phase-10_Task-3.0.0.0_FixAIDefinitionLoading` (Note: Task ID was 3.0.0.0, version corrected to 3.0.0.1 by user)
+**Tag:** `Phase-10_Task-3.0.0.0_FixAIDefinitionLoading` (Note: Task ID was 3.0.0.0, version corrected to user)
 **Commit Hash:** (Previous commit hash for this fix)
 **Subject:** `fix(ai): Use dynamic imports for AI definition JSONs for deployment (v3.0.0.1)`
 **Details:**

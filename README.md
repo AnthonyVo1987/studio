@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.18
-**Application Version (from `app-metadata.json`):** v3.6.5.11
-**Last Updated:** 2025-07-12
+**README Document Version:** 3.19
+**Application Version (from `app-metadata.json`):** v3.6.5.13
+**Last Updated:** 2025-07-13
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -83,9 +83,9 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Key Takeaways (Price Action, Trend, Volatility, Momentum, Patterns).
         *   AI Analyzed Options Chain (Call/Put Walls).
 
-*   **Dual AI Chat Architecture (as of v3.4.6.4.11):**
-    *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application (using a stable Genkit flow). Example prompts are loaded from a dedicated JSON file.
-    *   **Web Search Chat:** A separate chat box that handles all queries requiring real-time web search. This now uses the **raw Google AI SDK** for improved stability. Example prompts are loaded from their own dedicated JSON file.
+*   **Dual AI Chat Architecture (as of v3.6.5.13):**
+    *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application. It uses a single, robust Genkit flow (`app-data-chat-flow.ts`) and a core prompt definition (`app-data-chatbot.json`). Example prompts are now loaded from a single, simple text-template file (`example-chat-prompts.json`), making the architecture highly efficient.
+    *   **Web Search Chat:** A separate chat box that handles all queries requiring real-time web search. This now uses the **raw Google AI SDK** for improved stability. Example prompts are loaded from their own dedicated text-template file (`example-web-search-prompts.json`).
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
@@ -168,7 +168,7 @@ This section outlines the application's core data analysis pipeline. This archit
 *   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
 *   Flows load definitions using `src/ai/definition-loader.ts`.
 *   All flows include error handling and execution time logging. Prompts are cached for performance.
-*   Example chat prompts for the UI are sourced from dedicated JSON files: `example-chat-prompts.json` and `example-web-search-prompts.json`.
+*   Example chat prompts for the UI are now sourced from dedicated, simple text-template files: `example-chat-prompts.json` and `example-web-search-prompts.json`.
 
 ### 3.4. Error Handling & Logging
 *   **Error Handling:** `try...catch` in Server Actions and AI Flows.
@@ -178,8 +178,8 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.5.11):**
-    *   **Codebase Cleanup & Hardening:** The application is in a highly stable, lean state after several successful cleanup and hardening phases. It is ready for the next feature development cycle.
+*   **Current Feature Focus (as of v3.6.5.13):**
+    *   **Codebase Hardening Complete:** The application is in a highly stable, lean state after several successful cleanup and hardening phases. It is ready for the next feature development cycle.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -197,18 +197,18 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ---
 
-## 4. Codebase & Context Window Audit (v3.6.5.11)
+## 4. Codebase & Context Window Audit (v3.6.5.13)
 
 A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development.
 
 ### 4.1. Estimated Context Window Requirements
 
-*   **Full Context (Including Documentation):** `230,000 - 320,000` tokens
-*   **Code-Only Context (Excluding Documentation):** `120,000 - 150,000` tokens
+*   **Full Context (Including Documentation):** `205,000 - 295,000` tokens
+*   **Code-Only Context (Excluding Documentation):** `105,000 - 125,000` tokens
 
 ### 4.2. Conclusion on Context Size
 
-The recent cleanup phases (`v3.6.5.x`) have successfully reduced the code-only context size to a more manageable level. The removal of obsolete staging features and their associated components, contexts, and server actions has made the codebase healthier and less prone to AI-induced errors during development. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy.
+The recent cleanup phases (`v3.6.5.x`) have successfully and significantly reduced the code-only context size to its leanest state yet. The removal of obsolete staging features and **nine** deprecated AI prompt definition files has made the codebase healthier and less prone to AI-induced errors during development. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy.
 
 The complexity is broken down into the following tiers of importance:
 *   **Tier 1 (Highest): Critical Core Logic.** The core state, execution flow, and data contracts (`stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`).
@@ -251,8 +251,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.18
-*   **Current Application Version:** `v3.6.5.11`
+*   **This README Document Version:** 3.19
+*   **Current Application Version:** `v3.6.5.13`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 

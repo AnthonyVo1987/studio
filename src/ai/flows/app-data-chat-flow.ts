@@ -18,23 +18,23 @@ import {
   type AppDataChatOutput,
 } from '@/ai/schemas/app-data-chat-schemas';
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
-import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
+import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition, loadExamplePrompts } from '@/ai/definition-loader';
 
-// Caches for the prompt objects
-const promptCache: Record<string, any> = {};
+// Cache for the single, core prompt object
+let coreChatPrompt: any = null;
 
-async function getChatPrompt(input: AppDataChatInput) {
-  const definitionName = input.promptName || 'app-data-chatbot';
-  const logPrefix = `[AIFlow:getChatPrompt:AppData:${definitionName}]`;
+async function getChatPrompt() {
+  const logPrefix = `[AIFlow:getChatPrompt:AppData:Core]`;
 
-  if (promptCache[definitionName]) {
+  if (coreChatPrompt) {
     console.log(`${logPrefix} Returning cached prompt object.`);
-    return promptCache[definitionName];
+    return coreChatPrompt;
   }
 
-  const genericDefinition = await loadDefinition(definitionName);
+  // This function now ONLY loads the core app-data-chatbot definition.
+  const genericDefinition = await loadDefinition('app-data-chatbot');
   if (genericDefinition.definitionType !== 'llm-prompt') {
-    const errorMsg = `Loaded definition for '${definitionName}' is not an LLM prompt type.`;
+    const errorMsg = `Loaded definition for 'app-data-chatbot' is not an LLM prompt type.`;
     console.error(`${logPrefix} ${errorMsg}`);
     throw new Error(errorMsg);
   }
@@ -64,8 +64,8 @@ async function getChatPrompt(input: AppDataChatInput) {
 
   const prompt = ai.definePrompt(promptOptions);
   
-  promptCache[definitionName] = prompt;
-  return prompt;
+  coreChatPrompt = prompt; // Cache the single core prompt
+  return coreChatPrompt;
 }
 
 export async function chatWithBot(input: AppDataChatInput): Promise<AppDataChatOutput> {
@@ -92,9 +92,32 @@ const appDataChatFlow = ai.defineFlow(
     const logPrefix = `[AIFlow:appDataChatFlow:Ticker:${input.ticker || 'N/A'}]`;
     console.log(`${logPrefix} Flow execution started. PromptName: ${input.promptName || 'app-data-chatbot'}.`);
 
+    let finalInput = { ...input };
+
+    // If a specific promptName is provided (from an example button), load its template
+    // and use it as the user input for the single, core chat prompt.
+    if (input.promptName) {
+        console.log(`${logPrefix} Handling example prompt: ${input.promptName}. Loading template...`);
+        try {
+            const examplePrompts = await loadExamplePrompts('example-chat-prompts.json');
+            const promptTemplateObj = examplePrompts.find(p => p.promptName === input.promptName);
+            if (promptTemplateObj) {
+                const templatedUserInput = promptTemplateObj.promptTemplate.replace(/\{TICKER\}/g, input.ticker || 'the stock');
+                finalInput.userInput = templatedUserInput; // Overwrite userInput with the template
+                console.log(`${logPrefix} Successfully created user input from template for ${input.promptName}.`);
+            } else {
+                throw new Error(`Template for prompt name '${input.promptName}' not found in example-chat-prompts.json.`);
+            }
+        } catch (templateError: any) {
+            console.error(`${logPrefix} CRITICAL ERROR handling prompt template. Error: ${templateError.message}`);
+            // Fail gracefully by falling back to the original user input, if any.
+            finalInput.userInput = input.userInput || `Error: Could not process template for ${input.promptName}.`;
+        }
+    }
+
     try {
-      const promptToUse = await getChatPrompt(input);
-      const result = await promptToUse(input);
+      const promptToUse = await getChatPrompt();
+      const result = await promptToUse(finalInput); // Use the final, possibly modified, input
       
       console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
 

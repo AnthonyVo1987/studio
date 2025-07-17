@@ -1,3 +1,4 @@
+
 [
   {
     "title": "S/R Levels Search",
@@ -7,7 +8,7 @@
   {
     "title": "Technical Analysis Search",
     "promptName": "technical-analysis-web-search",
-    "promptTemplate": "Using Google Search, what are the latest values for the following TA indicators for {TICKER}: Average True Range (ATR-14), Bollinger Bands (20, 2), and the key Fibonacci Retracement Levels (38.2%, 50.0%, 61.8%)?"
+    "promptTemplate": "Using Google Search, what are the latest values for the following TA indicators for {TICKER}: Average True Range (ATR-14) and Bollinger Bands (20, 2)?"
   },
   {
     "title": "Options Flow Search",
