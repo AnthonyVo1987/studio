@@ -1,7 +1,7 @@
 # Feature Scope: Single Selectable Options Expiration (v3.6)
 
-**Document Version:** 2.1
-**Date:** 2025-07-12
+**Document Version:** 2.2
+**Date:** 2025-07-15
 **Target Application Version Series:** 3.6.x.y.z
 **Feature Status:** `STABLE`
 
@@ -63,6 +63,7 @@ To ensure stability, this feature was first developed in an isolated staging env
     *   **v3.6.5.11:** Remove final piece of dead state. (`COMPLETED`)
 
 ## 5. Document Changelog
+*   **v2.2 (2025-07-15):** Updated document version and date for application checkpoint v3.6.5.14.
 *   **v2.1 (2025-07-12):** Updated document to reflect the full completion of the staging feature cleanup. Status changed to `STABLE`.
 *   **v2.0 (2025-08-27):** Updated document to reflect the full integration and stabilization of the feature. Status changed to `AWAITING FINAL TESTING`. All implementation and debugging tasks marked as complete.
 *   **v1.2 (2025-08-23):** Updated document to reflect the full integration of the feature. Status changed to `AWAITING FINAL TESTING`.

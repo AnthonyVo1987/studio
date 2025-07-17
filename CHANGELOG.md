@@ -7,6 +7,28 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.6.5.14` (Final Cleanup)
+**Tag:** `Phase-76_Task-3.6.5.14_FinalCleanup`
+**Commit Hash:** `347d8f1d`
+**Subject:** `refactor(debug): Remove obsolete DebugSettingsCard and log source filtering system`
+**Details:**
+This commit represents the **final major cleanup** of the application's codebase, focusing on the removal of the now-redundant debug log filtering system. This feature, which included the `DebugSettingsCard` component, was created to manage log verbosity but has been made obsolete by previous refactors that eliminated noisy UI render logs and streamlined the high-level trace logging system. Its removal simplifies the state management context and further reduces the application's context window size.
+
+**Key Cleanup Actions:**
+*   **File Deletions:**
+    *   Deleted `src/components/debug-settings-card.tsx`.
+    *   Deleted `src/lib/debug-log-types.ts`.
+*   **State & Logic Removal:**
+    *   Removed all `logSourceConfig` state and related functions (`setLogSourceEnabled`, `enableAllLogSources`, etc.) from `src/contexts/stock-analysis-context.tsx`.
+*   **UI Simplification:**
+    *   Removed the rendering of the `DebugSettingsCard` from `src/components/debug-tab-content.tsx`.
+    *   Simplified the console log interceptor in `StockAnalysisContext` to no longer require complex source filtering logic.
+
+**Outcome:**
+*   The application codebase is now in its leanest and most maintainable state.
+*   All known major architectural redundancies have been eliminated.
+*   The application is fully prepared for future feature development with a minimal context footprint.
+---
 **App Version:** `v3.6.5.13` (AI Prompt Cleanup)
 **Tag:** `Phase-75_Task-3.6.5.13_AiPromptCleanup`
 **Commit Hash:** `08bf783c`

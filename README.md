@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.19
-**Application Version (from `app-metadata.json`):** v3.6.5.13
-**Last Updated:** 2025-07-13
+**README Document Version:** 3.20
+**Application Version (from `app-metadata.json`):** v3.6.5.14
+**Last Updated:** 2025-07-15
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -83,7 +83,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
         *   AI Key Takeaways (Price Action, Trend, Volatility, Momentum, Patterns).
         *   AI Analyzed Options Chain (Call/Put Walls).
 
-*   **Dual AI Chat Architecture (as of v3.6.5.13):**
+*   **Dual AI Chat Architecture (as of v3.6.5.14):**
     *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application. It uses a single, robust Genkit flow (`app-data-chat-flow.ts`) and a core prompt definition (`app-data-chatbot.json`). Example prompts are now loaded from a single, simple text-template file (`example-chat-prompts.json`), making the architecture highly efficient.
     *   **Web Search Chat:** A separate chat box that handles all queries requiring real-time web search. This now uses the **raw Google AI SDK** for improved stability. Example prompts are loaded from their own dedicated text-template file (`example-web-search-prompts.json`).
 
@@ -102,10 +102,10 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Tailwind CSS for styling, using HSL theme variables in `globals.css`.
 *   Dark mode support.
 
-#### 3.1.5. Data Export & Debugging (as of v3.6.5.11)
+#### 3.1.5. Data Export & Debugging (as of v3.6.5.14)
 *   **JSON-Only Export:** All data export functions on individual UI cards (e.g., Key Takeaways, Options Chain) now exclusively support "Copy JSON" and "Export JSON".
-*   **"Debug" Tab:** The former "Debug Data" tab is now simply "Debug". Its sole purpose is to display the raw JSON inputs and outputs for all major data segments and AI flows.
-*   **"Debug Logs" Tab:** This is now the **single source of truth for log-based debugging**. It houses a large, persistent console that displays curated trace logs from the application's internal logging system, free from UI render spam. Includes filtering, search, and a 2000-entry buffer.
+*   **"Debug" Tab:** Displays the raw JSON inputs and outputs for all major data segments and AI flows.
+*   **"Debug Logs" Tab:** The primary source for log-based debugging. It houses a large, persistent console that displays curated trace logs from the application's internal logging system. Includes filtering, search, and a 2000-entry buffer.
 *   **"Debug FSM" Tab:** A dedicated tab that provides a real-time view of the global FSM's state, flags, and context variables.
 *   **Debug Snapshot Controls (Main Tab):** A UI card on the Main tab provides a single "Debug Snapshot" button to copy or export a comprehensive JSON snapshot of the application state for bug reporting. This snapshot includes the app version, FSM state, all data JSONs, chat histories, and the full "Debug Logs" buffer.
 
@@ -133,7 +133,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **Policy (Strictly Enforced):** Sole source for `appVersion`. Dynamically loaded and used.
     *   `lastUpdatedTimestamp` (if present) must be a real ISO 8601 string.
 
-#### 3.2.4. State Management (as of v3.6.5.11)
+#### 3.2.4. State Management (as of v3.6.5.14)
 *   **React Context (`StockAnalysisContext`):**
     *   Serves as the central provider for global state and actions.
     *   Manages all state for dynamic options settings (`selectedExpirationDate`, `availableExpirationDates`, etc.).
@@ -173,12 +173,12 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.4. Error Handling & Logging
 *   **Error Handling:** `try...catch` in Server Actions and AI Flows.
 *   **Logging System:** `logDebug()` for client-side, `console.*` for server-side. The in-app consoles are now reliable after the `v3.6.4.22` logging system fix.
-*   **Debug Console (Simplified):** A single "Debug Logs" tab now serves as the primary debugging view, displaying curated, high-level trace logs free of UI render spam.
+*   **Debug Console (Simplified as of v3.6.5.14):** A single "Debug Logs" tab serves as the primary debugging view, displaying curated trace logs. The complex log source filtering UI has been removed to simplify the codebase.
 
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.5.13):**
+*   **Current Feature Focus (as of v3.6.5.14):**
     *   **Codebase Hardening Complete:** The application is in a highly stable, lean state after several successful cleanup and hardening phases. It is ready for the next feature development cycle.
 
 #### 3.5.2. UI/UX Conventions
@@ -197,18 +197,18 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ---
 
-## 4. Codebase & Context Window Audit (v3.6.5.13)
+## 4. Codebase & Context Window Audit (v3.6.5.14)
 
 A comprehensive codebase audit was performed to assess complexity and the AI context window required for effective development.
 
 ### 4.1. Estimated Context Window Requirements
 
-*   **Full Context (Including Documentation):** `205,000 - 295,000` tokens
-*   **Code-Only Context (Excluding Documentation):** `105,000 - 125,000` tokens
+*   **Full Context (Including Documentation):** `195,000 - 275,000` tokens
+*   **Code-Only Context (Excluding Documentation):** `100,000 - 117,000` tokens
 
 ### 4.2. Conclusion on Context Size
 
-The recent cleanup phases (`v3.6.5.x`) have successfully and significantly reduced the code-only context size to its leanest state yet. The removal of obsolete staging features and **nine** deprecated AI prompt definition files has made the codebase healthier and less prone to AI-induced errors during development. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy.
+The recent cleanup phases (`v3.6.5.x`) have successfully and significantly reduced the code-only context size to its leanest state yet. The removal of obsolete staging features, **nine** deprecated AI prompt definition files, and the entire **debug log filtering system** has made the codebase healthier and less prone to AI-induced errors during development. The `CONTEXT_PURGE` directive remains the most critical mitigation strategy.
 
 The complexity is broken down into the following tiers of importance:
 *   **Tier 1 (Highest): Critical Core Logic.** The core state, execution flow, and data contracts (`stock-analysis-context.tsx`, `main-tab-content.tsx`, `polygon-adapter.ts`, `types.ts`).
@@ -251,8 +251,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.19
-*   **Current Application Version:** `v3.6.5.13`
+*   **This README Document Version:** 3.20
+*   **Current Application Version:** `v3.6.5.14`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
