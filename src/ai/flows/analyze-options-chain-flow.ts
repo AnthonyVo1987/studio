@@ -9,6 +9,7 @@
  * - AiOptionsAnalysisOutput (from schemas) - Output type.
  */
 
+import { logger } from '@/lib/logger';
 import {ai} from '@/ai/genkit';
 import {
   AiOptionsAnalysisInputSchema,
@@ -26,19 +27,21 @@ let analyzeOptionsChainPrompt: any = null;
 async function getAnalyzedOptionsChainPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedOptionsChainPrompt]';
   if (analyzeOptionsChainPrompt) {
-    logPrefix && console.log(`${logPrefix} Returning cached prompt object.`);
+    logPrefix && logger.debug(`${logPrefix} Returning cached prompt object.`);
     return analyzeOptionsChainPrompt;
   }
   
-  console.log(`${logPrefix} Loading 'analyze-options-chain' definition.`);
+  logger.info(`${logPrefix} Loading 'analyze-options-chain' definition.`);
   const genericDefinition = await loadDefinition('analyze-options-chain');
   if (genericDefinition.definitionType !== 'llm-prompt') {
     const errorMsg = `Loaded definition for 'analyze-options-chain' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
-    console.error(`${logPrefix} ${errorMsg}`);
+    logger.error(`${logPrefix} ${errorMsg}`);
     throw new Error(errorMsg);
   }
   const analyzeOptionsChainPromptDefinition = genericDefinition;
-  console.log(`${logPrefix} 'analyze-options-chain' definition loaded and validated. Definition keys: ${Object.keys(analyzeOptionsChainPromptDefinition).join(', ')}`);
+  logger.info(`${logPrefix} 'analyze-options-chain' definition loaded and validated.`, {
+    keys: Object.keys(analyzeOptionsChainPromptDefinition)
+  });
 
   const promptString = buildPromptStringFromLlmDefinition(analyzeOptionsChainPromptDefinition!);
   const modelId = analyzeOptionsChainPromptDefinition!.modelId || DEFAULT_ANALYSIS_MODEL_ID;
@@ -60,14 +63,13 @@ async function getAnalyzedOptionsChainPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition!.thinkingBudget };
   }
 
-  console.log(
-    `${logPrefix} Defining prompt. ` +
-    `Model: ${modelId}, ` +
-    `Grounding: false, ` +
-    `ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
-    `SafetySettings: ${safetySettings.length}, ` +
-    `Prompt (start): "${promptString.substring(0, 50)}..."`
-  );
+  logger.info(`${logPrefix} Defining prompt.`, {
+    modelId,
+    grounding: false,
+    thinkingBudget: promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A',
+    safetySettings: safetySettings.length,
+    promptStart: promptString.substring(0, 50)
+  });
   
   const prompt = ai.definePrompt({
     name: 'analyzeOptionsChainPrompt', 
@@ -79,7 +81,7 @@ async function getAnalyzedOptionsChainPrompt() {
   });
 
   analyzeOptionsChainPrompt = prompt; // Cache the prompt object
-  console.log(`${logPrefix} Prompt object defined and cached.`);
+  logger.info(`${logPrefix} Prompt object defined and cached.`);
   return analyzeOptionsChainPrompt;
 }
 
@@ -87,15 +89,19 @@ async function getAnalyzedOptionsChainPrompt() {
 export async function analyzeOptionsChain(
   input: AiOptionsAnalysisInput
 ): Promise<AiOptionsAnalysisOutput> {
-  console.time('analyzeOptionsChainFlowExecutionTime');
+  const startTime = Date.now();
   const logPrefix = `[AIFlow:analyzeOptionsChain:Ticker:${input.ticker}:Entry]`;
-  console.log(`${logPrefix} Received input. Input keys: ${Object.keys(input).join(', ')}`);
+  logger.info(`${logPrefix} Received input.`, {
+    keys: Object.keys(input)
+  });
   try {
     const result = await analyzeOptionsChainFlow(input);
-    console.timeEnd('analyzeOptionsChainFlowExecutionTime');
+    const duration = Date.now() - startTime;
+    logger.info(`${logPrefix} Flow execution completed in ${duration}ms.`);
     return result;
   } catch (error) {
-    console.timeEnd('analyzeOptionsChainFlowExecutionTime');
+    const duration = Date.now() - startTime;
+    logger.error(`${logPrefix} Flow execution failed after ${duration}ms.`);
     throw error;
   }
 }
@@ -109,7 +115,9 @@ const analyzeOptionsChainFlow = ai.defineFlow(
   },
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
     const logPrefix = `[AIFlow:analyzeOptionsChainFlow:Ticker:${input.ticker}]`;
-    console.log(`${logPrefix} Flow execution started. Current underlying: ${input.currentUnderlyingPrice}`);
+    logger.info(`${logPrefix} Flow execution started.`, {
+      currentUnderlyingPrice: input.currentUnderlyingPrice
+    });
     
     const emptyOutputOnError: AiOptionsAnalysisOutput = {
       callWalls: [],
@@ -120,26 +128,39 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     try {
       parsedOptionsData = JSON.parse(input.optionsChainJson) as OptionsChainData;
       if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) {
-        console.warn(`${logPrefix} Pre-check: Options chain data seems insufficient (less than 3 contracts). Contracts length: ${parsedOptionsData.contracts?.length}. Returning empty walls.`);
+        logger.warn(`${logPrefix} Pre-check: Options chain data seems insufficient (less than 3 contracts). Returning empty walls.`, {
+          contractsLength: parsedOptionsData.contracts?.length
+        });
         return emptyOutputOnError; 
       }
-      console.log(`${logPrefix} Pre-check passed. Contract Count: ${parsedOptionsData.contracts.length}`);
+      logger.info(`${logPrefix} Pre-check passed.`, {
+        contractCount: parsedOptionsData.contracts.length
+      });
     } catch (e: any) {
-      console.error(`${logPrefix} Pre-check: Failed to parse optionsChainJson or basic validation failed. Error: ${e.message}. Returning empty walls.`);
+      logger.error(`${logPrefix} Pre-check: Failed to parse optionsChainJson or basic validation failed. Returning empty walls.`, {
+        error: e.message
+      });
       return emptyOutputOnError;
     }
 
     let outputFromPrompt: AiOptionsAnalysisOutput | undefined;
-    console.log(`${logPrefix} Executing analyzeOptionsChainPrompt.`);
+    logger.info(`${logPrefix} Executing analyzeOptionsChainPrompt.`);
     try {
         const promptToUse = await getAnalyzedOptionsChainPrompt();
         const result = await promptToUse(input); 
         outputFromPrompt = result.output;
-        console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
-        console.log(`${logPrefix} Prompt execution completed. Output from AI (first 500 chars): ${outputFromPrompt ? JSON.stringify(outputFromPrompt).substring(0,500) : 'undefined'}`);
+        logger.debug(`${logPrefix} [Tokens]`, {
+          thoughts: result.usageMetadata?.thoughtsTokenCount ?? 'N/A',
+          output: result.usageMetadata?.candidatesTokenCount ?? 'N/A'
+        });
+        logger.debug(`${logPrefix} Prompt execution completed.`, {
+          output: outputFromPrompt ? JSON.stringify(outputFromPrompt).substring(0,500) : 'undefined'
+        });
 
         if (!outputFromPrompt || !Array.isArray(outputFromPrompt.callWalls) || !Array.isArray(outputFromPrompt.putWalls)) {
-          console.error(`${logPrefix} AI options analysis flow did not return a valid output structure. Received output: ${JSON.stringify(outputFromPrompt)}. Throwing error.`);
+          logger.error(`${logPrefix} AI options analysis flow did not return a valid output structure. Throwing error.`, {
+            output: JSON.stringify(outputFromPrompt)
+          });
           throw new Error('AI prompt for Options Analysis failed to return a valid structure.');
         }
         
@@ -148,11 +169,17 @@ const analyzeOptionsChainFlow = ai.defineFlow(
             putWalls: (outputFromPrompt.putWalls || []).slice(0, 3),
         };
 
-        console.log(`${logPrefix} Analysis complete. Call Walls identified: ${finalOutput.callWalls.length}, Put Walls identified: ${finalOutput.putWalls.length}.`);
+        logger.info(`${logPrefix} Analysis complete.`, {
+          callWalls: finalOutput.callWalls.length,
+          putWalls: finalOutput.putWalls.length
+        });
         return finalOutput;
 
     } catch (promptError: any) {
-        console.error(`${logPrefix} CRITICAL ERROR during analyzeOptionsChainPrompt execution. Error name: ${promptError?.name}, Message: ${promptError?.message}. Throwing error further.`);
+        logger.error(`${logPrefix} CRITICAL ERROR during analyzeOptionsChainPrompt execution. Throwing error further.`, {
+          name: promptError?.name,
+          message: promptError?.message
+        });
         throw promptError;
     }
   }

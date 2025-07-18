@@ -15,7 +15,7 @@ import { useStockAnalysis, type GlobalFsmState, type GlobalFsmFlags, type Global
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils";
+import { useExportActions } from '@/hooks/use-export-actions';
 
 function GlobalFsmStateDisplay({ title, previousState, currentState, targetState }: {
   title: string;
@@ -46,6 +46,7 @@ export function FsmDebugTabContent() {
         logDebug,
     } = useStockAnalysis();
     const { toast } = useToast();
+    const { exportActions } = useExportActions();
 
     const getFullFsmSnapshotForExport = () => ({
         timestamp: new Date().toISOString(),
@@ -58,10 +59,15 @@ export function FsmDebugTabContent() {
         globalFsmContextVariables: fsmVariables,
     });
 
+    const { copy, download } = exportActions({
+        data: getFullFsmSnapshotForExport(),
+        filename: 'stocksage_global_fsm_snapshot',
+        label: 'Global FSM Data'
+    });
+
     const handleCopyJson = async () => {
         logDebug('FsmDebugTabContent', 'CopyAction', 'Copying Global FSM state, flags, and variables as JSON.');
-        const fsmData = getFullFsmSnapshotForExport();
-        if (await copyToClipboard(JSON.stringify(fsmData, null, 2))) {
+        if (await copy()) {
             toast({ title: 'Global FSM Data Copied', description: 'Global FSM state, flags, and variables copied as JSON.' });
         } else {
             toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy Global FSM data.' });
@@ -70,11 +76,9 @@ export function FsmDebugTabContent() {
 
     const handleExportJson = () => {
         logDebug('FsmDebugTabContent', 'ExportAction', 'Exporting Global FSM state, flags, and variables as JSON.');
-        try {
-            const fsmData = getFullFsmSnapshotForExport();
-            downloadJson(fsmData, 'stocksage_global_fsm_snapshot.json');
+        if (download()) {
             toast({ title: 'Global FSM Data Exported', description: 'Global FSM state, flags, and variables downloaded as JSON.' });
-        } catch (error) {
+        } else {
             toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export Global FSM data.' });
         }
     };

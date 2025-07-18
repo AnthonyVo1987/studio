@@ -4,12 +4,7 @@
  */
 import type { LogSourceId } from '@/lib/debug-log-types';
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 /**
  * Checks if a JSON string represents data that is ready for processing.

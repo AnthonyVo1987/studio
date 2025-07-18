@@ -11,7 +11,7 @@ import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils";
+import { useExportActions } from '@/hooks/use-export-actions';
 import { formatCurrency, formatCompactNumber } from "@/lib/number-utils";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 
@@ -27,16 +27,12 @@ const getTickerFromSnapshot = (snapshotJson: string): string => {
   return "STOCK";
 };
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 export function AiOptionsAnalysisDisplay() {
   const { aiOptionsAnalysisJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
+  const { exportActions } = useExportActions();
   const componentName = 'AiOptionsAnalysisDisplay';
 
   const [isLoadingState, setIsLoadingState] = useState(true);
@@ -104,35 +100,37 @@ export function AiOptionsAnalysisDisplay() {
       (parsedDataState.putWalls && parsedDataState.putWalls.length > 0)
     );
 
-  const handleExport = () => {
-    logDebug(componentName, `ExportAction`, `Attempting to export options analysis as JSON for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedDataState) {
-      toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available for export." });
-      return;
-    }
-    try {
-      downloadJson(parsedDataState, `${currentTicker}_ai_options_analysis.json`);
-      toast({ title: "Exported as JSON", description: "AI options analysis downloaded." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Export Error", description: `Could not export options analysis: ${e.message}` });
-    }
-  };
+  const { copy, download } = exportActions({
+    data: parsedDataState,
+    filename: `${currentTicker}_ai_options_analysis`,
+    label: 'AI Options Analysis'
+  });
 
   const handleCopy = async () => {
     logDebug(componentName, `CopyAction`, `Attempting to copy options analysis as JSON for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedDataState) {
+    if (!isDataReadyForExport) {
       toast({ variant: "destructive", title: "Copy Failed", description: "AI options analysis data not available for copy." });
       return;
     }
-    try {
-      const success = await copyToClipboard(JSON.stringify(parsedDataState, null, 2));
-      if (success) {
-        toast({ title: `Copied as JSON`, description: "AI options analysis copied to clipboard." });
-      } else {
-        throw new Error("Clipboard API failed.");
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Copy Error", description: `Could not copy options analysis: ${e.message}` });
+    const success = await copy();
+    if (success) {
+      toast({ title: `Copied as JSON`, description: "AI options analysis copied to clipboard." });
+    } else {
+      toast({ variant: "destructive", title: "Copy Error", description: `Could not copy options analysis.` });
+    }
+  };
+
+  const handleExport = () => {
+    logDebug(componentName, `ExportAction`, `Attempting to export options analysis as JSON for ${currentTicker}`);
+    if (!isDataReadyForExport) {
+      toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available for export." });
+      return;
+    }
+    const success = download();
+    if (success) {
+      toast({ title: "Exported as JSON", description: "AI options analysis downloaded." });
+    } else {
+      toast({ variant: "destructive", title: "Export Error", description: `Could not export options analysis.` });
     }
   };
 

@@ -1,6 +1,7 @@
 
 'use server';
 
+import { logger } from '@/lib/logger';
 import { getFullStockData } from '@/services/data-sources/adapters/polygon-adapter';
 import type { AdapterOutput } from '@/services/data-sources/types';
 import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
@@ -36,11 +37,11 @@ export async function fetchStockDataAction(
   const { ticker, expirationDate, optionType, strikeCount } = payload;
   const requestedTickerUpperCase = ticker.toUpperCase();
   const actionLogPrefix = `[ServerAction:fetchStockDataAction:Ticker:${requestedTickerUpperCase}]`;
-  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}.`);
+  logger.info(`${actionLogPrefix} Received request.`, { payload: Object.keys(payload) });
 
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
     const errorMsg = 'Ticker symbol is required and must be a non-empty string.';
-    console.error(`${actionLogPrefix} Validation Error: ${errorMsg}`);
+    logger.error(`${actionLogPrefix} Validation Error: ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
@@ -50,19 +51,28 @@ export async function fetchStockDataAction(
   }
 
   try {
-    console.log(`${actionLogPrefix} Calling getFullStockData for ${requestedTickerUpperCase}.`);
+    logger.info(`${actionLogPrefix} Calling getFullStockData for ${requestedTickerUpperCase}.`);
     const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase, { expirationDate, optionType, strikeCount });
     
-    console.log(`${actionLogPrefix} getFullStockData returned. Raw request params keys: ${adapterOutput.rawRequestParams ? Object.keys(adapterOutput.rawRequestParams).join(', ') : 'N/A'}. Raw response summary keys: ${adapterOutput.rawResponseSummary ? Object.keys(adapterOutput.rawResponseSummary).join(', ') : 'N/A'}`);
+    logger.debug(`${actionLogPrefix} getFullStockData returned.`, {
+      requestParamsKeys: adapterOutput.rawRequestParams ? Object.keys(adapterOutput.rawRequestParams) : 'N/A',
+      responseSummaryKeys: adapterOutput.rawResponseSummary ? Object.keys(adapterOutput.rawResponseSummary) : 'N/A'
+    });
     
     const adapterStockDataTicker = adapterOutput.stockData.ticker;
     const adapterSnapshotTicker = adapterOutput.stockData.stockSnapshot?.ticker;
     
-    console.log(`${actionLogPrefix} Ticker consistency check: Requested: ${requestedTickerUpperCase}, AdapterStockDataPkgTicker: ${adapterStockDataTicker}, AdapterSnapshotTicker: ${adapterSnapshotTicker}`);
+    logger.debug(`${actionLogPrefix} Ticker consistency check.`, {
+      requested: requestedTickerUpperCase,
+      adapterStockDataPkgTicker: adapterStockDataTicker,
+      adapterSnapshotTicker: adapterSnapshotTicker
+    });
     
     if (adapterSnapshotTicker && adapterSnapshotTicker !== requestedTickerUpperCase) {
         const staleDataErrorMsg = `CRITICAL STALE DATA (Snapshot): Adapter returned snapshot data for ${adapterSnapshotTicker} when ${requestedTickerUpperCase} was requested.`;
-        console.error(`${actionLogPrefix} ${staleDataErrorMsg}. Adapter output snapshot (first 200 chars): ${JSON.stringify(adapterOutput.stockData.stockSnapshot).substring(0,200)}`);
+        logger.error(`${actionLogPrefix} ${staleDataErrorMsg}.`, {
+          snapshot: JSON.stringify(adapterOutput.stockData.stockSnapshot).substring(0,200)
+        });
         const errorJson = JSON.stringify({ error: staleDataErrorMsg, details: `Expected ${requestedTickerUpperCase}, adapter provided snapshot for ${adapterSnapshotTicker}.` }, null, 2);
         
         return {
@@ -79,7 +89,9 @@ export async function fetchStockDataAction(
     }
 
     if (adapterOutput.stockData.error) {
-      console.error(`${actionLogPrefix} Adapter Error: ${adapterOutput.stockData.error}. RawOverallError (first 200 chars): ${JSON.stringify(adapterOutput.stockData.rawOverallError).substring(0,200)}`);
+      logger.error(`${actionLogPrefix} Adapter Error: ${adapterOutput.stockData.error}.`, {
+        rawOverallError: JSON.stringify(adapterOutput.stockData.rawOverallError).substring(0,200)
+      });
       const adapterErrorJson = JSON.stringify({ error: adapterOutput.stockData.error, rawErrorDetails: adapterOutput.stockData.rawOverallError || adapterOutput.stockData.rawErrorDetails }, null, 2);
       return {
         status: 'error',
@@ -96,13 +108,15 @@ export async function fetchStockDataAction(
 
     const stringify = (obj: any, name: string): string => {
       if (obj === undefined || obj === null) {
-        console.warn(`${actionLogPrefix} Data for '${name}' is null or undefined before stringifying.`);
+        logger.warn(`${actionLogPrefix} Data for '${name}' is null or undefined before stringifying.`);
         return '{}';
       }
       try {
         return JSON.stringify(obj, null, 2);
       } catch (e: any) {
-        console.error(`${actionLogPrefix} Error stringifying '${name}': ${e.message}. Object (first 100 chars): ${String(obj).substring(0,100)}`);
+        logger.error(`${actionLogPrefix} Error stringifying '${name}': ${e.message}.`, {
+          object: String(obj).substring(0,100)
+        });
         return JSON.stringify({ error: `Failed to stringify ${name}`, details: e.message }, null, 2);
       }
     };
@@ -114,7 +128,9 @@ export async function fetchStockDataAction(
     const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams, "rawRequestParams");
     const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary, "rawResponseSummary");
 
-    console.log(`${actionLogPrefix} Successfully processed data. Final snapshot ticker: ${adapterOutput.stockData.stockSnapshot?.ticker}`);
+    logger.info(`${actionLogPrefix} Successfully processed data.`, {
+      finalSnapshotTicker: adapterOutput.stockData.stockSnapshot?.ticker
+    });
     return {
       status: 'success',
       data: {
@@ -125,7 +141,10 @@ export async function fetchStockDataAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CRITICAL Unhandled Error in fetchStockDataAction. Error: ${error.message}, Stack: ${error.stack}`);
+    logger.error(`${actionLogPrefix} CRITICAL Unhandled Error in fetchStockDataAction.`, {
+      error: error.message,
+      stack: error.stack
+    });
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during data fetching.',

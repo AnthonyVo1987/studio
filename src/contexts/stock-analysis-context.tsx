@@ -3,6 +3,7 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, useMemo } from 'react';
+import { logger } from '@/lib/logger';
 import { addEntryToGlobalLogBuffer } from '@/lib/global-log-buffer';
 import type { StockDataFetchResult, AnalyzeStockServerActionState } from '@/actions/analyze-stock-server-action';
 import type { AnalyzeTaResult, AnalyzeTaActionState } from '@/actions/analyze-ta-action';
@@ -116,11 +117,11 @@ export interface AppDataChatMessage {
 }
 
 const browserConsole = {
-  log: typeof console !== 'undefined' ? console.log.bind(console) : () => {},
-  warn: typeof console !== 'undefined' ? console.warn.bind(console) : () => {},
-  error: typeof console !== 'undefined' ? console.error.bind(console) : () => {},
-  info: typeof console !== 'undefined' ? console.info.bind(console) : () => {},
-  debug: typeof console !== 'undefined' ? console.debug.bind(console) : () => {},
+  log: typeof console !== 'undefined' ? logger.info.bind(console) : () => {},
+  warn: typeof console !== 'undefined' ? logger.warn.bind(console) : () => {},
+  error: typeof console !== 'undefined' ? logger.error.bind(console) : () => {},
+  info: typeof console !== 'undefined' ? logger.info.bind(console) : () => {},
+  debug: typeof console !== 'undefined' ? logger.debug.bind(console) : () => {},
 };
 
 interface StockAnalysisState {
@@ -300,8 +301,8 @@ let chatMessageIdCounter = 0;
 export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   if (typeof window !== 'undefined' && !(console as any).__stockSageContextOriginals) {
     (console as any).__stockSageContextOriginals = {
-      log: console.log.bind(console), warn: console.warn.bind(console), error: console.error.bind(console),
-      info: console.info.bind(console), debug: console.debug.bind(console),
+      log: logger.info.bind(console), warn: logger.warn.bind(console), error: logger.error.bind(console),
+      info: logger.info.bind(console), debug: logger.debug.bind(console),
     };
     (console as any).__stockSageContextOriginals.debug('[CONTEXT_INIT]', 'Original console methods captured by StockAnalysisProvider.');
   }
@@ -351,7 +352,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_tableDisplayType, _setTableDisplayType] = useState<TableDisplayType>(defaultState.tableDisplayType);
   
   const logDebug = useCallback((source: string, category: string, ...messages: any[]) => {
-      console.debug(LOGDEBUG_MARKER, source, category, ...messages);
+      logger.debug(LOGDEBUG_MARKER, {
+        source,
+        category,
+        messages
+      });
   }, []);
 
   const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
@@ -801,11 +806,10 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    console.log = (...args) => interceptAndProcessLog('log', ...args); 
-    console.warn = (...args) => interceptAndProcessLog('warn', ...args);
-    console.error = (...args) => interceptAndProcessLog('error', ...args); 
-    console.info = (...args) => interceptAndProcessLog('info', ...args);
-    console.debug = (...args) => interceptAndProcessLog('debug', ...args);
+    logger.info = (...args) => interceptAndProcessLog('info', ...args);
+    logger.warn = (...args) => interceptAndProcessLog('warn', ...args);
+    logger.error = (...args) => interceptAndProcessLog('error', ...args);
+    logger.debug = (...args) => interceptAndProcessLog('debug', ...args);
     
     return () => {
       if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }

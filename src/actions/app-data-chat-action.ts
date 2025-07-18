@@ -1,6 +1,7 @@
 
 'use server';
 
+import { logger } from '@/lib/logger';
 import {
   chatWithBot,
   type AppDataChatInput,
@@ -36,15 +37,16 @@ export async function appDataChatAction(
   } = payload;
 
   const actionLogPrefix = `[ServerAction:appDataChatAction:Ticker:${ticker || 'N/A'}]`;
-  console.log(
-    `${actionLogPrefix} Received request. PromptName: ${promptName || 'user_input'}. User Input (start): "${userInput?.substring(0, 50) || 'N/A'}...".`
-  );
+  logger.info(`${actionLogPrefix} Received request.`, {
+    promptName: promptName || 'user_input',
+    userInputStart: userInput?.substring(0, 50) || 'N/A'
+  });
 
   try {
     const finalUserInput = userInput;
     if (!finalUserInput || finalUserInput.trim() === '') {
       const errorMsg = 'User input cannot be empty.';
-      console.warn(`${actionLogPrefix} Validation Error - ${errorMsg}`);
+      logger.warn(`${actionLogPrefix} Validation Error - ${errorMsg}`);
       return {
         status: 'error',
         error: errorMsg,
@@ -90,9 +92,9 @@ export async function appDataChatAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(
-      `${actionLogPrefix} CRITICAL Error during chat processing. Error: ${error.message}.`
-    );
+    logger.error(`${actionLogPrefix} CRITICAL Error during chat processing.`, {
+      error: error.message
+    });
     const chatbotRequestJson = JSON.stringify({
       error: 'Failed during input assembly',
       details: String(error),

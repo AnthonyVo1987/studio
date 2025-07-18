@@ -1,6 +1,7 @@
 
 'use server';
 
+import { logger } from '@/lib/logger';
 import {
   analyzeStockData,
   type StockAnalysisInput,
@@ -38,7 +39,7 @@ export async function performAiAnalysisAction(
     marketStatusJson,
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiAnalysisAction:Ticker:${ticker}]`;
-  console.log(`${actionLogPrefix} Received request. Payload keys: ${Object.keys(payload).join(', ')}.`);
+  logger.info(`${actionLogPrefix} Received request.`, { payload: Object.keys(payload) });
 
 
   if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' ||
@@ -46,7 +47,7 @@ export async function performAiAnalysisAction(
       !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}' ||
       !marketStatusJson || marketStatusJson === '{}') {
     const errorMsg = 'One or more required data inputs for AI Key Takeaways analysis are missing or empty.';
-    console.warn(`${actionLogPrefix} Validation Error - ${errorMsg}.`);
+    logger.warn(`${actionLogPrefix} Validation Error - ${errorMsg}.`);
     return {
       status: 'error',
       error: errorMsg,
@@ -83,7 +84,9 @@ export async function performAiAnalysisAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CRITICAL Error in action's try-catch. Error: ${error?.message}.`);
+    logger.error(`${actionLogPrefix} CRITICAL Error in action's try-catch.`, {
+      error: error?.message
+    });
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during AI key takeaways generation.',

@@ -11,6 +11,7 @@
  * - AnalyzeTaOutput - The return type (from schemas).
  */
 
+import { logger } from '@/lib/logger';
 import {ai} from '@/ai/genkit';
 import {
   AnalyzeTaInputSchema,
@@ -23,7 +24,7 @@ import { formatToTwoDecimals } from '@/lib/number-utils';
 export async function analyzeTaIndicators(
   input: AnalyzeTaInput
 ): Promise<AnalyzeTaOutput> {
-  console.log('[AIFlow:analyzeTaIndicators] Received input:', input);
+  logger.info('[AIFlow:analyzeTaIndicators] Received input:', input);
   return analyzeTaIndicatorsFlow(input);
 }
 
@@ -34,7 +35,7 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
     outputSchema: AnalyzeTaOutputSchema,
   },
   async (input: AnalyzeTaInput): Promise<AnalyzeTaOutput> => {
-    console.log('[AIFlow:analyzeTaIndicatorsFlow] Starting analysis with input:', input);
+    logger.info('[AIFlow:analyzeTaIndicatorsFlow] Starting analysis with input:', input);
     const H = input.previousDayHigh;
     const L = input.previousDayLow;
     const C = input.previousDayClose;
@@ -58,7 +59,7 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
       resistance2: parseAndFormat(R2),
       resistance3: parseAndFormat(R3),
     };
-    console.log('[AIFlow:analyzeTaIndicatorsFlow] Analysis complete. Output:', output);
+    logger.info('[AIFlow:analyzeTaIndicatorsFlow] Analysis complete.', output);
     return output;
   }
 );

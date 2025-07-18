@@ -16,7 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { copyToClipboard, downloadJson } from '@/lib/export-utils';
+import { useExportActions } from '@/hooks/use-export-actions';
 
 export interface ExamplePromptButton {
   title: string;
@@ -52,6 +52,7 @@ export function Chatbot({
   onFormSubmit,
 }: ChatbotProps) {
   const { toast } = useToast();
+  const { exportActions } = useExportActions();
   const logSourceId = `Chatbot:${title.replace(/\s+/g, '')}`;
   const viewportRef = useRef<HTMLDivElement>(null); 
 
@@ -61,24 +62,24 @@ export function Chatbot({
     }
   }, [chatHistory]);
 
+  const { copy, download } = exportActions({
+    data: chatHistory,
+    filename: `${currentTickerForDisplay || 'stocksage'}_${title.toLowerCase().includes('web') ? 'web_search' : 'app_data'}_chat_history`,
+    label: 'Chat History'
+  });
+
   const handleCopyChat = async () => {
     if (chatHistory.length === 0) { logDebug(logSourceId, 'UserAction_CopyChat', 'No history to copy.'); return; }
-    const success = await copyToClipboard(JSON.stringify(chatHistory, null, 2));
+    const success = await copy();
     toast({ title: success ? 'Chat Copied' : 'Copy Failed', description: success ? 'Chat history copied as JSON.' : 'Could not copy chat history.'});
     logDebug(logSourceId, 'UserAction_CopyChat_Result', success ? 'Success.' : 'Failed.');
   };
 
   const handleExportChat = () => {
     if (chatHistory.length === 0) { logDebug(logSourceId, 'UserAction_ExportChat', 'No history to export.'); return; }
-    try {
-      const filenamePrefix = title.toLowerCase().includes('web') ? 'web_search' : 'app_data';
-      downloadJson(chatHistory, `${currentTickerForDisplay || 'stocksage'}_${filenamePrefix}_chat_history.json`);
-      toast({ title: 'Chat Exported', description: 'Chat history downloaded as JSON.' });
-      logDebug(logSourceId, 'UserAction_ExportChat_Result', 'Success.');
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export chat history.' });
-      logDebug(logSourceId, 'UserAction_ExportChat_Result', 'Error:', error);
-    }
+    const success = download();
+    toast({ title: success ? 'Chat Exported' : 'Export Failed', description: success ? 'Chat history downloaded as JSON.' : 'Could not export chat history.' });
+    logDebug(logSourceId, 'UserAction_ExportChat_Result', success ? 'Success.' : 'Failed.');
   };
   
   const handleExamplePromptSubmit = (e: FormEvent, promptName: string) => {

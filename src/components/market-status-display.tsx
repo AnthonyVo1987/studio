@@ -14,12 +14,7 @@ interface MarketDetailItem {
   value: string | null;
 }
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }' 
-];
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boolean) => {
   if (isLoading) {

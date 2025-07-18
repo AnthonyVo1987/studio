@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, type FormEvent, useCallback, useRef, useEffect, startTransition } from "react";
+import React, { useState, useRef, useEffect, startTransition } from "react";
 import { useActionState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs } from '@/actions/app-data-chat-action';
 import { sdkWebSearchChatAction, type SdkWebSearchChatActionState, type SdkWebSearchChatActionInputs } from '@/actions/sdk-web-search-chat-action';
-import { getExpirationDates, getOptionsChainForDate } from "@/services/data-sources/adapters/polygon-adapter";
+import { getExpirationDates } from "@/services/data-sources/adapters/polygon-adapter";
 
 
 const appDataButtons: ExamplePromptButton[] = [

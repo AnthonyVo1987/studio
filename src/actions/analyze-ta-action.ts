@@ -1,6 +1,7 @@
 
 'use server';
 
+import { logger } from '@/lib/logger';
 import {
   analyzeTaIndicators,
   type AnalyzeTaInput,
@@ -30,11 +31,11 @@ export async function analyzeTaAction(
 ): Promise<AnalyzeTaActionState> {
   const { stockSnapshotJson, ticker } = payload;
   const actionLogPrefix = `[ServerAction:analyzeTaAction:Ticker:${ticker || 'Unknown'}]`;
-  console.log(`${actionLogPrefix} Received request.`);
+  logger.info(`${actionLogPrefix} Received request.`);
 
   if (!stockSnapshotJson || stockSnapshotJson === '{}') {
     const errorMsg = 'Stock snapshot data is missing or empty. Cannot analyze AI TA.';
-    console.warn(`${actionLogPrefix} Validation Error: ${errorMsg}`);
+    logger.warn(`${actionLogPrefix} Validation Error: ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
@@ -46,10 +47,10 @@ export async function analyzeTaAction(
   let snapshotData: StockSnapshotData;
   try {
     snapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-    console.log(`${actionLogPrefix} Parsed stockSnapshotJson for ${ticker || snapshotData.ticker}`);
+    logger.info(`${actionLogPrefix} Parsed stockSnapshotJson for ${ticker || snapshotData.ticker}`);
   } catch(e: any) {
     const errorMsg = `Failed to parse stockSnapshotJson: ${e.message}`;
-    console.error(`${actionLogPrefix} Error parsing snapshot for ${ticker || 'Unknown'}: ${errorMsg}`);
+    logger.error(`${actionLogPrefix} Error parsing snapshot for ${ticker || 'Unknown'}: ${errorMsg}`);
     return {
       status: 'error',
       error: errorMsg,
@@ -61,10 +62,10 @@ export async function analyzeTaAction(
   try {
     if (!snapshotData.prevDay ||
         snapshotData.prevDay.h == null || 
-        snapshotData.prevDay.l == null ||
+        snapshotДay.l == null ||
         snapshotData.prevDay.c == null) {
       const errorMsg = 'Previous day HLC data is missing from the stock snapshot.';
-      console.warn(`${actionLogPrefix} Data Error for ${ticker || snapshotData.ticker}: ${errorMsg}`);
+      logger.warn(`${actionLogPrefix} Data Error for ${ticker || snapshotData.ticker}: ${errorMsg}`);
       return {
         status: 'error',
         error: errorMsg,
@@ -95,7 +96,7 @@ export async function analyzeTaAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CRITICAL Error for ${ticker || snapshotData?.ticker || 'Unknown'}:`, error);
+    logger.error(`${actionLogPrefix} CRITICAL Error for ${ticker || snapshotData?.ticker || 'Unknown'}:`, error);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during AI TA analysis.',

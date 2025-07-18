@@ -79,12 +79,7 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
   );
 }
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 export function KeyMetricsDisplay() {
   const { stockSnapshotJson } = useStockAnalysis();

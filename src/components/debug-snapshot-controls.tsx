@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils";
+import { useExportActions } from '@/hooks/use-export-actions';
 import { globalLogEntries } from "@/lib/global-log-buffer";
 import { Download, Copy } from "lucide-react";
 
@@ -17,6 +17,7 @@ interface DebugSnapshotControlsProps {
 export function DebugSnapshotControls({ appVersion }: DebugSnapshotControlsProps) {
   const { toast } = useToast();
   const context = useStockAnalysis();
+  const { exportActions } = useExportActions();
 
   const generateSnapshot = useCallback(() => {
     // Destructure all needed parts from the context
@@ -89,19 +90,25 @@ export function DebugSnapshotControls({ appVersion }: DebugSnapshotControlsProps
   const handleAction = async (action: 'copy' | 'export') => {
     const snapshotData = generateSnapshot();
     const ticker = context.fsmVariables.activeTicker || 'STOCK';
-    const filename = `stocksage_snapshot_${ticker}.json`;
-    const dataString = JSON.stringify(snapshotData, null, 2);
+    const { copy, download } = exportActions({
+      data: snapshotData,
+      filename: `stocksage_snapshot_${ticker}`,
+      label: 'Debug Snapshot'
+    });
 
     try {
       if (action === 'copy') {
-        if (await copyToClipboard(dataString)) {
+        if (await copy()) {
           toast({ title: 'Snapshot Copied', description: `The debug snapshot was copied to your clipboard.` });
         } else {
           throw new Error('Clipboard API failed.');
         }
       } else {
-        downloadJson(snapshotData, filename);
-        toast({ title: 'Snapshot Exported', description: `The debug snapshot was downloaded as ${filename}.` });
+        if (download()) {
+          toast({ title: 'Snapshot Exported', description: `The debug snapshot was downloaded.` });
+        } else {
+          throw new Error('Download failed.');
+        }
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Action Failed', description: `Could not ${action} snapshot: ${e.message}` });

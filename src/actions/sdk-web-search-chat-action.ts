@@ -5,6 +5,7 @@
  * raw Google AI SDK, bypassing the Genkit wrapper for this specific feature.
  * It returns the AI's raw text response.
  */
+import { logger } from '@/lib/logger';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   type SdkWebSearchChatActionState,
@@ -32,7 +33,7 @@ export async function sdkWebSearchChatAction(
   } = payload;
 
   const actionLogPrefix = `[ServerAction:sdkWebSearchChatAction:${promptName || 'user_input'}]`;
-  console.log(`${actionLogPrefix} Received request.`);
+  logger.info(`${actionLogPrefix} Received request.`);
   
   const requestPayloadForLogging = {
       ticker,
@@ -47,11 +48,13 @@ export async function sdkWebSearchChatAction(
         throw new Error("User input cannot be empty for a web search query.");
     }
     
-    console.log(`${actionLogPrefix} Generating content with prompt (first 100): ${finalUserInput.substring(0, 100)}...`);
+    logger.info(`${actionLogPrefix} Generating content with prompt.`, {
+      prompt: finalUserInput.substring(0, 100)
+    });
     const result = await groundedModel.generateContent(finalUserInput);
     const rawTextResponse = result.response.text();
 
-    console.log(`${actionLogPrefix} SDK call successful. Returning raw text response.`);
+    logger.info(`${actionLogPrefix} SDK call successful. Returning raw text response.`);
     
     const responseJson = JSON.stringify({ response: rawTextResponse }, null, 2);
 
@@ -61,7 +64,7 @@ export async function sdkWebSearchChatAction(
       message: `SDK Web Search for '${promptName || 'user query'}' succeeded.`,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CRITICAL Error: ${error.message}`);
+    logger.error(`${actionLogPrefix} CRITICAL Error: ${error.message}`);
     return {
       status: 'error',
       error: error.message,

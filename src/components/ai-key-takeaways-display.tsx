@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import type { StockAnalysisOutput } from "@/ai/schemas/stock-analysis-schemas";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils";
+import { useExportActions } from '@/hooks/use-export-actions';
 
 type TakeawayCategory = keyof StockAnalysisOutput;
 
@@ -63,6 +63,8 @@ const categoryLabels: Record<TakeawayCategory, string> = {
   patterns: "Patterns",
 };
 
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
+
 const getTickerFromSnapshot = (snapshotJson: string): string => {
   try {
     if (snapshotJson && snapshotJson !== '{}' && !snapshotJson.includes('"status":') && !snapshotJson.includes('"error":')) {
@@ -75,16 +77,10 @@ const getTickerFromSnapshot = (snapshotJson: string): string => {
   return "STOCK";
 };
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
-
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, stockSnapshotJson, logDebug } = useStockAnalysis();
   const { toast } = useToast();
+  const { exportActions } = useExportActions();
   const componentName = 'AiKeyTakeawaysDisplay';
 
   const [isLoadingState, setIsLoadingState] = useState(true);
@@ -160,37 +156,37 @@ export function AiKeyTakeawaysDisplay() {
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedTakeawaysDataState && Object.keys(parsedTakeawaysDataState).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
 
-  const handleExport = () => {
-    logDebug(componentName, `ExportAction`, `Attempting to export takeaways as JSON for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedTakeawaysDataState) {
-      toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
-      return;
-    }
-    try {
-      let filename = `${currentTicker}_key_takeaways.json`;
-      downloadJson(parsedTakeawaysDataState, filename);
-      toast({ title: "Exported as JSON", description: "Key takeaways downloaded." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Export Error", description: `Could not export takeaways: ${e.message}` });
-    }
-  };
+  const { copy, download } = exportActions({
+    data: parsedTakeawaysDataState,
+    filename: `${currentTicker}_key_takeaways`,
+    label: 'Key Takeaways'
+  });
 
   const handleCopy = async () => {
     logDebug(componentName, `CopyAction`, `Attempting to copy takeaways as JSON for ${currentTicker}`);
-    if (!isDataReadyForExport || !parsedTakeawaysDataState) {
+    if (!isDataReadyForExport) {
       toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
       return;
     }
-    let dataToCopy = JSON.stringify(parsedTakeawaysDataState, null, 2);
-    try {
-      const success = await copyToClipboard(dataToCopy);
-      if (success) {
-        toast({ title: `Copied as JSON`, description: "Key takeaways copied to clipboard." });
-      } else {
-        throw new Error("Clipboard API failed.");
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Copy Error", description: `Could not copy takeaways: ${e.message}` });
+    const success = await copy();
+    if (success) {
+      toast({ title: `Copied as JSON`, description: "Key takeaways copied to clipboard." });
+    } else {
+      toast({ variant: "destructive", title: "Copy Error", description: `Could not copy takeaways.` });
+    }
+  };
+
+  const handleExport = () => {
+    logDebug(componentName, `ExportAction`, `Attempting to export takeaways as JSON for ${currentTicker}`);
+    if (!isDataReadyForExport) {
+      toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
+      return;
+    }
+    const success = download();
+    if (success) {
+      toast({ title: "Exported as JSON", description: "Key takeaways downloaded." });
+    } else {
+      toast({ variant: "destructive", title: "Export Error", description: `Could not export takeaways.` });
     }
   };
 

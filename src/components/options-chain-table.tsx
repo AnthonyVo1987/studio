@@ -20,7 +20,7 @@ import { formatDisplayDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils"; 
+import { useExportActions } from '@/hooks/use-export-actions';
 import type { OptionType, TableDisplayType } from '@/contexts/staging-options-context';
 
 interface OptionHeaderConfig {
@@ -67,16 +67,12 @@ const singleTableHeadersConfig: OptionHeaderConfig[] = [
 ];
 
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 export function OptionsChainTable() {
   const globalContext = useStockAnalysis();
   const { toast } = useToast();
+  const { exportActions } = useExportActions();
   const componentName = 'OptionsChainTable';
 
   const { 
@@ -198,38 +194,37 @@ export function OptionsChainTable() {
   
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedDataState && (parsedDataState.contracts?.length || 0) > 0;
 
-  const handleExportOptionsJson = () => {
-    logDebug(componentName, 'ExportAction', 'Export Options JSON button clicked. Data ready:', isDataReadyForExport);
-    if (!isDataReadyForExport || !parsedDataState) {
-      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON export.' });
-      return;
-    }
-    try {
-      const filenameTicker = parsedDataState.ticker || "STOCK";
-      const filenameExpDate = parsedDataState.expiration_date ? parsedDataState.expiration_date.replace(/-/g,'') : "EXP";
-      const filename = `${filenameTicker}_options_chain_${filenameExpDate}.json`;
-      downloadJson(parsedDataState, filename);
-      toast({ title: 'Options Exported (JSON)', description: `Options chain for ${filenameTicker} downloaded as ${filename}.` });
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Export Error', description: `Failed to download JSON: ${e.message}` });
-    }
-  };
+  const { copy, download } = exportActions({
+    data: parsedDataState,
+    filename: `${parsedDataState?.ticker || "STOCK"}_options_chain_${parsedDataState?.expiration_date ? parsedDataState.expiration_date.replace(/-/g,'') : "EXP"}`,
+    label: 'Options Chain'
+  });
 
   const handleCopyOptionsJson = async () => {
     logDebug(componentName, 'CopyAction', 'Copy Options JSON button clicked. Data ready:', isDataReadyForExport);
-    if (!isDataReadyForExport || !parsedDataState) {
+    if (!isDataReadyForExport) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON copy.' });
       return;
     }
-    try {
-      const success = await copyToClipboard(JSON.stringify(parsedDataState, null, 2));
-      if (success) {
-        toast({ title: 'Options Copied (JSON)', description: 'Options chain JSON data copied to clipboard.' });
-      } else {
-        toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy options chain JSON data.' });
-      }
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Copy Error', description: `Failed to copy JSON: ${e.message}` });
+    const success = await copy();
+    if (success) {
+      toast({ title: 'Options Copied (JSON)', description: 'Options chain JSON data copied to clipboard.' });
+    } else {
+      toast({ variant: 'destructive', title: 'Copy Failed', description: 'Could not copy options chain JSON data.' });
+    }
+  };
+
+  const handleExportOptionsJson = () => {
+    logDebug(componentName, 'ExportAction', 'Export Options JSON button clicked. Data ready:', isDataReadyForExport);
+    if (!isDataReadyForExport) {
+      toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON export.' });
+      return;
+    }
+    const success = download();
+    if (success) {
+      toast({ title: 'Options Exported (JSON)', description: `Options chain for ${parsedDataState?.ticker} downloaded.` });
+    } else {
+      toast({ variant: 'destructive', title: 'Export Error', description: `Failed to download JSON.` });
     }
   };
   

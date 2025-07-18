@@ -9,7 +9,7 @@ import { ClipboardCopy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
-import { copyToClipboard } from "@/lib/export-utils";
+import { useExportActions } from '@/hooks/use-export-actions';
 
 
 interface JsonDisplayAreaProps {
@@ -77,12 +77,18 @@ export function DebugTabContent() {
     logDebug,
   } = useStockAnalysis();
   const { toast } = useToast();
+  const { exportActions } = useExportActions();
 
   logDebug('DebugTabContent', "Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
 
   const handleCopy = (title: string, content: string) => {
     logDebug('DebugTabContent', `Attempting to copy JSON for: ${title}`);
-    copyToClipboard(content)
+    const { copy } = exportActions({
+      data: content,
+      filename: '',
+      label: title
+    });
+    copy()
       .then((success) => {
         if (success) {
           toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });

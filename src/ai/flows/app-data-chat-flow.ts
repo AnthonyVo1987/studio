@@ -10,6 +10,7 @@
  * - AppDataChatOutput (from schemas) - The return type for the chatWithBot function.
  */
 
+import { logger } from '@/lib/logger';
 import { ai } from '@/ai/genkit';
 import {
   AppDataChatInputSchema,
@@ -27,7 +28,7 @@ async function getChatPrompt() {
   const logPrefix = `[AIFlow:getChatPrompt:AppData:Core]`;
 
   if (coreChatPrompt) {
-    console.log(`${logPrefix} Returning cached prompt object.`);
+    logger.debug(`${logPrefix} Returning cached prompt object.`);
     return coreChatPrompt;
   }
 
@@ -35,7 +36,7 @@ async function getChatPrompt() {
   const genericDefinition = await loadDefinition('app-data-chatbot');
   if (genericDefinition.definitionType !== 'llm-prompt') {
     const errorMsg = `Loaded definition for 'app-data-chatbot' is not an LLM prompt type.`;
-    console.error(`${logPrefix} ${errorMsg}`);
+    logger.error(`${logPrefix} ${errorMsg}`);
     throw new Error(errorMsg);
   }
   const promptDefinition = genericDefinition as LlmPromptDefinition;
@@ -58,9 +59,11 @@ async function getChatPrompt() {
     output: { schema: AppDataChatOutputSchema },
   };
 
-  console.log(
-    `${logPrefix} Defining prompt. Model: ${modelId}, Grounding: false, ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}`
-  );
+  logger.info(`${logPrefix} Defining prompt.`, {
+    modelId,
+    grounding: false,
+    thinkingBudget: promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'
+  });
 
   const prompt = ai.definePrompt(promptOptions);
   
@@ -69,15 +72,19 @@ async function getChatPrompt() {
 }
 
 export async function chatWithBot(input: AppDataChatInput): Promise<AppDataChatOutput> {
+  const startTime = Date.now();
   const logPrefix = `[AIFlow:chatWithBot:AppData:Ticker:${input.ticker}:Entry]`;
-  console.log(`${logPrefix} Received request. User input (first 50): "${input.userInput.substring(0, 50)}..."`);
-  console.time('appDataChatFlowExecutionTime');
+  logger.info(`${logPrefix} Received request.`, {
+    userInputStart: input.userInput.substring(0, 50)
+  });
   try {
     const result = await appDataChatFlow(input);
-    console.timeEnd('appDataChatFlowExecutionTime');
+    const duration = Date.now() - startTime;
+    logger.info(`${logPrefix} Flow execution completed in ${duration}ms.`);
     return result;
   } catch (error) {
-    console.timeEnd('appDataChatFlowExecutionTime');
+    const duration = Date.now() - startTime;
+    logger.error(`${logPrefix} Flow execution failed after ${duration}ms.`);
     throw error;
   }
 }
@@ -90,26 +97,32 @@ const appDataChatFlow = ai.defineFlow(
   },
   async (input: AppDataChatInput): Promise<AppDataChatOutput> => {
     const logPrefix = `[AIFlow:appDataChatFlow:Ticker:${input.ticker || 'N/A'}]`;
-    console.log(`${logPrefix} Flow execution started. PromptName: ${input.promptName || 'app-data-chatbot'}.`);
+    logger.info(`${logPrefix} Flow execution started.`, {
+      promptName: input.promptName || 'app-data-chatbot'
+    });
 
     let finalInput = { ...input };
 
     // If a specific promptName is provided (from an example button), load its template
     // and use it as the user input for the single, core chat prompt.
     if (input.promptName) {
-        console.log(`${logPrefix} Handling example prompt: ${input.promptName}. Loading template...`);
+        logger.info(`${logPrefix} Handling example prompt.`, {
+          promptName: input.promptName
+        });
         try {
             const examplePrompts = await loadExamplePrompts('example-chat-prompts.json');
             const promptTemplateObj = examplePrompts.find(p => p.promptName === input.promptName);
             if (promptTemplateObj) {
                 const templatedUserInput = promptTemplateObj.promptTemplate.replace(/\{TICKER\}/g, input.ticker || 'the stock');
                 finalInput.userInput = templatedUserInput; // Overwrite userInput with the template
-                console.log(`${logPrefix} Successfully created user input from template for ${input.promptName}.`);
+                logger.info(`${logPrefix} Successfully created user input from template.`);
             } else {
                 throw new Error(`Template for prompt name '${input.promptName}' not found in example-chat-prompts.json.`);
             }
         } catch (templateError: any) {
-            console.error(`${logPrefix} CRITICAL ERROR handling prompt template. Error: ${templateError.message}`);
+            logger.error(`${logPrefix} CRITICAL ERROR handling prompt template.`, {
+              error: templateError.message
+            });
             // Fail gracefully by falling back to the original user input, if any.
             finalInput.userInput = input.userInput || `Error: Could not process template for ${input.promptName}.`;
         }
@@ -119,7 +132,10 @@ const appDataChatFlow = ai.defineFlow(
       const promptToUse = await getChatPrompt();
       const result = await promptToUse(finalInput); // Use the final, possibly modified, input
       
-      console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
+      logger.debug(`${logPrefix} [Tokens]`, {
+        thoughts: result.usageMetadata?.thoughtsTokenCount ?? 'N/A',
+        output: result.usageMetadata?.candidatesTokenCount ?? 'N/A'
+      });
 
       const output = result.output;
       if (!output || typeof output.response !== 'string' || output.response.trim() === '') {
@@ -129,11 +145,15 @@ const appDataChatFlow = ai.defineFlow(
       // Augment the direct output with the raw response object before returning
       output.rawResponse = result; 
       
-      console.log(`${logPrefix} Flow successfully executed. Final response (first 50 chars): "${output.response.substring(0, 50)}..."`);
+      logger.info(`${logPrefix} Flow successfully executed.`, {
+        responseStart: output.response.substring(0, 50)
+      });
       return output;
 
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL ERROR during prompt execution. Error: ${error.message}`);
+      logger.error(`${logPrefix} CRITICAL ERROR during prompt execution.`, {
+        error: error.message
+      });
       throw error;
     }
   }

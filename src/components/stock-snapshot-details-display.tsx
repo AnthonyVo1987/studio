@@ -39,12 +39,7 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
   );
 };
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 export function StockSnapshotDetailsDisplay() {
   const { stockSnapshotJson } = useStockAnalysis();

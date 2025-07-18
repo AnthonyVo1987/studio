@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useStockAnalysis } from '@/contexts/stock-analysis-context';
 import type { GlobalLogEntry } from '@/lib/global-log-buffer';
-import { downloadJson, copyToClipboard } from '@/lib/export-utils';
+import { useExportActions } from '@/hooks/use-export-actions';
 import { cn } from '@/lib/utils';
 import { ClipboardCopy, Download, Trash2, X, Filter, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -76,6 +76,7 @@ export function LogConsole({
 }: LogConsoleProps) {
   const { logDebug } = useStockAnalysis();
   const { toast } = useToast();
+  const { exportActions } = useExportActions();
   
   const [displayedLogs, setDisplayedLogs] = useState<GlobalLogEntry[]>([]);
   const [isFilterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -127,11 +128,16 @@ export function LogConsole({
     logDebug('LogConsole', 'LogClear', `${consoleTitle} cleared by user.`);
   };
 
+  const { copy, download } = exportActions({
+    data: { appVersion, logType: consoleTitle, logs: displayedLogs },
+    filename: `stocksage_logs_${consoleTitle.toLowerCase().replace(/\s+/g, '_')}_${appVersion}`,
+    label: 'Console Logs'
+  });
+
   const handleCopyJson = async () => {
     logDebug('LogConsole', 'CopyAction', `Copying logs from ${consoleTitle}.`);
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Copy Failed', description: 'No logs to copy.' }); return; }
-    const exportData = { appVersion, logType: consoleTitle, logs: displayedLogs };
-    if (await copyToClipboard(JSON.stringify(exportData, null, 2))) {
+    if (await copy()) {
       toast({ title: 'Logs Copied', description: 'Console logs copied to clipboard as JSON.' });
     } else {
       toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy console logs." });
@@ -141,13 +147,10 @@ export function LogConsole({
   const handleExportJson = () => {
     logDebug('LogConsole', 'ExportAction', `Exporting logs from ${consoleTitle}.`);
     if (displayedLogs.length === 0) { toast({ variant: 'destructive', title: 'Export Failed', description: 'No logs to export.' }); return; }
-    try {
-      const exportData = { appVersion, logType: consoleTitle, logs: displayedLogs };
-      const filenameSuffix = consoleTitle.toLowerCase().replace(/\s+/g, '_');
-      downloadJson(exportData, `stocksage_logs_${filenameSuffix}_${appVersion}.json`);
+    if (download()) {
       toast({ title: 'Logs Exported', description: 'Console logs downloaded as JSON.' });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Export Failed", description: `Could not export logs: ${error.message}` });
+    } else {
+      toast({ variant: "destructive", title: "Export Failed", description: `Could not export logs` });
     }
   };
   
