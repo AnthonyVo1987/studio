@@ -13,6 +13,7 @@ import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
 import { format } from 'date-fns';
 import { findNextAvailableDate } from '@/lib/date-utils';
+import { createSetterBatch } from './context-setter-factory';
 
 const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
 type LogType = 'debug' | 'info' | 'log' | 'warn' | 'error' | 'system';
@@ -358,43 +359,79 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setter(value);
   }, []);
 
+  // Create all JSON setters using factory pattern
+  const jsonSetters = useMemo(() => createSetterBatch({
+    polygonApiRequestLogJson: _setPolygonApiRequestLogJson,
+    polygonApiResponseLogJson: _setPolygonApiResponseLogJson,
+    marketStatusJson: _setMarketStatusJson,
+    stockSnapshotJson: _setStockSnapshotJson,
+    standardTasJson: _setStandardTasJson,
+    optionsChainJson: _setOptionsChainJson,
+    aiAnalyzedTaRequestJson: _setAiAnalyzedTaRequestJson,
+    aiAnalyzedTaJson: _setAiAnalyzedTaJson,
+    aiOptionsAnalysisRequestJson: _setAiOptionsAnalysisRequestJson,
+    aiOptionsAnalysisJson: _setAiOptionsAnalysisJson,
+    aiKeyTakeawaysRequestJson: _setAiKeyTakeawaysRequestJson,
+    aiKeyTakeawaysJson: _setAiKeyTakeawaysJson,
+    userInputAppDataChatRequestJson: _setUserInputAppDataChatRequestJson,
+    userInputAppDataChatResponseJson: _setUserInputAppDataChatResponseJson,
+    stockTraderTakeawaysRequestJson: _setStockTraderTakeawaysRequestJson,
+    stockTraderTakeawaysResponseJson: _setStockTraderTakeawaysResponseJson,
+    optionsTraderTakeawaysRequestJson: _setOptionsTraderTakeawaysRequestJson,
+    optionsTraderTakeawaysResponseJson: _setOptionsTraderTakeawaysResponseJson,
+    holisticTakeawaysRequestJson: _setHolisticTakeawaysRequestJson,
+    holisticTakeawaysResponseJson: _setHolisticTakeawaysResponseJson,
+    userInputWebSearchChatRequestJson: _setUserInputWebSearchChatRequestJson,
+    userInputWebSearchChatResponseJson: _setUserInputWebSearchChatResponseJson,
+    rawTaWebSearchRequestJson: _setRawTaWebSearchRequestJson,
+    rawTaWebSearchResponseJson: _setRawTaWebSearchResponseJson,
+    rawOptionsWebSearchRequestJson: _setRawOptionsWebSearchRequestJson,
+    rawOptionsWebSearchResponseJson: _setRawOptionsWebSearchResponseJson,
+    rawSupportResistanceWebSearchRequestJson: _setRawSupportResistanceWebSearchRequestJson,
+    rawSupportResistanceWebSearchResponseJson: _setRawSupportResistanceWebSearchResponseJson,
+  }, { 
+    enableLogging: process.env.NODE_ENV === 'development' 
+  }), [
+    _setPolygonApiRequestLogJson,
+    _setPolygonApiResponseLogJson,
+    _setMarketStatusJson,
+    _setStockSnapshotJson,
+    _setStandardTasJson,
+    _setOptionsChainJson,
+    _setAiAnalyzedTaRequestJson,
+    _setAiAnalyzedTaJson,
+    _setAiOptionsAnalysisRequestJson,
+    _setAiOptionsAnalysisJson,
+    _setAiKeyTakeawaysRequestJson,
+    _setAiKeyTakeawaysJson,
+    _setUserInputAppDataChatRequestJson,
+    _setUserInputAppDataChatResponseJson,
+    _setStockTraderTakeawaysRequestJson,
+    _setStockTraderTakeawaysResponseJson,
+    _setOptionsTraderTakeawaysRequestJson,
+    _setOptionsTraderTakeawaysResponseJson,
+    _setHolisticTakeawaysRequestJson,
+    _setHolisticTakeawaysResponseJson,
+    _setUserInputWebSearchChatRequestJson,
+    _setUserInputWebSearchChatResponseJson,
+    _setRawTaWebSearchRequestJson,
+    _setRawTaWebSearchResponseJson,
+    _setRawOptionsWebSearchRequestJson,
+    _setRawOptionsWebSearchResponseJson,
+    _setRawSupportResistanceWebSearchRequestJson,
+    _setRawSupportResistanceWebSearchResponseJson,
+  ])
+
   const contextSetters: StockAnalysisContextSetters = useMemo(() => ({
-    setPolygonApiRequestLogJson: (json: string) => setAndLogJson(_setPolygonApiRequestLogJson, 'polygonApiRequestLogJson', json),
-    setPolygonApiResponseLogJson: (json: string) => setAndLogJson(_setPolygonApiResponseLogJson, 'polygonApiResponseLogJson', json),
-    setMarketStatusJson: (json: string) => setAndLogJson(_setMarketStatusJson, 'marketStatusJson', json),
-    setStockSnapshotJson: (json: string) => setAndLogJson(_setStockSnapshotJson, 'stockSnapshotJson', json),
-    setStandardTasJson: (json: string) => setAndLogJson(_setStandardTasJson, 'standardTasJson', json),
-    setOptionsChainJson: (json: string) => setAndLogJson(_setOptionsChainJson, 'optionsChainJson', json),
-    setAiAnalyzedTaRequestJson: (json: string) => setAndLogJson(_setAiAnalyzedTaRequestJson, 'aiAnalyzedTaRequestJson', json),
-    setAiAnalyzedTaJson: (json: string) => setAndLogJson(_setAiAnalyzedTaJson, 'aiAnalyzedTaJson', json),
-    setAiOptionsAnalysisRequestJson: (json: string) => setAndLogJson(_setAiOptionsAnalysisRequestJson, 'aiOptionsAnalysisRequestJson', json),
-    setAiOptionsAnalysisJson: (json: string) => setAndLogJson(_setAiOptionsAnalysisJson, 'aiOptionsAnalysisJson', json),
-    setAiKeyTakeawaysRequestJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysRequestJson, 'aiKeyTakeawaysRequestJson', json),
-    setAiKeyTakeawaysJson: (json: string) => setAndLogJson(_setAiKeyTakeawaysJson, 'aiKeyTakeawaysJson', json),
-    setUserInputAppDataChatRequestJson: (json: string) => setAndLogJson(_setUserInputAppDataChatRequestJson, 'userInputAppDataChatRequestJson', json),
-    setUserInputAppDataChatResponseJson: (json: string) => setAndLogJson(_setUserInputAppDataChatResponseJson, 'userInputAppDataChatResponseJson', json),
-    setStockTraderTakeawaysRequestJson: (json: string) => setAndLogJson(_setStockTraderTakeawaysRequestJson, 'stockTraderTakeawaysRequestJson', json),
-    setStockTraderTakeawaysResponseJson: (json: string) => setAndLogJson(_setStockTraderTakeawaysResponseJson, 'stockTraderTakeawaysResponseJson', json),
-    setOptionsTraderTakeawaysRequestJson: (json: string) => setAndLogJson(_setOptionsTraderTakeawaysRequestJson, 'optionsTraderTakeawaysRequestJson', json),
-    setOptionsTraderTakeawaysResponseJson: (json: string) => setAndLogJson(_setOptionsTraderTakeawaysResponseJson, 'optionsTraderTakeawaysResponseJson', json),
-    setHolisticTakeawaysRequestJson: (json: string) => setAndLogJson(_setHolisticTakeawaysRequestJson, 'holisticTakeawaysRequestJson', json),
-    setHolisticTakeawaysResponseJson: (json: string) => setAndLogJson(_setHolisticTakeawaysResponseJson, 'holisticTakeawaysResponseJson', json),
-    setUserInputWebSearchChatRequestJson: (json: string) => setAndLogJson(_setUserInputWebSearchChatRequestJson, 'userInputWebSearchChatRequestJson', json),
-    setUserInputWebSearchChatResponseJson: (json: string) => setAndLogJson(_setUserInputWebSearchChatResponseJson, 'userInputWebSearchChatResponseJson', json),
-    setRawTaWebSearchRequestJson: (json: string) => setAndLogJson(_setRawTaWebSearchRequestJson, 'rawTaWebSearchRequestJson', json),
-    setRawTaWebSearchResponseJson: (json: string) => setAndLogJson(_setRawTaWebSearchResponseJson, 'rawTaWebSearchResponseJson', json),
-    setRawOptionsWebSearchRequestJson: (json: string) => setAndLogJson(_setRawOptionsWebSearchRequestJson, 'rawOptionsWebSearchRequestJson', json),
-    setRawOptionsWebSearchResponseJson: (json: string) => setAndLogJson(_setRawOptionsWebSearchResponseJson, 'rawOptionsWebSearchResponseJson', json),
-    setRawSupportResistanceWebSearchRequestJson: (json: string) => setAndLogJson(_setRawSupportResistanceWebSearchRequestJson, 'rawSupportResistanceWebSearchRequestJson', json),
-    setRawSupportResistanceWebSearchResponseJson: (json: string) => setAndLogJson(_setRawSupportResistanceWebSearchResponseJson, 'rawSupportResistanceWebSearchResponseJson', json),
-    // New setters
+    ...jsonSetters,
+    // Non-JSON setters
     setAvailableExpirationDates: _setAvailableExpirationDates,
     setSelectedExpirationDate: _setSelectedExpirationDate,
     setIsLoadingExpirations: _setIsLoadingExpirations,
     setOptionType: _setOptionType,
     setStrikeCount: _setStrikeCount,
     setTableDisplayType: _setTableDisplayType,
-  }), [setAndLogJson]);
+  }), [jsonSetters]);
 
   const addAppDataChatMessage = useCallback((message: AppDataChatMessage) => {
     _setAppDataChatHistory(prev => {

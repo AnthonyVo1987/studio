@@ -23,6 +23,7 @@ import type {
 import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
 import { findNextAvailableDate } from '@/lib/date-utils';
 import { formatToTwoDecimals, roundNumber } from '@/lib/number-utils';
+import { polygonApiCall, ApiError } from '@/lib/api-wrapper';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -72,53 +73,61 @@ class PolygonAdapter {
   }
 
   async getExpirationDates(ticker: string): Promise<string[]> {
-    const logPrefix = `[PolygonAdapter.getExpirationDates ForTicker: ${ticker}]`;
-    const allExpirations = new Set<string>();
-    const MAX_PAGES = 20;
+    const result = await polygonApiCall(
+      async () => {
+        const allExpirations = new Set<string>();
+        const MAX_PAGES = 20;
 
-    let nextCursor: string | undefined = undefined;
-    let pagesFetched = 0;
+        let nextCursor: string | undefined = undefined;
+        let pagesFetched = 0;
 
-    try {
-      do {
-        pagesFetched++;
-        if (pagesFetched > MAX_PAGES) {
-          break;
-        }
+        do {
+          pagesFetched++;
+          if (pagesFetched > MAX_PAGES) {
+            break;
+          }
 
-        const query: any = {
-          underlying_ticker: ticker,
-          limit: 1000,
-        };
-        if (nextCursor) {
-          query.cursor = nextCursor;
-        }
+          const query: any = {
+            underlying_ticker: ticker,
+            limit: 1000,
+          };
+          if (nextCursor) {
+            query.cursor = nextCursor;
+          }
 
-        const response = await this.client.reference.optionsContracts(query);
+          const response = await this.client.reference.optionsContracts(query);
 
-        if (response.results) {
-          for (const contract of response.results) {
-            if (contract.expiration_date) {
-              allExpirations.add(contract.expiration_date);
+          if (response.results) {
+            for (const contract of response.results) {
+              if (contract.expiration_date) {
+                allExpirations.add(contract.expiration_date);
+              }
             }
           }
-        }
-        
-        if (response.next_url) {
-            const url = new URL(response.next_url);
-            nextCursor = url.searchParams.get("cursor") || undefined;
-        } else {
-            nextCursor = undefined;
+          
+          if (response.next_url) {
+              const url = new URL(response.next_url);
+              nextCursor = url.searchParams.get("cursor") || undefined;
+          } else {
+              nextCursor = undefined;
+          }
+
+        } while (nextCursor);
+
+        if (allExpirations.size === 0) {
+          throw new ApiError('No expiration dates found', 404, 'expiration-dates')
         }
 
-      } while (nextCursor);
+        return Array.from(allExpirations).sort();
+      },
+      `expiration-dates-${ticker}`
+    )
 
-      const sortedDates = Array.from(allExpirations).sort();
-      return sortedDates;
-    } catch (error: any) {
-      console.error(`${logPrefix} Failed to fetch expiration dates. Error: ${error.message}`);
-      throw new Error(`Failed to fetch expiration dates for ${ticker}: ${error.message}`);
+    if (!result.success) {
+      throw new ApiError(result.error || 'Failed to fetch expiration dates', 500, 'expiration-dates')
     }
+
+    return result.data
   }
   
   async fetchOptionsChainForDate(
