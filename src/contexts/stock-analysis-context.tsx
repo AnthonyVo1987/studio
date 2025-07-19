@@ -299,14 +299,16 @@ const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>
 let chatMessageIdCounter = 0;
 
 export function StockAnalysisProvider({ children }: { children: ReactNode }) {
-  if (typeof window !== 'undefined' && !(console as any).__stockSageContextOriginals) {
-    (console as any).__stockSageContextOriginals = {
-      log: console.log.bind(console), warn: console.warn.bind(console), error: console.error.bind(console),
-      info: console.info.bind(console), debug: console.debug.bind(console),
-    };
-    (console as any).__stockSageContextOriginals.debug('[CONTEXT_INIT]', 'Original console methods captured by StockAnalysisProvider.');
-  }
-  const contextOriginals = (console as any).__stockSageContextOriginals || browserConsole;
+  const contextOriginals = useMemo(() => {
+    if (typeof window !== 'undefined' && !(console as any).__stockSageContextOriginals) {
+      (console as any).__stockSageContextOriginals = {
+        log: console.log.bind(console), warn: console.warn.bind(console), error: console.error.bind(console),
+        info: console.info.bind(console), debug: console.debug.bind(console),
+      };
+      (console as any).__stockSageContextOriginals.debug('[CONTEXT_INIT]', 'Original console methods captured by StockAnalysisProvider.');
+    }
+    return (console as any).__stockSageContextOriginals || browserConsole;
+  }, []);
 
   const [_polygonApiRequestLogJson, _setPolygonApiRequestLogJson] = useState<string>(defaultState.polygonApiRequestLogJson);
   const [_polygonApiResponseLogJson, _setPolygonApiResponseLogJson] = useState<string>(defaultState.polygonApiResponseLogJson);

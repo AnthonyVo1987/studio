@@ -155,7 +155,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
             setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
             setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
           }
-          dispatchGlobalFsmEvent({ type: 'KEY_TAKEAWAYS_SUCCESS', payload: result });
+          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
           if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
           break;
         }
@@ -169,7 +169,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
             setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
             setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
           }
-          dispatchGlobalFsmEvent({ type: 'OPTIONS_ANALYSIS_SUCCESS', payload: result });
+          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
           if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
           break;
         }
