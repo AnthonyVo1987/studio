@@ -18,6 +18,9 @@ import {
   AnalyzeTaOutputSchema,
   type AnalyzeTaOutput,
 } from '@/ai/schemas/ai-analyzed-ta-schemas';
+
+// Export types for use in actions
+export type { AnalyzeTaInput, AnalyzeTaOutput };
 import { formatToTwoDecimals } from '@/lib/number-utils';
 import { createLogger } from '@/lib/logger';
 

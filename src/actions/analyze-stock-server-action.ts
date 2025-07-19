@@ -3,7 +3,7 @@
 
 import { getFullStockData } from '@/services/data-sources/adapters/polygon-adapter';
 import type { AdapterOutput } from '@/services/data-sources/types';
-import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
+import type { OptionType, StrikeCount } from '@/types/options';
 
 export interface StockDataFetchResult {
   marketStatusJson: string;

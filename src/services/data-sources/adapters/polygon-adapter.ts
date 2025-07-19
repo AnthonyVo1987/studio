@@ -20,7 +20,7 @@ import type {
   StockDataPackage,
   RawResponseSummary,
 } from '@/services/data-sources/types';
-import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
+import type { OptionType, StrikeCount } from '@/types/options';
 import { findNextAvailableDate } from '@/lib/date-utils';
 import { formatToTwoDecimals, roundNumber } from '@/lib/number-utils';
 import { polygonApiCall, ApiError } from '@/lib/api-wrapper';

@@ -23,7 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 import { useQuickExport } from "@/hooks/use-export-actions"; 
-import type { OptionType, TableDisplayType } from '@/contexts/staging-options-context';
+import type { OptionType } from '@/types/options';
+import type { TableDisplayType } from '@/contexts/stock-analysis-context';
 import { getCallHeadersConfig, getPutHeadersConfig, getSingleTableHeadersConfig, type ColumnConfig } from '@/components/ui/table-config-factory';
 
 // Using factory-generated configurations

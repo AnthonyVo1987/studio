@@ -17,6 +17,9 @@ import {
   AppDataChatOutputSchema,
   type AppDataChatOutput,
 } from '@/ai/schemas/app-data-chat-schemas';
+
+// Export types for use in actions
+export type { AppDataChatInput, AppDataChatOutput };
 import { DEFAULT_CHAT_MODEL_ID } from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition, loadExamplePrompts } from '@/ai/definition-loader';
 

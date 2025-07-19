@@ -6,7 +6,6 @@ import {
   type AppDataChatInput,
   type AppDataChatOutput,
 } from '@/ai/flows/app-data-chat-flow';
-import type { AppDataChatActionInputs } from '@/ai/schemas/app-data-chat-schemas';
 
 export interface AppDataChatActionResult {
   chatbotRequestJson: string;
@@ -22,7 +21,7 @@ export interface AppDataChatActionState {
 
 export async function appDataChatAction(
   prevState: AppDataChatActionState,
-  payload: AppDataChatActionInputs
+  payload: AppDataChatInput
 ): Promise<AppDataChatActionState> {
   const {
     ticker,

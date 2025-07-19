@@ -17,6 +17,9 @@ import {
   StockAnalysisOutputSchema,
   type StockAnalysisOutput,
 } from '@/ai/schemas/stock-analysis-schemas';
+
+// Export types for use in actions
+export type { StockAnalysisInput, StockAnalysisOutput };
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
 import { stockAnalysisTemplates } from '@/ai/prompt-template-system';

@@ -16,6 +16,9 @@ import {
   AiOptionsAnalysisOutputSchema,
   type AiOptionsAnalysisOutput,
 } from '@/ai/schemas/ai-options-analysis-schemas';
+
+// Export types for use in actions
+export type { AiOptionsAnalysisInput, AiOptionsAnalysisOutput };
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import type { OptionsChainData } from '@/services/data-sources/types';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
