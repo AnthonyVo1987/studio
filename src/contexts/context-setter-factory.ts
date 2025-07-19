@@ -38,13 +38,20 @@ export const createJsonSetter = (
   }
 }
 
+// Helper function to convert property name to setter method name
+const toSetterMethodName = (propertyName: string): string => {
+  // Convert "polygonApiRequestLogJson" to "setPolygonApiRequestLogJson"
+  return `set${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`
+}
+
 // Batch setter creator for multiple related fields
 export const createSetterBatch = (
   setters: Record<string, Dispatch<SetStateAction<string>>>,
   options: SetterFactoryOptions = {}
 ): Record<string, JsonSetter> => {
   return Object.entries(setters).reduce((acc, [key, setter]) => {
-    acc[key] = createJsonSetter(setter, key, options)
+    const setterMethodName = toSetterMethodName(key)
+    acc[setterMethodName] = createJsonSetter(setter, key, options)
     return acc
   }, {} as Record<string, JsonSetter>)
 }
