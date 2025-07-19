@@ -19,9 +19,13 @@ import {
 } from '@/ai/schemas/stock-analysis-schemas';
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
+import { stockAnalysisTemplates } from '@/ai/prompt-template-system';
 
 // Cache for the prompt object
 let analyzeStockDataPrompt: any = null;
+
+// Flag to use template system (can be toggled for A/B testing)
+const USE_TEMPLATE_SYSTEM = process.env.USE_AI_TEMPLATE_SYSTEM === 'true' || false;
 
 async function getAnalyzedStockDataPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedStockDataPrompt]';
@@ -30,19 +34,27 @@ async function getAnalyzedStockDataPrompt() {
     return analyzeStockDataPrompt;
   }
 
-  console.log(`${logPrefix} Loading 'analyze-stock-data' definition.`);
-  const genericDefinition = await loadDefinition('analyze-stock-data');
-  if (genericDefinition.definitionType !== 'llm-prompt') {
-    const errorMsg = `Loaded definition for 'analyze-stock-data' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
-    console.error(`${logPrefix} ${errorMsg}`);
-    throw new Error(errorMsg);
+  let analyzeStockDataPromptDefinition: LlmPromptDefinition;
+  
+  if (USE_TEMPLATE_SYSTEM) {
+    console.log(`${logPrefix} Using template system for prompt generation.`);
+    analyzeStockDataPromptDefinition = stockAnalysisTemplates.stockAnalysis();
+  } else {
+    console.log(`${logPrefix} Loading 'analyze-stock-data' definition from JSON.`);
+    const genericDefinition = await loadDefinition('analyze-stock-data');
+    if (genericDefinition.definitionType !== 'llm-prompt') {
+      const errorMsg = `Loaded definition for 'analyze-stock-data' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
+      console.error(`${logPrefix} ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+    analyzeStockDataPromptDefinition = genericDefinition;
   }
-  const analyzeStockDataPromptDefinition = genericDefinition;
-  console.log(`${logPrefix} 'analyze-stock-data' definition loaded and validated. Definition keys: ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
+  
+  console.log(`${logPrefix} Definition ready. Source: ${USE_TEMPLATE_SYSTEM ? 'template' : 'JSON'}. Definition keys: ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
 
-  const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition!);
-  const modelId = analyzeStockDataPromptDefinition!.modelId || DEFAULT_ANALYSIS_MODEL_ID;
-  const safetySettings = analyzeStockDataPromptDefinition!.safetySettings || [
+  const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition);
+  const modelId = analyzeStockDataPromptDefinition.modelId || DEFAULT_ANALYSIS_MODEL_ID;
+  const safetySettings = analyzeStockDataPromptDefinition.safetySettings || [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -56,13 +68,14 @@ async function getAnalyzedStockDataPrompt() {
     safetySettings: safetySettings,
   };
 
-  if (analyzeStockDataPromptDefinition!.thinkingBudget !== undefined) {
-    promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition!.thinkingBudget };
+  if (analyzeStockDataPromptDefinition.thinkingBudget !== undefined) {
+    promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition.thinkingBudget };
   }
   
   console.log(
     `${logPrefix} Defining prompt. ` +
     `Model: ${modelId}, ` +
+    `Source: ${USE_TEMPLATE_SYSTEM ? 'template' : 'JSON'}, ` +
     `Grounding: false, ` +
     `ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
     `SafetySettings: ${safetySettings.length}, ` +

@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { OptionsChainData, OptionsTableRow, StreamlinedOptionContract, StockSnapshotData } from "@/services/data-sources/types";
-import { formatCurrency, formatPercentage, formatCompactNumber, formatToTwoDecimals } from "@/lib/number-utils";
+import { formatCurrency } from "@/lib/number-utils";
 import { formatDisplayDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -24,49 +24,12 @@ import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 import { useQuickExport } from "@/hooks/use-export-actions"; 
 import type { OptionType, TableDisplayType } from '@/contexts/staging-options-context';
+import { getCallHeadersConfig, getPutHeadersConfig, getSingleTableHeadersConfig, type ColumnConfig } from '@/components/ui/table-config-factory';
 
-interface OptionHeaderConfig {
-  key: keyof StreamlinedOptionContract;
-  label: string;
-  formatter: (value: any) => string;
-}
-
-const callHeadersConfig: OptionHeaderConfig[] = [
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
-  { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
-  { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
-  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-];
-
-const putHeadersConfig: OptionHeaderConfig[] = [
-  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
-  { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
-  { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
-  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-];
-
-const singleTableHeadersConfig: OptionHeaderConfig[] = [
-  // Strike is handled separately
-  { key: "iv", label: "IV", formatter: (v) => formatPercentage(v, "-", false) },
-  { key: "percent_change", label: "% Chg", formatter: (v) => formatPercentage(v, "-", true) },
-  { key: "bid", label: "Bid", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "ask", label: "Ask", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "last_price", label: "Last", formatter: (v) => formatCurrency(v, "$", "-") },
-  { key: "volume", label: "Volume", formatter: (v) => formatCompactNumber(v, "-") },
-  { key: "open_interest", label: "Open Int", formatter: (v) => formatCompactNumber(v, "-") },
-  { key: "delta", label: "Delta", formatter: (v) => formatToTwoDecimals(v, "-") },
-  { key: "gamma", label: "Gamma", formatter: (v) => formatToTwoDecimals(v, "-") },
-];
+// Using factory-generated configurations
+const callHeadersConfig: ColumnConfig<StreamlinedOptionContract>[] = getCallHeadersConfig();
+const putHeadersConfig: ColumnConfig<StreamlinedOptionContract>[] = getPutHeadersConfig();
+const singleTableHeadersConfig: ColumnConfig<StreamlinedOptionContract>[] = getSingleTableHeadersConfig();
 
 
 
