@@ -8,18 +8,13 @@ import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { MarketStatusData } from "@/services/data-sources/types";
 import { formatTimestampToPacificTime } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 interface MarketDetailItem {
   label: string;
   value: string | null;
 }
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }' 
-];
 
 const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boolean) => {
   if (isLoading) {

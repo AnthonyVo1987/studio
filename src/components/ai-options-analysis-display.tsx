@@ -12,6 +12,8 @@ import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-option
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
+import { useQuickExport } from "@/hooks/use-export-actions";
 import { formatCurrency, formatCompactNumber } from "@/lib/number-utils";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 
@@ -27,12 +29,6 @@ const getTickerFromSnapshot = (snapshotJson: string): string => {
   return "STOCK";
 };
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
 
 export function AiOptionsAnalysisDisplay() {
   const { aiOptionsAnalysisJson, stockSnapshotJson, logDebug } = useStockAnalysis();
@@ -104,18 +100,19 @@ export function AiOptionsAnalysisDisplay() {
       (parsedDataState.putWalls && parsedDataState.putWalls.length > 0)
     );
 
+  const exportActions = useQuickExport(
+    parsedDataState || {},
+    `${currentTicker}_ai_options_analysis`,
+    "AI Options Analysis"
+  );
+
   const handleExport = () => {
     logDebug(componentName, `ExportAction`, `Attempting to export options analysis as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedDataState) {
       toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available for export." });
       return;
     }
-    try {
-      downloadJson(parsedDataState, `${currentTicker}_ai_options_analysis.json`);
-      toast({ title: "Exported as JSON", description: "AI options analysis downloaded." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Export Error", description: `Could not export options analysis: ${e.message}` });
-    }
+    exportActions.download();
   };
 
   const handleCopy = async () => {
@@ -124,16 +121,7 @@ export function AiOptionsAnalysisDisplay() {
       toast({ variant: "destructive", title: "Copy Failed", description: "AI options analysis data not available for copy." });
       return;
     }
-    try {
-      const success = await copyToClipboard(JSON.stringify(parsedDataState, null, 2));
-      if (success) {
-        toast({ title: `Copied as JSON`, description: "AI options analysis copied to clipboard." });
-      } else {
-        throw new Error("Clipboard API failed.");
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Copy Error", description: `Could not copy options analysis: ${e.message}` });
-    }
+    await exportActions.copy();
   };
 
   const renderWallTable = (walls: WallDetail[] | undefined, type: 'Call' | 'Put') => {

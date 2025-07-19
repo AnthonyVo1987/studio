@@ -10,6 +10,7 @@ import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 interface TaPointDisplayInfo {
   key: keyof AnalyzeTaOutput; 
@@ -32,12 +33,6 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
   { key: "resistance3", label: "Resistance 3 (R3)" },
 ];
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
 
 export function AiAnalyzedTaDisplay() { 
   const { aiAnalyzedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis(); 

@@ -9,6 +9,7 @@ import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 interface StockDetailItem {
   label: string;
@@ -39,12 +40,6 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
   );
 };
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
 
 export function StockSnapshotDetailsDisplay() {
   const { stockSnapshotJson } = useStockAnalysis();

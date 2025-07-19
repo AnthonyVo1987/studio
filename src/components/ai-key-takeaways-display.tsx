@@ -13,6 +13,8 @@ import type { StockSnapshotData } from "@/services/data-sources/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
+import { useQuickExport } from "@/hooks/use-export-actions";
 
 type TakeawayCategory = keyof StockAnalysisOutput;
 
@@ -75,12 +77,6 @@ const getTickerFromSnapshot = (snapshotJson: string): string => {
   return "STOCK";
 };
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
 
 export function AiKeyTakeawaysDisplay() {
   const { aiKeyTakeawaysJson, stockSnapshotJson, logDebug } = useStockAnalysis();
@@ -159,6 +155,12 @@ export function AiKeyTakeawaysDisplay() {
 
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedTakeawaysDataState && Object.keys(parsedTakeawaysDataState).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
+  
+  const exportActions = useQuickExport(
+    parsedTakeawaysDataState || {},
+    `${currentTicker}_key_takeaways`,
+    "Key Takeaways"
+  );
 
   const handleExport = () => {
     logDebug(componentName, `ExportAction`, `Attempting to export takeaways as JSON for ${currentTicker}`);
@@ -166,13 +168,7 @@ export function AiKeyTakeawaysDisplay() {
       toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
       return;
     }
-    try {
-      let filename = `${currentTicker}_key_takeaways.json`;
-      downloadJson(parsedTakeawaysDataState, filename);
-      toast({ title: "Exported as JSON", description: "Key takeaways downloaded." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Export Error", description: `Could not export takeaways: ${e.message}` });
-    }
+    exportActions.download();
   };
 
   const handleCopy = async () => {
@@ -181,17 +177,7 @@ export function AiKeyTakeawaysDisplay() {
       toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
       return;
     }
-    let dataToCopy = JSON.stringify(parsedTakeawaysDataState, null, 2);
-    try {
-      const success = await copyToClipboard(dataToCopy);
-      if (success) {
-        toast({ title: `Copied as JSON`, description: "Key takeaways copied to clipboard." });
-      } else {
-        throw new Error("Clipboard API failed.");
-      }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Copy Error", description: `Could not copy takeaways: ${e.message}` });
-    }
+    await exportActions.copy();
   };
 
   return (

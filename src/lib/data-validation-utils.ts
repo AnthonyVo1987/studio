@@ -3,13 +3,8 @@
  * @fileOverview Utility functions for validating data readiness, typically from JSON strings.
  */
 import type { LogSourceId } from '@/lib/debug-log-types';
+import { PENDING_STATUS_JSON_VARIANTS } from '@/lib/constants';
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
 
 /**
  * Checks if a JSON string represents data that is ready for processing.

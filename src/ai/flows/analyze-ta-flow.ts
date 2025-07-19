@@ -19,11 +19,14 @@ import {
   type AnalyzeTaOutput,
 } from '@/ai/schemas/ai-analyzed-ta-schemas';
 import { formatToTwoDecimals } from '@/lib/number-utils';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AIFlow:analyzeTaIndicators');
 
 export async function analyzeTaIndicators(
   input: AnalyzeTaInput
 ): Promise<AnalyzeTaOutput> {
-  console.log('[AIFlow:analyzeTaIndicators] Received input:', input);
+  logger.debug('Received input', { symbol: input.symbol, hasHlcData: !!input.hlcData });
   return analyzeTaIndicatorsFlow(input);
 }
 

@@ -15,7 +15,7 @@
 - Phase 3: ~1,400 tokens (Advanced Optimization)
 
 **Application**: StockSage - Next.js financial analysis tool with AI-powered insights
-
+/mcp
 ---
 
 ## 🏗️ Codebase Architecture Overview

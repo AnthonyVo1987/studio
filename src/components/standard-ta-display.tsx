@@ -9,6 +9,7 @@ import type { TechnicalIndicatorsData, MultiWindowIndicatorValues, MACDValue, VW
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
   if (sentiment === 'bullish') return 'text-positive';
@@ -46,12 +47,6 @@ const renderMultiWindowValues = (
   );
 };
 
-const PENDING_STATUS_JSON_VARIANTS = [
-  '{ "status": "pending..." }',
-  '{ "status": "initializing..." }',
-  '{ "status": "full_analysis_pending..." }',
-  '{ "status": "no_analysis_run_yet" }'
-];
 
 export function StandardTaDisplay() {
   const { standardTasJson } = useStockAnalysis();
