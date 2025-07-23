@@ -31,8 +31,10 @@ import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
-import { appDataChatAction, type AppDataChatActionState, type AppDataChatActionInputs } from '@/actions/app-data-chat-action';
-import { sdkWebSearchChatAction, type SdkWebSearchChatActionState, type SdkWebSearchChatActionInputs } from '@/actions/sdk-web-search-chat-action';
+import { appDataChatAction, type AppDataChatActionState } from '@/actions/app-data-chat-action';
+import { sdkWebSearchChatAction } from '@/actions/sdk-web-search-chat-action';
+import type { AppDataChatInput } from '@/ai/flows/app-data-chat-flow';
+import type { SdkWebSearchChatActionState, SdkWebSearchChatActionInputs } from '@/ai/schemas/sdk-web-search-chat-schemas';
 import { getExpirationDates, getOptionsChainForDate } from "@/services/data-sources/adapters/polygon-adapter";
 
 
@@ -106,7 +108,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     });
   }, [toast]);
 
-  const [appDataChatState, submitAppDataChat, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatActionInputs>(appDataChatAction, { status: 'idle' });
+  const [appDataChatState, submitAppDataChat, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatInput>(appDataChatAction, { status: 'idle' });
   const [webSearchChatState, submitWebSearchChat, isWebSearchChatPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
   
   const initialInitializationDispatchedRef = useRef(false);
@@ -144,6 +146,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           break;
         }
         case GlobalFsmState.GENERATING_KEY_TAKEAWAYS: {
+          logDebug('MainTabContent', 'Pipeline', `${orchestratorLogPrefix}: Generating AI Key Takeaways via pipeline method for ${globalFsmVariables.activeTicker}`);
           const result = await performAiAnalysisAction({
             ticker: globalFsmVariables.activeTicker!, 
             stockSnapshotJson: contextStockSnapshotJson, 
@@ -154,12 +157,17 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           if (result.status === 'success' && result.data) {
             setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
             setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+            logDebug('MainTabContent', 'Pipeline', `${orchestratorLogPrefix}: Successfully generated AI Key Takeaways via pipeline method`);
           }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
-          if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
+          if(result.status !== 'success') {
+            toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
+            logDebug('MainTabContent', 'Pipeline', `${orchestratorLogPrefix}: Failed to generate AI Key Takeaways via pipeline method: ${result.message}`);
+          }
           break;
         }
         case GlobalFsmState.ANALYZING_OPTIONS: {
+          logDebug('MainTabContent', 'Pipeline', `${orchestratorLogPrefix}: Analyzing Options via pipeline method for ${globalFsmVariables.activeTicker}`);
           const result = await performAiOptionsAnalysisAction({
             ticker: globalFsmVariables.activeTicker!, 
             stockSnapshotJson: contextStockSnapshotJson, 
@@ -168,9 +176,13 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           if(result.status === 'success' && result.data) {
             setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
             setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
+            logDebug('MainTabContent', 'Pipeline', `${orchestratorLogPrefix}: Successfully generated AI Options Analysis via pipeline method`);
           }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
-          if(result.status !== 'success') toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
+          if(result.status !== 'success') {
+            toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
+            logDebug('MainTabContent', 'Pipeline', `${orchestratorLogPrefix}: Failed to generate AI Options Analysis via pipeline method: ${result.message}`);
+          }
           break;
         }
         default: break;
@@ -199,9 +211,9 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     
     if (status === 'success') {
       const response = JSON.parse(responseJson)?.response;
-      addAppDataChatMessage({ role: 'model', content: response || 'No response text found.' });
+      addAppDataChatMessage({ id: crypto.randomUUID(), role: 'model', content: response || 'No response text found.' });
     } else if (status === 'error') {
-      addAppDataChatMessage({ role: 'model', content: `Error: ${message || error}` });
+      addAppDataChatMessage({ id: crypto.randomUUID(), role: 'model', content: `Error: ${message || error}` });
     }
   }, [appDataChatState, isAppDataChatPending, addAppDataChatMessage, setHolisticTakeawaysRequestJson, setHolisticTakeawaysResponseJson, setOptionsTraderTakeawaysRequestJson, setOptionsTraderTakeawaysResponseJson, setStockTraderTakeawaysRequestJson, setStockTraderTakeawaysResponseJson, setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson]);
 
@@ -222,9 +234,9 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
     if (status === 'success') {
       const response = JSON.parse(responseJson)?.response;
-      addWebSearchChatMessage({ role: 'model', content: response || 'No response text found.' });
+      addWebSearchChatMessage({ id: crypto.randomUUID(), role: 'model', content: response || 'No response text found.' });
     } else if (status === 'error') {
-      addWebSearchChatMessage({ role: 'model', content: `Error: ${message || error}` });
+      addWebSearchChatMessage({ id: crypto.randomUUID(), role: 'model', content: `Error: ${message || error}` });
     }
   }, [webSearchChatState, isWebSearchChatPending, addWebSearchChatMessage, setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson, setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson, setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson]);
 
@@ -245,7 +257,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
       }
     }
 
-    addAppDataChatMessage({ role: 'user', content: messageToHistory });
+    addAppDataChatMessage({ id: crypto.randomUUID(), role: 'user', content: messageToHistory });
     setAppDataChatUserInput('');
     startTransition(() => {
         submitAppDataChat({
@@ -278,7 +290,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
       }
     }
     
-    addWebSearchChatMessage({ role: 'user', content: messageToHistory });
+    addWebSearchChatMessage({ id: crypto.randomUUID(), role: 'user', content: messageToHistory });
     setWebSearchUserInput('');
     startTransition(() => {
         submitWebSearchChat({
@@ -309,6 +321,60 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
   const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
     dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
+  };
+
+  const handleOnDemandKeyTakeaways = async () => {
+    const logPrefix = 'MainTabContent:OnDemandKeyTakeaways';
+    logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Manual on-demand AI Key Takeaways triggered for ${globalFsmVariables.activeTicker}`);
+    
+    try {
+      const result = await performAiAnalysisAction({
+        ticker: globalFsmVariables.activeTicker!, 
+        stockSnapshotJson: contextStockSnapshotJson, 
+        standardTasJson: contextStandardTasJson, 
+        aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
+        marketStatusJson: contextMarketStatusJson
+      });
+      
+      if (result.status === 'success' && result.data) {
+        setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
+        setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+        toast({ title: "Success", description: "AI Key Takeaways generated successfully" });
+        logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Successfully generated AI Key Takeaways via on-demand method`);
+      } else {
+        toast({ title: "Error", description: result.message || "Failed to generate AI Key Takeaways", variant: 'destructive' });
+        logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Failed to generate AI Key Takeaways via on-demand method: ${result.message}`);
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "An unexpected error occurred", variant: 'destructive' });
+      logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Unexpected error in on-demand AI Key Takeaways: ${error}`);
+    }
+  };
+
+  const handleOnDemandOptionsAnalysis = async () => {
+    const logPrefix = 'MainTabContent:OnDemandOptionsAnalysis';
+    logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Manual on-demand AI Options Analysis triggered for ${globalFsmVariables.activeTicker}`);
+    
+    try {
+      const result = await performAiOptionsAnalysisAction({
+        ticker: globalFsmVariables.activeTicker!, 
+        stockSnapshotJson: contextStockSnapshotJson, 
+        optionsChainJson: contextOptionsChainJson,
+      });
+      
+      if(result.status === 'success' && result.data) {
+        setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
+        setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
+        toast({ title: "Success", description: "AI Options Analysis generated successfully" });
+        logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Successfully generated AI Options Analysis via on-demand method`);
+      } else {
+        toast({ title: "Error", description: result.message || "Failed to generate AI Options Analysis", variant: 'destructive' });
+        logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Failed to generate AI Options Analysis via on-demand method: ${result.message}`);
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "An unexpected error occurred", variant: 'destructive' });
+      logDebug('MainTabContent', 'OnDemand', `${logPrefix}: Unexpected error in on-demand AI Options Analysis: ${error}`);
+    }
   };
 
   const isPipelineInProgress = ![
@@ -451,6 +517,34 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
             <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
               <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
               <Switch id="toggle-options-analysis" checked={globalFsmFlags.isAiOptionsAnalysisSelected} onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} disabled={analyzeButtonLoading} />
+            </div>
+            <Separator className="my-4" />
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Manual On-Demand Analysis</Label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={handleOnDemandKeyTakeaways}
+                  disabled={!globalFsmVariables.activeTicker || !contextStockSnapshotJson || contextStockSnapshotJson === '{}' || 
+                           !contextStandardTasJson || contextStandardTasJson === '{}' || 
+                           !contextAiAnalyzedTaJson || contextAiAnalyzedTaJson === '{}' || 
+                           !contextMarketStatusJson || contextMarketStatusJson === '{}' || 
+                           isPipelineInProgress || isAnyChatPending}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate AI Key Takeaways
+                </Button>
+                <Button 
+                  onClick={handleOnDemandOptionsAnalysis}
+                  disabled={!globalFsmVariables.activeTicker || !contextOptionsChainJson || contextOptionsChainJson === '{}' || isPipelineInProgress || isAnyChatPending}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <CandlestickChart className="mr-2 h-4 w-4" />
+                  Generate AI Options Analysis
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
