@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
@@ -25,54 +25,56 @@ const getTickerFromSnapshot = (snapshotJson: string): string => {
       return snapshotData?.ticker?.toUpperCase() || "STOCK";
     }
   } catch (e) {
-    console.error("Failed to parse stockSnapshotJson for ticker", e);
+    // Note: Minimal error handling for ticker parsing, no logging to avoid render loops
   }
   return "STOCK";
 };
 
 
 export function AiOptionsAnalysisDisplay() {
-  const { aiOptionsAnalysisJson, stockSnapshotJson, logDebug, fsmState } = useStockAnalysis();
+  const { aiOptionsAnalysisJson, stockSnapshotJson, fsmState } = useStockAnalysis();
   const { toast } = useToast();
   const componentName = 'AiOptionsAnalysisDisplay';
 
-  // Use new JSON data state hook with FSM integration
+  // Use new JSON data state hook with FSM integration - disable logging to prevent render loops
   const { data: parsedData, isLoading, isError, isEmpty } = useJsonDataStateWithFsm<AiOptionsAnalysisOutput>(
     aiOptionsAnalysisJson,
     fsmState,
     { 
-      enableLogging: process.env.NODE_ENV === 'development',
+      enableLogging: false, // Disabled to prevent render loop with console.debug calls
       validateData: (data) => {
         return data && typeof data === 'object' && data.call_wall && data.put_wall;
       }
     }
   );
 
-  const [errorMessageForDisplayState, setErrorMessageForDisplayState] = useState<string | null>("AI Options Analysis data not available.");
-
-  useEffect(() => {
+  // Memoize error message to prevent recalculation and state updates
+  const errorMessage = useMemo(() => {
     if (isEmpty) {
-      setErrorMessageForDisplayState("No AI Options Analysis data. Ensure options chain was processed by AI.");
+      return "No AI Options Analysis data. Ensure options chain was processed by AI.";
     } else if (isLoading) {
-      setErrorMessageForDisplayState("Loading AI Options Analysis...");
+      return "Loading AI Options Analysis...";
     } else if (isError) {
       // Check for specific error patterns in the JSON
       try {
         const parsedJson = JSON.parse(aiOptionsAnalysisJson);
         if (parsedJson.status === 'skipped') {
-          setErrorMessageForDisplayState(parsedJson.message || "AI Options Analysis was skipped.");
+          return parsedJson.message || "AI Options Analysis was skipped.";
         } else {
-          setErrorMessageForDisplayState(parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.");
+          return parsedJson.message || parsedJson.error || "Error loading AI Options Analysis.";
         }
       } catch {
-        setErrorMessageForDisplayState("Failed to parse AI Options Analysis data.");
+        return "Failed to parse AI Options Analysis data.";
       }
-    } else if (parsedData) {
-      setErrorMessageForDisplayState(null);
     }
+    return null;
+  }, [isEmpty, isLoading, isError, aiOptionsAnalysisJson]);
 
-    logDebug(componentName, `JSON State Updated: isLoading=${isLoading}, isError=${isError}`);
-  }, [parsedData, isLoading, isError, isEmpty, aiOptionsAnalysisJson, logDebug]);
+  // Log state changes only when actual state changes, not on every render
+  // Using console.log to avoid unstable logDebug function reference causing render loops
+  useEffect(() => {
+    console.debug(`[AiOptionsAnalysisDisplay] StateChange: JSON State Updated: isLoading=${isLoading}, isError=${isError}`);
+  }, [isLoading, isError]);
 
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
   const isDataReadyForExport = !isLoading && !isError && parsedData &&
@@ -87,7 +89,7 @@ export function AiOptionsAnalysisDisplay() {
   );
 
   const handleExport = () => {
-    logDebug(componentName, `ExportAction`, `Attempting to export options analysis as JSON for ${currentTicker}`);
+    console.debug(`[${componentName}] ExportAction: Attempting to export options analysis as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available for export." });
       return;
@@ -96,7 +98,7 @@ export function AiOptionsAnalysisDisplay() {
   };
 
   const handleCopy = async () => {
-    logDebug(componentName, `CopyAction`, `Attempting to copy options analysis as JSON for ${currentTicker}`);
+    console.debug(`[${componentName}] CopyAction: Attempting to copy options analysis as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: "destructive", title: "Copy Failed", description: "AI options analysis data not available for copy." });
       return;
@@ -140,10 +142,10 @@ export function AiOptionsAnalysisDisplay() {
         <Skeleton className="h-20 w-full" />
       </div>
     );
-  } else if (isError && errorMessageForDisplayState) {
+  } else if (isError && errorMessage) {
     content = (
       <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-        {errorMessageForDisplayState}
+        {errorMessage}
       </div>
     );
   } else if (parsedData) {
@@ -175,7 +177,7 @@ export function AiOptionsAnalysisDisplay() {
   } else {
       content = (
         <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-          {errorMessageForDisplayState || "AI Options Analysis data is unavailable."}
+          {errorMessage || "AI Options Analysis data is unavailable."}
         </div>
       );
   }

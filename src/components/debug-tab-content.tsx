@@ -66,12 +66,11 @@ export function DebugTabContent() {
     rawOptionsWebSearchRequestJson,
     rawOptionsWebSearchResponseJson,
     rawSupportResistanceWebSearchRequestJson,
-    rawSupportResistanceWebSearchResponseJson,
-    logDebug,
+    rawSupportResistanceWebSearchResponseJson
   } = useStockAnalysis();
   const { toast } = useToast();
 
-  logDebug('DebugTabContent', "Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
+  console.debug(`[DebugTabContent] Rendering. Polygon API request log (start):`, polygonApiRequestLogJson.substring(0,100));
 
   const safeJsonParse = (jsonStr: string, fallback: any = {}) => {
     try {
@@ -82,7 +81,7 @@ export function DebugTabContent() {
   };
 
   const handleCopyAll = () => {
-    logDebug('DebugTabContent', 'CopyAll', 'Attempting to copy all debug data');
+    console.log(`[DebugTabContent:CopyAll] Attempting to copy all debug data`);
     
     // Create a comprehensive debug data object
     const allDebugData = {
@@ -123,17 +122,17 @@ export function DebugTabContent() {
       .then((success) => {
         if (success) {
           toast({ title: "Copied to Clipboard", description: "All debug data copied successfully." });
-          logDebug('DebugTabContent', 'CopyAll', 'Successfully copied all debug data to clipboard');
+          console.log(`[DebugTabContent:CopyAll] Successfully copied all debug data to clipboard`);
         } else {
           toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy debug data. The copy operation returned false." });
-          logDebug('DebugTabContent', 'CopyAll', 'Failed to copy all debug data. copyToClipboard returned false');
+          console.error(`[DebugTabContent:CopyAll] Failed to copy all debug data. copyToClipboard returned false`);
         }
       })
       .catch(err => {
         const errorMessage = (err as Error).message || 'Unknown error';
         console.error('[DebugTabContent] Error copying all debug data to clipboard:', err);
         toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy debug data: ${errorMessage}` });
-        logDebug('DebugTabContent', 'CopyAll', 'Error caught while trying to copy all debug data:', errorMessage, err);
+        console.error(`[DebugTabContent:CopyAll] Error caught while trying to copy all debug data:`, errorMessage, err);
       });
   };
 

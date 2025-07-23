@@ -43,8 +43,7 @@ export function OptionsChainTable() {
     optionsChainJson, 
     stockSnapshotJson, 
     optionType, 
-    tableDisplayType,
-    logDebug 
+    tableDisplayType
   } = globalContext;
 
   const [isLoadingState, setIsLoadingState] = useState(true);
@@ -167,7 +166,7 @@ export function OptionsChainTable() {
   );
 
   const handleExportOptionsJson = () => {
-    logDebug(componentName, 'ExportAction', 'Export Options JSON button clicked. Data ready:', isDataReadyForExport);
+    console.log(`[${componentName}:ExportAction] Export Options JSON button clicked. Data ready:`, isDataReadyForExport);
     if (!isDataReadyForExport || !parsedDataState) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON export.' });
       return;
@@ -176,7 +175,7 @@ export function OptionsChainTable() {
   };
 
   const handleCopyOptionsJson = async () => {
-    logDebug(componentName, 'CopyAction', 'Copy Options JSON button clicked. Data ready:', isDataReadyForExport);
+    console.log(`[${componentName}:CopyAction] Copy Options JSON button clicked. Data ready:`, isDataReadyForExport);
     if (!isDataReadyForExport || !parsedDataState) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON copy.' });
       return;

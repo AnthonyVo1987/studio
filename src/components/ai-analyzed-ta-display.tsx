@@ -35,7 +35,7 @@ const taPointDefinitions: TaPointDisplayInfo[] = [
 
 
 export function AiAnalyzedTaDisplay() { 
-  const { aiAnalyzedTaJson, stockSnapshotJson, logDebug } = useStockAnalysis(); 
+  const { aiAnalyzedTaJson, stockSnapshotJson } = useStockAnalysis(); 
   const componentName = 'AiAnalyzedTaDisplay';
 
   const [isLoadingState, setIsLoadingState] = useState(true);

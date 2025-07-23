@@ -32,7 +32,6 @@ interface ChatbotProps {
   isProcessing: boolean;
   exampleButtons: ExamplePromptButton[];
   currentTickerForDisplay: string;
-  logDebug: (source: string, category: string, ...messages: any[]) => void;
   userInput: string;
   setUserInput: (input: string) => void;
   onFormSubmit: (payload: { userInput?: string; promptName?: string }) => void;
@@ -46,7 +45,6 @@ export function Chatbot({
   isProcessing,
   exampleButtons,
   currentTickerForDisplay,
-  logDebug,
   userInput,
   setUserInput,
   onFormSubmit,
@@ -62,22 +60,22 @@ export function Chatbot({
   }, [chatHistory]);
 
   const handleCopyChat = async () => {
-    if (chatHistory.length === 0) { logDebug(logSourceId, 'UserAction_CopyChat', 'No history to copy.'); return; }
+    if (chatHistory.length === 0) { console.debug(`[${logSourceId}] UserAction_CopyChat: No history to copy.`); return; }
     const success = await copyToClipboard(JSON.stringify(chatHistory, null, 2));
     toast({ title: success ? 'Chat Copied' : 'Copy Failed', description: success ? 'Chat history copied as JSON.' : 'Could not copy chat history.'});
-    logDebug(logSourceId, 'UserAction_CopyChat_Result', success ? 'Success.' : 'Failed.');
+    console.debug(`[${logSourceId}] UserAction_CopyChat_Result: ${success ? 'Success.' : 'Failed.'}`);
   };
 
   const handleExportChat = () => {
-    if (chatHistory.length === 0) { logDebug(logSourceId, 'UserAction_ExportChat', 'No history to export.'); return; }
+    if (chatHistory.length === 0) { console.debug(`[${logSourceId}] UserAction_ExportChat: No history to export.`); return; }
     try {
       const filenamePrefix = title.toLowerCase().includes('web') ? 'web_search' : 'app_data';
       downloadJson(chatHistory, `${currentTickerForDisplay || 'stocksage'}_${filenamePrefix}_chat_history.json`);
       toast({ title: 'Chat Exported', description: 'Chat history downloaded as JSON.' });
-      logDebug(logSourceId, 'UserAction_ExportChat_Result', 'Success.');
+      console.debug(`[${logSourceId}] UserAction_ExportChat_Result: Success.`);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not export chat history.' });
-      logDebug(logSourceId, 'UserAction_ExportChat_Result', 'Error:', error);
+      console.debug(`[${logSourceId}] UserAction_ExportChat_Result: Error:`, error);
     }
   };
   

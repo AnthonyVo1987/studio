@@ -56,6 +56,8 @@ export const useJsonDataState = <T = any>(
       setParseError(null)
       
       if (enableLogging) {
+        // Note: Using console.debug here intentionally for internal hook debugging
+        // This should be minimal and not cause render loops
         console.debug('JSON parsed successfully', { keys: Object.keys(parsed || {}) })
       }
     } catch (error) {

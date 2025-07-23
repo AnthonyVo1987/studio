@@ -3,7 +3,6 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useReducer, useRef, useMemo } from 'react';
-import { addEntryToGlobalLogBuffer } from '@/lib/global-log-buffer';
 import type { StockDataFetchResult, AnalyzeStockServerActionState } from '@/actions/analyze-stock-server-action';
 import type { AnalyzeTaResult, AnalyzeTaActionState } from '@/actions/analyze-ta-action';
 import type { PerformAiAnalysisResult, PerformAiAnalysisActionState } from '@/actions/perform-ai-analysis-action';
@@ -15,8 +14,6 @@ import { format } from 'date-fns';
 import { findNextAvailableDate } from '@/lib/date-utils';
 import { createSetterBatch } from './context-setter-factory';
 
-const LOGDEBUG_MARKER = '__LOGDEBUG_MARKER__';
-type LogType = 'debug' | 'info' | 'log' | 'warn' | 'error' | 'system';
 
 export enum GlobalFsmState {
   APP_INITIALIZING = 'APP_INITIALIZING',
@@ -216,7 +213,7 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   clearAppDataChatHistory: () => void;
   addWebSearchChatMessage: (message: AppDataChatMessage) => void;
   clearWebSearchChatHistory: () => void;
-  logDebug: (source: string, category: string, ...messages: any[]) => void;
+  // logDebug removed - using console.log/console.debug directly for simplified logging
   dispatchFsmEvent: (event: FsmEvent) => void;
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
@@ -353,9 +350,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_strikeCount, _setStrikeCount] = useState<StrikeCount>(defaultState.strikeCount);
   const [_tableDisplayType, _setTableDisplayType] = useState<TableDisplayType>(defaultState.tableDisplayType);
   
-  const logDebug = useCallback((source: string, category: string, ...messages: any[]) => {
-      console.debug(LOGDEBUG_MARKER, source, category, ...messages);
-  }, []);
 
   const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
     setter(value);
@@ -392,7 +386,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     rawSupportResistanceWebSearchRequestJson: _setRawSupportResistanceWebSearchRequestJson,
     rawSupportResistanceWebSearchResponseJson: _setRawSupportResistanceWebSearchResponseJson,
   }, { 
-    enableLogging: process.env.NODE_ENV === 'development' 
+    enableLogging: false // Disabled to reduce console noise - consolidating to targeted console logs only
   }), [
     _setPolygonApiRequestLogJson,
     _setPolygonApiResponseLogJson,
@@ -499,14 +493,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [contextSetters]);
 
   const resetOnDemandOptionsState = useCallback(() => {
-    logDebug('StockAnalysisContext', 'ResetState', "Resetting on-demand options state for new analysis.");
+    console.debug('[StockAnalysisContext:ResetState] Resetting on-demand options state for new analysis.');
     _setAvailableExpirationDates([]);
     _setSelectedExpirationDate(undefined);
     _setIsLoadingExpirations(false);
     _setOptionType('both');
     _setStrikeCount(20);
     _setTableDisplayType('side-by-side');
-  }, [logDebug]);
+  }, []);
 
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
     const previousState = state.current;
@@ -702,7 +696,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       const fetchAndSetDefaultExpiration = async () => {
         _setIsLoadingExpirations(true);
-        logDebug('StockAnalysisContext', logPrefix, `Debounced fetch for '${currentTicker}'.`);
+        console.debug(`[StockAnalysisContext:${logPrefix}] Debounced fetch for '${currentTicker}'.`);
         
         try {
             const allDates = await getExpirationDates(currentTicker);
@@ -712,12 +706,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             
             if (nextExpDate) {
               _setSelectedExpirationDate(nextExpDate);
-              logDebug('StockAnalysisContext', logPrefix, `Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
+              console.debug(`[StockAnalysisContext:${logPrefix}] Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
             } else {
-              logDebug('StockAnalysisContext', logPrefix, `Success, but no suitable future date found.`);
+              console.debug(`[StockAnalysisContext:${logPrefix}] Success, but no suitable future date found.`);
             }
         } catch (error: any) {
-            logDebug('StockAnalysisContext', logPrefix, `Failed to fetch expirations for '${currentTicker}'. Error: ${error.message}`);
+            console.error(`[StockAnalysisContext:${logPrefix}] Failed to fetch expirations for '${currentTicker}'. Error: ${error.message}`);
         }
         
         _setIsLoadingExpirations(false);
@@ -730,7 +724,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     return () => {
       clearTimeout(handler);
     };
-  }, [userInputTickerForEffect, globalFsmReducerState.variables.activeTicker, resetOnDemandOptionsState, logDebug]);
+  }, [userInputTickerForEffect, globalFsmReducerState.variables.activeTicker, resetOnDemandOptionsState]);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -785,7 +779,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     rawSupportResistanceWebSearchRequestJson: _rawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchRequestJson: contextSetters.setRawSupportResistanceWebSearchRequestJson,
     rawSupportResistanceWebSearchResponseJson: _rawSupportResistanceWebSearchResponseJson, setRawSupportResistanceWebSearchResponseJson: contextSetters.setRawSupportResistanceWebSearchResponseJson,
     webSearchChatHistory: _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    logDebug,
     fsmState: globalFsmReducerState.current, previousFsmState: globalFsmReducerState.previous,
     fsmVariables: globalFsmReducerState.variables, fsmFlags: globalFsmReducerState.flags,
     targetFsmDisplayState: _targetFsmDisplayState, dispatchFsmEvent,
@@ -812,7 +805,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _rawTaWebSearchRequestJson, _rawTaWebSearchResponseJson, _rawOptionsWebSearchRequestJson, _rawOptionsWebSearchResponseJson,
     _rawSupportResistanceWebSearchRequestJson, _rawSupportResistanceWebSearchResponseJson,
     _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    logDebug,
     globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
     _availableExpirationDates, _selectedExpirationDate,

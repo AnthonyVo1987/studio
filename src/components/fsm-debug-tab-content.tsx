@@ -42,8 +42,7 @@ export function FsmDebugTabContent() {
         previousFsmState: globalPreviousFsmState,
         targetFsmDisplayState: globalTargetFsmDisplayState,
         fsmFlags,
-        fsmVariables,
-        logDebug,
+        fsmVariables
     } = useStockAnalysis();
     const { toast } = useToast();
 
@@ -59,7 +58,7 @@ export function FsmDebugTabContent() {
     });
 
     const handleCopyJson = async () => {
-        logDebug('FsmDebugTabContent', 'CopyAction', 'Copying Global FSM state, flags, and variables as JSON.');
+        console.debug('[FsmDebugTabContent] CopyAction: Copying Global FSM state, flags, and variables as JSON.');
         const fsmData = getFullFsmSnapshotForExport();
         if (await copyToClipboard(JSON.stringify(fsmData, null, 2))) {
             toast({ title: 'Global FSM Data Copied', description: 'Global FSM state, flags, and variables copied as JSON.' });
@@ -69,7 +68,7 @@ export function FsmDebugTabContent() {
     };
 
     const handleExportJson = () => {
-        logDebug('FsmDebugTabContent', 'ExportAction', 'Exporting Global FSM state, flags, and variables as JSON.');
+        console.debug('[FsmDebugTabContent] ExportAction: Exporting Global FSM state, flags, and variables as JSON.');
         try {
             const fsmData = getFullFsmSnapshotForExport();
             downloadJson(fsmData, 'stocksage_global_fsm_snapshot.json');

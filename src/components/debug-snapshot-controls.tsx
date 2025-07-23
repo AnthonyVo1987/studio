@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
-import { globalLogEntries } from "@/lib/global-log-buffer";
 import { Download, Copy } from "lucide-react";
 
 interface DebugSnapshotControlsProps {
@@ -82,7 +81,7 @@ export function DebugSnapshotControls({ appVersion }: DebugSnapshotControlsProps
             appDataChat: appDataChatHistory,
             webSearchChat: webSearchChatHistory,
         },
-        clientTraceLogs: [...globalLogEntries],
+        clientTraceLogs: [], // Global log buffer removed - logs now use console directly
     };
   }, [context, appVersion]);
 
@@ -116,7 +115,7 @@ export function DebugSnapshotControls({ appVersion }: DebugSnapshotControlsProps
     <Card>
       <CardHeader>
         <CardTitle>Debug Snapshot</CardTitle>
-        <CardDescription>Generate a complete JSON snapshot of the application state for bug reporting. Includes FSM state, all data JSONs, chat histories, and client trace logs. Available after an analysis is run.</CardDescription>
+        <CardDescription>Generate a complete JSON snapshot of the application state for bug reporting. Includes FSM state, all data JSONs, and chat histories. Available after an analysis is run.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex gap-2">

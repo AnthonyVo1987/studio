@@ -7,8 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContent } from "@/components/main-tab-content";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
-import { LogConsole } from "@/components/log-console";
-import { globalLogEntries, clearGlobalLogBuffer } from "@/lib/global-log-buffer";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface PageContentProps {
@@ -39,13 +38,17 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
             <DebugTabContent />
           </TabsContent>
           <TabsContent value="client-trace-logs">
-            <LogConsole
-              appVersion={appVersion}
-              logEntries={globalLogEntries}
-              clearLogs={clearGlobalLogBuffer}
-              consoleTitle="Client Debug Trace Logs"
-              consoleDescription="Curated, high-level trace logs from the application's internal logging system."
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle>Client Debug Trace Logs</CardTitle>
+                <CardDescription>Debug logging has been consolidated to use browser console directly.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Debug logs are now written directly to the browser console. Open Developer Tools (F12) and check the Console tab to view application logs.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
           <TabsContent value="fsm-debug">
             <FsmDebugTabContent />
