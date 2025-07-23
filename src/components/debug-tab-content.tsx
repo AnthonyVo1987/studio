@@ -15,22 +15,15 @@ import { copyToClipboard } from "@/lib/export-utils";
 interface JsonDisplayAreaProps {
   title: string;
   jsonContent: string;
-  onCopy: () => void;
   description?: string;
 }
 
-function JsonDisplayArea({ title, jsonContent, onCopy, description }: JsonDisplayAreaProps) {
+function JsonDisplayArea({ title, jsonContent, description }: JsonDisplayAreaProps) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div>
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            {description && <CardDescription className="text-xs mt-1">{description}</CardDescription>}
-        </div>
-        <Button variant="outline" size="icon" onClick={onCopy} className="h-7 w-7">
-          <ClipboardCopy className="h-4 w-4" />
-          <span className="sr-only">Copy JSON for {title}</span>
-        </Button>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {description && <CardDescription className="text-xs mt-1">{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         <Textarea
@@ -80,23 +73,67 @@ export function DebugTabContent() {
 
   logDebug('DebugTabContent', "Rendering. Polygon API request log (start):", polygonApiRequestLogJson.substring(0,100));
 
-  const handleCopy = (title: string, content: string) => {
-    logDebug('DebugTabContent', `Attempting to copy JSON for: ${title}`);
-    copyToClipboard(content)
+  const safeJsonParse = (jsonStr: string, fallback: any = {}) => {
+    try {
+      return JSON.parse(jsonStr || '{}');
+    } catch (e) {
+      return fallback;
+    }
+  };
+
+  const handleCopyAll = () => {
+    logDebug('DebugTabContent', 'CopyAll', 'Attempting to copy all debug data');
+    
+    // Create a comprehensive debug data object
+    const allDebugData = {
+      timestamp: new Date().toISOString(),
+      polygonApiRequestLog: safeJsonParse(polygonApiRequestLogJson),
+      polygonApiResponseLog: safeJsonParse(polygonApiResponseLogJson),
+      marketStatus: safeJsonParse(marketStatusJson),
+      stockSnapshot: safeJsonParse(stockSnapshotJson),
+      standardTas: safeJsonParse(standardTasJson),
+      optionsChain: safeJsonParse(optionsChainJson),
+      aiAnalyzedTaRequest: safeJsonParse(aiAnalyzedTaRequestJson),
+      aiAnalyzedTa: safeJsonParse(aiAnalyzedTaJson),
+      aiOptionsAnalysisRequest: safeJsonParse(aiOptionsAnalysisRequestJson),
+      aiOptionsAnalysis: safeJsonParse(aiOptionsAnalysisJson),
+      aiKeyTakeawaysRequest: safeJsonParse(aiKeyTakeawaysRequestJson),
+      aiKeyTakeaways: safeJsonParse(aiKeyTakeawaysJson),
+      userInputAppDataChatRequest: safeJsonParse(userInputAppDataChatRequestJson),
+      userInputAppDataChatResponse: safeJsonParse(userInputAppDataChatResponseJson),
+      stockTraderTakeawaysRequest: safeJsonParse(stockTraderTakeawaysRequestJson),
+      stockTraderTakeawaysResponse: safeJsonParse(stockTraderTakeawaysResponseJson),
+      optionsTraderTakeawaysRequest: safeJsonParse(optionsTraderTakeawaysRequestJson),
+      optionsTraderTakeawaysResponse: safeJsonParse(optionsTraderTakeawaysResponseJson),
+      holisticTakeawaysRequest: safeJsonParse(holisticTakeawaysRequestJson),
+      holisticTakeawaysResponse: safeJsonParse(holisticTakeawaysResponseJson),
+      userInputWebSearchChatRequest: safeJsonParse(userInputWebSearchChatRequestJson),
+      userInputWebSearchChatResponse: safeJsonParse(userInputWebSearchChatResponseJson),
+      rawTaWebSearchRequest: safeJsonParse(rawTaWebSearchRequestJson),
+      rawTaWebSearchResponse: safeJsonParse(rawTaWebSearchResponseJson),
+      rawOptionsWebSearchRequest: safeJsonParse(rawOptionsWebSearchRequestJson),
+      rawOptionsWebSearchResponse: safeJsonParse(rawOptionsWebSearchResponseJson),
+      rawSupportResistanceWebSearchRequest: safeJsonParse(rawSupportResistanceWebSearchRequestJson),
+      rawSupportResistanceWebSearchResponse: safeJsonParse(rawSupportResistanceWebSearchResponseJson),
+    };
+    
+    const allDebugDataJson = JSON.stringify(allDebugData, null, 2);
+    
+    copyToClipboard(allDebugDataJson)
       .then((success) => {
         if (success) {
-          toast({ title: "Copied to Clipboard", description: `${title} JSON copied.` });
-          logDebug('DebugTabContent', `Successfully copied ${title} JSON to clipboard.`);
+          toast({ title: "Copied to Clipboard", description: "All debug data copied successfully." });
+          logDebug('DebugTabContent', 'CopyAll', 'Successfully copied all debug data to clipboard');
         } else {
-          toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON. The copy operation returned false.` });
-          logDebug('DebugTabContent', `Failed to copy ${title} JSON to clipboard. copyToClipboard returned false.`);
+          toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy debug data. The copy operation returned false." });
+          logDebug('DebugTabContent', 'CopyAll', 'Failed to copy all debug data. copyToClipboard returned false');
         }
       })
       .catch(err => {
         const errorMessage = (err as Error).message || 'Unknown error';
-        console.error(`[DebugTabContent] Error copying ${title} JSON to clipboard:`, err);
-        toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy ${title} JSON: ${errorMessage}` });
-        logDebug('DebugTabContent', `Error caught while trying to copy ${title} JSON to clipboard:`, errorMessage, err);
+        console.error('[DebugTabContent] Error copying all debug data to clipboard:', err);
+        toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy debug data: ${errorMessage}` });
+        logDebug('DebugTabContent', 'CopyAll', 'Error caught while trying to copy all debug data:', errorMessage, err);
       });
   };
 
@@ -134,10 +171,18 @@ export function DebugTabContent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Debug Information</CardTitle>
-        <CardDescription>
-          Raw JSON data from APIs and AI flows. Client-side logs are in the Debug Logs tab.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Debug Information</CardTitle>
+            <CardDescription>
+              Raw JSON data from APIs and AI flows. Client-side logs are in the Debug Logs tab.
+            </CardDescription>
+          </div>
+          <Button onClick={handleCopyAll} variant="outline" className="flex items-center gap-2">
+            <ClipboardCopy className="h-4 w-4" />
+            Copy All Debug Data
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[calc(100vh-20rem)] pr-4">
@@ -147,7 +192,6 @@ export function DebugTabContent() {
                 key={area.title}
                 title={area.title}
                 jsonContent={area.data}
-                onCopy={() => handleCopy(area.title, area.data)}
                 description={area.description}
               />
             ))}
