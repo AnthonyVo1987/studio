@@ -33,7 +33,7 @@ export interface ChainOfThoughtTemplate {
 // Factory for creating standardized prompt configurations
 export const createPromptConfig = (overrides: Partial<PromptTemplateConfig> = {}): PromptTemplateConfig => {
   return {
-    modelId: "googleai/gemini-2.5-flash-lite-preview-06-17",
+    modelId: "googleai/gemini-2.5-flash-lite",
     thinkingBudget: -1,
     useGoogleSearch: false,
     safetySettings: [

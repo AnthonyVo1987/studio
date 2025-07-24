@@ -15,7 +15,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
-import { DEFAULT_ANALYSIS_MODEL_ID } from './models'; // DEFAULT_ANALYSIS_MODEL_ID will now be gemini-2.5-flash-lite-preview-06-17
+import { DEFAULT_ANALYSIS_MODEL_ID } from './models'; // DEFAULT_ANALYSIS_MODEL_ID will now be gemini-2.5-flash-lite
 
 export const ai = genkit({
   plugins: [googleAI()],

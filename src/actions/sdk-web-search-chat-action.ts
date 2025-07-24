@@ -18,7 +18,7 @@ if (!apiKey) {
   throw new Error('GEMINI_API_KEY is not set in environment variables.');
 }
 const genAI = new GoogleGenerativeAI(apiKey);
-const groundedModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite-preview-06-17", tools: [{googleSearch: {}}] });
+const groundedModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite", tools: [{googleSearch: {}}] });
 
 
 export async function sdkWebSearchChatAction(

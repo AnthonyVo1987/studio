@@ -118,7 +118,7 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   Client Components for interactive UI elements and state management.
 
 #### 3.2.2. Genkit & Google AI SDK (AI Backend Orchestration)
-*   Google Gemini models (currently `googleai/gemini-2.5-flash-lite-preview-06-17`) for AI analysis tasks.
+*   Google Gemini models (currently `googleai/gemini-2.5-flash-lite`) for AI analysis tasks.
 *   **Genkit:** Used for stable, non-grounded AI flows like the "App Data Chat" and core AI analyses.
 *   **Raw Google AI SDK (`@google/generative-ai`):** Now used directly in a dedicated server action (`sdk-web-search-chat-action.ts`) for all grounded web search chat functionalities to ensure stability and bypass previous Genkit tool resolution issues.
 *   AI prompt definitions externalized into JSON files in `src/ai/definitions/`.
@@ -165,7 +165,7 @@ This section outlines the application's core data analysis pipeline. This archit
     *   After the final step, the orchestrator transitions the FSM back to `IDLE`.
 
 ### 3.3. AI Flow & Prompt Design
-*   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite-preview-06-17`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
+*   **AI Prompts Location:** `src/ai/definitions/*.json`. Model: `googleai/gemini-2.5-flash-lite`. Config: `thinkingConfig: { thinkingBudget: -1 }`.
 *   Flows load definitions using `src/ai/definition-loader.ts`.
 *   All flows include error handling and execution time logging. Prompts are cached for performance.
 *   Example chat prompts for the UI are now sourced from dedicated, simple text-template files: `example-chat-prompts.json` and `example-web-search-prompts.json`.

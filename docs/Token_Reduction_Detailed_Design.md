@@ -958,7 +958,7 @@ export const createPromptTemplate = (config: PromptConfig): PromptTemplate => {
     basePrompt,
     variables: {},
     metadata: {
-      model: 'googleai/gemini-2.5-flash-lite-preview-06-17',
+      model: 'googleai/gemini-2.5-flash-lite',
       maxTokens: 2048,
       temperature: 0.1
     }
@@ -998,7 +998,7 @@ export const stockAnalysisPrompts = {
 // BEFORE - Verbose JSON prompt definitions
 // src/ai/definitions/ai-key-takeaways.json (verbose)
 {
-  "model": "googleai/gemini-2.5-flash-lite-preview-06-17",
+  "model": "googleai/gemini-2.5-flash-lite",
   "config": { "thinkingConfig": { "thinkingBudget": -1 } },
   "system": "You are an expert financial analyst...[200+ words of instructions]",
   "prompt": "Given the following stock data...[100+ words of detailed instructions]"
