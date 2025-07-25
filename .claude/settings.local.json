@@ -22,7 +22,11 @@
       "Bash(npm run lint:*)",
       "mcp__ide__getDiagnostics",
       "Bash(timeout 60s npm run build)",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(grep:*)",
+      "Bash(done)"
     ],
     "deny": []
   }
