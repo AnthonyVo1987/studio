@@ -166,7 +166,6 @@ export function OptionsChainTable() {
   );
 
   const handleExportOptionsJson = () => {
-    console.log(`[${componentName}:ExportAction] Export Options JSON button clicked. Data ready:`, isDataReadyForExport);
     if (!isDataReadyForExport || !parsedDataState) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON export.' });
       return;
@@ -175,7 +174,6 @@ export function OptionsChainTable() {
   };
 
   const handleCopyOptionsJson = async () => {
-    console.log(`[${componentName}:CopyAction] Copy Options JSON button clicked. Data ready:`, isDataReadyForExport);
     if (!isDataReadyForExport || !parsedDataState) {
       toast({ variant: 'destructive', title: 'Data Not Ready', description: 'Options chain data is not available for JSON copy.' });
       return;

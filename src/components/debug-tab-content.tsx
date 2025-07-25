@@ -70,8 +70,6 @@ export function DebugTabContent() {
   } = useStockAnalysis();
   const { toast } = useToast();
 
-  console.debug(`[DebugTabContent] Rendering. Polygon API request log (start):`, polygonApiRequestLogJson.substring(0,100));
-
   const safeJsonParse = (jsonStr: string, fallback: any = {}) => {
     try {
       return JSON.parse(jsonStr || '{}');
@@ -81,8 +79,6 @@ export function DebugTabContent() {
   };
 
   const handleCopyAll = () => {
-    console.log(`[DebugTabContent:CopyAll] Attempting to copy all debug data`);
-    
     // Create a comprehensive debug data object
     const allDebugData = {
       timestamp: new Date().toISOString(),
@@ -122,7 +118,6 @@ export function DebugTabContent() {
       .then((success) => {
         if (success) {
           toast({ title: "Copied to Clipboard", description: "All debug data copied successfully." });
-          console.log(`[DebugTabContent:CopyAll] Successfully copied all debug data to clipboard`);
         } else {
           toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy debug data. The copy operation returned false." });
           console.error(`[DebugTabContent:CopyAll] Failed to copy all debug data. copyToClipboard returned false`);

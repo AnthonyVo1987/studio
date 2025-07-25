@@ -70,11 +70,8 @@ export function AiOptionsAnalysisDisplay() {
     return null;
   }, [isEmpty, isLoading, isError, aiOptionsAnalysisJson]);
 
-  // Log state changes only when actual state changes, not on every render
-  // Using console.log to avoid unstable logDebug function reference causing render loops
-  useEffect(() => {
-    console.debug(`[AiOptionsAnalysisDisplay] StateChange: JSON State Updated: isLoading=${isLoading}, isError=${isError}`);
-  }, [isLoading, isError]);
+  // Remove state change logging to prevent potential render loops and console noise
+  // State changes are already tracked internally by useJsonDataStateWithFsm
 
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
   const isDataReadyForExport = !isLoading && !isError && parsedData &&
@@ -89,7 +86,6 @@ export function AiOptionsAnalysisDisplay() {
   );
 
   const handleExport = () => {
-    console.debug(`[${componentName}] ExportAction: Attempting to export options analysis as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: "destructive", title: "Export Failed", description: "AI options analysis data not available for export." });
       return;
@@ -98,7 +94,6 @@ export function AiOptionsAnalysisDisplay() {
   };
 
   const handleCopy = async () => {
-    console.debug(`[${componentName}] CopyAction: Attempting to copy options analysis as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedData) {
       toast({ variant: "destructive", title: "Copy Failed", description: "AI options analysis data not available for copy." });
       return;

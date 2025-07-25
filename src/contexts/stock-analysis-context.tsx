@@ -113,14 +113,6 @@ export interface AppDataChatMessage {
   content: string;
 }
 
-const browserConsole = {
-  log: typeof console !== 'undefined' ? console.log.bind(console) : () => {},
-  warn: typeof console !== 'undefined' ? console.warn.bind(console) : () => {},
-  error: typeof console !== 'undefined' ? console.error.bind(console) : () => {},
-  info: typeof console !== 'undefined' ? console.info.bind(console) : () => {},
-  debug: typeof console !== 'undefined' ? console.debug.bind(console) : () => {},
-};
-
 interface StockAnalysisState {
   polygonApiRequestLogJson: string;
   polygonApiResponseLogJson: string;
@@ -296,16 +288,6 @@ const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>
 let chatMessageIdCounter = 0;
 
 export function StockAnalysisProvider({ children }: { children: ReactNode }) {
-  const contextOriginals = useMemo(() => {
-    if (typeof window !== 'undefined' && !(console as any).__stockSageContextOriginals) {
-      (console as any).__stockSageContextOriginals = {
-        log: console.log.bind(console), warn: console.warn.bind(console), error: console.error.bind(console),
-        info: console.info.bind(console), debug: console.debug.bind(console),
-      };
-      (console as any).__stockSageContextOriginals.debug('[CONTEXT_INIT]', 'Original console methods captured by StockAnalysisProvider.');
-    }
-    return (console as any).__stockSageContextOriginals || browserConsole;
-  }, []);
 
   const [_polygonApiRequestLogJson, _setPolygonApiRequestLogJson] = useState<string>(defaultState.polygonApiRequestLogJson);
   const [_polygonApiResponseLogJson, _setPolygonApiResponseLogJson] = useState<string>(defaultState.polygonApiResponseLogJson);
@@ -418,7 +400,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _setRawSupportResistanceWebSearchResponseJson,
   ])
 
-  const contextSetters: StockAnalysisContextSetters = useMemo(() => ({
+  const contextSetters = useMemo(() => ({
     ...jsonSetters,
     // Non-JSON setters
     setAvailableExpirationDates: _setAvailableExpirationDates,
@@ -427,7 +409,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     setOptionType: _setOptionType,
     setStrikeCount: _setStrikeCount,
     setTableDisplayType: _setTableDisplayType,
-  }), [jsonSetters]);
+  }), [jsonSetters]) as StockAnalysisContextSetters;
 
   const addAppDataChatMessage = useCallback((message: AppDataChatMessage) => {
     _setAppDataChatHistory(prev => {
@@ -493,7 +475,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [contextSetters]);
 
   const resetOnDemandOptionsState = useCallback(() => {
-    console.debug('[StockAnalysisContext:ResetState] Resetting on-demand options state for new analysis.');
     _setAvailableExpirationDates([]);
     _setSelectedExpirationDate(undefined);
     _setIsLoadingExpirations(false);
@@ -504,7 +485,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
     const previousState = state.current;
-    const logPrefixFsmReducer = 'StockAnalysisContext:GlobalFSM';
 
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
@@ -584,8 +564,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         break;
       case 'FETCH_DATA_FAILURE':
-        const fetchErr = event.payload; const fetchErrMsg = fetchErr.message || 'Data fetch failed';
-        const fetchErrorJson = errorJsonWithDetails(fetchErrMsg, fetchErr.error);
+        const fetchErr = event.payload;
+        const fetchErrMsg = fetchErr.message || 'Data fetch failed';
         if(fetchErr.data) {
             contextSetters.setMarketStatusJson(fetchErr.data.marketStatusJson); contextSetters.setStockSnapshotJson(fetchErr.data.stockSnapshotJson);
             contextSetters.setStandardTasJson(fetchErr.data.standardTasJson); contextSetters.setOptionsChainJson(fetchErr.data.optionsChainJson);
@@ -696,7 +676,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
       const fetchAndSetDefaultExpiration = async () => {
         _setIsLoadingExpirations(true);
-        console.debug(`[StockAnalysisContext:${logPrefix}] Debounced fetch for '${currentTicker}'.`);
         
         try {
             const allDates = await getExpirationDates(currentTicker);
@@ -706,9 +685,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
             
             if (nextExpDate) {
               _setSelectedExpirationDate(nextExpDate);
-              console.debug(`[StockAnalysisContext:${logPrefix}] Success. Found ${allDates.length} dates. Auto-selected default: ${nextExpDate}`);
-            } else {
-              console.debug(`[StockAnalysisContext:${logPrefix}] Success, but no suitable future date found.`);
             }
         } catch (error: any) {
             console.error(`[StockAnalysisContext:${logPrefix}] Failed to fetch expirations for '${currentTicker}'. Error: ${error.message}`);
@@ -784,6 +760,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     targetFsmDisplayState: _targetFsmDisplayState, dispatchFsmEvent,
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
+    debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplayInternal,
     // Expose new state and setters
     availableExpirationDates: _availableExpirationDates, setAvailableExpirationDates: contextSetters.setAvailableExpirationDates,
     selectedExpirationDate: _selectedExpirationDate, setSelectedExpirationDate: contextSetters.setSelectedExpirationDate,
@@ -812,36 +789,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _aiKeyTakeawaysRequestJson,
   ]);
   
-  useEffect(() => {
-    if (typeof window === 'undefined') { return; }
-    const currentOriginalsForInterceptor = (console as any).__stockSageContextOriginals || browserConsole;
-
-    const interceptAndProcessLog = (type: any, ...args: any[]) => {
-      currentOriginalsForInterceptor[type as Exclude<LogType, 'system'>](...args);
-      
-      queueMicrotask(() => {
-        let sourceForBuffer: string = 'NATIVE_CONSOLE';
-        let messagesForBuffer = args;
-        
-        if (args.length > 0 && args[0] === LOGDEBUG_MARKER) {
-          sourceForBuffer = args[1] as string;
-          messagesForBuffer = args.slice(2); 
-        }
-        
-        addEntryToGlobalLogBuffer({ type, messages: messagesForBuffer, source: sourceForBuffer });
-      });
-    };
-
-    console.log = (...args) => interceptAndProcessLog('log', ...args); 
-    console.warn = (...args) => interceptAndProcessLog('warn', ...args);
-    console.error = (...args) => interceptAndProcessLog('error', ...args); 
-    console.info = (...args) => interceptAndProcessLog('info', ...args);
-    console.debug = (...args) => interceptAndProcessLog('debug', ...args);
-    
-    return () => {
-      if ((console as any).__stockSageContextOriginals) { Object.assign(console, (console as any).__stockSageContextOriginals); }
-    };
-  }, [contextOriginals]);
   
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
 }

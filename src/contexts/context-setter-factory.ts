@@ -25,13 +25,7 @@ export const createJsonSetter = (
       // Update state
       internalSetter(json)
       
-      // Optional logging
-      if (enableLogging) {
-        console.debug(`Updated ${fieldName}`, { 
-          length: json.length, 
-          isEmpty: !json || json.trim() === '' 
-        })
-      }
+      // Logging removed to prevent render loops and reduce console noise
     } catch (error) {
       console.error(`Error updating ${fieldName}:`, error)
     }

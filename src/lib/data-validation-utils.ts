@@ -24,7 +24,6 @@ export function isDataReadyForProcessing(
   const callContext = `${sourceComponent || 'isDataReadyCheck'}:${dataName || 'data'}`;
 
   if (!jsonString || jsonString.trim() === '{}' || PENDING_STATUS_JSON_VARIANTS.includes(jsonString.trim())) {
-    console.debug(`[${callContext}] JSON (is null/empty/generic pending): '${jsonString?.substring(0, 50)}...' -> Not Ready`);
     return false;
   }
 
@@ -37,20 +36,16 @@ export function isDataReadyForProcessing(
           String(parsed.status).toLowerCase().includes('pending') ||
           String(parsed.status).toLowerCase().includes('initializing')
       )) {
-        console.debug(`[${callContext}] JSON contains status='${parsed.status}' -> Not Ready`);
         return false;
       }
       if (parsed.error) {
-        console.debug(`[${callContext}] JSON contains 'error' field: ${parsed.error} -> Not Ready`);
         return false;
       }
     }
   } catch (e) {
     // If parsing fails, it's definitely not ready and likely indicates an error JSON that isn't caught above.
-    console.debug(`[${callContext}] JSON parsing failed. Content (start): '${jsonString.trim().substring(0, 100)}...' -> Not Ready`);
     return false;
   }
 
-  console.debug(`[${callContext}] JSON appears valid and ready. Content (start): '${jsonString.trim().substring(0, 100)}...' -> Ready`);
   return true;
 }

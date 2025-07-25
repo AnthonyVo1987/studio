@@ -137,11 +137,8 @@ export function AiKeyTakeawaysDisplay() {
     return "";
   }, [isEmpty, isLoading, isError, aiKeyTakeawaysJson]);
 
-  // Log state changes only when actual state changes, not on every render
-  // Using console.log to avoid unstable logDebug function reference causing render loops
-  useEffect(() => {
-    console.debug(`[AiKeyTakeawaysDisplay] StateChange: JSON State Updated: isLoading=${isLoading}, isError=${isError}, displayItemsCount=${displayTakeaways.length}`);
-  }, [isLoading, isError, displayTakeaways.length]);
+  // Remove state change logging to prevent potential render loops and console noise
+  // State changes are already tracked internally by useJsonDataStateWithFsm
 
   const isDataReadyForExport = !isLoading && !isError && parsedTakeawaysData && Object.keys(parsedTakeawaysData).length > 0;
   const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
@@ -153,7 +150,6 @@ export function AiKeyTakeawaysDisplay() {
   );
 
   const handleExport = () => {
-    console.debug(`[${componentName}] ExportAction: Attempting to export takeaways as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysData) {
       toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
       return;
@@ -162,7 +158,6 @@ export function AiKeyTakeawaysDisplay() {
   };
 
   const handleCopy = async () => {
-    console.debug(`[${componentName}] CopyAction: Attempting to copy takeaways as JSON for ${currentTicker}`);
     if (!isDataReadyForExport || !parsedTakeawaysData) {
       toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
       return;

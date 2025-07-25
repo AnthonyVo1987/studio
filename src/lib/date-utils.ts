@@ -120,7 +120,7 @@ export function formatDisplayDate(isoDateString?: string | null): string {
     }
     return format(date, 'MMM dd, yyyy');
   } catch (error) {
-    console.warn("Failed to parse or format display date:", isoDateString, error);
+    // Date parsing error silently handled by returning 'N/A'
     return 'N/A';
   }
 }

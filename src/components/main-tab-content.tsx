@@ -146,7 +146,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           break;
         }
         case GlobalFsmState.GENERATING_KEY_TAKEAWAYS: {
-          console.log(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Generating AI Key Takeaways via pipeline method for ${globalFsmVariables.activeTicker}`);
           const result = await performAiAnalysisAction({
             ticker: globalFsmVariables.activeTicker!, 
             stockSnapshotJson: contextStockSnapshotJson, 
@@ -157,7 +156,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           if (result.status === 'success' && result.data) {
             setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
             setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
-            console.log(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Successfully generated AI Key Takeaways via pipeline method`);
           }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
           if(result.status !== 'success') {
@@ -167,7 +165,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           break;
         }
         case GlobalFsmState.ANALYZING_OPTIONS: {
-          console.log(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Analyzing Options via pipeline method for ${globalFsmVariables.activeTicker}`);
           const result = await performAiOptionsAnalysisAction({
             ticker: globalFsmVariables.activeTicker!, 
             stockSnapshotJson: contextStockSnapshotJson, 
@@ -176,7 +173,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           if(result.status === 'success' && result.data) {
             setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
             setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
-            console.log(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Successfully generated AI Options Analysis via pipeline method`);
           }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
           if(result.status !== 'success') {
@@ -325,7 +321,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
   const handleOnDemandKeyTakeaways = async () => {
     const logPrefix = 'MainTabContent:OnDemandKeyTakeaways';
-    console.log(`[MainTabContent:OnDemand] ${logPrefix}: Manual on-demand AI Key Takeaways triggered for ${globalFsmVariables.activeTicker}`);
     
     try {
       const result = await performAiAnalysisAction({
@@ -340,7 +335,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
         setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
         setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
         toast({ title: "Success", description: "AI Key Takeaways generated successfully" });
-        console.log(`[MainTabContent:OnDemand] ${logPrefix}: Successfully generated AI Key Takeaways via on-demand method`);
       } else {
         toast({ title: "Error", description: result.message || "Failed to generate AI Key Takeaways", variant: 'destructive' });
         console.error(`[MainTabContent:OnDemand] ${logPrefix}: Failed to generate AI Key Takeaways via on-demand method: ${result.message}`);
@@ -353,7 +347,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
   const handleOnDemandOptionsAnalysis = async () => {
     const logPrefix = 'MainTabContent:OnDemandOptionsAnalysis';
-    console.log(`[MainTabContent:OnDemand] ${logPrefix}: Manual on-demand AI Options Analysis triggered for ${globalFsmVariables.activeTicker}`);
     
     try {
       const result = await performAiOptionsAnalysisAction({
@@ -366,7 +359,6 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
         setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
         setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
         toast({ title: "Success", description: "AI Options Analysis generated successfully" });
-        console.log(`[MainTabContent:OnDemand] ${logPrefix}: Successfully generated AI Options Analysis via on-demand method`);
       } else {
         toast({ title: "Error", description: result.message || "Failed to generate AI Options Analysis", variant: 'destructive' });
         console.error(`[MainTabContent:OnDemand] ${logPrefix}: Failed to generate AI Options Analysis via on-demand method: ${result.message}`);
