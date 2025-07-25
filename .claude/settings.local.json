@@ -28,7 +28,9 @@
       "Bash(grep:*)",
       "Bash(done)",
       "Bash(timeout:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git rm:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
