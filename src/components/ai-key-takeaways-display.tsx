@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockAnalysisOutput } from "@/ai/schemas/stock-analysis-schemas";
 import type { StockSnapshotData } from "@/services/data-sources/types";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
@@ -183,16 +182,9 @@ export function AiKeyTakeawaysDisplay() {
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading ? (
-          Array.from({ length: 5 }).map((_, index) => (
-            <div key={`skeleton-takeaway-${index}`} className="p-3 border rounded-md bg-card/60 shadow-sm">
-              <div className="flex justify-between items-center mb-1.5">
-                <Skeleton className="h-5 w-1/3" />
-                <Skeleton className="h-5 w-1/4" />
-              </div>
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4 mt-1" />
-            </div>
-          ))
+          <div className="p-3 text-center text-sm text-muted-foreground h-24 flex items-center justify-center">
+            Waiting for AI takeaways...
+          </div>
         ) : isError ? (
            <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
              {errorMessage}

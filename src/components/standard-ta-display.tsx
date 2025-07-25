@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { TechnicalIndicatorsData, MultiWindowIndicatorValues, MACDValue, VWAPValue } from "@/services/data-sources/types";
 import { formatToTwoDecimals } from "@/lib/number-utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
@@ -130,12 +129,6 @@ export function StandardTaDisplay() {
     return 'neutral';
   };
 
-  const renderSkeletonRow = (key: string) => (
-    <TableRow key={`skeleton-ta-${key}`}>
-      <TableCell className="font-medium"><Skeleton className="h-5 w-3/4" /></TableCell>
-      <TableCell className="text-right"><Skeleton className="h-5 w-full" /></TableCell>
-    </TableRow>
-  );
 
   return (
     <Card>
@@ -153,13 +146,11 @@ export function StandardTaDisplay() {
           </TableHeader>
           <TableBody>
             {isLoadingState ? (
-              <>
-                {renderSkeletonRow("rsi")}
-                {renderSkeletonRow("macd")}
-                {renderSkeletonRow("vwap")}
-                {renderSkeletonRow("ema")}
-                {renderSkeletonRow("sma")}
-              </>
+              <TableRow>
+                <TableCell colSpan={2} className="text-center text-sm text-muted-foreground h-24">
+                  Waiting for technical analysis data...
+                </TableCell>
+              </TableRow>
             ) : isErrorState ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground h-24">

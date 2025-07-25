@@ -7,7 +7,6 @@ import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react"
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency, formatPercentage } from "@/lib/number-utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
@@ -54,8 +53,7 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
           {icon && <div className="text-muted-foreground">{icon}</div>}
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-8 w-3/4 mb-1" />
-          {label === "Day's Change" && <Skeleton className="h-4 w-1/2" />}
+          <p className="text-sm text-muted-foreground">Waiting for stock data...</p>
         </CardContent>
       </Card>
     );

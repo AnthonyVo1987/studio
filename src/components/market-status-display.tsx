@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { MarketStatusData } from "@/services/data-sources/types";
 import { formatTimestampToPacificTime } from "@/lib/date-utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 interface MarketDetailItem {
@@ -19,9 +18,10 @@ interface MarketDetailItem {
 const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boolean) => {
   if (isLoading) {
     return (
-      <TableRow key={`skeleton-market-${index}`}>
-        <TableCell className="font-medium w-1/3"><Skeleton className="h-5 w-3/4" /></TableCell>
-        <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
+      <TableRow key={`loading-market-${index}`}>
+        <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
+          Waiting for market data...
+        </TableCell>
       </TableRow>
     );
   }

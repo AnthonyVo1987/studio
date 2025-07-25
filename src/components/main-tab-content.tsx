@@ -187,7 +187,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, toast, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, selectedExpirationDate, optionType, strikeCount]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, selectedExpirationDate, optionType, strikeCount]);
 
 
   // Effect to handle App Data Chat results
@@ -211,7 +211,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     } else if (status === 'error') {
       addAppDataChatMessage({ id: crypto.randomUUID(), role: 'model', content: `Error: ${message || error}` });
     }
-  }, [appDataChatState, isAppDataChatPending, addAppDataChatMessage, setHolisticTakeawaysRequestJson, setHolisticTakeawaysResponseJson, setOptionsTraderTakeawaysRequestJson, setOptionsTraderTakeawaysResponseJson, setStockTraderTakeawaysRequestJson, setStockTraderTakeawaysResponseJson, setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson]);
+  }, [appDataChatState, isAppDataChatPending]);
 
   // Effect to handle Web Search Chat results
   useEffect(() => {
@@ -234,7 +234,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     } else if (status === 'error') {
       addWebSearchChatMessage({ id: crypto.randomUUID(), role: 'model', content: `Error: ${message || error}` });
     }
-  }, [webSearchChatState, isWebSearchChatPending, addWebSearchChatMessage, setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson, setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson, setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson]);
+  }, [webSearchChatState, isWebSearchChatPending]);
 
   const handleAppDataChatSubmit = (payload: { userInput?: string; promptName?: string }) => {
     if (isAppDataChatPending) return;

@@ -8,7 +8,6 @@ import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { AnalyzeTaOutput } from "@/ai/schemas/ai-analyzed-ta-schemas"; 
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatToTwoDecimals } from "@/lib/number-utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
@@ -145,16 +144,11 @@ export function AiAnalyzedTaDisplay() {
           </TableHeader>
           <TableBody>
             {isLoadingState ? (
-              taPointDefinitions.map((pointDef) => (
-                <TableRow key={`skeleton-${pointDef.key}`}>
-                  <TableCell className="font-medium">
-                    <Skeleton className="h-5 w-3/4" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Skeleton className="h-5 w-1/2 ml-auto" />
-                  </TableCell>
-                </TableRow>
-              ))
+              <TableRow>
+                <TableCell colSpan={2} className="text-center text-sm text-muted-foreground h-24">
+                  Waiting for AI analysis...
+                </TableCell>
+              </TableRow>
             ) : isErrorState ? (
                 <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground h-24">

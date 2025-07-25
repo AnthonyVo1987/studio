@@ -17,7 +17,6 @@ import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { OptionsChainData, OptionsTableRow, StreamlinedOptionContract, StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency } from "@/lib/number-utils";
 import { formatDisplayDate } from "@/lib/date-utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
@@ -276,7 +275,7 @@ export function OptionsChainTable() {
 
   const renderContent = () => {
     if (isLoadingState) {
-      return <div className="p-4"><Skeleton className="h-64 w-full" /></div>;
+      return <div className="p-4 text-center text-sm text-muted-foreground h-24 flex items-center justify-center">Waiting for options data...</div>;
     }
     if (isErrorState) {
       return <div className="text-center h-24 p-4 text-muted-foreground">{errorOrSkippedMessageState}</div>;
@@ -304,11 +303,8 @@ export function OptionsChainTable() {
         <div className="flex justify-between items-start">
             <div>
                 <CardTitle>Options Chain</CardTitle>
-                {isLoadingState ? (
-                    <Skeleton className="h-5 w-3/4 mt-1" />
-                ) : (
-                    <CardDescription className="mt-1">
-                    Options chain for {displayTicker} - Expires: {displayExpirationDate}
+                <CardDescription className="mt-1">
+                    {isLoadingState ? "Waiting for options data..." : `Options chain for ${displayTicker} - Expires: ${displayExpirationDate}`}
                     </CardDescription>
                 )}
             </div>

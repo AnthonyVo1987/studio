@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
@@ -130,11 +129,8 @@ export function AiOptionsAnalysisDisplay() {
   let content;
   if (isLoading) {
     content = (
-      <div className="space-y-4 p-2">
-        <Skeleton className="h-8 w-1/3 mb-2" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-8 w-1/3 mb-2 mt-4" />
-        <Skeleton className="h-20 w-full" />
+      <div className="p-3 text-center text-sm text-muted-foreground h-24 flex items-center justify-center">
+        Waiting for options analysis...
       </div>
     );
   } else if (isError && errorMessage) {

@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useStockAnalysis } from "@/contexts/stock-analysis-context";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
@@ -26,9 +25,10 @@ const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): 
 const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolean) => {
   if (isLoading) {
     return (
-      <TableRow key={`skeleton-snapshot-${index}`}>
-        <TableCell className="font-medium w-1/3"><Skeleton className="h-5 w-3/4" /></TableCell>
-        <TableCell><Skeleton className="h-5 w-1/2" /></TableCell>
+      <TableRow key={`loading-snapshot-${index}`}>
+        <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
+          Waiting for stock data...
+        </TableCell>
       </TableRow>
     );
   }
