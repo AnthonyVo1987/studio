@@ -18,7 +18,11 @@
       "Bash(git config:*)",
       "Bash(timeout 15s npm run dev)",
       "Bash(git commit:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(npm run lint:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(timeout 60s npm run build)",
+      "Bash(/dev/null)"
     ],
     "deny": []
   }
