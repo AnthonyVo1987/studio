@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.20
-**Application Version (from `app-metadata.json`):** v3.6.5.14
-**Last Updated:** 2025-07-15
+**README Document Version:** 3.21
+**Application Version (from `app-metadata.json`):** v3.7.4.4
+**Last Updated:** 2025-01-25
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -178,8 +178,8 @@ This section outlines the application's core data analysis pipeline. This archit
 ### 3.5. Coding Standards & Conventions
 
 #### 3.5.1. General Rules & Policies
-*   **Current Feature Focus (as of v3.6.5.14):**
-    *   **Codebase Hardening Complete:** The application is in a highly stable, lean state after several successful cleanup and hardening phases. It is ready for the next feature development cycle.
+*   **Current Feature Focus (as of v3.7.4.4):**
+    *   **Codebase Hardening & Optimization Complete:** The application is in a highly stable, optimized state after successful token reduction initiative (27.9% reduction, ~75K tokens) and infinite render loop fixes. All React anti-patterns causing render loops have been eliminated, console logging has been cleaned up, and skeleton loading animations simplified.
 
 #### 3.5.2. UI/UX Conventions
 *   ShadCN components. Rounded corners, shadows. Tailwind with theme variables. `lucide-react` icons. Responsiveness, ARIA. Hydration mismatch prevention.
@@ -251,7 +251,7 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.20
+*   **This README Document Version:** 3.21
 *   **Current Application Version:** `v3.6.5.14`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.

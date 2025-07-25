@@ -7,9 +7,121 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v3.7.4.4` (🛠️ **INFINITE RENDER LOOP FIX & CLAUDE.md CREATION**)
+**Tag:** `Phase-v3.7.4.4_StabilityFix`
+**Commit Hash:** `f7a7650`
+**Subject:** `[v3.7.4.4] [CLAUDE.md] Fix Infinite Render Loop`
+**Details:**
+This commit creates the comprehensive CLAUDE.md development guide for AI assistants working with the StockSage codebase. The guide includes essential development commands, architectural patterns, critical rules for preventing React anti-patterns, and lessons learned from previous debugging cycles.
+
+**Key Additions:**
+*   **CLAUDE.md Creation:** Comprehensive AI development guide with:
+    *   Common development commands (npm run dev, lint, typecheck)
+    *   High-level architecture overview (FSM, orchestrator patterns)
+    *   Critical architectural rules (FSM feedback loop, state update patterns)
+    *   File organization by importance tiers
+    *   Common pitfalls and solutions (infinite render loops, race conditions)
+    *   Version management and testing procedures
+
+---
+**App Version:** `v3.7.4.4` (🐛 **CRITICAL BUGFIX - INFINITE RENDER LOOP ELIMINATION**)
+**Tag:** `Phase-v3.7.4.4_InfiniteLoopFix`
+**Commit Hash:** `75b8c8e`
+**Subject:** `[v3.7.4.4] [BUGFIX] Fix Infinite Render Loop - React Anti-Pattern Elimination`
+**Details:**
+This commit represents a **critical architectural fix** that eliminates infinite render loops caused by React anti-patterns in the FSM reducer and orchestrator components. The issue was identified as state updates occurring during the render phase, violating React's core principles.
+
+**🔧 ROOT CAUSE ANALYSIS:**
+*   **FSM Reducer Anti-Pattern:** The reducer was calling contextSetters during state transitions, causing state updates during render phase
+*   **Circular Dependencies:** useEffect dependency arrays included state variables causing circular updates
+*   **Missing State Batching:** Multiple sequential state updates weren't properly batched
+
+**✅ ARCHITECTURAL FIXES:**
+*   **FSM Reducer Cleanup:** Removed all contextSetters calls from reducer - now handles only FSM logic
+*   **Orchestrator Pattern Enforcement:** Moved all state updates to orchestrator BEFORE dispatching FSM events
+*   **State Batching:** Wrapped multiple state updates with startTransition to prevent render loops
+*   **Dependency Array Cleanup:** Removed circular dependencies from useEffect hooks
+
+**📋 FILES MODIFIED:**
+*   `src/contexts/stock-analysis-context.tsx`: FSM reducer cleanup, removed render-phase state updates
+*   `src/components/main-tab-content.tsx`: Enhanced orchestrator with proper state update sequencing
+*   `src/config/app-metadata.json`: Version bump to v3.7.4.4
+
+**🎯 VALIDATION RESULTS:**
+*   [x] **Zero Infinite Loops:** All render loop causes eliminated
+*   [x] **FSM Feedback Preserved:** Critical orchestrator feedback loop maintained
+*   [x] **State Consistency:** UI components properly sync with FSM state
+*   [x] **Functionality Intact:** 100% feature preservation with enhanced stability
+
+---
+**App Version:** `v3.7.4.3` (🎨 **UI LOADING ANIMATIONS CLEANUP**)
+**Tag:** `Phase-v3.7.4.3_UICleanup`
+**Commit Hash:** `fdde72a`
+**Subject:** `[v3.7.4.3] [CLEANUP] UI Loading Animations Cleanup`
+**Details:**
+This cleanup removes skeleton loading animations from data display cards while preserving them for user interaction components, simplifying the UI and reducing potential render loop triggers.
+
+**🔧 KEY CHANGES:**
+*   **Skeleton Removal from Data Cards:** Replaced complex skeleton components with simple text placeholders in 8 components
+*   **Loading State Simplification:** Changed from skeleton animations to centered "Waiting for..." messages
+*   **Import Cleanup:** Removed unused Skeleton imports across multiple files
+*   **Unused Code Removal:** Eliminated renderSkeletonRow functions and related utilities
+
+**📋 COMPONENTS MODIFIED:**
+*   `key-metrics-display.tsx`: Skeleton → "Waiting for stock data..."
+*   `market-status-display.tsx`: Skeleton rows → centered message
+*   `standard-ta-display.tsx`: Removed renderSkeletonRow function
+*   `stock-snapshot-details-display.tsx`: Simplified loading state
+*   `ai-analyzed-ta-display.tsx`: Replaced complex skeletons
+*   `ai-key-takeaways-display.tsx`: Removed card-style skeletons
+*   `ai-options-analysis-display.tsx`: Simplified loading display
+*   `options-chain-table.tsx`: Fixed incomplete skeleton cleanup
+
+---
+**App Version:** `v3.7.4.2` (🧹 **COMPLETE DEBUG & CONSOLE LOGGING CLEANUP**)
+**Tag:** `Phase-v3.7.4.2_LoggingCleanup`
+**Commit Hash:** `81b372f`
+**Subject:** `[v3.7.4.2] [CLEANUP] Complete Debug & Console Logging Cleanup`
+**Details:**
+This comprehensive cleanup removes ALL console.log/debug/warn messages related to UI, Render, and State changes to prevent render loops and reduce console noise. The cleanup focuses on UI-related logging while preserving critical application flow logs.
+
+**🔧 SCOPE OF CLEANUP:**
+*   **Total Console Statements Removed:** 16 across multiple components
+*   **Focus Areas:** UI state changes, render cycles, FSM transitions, loading states
+*   **Preserved Logging:** Critical error handling and application flow traces
+
+**📋 FILES CLEANED:**
+*   `src/contexts/stock-analysis-context.tsx`: Removed FSM state transition logs
+*   `src/components/main-tab-content.tsx`: Removed orchestrator execution logs
+*   `src/contexts/context-setter-factory.ts`: Removed setter operation logs
+*   `src/hooks/use-json-data-state.ts`: Removed state update logs
+*   `src/lib/export-utils.ts`: Removed export operation logs
+
+**✅ OUTCOME:**
+*   **Console Noise Reduction:** Eliminated verbose UI/render logging
+*   **Render Loop Prevention:** Removed logging that could trigger additional renders
+*   **Debugging Focus:** Console now shows only critical application events
+
+---
+**App Version:** `v3.7.4.1` (🤖 **AI MODEL STABILITY UPDATE**)
+**Tag:** `Phase-v3.7.4.1_ModelUpdate`
+**Commit Hash:** `6857af9`
+**Subject:** `AI Model updated to stable 'gemini-2.5-flash-lite'`
+**Details:**
+Updated AI model configuration to use the stable `gemini-2.5-flash-lite` model for improved consistency and reliability in AI analysis flows.
+
+---
+**App Version:** `v3.7.4.0` (🏗️ **LOGGING ARCHITECTURE CONSOLIDATION**)
+**Tag:** `Phase-v3.7.4.0_LoggingRefactor`
+**Commit Hash:** `7b6830d`
+**Subject:** `[v3.7.4.0] [REFACTOR] Consolidate Logging Architecture & Fix React Render Loops`
+**Details:**
+Major refactoring to consolidate the logging architecture and address React render loop issues through improved state management and logging practices.
+
+---
 **App Version:** `v3.7.3.1` (🏆 **TOKEN REDUCTION SUCCESS COMPLETION**)
 **Tag:** `Phase-Token-Reduction_Complete`
-**Commit Hash:** `[Pending]`
+**Commit Hash:** `609cb70`
 **Subject:** `feat(optimization): Complete token reduction initiative with comprehensive audit results`
 **Details:**
 This milestone commit marks the **successful completion** of the comprehensive token reduction initiative, achieving **exceptional results** that far exceeded original targets.

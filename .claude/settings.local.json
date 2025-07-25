@@ -27,7 +27,8 @@
       "Bash(do echo \"=== $file ===\")",
       "Bash(grep:*)",
       "Bash(done)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
