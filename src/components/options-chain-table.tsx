@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -19,11 +19,8 @@ import { formatCurrency } from "@/lib/number-utils";
 import { formatDisplayDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 import { useQuickExport } from "@/hooks/use-export-actions"; 
-import type { OptionType } from '@/types/options';
-import type { TableDisplayType } from '@/contexts/stock-analysis-context';
 import { getCallHeadersConfig, getPutHeadersConfig, getSingleTableHeadersConfig, type ColumnConfig } from '@/components/ui/table-config-factory';
 
 // Using factory-generated configurations
@@ -305,8 +302,7 @@ export function OptionsChainTable() {
                 <CardTitle>Options Chain</CardTitle>
                 <CardDescription className="mt-1">
                     {isLoadingState ? "Waiting for options data..." : `Options chain for ${displayTicker} - Expires: ${displayExpirationDate}`}
-                    </CardDescription>
-                )}
+                </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={handleCopyOptionsJson} disabled={!isDataReadyForExport} title="Copy Options Chain as JSON">

@@ -35,7 +35,7 @@ import { appDataChatAction, type AppDataChatActionState } from '@/actions/app-da
 import { sdkWebSearchChatAction } from '@/actions/sdk-web-search-chat-action';
 import type { AppDataChatInput } from '@/ai/flows/app-data-chat-flow';
 import type { SdkWebSearchChatActionState, SdkWebSearchChatActionInputs } from '@/ai/schemas/sdk-web-search-chat-schemas';
-import { getExpirationDates, getOptionsChainForDate } from "@/services/data-sources/adapters/polygon-adapter";
+import { getExpirationDates } from "@/services/data-sources/adapters/polygon-adapter";
 
 
 const appDataButtons: ExamplePromptButton[] = [
@@ -50,8 +50,6 @@ const webSearchButtons: ExamplePromptButton[] = [
     { title: "Options Flow Search", promptName: 'options-flow-web-search', icon: Search },
 ];
 
-const pendingJson = '{ "status": "pending..." }';
-const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
 
 interface MainTabContentProps {
   appVersion: string;
@@ -69,7 +67,10 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     // AI Analysis Setters
     setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
     setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
-    setOptionsChainJson,
+    setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson,
+    // Data Setters
+    setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson,
+    setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
     // App Data Chat
     appDataChatHistory: contextAppDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
     setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson,
@@ -135,12 +136,46 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
             optionType: optionType,
             strikeCount: strikeCount,
           });
+          // Handle state updates before dispatching FSM event to avoid render-phase updates
+          if (result.status === 'success' && result.data) {
+            setMarketStatusJson(result.data.marketStatusJson);
+            setStockSnapshotJson(result.data.stockSnapshotJson);
+            setStandardTasJson(result.data.standardTasJson);
+            setOptionsChainJson(result.data.optionsChainJson);
+            setPolygonApiRequestLogJson(result.data.polygonApiRequestLogJson);
+            setPolygonApiResponseLogJson(result.data.polygonApiResponseLogJson);
+            // Handle auto-selected expiration date from response
+            try {
+              const responseLog = JSON.parse(result.data.polygonApiResponseLogJson);
+              if (responseLog.autoSelectedExpirationDate) {
+                setSelectedExpirationDate(responseLog.autoSelectedExpirationDate);
+              }
+            } catch (e) { }
+          } else if (result.status === 'error' && result.data) {
+            // Handle failure case with partial data
+            setMarketStatusJson(result.data.marketStatusJson || '{}');
+            setStockSnapshotJson(result.data.stockSnapshotJson || '{}');
+            setStandardTasJson(result.data.standardTasJson || '{}');
+            setOptionsChainJson(result.data.optionsChainJson || '{}');
+            setPolygonApiRequestLogJson(result.data.polygonApiRequestLogJson || '{}');
+            setPolygonApiResponseLogJson(result.data.polygonApiResponseLogJson || '{}');
+          }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', payload: result });
           if(result.status !== 'success') toast({ title: "Data Fetch Failed", description: result.message, variant: 'destructive' });
           break;
         }
         case GlobalFsmState.CALCULATING_AI_TA: {
           const result = await analyzeTaAction({ stockSnapshotJson: contextStockSnapshotJson, ticker: globalFsmVariables.activeTicker! });
+          // Handle state updates before dispatching FSM event to avoid render-phase updates
+          if (result.status === 'success' && result.data) {
+            setAiAnalyzedTaRequestJson(result.data.aiAnalyzedTaRequestJson);
+            setAiAnalyzedTaJson(result.data.aiAnalyzedTaJson);
+          } else if (result.status === 'error') {
+            // Handle AI TA failure with error state
+            const errorJson = JSON.stringify({ error: result.message || 'AI TA analysis failed', details: result.error });
+            setAiAnalyzedTaRequestJson(result.data?.aiAnalyzedTaRequestJson || errorJson);
+            setAiAnalyzedTaJson(errorJson);
+          }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'AI_TA_SUCCESS' : 'AI_TA_FAILURE', payload: result });
           if(result.status !== 'success') toast({ title: "AI TA Calculation Failed", description: result.message, variant: 'destructive' });
           break;
@@ -156,6 +191,11 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           if (result.status === 'success' && result.data) {
             setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
             setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+          } else if (result.status === 'error') {
+            // Handle AI Key Takeaways failure with error state
+            const errorJson = JSON.stringify({ error: result.message || 'Key takeaways generation failed', details: result.error });
+            setAiKeyTakeawaysRequestJson(result.data?.aiKeyTakeawaysRequestJson || errorJson);
+            setAiKeyTakeawaysJson(errorJson);
           }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
           if(result.status !== 'success') {
@@ -173,6 +213,11 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
           if(result.status === 'success' && result.data) {
             setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
             setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
+          } else if (result.status === 'error') {
+            // Handle AI Options Analysis failure with error state
+            const errorJson = JSON.stringify({ error: result.message || 'Options analysis failed', details: result.error });
+            setAiOptionsAnalysisRequestJson(result.data?.aiOptionsAnalysisRequestJson || errorJson);
+            setAiOptionsAnalysisJson(errorJson);
           }
           dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
           if(result.status !== 'success') {
@@ -187,7 +232,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, dispatchGlobalFsmEvent, selectedExpirationDate, optionType, strikeCount]);
+  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, dispatchGlobalFsmEvent, selectedExpirationDate, optionType, strikeCount, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson, setPolygonApiRequestLogJson, setPolygonApiResponseLogJson, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, setSelectedExpirationDate, toast]);
 
 
   // Effect to handle App Data Chat results
@@ -211,7 +256,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     } else if (status === 'error') {
       addAppDataChatMessage({ id: crypto.randomUUID(), role: 'model', content: `Error: ${message || error}` });
     }
-  }, [appDataChatState, isAppDataChatPending]);
+  }, [appDataChatState, isAppDataChatPending, setStockTraderTakeawaysRequestJson, setStockTraderTakeawaysResponseJson, setOptionsTraderTakeawaysRequestJson, setOptionsTraderTakeawaysResponseJson, setHolisticTakeawaysRequestJson, setHolisticTakeawaysResponseJson, setUserInputAppDataChatRequestJson, setUserInputAppDataChatResponseJson, addAppDataChatMessage]);
 
   // Effect to handle Web Search Chat results
   useEffect(() => {
@@ -234,7 +279,7 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     } else if (status === 'error') {
       addWebSearchChatMessage({ id: crypto.randomUUID(), role: 'model', content: `Error: ${message || error}` });
     }
-  }, [webSearchChatState, isWebSearchChatPending]);
+  }, [webSearchChatState, isWebSearchChatPending, setRawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchResponseJson, setRawTaWebSearchRequestJson, setRawTaWebSearchResponseJson, setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setUserInputWebSearchChatRequestJson, setUserInputWebSearchChatResponseJson, addWebSearchChatMessage]);
 
   const handleAppDataChatSubmit = (payload: { userInput?: string; promptName?: string }) => {
     if (isAppDataChatPending) return;

@@ -8,9 +8,7 @@ import type { AnalyzeTaResult, AnalyzeTaActionState } from '@/actions/analyze-ta
 import type { PerformAiAnalysisResult, PerformAiAnalysisActionState } from '@/actions/perform-ai-analysis-action';
 import type { PerformAiOptionsAnalysisResult, PerformAiOptionsAnalysisActionState } from '@/actions/perform-ai-options-analysis-action';
 import { startTransition } from 'react';
-import { isDataReadyForProcessing } from '@/lib/data-validation-utils';
 import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
-import { format } from 'date-fns';
 import { findNextAvailableDate } from '@/lib/date-utils';
 import { createSetterBatch } from './context-setter-factory';
 
@@ -333,9 +331,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_tableDisplayType, _setTableDisplayType] = useState<TableDisplayType>(defaultState.tableDisplayType);
   
 
-  const setAndLogJson = useCallback((setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
-    setter(value);
-  }, []);
 
   // Create all JSON setters using factory pattern
   const jsonSetters = useMemo(() => createSetterBatch({
@@ -442,45 +437,51 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   }, [_setWebSearchChatHistory]);
 
   const setAllPlaceholdersInternal = useCallback((currentTickerForLogOnly: string, isFullAnalysis: boolean) => {
-    contextSetters.setPolygonApiRequestLogJson(pendingJson);
-    contextSetters.setPolygonApiResponseLogJson(pendingJson);
-    contextSetters.setMarketStatusJson(pendingJson);
-    contextSetters.setStockSnapshotJson(pendingJson);
-    contextSetters.setStandardTasJson(pendingJson);
-    contextSetters.setOptionsChainJson(pendingJson);
-    contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
-    contextSetters.setAiAnalyzedTaJson(pendingJson);
-    contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
-    contextSetters.setAiKeyTakeawaysJson(pendingJson);
-    contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
-    contextSetters.setAiOptionsAnalysisJson(pendingJson);
-    if (isFullAnalysis) {
-        contextSetters.setUserInputAppDataChatRequestJson(initialJsonPlaceholder);
-        contextSetters.setUserInputAppDataChatResponseJson(initialJsonPlaceholder);
-        contextSetters.setStockTraderTakeawaysRequestJson(initialJsonPlaceholder);
-        contextSetters.setStockTraderTakeawaysResponseJson(initialJsonPlaceholder);
-        contextSetters.setOptionsTraderTakeawaysRequestJson(initialJsonPlaceholder);
-        contextSetters.setOptionsTraderTakeawaysResponseJson(initialJsonPlaceholder);
-        contextSetters.setHolisticTakeawaysRequestJson(initialJsonPlaceholder);
-        contextSetters.setHolisticTakeawaysResponseJson(initialJsonPlaceholder);
-        contextSetters.setUserInputWebSearchChatRequestJson(initialJsonPlaceholder);
-        contextSetters.setUserInputWebSearchChatResponseJson(initialJsonPlaceholder);
-        contextSetters.setRawTaWebSearchRequestJson(initialJsonPlaceholder);
-        contextSetters.setRawTaWebSearchResponseJson(initialJsonPlaceholder);
-        contextSetters.setRawOptionsWebSearchRequestJson(initialJsonPlaceholder);
-        contextSetters.setRawOptionsWebSearchResponseJson(initialJsonPlaceholder);
-        contextSetters.setRawSupportResistanceWebSearchRequestJson(initialJsonPlaceholder);
-        contextSetters.setRawSupportResistanceWebSearchResponseJson(initialJsonPlaceholder);
-    }
+    // Batch all state updates to prevent multiple re-renders
+    startTransition(() => {
+      contextSetters.setPolygonApiRequestLogJson(pendingJson);
+      contextSetters.setPolygonApiResponseLogJson(pendingJson);
+      contextSetters.setMarketStatusJson(pendingJson);
+      contextSetters.setStockSnapshotJson(pendingJson);
+      contextSetters.setStandardTasJson(pendingJson);
+      contextSetters.setOptionsChainJson(pendingJson);
+      contextSetters.setAiAnalyzedTaRequestJson(pendingJson);
+      contextSetters.setAiAnalyzedTaJson(pendingJson);
+      contextSetters.setAiKeyTakeawaysRequestJson(pendingJson);
+      contextSetters.setAiKeyTakeawaysJson(pendingJson);
+      contextSetters.setAiOptionsAnalysisRequestJson(pendingJson);
+      contextSetters.setAiOptionsAnalysisJson(pendingJson);
+      if (isFullAnalysis) {
+          contextSetters.setUserInputAppDataChatRequestJson(initialJsonPlaceholder);
+          contextSetters.setUserInputAppDataChatResponseJson(initialJsonPlaceholder);
+          contextSetters.setStockTraderTakeawaysRequestJson(initialJsonPlaceholder);
+          contextSetters.setStockTraderTakeawaysResponseJson(initialJsonPlaceholder);
+          contextSetters.setOptionsTraderTakeawaysRequestJson(initialJsonPlaceholder);
+          contextSetters.setOptionsTraderTakeawaysResponseJson(initialJsonPlaceholder);
+          contextSetters.setHolisticTakeawaysRequestJson(initialJsonPlaceholder);
+          contextSetters.setHolisticTakeawaysResponseJson(initialJsonPlaceholder);
+          contextSetters.setUserInputWebSearchChatRequestJson(initialJsonPlaceholder);
+          contextSetters.setUserInputWebSearchChatResponseJson(initialJsonPlaceholder);
+          contextSetters.setRawTaWebSearchRequestJson(initialJsonPlaceholder);
+          contextSetters.setRawTaWebSearchResponseJson(initialJsonPlaceholder);
+          contextSetters.setRawOptionsWebSearchRequestJson(initialJsonPlaceholder);
+          contextSetters.setRawOptionsWebSearchResponseJson(initialJsonPlaceholder);
+          contextSetters.setRawSupportResistanceWebSearchRequestJson(initialJsonPlaceholder);
+          contextSetters.setRawSupportResistanceWebSearchResponseJson(initialJsonPlaceholder);
+      }
+    });
   }, [contextSetters]);
 
   const resetOnDemandOptionsState = useCallback(() => {
-    _setAvailableExpirationDates([]);
-    _setSelectedExpirationDate(undefined);
-    _setIsLoadingExpirations(false);
-    _setOptionType('both');
-    _setStrikeCount(20);
-    _setTableDisplayType('side-by-side');
+    // Batch all state updates to prevent multiple re-renders
+    startTransition(() => {
+      _setAvailableExpirationDates([]);
+      _setSelectedExpirationDate(undefined);
+      _setIsLoadingExpirations(false);
+      _setOptionType('both');
+      _setStrikeCount(20);
+      _setTableDisplayType('side-by-side');
+    });
   }, []);
 
   const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
@@ -489,7 +490,6 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     let nextCurrentState: GlobalFsmState = previousState;
     let nextVariables: GlobalFsmContextVariables = { ...state.variables };
     let nextFlags: GlobalFsmFlags = { ...state.flags };
-    const errorJsonWithDetails = (message: string, details: string | null | undefined) => `{ "status": "error", "message": "${message.replace(/"/g, '\\"')}", "details": "${(details || '').replace(/"/g, '\\"')}" }`;
 
     const resetForNewAnalysis = (ticker: string) => {
         nextVariables.activeTicker = ticker;
@@ -543,20 +543,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         }
         break;
       case 'FETCH_DATA_SUCCESS':
+        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         if (event.payload.data) {
-            contextSetters.setMarketStatusJson(event.payload.data.marketStatusJson); contextSetters.setStockSnapshotJson(event.payload.data.stockSnapshotJson);
-            contextSetters.setStandardTasJson(event.payload.data.standardTasJson); contextSetters.setOptionsChainJson(event.payload.data.optionsChainJson);
-            contextSetters.setPolygonApiRequestLogJson(event.payload.data.polygonApiRequestLogJson); 
-            const responseLogJson = event.payload.data.polygonApiResponseLogJson;
-            contextSetters.setPolygonApiResponseLogJson(responseLogJson);
-            
-            try {
-              const responseLog = JSON.parse(responseLogJson);
-              if (responseLog.autoSelectedExpirationDate) {
-                _setSelectedExpirationDate(responseLog.autoSelectedExpirationDate);
-              }
-            } catch (e) { }
-
             nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
             nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
         } else {
@@ -566,27 +554,17 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'FETCH_DATA_FAILURE':
         const fetchErr = event.payload;
         const fetchErrMsg = fetchErr.message || 'Data fetch failed';
-        if(fetchErr.data) {
-            contextSetters.setMarketStatusJson(fetchErr.data.marketStatusJson); contextSetters.setStockSnapshotJson(fetchErr.data.stockSnapshotJson);
-            contextSetters.setStandardTasJson(fetchErr.data.standardTasJson); contextSetters.setOptionsChainJson(fetchErr.data.optionsChainJson);
-            contextSetters.setPolygonApiRequestLogJson(fetchErr.data.polygonApiRequestLogJson); contextSetters.setPolygonApiResponseLogJson(fetchErr.data.polygonApiResponseLogJson);
-        }
+        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         handlePipelineError('DataFetch', fetchErrMsg, fetchErr.error);
         break;
       case 'STALE_DATA_FROM_ACTION':
         const staleErr = event.payload; const staleErrMsg = staleErr.message || 'Stale data error';
-        const staleErrorJson = errorJsonWithDetails(staleErrMsg, `Expected ${staleErr.expectedTicker}, got ${staleErr.foundTickerInSnapshot || 'unknown'}.`);
-        contextSetters.setMarketStatusJson(staleErr.actionStateData?.marketStatusJson || staleErrorJson);
-        contextSetters.setStockSnapshotJson(staleErr.actionStateData?.stockSnapshotJson || staleErrorJson);
-        contextSetters.setStandardTasJson(staleErr.actionStateData?.standardTasJson || staleErrorJson);
-        contextSetters.setOptionsChainJson(staleErr.actionStateData?.optionsChainJson || staleErrorJson);
-        contextSetters.setPolygonApiRequestLogJson(staleErr.actionStateData?.polygonApiRequestLogJson || errorJsonWithDetails("Req log unavailable for stale data.", null));
-        contextSetters.setPolygonApiResponseLogJson(staleErr.actionStateData?.polygonApiResponseLogJson || errorJsonWithDetails("Res log unavailable for stale data.", null));
+        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         handlePipelineError('StaleData', staleErrMsg, staleErr.error);
         break;
       case 'AI_TA_SUCCESS':
+        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         if(event.payload.data) {
-            contextSetters.setAiAnalyzedTaRequestJson(event.payload.data.aiAnalyzedTaRequestJson); contextSetters.setAiAnalyzedTaJson(event.payload.data.aiAnalyzedTaJson);
             nextFlags.isCalculatedTADataReady = true;
             nextCurrentState = determineNextStepAfterTA();
         } else {
@@ -595,15 +573,11 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'AI_TA_FAILURE':
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
-        const aiTaErrorJson = errorJsonWithDetails(aiTaErrMsg, aiTaErr.error);
-        contextSetters.setAiAnalyzedTaRequestJson(aiTaErr.data?.aiAnalyzedTaRequestJson || aiTaErrorJson); contextSetters.setAiAnalyzedTaJson(aiTaErrorJson);
+        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
         break;
       case 'KEY_TAKEAWAYS_SUCCESS':
-        if (event.payload.data) {
-          contextSetters.setAiKeyTakeawaysRequestJson(event.payload.data.aiKeyTakeawaysRequestJson);
-          contextSetters.setAiKeyTakeawaysJson(event.payload.data.aiKeyTakeawaysJson);
-        }
+        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         nextFlags.isKeyTakeawaysDataAvailable = true;
         nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
         break;
@@ -611,10 +585,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
-        if (event.payload.data) {
-          contextSetters.setAiOptionsAnalysisRequestJson(event.payload.data.aiOptionsAnalysisRequestJson);
-          contextSetters.setAiOptionsAnalysisJson(event.payload.data.aiOptionsAnalysisJson);
-        }
+        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         nextFlags.isOptionsAnalysisDataAvailable = true;
         nextCurrentState = GlobalFsmState.IDLE;
         break;
