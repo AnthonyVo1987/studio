@@ -448,15 +448,14 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setIsLoadingExpirations(false);
   };
 
-  // On-demand component refresh handlers (v4.0.0.6)
+  // On-demand component refresh handlers (v4.0.0.7) - Simplified to AI-only
   const refreshHandlers = {
-    refreshStockSnapshot: async () => await handleGetStockData(),
-    refreshMarketStatus: async () => await handleGetStockData(), // Market status comes with stock data
-    refreshStandardTa: async () => await handleGetStockData(), // Standard TA comes with stock data  
-    refreshAiTa: async () => await handleGetAiTechnicalAnalysis(),
+    // Removed Polygon API refresh handlers - these components now auto-update via "Get Stock Data"
+    // refreshStockSnapshot, refreshMarketStatus, refreshStandardTa, refreshAiTa, refreshKeyMetrics - REMOVED
+    
+    // Keep only AI-specific refresh handlers (independent operations)
     refreshAiKeyTakeaways: async () => await handleOnDemandKeyTakeaways(),
     refreshAiOptionsAnalysis: async () => await handleOnDemandOptionsAnalysis(),
-    refreshKeyMetrics: async () => await handleGetStockData(), // Key metrics derived from stock data
   };
 
   // Computed states for on-demand architecture
@@ -669,10 +668,10 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       
       {/* Data Display Components */}
       <div className="space-y-6">
-        <KeyMetricsDisplay onRefresh={refreshHandlers.refreshKeyMetrics} />
-        <StockSnapshotDetailsDisplay onRefresh={refreshHandlers.refreshStockSnapshot} />
-        <StandardTaDisplay onRefresh={refreshHandlers.refreshStandardTa} />
-        <AiAnalyzedTaDisplay onRefresh={refreshHandlers.refreshAiTa} />
+        <KeyMetricsDisplay />
+        <StockSnapshotDetailsDisplay />
+        <StandardTaDisplay />
+        <AiAnalyzedTaDisplay />
         <AiKeyTakeawaysDisplay onRefresh={refreshHandlers.refreshAiKeyTakeaways} />
         <OptionsChainTable />
         <AiOptionsAnalysisDisplay onRefresh={refreshHandlers.refreshAiOptionsAnalysis} />
@@ -706,7 +705,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
         </div>
         
         <Separator />
-        <MarketStatusDisplay onRefresh={refreshHandlers.refreshMarketStatus} />
+        <MarketStatusDisplay />
         <Separator />
         <DebugSnapshotControls appVersion={appVersion} />
       </div>

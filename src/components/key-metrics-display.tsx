@@ -1,10 +1,9 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, DollarSign, Hash, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatCurrency, formatPercentage } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
@@ -79,12 +78,11 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 
 
 interface KeyMetricsDisplayProps {
-  onRefresh?: () => void;
+  // No props needed - component auto-updates when business context changes
 }
 
-export function KeyMetricsDisplay({ onRefresh }: KeyMetricsDisplayProps) {
+export function KeyMetricsDisplay({}: KeyMetricsDisplayProps) {
   const business = useStockAnalysis();
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse stock snapshot data directly from business context
   const stockData = business.stockSnapshotJson ? (() => {
@@ -114,31 +112,13 @@ export function KeyMetricsDisplay({ onRefresh }: KeyMetricsDisplayProps) {
   const displayValueForDayChange = isLoading ? "Loading..." : 
     stockData.changePercent !== null ? formatPercentage(stockData.changePercent, "N/A", true, 2) : "N/A";
 
-  // On-demand refresh handler (v4.0.0.5)
-  const handleRefresh = async () => {
-    if (!onRefresh || isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // Component auto-updates when business context changes (v4.0.0.7)
+  // No individual refresh needed - data updates via main "Get Stock Data" button
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">Key Metrics</CardTitle>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isLoading || isRefreshing || !onRefresh}
-          className="h-8 w-8 p-0"
-          title="Refresh Key Metrics Data"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-        </Button>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-3">

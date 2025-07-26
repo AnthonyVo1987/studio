@@ -7,6 +7,38 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.0.0.7` (🔄 **SINGLE SHOT UI UPDATE ARCHITECTURE**)
+**Tag:** `Phase-v4.0.0.7_SingleShotUI`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.0.0.7] [OVERHAUL] Polygon API Data UI Populate Only`
+**Details:**
+This commit implements a major architectural simplification by moving from individual component refresh buttons to a unified "single shot" UI update approach for all Polygon API data components.
+
+**Architecture Change:**
+*   **Removed Individual Refresh Buttons:** Eliminated refresh buttons from 5 Polygon API components (MarketStatusDisplay, KeyMetricsDisplay, StockSnapshotDetailsDisplay, StandardTaDisplay, AiAnalyzedTaDisplay)
+*   **Single Shot Updates:** All Polygon API data now updates simultaneously when "Get Stock Data" completes, eliminating piecemeal UI updates
+*   **Simplified Data Flow:** User clicks "Get Stock Data" → All Polygon data settles → All UI components update together automatically
+*   **Maintained AI Independence:** AI-specific components (AiKeyTakeawaysDisplay, AiOptionsAnalysisDisplay) retain individual refresh buttons for independent operations
+
+**Code Simplification:**
+*   **Removed ~50+ lines** of refresh-related code across 5 components (useState, handleRefresh functions, refresh buttons)
+*   **Simplified refreshHandlers** from 7 functions to 2 (AI-only operations)  
+*   **Cleaner interfaces** without unnecessary onRefresh props for Polygon components
+*   **Auto-update pattern** - components now derive all state from business context changes
+
+**User Experience Improvements:**
+*   **Reduced complexity** - one button updates all Polygon data instead of 5 individual buttons
+*   **Consistent data state** - no partial refresh states between components
+*   **Faster workflow** - single action refreshes complete dataset
+*   **Eliminated race conditions** - no component synchronization issues
+
+**Technical Implementation:**
+*   **Components auto-update** when business context changes via React's natural re-rendering
+*   **Safe JSON parsing** with try/catch blocks maintained
+*   **Proper loading states** derived from FSM state and business flags
+*   **TypeScript compliance** with clean prop interface removal
+
+---
 **App Version:** `v4.0.0.6` (🐛 **BUTTON FUNCTIONALITY FIX**)
 **Tag:** `Phase-v4.0.0.6_ButtonFix`
 **Commit Hash:** `TBD`

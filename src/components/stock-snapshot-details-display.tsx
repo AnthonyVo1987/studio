@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
@@ -40,12 +38,11 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
 };
 
 interface StockSnapshotDetailsDisplayProps {
-  onRefresh?: () => void;
+  // No props needed - component auto-updates when business context changes
 }
 
-export function StockSnapshotDetailsDisplay({ onRefresh }: StockSnapshotDetailsDisplayProps) {
+export function StockSnapshotDetailsDisplay({}: StockSnapshotDetailsDisplayProps) {
   const business = useStockAnalysis();
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse stock snapshot data directly from business context
   const stockData = business.stockSnapshotJson ? (() => {
@@ -90,36 +87,14 @@ export function StockSnapshotDetailsDisplay({ onRefresh }: StockSnapshotDetailsD
     );
   }
 
-  // On-demand refresh handler (v4.0.0.5)
-  const handleRefresh = async () => {
-    if (!onRefresh || isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // Component auto-updates when business context changes (v4.0.0.7)
+  // No individual refresh needed - data updates via main "Get Stock Data" button
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Stock Snapshot Details</CardTitle>
-            <CardDescription>Detailed price and volume information for {stockData.ticker || "the selected ticker"}.</CardDescription>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading || isRefreshing || !onRefresh}
-            className="h-8 w-8 p-0"
-            title="Refresh Stock Snapshot Data"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+        <CardTitle>Stock Snapshot Details</CardTitle>
+        <CardDescription>Detailed price and volume information for {stockData.ticker || "the selected ticker"}. Updates automatically with stock data.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

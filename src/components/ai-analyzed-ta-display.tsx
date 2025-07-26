@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatCurrency } from "@/lib/number-utils";
 
@@ -42,12 +40,11 @@ const renderLevelRow = (item: SupportResistanceItem, index: number, isLoading: b
 };
 
 interface AiAnalyzedTaDisplayProps {
-  onRefresh?: () => void;
+  // No props needed - component auto-updates when business context changes
 }
 
-export function AiAnalyzedTaDisplay({ onRefresh }: AiAnalyzedTaDisplayProps) {
+export function AiAnalyzedTaDisplay({}: AiAnalyzedTaDisplayProps) {
   const business = useStockAnalysis();
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse AI analyzed TA data directly from business context
   const aiTaData = business.aiAnalyzedTaJson ? (() => {
@@ -82,36 +79,14 @@ export function AiAnalyzedTaDisplay({ onRefresh }: AiAnalyzedTaDisplayProps) {
     );
   }
 
-  // On-demand refresh handler (v4.0.0.5)
-  const handleRefresh = async () => {
-    if (!onRefresh || isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // Component auto-updates when business context changes (v4.0.0.7)
+  // No individual refresh needed - data updates via main "Get Stock Data" button
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>AI-Analyzed Technical Analysis</CardTitle>
-            <CardDescription>AI-calculated support, resistance, and pivot levels based on market data.</CardDescription>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading || isRefreshing || !onRefresh}
-            className="h-8 w-8 p-0"
-            title="Refresh AI Technical Analysis"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+        <CardTitle>AI-Analyzed Technical Analysis</CardTitle>
+        <CardDescription>AI-calculated support, resistance, and pivot levels based on market data. Updates automatically with stock data.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

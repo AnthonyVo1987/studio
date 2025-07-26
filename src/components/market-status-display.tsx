@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 
 interface MarketDetailItem {
@@ -31,12 +29,11 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 };
 
 interface MarketStatusDisplayProps {
-  onRefresh?: () => void;
+  // No props needed - component auto-updates when business context changes
 }
 
-export function MarketStatusDisplay({ onRefresh }: MarketStatusDisplayProps) {
+export function MarketStatusDisplay({}: MarketStatusDisplayProps) {
   const business = useStockAnalysis();
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse market status data directly from business context
   const marketData = business.marketStatusJson ? (() => {
@@ -69,36 +66,14 @@ export function MarketStatusDisplay({ onRefresh }: MarketStatusDisplayProps) {
     );
   }
 
-  // On-demand refresh handler (v4.0.0.5)
-  const handleRefresh = async () => {
-    if (!onRefresh || isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // Component auto-updates when business context changes (v4.0.0.7)
+  // No individual refresh needed - data updates via main "Get Stock Data" button
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Market Status</CardTitle>
-            <CardDescription>Current status of relevant markets and exchanges.</CardDescription>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading || isRefreshing || !onRefresh}
-            className="h-8 w-8 p-0"
-            title="Refresh Market Status Data"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+        <CardTitle>Market Status</CardTitle>
+        <CardDescription>Current status of relevant markets and exchanges. Updates automatically with stock data.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

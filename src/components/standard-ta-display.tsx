@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
@@ -46,12 +44,11 @@ const renderMultiWindowValues = (
 };
 
 interface StandardTaDisplayProps {
-  onRefresh?: () => void;
+  // No props needed - component auto-updates when business context changes
 }
 
-export function StandardTaDisplay({ onRefresh }: StandardTaDisplayProps) {
+export function StandardTaDisplay({}: StandardTaDisplayProps) {
   const business = useStockAnalysis();
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse standard TA data directly from business context
   const taData = business.standardTasJson ? (() => {
@@ -84,36 +81,14 @@ export function StandardTaDisplay({ onRefresh }: StandardTaDisplayProps) {
     return 'neutral';
   };
 
-  // On-demand refresh handler (v4.0.0.5)
-  const handleRefresh = async () => {
-    if (!onRefresh || isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // Component auto-updates when business context changes (v4.0.0.7)
+  // No individual refresh needed - data updates via main "Get Stock Data" button
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Standard Technical Indicators</CardTitle>
-            <CardDescription>Commonly used technical indicators with multiple time windows.</CardDescription>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading || isRefreshing || !onRefresh}
-            className="h-8 w-8 p-0"
-            title="Refresh Technical Analysis Data"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+        <CardTitle>Standard Technical Indicators</CardTitle>
+        <CardDescription>Commonly used technical indicators with multiple time windows. Updates automatically with stock data.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

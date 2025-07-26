@@ -25,7 +25,7 @@ npm run lint
 npm run typecheck
 ```
 
-## High-Level Architecture (v4.0.0.0+)
+## High-Level Architecture (v4.0.0.7+)
 
 ### Core Technology Stack
 - **Frontend**: Next.js 15.3.3 with React 18.3.1
@@ -35,7 +35,7 @@ npm run typecheck
 - **Data Sources**: Polygon.io API
 - **AI Model**: Google Gemini 2.5-flash-lite
 
-### Simplified Architecture (v4.0.0.5+)
+### Simplified Architecture (v4.0.0.7+)
 
 **The application now uses standard React best practices with direct business context consumption:**
 
@@ -72,7 +72,7 @@ npm run typecheck
 - `src/ai/definitions/` - JSON prompt templates
 - `src/ai/schemas/` - Zod validation schemas
 
-## Critical Architectural Rules (v4.0.0.5+)
+## Critical Architectural Rules (v4.0.0.7+)
 
 ### 1. Standard React Context Pattern
 ```typescript
@@ -184,8 +184,9 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
+- **Current Version**: v4.0.0.7 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.4+ for simplified architecture)
+- **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
 
 ## Testing & Quality Assurance
 - Always run `npm run lint` and `npm run typecheck` before committing
@@ -222,19 +223,20 @@ GEMINI_API_KEY=your_google_ai_api_key
 
 ## Performance & Optimization
 
-### Recent Achievements (v4.0.0.5+)
+### Recent Achievements (v4.0.0.7+)
 - **Architecture Simplification**: Removed complex UI state layer, now uses standard React patterns
 - **On-Demand AI**: Simplified pipeline with manual AI analysis (no automated steps)
 - **FSM Simplification**: Reduced states (APP_INITIALIZING, IDLE, LOADING), removed automated pipeline complexity
 - **Code Cleanup**: Removed "one step behind" UI update mechanism
 - **Direct Context Consumption**: All display components now use business context directly
+- **Token Optimization**: Achieved 27.9% reduction in codebase tokens (~29K tokens saved) while preserving functionality
 
 ### Current Metrics
 - **Architecture Simplicity**: Standard React best practices, no complex UI state layer
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.0.0.5+)
+## Important Notes for AI Assistants (v4.0.0.7+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -243,5 +245,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 6. **Always update version metadata** in `src/config/app-metadata.json` for any code changes
 7. **Display components follow the pattern**: `useStockAnalysis()` → parse data → derive loading states → render
 8. **FSM has minimal states** - APP_INITIALIZING, IDLE, LOADING (for any on-demand operation)
+9. **Context has been renamed** - `business-logic-context.tsx` contains the main `useStockAnalysis()` hook
+10. **Token-optimized codebase** - Utilizes factory patterns, shared utilities, and centralized configurations
 
-This simplified architecture (v4.0.0.5) focuses on React best practices and on-demand AI analysis, using deterministic handlers in the main UI component for all operations.
+This simplified architecture (v4.0.0.7) focuses on React best practices and on-demand AI analysis, using deterministic handlers in the main UI component for all operations.
