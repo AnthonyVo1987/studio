@@ -1,12 +1,14 @@
 # AWS EC2 Deployment Guide
 
-This guide provides a step-by-step walkthrough for deploying this Next.js application to an AWS EC2 instance. This guide assumes you have an AWS account and have the AWS CLI installed and configured on your local machine.
+This guide provides a step-by-step walkthrough for deploying this Next.js application to an AWS EC2 instance. This guide provides instructions for both the AWS Management Console and the AWS CLI.
 
-## 1. Set up AWS Secrets Manager
+## Deployment using the AWS Management Console (Web Interface)
+
+This section will guide you through deploying the application using the AWS Management Console.
+
+### 1. Set up AWS Secrets Manager
 
 Before deploying the application, you need to store your Polygon and Gemini API keys in AWS Secrets Manager.
-
-### 1.1. Create Secrets
 
 1.  **Open the AWS Secrets Manager console.**
 2.  **Click "Store a new secret".**
@@ -19,7 +21,7 @@ Before deploying the application, you need to store your Polygon and Gemini API 
 5.  **Create a secret for your Gemini API key:**
     *   Follow the same steps as above, but this time use the key `GOOGLE_API_KEY` and set its value to your Gemini API key.
 
-### 1.2. Configure IAM Role for EC2
+### 2. Configure IAM Role for EC2
 
 Your EC2 instance will need permission to access these secrets. You will create an IAM role that your EC2 instance will assume.
 
@@ -32,7 +34,7 @@ Your EC2 instance will need permission to access these secrets. You will create 
 7.  **Give the role a name, for example, `EC2SecretsManagerRole`.**
 8.  **Click "Create role".**
 
-## 2. Launch an EC2 Instance
+### 3. Launch an EC2 Instance
 
 Now, you will launch an EC2 instance and associate the IAM role you just created.
 
@@ -53,14 +55,13 @@ Now, you will launch an EC2 instance and associate the IAM role you just created
     *   Review your instance configuration and click "Launch".
     *   You will be prompted to create or select a key pair. If you don't have one, create a new one and download the `.pem` file. You will need this to SSH into your instance.
 
-## 3. Install Docker and Docker Compose
+### 4. Install Docker and Deploy the Application
 
-Once your EC2 instance is running, you need to connect to it and install Docker.
+Once your EC2 instance is running, you need to connect to it, install Docker, and deploy the application.
 
-1.  **Connect to your instance using SSH:**
-    ```bash
-    ssh -i /path/to/your-key.pem ec2-user@your-instance-public-ip
-    ```
+1.  **Connect to your instance using EC2 Instance Connect:**
+    *   In the EC2 console, select your instance and click "Connect".
+    *   Select "EC2 Instance Connect" and click "Connect".
 2.  **Update the installed packages:**
     ```bash
     sudo yum update -y
@@ -78,31 +79,26 @@ Once your EC2 instance is running, you need to connect to it and install Docker.
     sudo usermod -a -G docker ec2-user
     ```
 6.  **Log out and log back in to apply the group changes.**
-
-## 4. Deploy the Application
-
-Now you are ready to deploy the application.
-
-1.  **Clone the repository on your EC2 instance:**
+7.  **Clone the repository on your EC2 instance:**
     ```bash
     git clone <your-repository-url>
     ```
-2.  **Navigate to the project directory:**
+8.  **Navigate to the project directory:**
     ```bash
     cd <your-project-directory>
     ```
-3.  **Build the Docker image:**
+9.  **Build the Docker image:**
     ```bash
     docker build -t my-nextjs-app .
     ```
-4.  **Run the Docker container:**
+10. **Run the Docker container:**
     ```bash
     docker run -d -p 80:3000 --name my-nextjs-app my-nextjs-app
     ```
 
 Your application should now be running on your EC2 instance and accessible via its public IP address.
 
-## 5. (Optional) Set up a Domain Name with Route 53
+### 5. (Optional) Set up a Domain Name with Route 53
 
 To use a custom domain name, you can use AWS Route 53.
 
@@ -112,3 +108,93 @@ To use a custom domain name, you can use AWS Route 53.
 4.  **Create an "A" record that points your domain to your EC2 instance's public IP address.**
 
 Now you can access your application using your custom domain name.
+
+---
+
+## Deployment using the AWS CLI
+
+This section will guide you through deploying the application using the AWS Command Line Interface (CLI). This guide assumes you have the AWS CLI installed and configured on your local machine.
+
+### 1. Set up AWS Secrets Manager
+
+Before deploying the application, you need to store your Polygon and Gemini API keys in AWS Secrets Manager.
+
+1.  **Create a JSON file named `secrets.json` with the following content:**
+    ```json
+    {
+      "POLYGON_API_KEY": "your-polygon-api-key",
+      "GOOGLE_API_KEY": "your-gemini-api-key"
+    }
+    ```
+2.  **Create the secret in AWS Secrets Manager:**
+    ```bash
+    aws secretsmanager create-secret --name MyWebApp/ApiKeys --secret-string file://secrets.json
+    ```
+
+### 2. Configure IAM Role for EC2
+
+Your EC2 instance will need permission to access these secrets. You will create an IAM role that your EC2 instance will assume.
+
+1.  **Create a trust policy file named `ec2-trust-policy.json`:**
+    ```json
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": { "Service": "ec2.amazonaws.com" },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+    ```
+2.  **Create the IAM role:**
+    ```bash
+    aws iam create-role --role-name EC2SecretsManagerRole --assume-role-policy-document file://ec2-trust-policy.json
+    ```
+3.  **Attach the `SecretsManagerReadWrite` policy to the role:**
+    ```bash
+    aws iam attach-role-policy --role-name EC2SecretsManagerRole --policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite
+    ```
+
+### 3. Launch an EC2 Instance
+
+Now, you will launch an EC2 instance and associate the IAM role you just created.
+
+1.  **Get the latest Amazon Linux 2 AMI ID:**
+    ```bash
+    aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 --query 'Parameters[0].[Value]' --output text
+    ```
+2.  **Create a security group and add rules:**
+    ```bash
+    aws ec2 create-security-group --group-name my-sg --description "My security group"
+    aws ec2 authorize-security-group-ingress --group-name my-sg --protocol tcp --port 22 --cidr YOUR_IP_ADDRESS/32
+    aws ec2 authorize-security-group-ingress --group-name my-sg --protocol tcp --port 80 --cidr 0.0.0.0/0
+    aws ec2 authorize-security-group-ingress --group-name my-sg --protocol tcp --port 443 --cidr 0.0.0.0/0
+    ```
+3.  **Launch the EC2 instance:**
+    ```bash
+    aws ec2 run-instances --image-id <ami-id> --instance-type t2.micro --key-name <your-key-pair-name> --security-groups my-sg --iam-instance-profile Name=EC2SecretsManagerRole
+    ```
+
+### 4. Install Docker and Deploy the Application
+
+Once your EC2 instance is running, you need to connect to it, install Docker, and deploy the application.
+
+1.  **Connect to your instance using SSH:**
+    ```bash
+    ssh -i /path/to/your-key.pem ec2-user@your-instance-public-ip
+    ```
+2.  **Run the following commands to install Docker and deploy the application:**
+    ```bash
+    sudo yum update -y
+    sudo amazon-linux-extras install docker
+    sudo service docker start
+    sudo usermod -a -G docker ec2-user
+    git clone <your-repository-url>
+    cd <your-project-directory>
+    docker build -t my-nextjs-app .
+    docker run -d -p 80:3000 --name my-nextjs-app my-nextjs-app
+    ```
+
+Your application should now be running on your EC2 instance and accessible via its public IP address.
