@@ -44,7 +44,8 @@ const renderMultiWindowValues = (
 };
 
 export function StandardTaDisplay() {
-  const { currentSnapshot, loadingStates } = useUIState();
+  const { currentSnapshot } = useUIState();
+  const loadingStates = currentSnapshot.loadingStates;
 
   // Derive values directly from UI snapshot
   const technicalAnalysis = currentSnapshot.technicalAnalysis;

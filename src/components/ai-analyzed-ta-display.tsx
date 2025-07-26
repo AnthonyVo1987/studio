@@ -40,7 +40,8 @@ const renderLevelRow = (item: SupportResistanceItem, index: number, isLoading: b
 };
 
 export function AiAnalyzedTaDisplay() {
-  const { currentSnapshot, loadingStates } = useUIState();
+  const { currentSnapshot } = useUIState();
+  const loadingStates = currentSnapshot.loadingStates;
 
   // Derive values directly from UI snapshot
   const aiAnalysis = currentSnapshot.aiAnalysis;

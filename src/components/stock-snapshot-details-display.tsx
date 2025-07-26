@@ -38,7 +38,8 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
 };
 
 export function StockSnapshotDetailsDisplay() {
-  const { currentSnapshot, loadingStates } = useUIState();
+  const { currentSnapshot } = useUIState();
+  const loadingStates = currentSnapshot.loadingStates;
 
   // Derive values directly from UI snapshot
   const stockSnapshot = currentSnapshot.stockSnapshot;

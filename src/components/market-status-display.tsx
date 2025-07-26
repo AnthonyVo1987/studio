@@ -29,7 +29,8 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 };
 
 export function MarketStatusDisplay() {
-  const { currentSnapshot, loadingStates } = useUIState();
+  const { currentSnapshot } = useUIState();
+  const loadingStates = currentSnapshot.loadingStates;
 
   // Derive values directly from UI snapshot
   const marketStatus = currentSnapshot.marketStatus;

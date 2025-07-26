@@ -8,7 +8,8 @@ import { useUIState } from "@/contexts/ui-state-context";
 import { useQuickExport } from "@/hooks/use-export-actions";
 
 export function AiKeyTakeawaysDisplay() {
-  const { currentSnapshot, loadingStates } = useUIState();
+  const { currentSnapshot } = useUIState();
+  const loadingStates = currentSnapshot.loadingStates;
 
   // Derive values directly from UI snapshot
   const aiAnalysis = currentSnapshot.aiAnalysis;

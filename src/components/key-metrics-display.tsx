@@ -78,10 +78,11 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 
 
 export function KeyMetricsDisplay() {
-  const { currentSnapshot, loadingStates } = useUIState();
+  const { currentSnapshot } = useUIState();
 
   // Derive values directly from UI snapshot - no state management needed
   const stockSnapshot = currentSnapshot.stockSnapshot;
+  const loadingStates = currentSnapshot.loadingStates;
   const isLoading = loadingStates.isFetchingData || !stockSnapshot.isDataReady;
   
   // Calculate sentiment for day's change
