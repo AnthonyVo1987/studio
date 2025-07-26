@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis } from "@/contexts/business-logic-context";
 import type { AiOptionsAnalysisOutput, WallDetail } from "@/ai/schemas/ai-options-analysis-schemas";
 import { useToast } from "@/hooks/use-toast";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";

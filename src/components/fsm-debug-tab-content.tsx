@@ -11,17 +11,17 @@ import {
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useStockAnalysis, type GlobalFsmState, type GlobalFsmFlags, type GlobalFsmContextVariables } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis, type BusinessFsmState, type BusinessFlags, type BusinessContextVariables } from "@/contexts/business-logic-context";
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 
-function GlobalFsmStateDisplay({ title, previousState, currentState, targetState }: {
+function BusinessFsmStateDisplay({ title, previousState, currentState, targetState }: {
   title: string;
-  previousState: GlobalFsmState | null;
-  currentState: GlobalFsmState;
-  targetState: GlobalFsmState | null;
+  previousState: BusinessFsmState | null;
+  currentState: BusinessFsmState;
+  targetState: BusinessFsmState | null;
 }) {
   return (
     <div className="p-2 border rounded-md bg-muted/30">
@@ -77,7 +77,7 @@ export function FsmDebugTabContent() {
     };
 
 
-    const renderVariables = (variables: GlobalFsmContextVariables) => {
+    const renderVariables = (variables: BusinessContextVariables) => {
         return Object.entries(variables).map(([key, value]) => (
             <TableRow key={`var-${key}`}>
                 <TableCell className="font-medium py-1 px-2 text-xs break-all">{key}</TableCell>
@@ -88,7 +88,7 @@ export function FsmDebugTabContent() {
         ));
     };
     
-    const renderFlags = (flags: GlobalFsmFlags) => {
+    const renderFlags = (flags: BusinessFlags) => {
         return Object.entries(flags).map(([key, value]) => (
             <TableRow key={`flag-${key}`}>
                 <TableCell className="font-medium py-1 px-2 text-xs break-all">{key}</TableCell>
@@ -118,7 +118,7 @@ export function FsmDebugTabContent() {
       <CardContent>
         <ScrollArea className="h-[calc(100vh-22rem)] pr-4">
           <div className="space-y-4 font-code">
-            <GlobalFsmStateDisplay
+            <BusinessFsmStateDisplay
                 title="Global Application FSM"
                 previousState={globalPreviousFsmState}
                 currentState={globalFsmState}

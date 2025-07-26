@@ -13,7 +13,8 @@ import { findNextAvailableDate } from '@/lib/date-utils';
 import { createSetterBatch } from './context-setter-factory';
 
 
-export enum GlobalFsmState {
+// Business Logic FSM States - Pure business workflow states
+export enum BusinessFsmState {
   APP_INITIALIZING = 'APP_INITIALIZING',
   IDLE = 'IDLE',
   AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT',
@@ -38,18 +39,23 @@ export enum GlobalFsmState {
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
 
-// Types for the new on-demand options UI controls
+// Business domain types (moved from UI context)
 export type OptionType = 'both' | 'calls' | 'puts';
 export type StrikeCount = 20 | 30 | 40;
 export type TableDisplayType = 'side-by-side' | 'top-bottom';
 
-export interface GlobalFsmContextVariables {
+// Legacy export for backwards compatibility (will be phased out)
+export const GlobalFsmState = BusinessFsmState;
+
+// Business Logic Variables - Core business state
+export interface BusinessContextVariables {
   activeTicker: string | null;
   userInputTicker: string;
   lastError: { message: string; source: string; details?: any } | null;
 }
 
-export interface GlobalFsmFlags {
+// Business Logic Flags - Data availability and business rules
+export interface BusinessFlags {
   canAnalyzeStock: boolean;
   isMarketDataReady: boolean;
   isSnapshotDataReady: boolean;
@@ -62,12 +68,17 @@ export interface GlobalFsmFlags {
   isAiOptionsAnalysisSelected: boolean;
 }
 
-interface GlobalFsmReducerManagedState {
-  current: GlobalFsmState;
-  previous: GlobalFsmState | null;
-  variables: GlobalFsmContextVariables;
-  flags: GlobalFsmFlags;
+// Business FSM State Container
+interface BusinessFsmReducerManagedState {
+  current: BusinessFsmState;
+  previous: BusinessFsmState | null;
+  variables: BusinessContextVariables;
+  flags: BusinessFlags;
 }
+
+// Legacy exports for backwards compatibility (will be phased out)
+export type GlobalFsmContextVariables = BusinessContextVariables;
+export type GlobalFsmFlags = BusinessFlags;
 
 export type FsmDisplayTuple = {
   previous: string | null;
@@ -111,19 +122,27 @@ export interface AppDataChatMessage {
   content: string;
 }
 
-interface StockAnalysisState {
+// Pure Business Data State - Only core business data, no UI concerns
+interface BusinessDataState {
+  // API request/response logs
   polygonApiRequestLogJson: string;
   polygonApiResponseLogJson: string;
+  
+  // Core market data
   marketStatusJson: string;
   stockSnapshotJson: string;
   standardTasJson: string;
   optionsChainJson: string;
+  
+  // AI analysis data
   aiAnalyzedTaRequestJson: string;
   aiAnalyzedTaJson: string;
   aiOptionsAnalysisRequestJson: string;
   aiOptionsAnalysisJson: string;
   aiKeyTakeawaysRequestJson: string;
   aiKeyTakeawaysJson: string;
+  
+  // Chat and analysis histories
   userInputAppDataChatRequestJson: string;
   userInputAppDataChatResponseJson: string;
   stockTraderTakeawaysRequestJson: string;
@@ -133,6 +152,8 @@ interface StockAnalysisState {
   holisticTakeawaysRequestJson: string;
   holisticTakeawaysResponseJson: string;
   appDataChatHistory: AppDataChatMessage[];
+  
+  // Web search data
   userInputWebSearchChatRequestJson: string;
   userInputWebSearchChatResponseJson: string;
   rawTaWebSearchRequestJson: string;
@@ -142,21 +163,32 @@ interface StockAnalysisState {
   rawSupportResistanceWebSearchRequestJson: string;
   rawSupportResistanceWebSearchResponseJson: string;
   webSearchChatHistory: AppDataChatMessage[];
-  globalFsmState: GlobalFsmReducerManagedState;
-  targetFsmDisplayState: GlobalFsmState | null;
-  mainTabFsmDisplay: FsmDisplayTuple | null;
-  chatbotFsmDisplay: FsmDisplayTuple | null;
-  debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
-  // New state for on-demand options
+  
+  // Business FSM state
+  businessFsmState: BusinessFsmReducerManagedState;
+  
+  // Business options configuration (not UI presentation)
   availableExpirationDates: string[];
   selectedExpirationDate: string | undefined;
   isLoadingExpirations: boolean;
+  
+  // UI Display states (these will be moved to UI context eventually)
+  targetFsmDisplayState: BusinessFsmState | null;
+  mainTabFsmDisplay: FsmDisplayTuple | null;
+  chatbotFsmDisplay: FsmDisplayTuple | null;
+  debugConsoleMenuFsmDisplay: FsmDisplayTuple | null;
+}
+
+// Legacy interface for backwards compatibility
+interface StockAnalysisState extends BusinessDataState {
+  globalFsmState: BusinessFsmReducerManagedState;
   optionType: OptionType;
   strikeCount: StrikeCount;
   tableDisplayType: TableDisplayType;
 }
 
-interface StockAnalysisContextSetters {
+// Business Context Setters - Only for business data
+interface BusinessContextSetters {
   setPolygonApiRequestLogJson: (json: string) => void;
   setPolygonApiResponseLogJson: (json: string) => void;
   setMarketStatusJson: (json: string) => void;
@@ -185,25 +217,48 @@ interface StockAnalysisContextSetters {
   setRawOptionsWebSearchResponseJson: (json: string) => void;
   setRawSupportResistanceWebSearchRequestJson: (json: string) => void;
   setRawSupportResistanceWebSearchResponseJson: (json: string) => void;
-  // New setters for on-demand options
+  // Business options configuration setters
   setAvailableExpirationDates: (dates: string[]) => void;
   setSelectedExpirationDate: (date: string | undefined) => void;
   setIsLoadingExpirations: (loading: boolean) => void;
+}
+
+// Main Business Logic Context Type
+interface BusinessLogicContextType extends BusinessDataState, BusinessContextSetters {
+  // Core FSM state and control
+  fsmState: BusinessFsmState;
+  previousFsmState: BusinessFsmState | null;
+  fsmVariables: BusinessContextVariables;
+  fsmFlags: BusinessFlags;
+  dispatchFsmEvent: (event: FsmEvent) => void;
+  
+  // Chat management
+  addAppDataChatMessage: (message: AppDataChatMessage) => void;
+  clearAppDataChatHistory: () => void;
+  addWebSearchChatMessage: (message: AppDataChatMessage) => void;
+  clearWebSearchChatHistory: () => void;
+  
+  // UI Display management (will be moved to UI context eventually)
+  setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
+  setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
+}
+
+// Legacy context interface for backwards compatibility
+interface StockAnalysisContextSetters extends BusinessContextSetters {
   setOptionType: (type: OptionType) => void;
   setStrikeCount: (count: StrikeCount) => void;
   setTableDisplayType: (type: TableDisplayType) => void;
 }
 
-interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState'>, StockAnalysisContextSetters {
-  fsmState: GlobalFsmState;
-  previousFsmState: GlobalFsmState | null;
-  fsmVariables: GlobalFsmContextVariables;
-  fsmFlags: GlobalFsmFlags;
+interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmState' | 'businessFsmState'>, StockAnalysisContextSetters {
+  fsmState: BusinessFsmState;
+  previousFsmState: BusinessFsmState | null;
+  fsmVariables: BusinessContextVariables;
+  fsmFlags: BusinessFlags;
   addAppDataChatMessage: (message: AppDataChatMessage) => void;
   clearAppDataChatHistory: () => void;
   addWebSearchChatMessage: (message: AppDataChatMessage) => void;
   clearWebSearchChatHistory: () => void;
-  // logDebug removed - using console.log/console.debug directly for simplified logging
   dispatchFsmEvent: (event: FsmEvent) => void;
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
@@ -212,8 +267,9 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
 const pendingJson = '{ "status": "pending..." }';
 
-const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
-  current: GlobalFsmState.APP_INITIALIZING,
+// Business FSM Initial State
+const initialBusinessFsmState: BusinessFsmReducerManagedState = {
+  current: BusinessFsmState.APP_INITIALIZING,
   previous: null,
   variables: {
     activeTicker: null,
@@ -236,19 +292,27 @@ const initialGlobalFsmReducerState: GlobalFsmReducerManagedState = {
 
 const initialFsmDisplayTuple: FsmDisplayTuple = { previous: null, current: 'N/A', target: null };
 
-const defaultState: StockAnalysisState = {
+// Business Data Default State
+const defaultBusinessState: BusinessDataState = {
+  // API logs
   polygonApiRequestLogJson: initialJsonPlaceholder,
   polygonApiResponseLogJson: initialJsonPlaceholder,
+  
+  // Core market data
   marketStatusJson: initialJsonPlaceholder,
   stockSnapshotJson: initialJsonPlaceholder,
   standardTasJson: initialJsonPlaceholder,
   optionsChainJson: initialJsonPlaceholder,
+  
+  // AI analysis data
   aiAnalyzedTaRequestJson: initialJsonPlaceholder,
   aiAnalyzedTaJson: initialJsonPlaceholder,
   aiOptionsAnalysisRequestJson: initialJsonPlaceholder,
   aiOptionsAnalysisJson: initialJsonPlaceholder,
   aiKeyTakeawaysRequestJson: initialJsonPlaceholder,
   aiKeyTakeawaysJson: initialJsonPlaceholder,
+  
+  // Chat and analysis data
   userInputAppDataChatRequestJson: initialJsonPlaceholder,
   userInputAppDataChatResponseJson: initialJsonPlaceholder,
   stockTraderTakeawaysRequestJson: initialJsonPlaceholder,
@@ -258,6 +322,8 @@ const defaultState: StockAnalysisState = {
   holisticTakeawaysRequestJson: initialJsonPlaceholder,
   holisticTakeawaysResponseJson: initialJsonPlaceholder,
   appDataChatHistory: [],
+  
+  // Web search data
   userInputWebSearchChatRequestJson: initialJsonPlaceholder,
   userInputWebSearchChatResponseJson: initialJsonPlaceholder,
   rawTaWebSearchRequestJson: initialJsonPlaceholder,
@@ -267,15 +333,26 @@ const defaultState: StockAnalysisState = {
   rawSupportResistanceWebSearchRequestJson: initialJsonPlaceholder,
   rawSupportResistanceWebSearchResponseJson: initialJsonPlaceholder,
   webSearchChatHistory: [],
-  globalFsmState: initialGlobalFsmReducerState,
-  targetFsmDisplayState: null,
-  mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: GlobalFsmState.IDLE.toString() },
-  chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
-  debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
-  // New state defaults
+  
+  // Business FSM state
+  businessFsmState: initialBusinessFsmState,
+  
+  // Options configuration (business domain)
   availableExpirationDates: [],
   selectedExpirationDate: undefined,
   isLoadingExpirations: false,
+  
+  // UI Display states (will be moved eventually)
+  targetFsmDisplayState: null,
+  mainTabFsmDisplay: { ...initialFsmDisplayTuple, current: BusinessFsmState.IDLE.toString() },
+  chatbotFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
+  debugConsoleMenuFsmDisplay: { ...initialFsmDisplayTuple, current: 'IDLE' },
+};
+
+// Legacy default state for backwards compatibility
+const defaultState: StockAnalysisState = {
+  ...defaultBusinessState,
+  globalFsmState: initialBusinessFsmState,
   optionType: 'both',
   strikeCount: 20,
   tableDisplayType: 'side-by-side',
@@ -285,7 +362,8 @@ const StockAnalysisContext = createContext<StockAnalysisContextType | undefined>
 
 let chatMessageIdCounter = 0;
 
-export function StockAnalysisProvider({ children }: { children: ReactNode }) {
+// New Business Logic Provider
+export function BusinessLogicProvider({ children }: { children: ReactNode }) {
 
   const [_polygonApiRequestLogJson, _setPolygonApiRequestLogJson] = useState<string>(defaultState.polygonApiRequestLogJson);
   const [_polygonApiResponseLogJson, _setPolygonApiResponseLogJson] = useState<string>(defaultState.polygonApiResponseLogJson);
@@ -317,7 +395,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   const [_rawSupportResistanceWebSearchRequestJson, _setRawSupportResistanceWebSearchRequestJson] = useState<string>(defaultState.rawSupportResistanceWebSearchRequestJson);
   const [_rawSupportResistanceWebSearchResponseJson, _setRawSupportResistanceWebSearchResponseJson] = useState<string>(defaultState.rawSupportResistanceWebSearchResponseJson);
   const [_webSearchChatHistory, _setWebSearchChatHistory] = useState<AppDataChatMessage[]>(defaultState.webSearchChatHistory);
-  const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<GlobalFsmState | null>(defaultState.targetFsmDisplayState);
+  const [_targetFsmDisplayState, _setTargetFsmDisplayState] = useState<BusinessFsmState | null>(defaultState.targetFsmDisplayState);
   const [_mainTabFsmDisplay, _setMainTabFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.mainTabFsmDisplay);
   const [_chatbotFsmDisplay, _setChatbotFsmDisplay] = useState<FsmDisplayTuple | null>(defaultState.chatbotFsmDisplay);
   const [_debugConsoleMenuFsmDisplayInternal, _setDebugConsoleMenuFsmDisplayInternal] = useState<FsmDisplayTuple | null>(defaultState.debugConsoleMenuFsmDisplay);
@@ -484,12 +562,12 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const fsmReducer = (state: GlobalFsmReducerManagedState, event: FsmEvent): GlobalFsmReducerManagedState => {
+  const fsmReducer = (state: BusinessFsmReducerManagedState, event: FsmEvent): BusinessFsmReducerManagedState => {
     const previousState = state.current;
 
-    let nextCurrentState: GlobalFsmState = previousState;
-    let nextVariables: GlobalFsmContextVariables = { ...state.variables };
-    let nextFlags: GlobalFsmFlags = { ...state.flags };
+    let nextCurrentState: BusinessFsmState = previousState;
+    let nextVariables: BusinessContextVariables = { ...state.variables };
+    let nextFlags: BusinessFlags = { ...state.flags };
 
     const resetForNewAnalysis = (ticker: string) => {
         nextVariables.activeTicker = ticker;
@@ -504,14 +582,14 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
 
     const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
         nextVariables.lastError = { message: errorMessage, source, details: errorDetails };
-        nextCurrentState = GlobalFsmState.IDLE;
+        nextCurrentState = BusinessFsmState.IDLE;
     };
     
     // Helper to determine the next step in the pipeline
-    const determineNextStepAfterTA = (): GlobalFsmState => {
-        if (nextFlags.isAiKeyTakeawaysSelected) return GlobalFsmState.GENERATING_KEY_TAKEAWAYS;
-        if (nextFlags.isAiOptionsAnalysisSelected) return GlobalFsmState.ANALYZING_OPTIONS;
-        return GlobalFsmState.IDLE;
+    const determineNextStepAfterTA = (): BusinessFsmState => {
+        if (nextFlags.isAiKeyTakeawaysSelected) return BusinessFsmState.GENERATING_KEY_TAKEAWAYS;
+        if (nextFlags.isAiOptionsAnalysisSelected) return BusinessFsmState.ANALYZING_OPTIONS;
+        return BusinessFsmState.IDLE;
     };
 
     switch (event.type) {
@@ -525,19 +603,19 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         break;
       case 'START_FULL_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
-        nextCurrentState = GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+        nextCurrentState = BusinessFsmState.DATA_FETCH_IN_PROGRESS;
         break;
       case 'INITIALIZATION_COMPLETE':
-        if (previousState === GlobalFsmState.APP_INITIALIZING) {
-            nextCurrentState = nextVariables.userInputTicker.trim() !== "" ? GlobalFsmState.VALID_TICKER_ENTERED : GlobalFsmState.AWAITING_TICKER_INPUT;
+        if (previousState === BusinessFsmState.APP_INITIALIZING) {
+            nextCurrentState = nextVariables.userInputTicker.trim() !== "" ? BusinessFsmState.VALID_TICKER_ENTERED : BusinessFsmState.AWAITING_TICKER_INPUT;
         }
         break;
       case 'USER_INPUT_TICKER_CHANGED':
         nextVariables.userInputTicker = event.payload.ticker;
         if (!event.payload.ticker.trim()) {
-            nextCurrentState = GlobalFsmState.AWAITING_TICKER_INPUT;
+            nextCurrentState = BusinessFsmState.AWAITING_TICKER_INPUT;
         } else if (event.payload.ticker.trim() !== nextVariables.activeTicker) {
-            nextCurrentState = GlobalFsmState.VALID_TICKER_ENTERED;
+            nextCurrentState = BusinessFsmState.VALID_TICKER_ENTERED;
         } else {
              nextCurrentState = previousState;
         }
@@ -546,7 +624,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
         // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         if (event.payload.data) {
             nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
-            nextCurrentState = GlobalFsmState.CALCULATING_AI_TA;
+            nextCurrentState = BusinessFsmState.CALCULATING_AI_TA;
         } else {
              handlePipelineError('DataFetchSuccess', 'Payload data missing in success event.');
         }
@@ -579,28 +657,28 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
       case 'KEY_TAKEAWAYS_SUCCESS':
         // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         nextFlags.isKeyTakeawaysDataAvailable = true;
-        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
+        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? BusinessFsmState.ANALYZING_OPTIONS : BusinessFsmState.IDLE;
         break;
       case 'KEY_TAKEAWAYS_FAILURE':
-        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? GlobalFsmState.ANALYZING_OPTIONS : GlobalFsmState.IDLE;
+        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? BusinessFsmState.ANALYZING_OPTIONS : BusinessFsmState.IDLE;
         break;
       case 'OPTIONS_ANALYSIS_SUCCESS':
         // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         nextFlags.isOptionsAnalysisDataAvailable = true;
-        nextCurrentState = GlobalFsmState.IDLE;
+        nextCurrentState = BusinessFsmState.IDLE;
         break;
       case 'OPTIONS_ANALYSIS_FAILURE':
-        nextCurrentState = GlobalFsmState.IDLE;
+        nextCurrentState = BusinessFsmState.IDLE;
         break;
       case 'FINALIZE_AUTOMATED_PIPELINE':
-        nextCurrentState = GlobalFsmState.IDLE;
+        nextCurrentState = BusinessFsmState.IDLE;
         break;
       default:
         break;
     }
 
     if ([
-        GlobalFsmState.IDLE, GlobalFsmState.VALID_TICKER_ENTERED, GlobalFsmState.AWAITING_TICKER_INPUT,
+        BusinessFsmState.IDLE, BusinessFsmState.VALID_TICKER_ENTERED, BusinessFsmState.AWAITING_TICKER_INPUT,
     ].includes(nextCurrentState)) {
         nextFlags.canAnalyzeStock = true;
     } else {
@@ -610,33 +688,33 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     return { current: nextCurrentState, previous: previousState, variables: nextVariables, flags: nextFlags };
   };
 
-  const [globalFsmReducerState, _dispatchFsmEventActual] = useReducer(fsmReducer, defaultState.globalFsmState);
-  const fsmStateRef = useRef<GlobalFsmReducerManagedState>(globalFsmReducerState);
+  const [businessFsmReducerState, _dispatchFsmEventActual] = useReducer(fsmReducer, defaultBusinessState.businessFsmState);
+  const fsmStateRef = useRef<BusinessFsmReducerManagedState>(businessFsmReducerState);
 
   useEffect(() => {
-    fsmStateRef.current = globalFsmReducerState;
-  }, [globalFsmReducerState]);
+    fsmStateRef.current = businessFsmReducerState;
+  }, [businessFsmReducerState]);
   
   useEffect(() => {
-    const isNewAnalysis = globalFsmReducerState.current === GlobalFsmState.DATA_FETCH_IN_PROGRESS && 
-                          globalFsmReducerState.previous !== GlobalFsmState.DATA_FETCH_IN_PROGRESS;
+    const isNewAnalysis = businessFsmReducerState.current === BusinessFsmState.DATA_FETCH_IN_PROGRESS && 
+                          businessFsmReducerState.previous !== BusinessFsmState.DATA_FETCH_IN_PROGRESS;
 
     if (isNewAnalysis) {
-      const ticker = globalFsmReducerState.variables.activeTicker;
+      const ticker = businessFsmReducerState.variables.activeTicker;
       if (ticker) {
         setAllPlaceholdersInternal(ticker, true);
       }
     }
-  }, [globalFsmReducerState.current, globalFsmReducerState.previous, globalFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal]);
+  }, [businessFsmReducerState.current, businessFsmReducerState.previous, businessFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal]);
   
-  const userInputTickerForEffect = globalFsmReducerState.variables.userInputTicker;
+  const userInputTickerForEffect = businessFsmReducerState.variables.userInputTicker;
 
   // Proactive expiration date management hook with debouncing
   useEffect(() => {
     const logPrefix = 'ProactiveExpirationHook';
     const currentTicker = userInputTickerForEffect.trim();
 
-    if (!currentTicker || currentTicker === globalFsmReducerState.variables.activeTicker) {
+    if (!currentTicker || currentTicker === businessFsmReducerState.variables.activeTicker) {
       return; // Do nothing if ticker is empty or hasn't changed from the last *analyzed* ticker
     }
     
@@ -671,7 +749,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     return () => {
       clearTimeout(handler);
     };
-  }, [userInputTickerForEffect, globalFsmReducerState.variables.activeTicker, resetOnDemandOptionsState]);
+  }, [userInputTickerForEffect, businessFsmReducerState.variables.activeTicker, resetOnDemandOptionsState]);
 
   const setMainTabFsmDisplay = useCallback((display: FsmDisplayTuple | null) => {
     _setMainTabFsmDisplay(prevDisplay => {
@@ -726,8 +804,8 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     rawSupportResistanceWebSearchRequestJson: _rawSupportResistanceWebSearchRequestJson, setRawSupportResistanceWebSearchRequestJson: contextSetters.setRawSupportResistanceWebSearchRequestJson,
     rawSupportResistanceWebSearchResponseJson: _rawSupportResistanceWebSearchResponseJson, setRawSupportResistanceWebSearchResponseJson: contextSetters.setRawSupportResistanceWebSearchResponseJson,
     webSearchChatHistory: _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    fsmState: globalFsmReducerState.current, previousFsmState: globalFsmReducerState.previous,
-    fsmVariables: globalFsmReducerState.variables, fsmFlags: globalFsmReducerState.flags,
+    fsmState: businessFsmReducerState.current, previousFsmState: businessFsmReducerState.previous,
+    fsmVariables: businessFsmReducerState.variables, fsmFlags: businessFsmReducerState.flags,
     targetFsmDisplayState: _targetFsmDisplayState, dispatchFsmEvent,
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
@@ -753,7 +831,7 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
     _rawTaWebSearchRequestJson, _rawTaWebSearchResponseJson, _rawOptionsWebSearchRequestJson, _rawOptionsWebSearchResponseJson,
     _rawSupportResistanceWebSearchRequestJson, _rawSupportResistanceWebSearchResponseJson,
     _webSearchChatHistory, addWebSearchChatMessage, clearWebSearchChatHistory,
-    globalFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
+    businessFsmReducerState, _targetFsmDisplayState, dispatchFsmEvent,
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
     _availableExpirationDates, _selectedExpirationDate,
     _isLoadingExpirations, _optionType, _strikeCount, _tableDisplayType,
@@ -764,8 +842,24 @@ export function StockAnalysisProvider({ children }: { children: ReactNode }) {
   return (<StockAnalysisContext.Provider value={contextValue}>{children}</StockAnalysisContext.Provider>);
 }
 
+// Legacy provider function for backwards compatibility
+export function StockAnalysisProvider({ children }: { children: ReactNode }) {
+  return <BusinessLogicProvider>{children}</BusinessLogicProvider>;
+}
+
+// Hooks
+export function useBusinessLogic() {
+  const context = useContext(StockAnalysisContext);
+  if (context === undefined) { 
+    throw new Error('useBusinessLogic must be used within a BusinessLogicProvider'); 
+  }
+  return context;
+}
+
 export function useStockAnalysis() {
   const context = useContext(StockAnalysisContext);
-  if (context === undefined) { throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); }
+  if (context === undefined) { 
+    throw new Error('useStockAnalysis must be used within a StockAnalysisProvider'); 
+  }
   return context;
 }

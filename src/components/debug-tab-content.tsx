@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardCopy } from "lucide-react";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis } from "@/contexts/business-logic-context";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
 import { copyToClipboard } from "@/lib/export-utils";

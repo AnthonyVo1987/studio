@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis } from "@/contexts/business-logic-context";
 import type { TechnicalIndicatorsData, MultiWindowIndicatorValues, MACDValue, VWAPValue } from "@/services/data-sources/types";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";

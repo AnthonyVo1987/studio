@@ -38,7 +38,11 @@
       "Bash(chmod:*)",
       "Bash(python:*)",
       "Bash(pip3 install:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(mv:*)",
+      "Bash(do)",
+      "Bash(sed:*)",
+      "Bash(echo:*)"
     ],
     "deny": []
   }

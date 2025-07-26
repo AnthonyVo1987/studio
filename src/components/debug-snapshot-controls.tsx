@@ -4,7 +4,7 @@
 import { useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis } from "@/contexts/business-logic-context";
 import { useToast } from "@/hooks/use-toast";
 import { downloadJson, copyToClipboard } from "@/lib/export-utils";
 import { Download, Copy } from "lucide-react";

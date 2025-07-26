@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis } from "@/contexts/business-logic-context";
 import type { MarketStatusData } from "@/services/data-sources/types";
 import { formatTimestampToPacificTime } from "@/lib/date-utils";
 import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef, FormEvent } from 'react';
-import type { AppDataChatMessage } from '@/contexts/stock-analysis-context';
+import type { AppDataChatMessage } from '@/contexts/business-logic-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';

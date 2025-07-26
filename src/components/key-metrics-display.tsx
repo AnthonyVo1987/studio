@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis } from "@/contexts/business-logic-context";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { formatCurrency, formatPercentage } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";

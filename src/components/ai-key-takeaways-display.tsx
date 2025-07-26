@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStockAnalysis } from "@/contexts/stock-analysis-context";
+import { useStockAnalysis } from "@/contexts/business-logic-context";
 import type { StockAnalysisOutput } from "@/ai/schemas/stock-analysis-schemas";
 import type { StockSnapshotData } from "@/services/data-sources/types";
 import { useToast } from "@/hooks/use-toast";

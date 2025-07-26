@@ -1,7 +1,8 @@
 
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { StockAnalysisProvider } from "@/contexts/stock-analysis-context";
+import { StockAnalysisProvider } from "@/contexts/business-logic-context";
+import { UIStateProvider } from "@/contexts/ui-state-context";
 import { getAppConfig, type AppConfig } from '@/lib/app-config-loader';
 import { PageContent } from '@/components/page-content'; // Import the new client component
 
@@ -23,7 +24,9 @@ export default async function Home() {
 
   return (
     <StockAnalysisProvider>
-      <PageContent appVersion={appConfig.appVersion} lastUpdatedTimestamp={appConfig.lastUpdatedTimestamp} />
+      <UIStateProvider>
+        <PageContent appVersion={appConfig.appVersion} lastUpdatedTimestamp={appConfig.lastUpdatedTimestamp} />
+      </UIStateProvider>
     </StockAnalysisProvider>
   );
 }
