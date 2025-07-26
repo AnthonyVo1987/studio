@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { KeyMetricsDisplay } from "@/components/key-metrics-display";
 import { StockSnapshotDetailsDisplay } from "@/components/stock-snapshot-details-display";
@@ -19,13 +18,9 @@ import { AiOptionsAnalysisDisplay } from "@/components/ai-options-analysis-displ
 import { AiKeyTakeawaysDisplay } from "@/components/ai-key-takeaways-display";
 import { Chatbot, type ExamplePromptButton } from "@/components/chatbot";
 import { DebugSnapshotControls } from "@/components/debug-snapshot-controls";
-import { DebugUIStateControls } from "@/components/debug-ui-state-controls";
 
-// Business Logic Context (for actions only, not display data)
-import { useStockAnalysis, BusinessFsmState, type AnalysisToggleType } from "@/contexts/business-logic-context";
-
-// UI State Context (for all display data)
-import { useUIState, useLoadingStates, useErrorState } from "@/contexts/ui-state-context";
+// Business Logic Context (for all application data)
+import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Zap, Search, SearchCode, FileText, CandlestickChart, CalendarDays } from "lucide-react";
@@ -58,26 +53,24 @@ interface MainTabContentUIProps {
 }
 
 /**
- * MainTabContentUI - Pure UI component that uses UI state for rendering
+ * MainTabContentUI - UI component using business context directly
  * 
- * SEPARATION OF CONCERNS:
- * - Uses UI state context for all display data
- * - Only interacts with business context for user actions
- * - No business pipeline orchestration logic
- * - Pure presentation and user interaction handling
+ * SIMPLIFIED ARCHITECTURE (v4.0.0.3):
+ * - Uses business context for all application data
+ * - Standard React best practices
+ * - No complex UI state layer
+ * - Direct business context consumption
  */
 export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
   const { toast } = useToast();
   
-  // UI State - for all display data
-  const { currentSnapshot } = useUIState();
-  const loadingStates = useLoadingStates();
-  const errorState = useErrorState();
+  // Business Context - for all application data
+  const business = useStockAnalysis();
   
-  // Business Context - ONLY for actions, not display data
+  // Destructure commonly used business context values
   const {
-    // Business actions
-    dispatchFsmEvent: dispatchGlobalFsmEvent,
+    // FSM state and control
+    fsmState, fsmFlags, fsmVariables, dispatchFsmEvent: dispatchGlobalFsmEvent,
     
     // Chat data and actions
     appDataChatHistory: contextAppDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
@@ -96,11 +89,15 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
     setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
     
-    // Options business state (business domain, not UI)
+    // Options business state
     availableExpirationDates, setAvailableExpirationDates,
     selectedExpirationDate, setSelectedExpirationDate,
     isLoadingExpirations, setIsLoadingExpirations,
-  } = useStockAnalysis();
+    
+    // JSON data
+    stockSnapshotJson, marketStatusJson, standardTasJson, aiAnalyzedTaJson,
+    aiKeyTakeawaysJson, aiOptionsAnalysisJson, optionsChainJson,
+  } = business;
 
   // Local UI state
   const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
@@ -117,11 +114,9 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
   // Load example prompts
   useEffect(() => {
     loadExamplePrompts('example-chat-prompts.json').then(setAppDataExamplePrompts).catch(err => {
-      console.error("Failed to load App Data example prompts:", err);
       toast({ variant: 'destructive', title: 'Error', description: 'Could not load app data example prompts.' });
     });
     loadExamplePrompts('example-web-search-prompts.json').then(setWebSearchExamplePrompts).catch(err => {
-      console.error("Failed to load Web Search example prompts:", err);
       toast({ variant: 'destructive', title: 'Error', description: 'Could not load web search example prompts.' });
     });
   }, [toast]);
@@ -209,6 +204,32 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setUserInputWebSearchChatRequestJson, 
       setUserInputWebSearchChatResponseJson, addWebSearchChatMessage]);
 
+  // Derive loading and error states from business context
+  const loadingStates = {
+    isAnalyzing: [
+      BusinessFsmState.DATA_FETCH_IN_PROGRESS,
+      BusinessFsmState.CALCULATING_AI_TA,
+    ].includes(fsmState),
+    isFetchingData: fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS,
+    isCalculatingTA: fsmState === BusinessFsmState.CALCULATING_AI_TA,
+    currentStep: fsmState,
+    progress: (() => {
+      switch (fsmState) {
+        case BusinessFsmState.DATA_FETCH_IN_PROGRESS: return 50;
+        case BusinessFsmState.CALCULATING_AI_TA: return 75;
+        case BusinessFsmState.IDLE: return fsmFlags.isSnapshotDataReady ? 100 : 0;
+        default: return 0;
+      }
+    })()
+  };
+  
+  const errorState = {
+    hasError: !!fsmVariables.lastError,
+    message: fsmVariables.lastError?.message || null,
+    source: fsmVariables.lastError?.source || null,
+    canRetry: [BusinessFsmState.IDLE, BusinessFsmState.VALID_TICKER_ENTERED].includes(fsmState),
+  };
+
   // User interaction handlers
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTicker = e.target.value.toUpperCase();
@@ -217,17 +238,14 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
   
   const handleAnalyzeStockSubmit = (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    const ticker = currentSnapshot.userInputTicker.trim();
+    const ticker = fsmVariables.userInputTicker.trim();
     if (!ticker) {
       toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
       return;
     }
-    dispatchGlobalFsmEvent({ type: 'START_FULL_ANALYSIS', payload: { ticker } });
+    dispatchGlobalFsmEvent({ type: 'START_BASIC_ANALYSIS', payload: { ticker } });
   };
 
-  const handleToggleChange = (toggleType: AnalysisToggleType, isEnabled: boolean) => {
-    dispatchGlobalFsmEvent({ type: 'ANALYSIS_TOGGLE_CHANGED', payload: { toggleType, isEnabled } });
-  };
 
   // On-demand analysis handlers
   const handleOnDemandKeyTakeaways = async () => {
@@ -235,11 +253,11 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     
     try {
       const result = await performAiAnalysisAction({
-        ticker: currentSnapshot.activeTicker!, 
-        stockSnapshotJson: JSON.stringify(currentSnapshot.stockSnapshot), 
-        standardTasJson: JSON.stringify(currentSnapshot.technicalAnalysis), 
-        aiAnalyzedTaJson: JSON.stringify(currentSnapshot.aiAnalysis.technicalAnalysis), 
-        marketStatusJson: JSON.stringify(currentSnapshot.marketStatus)
+        ticker: fsmVariables.activeTicker!, 
+        stockSnapshotJson: stockSnapshotJson, 
+        standardTasJson: standardTasJson, 
+        aiAnalyzedTaJson: aiAnalyzedTaJson, 
+        marketStatusJson: marketStatusJson
       });
       
       if (result.status === 'success' && result.data) {
@@ -248,11 +266,9 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
         toast({ title: "Success", description: "AI Key Takeaways generated successfully" });
       } else {
         toast({ title: "Error", description: result.message || "Failed to generate AI Key Takeaways", variant: 'destructive' });
-        console.error(`[${logPrefix}] Failed to generate AI Key Takeaways: ${result.message}`);
       }
     } catch (error) {
       toast({ title: "Error", description: "An unexpected error occurred", variant: 'destructive' });
-      console.error(`[${logPrefix}] Unexpected error: ${error}`);
     }
   };
 
@@ -261,9 +277,9 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     
     try {
       const result = await performAiOptionsAnalysisAction({
-        ticker: currentSnapshot.activeTicker!, 
-        stockSnapshotJson: JSON.stringify(currentSnapshot.stockSnapshot), 
-        optionsChainJson: JSON.stringify(currentSnapshot.optionsData.chainData),
+        ticker: fsmVariables.activeTicker!, 
+        stockSnapshotJson: stockSnapshotJson, 
+        optionsChainJson: optionsChainJson,
       });
       
       if (result.status === 'success' && result.data) {
@@ -272,11 +288,9 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
         toast({ title: "Success", description: "AI Options Analysis generated successfully" });
       } else {
         toast({ title: "Error", description: result.message || "Failed to generate AI Options Analysis", variant: 'destructive' });
-        console.error(`[${logPrefix}] Failed to generate AI Options Analysis: ${result.message}`);
       }
     } catch (error) {
       toast({ title: "Error", description: "An unexpected error occurred", variant: 'destructive' });
-      console.error(`[${logPrefix}] Unexpected error: ${error}`);
     }
   };
 
@@ -290,7 +304,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     if (promptName) {
       const promptTemplate = appDataExamplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
       if (promptTemplate) {
-        finalUserInput = promptTemplate.replace(/\{TICKER\}/g, currentSnapshot.activeTicker || 'the stock');
+        finalUserInput = promptTemplate.replace(/\{TICKER\}/g, fsmVariables.activeTicker || 'the stock');
         messageToHistory = promptName;
       } else {
         toast({ variant: 'destructive', title: 'Error', description: `Could not find App Data prompt: ${promptName}` });
@@ -302,11 +316,11 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setAppDataChatUserInput('');
     startTransition(() => {
       submitAppDataChat({
-        ticker: currentSnapshot.activeTicker || '',
-        stockSnapshotJson: JSON.stringify(currentSnapshot.stockSnapshot),
-        aiKeyTakeawaysJson: JSON.stringify(currentSnapshot.aiAnalysis.keyTakeaways),
-        aiAnalyzedTaJson: JSON.stringify(currentSnapshot.aiAnalysis.technicalAnalysis),
-        aiOptionsAnalysisJson: JSON.stringify(currentSnapshot.aiAnalysis.optionsAnalysis),
+        ticker: fsmVariables.activeTicker || '',
+        stockSnapshotJson: stockSnapshotJson,
+        aiKeyTakeawaysJson: aiKeyTakeawaysJson,
+        aiAnalyzedTaJson: aiAnalyzedTaJson,
+        aiOptionsAnalysisJson: aiOptionsAnalysisJson,
         chatHistory: contextAppDataChatHistory,
         userInput: finalUserInput,
         promptName: promptName,
@@ -323,7 +337,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     if (promptName) {
       const promptTemplate = webSearchExamplePrompts.find(p => p.promptName === promptName)?.promptTemplate;
       if (promptTemplate) {
-        finalUserInput = promptTemplate.replace(/\{TICKER\}/g, currentSnapshot.activeTicker || 'the stock');
+        finalUserInput = promptTemplate.replace(/\{TICKER\}/g, fsmVariables.activeTicker || 'the stock');
         messageToHistory = promptName;
       } else {
         toast({ variant: 'destructive', title: 'Error', description: `Could not find Web Search prompt: ${promptName}` });
@@ -335,7 +349,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setWebSearchUserInput('');
     startTransition(() => {
       submitWebSearchChat({
-        ticker: currentSnapshot.activeTicker || '',
+        ticker: fsmVariables.activeTicker || '',
         promptName: promptName,
         userInput: finalUserInput,
       });
@@ -343,7 +357,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
   };
 
   const handleFetchExpirations = async () => {
-    const ticker = currentSnapshot.userInputTicker.trim();
+    const ticker = fsmVariables.userInputTicker.trim();
     if (!ticker) {
       toast({ variant: 'destructive', title: 'Invalid Ticker', description: 'Please enter a ticker symbol first.' });
       return;
@@ -363,11 +377,11 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setIsLoadingExpirations(false);
   };
 
-  // Computed states from UI context
+  // Computed states from business context
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
   const isOverallLoading = loadingStates.isAnalyzing || isLoadingExpirations;
-  const analyzeButtonDisabled = !currentSnapshot.canAnalyze || isOverallLoading || isAnyChatPending || 
-                                !currentSnapshot.userInputTicker.trim() || !selectedExpirationDate;
+  const analyzeButtonDisabled = !fsmFlags.canAnalyzeStock || isOverallLoading || isAnyChatPending || 
+                                !fsmVariables.userInputTicker.trim() || !selectedExpirationDate;
 
   return (
     <div className="space-y-6">
@@ -383,7 +397,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
                 <Label htmlFor="ticker">Stock Ticker</Label>
                 <Input 
                   id="ticker" 
-                  value={currentSnapshot.userInputTicker} 
+                  value={fsmVariables.userInputTicker} 
                   onChange={handleTickerInputChange} 
                   placeholder="e.g., AAPL, MSFT" 
                   disabled={isOverallLoading}
@@ -408,7 +422,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
                 ) : (
                   <Zap className="mr-2 h-4 w-4" />
                 )}
-                Analyze Stock (Full Pipeline)
+                Analyze Stock (Basic + AI TA)
               </Button>
             </div>
           </form>
@@ -460,7 +474,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
             <div className="flex flex-col gap-2">
               <Label className="text-xs text-muted-foreground">Step 1</Label>
-              <Button onClick={handleFetchExpirations} disabled={!currentSnapshot.userInputTicker || isOverallLoading} className="w-full">
+              <Button onClick={handleFetchExpirations} disabled={!fsmVariables.userInputTicker || isOverallLoading} className="w-full">
                 {isLoadingExpirations ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                 ) : (
@@ -482,7 +496,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="on-demand-strike-count">Strike Count</Label>
-              <Select value={String(currentSnapshot.optionsData.strikeCount)} onValueChange={(val) => {/* UI setting - will be handled by UI context */}} disabled={isOverallLoading}>
+              <Select value={String(business.strikeCount)} onValueChange={(val) => business.setStrikeCount(Number(val) as any)} disabled={isOverallLoading}>
                 <SelectTrigger id="on-demand-strike-count">
                   <SelectValue placeholder="Strikes"/>
                 </SelectTrigger>
@@ -495,7 +509,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="on-demand-option-type">Option Type</Label>
-              <Select value={currentSnapshot.optionsData.optionType} onValueChange={(val) => {/* UI setting - will be handled by UI context */}} disabled={isOverallLoading}>
+              <Select value={business.optionType} onValueChange={(val) => business.setOptionType(val as any)} disabled={isOverallLoading}>
                 <SelectTrigger id="on-demand-option-type">
                   <SelectValue placeholder="Type"/>
                 </SelectTrigger>
@@ -508,7 +522,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="main-table-display">Table Display</Label>
-              <Select value={currentSnapshot.optionsData.tableDisplayType} onValueChange={(val) => {/* UI setting - will be handled by UI context */}} disabled={isOverallLoading}>
+              <Select value={business.tableDisplayType} onValueChange={(val) => business.setTableDisplayType(val as any)} disabled={isOverallLoading}>
                 <SelectTrigger id="main-table-display">
                   <SelectValue placeholder="Select display" />
                 </SelectTrigger>
@@ -524,57 +538,35 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       
       <Separator />
       
-      {/* Analysis Pipeline Toggles */}
+      {/* On-Demand AI Analysis */}
       <Card>
         <CardHeader>
-          <CardTitle>Customizable Analysis Pipeline</CardTitle>
-          <CardDescription>Select which AI analyses to run when you click "Analyze Stock".</CardDescription>
+          <CardTitle>AI Analysis (On-Demand)</CardTitle>
+          <CardDescription>Generate AI analysis manually after running the basic stock analysis pipeline.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
-            <Label htmlFor="toggle-key-takeaways" className="flex-grow text-sm">AI Key Takeaways</Label>
-            <Switch 
-              id="toggle-key-takeaways" 
-              checked={currentSnapshot.isAiKeyTakeawaysSelected} 
-              onCheckedChange={(checked) => handleToggleChange('ai_key_takeaways', checked)} 
-              disabled={loadingStates.isAnalyzing} 
-            />
-          </div>
-          <div className="flex items-center justify-between space-x-2 p-2 border rounded-md">
-            <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
-            <Switch 
-              id="toggle-options-analysis" 
-              checked={currentSnapshot.isAiOptionsAnalysisSelected} 
-              onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} 
-              disabled={loadingStates.isAnalyzing} 
-            />
-          </div>
-          <Separator className="my-4" />
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Manual On-Demand Analysis</Label>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
-                onClick={handleOnDemandKeyTakeaways}
-                disabled={!currentSnapshot.activeTicker || !currentSnapshot.stockSnapshot.isDataReady || 
-                         !currentSnapshot.technicalAnalysis.isDataReady || !currentSnapshot.aiAnalysis.isTechnicalAnalysisReady ||
-                         !currentSnapshot.marketStatus.isDataReady || loadingStates.isAnalyzing || isAnyChatPending}
-                variant="outline"
-                className="flex-1"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Generate AI Key Takeaways
-              </Button>
-              <Button 
-                onClick={handleOnDemandOptionsAnalysis}
-                disabled={!currentSnapshot.activeTicker || !currentSnapshot.optionsData.isDataReady || 
-                         loadingStates.isAnalyzing || isAnyChatPending}
-                variant="outline"
-                className="flex-1"
-              >
-                <CandlestickChart className="mr-2 h-4 w-4" />
-                Generate AI Options Analysis
-              </Button>
-            </div>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={handleOnDemandKeyTakeaways}
+              disabled={!fsmVariables.activeTicker || !fsmFlags.isSnapshotDataReady || 
+                       !fsmFlags.isStandardTADataReady || !fsmFlags.isCalculatedTADataReady ||
+                       !fsmFlags.isMarketDataReady || loadingStates.isAnalyzing || isAnyChatPending}
+              variant="outline"
+              className="flex-1"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Generate AI Key Takeaways
+            </Button>
+            <Button 
+              onClick={handleOnDemandOptionsAnalysis}
+              disabled={!fsmVariables.activeTicker || !fsmFlags.isOptionsChainDataReady || 
+                       loadingStates.isAnalyzing || isAnyChatPending}
+              variant="outline"
+              className="flex-1"
+            >
+              <CandlestickChart className="mr-2 h-4 w-4" />
+              Generate AI Options Analysis
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -595,12 +587,12 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Chatbot
             title="App Data AI Chat"
-            description={`Analyzes loaded app data for ${currentSnapshot.activeTicker || "the stock"}. Cannot access web.`}
+            description={`Analyzes loaded app data for ${fsmVariables.activeTicker || "the stock"}. Cannot access web.`}
             chatHistory={contextAppDataChatHistory}
             clearChatHistory={clearAppDataChatHistory}
             isProcessing={isAppDataChatPending}
             exampleButtons={appDataButtons}
-            currentTickerForDisplay={currentSnapshot.activeTicker || currentSnapshot.userInputTicker}
+            currentTickerForDisplay={fsmVariables.activeTicker || fsmVariables.userInputTicker}
             userInput={appDataChatUserInput}
             setUserInput={setAppDataChatUserInput}
             onFormSubmit={handleAppDataChatSubmit}
@@ -612,7 +604,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             clearChatHistory={clearWebSearchChatHistory}
             isProcessing={isWebSearchChatPending}
             exampleButtons={webSearchButtons}
-            currentTickerForDisplay={currentSnapshot.activeTicker || currentSnapshot.userInputTicker}
+            currentTickerForDisplay={fsmVariables.activeTicker || fsmVariables.userInputTicker}
             userInput={webSearchUserInput}
             setUserInput={setWebSearchUserInput}
             onFormSubmit={handleWebSearchChatSubmit}
@@ -623,7 +615,6 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
         <MarketStatusDisplay />
         <Separator />
         <DebugSnapshotControls appVersion={appVersion} />
-        <DebugUIStateControls />
       </div>
     </div>
   );

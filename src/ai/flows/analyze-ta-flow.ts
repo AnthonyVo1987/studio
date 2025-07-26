@@ -22,14 +22,11 @@ import {
 // Export types for use in actions
 export type { AnalyzeTaInput, AnalyzeTaOutput };
 import { formatToTwoDecimals } from '@/lib/number-utils';
-import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('AIFlow:analyzeTaIndicators');
 
 export async function analyzeTaIndicators(
   input: AnalyzeTaInput
 ): Promise<AnalyzeTaOutput> {
-  logger.debug('Received input', { symbol: input.symbol, hasHlcData: !!input.hlcData });
   return analyzeTaIndicatorsFlow(input);
 }
 
@@ -40,7 +37,6 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
     outputSchema: AnalyzeTaOutputSchema,
   },
   async (input: AnalyzeTaInput): Promise<AnalyzeTaOutput> => {
-    console.log('[AIFlow:analyzeTaIndicatorsFlow] Starting analysis with input:', input);
     const H = input.previousDayHigh;
     const L = input.previousDayLow;
     const C = input.previousDayClose;
@@ -64,7 +60,6 @@ const analyzeTaIndicatorsFlow = ai.defineFlow(
       resistance2: parseAndFormat(R2),
       resistance3: parseAndFormat(R3),
     };
-    console.log('[AIFlow:analyzeTaIndicatorsFlow] Analysis complete. Output:', output);
     return output;
   }
 );

@@ -33,27 +33,22 @@ const USE_TEMPLATE_SYSTEM = process.env.USE_AI_TEMPLATE_SYSTEM === 'true' || fal
 async function getAnalyzedStockDataPrompt() {
   const logPrefix = '[AIFlow:getAnalyzedStockDataPrompt]';
   if (analyzeStockDataPrompt) {
-    console.log(`${logPrefix} Returning cached prompt object.`);
     return analyzeStockDataPrompt;
   }
 
   let analyzeStockDataPromptDefinition: LlmPromptDefinition;
   
   if (USE_TEMPLATE_SYSTEM) {
-    console.log(`${logPrefix} Using template system for prompt generation.`);
     analyzeStockDataPromptDefinition = stockAnalysisTemplates.stockAnalysis();
   } else {
-    console.log(`${logPrefix} Loading 'analyze-stock-data' definition from JSON.`);
     const genericDefinition = await loadDefinition('analyze-stock-data');
     if (genericDefinition.definitionType !== 'llm-prompt') {
       const errorMsg = `Loaded definition for 'analyze-stock-data' is not an LLM prompt type. Type: ${genericDefinition.definitionType}`;
-      console.error(`${logPrefix} ${errorMsg}`);
       throw new Error(errorMsg);
     }
     analyzeStockDataPromptDefinition = genericDefinition;
   }
   
-  console.log(`${logPrefix} Definition ready. Source: ${USE_TEMPLATE_SYSTEM ? 'template' : 'JSON'}. Definition keys: ${Object.keys(analyzeStockDataPromptDefinition).join(', ')}`);
 
   const promptString = buildPromptStringFromLlmDefinition(analyzeStockDataPromptDefinition);
   const modelId = analyzeStockDataPromptDefinition.modelId || DEFAULT_ANALYSIS_MODEL_ID;
@@ -75,16 +70,6 @@ async function getAnalyzedStockDataPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition.thinkingBudget };
   }
   
-  console.log(
-    `${logPrefix} Defining prompt. ` +
-    `Model: ${modelId}, ` +
-    `Source: ${USE_TEMPLATE_SYSTEM ? 'template' : 'JSON'}, ` +
-    `Grounding: false, ` +
-    `ThinkingBudget: ${promptConfig.thinkingConfig?.thinkingBudget ?? 'N/A'}, ` +
-    `SafetySettings: ${safetySettings.length}, ` +
-    `Prompt (start): "${promptString.substring(0, 50)}..."`
-  );
-  
   const prompt = ai.definePrompt({
     name: 'analyzeStockDataPrompt', 
     input: {schema: StockAnalysisInputSchema},
@@ -95,22 +80,17 @@ async function getAnalyzedStockDataPrompt() {
   });
 
   analyzeStockDataPrompt = prompt; // Cache the prompt object
-  console.log(`${logPrefix} Prompt object defined and cached.`);
   return analyzeStockDataPrompt;
 }
 
 export async function analyzeStockData(
   input: StockAnalysisInput
 ): Promise<StockAnalysisOutput> {
-  console.time('analyzeStockDataFlowExecutionTime');
   const logPrefix = `[AIFlow:analyzeStockData:Ticker:${input.ticker}:Entry_DJ]`;
-  console.log(`${logPrefix} Received request. Input keys: ${Object.keys(input).join(', ')}`);
   try {
     const result = await analyzeStockDataFlow(input);
-    console.timeEnd('analyzeStockDataFlowExecutionTime');
     return result;
   } catch (error) {
-    console.timeEnd('analyzeStockDataFlowExecutionTime');
     throw error;
   }
 }
@@ -128,55 +108,40 @@ const analyzeStockDataFlow = ai.defineFlow(
   },
   async (input: StockAnalysisInput): Promise<StockAnalysisOutput> => {
     const logPrefix = `[AIFlow:analyzeStockDataFlow:Ticker:${input.ticker}:DJ]`;
-    console.log(`${logPrefix} Flow execution started. Input keys: ${Object.keys(input).join(', ')}`);
     
     let outputFromPrompt: StockAnalysisOutput | undefined;
 
     try {
       const promptToUse = await getAnalyzedStockDataPrompt();
-      console.log(`${logPrefix} Executing analyzeStockDataPrompt.`);
       const result = await promptToUse(input);
       outputFromPrompt = result.output; 
-      console.log(`${logPrefix} [Tokens] Thoughts: ${result.usageMetadata?.thoughtsTokenCount ?? 'N/A'}, Output: ${result.usageMetadata?.candidatesTokenCount ?? 'N/A'}`);
-      console.log(`${logPrefix} Prompt execution completed. outputFromPrompt is defined: ${!!outputFromPrompt}`);
       
       if (outputFromPrompt) {
-        console.log(`${logPrefix} OutputFromPrompt (raw from AI, first 500 chars): ${JSON.stringify(outputFromPrompt).substring(0,500)}`);
       } else {
-        console.warn(`${logPrefix} OutputFromPrompt_UNDEFINED - outputFromPrompt is UNDEFINED after AI call. This indicates a likely AI/prompt execution failure.`);
         throw new Error('AI prompt execution for Key Takeaways failed to return any output structure.');
       }
 
     } catch (error: any) {
-      console.error(`${logPrefix} CRITICAL ERROR during analyzeStockDataPrompt execution. Error name: ${error?.name}, Message: ${error?.message}, Stack (first 500): ${error?.stack?.substring(0,500)}, Full error object (first 500): ${JSON.stringify(error).substring(0,500)}.`);
       throw error; 
     }
     
     const finalOutput: StockAnalysisOutput = {
-      priceAction: outputFromPrompt.priceAction || (console.warn(`${logPrefix} Defaulting Price Action.`), defaultTakeaway("price action", input.ticker)),
-      trend: outputFromPrompt.trend || (console.warn(`${logPrefix} Defaulting Trend.`), defaultTakeaway("trend", input.ticker)),
-      volatility: outputFromPrompt.volatility || (console.warn(`${logPrefix} Defaulting Volatility (initial).`), { takeaway: `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`, sentiment: "neutral" }),
-      momentum: outputFromPrompt.momentum || (console.warn(`${logPrefix} Defaulting Momentum.`), defaultTakeaway("momentum", input.ticker)),
-      patterns: outputFromPrompt.patterns || (console.warn(`${logPrefix} Defaulting Patterns.`), defaultTakeaway("patterns", input.ticker)),
     };
     
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];
     for (const category of categories) {
         if (!finalOutput[category] || !finalOutput[category].takeaway || finalOutput[category].takeaway.trim() === "") {
-            console.warn(`${logPrefix} Defaulting_PostCheck - Output for category '${category}' was missing or empty after initial population from AI. Providing default message again.`);
             finalOutput[category] = defaultTakeaway(category, input.ticker);
         }
     }
     
     if (finalOutput.volatility && (!finalOutput.volatility.takeaway || finalOutput.volatility.takeaway.trim().split(/\s+/).length < 5)) {
-        console.warn(`${logPrefix} VolatilityShort - Volatility takeaway was too short or still default after initial. Setting specific placeholder. Current takeaway: "${finalOutput.volatility.takeaway}"`);
         finalOutput.volatility.takeaway = `Volatility analysis for ${input.ticker} was not sufficiently detailed by the AI. Please refer to specific volatility indicators or market context.`;
         if (!finalOutput.volatility.sentiment) {
              finalOutput.volatility.sentiment = "neutral";
         }
     }
 
-    console.log(`${logPrefix} Flow successfully constructed output. Final output keys: ${Object.keys(finalOutput).join(', ')}. PriceAction takeaway (first 30): "${finalOutput.priceAction.takeaway.substring(0,30)}..."`);
     return finalOutput;
   }
 );

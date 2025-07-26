@@ -11,9 +11,11 @@ StockSage is a Next.js financial analysis application that provides real-time st
 ```bash
 npm run dev          # Development server (http://localhost:9002)
 npm run build        # Production build
+npm run start        # Production server
 npm run lint         # ESLint linting
 npm run typecheck    # TypeScript type checking
-npm run genkit:watch # Genkit AI flows dev server (http://localhost:3400)
+npm run genkit:dev   # Genkit AI flows dev server (http://localhost:3400)
+npm run genkit:watch # Genkit AI flows dev server with watch mode
 ```
 
 ### Critical Pre-Commit Commands
@@ -28,42 +30,35 @@ npm run typecheck
 ### Core Technology Stack
 - **Frontend**: Next.js 15.3.3 with React 18.3.1
 - **AI Backend**: Google Genkit + Google AI SDK
-- **State Management**: Three-Layer Architecture with React Context + FSM
+- **State Management**: Standard React Context + FSM (Simplified)
 - **UI Components**: ShadCN UI + Tailwind CSS
 - **Data Sources**: Polygon.io API
 - **AI Model**: Google Gemini 2.5-flash-lite
 
-### Three-Layer Architecture (MANDATORY)
+### Simplified Architecture (v4.0.0.4+)
 
-**The application uses a strict three-layer separation to prevent race conditions and infinite render loops:**
+**The application now uses standard React best practices with direct business context consumption:**
 
 #### 1. Business Logic Layer
 - **Location**: `src/contexts/business-logic-context.tsx`
-- **Purpose**: Pure business logic, FSM state management, and data processing
-- **FSM States**: Defined in `BusinessFsmState` enum (APP_INITIALIZING, IDLE, DATA_FETCH_IN_PROGRESS, etc.)
-- **Orchestrator**: `src/components/business-orchestrator.tsx` - Executes business pipeline without UI concerns
-- **Critical Rule**: Business logic NEVER depends on UI state - only on raw data and FSM state
+- **Purpose**: All application state, business logic, FSM state management, and data processing
+- **FSM States**: Simplified enum (APP_INITIALIZING, IDLE, DATA_FETCH_IN_PROGRESS, CALCULATING_AI_TA)
+- **Orchestrator**: `src/components/business-orchestrator.tsx` - Executes basic pipeline (data fetch + AI TA)
+- **Pattern**: Standard React Context with useReducer for FSM state
 
-#### 2. UI State Layer  
-- **Location**: `src/contexts/ui-state-context.tsx`
-- **Purpose**: Transforms business data into UI-ready snapshots with "1 step behind" lag mechanism
-- **Key Feature**: 500ms delay between business state changes and UI updates for stability
-- **UI Snapshots**: Pre-transformed, versioned data structures that UI components consume
-- **Anti-Pattern**: UI components must NEVER use business context directly
-
-#### 3. Presentation Layer
+#### 2. Presentation Layer
 - **Location**: `src/components/main-tab-content-ui.tsx` + all display components
-- **Purpose**: Pure UI rendering using only UI snapshots
-- **Pattern**: All display components consume `useUIState()` hook, never `useStockAnalysis()`
-- **Loading States**: Derived from UI snapshots, not by parsing data content
+- **Purpose**: UI rendering using business context directly
+- **Pattern**: All display components use `useStockAnalysis()` hook directly
+- **Loading States**: Derived from FSM state and business flags
+- **On-Demand AI**: AI Key Takeaways and Options Analysis are manual button-triggered only
 
 ## File Organization
 
 ### Core Architecture Files (Tier 1 - Critical)
-- `src/contexts/business-logic-context.tsx` - Business logic & FSM state management
-- `src/contexts/ui-state-context.tsx` - UI state transformation layer with lag mechanism
-- `src/components/business-orchestrator.tsx` - Business pipeline execution (no UI)
-- `src/components/main-tab-content-ui.tsx` - Main UI component (presentation only)
+- `src/contexts/business-logic-context.tsx` - All application state & FSM management
+- `src/components/business-orchestrator.tsx` - Basic pipeline execution (data + AI TA)
+- `src/components/main-tab-content-ui.tsx` - Main UI component using business context
 - `src/services/data-sources/adapters/polygon-adapter.ts` - API integration
 - `src/types/` - Type definitions directory (e.g., `options.ts`)
 
@@ -78,21 +73,23 @@ npm run typecheck
 - `src/ai/definitions/` - JSON prompt templates
 - `src/ai/schemas/` - Zod validation schemas
 
-## Critical Architectural Rules (v4.0.0.0+)
+## Critical Architectural Rules (v4.0.0.4+)
 
-### 1. Three-Layer Separation (NON-NEGOTIABLE)
+### 1. Standard React Context Pattern
 ```typescript
-// CORRECT - UI component using UI snapshots only
+// CORRECT - UI component using business context directly
 const MyDisplayComponent = () => {
-  const { currentSnapshot } = useUIState(); // ✅ Correct
-  return <div>{currentSnapshot.stockSnapshot.ticker}</div>;
-};
-
-// WRONG - UI component accessing business logic directly  
-const MyDisplayComponent = () => {
-  const { stockSnapshotJson } = useStockAnalysis(); // ❌ ARCHITECTURE VIOLATION
-  const data = JSON.parse(stockSnapshotJson); // ❌ Raw parsing in UI
-  return <div>{data.ticker}</div>;
+  const business = useStockAnalysis(); // ✅ Correct
+  
+  // Parse JSON data as needed
+  const stockData = business.stockSnapshotJson ? (() => {
+    try {
+      const parsed = JSON.parse(business.stockSnapshotJson);
+      return parsed.results?.[0] || {};
+    } catch (e) { return {}; }
+  })() : {};
+  
+  return <div>{stockData.ticker}</div>;
 };
 ```
 
@@ -100,32 +97,36 @@ const MyDisplayComponent = () => {
 ```typescript
 // CORRECT - Business orchestrator pattern with FSM feedback
 const BusinessOrchestrator = () => {
-  const handleAnalyzeStock = async () => {
+  const handleBasicAnalysis = async () => {
     // Update business state BEFORE dispatching FSM event
     if (result.status === 'success' && result.data) {
-      setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+      setStockSnapshotJson(result.data.stockSnapshotJson);
     }
     // REQUIRED: Dispatch FSM event for business state transition
     dispatchGlobalFsmEvent({ 
-      type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', 
+      type: result.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', 
       payload: result 
     });
   };
 };
 ```
 
-### 3. UI State Lag Mechanism
+### 3. On-Demand AI Analysis
 ```typescript
-// Built-in 500ms delay in UI State Context
-// Business logic updates immediately, UI updates with delay for stability
-// This prevents race conditions and ensures "1 step behind" UI behavior
+// AI Analysis is now triggered manually via buttons, not automated pipeline
+const handleOnDemandKeyTakeaways = async () => {
+  const result = await performAiAnalysisAction({...});
+  if (result.status === 'success') {
+    setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+  }
+};
 ```
 
-### 4. React Anti-Pattern Prevention
-- **Never update state during render phase** (inside reducers)
-- **Never call setters inside useEffect dependency arrays** (causes loops)
+### 4. React Best Practices
+- **Standard useContext + useReducer patterns**
+- **Minimal useEffect dependency arrays**
 - **Always batch multiple state updates** with `startTransition`
-- **UI components derive ALL state from UI snapshots**, never raw data parsing
+- **Direct business context consumption** in UI components
 
 ## Development Guidelines
 
@@ -138,7 +139,7 @@ const BusinessOrchestrator = () => {
 ### 2. UI/UX Conventions
 - **Components**: ShadCN UI components with Tailwind styling
 - **Icons**: Lucide React icons
-- **Loading States**: Derive from UI snapshots, never from business state or data parsing
+- **Loading States**: Derive from FSM state and business flags
 - **Responsiveness**: Mobile-first approach with proper breakpoints
 
 ### 3. Data Export Features
@@ -177,12 +178,12 @@ const BusinessOrchestrator = () => {
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.0+ for major architecture overhaul)
+- **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.4+ for simplified architecture)
 
 ## Testing & Quality Assurance
 - Always run `npm run lint` and `npm run typecheck` before committing
-- Three-layer architecture eliminates race conditions through separation of concerns
-- UI snapshots ensure UI always reflects stable business state with controlled lag
+- Simplified architecture uses standard React patterns
+- Direct business context consumption with safe JSON parsing patterns
 
 ## Environment & Configuration
 
@@ -214,24 +215,25 @@ GEMINI_API_KEY=your_google_ai_api_key
 
 ## Performance & Optimization
 
-### Recent Achievements (v4.0.0.0+)
-- **Architecture Overhaul**: Complete three-layer separation eliminates all race conditions
-- **React Anti-Patterns**: UI snapshot pattern prevents all infinite render loops
-- **Race Condition Prevention**: 500ms lag mechanism ensures stability
-- **Display Component Refactor**: All 7 display components converted to pure presentation layer
+### Recent Achievements (v4.0.0.4+)
+- **Architecture Simplification**: Removed complex UI state layer, now uses standard React patterns
+- **On-Demand AI**: Simplified pipeline with manual AI analysis (no automated steps)
+- **FSM Simplification**: Reduced states, removed automated pipeline complexity
+- **Code Cleanup**: Removed "one step behind" UI update mechanism
+- **Direct Context Consumption**: All 7 display components now use business context directly
 
 ### Current Metrics
-- **Architecture Stability**: Zero race conditions through three-layer separation
-- **UI Responsiveness**: Controlled 500ms delay for smooth user experience
-- **Code Maintainability**: Clear separation of concerns across all layers
+- **Architecture Simplicity**: Standard React best practices, no complex UI state layer
+- **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
+- **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.0.0.0+)
-1. **NEVER violate the three-layer architecture** - UI components must only use `useUIState()`, never `useStockAnalysis()`
-2. **Always preserve the business orchestrator pattern** in `business-orchestrator.tsx`
-3. **UI components are pure presentation** - no JSON parsing, no business logic, only snapshot consumption
-4. **Respect the 500ms lag mechanism** - business updates immediately, UI updates with controlled delay
-5. **Keep business logic completely separate from UI state** - unidirectional data flow only
+## Important Notes for AI Assistants (v4.0.0.4+)
+1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
+2. **Maintain the business orchestrator pattern** in `business-orchestrator.tsx` for the basic pipeline
+3. **Parse JSON data in components** as needed using try/catch patterns for safety
+4. **AI actions are on-demand only** - no automated pipeline states or toggles
+5. **Keep business logic in the business context** - UI components focus on presentation
 6. **Always update version metadata** in `src/config/app-metadata.json` for any code changes
-7. **Display components follow the pattern**: `useUIState()` → consume snapshots → render
+7. **Display components follow the pattern**: `useStockAnalysis()` → parse data → derive loading states → render
 
-This three-layer architecture was designed after extensive refactoring to eliminate all race conditions and infinite render loops. It represents the most battle-tested and stable pattern for this application's complexity level.
+This simplified architecture (v4.0.0.4) focuses on React best practices and on-demand AI analysis, removing the complex UI state layer that was determined to be unnecessary for the application's needs.

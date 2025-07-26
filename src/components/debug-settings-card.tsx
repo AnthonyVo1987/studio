@@ -13,7 +13,6 @@ export function DebugSettingsCard() {
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground">
-          Debug logs are now written directly to the browser console. Open Developer Tools (F12) and check the Console tab to view application logs.
         </p>
       </CardContent>
     </Card>

@@ -35,14 +35,12 @@ export async function performAiOptionsAnalysisAction(
     stockSnapshotJson,
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiOptionsAnalysisAction:Ticker:${ticker}]`;
-  console.log(`${actionLogPrefix} Received request.`);
 
   let currentUnderlyingPrice: number;
   let flowInput: AiOptionsAnalysisInput;
   let aiOptionsAnalysisRequestJson: string = JSON.stringify({ error: "Request preparation incomplete", ticker }, null, 2);
 
   const baseErrorReturnForValidation = (errMsg: string, detailMsg?: string, reqJsonOverride?: string) => {
-    console.warn(`${actionLogPrefix} Validation Error - ${errMsg}`);
     return {
       status: 'error' as 'error',
       error: errMsg,
@@ -84,7 +82,6 @@ export async function performAiOptionsAnalysisAction(
     };
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred.';
-    console.error(`${actionLogPrefix} CRITICAL Error in action's try-catch. Error: ${errorMessage}.`);
     return {
       status: 'error',
       error: errorMessage,

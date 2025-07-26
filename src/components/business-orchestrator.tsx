@@ -7,18 +7,16 @@ import { useToast } from "@/hooks/use-toast";
 // Server Actions
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
-import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
-import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 
 /**
- * BusinessOrchestrator - Pure business logic component
+ * BusinessOrchestrator - Pure business logic component (v4.0.0.3)
  * 
- * This component handles the business pipeline orchestration without any UI concerns.
- * It reacts to FSM state changes and executes server actions, updating business state accordingly.
+ * Simplified orchestrator for basic stock analysis pipeline only.
+ * AI analysis steps are now on-demand via manual button clicks.
  * 
- * SEPARATION OF CONCERNS:
- * - Only handles business logic execution
- * - No UI rendering or presentation logic
+ * SIMPLIFIED PIPELINE:
+ * - Only handles DATA_FETCH_IN_PROGRESS and CALCULATING_AI_TA
+ * - No automated AI key takeaways or options analysis
  * - Updates business context state
  * - Dispatches FSM events
  */
@@ -38,8 +36,6 @@ export function BusinessOrchestrator() {
     aiAnalyzedTaJson: contextAiAnalyzedTaJson,
     
     // Business data setters
-    setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson,
-    setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson,
     setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson,
     setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson,
     setPolygonApiRequestLogJson, setPolygonApiResponseLogJson,
@@ -96,7 +92,6 @@ export function BusinessOrchestrator() {
       try {
         switch (globalFsmStateFromContext) {
           case BusinessFsmState.DATA_FETCH_IN_PROGRESS: {
-            console.log(`[${orchestratorLogPrefix}] Executing DATA_FETCH_IN_PROGRESS step`);
             
             const result = await fetchStockDataAction({
               ticker: currentValues.activeTicker!,
@@ -146,7 +141,6 @@ export function BusinessOrchestrator() {
           }
           
           case BusinessFsmState.CALCULATING_AI_TA: {
-            console.log(`[${orchestratorLogPrefix}] Executing CALCULATING_AI_TA step`);
             
             const result = await analyzeTaAction({ 
               stockSnapshotJson: currentValues.contextStockSnapshotJson, 
@@ -178,77 +172,6 @@ export function BusinessOrchestrator() {
             break;
           }
           
-          case BusinessFsmState.GENERATING_KEY_TAKEAWAYS: {
-            console.log(`[${orchestratorLogPrefix}] Executing GENERATING_KEY_TAKEAWAYS step`);
-            
-            const result = await performAiAnalysisAction({
-              ticker: currentValues.activeTicker!, 
-              stockSnapshotJson: currentValues.contextStockSnapshotJson, 
-              standardTasJson: currentValues.contextStandardTasJson, 
-              aiAnalyzedTaJson: currentValues.contextAiAnalyzedTaJson, 
-              marketStatusJson: currentValues.contextMarketStatusJson
-            });
-            
-            startTransition(() => {
-              if (result.status === 'success' && result.data) {
-                setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
-                setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
-              } else if (result.status === 'error') {
-                const errorJson = JSON.stringify({ 
-                  error: result.message || 'Key takeaways generation failed', 
-                  details: result.error 
-                });
-                setAiKeyTakeawaysRequestJson(result.data?.aiKeyTakeawaysRequestJson || errorJson);
-                setAiKeyTakeawaysJson(errorJson);
-              }
-            });
-            
-            dispatchGlobalFsmEvent({ 
-              type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', 
-              payload: result 
-            });
-            
-            if (result.status !== 'success') {
-              toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
-              console.error(`[${orchestratorLogPrefix}] Failed to generate AI Key Takeaways: ${result.message}`);
-            }
-            break;
-          }
-          
-          case BusinessFsmState.ANALYZING_OPTIONS: {
-            console.log(`[${orchestratorLogPrefix}] Executing ANALYZING_OPTIONS step`);
-            
-            const result = await performAiOptionsAnalysisAction({
-              ticker: currentValues.activeTicker!, 
-              stockSnapshotJson: currentValues.contextStockSnapshotJson, 
-              optionsChainJson: currentValues.contextOptionsChainJson,
-            });
-            
-            startTransition(() => {
-              if (result.status === 'success' && result.data) {
-                setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
-                setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
-              } else if (result.status === 'error') {
-                const errorJson = JSON.stringify({ 
-                  error: result.message || 'Options analysis failed', 
-                  details: result.error 
-                });
-                setAiOptionsAnalysisRequestJson(result.data?.aiOptionsAnalysisRequestJson || errorJson);
-                setAiOptionsAnalysisJson(errorJson);
-              }
-            });
-            
-            dispatchGlobalFsmEvent({ 
-              type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', 
-              payload: result 
-            });
-            
-            if (result.status !== 'success') {
-              toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
-              console.error(`[${orchestratorLogPrefix}] Failed to generate AI Options Analysis: ${result.message}`);
-            }
-            break;
-          }
           
           default: 
             // Explicitly do nothing for other states
@@ -265,8 +188,7 @@ export function BusinessOrchestrator() {
   }, [globalFsmStateFromContext, dispatchGlobalFsmEvent, toast, 
       setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson,
       setPolygonApiRequestLogJson, setPolygonApiResponseLogJson, setSelectedExpirationDate,
-      setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson, setAiKeyTakeawaysRequestJson,
-      setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson]);
+      setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson]);
 
   // This component renders nothing - it's purely for business logic orchestration
   return null;

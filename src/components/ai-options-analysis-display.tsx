@@ -4,22 +4,29 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
-import { useUIState } from "@/contexts/ui-state-context";
+import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { useQuickExport } from "@/hooks/use-export-actions";
 
 export function AiOptionsAnalysisDisplay() {
-  const { currentSnapshot } = useUIState();
-  const loadingStates = currentSnapshot.loadingStates;
+  const business = useStockAnalysis();
 
-  // Derive values directly from UI snapshot
-  const aiAnalysis = currentSnapshot.aiAnalysis;
-  const isLoading = loadingStates.isAnalyzingOptions;
-  const isDataReady = aiAnalysis.isOptionsAnalysisReady;
+  // AI Options Analysis are now on-demand only (no FSM loading state)
+  const isLoading = false; // On-demand actions handle their own loading states
+  const isDataReady = business.fsmFlags.isOptionsAnalysisDataAvailable;
+
+  // Parse AI options analysis data for export
+  const optionsAnalysisData = business.aiOptionsAnalysisJson ? (() => {
+    try {
+      return JSON.parse(business.aiOptionsAnalysisJson);
+    } catch (e) {
+      return {};
+    }
+  })() : {};
 
   // Export functionality
   const exportActions = useQuickExport(
-    aiAnalysis.optionsAnalysis || {},
-    `${currentSnapshot.activeTicker || "STOCK"}_ai_options_analysis`,
+    optionsAnalysisData,
+    `${business.fsmVariables.activeTicker || "STOCK"}_ai_options_analysis`,
     "AI Options Analysis"
   );
 

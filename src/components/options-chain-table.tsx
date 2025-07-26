@@ -102,7 +102,6 @@ export function OptionsChainTable() {
             newErrorMsg = "Options data is malformed or incomplete.";
         }
         } catch (e) {
-        console.error(`[${componentName}] Failed to parse optionsChainJson:`, e, "JSON:", currentOptionsJson.substring(0,200));
         newIsLoading = false;
         newIsError = true;
         newErrorMsg = "Failed to parse options data.";
@@ -120,7 +119,6 @@ export function OptionsChainTable() {
             newCurrentPriceForATM = null; 
           }
         } catch (e) {
-          console.error(`[${componentName}] Failed to parse stockSnapshotJson for ATM price:`, e);
           newCurrentPriceForATM = null;
         }
         setCurrentPriceForATMState(newCurrentPriceForATM);

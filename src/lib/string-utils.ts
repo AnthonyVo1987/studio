@@ -32,7 +32,6 @@ export function extractJsonString(text: string): string | null {
     return jsonString;
   } catch (error) {
     // The substring looked like JSON but failed to parse.
-    console.error("extractJsonString: Extracted string failed to parse.", error);
     return null;
   }
 }

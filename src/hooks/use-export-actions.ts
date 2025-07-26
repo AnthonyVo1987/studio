@@ -47,7 +47,6 @@ export const useExportActions = () => {
       
       return success
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
       toast({
         title: "Copy Failed",
         description: `Failed to copy ${label} to clipboard`,
@@ -70,7 +69,6 @@ export const useExportActions = () => {
         duration: 2000,
       })
     } catch (error) {
-      console.error('Failed to download JSON:', error)
       toast({
         title: "Download Failed",
         description: `Failed to download ${label}`,

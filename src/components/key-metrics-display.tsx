@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
-import { useUIState } from "@/contexts/ui-state-context";
+import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatCurrency, formatPercentage } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
 
@@ -78,33 +78,48 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 
 
 export function KeyMetricsDisplay() {
-  const { currentSnapshot } = useUIState();
+  const business = useStockAnalysis();
 
-  // Derive values directly from UI snapshot - no state management needed
-  const stockSnapshot = currentSnapshot.stockSnapshot;
-  const loadingStates = currentSnapshot.loadingStates;
-  const isLoading = loadingStates.isFetchingData || !stockSnapshot.isDataReady;
+  // Parse stock snapshot data directly from business context
+  const stockData = business.stockSnapshotJson ? (() => {
+    try {
+      const parsed = JSON.parse(business.stockSnapshotJson);
+      if (parsed.results && parsed.results[0]) {
+        const result = parsed.results[0];
+        return {
+          ticker: result.ticker || null,
+          price: result.value || null,
+          changePercent: result.todaysChangePerc || null,
+          isDataReady: true
+        };
+      }
+    } catch (e) {}
+    return { ticker: null, price: null, changePercent: null, isDataReady: false };
+  })() : { ticker: null, price: null, changePercent: null, isDataReady: false };
+
+  // Derive loading state from FSM
+  const isLoading = business.fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS || !stockData.isDataReady;
   
   // Calculate sentiment for day's change
   const dayChangeSentiment: 'bullish' | 'bearish' | 'neutral' = 
-    stockSnapshot.changePercent && stockSnapshot.changePercent > 0 ? 'bullish' :
-    stockSnapshot.changePercent && stockSnapshot.changePercent < 0 ? 'bearish' : 'neutral';
+    stockData.changePercent && stockData.changePercent > 0 ? 'bullish' :
+    stockData.changePercent && stockData.changePercent < 0 ? 'bearish' : 'neutral';
 
   const displayValueForDayChange = isLoading ? "Loading..." : 
-    stockSnapshot.changePercent !== null ? formatPercentage(stockSnapshot.changePercent, "N/A", true, 2) : "N/A";
+    stockData.changePercent !== null ? formatPercentage(stockData.changePercent, "N/A", true, 2) : "N/A";
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <KeyMetricCard
         label="Ticker"
-        value={stockSnapshot.ticker || "N/A"}
+        value={stockData.ticker || "N/A"}
         icon={<Hash className="h-4 w-4" />}
         isLoading={isLoading}
         sentiment="neutral"
       />
       <KeyMetricCard
         label="Current Price"
-        value={formatCurrency(stockSnapshot.price, "$", "N/A")}
+        value={formatCurrency(stockData.price, "$", "N/A")}
         icon={<DollarSign className="h-4 w-4" />}
         isLoading={isLoading}
         sentiment="neutral"
@@ -112,7 +127,7 @@ export function KeyMetricsDisplay() {
       <KeyMetricCard
         label="Day's Change"
         value={displayValueForDayChange}
-        changePercent={stockSnapshot.changePercent}
+        changePercent={stockData.changePercent}
         isLoading={isLoading}
         sentiment={dayChangeSentiment}
       />

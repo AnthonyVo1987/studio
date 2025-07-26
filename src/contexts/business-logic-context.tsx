@@ -13,13 +13,14 @@ import { findNextAvailableDate } from '@/lib/date-utils';
 import { createSetterBatch } from './context-setter-factory';
 
 
-// Business Logic FSM States - Pure business workflow states
+// Business Logic FSM States - Simplified for on-demand AI (v4.0.0.3)
 export enum BusinessFsmState {
   APP_INITIALIZING = 'APP_INITIALIZING',
   IDLE = 'IDLE',
   AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT',
   VALID_TICKER_ENTERED = 'VALID_TICKER_ENTERED',
 
+  // Basic data pipeline (stock data + basic TA)
   DATA_FETCH_IN_PROGRESS = 'DATA_FETCH_IN_PROGRESS',
   DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
   DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
@@ -27,15 +28,8 @@ export enum BusinessFsmState {
   CALCULATING_AI_TA = 'CALCULATING_AI_TA',
   AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
   AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
-  
-  GENERATING_KEY_TAKEAWAYS = 'GENERATING_KEY_TAKEAWAYS',
-  KEY_TAKEAWAYS_SUCCEEDED = 'KEY_TAKEAWAYS_SUCCEEDED',
-  KEY_TAKEAWAYS_FAILED = 'KEY_TAKEAWAYS_FAILED',
 
-  ANALYZING_OPTIONS = 'ANALYZING_OPTIONS',
-  OPTIONS_ANALYSIS_SUCCEEDED = 'OPTIONS_ANALYSIS_SUCCEEDED',
-  OPTIONS_ANALYSIS_FAILED = 'OPTIONS_ANALYSIS_FAILED',
-
+  // Error states
   ERROR_STALE_DATA = 'ERROR_STALE_DATA',
 }
 
@@ -54,7 +48,7 @@ export interface BusinessContextVariables {
   lastError: { message: string; source: string; details?: any } | null;
 }
 
-// Business Logic Flags - Data availability and business rules
+// Business Logic Flags - Data availability and business rules (simplified v4.0.0.3)
 export interface BusinessFlags {
   canAnalyzeStock: boolean;
   isMarketDataReady: boolean;
@@ -64,8 +58,6 @@ export interface BusinessFlags {
   isCalculatedTADataReady: boolean;
   isKeyTakeawaysDataAvailable: boolean;
   isOptionsAnalysisDataAvailable: boolean;
-  isAiKeyTakeawaysSelected: boolean;
-  isAiOptionsAnalysisSelected: boolean;
 }
 
 // Business FSM State Container
@@ -88,18 +80,8 @@ export type FsmDisplayTuple = {
 
 interface StaleDataFromActionPayload { error: string; message: string; expectedTicker: string; foundTickerInSnapshot?: string; actionStateData?: StockDataFetchResult; }
 
-export type AnalysisToggleType =
-  | 'ai_key_takeaways'
-  | 'ai_options_analysis';
-
-interface AnalysisToggleChangedPayload {
-  toggleType: AnalysisToggleType;
-  isEnabled: boolean;
-}
-
-
 export type FsmEvent =
-  | { type: 'START_FULL_ANALYSIS'; payload: { ticker: string } }
+  | { type: 'START_BASIC_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
   | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
   | { type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' }
@@ -108,13 +90,7 @@ export type FsmEvent =
   | { type: 'SET_STATE_CALCULATING_AI_TA' }
   | { type: 'AI_TA_SUCCESS'; payload: AnalyzeTaActionState }
   | { type: 'AI_TA_FAILURE'; payload: AnalyzeTaActionState }
-  | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload }
-  | { type: 'KEY_TAKEAWAYS_SUCCESS'; payload: PerformAiAnalysisActionState }
-  | { type: 'KEY_TAKEAWAYS_FAILURE'; payload: PerformAiAnalysisActionState }
-  | { type: 'OPTIONS_ANALYSIS_SUCCESS'; payload: PerformAiOptionsAnalysisActionState }
-  | { type: 'OPTIONS_ANALYSIS_FAILURE'; payload: PerformAiOptionsAnalysisActionState }
-  | { type: 'ANALYSIS_TOGGLE_CHANGED'; payload: AnalysisToggleChangedPayload }
-  | { type: 'FINALIZE_AUTOMATED_PIPELINE' };
+  | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload };
 
 export interface AppDataChatMessage {
   id: string;
@@ -285,8 +261,6 @@ const initialBusinessFsmState: BusinessFsmReducerManagedState = {
     isCalculatedTADataReady: false,
     isKeyTakeawaysDataAvailable: false,
     isOptionsAnalysisDataAvailable: false,
-    isAiKeyTakeawaysSelected: true,
-    isAiOptionsAnalysisSelected: true,
   },
 };
 
@@ -585,23 +559,9 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
         nextCurrentState = BusinessFsmState.IDLE;
     };
     
-    // Helper to determine the next step in the pipeline
-    const determineNextStepAfterTA = (): BusinessFsmState => {
-        if (nextFlags.isAiKeyTakeawaysSelected) return BusinessFsmState.GENERATING_KEY_TAKEAWAYS;
-        if (nextFlags.isAiOptionsAnalysisSelected) return BusinessFsmState.ANALYZING_OPTIONS;
-        return BusinessFsmState.IDLE;
-    };
 
     switch (event.type) {
-      case 'ANALYSIS_TOGGLE_CHANGED':
-        const { toggleType, isEnabled } = event.payload;
-        switch (toggleType) {
-          case 'ai_key_takeaways': nextFlags.isAiKeyTakeawaysSelected = isEnabled; break;
-          case 'ai_options_analysis': nextFlags.isAiOptionsAnalysisSelected = isEnabled; break;
-        }
-        nextCurrentState = previousState;
-        break;
-      case 'START_FULL_ANALYSIS':
+      case 'START_BASIC_ANALYSIS':
         resetForNewAnalysis(event.payload.ticker);
         nextCurrentState = BusinessFsmState.DATA_FETCH_IN_PROGRESS;
         break;
@@ -644,7 +604,7 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
         // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         if(event.payload.data) {
             nextFlags.isCalculatedTADataReady = true;
-            nextCurrentState = determineNextStepAfterTA();
+            nextCurrentState = BusinessFsmState.IDLE; // Complete basic pipeline
         } else {
             handlePipelineError('AITaCalculationSuccess', 'Payload data missing in success event.');
         }
@@ -653,25 +613,6 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
         const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
         // State updates moved to MainTabContent orchestrator to avoid render-phase updates
         handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
-        break;
-      case 'KEY_TAKEAWAYS_SUCCESS':
-        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
-        nextFlags.isKeyTakeawaysDataAvailable = true;
-        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? BusinessFsmState.ANALYZING_OPTIONS : BusinessFsmState.IDLE;
-        break;
-      case 'KEY_TAKEAWAYS_FAILURE':
-        nextCurrentState = nextFlags.isAiOptionsAnalysisSelected ? BusinessFsmState.ANALYZING_OPTIONS : BusinessFsmState.IDLE;
-        break;
-      case 'OPTIONS_ANALYSIS_SUCCESS':
-        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
-        nextFlags.isOptionsAnalysisDataAvailable = true;
-        nextCurrentState = BusinessFsmState.IDLE;
-        break;
-      case 'OPTIONS_ANALYSIS_FAILURE':
-        nextCurrentState = BusinessFsmState.IDLE;
-        break;
-      case 'FINALIZE_AUTOMATED_PIPELINE':
-        nextCurrentState = BusinessFsmState.IDLE;
         break;
       default:
         break;
@@ -736,7 +677,6 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
               _setSelectedExpirationDate(nextExpDate);
             }
         } catch (error: any) {
-            console.error(`[StockAnalysisContext:${logPrefix}] Failed to fetch expirations for '${currentTicker}'. Error: ${error.message}`);
         }
         
         _setIsLoadingExpirations(false);

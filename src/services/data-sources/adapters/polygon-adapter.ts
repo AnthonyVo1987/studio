@@ -38,7 +38,6 @@ class PolygonAdapter {
 
     if (!keyToUse || keyToUse.trim() === "" || keyToUse === "INVALID_KEY_ADAPTER_INIT_FAILURE_CONSTRUCTOR") {
       const errorMessage = `${logPrefix} Polygon API key is MISSING, EMPTY, or previously marked INVALID. Adapter cannot be properly initialized.`;
-      console.error(errorMessage);
       this.client = restClient("INVALID_KEY_ADAPTER_INIT_FAILURE_CONSTRUCTOR");
       return;
     }

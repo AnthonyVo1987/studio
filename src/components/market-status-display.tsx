@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { useUIState } from "@/contexts/ui-state-context";
+import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 
 interface MarketDetailItem {
   label: string;
@@ -29,21 +29,36 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 };
 
 export function MarketStatusDisplay() {
-  const { currentSnapshot } = useUIState();
-  const loadingStates = currentSnapshot.loadingStates;
+  const business = useStockAnalysis();
 
-  // Derive values directly from UI snapshot
-  const marketStatus = currentSnapshot.marketStatus;
-  const isLoading = loadingStates.isFetchingData || !marketStatus.isDataReady;
+  // Parse market status data directly from business context
+  const marketData = business.marketStatusJson ? (() => {
+    try {
+      const parsed = JSON.parse(business.marketStatusJson);
+      if (parsed.results) {
+        const result = parsed.results;
+        return {
+          status: result.status || "N/A",
+          isOpen: result.status === 'open',
+          localDateTime: result.serverTime || new Date().toISOString(),
+          isDataReady: true
+        };
+      }
+    } catch (e) {}
+    return { status: "N/A", isOpen: false, localDateTime: null, isDataReady: false };
+  })() : { status: "N/A", isOpen: false, localDateTime: null, isDataReady: false };
+
+  // Derive loading state from FSM
+  const isLoading = business.fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS || !marketData.isDataReady;
 
   // Build details array from market status data
   const details: MarketDetailItem[] = [];
   
-  if (marketStatus.isDataReady) {
+  if (marketData.isDataReady) {
     details.push(
-      { label: "Market Status", value: marketStatus.status || "N/A" },
-      { label: "Market Open", value: marketStatus.isOpen ? "Yes" : "No" },
-      { label: "Server Time (ET)", value: marketStatus.localDateTime || "N/A" }
+      { label: "Market Status", value: marketData.status || "N/A" },
+      { label: "Market Open", value: marketData.isOpen ? "Yes" : "No" },
+      { label: "Server Time (ET)", value: marketData.localDateTime || "N/A" }
     );
   }
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
-import { useUIState } from "@/contexts/ui-state-context";
+import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
 
@@ -44,12 +44,24 @@ const renderMultiWindowValues = (
 };
 
 export function StandardTaDisplay() {
-  const { currentSnapshot } = useUIState();
-  const loadingStates = currentSnapshot.loadingStates;
+  const business = useStockAnalysis();
 
-  // Derive values directly from UI snapshot
-  const technicalAnalysis = currentSnapshot.technicalAnalysis;
-  const isLoading = loadingStates.isCalculatingTA || !technicalAnalysis.isDataReady;
+  // Parse standard TA data directly from business context
+  const taData = business.standardTasJson ? (() => {
+    try {
+      const parsed = JSON.parse(business.standardTasJson);
+      if (parsed.values) {
+        return {
+          indicators: parsed.values,
+          isDataReady: business.fsmFlags.isStandardTADataReady
+        };
+      }
+    } catch (e) {}
+    return { indicators: {}, isDataReady: false };
+  })() : { indicators: {}, isDataReady: false };
+
+  // Derive loading state from FSM
+  const isLoading = business.fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS || !taData.isDataReady;
   
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';
@@ -86,7 +98,7 @@ export function StandardTaDisplay() {
                   Waiting for technical analysis data...
                 </TableCell>
               </TableRow>
-            ) : !technicalAnalysis.isDataReady ? (
+            ) : !taData.isDataReady ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
                   No technical analysis data available.
@@ -94,13 +106,13 @@ export function StandardTaDisplay() {
               </TableRow>
             ) : (
               <>
-                {renderMultiWindowValues("RSI", technicalAnalysis.indicators.RSI, ["7", "10", "14"], "14", rsiSentiment)}
+                {renderMultiWindowValues("RSI", taData.indicators.RSI, ["7", "10", "14"], "14", rsiSentiment)}
                 <TableRow>
                   <TableCell className="font-medium">MACD (12,26,9)</TableCell>
                   <TableCell className="text-right">
-                    {technicalAnalysis.indicators.MACD ? (
+                    {taData.indicators.MACD ? (
                       <>
-                        {formatToTwoDecimals(technicalAnalysis.indicators.MACD.value)} / {formatToTwoDecimals(technicalAnalysis.indicators.MACD.signal)} / <span className={getSentimentColorClass(macdSentiment(technicalAnalysis.indicators.MACD.histogram))}>{formatToTwoDecimals(technicalAnalysis.indicators.MACD.histogram)}</span>
+                        {formatToTwoDecimals(taData.indicators.MACD.value)} / {formatToTwoDecimals(taData.indicators.MACD.signal)} / <span className={getSentimentColorClass(macdSentiment(taData.indicators.MACD.histogram))}>{formatToTwoDecimals(taData.indicators.MACD.histogram)}</span>
                       </>
                     ) : "N/A"}
                   </TableCell>
@@ -108,13 +120,13 @@ export function StandardTaDisplay() {
                 <TableRow>
                   <TableCell className="font-medium">VWAP</TableCell>
                   <TableCell className="text-right">
-                    {technicalAnalysis.indicators.VWAP ? (
-                      `Day: $${formatToTwoDecimals(technicalAnalysis.indicators.VWAP.day)} | Minute: $${formatToTwoDecimals(technicalAnalysis.indicators.VWAP.minute)}`
+                    {taData.indicators.VWAP ? (
+                      `Day: $${formatToTwoDecimals(taData.indicators.VWAP.day)} | Minute: $${formatToTwoDecimals(taData.indicators.VWAP.minute)}`
                     ) : "N/A"}
                   </TableCell>
                 </TableRow>
-                {renderMultiWindowValues("EMA", technicalAnalysis.indicators.EMA, ["5", "10", "20", "50", "200"])}
-                {renderMultiWindowValues("SMA", technicalAnalysis.indicators.SMA, ["5", "10", "20", "50", "200"])}
+                {renderMultiWindowValues("EMA", taData.indicators.EMA, ["5", "10", "20", "50", "200"])}
+                {renderMultiWindowValues("SMA", taData.indicators.SMA, ["5", "10", "20", "50", "200"])}
               </>
             )}
           </TableBody>

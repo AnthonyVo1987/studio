@@ -42,7 +42,8 @@
       "Bash(mv:*)",
       "Bash(do)",
       "Bash(sed:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

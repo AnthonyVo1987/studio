@@ -61,7 +61,6 @@ export const useJsonDataState = <T = any>(
       setParsedData(defaultValue)
       
       if (enableLogging) {
-        console.error('JSON parse error:', error)
       }
     }
   }, [jsonString, validateData, defaultValue, enableLogging, statusChecks.isEmpty, statusChecks.isPending])

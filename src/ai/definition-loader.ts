@@ -76,25 +76,19 @@ export type GenericDefinition = z.infer<typeof GenericDefinitionSchema>;
  */
 export async function loadDefinition(definitionName: string): Promise<GenericDefinition> {
   const logPrefix = `[DefinitionLoader:loadDefinition:${definitionName}]`;
-  console.log(`${logPrefix} Initiating load for definition: ${definitionName} using dynamic import.`);
 
   try {
     const module = await import(`@/ai/definitions/${definitionName}.json`);
     const jsonData = module.default;
     
-    console.log(`${logPrefix} Successfully imported JSON data dynamically.`);
 
     const validationResult = GenericDefinitionSchema.safeParse(jsonData);
     if (!validationResult.success) {
-      console.error(`${logPrefix} Zod validation FAILED for ${definitionName}.json. Errors:`, JSON.stringify(validationResult.error.errors, null, 2));
       throw new Error(`Invalid definition structure in ${definitionName}.json: ${validationResult.error.message}`);
     }
-    console.log(`${logPrefix} Successfully validated ${definitionName}.json. Type: ${validationResult.data.definitionType}`);
     return validationResult.data;
   } catch (error: any) {
-    console.error(`${logPrefix} CRITICAL ERROR loading or parsing definition file ${definitionName}.json via dynamic import. Error: ${error.message}, Stack: ${error.stack}`);
     if (error.message.includes('Cannot find module') || error.code === 'MODULE_NOT_FOUND') {
-        console.error(`${logPrefix} Specific error suggests the file '@src/ai/definitions/${definitionName}.json' was not found by the module resolver.`);
     }
     throw new Error(`Failed to load AI definition '${definitionName}': ${error.message}`);
   }
@@ -107,7 +101,6 @@ export async function loadDefinition(definitionName: string): Promise<GenericDef
  */
 export function buildPromptStringFromLlmDefinition(definition: LlmPromptDefinition): string {
   const logPrefix = `[DefinitionLoader:buildPromptStringFromLlmDefinition:${definition.promptName}]`;
-  console.log(`${logPrefix} Building prompt string.`);
   let fullPrompt = "";
   if (definition.chainOfThought && Array.isArray(definition.chainOfThought)) {
     for (const step of definition.chainOfThought) {
@@ -118,9 +111,7 @@ export function buildPromptStringFromLlmDefinition(definition: LlmPromptDefiniti
       }
     }
   } else {
-    console.warn(`${logPrefix} Definition has no 'chainOfThought' or it's not an array. Prompt string will be empty.`);
   }
-  console.log(`${logPrefix} Built prompt string (first 100 chars): ${fullPrompt.substring(0,100)}...`);
   return fullPrompt.trim();
 }
 
@@ -142,19 +133,15 @@ const ExamplePromptsFileSchema = z.array(ExamplePromptSchema);
  */
 export async function loadExamplePrompts(fileName: string): Promise<ExamplePrompt[]> {
   const logPrefix = `[DefinitionLoader:loadExamplePrompts:${fileName}]`;
-  console.log(`${logPrefix} Loading via dynamic import.`);
   try {
     const module = await import(`@/ai/definitions/${fileName}`);
     const jsonData = module.default;
     const validationResult = ExamplePromptsFileSchema.safeParse(jsonData);
     if (!validationResult.success) {
-      console.error(`${logPrefix} Zod validation FAILED for ${fileName}:`, JSON.stringify(validationResult.error.issues, null, 2));
       throw new Error(`Invalid structure in ${fileName}.`);
     }
-    console.log(`${logPrefix} Successfully loaded and validated. Count: ${validationResult.data.length}`);
     return validationResult.data;
   } catch (error: any) {
-    console.error(`${logPrefix} CRITICAL ERROR loading example prompts:`, error);
     throw new Error(`Failed to load or parse ${fileName}: ${error.message}`);
   }
 }

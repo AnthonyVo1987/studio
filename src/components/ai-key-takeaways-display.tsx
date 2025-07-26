@@ -4,22 +4,29 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
-import { useUIState } from "@/contexts/ui-state-context";
+import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { useQuickExport } from "@/hooks/use-export-actions";
 
 export function AiKeyTakeawaysDisplay() {
-  const { currentSnapshot } = useUIState();
-  const loadingStates = currentSnapshot.loadingStates;
+  const business = useStockAnalysis();
 
-  // Derive values directly from UI snapshot
-  const aiAnalysis = currentSnapshot.aiAnalysis;
-  const isLoading = loadingStates.isGeneratingTakeaways;
-  const isDataReady = aiAnalysis.isKeyTakeawaysReady;
+  // AI Key Takeaways are now on-demand only (no FSM loading state)
+  const isLoading = false; // On-demand actions handle their own loading states
+  const isDataReady = business.fsmFlags.isKeyTakeawaysDataAvailable;
+
+  // Parse AI key takeaways data for export
+  const keyTakeawaysData = business.aiKeyTakeawaysJson ? (() => {
+    try {
+      return JSON.parse(business.aiKeyTakeawaysJson);
+    } catch (e) {
+      return {};
+    }
+  })() : {};
 
   // Export functionality
   const exportActions = useQuickExport(
-    aiAnalysis.keyTakeaways || {},
-    `${currentSnapshot.activeTicker || "STOCK"}_ai_key_takeaways`,
+    keyTakeawaysData,
+    `${business.fsmVariables.activeTicker || "STOCK"}_ai_key_takeaways`,
     "AI Key Takeaways"
   );
 

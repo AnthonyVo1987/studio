@@ -18,7 +18,6 @@ export const createJsonSetter = (
     try {
       // Optional validation
       if (validator && !validator(json)) {
-        console.warn(`Invalid JSON for ${fieldName}:`, json.substring(0, 100))
         return
       }
       
@@ -27,7 +26,6 @@ export const createJsonSetter = (
       
       // Logging removed to prevent render loops and reduce console noise
     } catch (error) {
-      console.error(`Error updating ${fieldName}:`, error)
     }
   }
 }

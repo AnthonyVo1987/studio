@@ -98,7 +98,6 @@ export function formatTimestampToPacificTime(timestamp: number | string | Date |
     return formatter.format(date);
 
   } catch (error) {
-    console.error("Error formatting timestamp to Pacific Time:", error, "Original timestamp:", timestamp);
     // Fallback for safety, though a specific "N/A" or error string is better
     // if the primary formatting fails for an unexpected reason with a valid-looking input.
     // However, the initial check should catch most problematic inputs.

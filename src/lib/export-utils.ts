@@ -21,7 +21,6 @@ export function downloadJson(jsonData: any, filename: string): void {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("Error downloading JSON:", error);
     alert("Failed to download JSON data. See console for details.");
   }
 }
@@ -43,7 +42,6 @@ export function downloadTxt(textData: string, filename: string): void {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("Error downloading TXT:", error);
     alert("Failed to download TXT data. See console for details.");
   }
 }
@@ -67,7 +65,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       document.body.removeChild(textArea);
       return successful;
     } catch (err) {
-      console.error("Fallback: Oops, unable to copy", err);
       return false;
     }
   }
@@ -75,7 +72,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     await navigator.clipboard.writeText(text);
     return true;
   } catch (err) {
-    console.error("Async: Could not copy text: ", err);
     return false;
   }
 }

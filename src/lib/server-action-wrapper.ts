@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { logger } from './logger';
 
 interface ActionOptions<TInput, TOutput> {
   name: string;
@@ -26,14 +25,12 @@ export const createServerAction = <TInput = any, TOutput = any>(
       const actionLogPrefix = `[ServerAction:${options.name}]`;
       
       try {
-        logger.debug(`${actionLogPrefix} Received request. Input keys: ${Object.keys(input as any).join(', ')}`);
 
         // Input validation
         if (options.inputSchema) {
           const validation = options.inputSchema.safeParse(input);
           if (!validation.success) {
             const errorMsg = 'Invalid input parameters';
-            logger.warn(`${actionLogPrefix} Validation Error: ${errorMsg}`, validation.error);
             return {
               status: 'error',
               error: errorMsg,
@@ -44,7 +41,6 @@ export const createServerAction = <TInput = any, TOutput = any>(
           input = validation.data;
         }
 
-        logger.debug(`${actionLogPrefix} Starting execution`, { actionId });
 
         // Execute handler
         const result = await handler(input);
@@ -53,7 +49,6 @@ export const createServerAction = <TInput = any, TOutput = any>(
         if (options.outputSchema) {
           const validation = options.outputSchema.safeParse(result);
           if (!validation.success) {
-            logger.error(`${actionLogPrefix} Output validation failed`, validation.error);
             return {
               status: 'error',
               error: 'Invalid response format',
@@ -64,7 +59,6 @@ export const createServerAction = <TInput = any, TOutput = any>(
         }
 
         const duration = Date.now() - startTime;
-        logger.info(`${actionLogPrefix} Completed successfully`, { actionId, duration });
 
         return {
           status: 'success',
@@ -77,7 +71,6 @@ export const createServerAction = <TInput = any, TOutput = any>(
         const duration = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown server error';
         
-        logger.error(`${actionLogPrefix} CRITICAL Error in action execution`, { 
           actionId, 
           duration,
           error: errorMessage,
@@ -110,7 +103,6 @@ export const createStockAnalysisAction = <TInput, TOutput>(
 // Utility function for safe JSON stringification (used in many actions)
 export const safeJsonStringify = (obj: any, name: string, actionPrefix: string): string => {
   if (obj === undefined || obj === null) {
-    logger.warn(`${actionPrefix} Data for '${name}' is null or undefined before stringifying`);
     return '{}';
   }
   
@@ -118,7 +110,6 @@ export const safeJsonStringify = (obj: any, name: string, actionPrefix: string):
     return JSON.stringify(obj, null, 2);
   } catch (e: any) {
     const errorMsg = `Failed to stringify ${name}`;
-    logger.error(`${actionPrefix} Error stringifying '${name}': ${e.message}. Object (first 100 chars): ${String(obj).substring(0,100)}`);
     return JSON.stringify({ error: errorMsg, details: e.message }, null, 2);
   }
 };
@@ -127,7 +118,6 @@ export const safeJsonStringify = (obj: any, name: string, actionPrefix: string):
 export const validateTicker = (ticker: any, actionPrefix: string): string | null => {
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
     const errorMsg = 'Ticker symbol is required and must be a non-empty string';
-    logger.error(`${actionPrefix} Validation Error: ${errorMsg}`);
     return errorMsg;
   }
   return null;
@@ -140,7 +130,6 @@ export const validateRequiredJsonInputs = (inputs: Record<string, string>, actio
   
   if (missingInputs.length > 0) {
     const errorMsg = `Required data inputs are missing or empty: ${missingInputs.join(', ')}`;
-    logger.warn(`${actionPrefix} Validation Error - ${errorMsg}`);
     return errorMsg;
   }
   return null;

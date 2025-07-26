@@ -120,14 +120,11 @@ export function DebugTabContent() {
           toast({ title: "Copied to Clipboard", description: "All debug data copied successfully." });
         } else {
           toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy debug data. The copy operation returned false." });
-          console.error(`[DebugTabContent:CopyAll] Failed to copy all debug data. copyToClipboard returned false`);
         }
       })
       .catch(err => {
         const errorMessage = (err as Error).message || 'Unknown error';
-        console.error('[DebugTabContent] Error copying all debug data to clipboard:', err);
         toast({ variant: "destructive", title: "Copy Failed", description: `Could not copy debug data: ${errorMessage}` });
-        console.error(`[DebugTabContent:CopyAll] Error caught while trying to copy all debug data:`, errorMessage, err);
       });
   };
 

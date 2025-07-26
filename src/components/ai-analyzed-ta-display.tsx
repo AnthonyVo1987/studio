@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
-import { useUIState } from "@/contexts/ui-state-context";
+import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatCurrency } from "@/lib/number-utils";
 
 interface SupportResistanceItem {
@@ -40,18 +40,30 @@ const renderLevelRow = (item: SupportResistanceItem, index: number, isLoading: b
 };
 
 export function AiAnalyzedTaDisplay() {
-  const { currentSnapshot } = useUIState();
-  const loadingStates = currentSnapshot.loadingStates;
+  const business = useStockAnalysis();
 
-  // Derive values directly from UI snapshot
-  const aiAnalysis = currentSnapshot.aiAnalysis;
-  const isLoading = loadingStates.isCalculatingTA || !aiAnalysis.isTechnicalAnalysisReady;
+  // Parse AI analyzed TA data directly from business context
+  const aiTaData = business.aiAnalyzedTaJson ? (() => {
+    try {
+      const parsed = JSON.parse(business.aiAnalyzedTaJson);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          technicalAnalysis: parsed,
+          isDataReady: business.fsmFlags.isCalculatedTADataReady
+        };
+      }
+    } catch (e) {}
+    return { technicalAnalysis: null, isDataReady: false };
+  })() : { technicalAnalysis: null, isDataReady: false };
+
+  // Derive loading state from FSM
+  const isLoading = business.fsmState === BusinessFsmState.CALCULATING_AI_TA || !aiTaData.isDataReady;
 
   // Build levels array if data is ready
   const levels: SupportResistanceItem[] = [];
   
-  if (aiAnalysis.isTechnicalAnalysisReady && aiAnalysis.technicalAnalysis) {
-    const ta = aiAnalysis.technicalAnalysis;
+  if (aiTaData.isDataReady && aiTaData.technicalAnalysis) {
+    const ta = aiTaData.technicalAnalysis;
     levels.push(
       { label: "Pivot Point", value: formatCurrency(ta.pivotPoint), level: 'pivot' },
       { label: "Support 1", value: formatCurrency(ta.support1), level: 'support' },

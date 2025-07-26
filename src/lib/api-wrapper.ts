@@ -1,4 +1,3 @@
-import { logger } from './logger'
 
 interface ApiConfig {
   maxRetries?: number
@@ -46,14 +45,12 @@ export const createApiWrapper = (defaultConfig: ApiConfig = {}) => {
     for (let attempt = 0; attempt <= finalConfig.maxRetries; attempt++) {
       try {
         if (attempt > 0) {
-          logger.debug(`Retrying API call to ${endpoint}`, { attempt, maxRetries: finalConfig.maxRetries })
           await delay(finalConfig.retryDelay * attempt)
         }
 
         const data = await operation()
         
         if (attempt > 0) {
-          logger.info(`API call succeeded after ${attempt} retries`, { endpoint })
         }
 
         return {
@@ -66,7 +63,6 @@ export const createApiWrapper = (defaultConfig: ApiConfig = {}) => {
         lastError = error as Error
         retryCount = attempt
         
-        logger.warn(`API call failed`, { 
           endpoint, 
           attempt: attempt + 1, 
           maxRetries: finalConfig.maxRetries + 1,
@@ -80,7 +76,6 @@ export const createApiWrapper = (defaultConfig: ApiConfig = {}) => {
       }
     }
 
-    logger.error(`API call failed after all retries`, { 
       endpoint, 
       totalAttempts: retryCount + 1,
       finalError: lastError?.message 

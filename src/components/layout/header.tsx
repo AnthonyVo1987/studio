@@ -10,8 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useStockAnalysis } from "@/contexts/business-logic-context";
-import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   appVersion: string;
@@ -20,11 +18,6 @@ interface HeaderProps {
 
 export function Header({ appVersion, lastUpdatedTimestamp }: HeaderProps) {
   const { setTheme } = useTheme();
-  const {
-    fsmState: globalFsmState,
-    previousFsmState: globalPreviousFsmState,
-    targetFsmDisplayState: globalTargetFsmDisplayState
-  } = useStockAnalysis();
 
   return (
     <header className="py-4 px-6 border-b sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
@@ -34,13 +27,6 @@ export function Header({ appVersion, lastUpdatedTimestamp }: HeaderProps) {
           <h1 className="text-2xl font-headline font-semibold">StockSage <span className="text-lg font-normal text-muted-foreground">{appVersion}</span></h1>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-xs text-muted-foreground text-right space-x-1 hidden md:block">
-              <span>Prev: <span className={cn("font-semibold", globalPreviousFsmState ? "text-foreground/80" : "")}>{globalPreviousFsmState || 'N/A'}</span></span>
-              <span>|</span>
-              <span>Curr: <span className="font-semibold text-primary">{globalFsmState}</span></span>
-              <span>|</span>
-              <span>Target: <span className={cn("font-semibold", globalTargetFsmDisplayState ? "text-foreground/80" : "")}>{globalTargetFsmDisplayState || 'N/A'}</span></span>
-          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
