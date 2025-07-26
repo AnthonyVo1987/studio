@@ -49,7 +49,7 @@ export function AiAnalyzedTaDisplay() {
       if (parsed && typeof parsed === 'object') {
         return {
           technicalAnalysis: parsed,
-          isDataReady: business.fsmFlags.isCalculatedTADataReady
+          isDataReady: business.fsmFlags.hasAiTaData
         };
       }
     } catch (e) {}
@@ -57,7 +57,7 @@ export function AiAnalyzedTaDisplay() {
   })() : { technicalAnalysis: null, isDataReady: false };
 
   // Derive loading state from FSM
-  const isLoading = business.fsmState === BusinessFsmState.CALCULATING_AI_TA || !aiTaData.isDataReady;
+  const isLoading = business.fsmState === BusinessFsmState.LOADING || !aiTaData.isDataReady;
 
   // Build levels array if data is ready
   const levels: SupportResistanceItem[] = [];

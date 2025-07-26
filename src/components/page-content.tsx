@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContentUI } from "@/components/main-tab-content-ui";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
-import { BusinessOrchestrator } from "@/components/business-orchestrator";
 import { cn } from "@/lib/utils";
 
 interface PageContentProps {
@@ -18,9 +17,6 @@ interface PageContentProps {
 export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentProps) {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Business Logic Orchestrator - runs in background */}
-      <BusinessOrchestrator />
-      
       <Header appVersion={appVersion} lastUpdatedTimestamp={lastUpdatedTimestamp} />
       <main
         className={cn(
@@ -30,13 +26,13 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
         <Tabs defaultValue="main" className="w-full">
           <TabsList className="flex w-full overflow-x-auto">
             <TabsTrigger value="main">Main</TabsTrigger>
-            <TabsTrigger value="debug">Debug</TabsTrigger>
+            <TabsTrigger value="data">Data</TabsTrigger>
             <TabsTrigger value="fsm-debug">Debug FSM</TabsTrigger>
           </TabsList>
           <TabsContent value="main">
             <MainTabContentUI appVersion={appVersion} /> 
           </TabsContent>
-          <TabsContent value="debug">
+          <TabsContent value="data">
             <DebugTabContent />
           </TabsContent>
           <TabsContent value="fsm-debug">

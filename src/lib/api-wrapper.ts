@@ -62,24 +62,12 @@ export const createApiWrapper = (defaultConfig: ApiConfig = {}) => {
       } catch (error) {
         lastError = error as Error
         retryCount = attempt
-        
-          endpoint, 
-          attempt: attempt + 1, 
-          maxRetries: finalConfig.maxRetries + 1,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })
-
         // Don't retry on certain error types
         if (error instanceof ApiError && error.statusCode && error.statusCode < 500) {
           break
         }
       }
     }
-
-      endpoint, 
-      totalAttempts: retryCount + 1,
-      finalError: lastError?.message 
-    })
 
     return {
       data: null,

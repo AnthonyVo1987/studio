@@ -62,7 +62,7 @@ export function StockSnapshotDetailsDisplay() {
   })() : { ticker: null, price: null, change: null, changePercent: null, volume: null, marketCap: null, previousClose: null, isDataReady: false };
 
   // Derive loading state from FSM
-  const isLoading = business.fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS || !stockData.isDataReady;
+  const isLoading = business.fsmState === BusinessFsmState.LOADING || !stockData.isDataReady;
 
   // Calculate sentiment for changes
   const changeSentiment: 'bullish' | 'bearish' | 'neutral' = 

@@ -13,24 +13,11 @@ import { findNextAvailableDate } from '@/lib/date-utils';
 import { createSetterBatch } from './context-setter-factory';
 
 
-// Business Logic FSM States - Simplified for on-demand AI (v4.0.0.3)
+// Business Logic FSM States - Minimal for on-demand architecture (v4.0.0.4)
 export enum BusinessFsmState {
   APP_INITIALIZING = 'APP_INITIALIZING',
   IDLE = 'IDLE',
-  AWAITING_TICKER_INPUT = 'AWAITING_TICKER_INPUT',
-  VALID_TICKER_ENTERED = 'VALID_TICKER_ENTERED',
-
-  // Basic data pipeline (stock data + basic TA)
-  DATA_FETCH_IN_PROGRESS = 'DATA_FETCH_IN_PROGRESS',
-  DATA_FETCH_SUCCEEDED = 'DATA_FETCH_SUCCEEDED',
-  DATA_FETCH_FAILED = 'DATA_FETCH_FAILED',
-
-  CALCULATING_AI_TA = 'CALCULATING_AI_TA',
-  AI_TA_CALCULATION_SUCCEEDED = 'AI_TA_CALCULATION_SUCCEEDED',
-  AI_TA_CALCULATION_FAILED = 'AI_TA_CALCULATION_FAILED',
-
-  // Error states
-  ERROR_STALE_DATA = 'ERROR_STALE_DATA',
+  LOADING = 'LOADING', // Generic loading state for any on-demand operation
 }
 
 // Business domain types (moved from UI context)
@@ -48,16 +35,15 @@ export interface BusinessContextVariables {
   lastError: { message: string; source: string; details?: any } | null;
 }
 
-// Business Logic Flags - Data availability and business rules (simplified v4.0.0.3)
+// Business Logic Flags - Simple boolean flags for on-demand architecture (v4.0.0.4)
 export interface BusinessFlags {
-  canAnalyzeStock: boolean;
-  isMarketDataReady: boolean;
-  isSnapshotDataReady: boolean;
-  isStandardTADataReady: boolean;
-  isOptionsChainDataReady: boolean;
-  isCalculatedTADataReady: boolean;
-  isKeyTakeawaysDataAvailable: boolean;
-  isOptionsAnalysisDataAvailable: boolean;
+  canGetStockData: boolean;
+  hasStockData: boolean;
+  hasMarketData: boolean;
+  hasOptionsData: boolean;
+  hasAiTaData: boolean;
+  hasAiKeyTakeaways: boolean;
+  hasAiOptionsAnalysis: boolean;
 }
 
 // Business FSM State Container
@@ -81,16 +67,11 @@ export type FsmDisplayTuple = {
 interface StaleDataFromActionPayload { error: string; message: string; expectedTicker: string; foundTickerInSnapshot?: string; actionStateData?: StockDataFetchResult; }
 
 export type FsmEvent =
-  | { type: 'START_BASIC_ANALYSIS'; payload: { ticker: string } }
   | { type: 'INITIALIZATION_COMPLETE' }
   | { type: 'USER_INPUT_TICKER_CHANGED'; payload: { ticker: string } }
-  | { type: 'SET_STATE_DATA_FETCH_IN_PROGRESS' }
-  | { type: 'FETCH_DATA_SUCCESS'; payload: AnalyzeStockServerActionState }
-  | { type: 'FETCH_DATA_FAILURE'; payload: AnalyzeStockServerActionState }
-  | { type: 'SET_STATE_CALCULATING_AI_TA' }
-  | { type: 'AI_TA_SUCCESS'; payload: AnalyzeTaActionState }
-  | { type: 'AI_TA_FAILURE'; payload: AnalyzeTaActionState }
-  | { type: 'STALE_DATA_FROM_ACTION'; payload: StaleDataFromActionPayload };
+  | { type: 'SET_LOADING'; payload: { isLoading: boolean } }
+  | { type: 'SET_ERROR'; payload: { error: string; source: string } }
+  | { type: 'CLEAR_ERROR' };
 
 export interface AppDataChatMessage {
   id: string;
@@ -208,6 +189,12 @@ interface BusinessLogicContextType extends BusinessDataState, BusinessContextSet
   fsmFlags: BusinessFlags;
   dispatchFsmEvent: (event: FsmEvent) => void;
   
+  // On-demand operation helpers
+  setActiveTicker: (ticker: string) => void;
+  setLoadingState: (isLoading: boolean) => void;
+  setErrorState: (error: string, source: string) => void;
+  clearError: () => void;
+  
   // Chat management
   addAppDataChatMessage: (message: AppDataChatMessage) => void;
   clearAppDataChatHistory: () => void;
@@ -238,6 +225,16 @@ interface StockAnalysisContextType extends Omit<StockAnalysisState, 'globalFsmSt
   dispatchFsmEvent: (event: FsmEvent) => void;
   setMainTabFsmDisplay: (display: FsmDisplayTuple | null) => void;
   setChatbotFsmDisplay: (display: FsmDisplayTuple | null) => void;
+  // On-demand operation helpers
+  setActiveTicker: (ticker: string) => void;
+  setLoadingState: (isLoading: boolean) => void;
+  setErrorState: (error: string, source: string) => void;
+  clearError: () => void;
+  // Data availability flag setters (anti-pattern fix)
+  markStockDataReady: () => void;
+  markAiTaDataReady: () => void;
+  markAiKeyTakeawaysReady: () => void;
+  markAiOptionsAnalysisReady: () => void;
 }
 
 const initialJsonPlaceholder = '{ "status": "no_analysis_run_yet" }';
@@ -253,14 +250,13 @@ const initialBusinessFsmState: BusinessFsmReducerManagedState = {
     lastError: null,
   },
   flags: {
-    canAnalyzeStock: false,
-    isMarketDataReady: false,
-    isSnapshotDataReady: false,
-    isStandardTADataReady: false,
-    isOptionsChainDataReady: false,
-    isCalculatedTADataReady: false,
-    isKeyTakeawaysDataAvailable: false,
-    isOptionsAnalysisDataAvailable: false,
+    canGetStockData: false,
+    hasStockData: false,
+    hasMarketData: false,
+    hasOptionsData: false,
+    hasAiTaData: false,
+    hasAiKeyTakeaways: false,
+    hasAiOptionsAnalysis: false,
   },
 };
 
@@ -543,88 +539,31 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
     let nextVariables: BusinessContextVariables = { ...state.variables };
     let nextFlags: BusinessFlags = { ...state.flags };
 
-    const resetForNewAnalysis = (ticker: string) => {
-        nextVariables.activeTicker = ticker;
-        nextVariables.lastError = null;
-        nextFlags.canAnalyzeStock = false;
-        nextFlags.isMarketDataReady = false; nextFlags.isSnapshotDataReady = false;
-        nextFlags.isStandardTADataReady = false; nextFlags.isOptionsChainDataReady = false;
-        nextFlags.isCalculatedTADataReady = false;
-        nextFlags.isKeyTakeawaysDataAvailable = false;
-        nextFlags.isOptionsAnalysisDataAvailable = false;
-    };
-
-    const handlePipelineError = (source: string, errorMessage: string, errorDetails?: any) => {
-        nextVariables.lastError = { message: errorMessage, source, details: errorDetails };
-        nextCurrentState = BusinessFsmState.IDLE;
-    };
-    
-
     switch (event.type) {
-      case 'START_BASIC_ANALYSIS':
-        resetForNewAnalysis(event.payload.ticker);
-        nextCurrentState = BusinessFsmState.DATA_FETCH_IN_PROGRESS;
-        break;
       case 'INITIALIZATION_COMPLETE':
         if (previousState === BusinessFsmState.APP_INITIALIZING) {
-            nextCurrentState = nextVariables.userInputTicker.trim() !== "" ? BusinessFsmState.VALID_TICKER_ENTERED : BusinessFsmState.AWAITING_TICKER_INPUT;
+            nextCurrentState = BusinessFsmState.IDLE;
         }
         break;
       case 'USER_INPUT_TICKER_CHANGED':
         nextVariables.userInputTicker = event.payload.ticker;
-        if (!event.payload.ticker.trim()) {
-            nextCurrentState = BusinessFsmState.AWAITING_TICKER_INPUT;
-        } else if (event.payload.ticker.trim() !== nextVariables.activeTicker) {
-            nextCurrentState = BusinessFsmState.VALID_TICKER_ENTERED;
-        } else {
-             nextCurrentState = previousState;
-        }
         break;
-      case 'FETCH_DATA_SUCCESS':
-        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
-        if (event.payload.data) {
-            nextFlags.isMarketDataReady = true; nextFlags.isSnapshotDataReady = true; nextFlags.isStandardTADataReady = true; nextFlags.isOptionsChainDataReady = true;
-            nextCurrentState = BusinessFsmState.CALCULATING_AI_TA;
-        } else {
-             handlePipelineError('DataFetchSuccess', 'Payload data missing in success event.');
-        }
+      case 'SET_LOADING':
+        nextCurrentState = event.payload.isLoading ? BusinessFsmState.LOADING : BusinessFsmState.IDLE;
         break;
-      case 'FETCH_DATA_FAILURE':
-        const fetchErr = event.payload;
-        const fetchErrMsg = fetchErr.message || 'Data fetch failed';
-        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
-        handlePipelineError('DataFetch', fetchErrMsg, fetchErr.error);
+      case 'SET_ERROR':
+        nextVariables.lastError = { message: event.payload.error, source: event.payload.source };
+        nextCurrentState = BusinessFsmState.IDLE;
         break;
-      case 'STALE_DATA_FROM_ACTION':
-        const staleErr = event.payload; const staleErrMsg = staleErr.message || 'Stale data error';
-        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
-        handlePipelineError('StaleData', staleErrMsg, staleErr.error);
-        break;
-      case 'AI_TA_SUCCESS':
-        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
-        if(event.payload.data) {
-            nextFlags.isCalculatedTADataReady = true;
-            nextCurrentState = BusinessFsmState.IDLE; // Complete basic pipeline
-        } else {
-            handlePipelineError('AITaCalculationSuccess', 'Payload data missing in success event.');
-        }
-        break;
-      case 'AI_TA_FAILURE':
-        const aiTaErr = event.payload; const aiTaErrMsg = aiTaErr.message || 'AI TA analysis failed';
-        // State updates moved to MainTabContent orchestrator to avoid render-phase updates
-        handlePipelineError('AITaCalculation', aiTaErrMsg, aiTaErr.error);
+      case 'CLEAR_ERROR':
+        nextVariables.lastError = null;
         break;
       default:
         break;
     }
 
-    if ([
-        BusinessFsmState.IDLE, BusinessFsmState.VALID_TICKER_ENTERED, BusinessFsmState.AWAITING_TICKER_INPUT,
-    ].includes(nextCurrentState)) {
-        nextFlags.canAnalyzeStock = true;
-    } else {
-        nextFlags.canAnalyzeStock = false;
-    }
+    // Always allow stock data operations when not loading
+    nextFlags.canGetStockData = nextCurrentState !== BusinessFsmState.LOADING;
 
     return { current: nextCurrentState, previous: previousState, variables: nextVariables, flags: nextFlags };
   };
@@ -635,18 +574,6 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fsmStateRef.current = businessFsmReducerState;
   }, [businessFsmReducerState]);
-  
-  useEffect(() => {
-    const isNewAnalysis = businessFsmReducerState.current === BusinessFsmState.DATA_FETCH_IN_PROGRESS && 
-                          businessFsmReducerState.previous !== BusinessFsmState.DATA_FETCH_IN_PROGRESS;
-
-    if (isNewAnalysis) {
-      const ticker = businessFsmReducerState.variables.activeTicker;
-      if (ticker) {
-        setAllPlaceholdersInternal(ticker, true);
-      }
-    }
-  }, [businessFsmReducerState.current, businessFsmReducerState.previous, businessFsmReducerState.variables.activeTicker, setAllPlaceholdersInternal]);
   
   const userInputTickerForEffect = businessFsmReducerState.variables.userInputTicker;
 
@@ -712,6 +639,60 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
       _dispatchFsmEventActual(event);
     });
   }, []);
+
+  // Helper functions for on-demand operations
+  const setActiveTicker = useCallback((ticker: string) => {
+    startTransition(() => {
+      _dispatchFsmEventActual({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker } });
+      // Reset all data flags when changing ticker
+      const resetState = businessFsmReducerState;
+      resetState.variables.activeTicker = ticker;
+      resetState.flags.hasStockData = false;
+      resetState.flags.hasMarketData = false;
+      resetState.flags.hasOptionsData = false;
+      resetState.flags.hasAiTaData = false;
+      resetState.flags.hasAiKeyTakeaways = false;
+      resetState.flags.hasAiOptionsAnalysis = false;
+    });
+  }, [businessFsmReducerState]);
+
+  const setLoadingState = useCallback((isLoading: boolean) => {
+    dispatchFsmEvent({ type: 'SET_LOADING', payload: { isLoading } });
+  }, [dispatchFsmEvent]);
+
+  const setErrorState = useCallback((error: string, source: string) => {
+    dispatchFsmEvent({ type: 'SET_ERROR', payload: { error, source } });
+  }, [dispatchFsmEvent]);
+
+  const clearError = useCallback(() => {
+    dispatchFsmEvent({ type: 'CLEAR_ERROR' });
+  }, [dispatchFsmEvent]);
+
+  // Data availability flag setters
+  const setDataFlags = useCallback((flags: Partial<BusinessFlags>) => {
+    startTransition(() => {
+      // Update flags in the FSM state
+      const currentState = fsmStateRef.current;
+      Object.assign(currentState.flags, flags);
+      _dispatchFsmEventActual({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: currentState.variables.userInputTicker } });
+    });
+  }, []);
+
+  const markStockDataReady = useCallback(() => {
+    setDataFlags({ hasStockData: true, hasMarketData: true, hasOptionsData: true });
+  }, [setDataFlags]);
+
+  const markAiTaDataReady = useCallback(() => {
+    setDataFlags({ hasAiTaData: true });
+  }, [setDataFlags]);
+
+  const markAiKeyTakeawaysReady = useCallback(() => {
+    setDataFlags({ hasAiKeyTakeaways: true });
+  }, [setDataFlags]);
+
+  const markAiOptionsAnalysisReady = useCallback(() => {
+    setDataFlags({ hasAiOptionsAnalysis: true });
+  }, [setDataFlags]);
   
   const contextValue: StockAnalysisContextType = useMemo(() => ({
     polygonApiRequestLogJson: _polygonApiRequestLogJson, setPolygonApiRequestLogJson: contextSetters.setPolygonApiRequestLogJson,
@@ -750,6 +731,10 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
     mainTabFsmDisplay: _mainTabFsmDisplay, setMainTabFsmDisplay,
     chatbotFsmDisplay: _chatbotFsmDisplay, setChatbotFsmDisplay,
     debugConsoleMenuFsmDisplay: _debugConsoleMenuFsmDisplayInternal,
+    // On-demand operation helpers
+    setActiveTicker, setLoadingState, setErrorState, clearError,
+    // Data availability flag setters (anti-pattern fix)
+    markStockDataReady, markAiTaDataReady, markAiKeyTakeawaysReady, markAiOptionsAnalysisReady,
     // Expose new state and setters
     availableExpirationDates: _availableExpirationDates, setAvailableExpirationDates: contextSetters.setAvailableExpirationDates,
     selectedExpirationDate: _selectedExpirationDate, setSelectedExpirationDate: contextSetters.setSelectedExpirationDate,
@@ -775,7 +760,8 @@ export function BusinessLogicProvider({ children }: { children: ReactNode }) {
     _mainTabFsmDisplay, setMainTabFsmDisplay, _chatbotFsmDisplay, setChatbotFsmDisplay,
     _availableExpirationDates, _selectedExpirationDate,
     _isLoadingExpirations, _optionType, _strikeCount, _tableDisplayType,
-    _aiKeyTakeawaysRequestJson,
+    _aiKeyTakeawaysRequestJson, setActiveTicker, setLoadingState, setErrorState, clearError,
+    markStockDataReady, markAiTaDataReady, markAiKeyTakeawaysReady, markAiOptionsAnalysisReady,
   ]);
   
   

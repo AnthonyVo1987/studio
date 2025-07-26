@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, type FormEvent, useCallback, useRef, useEffect, startTransition } from "react";
+import React, { useState, type FormEvent, useEffect, startTransition } from "react";
 import { useActionState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,10 @@ import type { AppDataChatInput } from '@/ai/flows/app-data-chat-flow';
 import type { SdkWebSearchChatActionState, SdkWebSearchChatActionInputs } from '@/ai/schemas/sdk-web-search-chat-schemas';
 import { getExpirationDates } from "@/services/data-sources/adapters/polygon-adapter";
 
+// On-demand data fetching actions
+import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
+import { analyzeTaAction } from '@/actions/analyze-ta-action';
+
 const appDataButtons: ExamplePromptButton[] = [
   { title: "Stock Trader's Takeaways", promptName: 'stock-trader-takeaways', icon: FileText },
   { title: "Options Trader's Takeaways", promptName: 'options-trader-takeaways', icon: FileText },
@@ -53,13 +57,14 @@ interface MainTabContentUIProps {
 }
 
 /**
- * MainTabContentUI - UI component using business context directly
+ * MainTabContentUI - On-demand architecture with individual button controls
  * 
- * SIMPLIFIED ARCHITECTURE (v4.0.0.3):
+ * ON-DEMAND ARCHITECTURE (v4.0.0.4):
+ * - "Get Stock Data" button for Polygon API calls only
+ * - Individual "Update UI" buttons for each display component (development phase)
+ * - Direct button handlers without useEffect dependencies
+ * - No automated pipeline - everything is manual/on-demand
  * - Uses business context for all application data
- * - Standard React best practices
- * - No complex UI state layer
- * - Direct business context consumption
  */
 export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
   const { toast } = useToast();
@@ -69,8 +74,9 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
   
   // Destructure commonly used business context values
   const {
-    // FSM state and control
-    fsmState, fsmFlags, fsmVariables, dispatchFsmEvent: dispatchGlobalFsmEvent,
+    // FSM state and control (simplified for on-demand architecture)
+    fsmState, fsmFlags, fsmVariables, 
+    setActiveTicker, setLoadingState, setErrorState, clearError,
     
     // Chat data and actions
     appDataChatHistory: contextAppDataChatHistory, addAppDataChatMessage, clearAppDataChatHistory,
@@ -97,10 +103,21 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     // JSON data
     stockSnapshotJson, marketStatusJson, standardTasJson, aiAnalyzedTaJson,
     aiKeyTakeawaysJson, aiOptionsAnalysisJson, optionsChainJson,
+    
+    // Business context setters
+    setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson,
+    setPolygonApiRequestLogJson, setPolygonApiResponseLogJson, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson,
+    
+    // Flag setters (anti-pattern fix)
+    markStockDataReady, markAiTaDataReady, markAiKeyTakeawaysReady, markAiOptionsAnalysisReady,
   } = business;
 
   // Local UI state
   const [appDataChatUserInput, setAppDataChatUserInput] = useState('');
+  
+  // Individual loading states for on-demand operations
+  const [isGettingStockData, setIsGettingStockData] = useState(false);
+  const [isGettingAiTa, setIsGettingAiTa] = useState(false);
   const [webSearchUserInput, setWebSearchUserInput] = useState('');
   const [appDataExamplePrompts, setAppDataExamplePrompts] = useState<ExamplePrompt[]>([]);
   const [webSearchExamplePrompts, setWebSearchExamplePrompts] = useState<ExamplePrompt[]>([]);
@@ -109,8 +126,6 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
   const [appDataChatState, submitAppDataChat, isAppDataChatPending] = useActionState<AppDataChatActionState, AppDataChatInput>(appDataChatAction, { status: 'idle' });
   const [webSearchChatState, submitWebSearchChat, isWebSearchChatPending] = useActionState<SdkWebSearchChatActionState, SdkWebSearchChatActionInputs>(sdkWebSearchChatAction, { status: 'idle' });
   
-  const initialInitializationDispatchedRef = useRef(false);
-
   // Load example prompts
   useEffect(() => {
     loadExamplePrompts('example-chat-prompts.json').then(setAppDataExamplePrompts).catch(err => {
@@ -120,14 +135,6 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not load web search example prompts.' });
     });
   }, [toast]);
-
-  // Initialize the business FSM
-  useEffect(() => {
-    if (!initialInitializationDispatchedRef.current) {
-      dispatchGlobalFsmEvent({ type: 'INITIALIZATION_COMPLETE' });
-      initialInitializationDispatchedRef.current = true;
-    }
-  }, [dispatchGlobalFsmEvent]);
 
   // Handle App Data Chat results
   useEffect(() => {
@@ -204,46 +211,108 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       setRawOptionsWebSearchRequestJson, setRawOptionsWebSearchResponseJson, setUserInputWebSearchChatRequestJson, 
       setUserInputWebSearchChatResponseJson, addWebSearchChatMessage]);
 
-  // Derive loading and error states from business context
-  const loadingStates = {
-    isAnalyzing: [
-      BusinessFsmState.DATA_FETCH_IN_PROGRESS,
-      BusinessFsmState.CALCULATING_AI_TA,
-    ].includes(fsmState),
-    isFetchingData: fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS,
-    isCalculatingTA: fsmState === BusinessFsmState.CALCULATING_AI_TA,
-    currentStep: fsmState,
-    progress: (() => {
-      switch (fsmState) {
-        case BusinessFsmState.DATA_FETCH_IN_PROGRESS: return 50;
-        case BusinessFsmState.CALCULATING_AI_TA: return 75;
-        case BusinessFsmState.IDLE: return fsmFlags.isSnapshotDataReady ? 100 : 0;
-        default: return 0;
-      }
-    })()
-  };
-  
+  // Simple loading and error states for on-demand architecture
+  const isAnyOperationLoading = isGettingStockData || isGettingAiTa || isLoadingExpirations;
   const errorState = {
     hasError: !!fsmVariables.lastError,
     message: fsmVariables.lastError?.message || null,
     source: fsmVariables.lastError?.source || null,
-    canRetry: [BusinessFsmState.IDLE, BusinessFsmState.VALID_TICKER_ENTERED].includes(fsmState),
+    canRetry: fsmState === BusinessFsmState.IDLE,
   };
 
-  // User interaction handlers
+  // User interaction handlers for on-demand architecture
   const handleTickerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTicker = e.target.value.toUpperCase();
-    dispatchGlobalFsmEvent({ type: 'USER_INPUT_TICKER_CHANGED', payload: { ticker: newTicker } });
+    setActiveTicker(newTicker);
   };
   
-  const handleAnalyzeStockSubmit = (e?: FormEvent<HTMLFormElement>) => {
+  // On-demand "Get Stock Data" handler - calls Polygon APIs only
+  const handleGetStockData = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     const ticker = fsmVariables.userInputTicker.trim();
     if (!ticker) {
       toast({ title: "Invalid Ticker", description: "Please enter a stock ticker.", variant: "destructive" });
       return;
     }
-    dispatchGlobalFsmEvent({ type: 'START_BASIC_ANALYSIS', payload: { ticker } });
+
+    setIsGettingStockData(true);
+    setLoadingState(true);
+    clearError();
+
+    try {
+      const result = await fetchStockDataAction({
+        ticker,
+        expirationDate: selectedExpirationDate,
+        optionType: business.optionType,
+        strikeCount: business.strikeCount,
+      });
+
+      if (result.status === 'success' && result.data) {
+        // Update business state with Polygon API data
+        startTransition(() => {
+          setMarketStatusJson(result.data!.marketStatusJson);
+          setStockSnapshotJson(result.data!.stockSnapshotJson);
+          setStandardTasJson(result.data!.standardTasJson);
+          setOptionsChainJson(result.data!.optionsChainJson);
+          setPolygonApiRequestLogJson(result.data!.polygonApiRequestLogJson);
+          setPolygonApiResponseLogJson(result.data!.polygonApiResponseLogJson);
+          
+          // Update flags to indicate data is available (anti-pattern fix)
+          markStockDataReady();
+          
+          // Handle auto-selected expiration date
+          try {
+            const responseLog = JSON.parse(result.data!.polygonApiResponseLogJson);
+            if (responseLog.autoSelectedExpirationDate) {
+              setSelectedExpirationDate(responseLog.autoSelectedExpirationDate);
+            }
+          } catch (e) { }
+        });
+        
+        toast({ title: "Success", description: "Stock data retrieved successfully" });
+      } else {
+        setErrorState(result.message || "Failed to get stock data", "StockDataFetch");
+        toast({ title: "Error", description: result.message || "Failed to get stock data", variant: 'destructive' });
+      }
+    } catch (error: any) {
+      setErrorState(error.message || "Unexpected error", "StockDataFetch");
+      toast({ title: "Error", description: "An unexpected error occurred", variant: 'destructive' });
+    } finally {
+      setIsGettingStockData(false);
+      setLoadingState(false);
+    }
+  };
+
+  // On-demand AI Technical Analysis handler
+  const handleGetAiTechnicalAnalysis = async () => {
+    if (!business.fsmFlags.hasStockData) {
+      toast({ title: "No Data", description: "Please get stock data first", variant: "destructive" });
+      return;
+    }
+
+    setIsGettingAiTa(true);
+    
+    try {
+      const result = await analyzeTaAction({
+        stockSnapshotJson: stockSnapshotJson,
+        ticker: fsmVariables.userInputTicker.trim()
+      });
+
+      if (result.status === 'success' && result.data) {
+        startTransition(() => {
+          setAiAnalyzedTaRequestJson(result.data!.aiAnalyzedTaRequestJson);
+          setAiAnalyzedTaJson(result.data!.aiAnalyzedTaJson);
+          markAiTaDataReady();
+        });
+        toast({ title: "Success", description: "AI Technical Analysis completed" });
+      } else {
+        toast({ title: "Error", description: result.message || "Failed to analyze technical data", variant: 'destructive' });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: "An unexpected error occurred", variant: 'destructive' });
+    } finally {
+      setIsGettingAiTa(false);
+    }
   };
 
 
@@ -263,6 +332,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       if (result.status === 'success' && result.data) {
         setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
         setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+        markAiKeyTakeawaysReady();
         toast({ title: "Success", description: "AI Key Takeaways generated successfully" });
       } else {
         toast({ title: "Error", description: result.message || "Failed to generate AI Key Takeaways", variant: 'destructive' });
@@ -285,6 +355,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       if (result.status === 'success' && result.data) {
         setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
         setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
+        markAiOptionsAnalysisReady();
         toast({ title: "Success", description: "AI Options Analysis generated successfully" });
       } else {
         toast({ title: "Error", description: result.message || "Failed to generate AI Options Analysis", variant: 'destructive' });
@@ -377,21 +448,21 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setIsLoadingExpirations(false);
   };
 
-  // Computed states from business context
+  // Computed states for on-demand architecture
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
-  const isOverallLoading = loadingStates.isAnalyzing || isLoadingExpirations;
-  const analyzeButtonDisabled = !fsmFlags.canAnalyzeStock || isOverallLoading || isAnyChatPending || 
-                                !fsmVariables.userInputTicker.trim() || !selectedExpirationDate;
+  const getStockDataButtonDisabled = isAnyOperationLoading || isAnyChatPending || 
+                                    !fsmVariables.userInputTicker.trim() || !selectedExpirationDate;
+  const getAiTaButtonDisabled = isAnyOperationLoading || isAnyChatPending || !business.fsmFlags.hasStockData;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Stock Analysis Input</CardTitle>
-          <CardDescription>Enter a stock ticker to begin the analysis pipeline. Use the toggles to customize the AI-driven steps.</CardDescription>
+          <CardTitle>Stock Data Input (On-Demand)</CardTitle>
+          <CardDescription>Enter a stock ticker and get data on-demand. All operations are now manual button clicks.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleAnalyzeStockSubmit}>
+          <form className="space-y-4" onSubmit={handleGetStockData}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
               <div className="space-y-2">
                 <Label htmlFor="ticker">Stock Ticker</Label>
@@ -400,13 +471,13 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
                   value={fsmVariables.userInputTicker} 
                   onChange={handleTickerInputChange} 
                   placeholder="e.g., AAPL, MSFT" 
-                  disabled={isOverallLoading}
+                  disabled={isAnyOperationLoading}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dataSource">Data Source</Label>
                 <Select defaultValue="polygon" disabled>
-                  <SelectTrigger id="dataSource" disabled={isOverallLoading}>
+                  <SelectTrigger id="dataSource" disabled={isAnyOperationLoading}>
                     <SelectValue placeholder="Select data source" />
                   </SelectTrigger>
                   <SelectContent>
@@ -416,13 +487,26 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
               </div>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button type="submit" className="w-auto" disabled={analyzeButtonDisabled}>
-                {loadingStates.isAnalyzing ? (
+              <Button type="submit" className="w-auto" disabled={getStockDataButtonDisabled}>
+                {isGettingStockData ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Zap className="mr-2 h-4 w-4" />
                 )}
-                Analyze Stock (Basic + AI TA)
+                Get Stock Data (Polygon APIs Only)
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleGetAiTechnicalAnalysis}
+                disabled={getAiTaButtonDisabled}
+              >
+                {isGettingAiTa ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CandlestickChart className="mr-2 h-4 w-4" />
+                )}
+                Get AI Technical Analysis
               </Button>
             </div>
           </form>
@@ -430,13 +514,15 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       </Card>
       
       {/* Show loading state */}
-      {loadingStates.isAnalyzing && (
+      {isAnyOperationLoading && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center space-x-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>
-                {loadingStates.currentStep} - Progress: {loadingStates.progress}%
+                {isGettingStockData && "Getting stock data..."}
+                {isGettingAiTa && "Running AI technical analysis..."}
+                {isLoadingExpirations && "Loading expiration dates..."}
               </span>
             </div>
           </CardContent>
@@ -449,16 +535,14 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
           <CardContent className="pt-6">
             <div className="text-destructive">
               <strong>Error:</strong> {errorState.message}
-              {errorState.canRetry && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="ml-2"
-                  onClick={() => handleAnalyzeStockSubmit()}
-                >
-                  Retry
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-2"
+                onClick={clearError}
+              >
+                Clear Error
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -474,7 +558,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
             <div className="flex flex-col gap-2">
               <Label className="text-xs text-muted-foreground">Step 1</Label>
-              <Button onClick={handleFetchExpirations} disabled={!fsmVariables.userInputTicker || isOverallLoading} className="w-full">
+              <Button onClick={handleFetchExpirations} disabled={!fsmVariables.userInputTicker || isAnyOperationLoading} className="w-full">
                 {isLoadingExpirations ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                 ) : (
@@ -485,7 +569,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="on-demand-expiration">Step 2: Select Date</Label>
-              <Select value={selectedExpirationDate || ''} onValueChange={setSelectedExpirationDate} disabled={availableExpirationDates.length === 0 || isOverallLoading}>
+              <Select value={selectedExpirationDate || ''} onValueChange={setSelectedExpirationDate} disabled={availableExpirationDates.length === 0 || isAnyOperationLoading}>
                 <SelectTrigger id="on-demand-expiration">
                   <SelectValue placeholder="Select a date"/>
                 </SelectTrigger>
@@ -496,7 +580,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="on-demand-strike-count">Strike Count</Label>
-              <Select value={String(business.strikeCount)} onValueChange={(val) => business.setStrikeCount(Number(val) as any)} disabled={isOverallLoading}>
+              <Select value={String(business.strikeCount)} onValueChange={(val) => business.setStrikeCount(Number(val) as any)} disabled={isAnyOperationLoading}>
                 <SelectTrigger id="on-demand-strike-count">
                   <SelectValue placeholder="Strikes"/>
                 </SelectTrigger>
@@ -509,7 +593,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="on-demand-option-type">Option Type</Label>
-              <Select value={business.optionType} onValueChange={(val) => business.setOptionType(val as any)} disabled={isOverallLoading}>
+              <Select value={business.optionType} onValueChange={(val) => business.setOptionType(val as any)} disabled={isAnyOperationLoading}>
                 <SelectTrigger id="on-demand-option-type">
                   <SelectValue placeholder="Type"/>
                 </SelectTrigger>
@@ -522,7 +606,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="main-table-display">Table Display</Label>
-              <Select value={business.tableDisplayType} onValueChange={(val) => business.setTableDisplayType(val as any)} disabled={isOverallLoading}>
+              <Select value={business.tableDisplayType} onValueChange={(val) => business.setTableDisplayType(val as any)} disabled={isAnyOperationLoading}>
                 <SelectTrigger id="main-table-display">
                   <SelectValue placeholder="Select display" />
                 </SelectTrigger>
@@ -542,15 +626,14 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       <Card>
         <CardHeader>
           <CardTitle>AI Analysis (On-Demand)</CardTitle>
-          <CardDescription>Generate AI analysis manually after running the basic stock analysis pipeline.</CardDescription>
+          <CardDescription>Generate AI analysis manually. Each button is independent and requires specific data to be available.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button 
               onClick={handleOnDemandKeyTakeaways}
-              disabled={!fsmVariables.activeTicker || !fsmFlags.isSnapshotDataReady || 
-                       !fsmFlags.isStandardTADataReady || !fsmFlags.isCalculatedTADataReady ||
-                       !fsmFlags.isMarketDataReady || loadingStates.isAnalyzing || isAnyChatPending}
+              disabled={!fsmVariables.userInputTicker || !business.fsmFlags.hasStockData || 
+                       !business.fsmFlags.hasAiTaData || isAnyOperationLoading || isAnyChatPending}
               variant="outline"
               className="flex-1"
             >
@@ -559,8 +642,8 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             </Button>
             <Button 
               onClick={handleOnDemandOptionsAnalysis}
-              disabled={!fsmVariables.activeTicker || !fsmFlags.isOptionsChainDataReady || 
-                       loadingStates.isAnalyzing || isAnyChatPending}
+              disabled={!fsmVariables.userInputTicker || !business.fsmFlags.hasOptionsData || 
+                       isAnyOperationLoading || isAnyChatPending}
               variant="outline"
               className="flex-1"
             >

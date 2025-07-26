@@ -53,7 +53,7 @@ export function StandardTaDisplay() {
       if (parsed.values) {
         return {
           indicators: parsed.values,
-          isDataReady: business.fsmFlags.isStandardTADataReady
+          isDataReady: business.fsmFlags.hasStockData
         };
       }
     } catch (e) {}
@@ -61,7 +61,7 @@ export function StandardTaDisplay() {
   })() : { indicators: {}, isDataReady: false };
 
   // Derive loading state from FSM
-  const isLoading = business.fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS || !taData.isDataReady;
+  const isLoading = business.fsmState === BusinessFsmState.LOADING || !taData.isDataReady;
   
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';

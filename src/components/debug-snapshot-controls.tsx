@@ -107,7 +107,7 @@ export function DebugSnapshotControls({ appVersion }: DebugSnapshotControlsProps
     }
   };
   
-  const isAnyAnalysisInProgress = !context.fsmFlags.canAnalyzeStock;
+  const isAnyAnalysisInProgress = !context.fsmFlags.canGetStockData;
   const isDataAvailableForSnapshot = !!context.fsmVariables.activeTicker;
   const isDisabled = isAnyAnalysisInProgress || !isDataAvailableForSnapshot;
   

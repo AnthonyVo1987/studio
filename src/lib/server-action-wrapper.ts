@@ -70,12 +70,6 @@ export const createServerAction = <TInput = any, TOutput = any>(
       } catch (error) {
         const duration = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown server error';
-        
-          actionId, 
-          duration,
-          error: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined
-        });
 
         return {
           status: 'error',

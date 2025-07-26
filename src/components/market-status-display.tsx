@@ -49,7 +49,7 @@ export function MarketStatusDisplay() {
   })() : { status: "N/A", isOpen: false, localDateTime: null, isDataReady: false };
 
   // Derive loading state from FSM
-  const isLoading = business.fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS || !marketData.isDataReady;
+  const isLoading = business.fsmState === BusinessFsmState.LOADING || !marketData.isDataReady;
 
   // Build details array from market status data
   const details: MarketDetailItem[] = [];

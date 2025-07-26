@@ -1,9 +1,10 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, DollarSign, Hash } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, DollarSign, Hash, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatCurrency, formatPercentage } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 
 export function KeyMetricsDisplay() {
   const business = useStockAnalysis();
+  const [uiDataVersion, setUiDataVersion] = useState(0); // Force UI update trigger
 
   // Parse stock snapshot data directly from business context
   const stockData = business.stockSnapshotJson ? (() => {
@@ -97,8 +99,8 @@ export function KeyMetricsDisplay() {
     return { ticker: null, price: null, changePercent: null, isDataReady: false };
   })() : { ticker: null, price: null, changePercent: null, isDataReady: false };
 
-  // Derive loading state from FSM
-  const isLoading = business.fsmState === BusinessFsmState.DATA_FETCH_IN_PROGRESS || !stockData.isDataReady;
+  // Simple loading state - not FSM dependent
+  const isLoading = business.fsmState === BusinessFsmState.LOADING || !stockData.isDataReady;
   
   // Calculate sentiment for day's change
   const dayChangeSentiment: 'bullish' | 'bearish' | 'neutral' = 
@@ -108,29 +110,50 @@ export function KeyMetricsDisplay() {
   const displayValueForDayChange = isLoading ? "Loading..." : 
     stockData.changePercent !== null ? formatPercentage(stockData.changePercent, "N/A", true, 2) : "N/A";
 
+  // On-demand UI update handler (development phase)
+  const handleUpdateUI = () => {
+    setUiDataVersion(prev => prev + 1); // Force re-render
+  };
+
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <KeyMetricCard
-        label="Ticker"
-        value={stockData.ticker || "N/A"}
-        icon={<Hash className="h-4 w-4" />}
-        isLoading={isLoading}
-        sentiment="neutral"
-      />
-      <KeyMetricCard
-        label="Current Price"
-        value={formatCurrency(stockData.price, "$", "N/A")}
-        icon={<DollarSign className="h-4 w-4" />}
-        isLoading={isLoading}
-        sentiment="neutral"
-      />
-      <KeyMetricCard
-        label="Day's Change"
-        value={displayValueForDayChange}
-        changePercent={stockData.changePercent}
-        isLoading={isLoading}
-        sentiment={dayChangeSentiment}
-      />
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base font-medium">Key Metrics</CardTitle>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleUpdateUI}
+          disabled={isLoading}
+          className="h-8 w-8 p-0"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 md:grid-cols-3">
+          <KeyMetricCard
+            label="Ticker"
+            value={stockData.ticker || "N/A"}
+            icon={<Hash className="h-4 w-4" />}
+            isLoading={isLoading}
+            sentiment="neutral"
+          />
+          <KeyMetricCard
+            label="Current Price"
+            value={formatCurrency(stockData.price, "$", "N/A")}
+            icon={<DollarSign className="h-4 w-4" />}
+            isLoading={isLoading}
+            sentiment="neutral"
+          />
+          <KeyMetricCard
+            label="Day's Change"
+            value={displayValueForDayChange}
+            changePercent={stockData.changePercent}
+            isLoading={isLoading}
+            sentiment={dayChangeSentiment}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

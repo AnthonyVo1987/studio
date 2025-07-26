@@ -12,7 +12,7 @@ export function AiOptionsAnalysisDisplay() {
 
   // AI Options Analysis are now on-demand only (no FSM loading state)
   const isLoading = false; // On-demand actions handle their own loading states
-  const isDataReady = business.fsmFlags.isOptionsAnalysisDataAvailable;
+  const isDataReady = business.fsmFlags.hasAiOptionsAnalysis;
 
   // Parse AI options analysis data for export
   const optionsAnalysisData = business.aiOptionsAnalysisJson ? (() => {

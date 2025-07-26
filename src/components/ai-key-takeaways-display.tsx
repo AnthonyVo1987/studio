@@ -12,7 +12,7 @@ export function AiKeyTakeawaysDisplay() {
 
   // AI Key Takeaways are now on-demand only (no FSM loading state)
   const isLoading = false; // On-demand actions handle their own loading states
-  const isDataReady = business.fsmFlags.isKeyTakeawaysDataAvailable;
+  const isDataReady = business.fsmFlags.hasAiKeyTakeaways;
 
   // Parse AI key takeaways data for export
   const keyTakeawaysData = business.aiKeyTakeawaysJson ? (() => {
