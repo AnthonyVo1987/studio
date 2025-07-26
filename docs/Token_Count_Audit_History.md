@@ -12,12 +12,16 @@ This document maintains a comprehensive history of all token count audits perfor
 
 ### How to Run a Token Audit
 
-1. **Use the Python Script**: Run the `token_counter.py` script located in the `docs/` folder
+1. **Use the Source Code Script (RECOMMENDED)**: Run the `token_count_src_only.py` script located in the `docs/` folder
    ```bash
-   python3 docs/token_counter.py
+   python3 docs/token_count_src_only.py
    ```
 
-2. **Manual Audit Using Shell Commands**: If the Python script is unavailable:
+2. **Legacy Scripts**: Alternative scripts are available but not recommended
+   - `token_counter.py` - Original script (includes config files)
+   - `token_count_corrected.py` - Excludes .md files but includes config files
+
+3. **Manual Audit Using Shell Commands**: If the Python script is unavailable:
    ```bash
    # Count TypeScript/JavaScript files
    find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) ! -path "*/node_modules/*" ! -path "*/docs/*" ! -path "*/.next/*" ! -path "*/dist/*" -exec wc -c {} + | tail -n1
@@ -34,15 +38,29 @@ This document maintains a comprehensive history of all token count audits perfor
    - JSON: Characters ÷ 4 = Tokens
    - CSS: Characters ÷ 5 = Tokens
 
-### Important Exclusions
-The following should ALWAYS be excluded from token counts:
+### Important Exclusions - NEW METHODOLOGY
+**For accurate source code token counts, ONLY analyze the `src/` folder:**
+
+**INCLUDE (Source Code Files Only):**
+- `src/**/*.ts` - TypeScript files
+- `src/**/*.tsx` - TypeScript React files  
+- `src/**/*.js` - JavaScript files
+- `src/**/*.jsx` - JavaScript React files
+- `src/**/*.css` - CSS styling files
+- `src/**/*.scss` - SCSS styling files
+- `src/**/*.json` - JSON configuration files in src/
+
+**EXCLUDE (Everything Outside src/):**
 - `/node_modules/` - Third-party dependencies
-- `/docs/` - Documentation files (including this file and token_counter.py)
+- ALL `.md` files - Documentation files (README.md, CHANGELOG.md, CLAUDE.md, etc.)
 - `/.next/` - Next.js build output
 - `/dist/` - Distribution/build files
-- `package-lock.json` - Lock files
+- `package*.json` - Package configuration files
 - `.genkit/runtimes/` - Temporary runtime files
-- Any backup files (e.g., `package-lock_backup.json`)
+- `.tsbuildinfo` - TypeScript build info files
+- `/docs/` - Documentation and utility scripts
+- All config files in root directory
+- Any backup files or build artifacts
 
 ---
 
@@ -105,6 +123,70 @@ The following should ALWAYS be excluded from token counts:
 - Removed `package-lock_backup.json` which was erroneously adding 105K+ tokens
 - This audit establishes a new baseline for accurate token counting
 - All future audits should use the same methodology for consistency
+
+---
+
+### Audit #2: January 25, 2025 (v3.7.4.4) - FINAL CORRECTED
+
+**🏆 FINAL SOURCE CODE TOKEN AUDIT REPORT**
+**Generated:** 2025-01-25 17:15:43  
+**Project:** StockSage v3.7.4.4  
+**Analysis Scope:** src/ folder ONLY (source code files only)
+
+#### 📊 EXECUTIVE SUMMARY
+- **Total Source Code Tokens:** 118,133
+- **Claude Code 200K Limit:** 200,000
+- **Usage Percentage:** 59.1%
+- **Remaining Capacity:** 81,867 tokens (40.9%)
+- **Status:** ✅ EXCELLENT
+
+#### 📈 TOKEN BREAKDOWN BY FILE TYPE
+| File Type | Tokens | Percentage | File Count |
+|-----------|--------|------------|------------|
+| TypeScript (.tsx) | 73,771 | 62.4% | 55 |
+| TypeScript (.ts) | 38,746 | 32.8% | 40 |
+| JSON Configurations | 4,601 | 3.9% | 7 |
+| CSS/Styling | 1,015 | 0.9% | 1 |
+| **TOTAL** | **118,133** | **100%** | **103** |
+
+#### 📁 TOKEN DISTRIBUTION BY DIRECTORY
+| Directory | Tokens | Percentage | Files |
+|-----------|--------|------------|-------|
+| src/components/ | 34,670 | 29.3% | 16 |
+| src/components/ui/ | 27,837 | 23.6% | 34 |
+| src/contexts/ | 10,750 | 9.1% | 2 |
+| src/lib/ | 9,021 | 7.6% | 12 |
+| src/ai/flows/ | 6,232 | 5.3% | 4 |
+| src/services/data-sources/adapters/ | 5,824 | 4.9% | 1 |
+| src/actions/ | 5,633 | 4.8% | 6 |
+| Other directories | 18,166 | 15.4% | 28 |
+
+#### 🔍 LARGEST SOURCE FILES (Token Impact)
+1. `stock-analysis-context.tsx`: 10,348 tokens (Core State Management)
+2. `main-tab-content.tsx`: 8,914 tokens (Main UI Orchestrator)
+3. `sidebar.tsx`: 5,845 tokens (ShadCN UI Component)
+4. `polygon-adapter.ts`: 5,824 tokens (API Integration Layer)
+5. `options-chain-table.tsx`: 3,771 tokens (Data Display Component)
+
+#### ⚡ KEY FINDINGS
+- **Accurate Methodology**: This audit analyzes ONLY the src/ folder for actual source code
+- **Significant Correction**: Previous audits included config files, docs, and build artifacts
+- **Clean Baseline**: 118,133 tokens represents only the actual source code
+- **Well Optimized**: Token usage is only 59.1% of Claude's 200K limit
+- **Room for Growth**: 81,867 tokens (40.9%) remaining capacity
+
+#### 🎯 RECOMMENDATIONS
+- ✅ **EXCELLENT**: Current token usage is only 59.1% of Claude limit
+- ✅ **SAFE**: 81,867 tokens (40.9%) remaining capacity
+- ✅ **SCALABLE**: Room for ~69% more code before hitting limits
+- ✅ **ACCURATE**: This audit establishes the true baseline for source code only
+
+#### 📋 AUDIT NOTES
+- **Methodology Change**: Now analyzes ONLY src/ folder for source code files
+- **File Types**: Includes only .ts, .tsx, .js, .jsx, .css, .scss, .json files
+- **Excludes**: All documentation, config files, build artifacts, and binary files
+- **Token Estimation**: Using 1 token ≈ 4 characters approximation
+- **Future Audits**: Should use `token_count_src_only.py` for consistency
 
 ---
 

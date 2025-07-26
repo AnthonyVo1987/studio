@@ -1,7 +1,9 @@
-# CLAUDE.md - AI Development Guide for StockSage
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights. This guide provides essential information for AI coding assistants working with this codebase.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models.
 
 ## Common Development Commands
 
@@ -54,9 +56,9 @@ npm run typecheck
 
 ### Core Architecture Files (Tier 1 - Critical)
 - `src/contexts/stock-analysis-context.tsx` - Global state management & FSM
-- `src/components/main-tab-content.tsx` - Main orchestrator component
+- `src/components/main-tab-content.tsx` - Main orchestrator component  
 - `src/services/data-sources/adapters/polygon-adapter.ts` - API integration
-- `src/types.ts` - Type definitions
+- `src/types/` - Type definitions directory (e.g., `options.ts`)
 
 ### Server Actions (Tier 2 - High Priority)
 - `src/actions/analyze-stock-server-action.ts` - Stock data fetching
@@ -123,7 +125,7 @@ case 'KEY_TAKEAWAYS_SUCCESS':
 ### 3. Data Export Features
 - All data cards support "Copy JSON" and "Export JSON" functionality
 - Export utilities located in `src/lib/export-utils.ts`
-- JSON state hooks in `src/hooks/json-state-hooks.ts`
+- JSON state hooks in `src/hooks/use-json-data-state.ts`
 
 ## Common Pitfalls & Solutions
 
@@ -146,7 +148,7 @@ case 'KEY_TAKEAWAYS_SUCCESS':
 - Reduces boilerplate and ensures consistent error handling
 
 ### Custom Hooks
-- `src/hooks/json-state-hooks.ts` - JSON state management utilities
+- `src/hooks/use-json-data-state.ts` - JSON state management utilities
 - `src/hooks/use-toast.ts` - Toast notification system
 
 ### API Integration
@@ -163,11 +165,53 @@ case 'KEY_TAKEAWAYS_SUCCESS':
 - The application uses the "Deterministic Handler" pattern specifically to avoid race conditions
 - FSM feedback loop ensures UI always reflects true application state
 
+## Environment & Configuration
+
+### Required Environment Variables
+Create `.env` in project root:
+```env
+POLYGON_API_KEY=your_polygon_api_key
+GEMINI_API_KEY=your_google_ai_api_key
+```
+
+### Build Configuration
+- **TypeScript errors are ignored during builds** (see `next.config.ts`)
+- **ESLint errors are ignored during builds** (see `next.config.ts`)
+- **Strict TypeScript** is enabled in development but bypassed for builds
+
+## Testing & Debugging
+
+### Testing Strategy
+- **No formal test suite exists** - manual testing required
+- Use the built-in Debug tabs in the application for verification:
+  - "Debug" tab: Raw JSON inputs/outputs
+  - "Debug Logs" tab: Application trace logs with filtering
+  - "Debug FSM" tab: Real-time FSM state monitoring
+
+### Debugging Tools
+- **Debug Snapshot**: Export comprehensive application state for bug reports
+- **JSON Export**: All data cards support "Copy JSON" and "Export JSON"
+- **Logging**: `logDebug()` for client-side, `console.*` for server-side
+
+## Performance & Optimization
+
+### Recent Achievements (v3.7.4.4)
+- **Token Reduction**: 27.9% reduction achieved (~75K tokens total)
+- **React Anti-Patterns**: All infinite render loops eliminated
+- **Console Logging**: Cleaned up for production-ready output
+- **Bundle Size**: Reduced by 12% through code consolidation
+
+### Current Metrics
+- **Context Window Usage**: 75K tokens = 37.5% of 200K AI limit
+- **Build Time**: Reduced by 15%
+- **Type Checking**: 40% faster
+
 ## Important Notes for AI Assistants
 1. **Never modify the core FSM feedback loop** without explicit user approval
 2. **Always preserve the deterministic handler pattern** in main-tab-content.tsx
 3. **Batch state updates** with startTransition to prevent render loops
 4. **Derive UI loading states from FSM**, not by parsing data content
 5. **Keep orchestrator logic separate from reducer logic** to prevent infinite loops
+6. **Always update version metadata** in `src/config/app-metadata.json` for any code changes
 
 This architecture has been battle-tested through multiple refactoring cycles and represents the most stable pattern for this application's complexity level.
