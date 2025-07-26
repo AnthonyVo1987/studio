@@ -1,14 +1,11 @@
-
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { useStockAnalysis } from "@/contexts/business-logic-context";
-import type { StockSnapshotData } from "@/services/data-sources/types";
+import { useUIState } from "@/contexts/ui-state-context";
 import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
-import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 interface StockDetailItem {
   label: string;
@@ -40,115 +37,52 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
   );
 };
 
-
 export function StockSnapshotDetailsDisplay() {
-  const { stockSnapshotJson } = useStockAnalysis();
-  const componentName = 'StockSnapshotDetailsDisplay';
+  const { currentSnapshot, loadingStates } = useUIState();
 
-  const [isLoadingState, setIsLoadingState] = useState(true);
-  const [isErrorState, setIsErrorState] = useState(false);
-  const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState("Snapshot data not available.");
-  const [detailsState, setDetailsState] = useState<StockDetailItem[]>([]);
-  const [parsedSnapshotDataState, setParsedSnapshotDataState] = useState<StockSnapshotData | null>(null);
+  // Derive values directly from UI snapshot
+  const stockSnapshot = currentSnapshot.stockSnapshot;
+  const isLoading = loadingStates.isFetchingData || !stockSnapshot.isDataReady;
 
-  useEffect(() => {
-    const currentJson = stockSnapshotJson;
+  // Calculate sentiment for changes
+  const changeSentiment: 'bullish' | 'bearish' | 'neutral' = 
+    stockSnapshot.change && stockSnapshot.change > 0 ? 'bullish' :
+    stockSnapshot.change && stockSnapshot.change < 0 ? 'bearish' : 'neutral';
 
-    let newIsLoading = true;
-    let newIsError = false;
-    let newErrorMsg = "Snapshot data not available.";
-    let newDetails: StockDetailItem[] = [];
-    let newParsedSnapshotData: StockSnapshotData | null = null;
-
-    if (currentJson && currentJson !== '{}') {
-      if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
-        newIsLoading = true;
-        newErrorMsg = "Loading snapshot details...";
-      } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
-        newIsLoading = false;
-        newIsError = true;
-        if (currentJson.includes('"status": "skipped"')) {
-          newErrorMsg = "Snapshot data loading was skipped.";
-        } else {
-          newErrorMsg = "Error loading snapshot data.";
-        }
-      } else {
-        try {
-          const data = JSON.parse(currentJson) as StockSnapshotData;
-          if (data && typeof data === 'object' && data.ticker) {
-            newIsLoading = false;
-            newIsError = false;
-            newParsedSnapshotData = data;
-
-            const change = newParsedSnapshotData.todaysChange ?? 0;
-            const changePerc = newParsedSnapshotData.todaysChangePerc ?? null;
-            const changeSentiment = change > 0 ? 'bullish' : (change < 0 ? 'bearish' : 'neutral');
-
-            const criticalDetails: StockDetailItem[] = [
-              { label: "Current Price", value: formatCurrency(newParsedSnapshotData.currentPrice)},
-              { label: "Today's Change %", value: formatPercentage(changePerc, "N/A", true, 2), sentiment: changeSentiment },
-              { label: "Today's Change", value: formatCurrency(change, "$", "N/A"), sentiment: changeSentiment },
-              { label: "Day's VWAP", value: formatCurrency(newParsedSnapshotData.day?.vw) },
-              { label: "Day's Volume", value: formatCompactNumber(newParsedSnapshotData.day?.v) },
-              { label: "Day's Close", value: formatCurrency(newParsedSnapshotData.day?.c) },
-            ];
-            const dayDetails: StockDetailItem[] = [
-              { label: "Day's Open", value: formatCurrency(newParsedSnapshotData.day?.o) },
-              { label: "Day's High", value: formatCurrency(newParsedSnapshotData.day?.h) },
-              { label: "Day's Low", value: formatCurrency(newParsedSnapshotData.day?.l) },
-            ];
-            const prevDayDetails: StockDetailItem[] = [
-              { label: "Prev. Open", value: formatCurrency(newParsedSnapshotData.prevDay?.o) },
-              { label: "Prev. High", value: formatCurrency(newParsedSnapshotData.prevDay?.h) },
-              { label: "Prev. Low", value: formatCurrency(newParsedSnapshotData.prevDay?.l) },
-              { label: "Prev. Close", value: formatCurrency(newParsedSnapshotData.prevDay?.c) },
-              { label: "Prev. Volume", value: formatCompactNumber(newParsedSnapshotData.prevDay?.v) },
-              { label: "Prev. VWAP", value: formatCurrency(newParsedSnapshotData.prevDay?.vw) },
-            ];
-            newDetails = [...criticalDetails, ...dayDetails, ...prevDayDetails];
-          } else {
-            newIsLoading = false;
-            newIsError = true;
-            newErrorMsg = "Snapshot data malformed for details display.";
-          }
-        } catch (e) {
-          console.error(`[${componentName}] Failed to parse stockSnapshotJson:`, e, "JSON:", currentJson.substring(0,200));
-          newIsLoading = false;
-          newIsError = true;
-          newErrorMsg = "Failed to parse snapshot data for details display.";
-        }
-      }
-    } else {
-      newIsLoading = false;
-      newErrorMsg = "No snapshot data available for details display.";
-    }
-
-    setIsLoadingState(newIsLoading);
-    setIsErrorState(newIsError);
-    setErrorOrSkippedMessageState(newErrorMsg);
-    setDetailsState(newDetails);
-    setParsedSnapshotDataState(newParsedSnapshotData);
-
-  }, [stockSnapshotJson]);
-
-  const placeholderRowCount = 10;
+  // Build details array if data is ready
+  const details: StockDetailItem[] = [];
+  
+  if (stockSnapshot.isDataReady) {
+    details.push(
+      { label: "Current Price", value: formatCurrency(stockSnapshot.price) },
+      { label: "Today's Change %", value: formatPercentage(stockSnapshot.changePercent, "N/A", true, 2), sentiment: changeSentiment },
+      { label: "Today's Change", value: formatCurrency(stockSnapshot.change, "$", "N/A"), sentiment: changeSentiment },
+      { label: "Volume", value: formatCompactNumber(stockSnapshot.volume) },
+      { label: "Previous Close", value: formatCurrency(stockSnapshot.previousClose) },
+      { label: "Market Cap", value: formatCurrency(stockSnapshot.marketCap, "$", "N/A") }
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock Snapshot Details</CardTitle>
-        <CardDescription>Detailed price and volume information for {parsedSnapshotDataState?.ticker || "the selected ticker"}.</CardDescription>
+        <CardDescription>Detailed price and volume information for {stockSnapshot.ticker || "the selected ticker"}.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableBody>
-            {isLoadingState
-              ? Array.from({ length: placeholderRowCount }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
-              : isErrorState
-                ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessageState}</TableCell></TableRow>
-                : !parsedSnapshotDataState || detailsState.length === 0
-                    ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">{errorOrSkippedMessageState}</TableCell></TableRow>
-                    : detailsState.map((item, index) => renderDetailRow(item, index, false))}
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => renderDetailRow({label: "", value: null}, index, true))
+            ) : details.length > 0 ? (
+              details.map((item, index) => renderDetailRow(item, index, false))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                  No stock snapshot data available.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>

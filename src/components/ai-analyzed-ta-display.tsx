@@ -1,187 +1,92 @@
-
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
-import { useStockAnalysis } from "@/contexts/business-logic-context";
-import type { AnalyzeTaOutput } from "@/ai/schemas/ai-analyzed-ta-schemas"; 
-import type { StockSnapshotData } from "@/services/data-sources/types";
-import { formatToTwoDecimals } from "@/lib/number-utils";
-import { cn } from "@/lib/utils";
-import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
+import { useUIState } from "@/contexts/ui-state-context";
+import { formatCurrency } from "@/lib/number-utils";
 
-interface TaPointDisplayInfo {
-  key: keyof AnalyzeTaOutput; 
+interface SupportResistanceItem {
   label: string;
+  value: string | null;
+  level?: 'support' | 'resistance' | 'pivot';
 }
 
-const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
-  if (sentiment === 'bullish') return 'text-positive';
-  if (sentiment === 'bearish') return 'text-destructive';
+const getLevelColorClass = (level?: 'support' | 'resistance' | 'pivot'): string => {
+  if (level === 'support') return 'text-positive';
+  if (level === 'resistance') return 'text-destructive';
+  if (level === 'pivot') return 'text-primary';
   return '';
 };
 
-const taPointDefinitions: TaPointDisplayInfo[] = [
-  { key: "pivotPoint", label: "Pivot Point (PP)" },
-  { key: "support1", label: "Support 1 (S1)" },
-  { key: "support2", label: "Support 2 (S2)" },
-  { key: "support3", label: "Support 3 (S3)" },
-  { key: "resistance1", label: "Resistance 1 (R1)" },
-  { key: "resistance2", label: "Resistance 2 (R2)" },
-  { key: "resistance3", label: "Resistance 3 (R3)" },
-];
+const renderLevelRow = (item: SupportResistanceItem, index: number, isLoading: boolean) => {
+  if (isLoading) {
+    return (
+      <TableRow key={`loading-ta-${index}`}>
+        <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
+          Waiting for AI technical analysis...
+        </TableCell>
+      </TableRow>
+    );
+  }
+  return (
+    <TableRow key={item.label}>
+      <TableCell className="font-medium">{item.label}</TableCell>
+      <TableCell className={`text-right font-semibold ${getLevelColorClass(item.level)}`}>
+        {item.value ?? "N/A"}
+      </TableCell>
+    </TableRow>
+  );
+};
 
+export function AiAnalyzedTaDisplay() {
+  const { currentSnapshot, loadingStates } = useUIState();
 
-export function AiAnalyzedTaDisplay() { 
-  const { aiAnalyzedTaJson, stockSnapshotJson } = useStockAnalysis(); 
-  const componentName = 'AiAnalyzedTaDisplay';
+  // Derive values directly from UI snapshot
+  const aiAnalysis = currentSnapshot.aiAnalysis;
+  const isLoading = loadingStates.isCalculatingTA || !aiAnalysis.isTechnicalAnalysisReady;
 
-  const [isLoadingState, setIsLoadingState] = useState(true);
-  const [isErrorState, setIsErrorState] = useState(false);
-  const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState("AI Analyzed TA data not available.");
-  const [parsedTaDataState, setParsedTaDataState] = useState<AnalyzeTaOutput | null>(null);
-  const [currentPriceState, setCurrentPriceState] = useState<number | null>(null);
-
-  useEffect(() => {
-    const currentJson = aiAnalyzedTaJson;
-    
-    let newIsLoading = true;
-    let newIsError = false;
-    let newErrorMsg = "AI Analyzed TA data not available."; 
-    let newParsedData: AnalyzeTaOutput | null = null;
-
-    if (!currentJson || currentJson === '{}') {
-      newIsLoading = false; 
-      newErrorMsg = "No AI Analyzed TA data. Ensure stock data was fetched and AI TA processed.";
-    } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
-      newIsLoading = true;
-      newErrorMsg = "Loading AI Analyzed TA...";
-    } else if (currentJson.includes('"status": "error"') || currentJson.includes('"error":')) {
-      newIsLoading = false;
-      newIsError = true;
-      try {
-        const statusObj = JSON.parse(currentJson);
-        newErrorMsg = statusObj.message || statusObj.error || "Error loading AI Analyzed TA.";
-      } catch (e) {
-        newErrorMsg = "Error loading AI Analyzed TA (malformed error JSON).";
-      }
-    } else if (currentJson.includes('"status": "skipped"')) {
-      newIsLoading = false;
-      newIsError = true; // Treat skipped as an error for display
-      try {
-        const statusObj = JSON.parse(currentJson);
-        newErrorMsg = statusObj.message || "AI Analyzed TA was skipped.";
-      } catch (e) {
-        newErrorMsg = "AI Analyzed TA was skipped (malformed skipped JSON).";
-      }
-    } else {
-      try {
-        const data = JSON.parse(currentJson) as AnalyzeTaOutput;
-        if (data && typeof data === 'object' && data.pivotPoint !== undefined && data.support1 !== undefined) {
-          newIsLoading = false;
-          newIsError = false;
-          newParsedData = data;
-          newErrorMsg = ""; // Clear error message on successful parse
-        } else {
-          newIsLoading = false;
-          newIsError = true;
-          newErrorMsg = "AI Analyzed TA data is malformed or incomplete.";
-        }
-      } catch (e) {
-        console.error(`[${componentName}] Failed to parse aiAnalyzedTaJson:`, e, "JSON:", currentJson.substring(0,200));
-        newIsLoading = false;
-        newIsError = true;
-        newErrorMsg = "Failed to parse AI Analyzed TA data.";
-      }
-    }
-    
-    setIsLoadingState(newIsLoading);
-    setIsErrorState(newIsError);
-    setErrorOrSkippedMessageState(newErrorMsg);
-    setParsedTaDataState(newParsedData);
-
-  }, [aiAnalyzedTaJson]);
-
-  useEffect(() => {
-    // Effect for current price, separate from TA data processing
-    if (!isLoadingState && !isErrorState && parsedTaDataState && stockSnapshotJson && stockSnapshotJson !== '{}') {
-      try {
-        if (!PENDING_STATUS_JSON_VARIANTS.includes(stockSnapshotJson.trim()) && 
-            !stockSnapshotJson.includes('"status":') && 
-            !stockSnapshotJson.includes('"error":')) {
-            const snapshot = JSON.parse(stockSnapshotJson) as StockSnapshotData;
-            if (snapshot && snapshot.currentPrice !== undefined && snapshot.currentPrice !== null) {
-                setCurrentPriceState(snapshot.currentPrice);
-            } else {
-                setCurrentPriceState(null);
-            }
-        } else {
-           setCurrentPriceState(null);
-        }
-      } catch (e) {
-        console.error(`[${componentName}] Failed to parse stockSnapshotJson for current price:`, e);
-        setCurrentPriceState(null);
-      }
-    } else if (isLoadingState || isErrorState || !parsedTaDataState) {
-        setCurrentPriceState(null); // Reset if TA data is not ready
-    }
-  }, [isLoadingState, isErrorState, parsedTaDataState, stockSnapshotJson]);
+  // Build levels array if data is ready
+  const levels: SupportResistanceItem[] = [];
+  
+  if (aiAnalysis.isTechnicalAnalysisReady && aiAnalysis.technicalAnalysis) {
+    const ta = aiAnalysis.technicalAnalysis;
+    levels.push(
+      { label: "Pivot Point", value: formatCurrency(ta.pivotPoint), level: 'pivot' },
+      { label: "Support 1", value: formatCurrency(ta.support1), level: 'support' },
+      { label: "Support 2", value: formatCurrency(ta.support2), level: 'support' },
+      { label: "Support 3", value: formatCurrency(ta.support3), level: 'support' },
+      { label: "Resistance 1", value: formatCurrency(ta.resistance1), level: 'resistance' },
+      { label: "Resistance 2", value: formatCurrency(ta.resistance2), level: 'resistance' },
+      { label: "Resistance 3", value: formatCurrency(ta.resistance3), level: 'resistance' }
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Analyzed Technical Analysis</CardTitle> 
-        <CardDescription>Daily Pivot Points based on previous day HLC. Color indicates current price relative to Pivot Point.</CardDescription>
+        <CardTitle>AI-Analyzed Technical Analysis</CardTitle>
+        <CardDescription>AI-calculated support, resistance, and pivot levels based on market data.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[200px]">Indicator</TableHead>
-              <TableHead className="text-right">Value</TableHead>
+              <TableHead>Level</TableHead>
+              <TableHead className="text-right">Price</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoadingState ? (
+            {isLoading ? (
+              Array.from({ length: 7 }).map((_, index) => renderLevelRow({label: "", value: null}, index, true))
+            ) : levels.length > 0 ? (
+              levels.map((item, index) => renderLevelRow(item, index, false))
+            ) : (
               <TableRow>
-                <TableCell colSpan={2} className="text-center text-sm text-muted-foreground h-24">
-                  Waiting for AI analysis...
+                <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                  No AI technical analysis data available.
                 </TableCell>
               </TableRow>
-            ) : isErrorState ? (
-                <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                        {errorOrSkippedMessageState}
-                    </TableCell>
-                </TableRow>
-            ) : parsedTaDataState ? (
-              taPointDefinitions.map((pointDef) => {
-                const value = parsedTaDataState[pointDef.key];
-                const displayValue = (value === null || value === undefined)
-                  ? "N/A"
-                  : formatToTwoDecimals(value as number, "N/A");
-
-                let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
-                if (pointDef.key === 'pivotPoint' && currentPriceState !== null && value !== null && value !== undefined) {
-                    if (currentPriceState > (value as number)) sentiment = 'bullish';
-                    else if (currentPriceState < (value as number)) sentiment = 'bearish';
-                }
-                const colorClass = pointDef.key === 'pivotPoint' ? getSentimentColorClass(sentiment) : '';
-
-                return (
-                  <TableRow key={pointDef.key}>
-                    <TableCell className="font-medium">{pointDef.label}</TableCell>
-                    <TableCell className={cn("text-right", colorClass)}>{displayValue}</TableCell>
-                  </TableRow>
-                );
-              })
-            ) : ( 
-                 <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                        {errorOrSkippedMessageState}
-                    </TableCell>
-                </TableRow>
             )}
           </TableBody>
         </Table>

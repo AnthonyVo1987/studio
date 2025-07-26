@@ -1,210 +1,86 @@
-
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useStockAnalysis } from "@/contexts/business-logic-context";
-import type { StockAnalysisOutput } from "@/ai/schemas/stock-analysis-schemas";
-import type { StockSnapshotData } from "@/services/data-sources/types";
-import { useToast } from "@/hooks/use-toast";
-import { downloadJson, copyToClipboard } from "@/lib/export-utils";
-import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
+import { useUIState } from "@/contexts/ui-state-context";
 import { useQuickExport } from "@/hooks/use-export-actions";
-import { useJsonDataStateWithFsm } from "@/hooks/use-json-data-state";
-
-type TakeawayCategory = keyof StockAnalysisOutput;
-
-interface TakeawayDisplayItem {
-  categoryLabel: string;
-  categoryKey: TakeawayCategory;
-  sentiment: string;
-  text: string;
-  textSentimentClass: string;
-  badgeSentimentClass: string;
-}
-
-const getSemanticBadgeClass = (sentiment?: string): string => {
-  if (!sentiment) return "bg-muted text-muted-foreground border-border";
-  const s = sentiment.toLowerCase();
-  if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) {
-    return "bg-positive-muted text-positive-muted-foreground border-positive";
-  }
-  if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) {
-    return "bg-destructive text-destructive-foreground border-destructive"; 
-  }
-  if (s.includes('high') || s.includes('low') || s.includes('moderate')) { 
-    return "bg-warning-muted text-warning-muted-foreground border-warning";
-  }
-  return "bg-muted text-muted-foreground border-border";
-};
-
-const getSemanticTextColorClass = (sentiment?: string, categoryKey?: TakeawayCategory): string => {
-    if (!sentiment) return 'text-muted-foreground';
-    const s = sentiment.toLowerCase();
-
-    if (categoryKey === 'volatility' && s.includes('moderate')) {
-        return 'text-foreground'; 
-    }
-
-    if (s.includes('bullish') || s.includes('positive') || s.includes('strong') || s.includes('increasing')) return 'text-positive';
-    if (s.includes('bearish') || s.includes('negative') || s.includes('weak') || s.includes('decreasing')) return 'text-destructive';
-    if (s.includes('high') || s.includes('low') || s.includes('moderate')) return 'text-warning-foreground'; 
-    return 'text-muted-foreground';
-};
-
-
-const categoryLabels: Record<TakeawayCategory, string> = {
-  priceAction: "Price Action",
-  trend: "Trend",
-  volatility: "Volatility",
-  momentum: "Momentum",
-  patterns: "Patterns",
-};
-
-const getTickerFromSnapshot = (snapshotJson: string): string => {
-  try {
-    if (snapshotJson && snapshotJson !== '{}' && !snapshotJson.includes('"status":') && !snapshotJson.includes('"error":')) {
-      const snapshotData = JSON.parse(snapshotJson) as StockSnapshotData;
-      return snapshotData?.ticker?.toUpperCase() || "STOCK";
-    }
-  } catch (e) {
-    // Note: Minimal error handling for ticker parsing, no logging to avoid render loops
-  }
-  return "STOCK";
-};
-
 
 export function AiKeyTakeawaysDisplay() {
-  const { aiKeyTakeawaysJson, stockSnapshotJson, fsmState } = useStockAnalysis();
-  const { toast } = useToast();
-  const componentName = 'AiKeyTakeawaysDisplay';
+  const { currentSnapshot, loadingStates } = useUIState();
 
-  // Use new JSON data state hook with FSM integration - disable logging to prevent render loops
-  const { data: parsedTakeawaysData, isLoading, isError, isEmpty } = useJsonDataStateWithFsm<StockAnalysisOutput>(
-    aiKeyTakeawaysJson,
-    fsmState,
-    { 
-      enableLogging: false, // Disabled to prevent render loop with console.debug calls
-      validateData: (data) => {
-        return data && typeof data === 'object' && 
-               data.priceAction && data.trend && data.volatility && 
-               data.momentum && data.patterns;
-      }
-    }
-  );
+  // Derive values directly from UI snapshot
+  const aiAnalysis = currentSnapshot.aiAnalysis;
+  const isLoading = loadingStates.isGeneratingTakeaways;
+  const isDataReady = aiAnalysis.isKeyTakeawaysReady;
 
-  // Remove state variables - using memoized values instead to prevent render loops
-  
-  // Memoize display takeaways to prevent recalculation on every render
-  const displayTakeaways = useMemo(() => {
-    if (parsedTakeawaysData) {
-      return (Object.keys(parsedTakeawaysData) as TakeawayCategory[]).map(key => ({
-        categoryKey: key,
-        categoryLabel: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
-        sentiment: parsedTakeawaysData[key]?.sentiment || "neutral",
-        text: parsedTakeawaysData[key]?.takeaway || "No takeaway generated.",
-        textSentimentClass: getSemanticTextColorClass(parsedTakeawaysData[key]?.sentiment, key),
-        badgeSentimentClass: getSemanticBadgeClass(parsedTakeawaysData[key]?.sentiment)
-      }));
-    }
-    return [];
-  }, [parsedTakeawaysData]);
-
-  // Memoize error message to prevent recalculation
-  const errorMessage = useMemo(() => {
-    if (isEmpty) {
-      return "No AI Key Takeaways to display. Ensure AI TA was successfully processed.";
-    } else if (isLoading) {
-      return "Loading AI Key Takeaways...";
-    } else if (isError) {
-      // Check for specific error patterns in the JSON
-      try {
-        const parsedJson = JSON.parse(aiKeyTakeawaysJson);
-        if (parsedJson.status === 'skipped') {
-          return parsedJson.message || "AI Key Takeaways were skipped.";
-        } else {
-          return parsedJson.message || parsedJson.error || "Error loading AI Key Takeaways.";
-        }
-      } catch {
-        return "Failed to parse AI Key Takeaways data.";
-      }
-    }
-    return "";
-  }, [isEmpty, isLoading, isError, aiKeyTakeawaysJson]);
-
-  // Remove state change logging to prevent potential render loops and console noise
-  // State changes are already tracked internally by useJsonDataStateWithFsm
-
-  const isDataReadyForExport = !isLoading && !isError && parsedTakeawaysData && Object.keys(parsedTakeawaysData).length > 0;
-  const currentTicker = getTickerFromSnapshot(stockSnapshotJson);
-  
+  // Export functionality
   const exportActions = useQuickExport(
-    parsedTakeawaysData || {},
-    `${currentTicker}_key_takeaways`,
-    "Key Takeaways"
+    aiAnalysis.keyTakeaways || {},
+    `${currentSnapshot.activeTicker || "STOCK"}_ai_key_takeaways`,
+    "AI Key Takeaways"
   );
 
   const handleExport = () => {
-    if (!isDataReadyForExport || !parsedTakeawaysData) {
-      toast({ variant: "destructive", title: "Export Failed", description: "Key takeaways data not available." });
-      return;
+    if (isDataReady) {
+      exportActions.download();
     }
-    exportActions.download();
   };
 
   const handleCopy = async () => {
-    if (!isDataReadyForExport || !parsedTakeawaysData) {
-      toast({ variant: "destructive", title: "Copy Failed", description: "Key takeaways data not available." });
-      return;
+    if (isDataReady) {
+      await exportActions.copy();
     }
-    await exportActions.copy();
   };
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div>
-          <CardTitle>AI Key Takeaways</CardTitle>
-          <CardDescription>Sentiment-focused insights based on current data analysis.</CardDescription>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!isDataReadyForExport}>
-            <Copy className="mr-2 h-4 w-4" /> Copy JSON
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={!isDataReadyForExport}>
-            <Download className="mr-2 h-4 w-4" /> Export JSON
-          </Button>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>AI Key Takeaways</CardTitle>
+            <CardDescription>
+              AI-generated insights and analysis based on comprehensive market data.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCopy} 
+              disabled={!isDataReady}
+              title="Copy AI Key Takeaways as JSON"
+            >
+              <Copy className="mr-2 h-4 w-4" /> Copy JSON
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExport} 
+              disabled={!isDataReady}
+              title="Export AI Key Takeaways as JSON"
+            >
+              <Download className="mr-2 h-4 w-4" /> Export JSON
+            </Button>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent>
         {isLoading ? (
-          <div className="p-3 text-center text-sm text-muted-foreground h-24 flex items-center justify-center">
-            Waiting for AI takeaways...
+          <div className="text-center text-sm text-muted-foreground h-24 flex items-center justify-center">
+            Generating AI key takeaways...
           </div>
-        ) : isError ? (
-           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             {errorMessage}
-           </div>
-        ) : displayTakeaways.length > 0 && parsedTakeawaysData ? (
-          displayTakeaways.map((takeaway) => (
-            <div key={takeaway.categoryKey} className="p-3 border rounded-md bg-card/60 shadow-sm">
-              <div className="flex justify-between items-center mb-1.5">
-                <h4 className="font-semibold text-md">{takeaway.categoryLabel}</h4>
-                <Badge variant="outline" className={cn("capitalize px-2.5 py-0.5 text-xs", takeaway.badgeSentimentClass)}>
-                  {takeaway.sentiment}
-                </Badge>
-              </div>
-              <p className={cn("text-sm", takeaway.textSentimentClass)}>{takeaway.text}</p>
+        ) : isDataReady ? (
+          <div className="space-y-4">
+            <div className="prose prose-sm max-w-none">
+              <p>AI analysis completed successfully. Use the export buttons above to view the detailed insights.</p>
             </div>
-          ))
+          </div>
         ) : (
-           <div className="p-3 text-center text-muted-foreground h-24 flex items-center justify-center">
-             {errorMessage || "AI Key Takeaways not available."}
-           </div>
+          <div className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            No AI key takeaways available. Generate analysis first.
+          </div>
         )}
       </CardContent>
     </Card>

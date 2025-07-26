@@ -1,14 +1,11 @@
-
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
-import { useStockAnalysis } from "@/contexts/business-logic-context";
-import type { TechnicalIndicatorsData, MultiWindowIndicatorValues, MACDValue, VWAPValue } from "@/services/data-sources/types";
+import { useUIState } from "@/contexts/ui-state-context";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
-import { PENDING_STATUS_JSON_VARIANTS } from "@/lib/constants";
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
   if (sentiment === 'bullish') return 'text-positive';
@@ -18,7 +15,7 @@ const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): 
 
 const renderMultiWindowValues = (
   label: string,
-  data?: MultiWindowIndicatorValues | null,
+  data?: Record<string, number> | null,
   windows?: string[], 
   sentimentKey?: string, 
   getSentiment?: (value?: number | null) => 'bullish' | 'bearish' | 'neutral'
@@ -26,7 +23,7 @@ const renderMultiWindowValues = (
   if (!windows || windows.length === 0) return null;
 
   const valuesExist = data && windows.some(w => data[w] !== undefined && data[w] !== null);
-  if (!valuesExist && !(data && (data as any).error)) return null; 
+  if (!valuesExist) return null; 
 
   const displayValues = windows.map(window => {
     const val = data?.[window];
@@ -46,74 +43,12 @@ const renderMultiWindowValues = (
   );
 };
 
-
 export function StandardTaDisplay() {
-  const { standardTasJson } = useStockAnalysis();
-  const componentName = 'StandardTaDisplay';
+  const { currentSnapshot, loadingStates } = useUIState();
 
-  const [isLoadingState, setIsLoadingState] = useState(true);
-  const [isErrorState, setIsErrorState] = useState(false);
-  const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState("Technical indicators data not available.");
-  const [parsedTaDataState, setParsedTaDataState] = useState<TechnicalIndicatorsData | null>(null);
-
-  useEffect(() => {
-    const currentJson = standardTasJson;
-
-    let newIsLoading = true;
-    let newIsError = false;
-    let newErrorMsg = "Technical indicators data not available.";
-    let newParsedData: TechnicalIndicatorsData | null = null;
-
-    if (currentJson && currentJson !== '{}') {
-      if (PENDING_STATUS_JSON_VARIANTS.includes(currentJson.trim())) {
-        newIsLoading = true;
-        newErrorMsg = "Loading standard TAs...";
-      } else if (currentJson.includes('"error":') || currentJson.includes('"status": "skipped"')) {
-        newIsLoading = false;
-        newIsError = true;
-        if (currentJson.includes('"status": "skipped"')) {
-          newErrorMsg = "Standard TA loading was skipped.";
-        } else {
-          newErrorMsg = "Error loading standard TAs.";
-          try {
-            const tempData = JSON.parse(currentJson);
-            if (tempData.error) newErrorMsg = tempData.error;
-          } catch(e) { /* Ignore parse error for error message itself */ }
-        }
-      } else {
-        try {
-          const data = JSON.parse(currentJson) as TechnicalIndicatorsData;
-          if (data && typeof data === 'object' && !data.error) { 
-            newIsLoading = false;
-            newIsError = false;
-            newParsedData = data;
-          } else if (data && data.error) {
-            newIsLoading = false;
-            newIsError = true;
-            newErrorMsg = data.error;
-          } else {
-            newIsLoading = false;
-            newIsError = true;
-            newErrorMsg = "Standard TA data is malformed or incomplete.";
-          }
-        } catch (e) {
-          console.error(`[${componentName}] Failed to parse standardTasJson:`, e, "JSON:", currentJson.substring(0,200));
-          newIsLoading = false;
-          newIsError = true;
-          newErrorMsg = "Failed to parse standard TA data.";
-        }
-      }
-    } else {
-      newIsLoading = false;
-      newErrorMsg = "No standard TA data to display.";
-    }
-
-    setIsLoadingState(newIsLoading);
-    setIsErrorState(newIsError);
-    setErrorOrSkippedMessageState(newErrorMsg);
-    setParsedTaDataState(newParsedData);
-
-  }, [standardTasJson]);
+  // Derive values directly from UI snapshot
+  const technicalAnalysis = currentSnapshot.technicalAnalysis;
+  const isLoading = loadingStates.isCalculatingTA || !technicalAnalysis.isDataReady;
   
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';
@@ -128,7 +63,6 @@ export function StandardTaDisplay() {
     if (histogram < 0) return 'bearish';
     return 'neutral';
   };
-
 
   return (
     <Card>
@@ -145,33 +79,27 @@ export function StandardTaDisplay() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoadingState ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-sm text-muted-foreground h-24">
                   Waiting for technical analysis data...
                 </TableCell>
               </TableRow>
-            ) : isErrorState ? (
+            ) : !technicalAnalysis.isDataReady ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                  {errorOrSkippedMessageState}
-                </TableCell>
-              </TableRow>
-            ) : !parsedTaDataState || Object.keys(parsedTaDataState).length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                  {errorOrSkippedMessageState}
+                  No technical analysis data available.
                 </TableCell>
               </TableRow>
             ) : (
               <>
-                {renderMultiWindowValues("RSI", parsedTaDataState.RSI, ["7", "10", "14"], "14", rsiSentiment)}
+                {renderMultiWindowValues("RSI", technicalAnalysis.indicators.RSI, ["7", "10", "14"], "14", rsiSentiment)}
                 <TableRow>
                   <TableCell className="font-medium">MACD (12,26,9)</TableCell>
                   <TableCell className="text-right">
-                    {parsedTaDataState.MACD ? (
+                    {technicalAnalysis.indicators.MACD ? (
                       <>
-                        {formatToTwoDecimals(parsedTaDataState.MACD.value)} / {formatToTwoDecimals(parsedTaDataState.MACD.signal)} / <span className={getSentimentColorClass(macdSentiment(parsedTaDataState.MACD.histogram))}>{formatToTwoDecimals(parsedTaDataState.MACD.histogram)}</span>
+                        {formatToTwoDecimals(technicalAnalysis.indicators.MACD.value)} / {formatToTwoDecimals(technicalAnalysis.indicators.MACD.signal)} / <span className={getSentimentColorClass(macdSentiment(technicalAnalysis.indicators.MACD.histogram))}>{formatToTwoDecimals(technicalAnalysis.indicators.MACD.histogram)}</span>
                       </>
                     ) : "N/A"}
                   </TableCell>
@@ -179,13 +107,13 @@ export function StandardTaDisplay() {
                 <TableRow>
                   <TableCell className="font-medium">VWAP</TableCell>
                   <TableCell className="text-right">
-                    {parsedTaDataState.VWAP ? (
-                      `Day: $${formatToTwoDecimals(parsedTaDataState.VWAP.day)} | Minute: $${formatToTwoDecimals(parsedTaDataState.VWAP.minute)}`
+                    {technicalAnalysis.indicators.VWAP ? (
+                      `Day: $${formatToTwoDecimals(technicalAnalysis.indicators.VWAP.day)} | Minute: $${formatToTwoDecimals(technicalAnalysis.indicators.VWAP.minute)}`
                     ) : "N/A"}
                   </TableCell>
                 </TableRow>
-                {renderMultiWindowValues("EMA", parsedTaDataState.EMA, ["5", "10", "20", "50", "200"])}
-                {renderMultiWindowValues("SMA", parsedTaDataState.SMA, ["5", "10", "20", "50", "200"])}
+                {renderMultiWindowValues("EMA", technicalAnalysis.indicators.EMA, ["5", "10", "20", "50", "200"])}
+                {renderMultiWindowValues("SMA", technicalAnalysis.indicators.SMA, ["5", "10", "20", "50", "200"])}
               </>
             )}
           </TableBody>

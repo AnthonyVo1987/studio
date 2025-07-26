@@ -90,6 +90,9 @@ export interface UISnapshot {
   canAnalyze: boolean;
   activeTicker: string | null;
   userInputTicker: string;
+  // Analysis toggle states
+  isAiKeyTakeawaysSelected: boolean;
+  isAiOptionsAnalysisSelected: boolean;
 }
 
 interface UIStateContextType {
@@ -310,6 +313,9 @@ export function UIStateProvider({ children }: { children: ReactNode }) {
       canAnalyze: businessContext.fsmFlags.canAnalyzeStock,
       activeTicker: businessContext.fsmVariables.activeTicker,
       userInputTicker: businessContext.fsmVariables.userInputTicker,
+      // Analysis toggle states
+      isAiKeyTakeawaysSelected: businessContext.fsmFlags.isAiKeyTakeawaysSelected,
+      isAiOptionsAnalysisSelected: businessContext.fsmFlags.isAiOptionsAnalysisSelected,
     };
   }, [businessContext, snapshotVersion, uiOptionsSettings]);
   

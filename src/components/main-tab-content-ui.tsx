@@ -535,7 +535,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             <Label htmlFor="toggle-key-takeaways" className="flex-grow text-sm">AI Key Takeaways</Label>
             <Switch 
               id="toggle-key-takeaways" 
-              checked={true /* TODO: Get from UI state */} 
+              checked={currentSnapshot.isAiKeyTakeawaysSelected} 
               onCheckedChange={(checked) => handleToggleChange('ai_key_takeaways', checked)} 
               disabled={loadingStates.isAnalyzing} 
             />
@@ -544,7 +544,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
             <Label htmlFor="toggle-options-analysis" className="flex-grow text-sm">AI Analyzed Options Chain</Label>
             <Switch 
               id="toggle-options-analysis" 
-              checked={true /* TODO: Get from UI state */} 
+              checked={currentSnapshot.isAiOptionsAnalysisSelected} 
               onCheckedChange={(checked) => handleToggleChange('ai_options_analysis', checked)} 
               disabled={loadingStates.isAnalyzing} 
             />
