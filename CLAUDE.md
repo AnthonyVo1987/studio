@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.0.0, it includes a dedicated SPY tab with completely isolated architecture.
 
 ## Common Development Commands
 
@@ -52,6 +52,22 @@ npm run typecheck
 - **Pattern**: All display components use `useStockAnalysis()` hook directly
 - **Loading States**: Derived from FSM state and business flags
 - **On-Demand AI**: AI Key Takeaways and Options Analysis are manual button-triggered only
+
+### SPY Tab Architecture (v4.1.0.0+)
+
+**Completely isolated SPY-dedicated tab with ground-up rewrite:**
+
+#### 1. SPY Context Layer
+- **Location**: `src/contexts/spy-analysis-context.tsx`
+- **Purpose**: Dedicated state management for SPY analysis only
+- **Pattern**: Context + Reducer with custom hooks (`useSpyAnalysis()`, `useSpyDispatch()`)
+- **Isolation**: Zero cross-dependencies with Main tab context
+
+#### 2. SPY UI Components
+- **Main Component**: `src/components/spy-tab-content.tsx` - Deterministic handlers
+- **Data Section**: `src/components/spy-data-section.tsx` - Self-contained JSON display
+- **Display Components**: `spy-*.tsx` pattern - All isolated from Main tab components
+- **Auto-Features**: Auto-fetch SPY expirations on tab load
 
 ## File Organization
 
@@ -184,7 +200,7 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.0.0.7 (as of this documentation update)
+- **Current Version**: v4.1.0.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
 
@@ -236,7 +252,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.0.0.7+)
+## Important Notes for AI Assistants (v4.1.0.0+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -247,5 +263,8 @@ GEMINI_API_KEY=your_google_ai_api_key
 8. **FSM has minimal states** - APP_INITIALIZING, IDLE, LOADING (for any on-demand operation)
 9. **Context has been renamed** - `business-logic-context.tsx` contains the main `useStockAnalysis()` hook
 10. **Token-optimized codebase** - Utilizes factory patterns, shared utilities, and centralized configurations
+11. **SPY Tab Isolation** - SPY tab uses completely separate context (`spy-analysis-context.tsx`) with `useSpyAnalysis()` hook
+12. **SPY Components Pattern** - All SPY components follow `spy-*.tsx` naming and are isolated from Main tab
+13. **Future SPY Work** - SPY display components currently show placeholders; future task will connect to SPY context data
 
-This simplified architecture (v4.0.0.7) focuses on React best practices and on-demand AI analysis, using deterministic handlers in the main UI component for all operations.
+This architecture (v4.1.0.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker).
