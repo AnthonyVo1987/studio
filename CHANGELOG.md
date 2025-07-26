@@ -7,6 +7,30 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.0.0.6` (🐛 **BUTTON FUNCTIONALITY FIX**)
+**Tag:** `Phase-v4.0.0.6_ButtonFix`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.0.0.6] [BUG REPORT] Cannot press ANY On Demand UI Actions Buttons`
+**Details:**
+This commit fixes a critical bug where none of the on-demand UI refresh buttons were actually clickable or functional. The issue was in the refresh handlers implementation.
+
+**Root Cause:**
+*   **Async Handler Issue:** refreshHandlers object was returning function references instead of properly awaiting async operations
+*   **Promise Resolution:** Display components' handleRefresh functions completed immediately without performing actual operations
+*   **Button State:** Buttons appeared clickable but didn't trigger the intended server actions
+
+**Fix Applied:**
+*   **Async/Await Fix:** Changed refreshHandlers from `() => handlerFunction()` to `async () => await handlerFunction()`
+*   **Proper Promise Handling:** All 7 refresh handlers now properly await their respective async operations
+*   **Data Flow Restoration:** User clicks → Component executes onRefresh → Async operation completes → UI updates
+
+**Verification:**
+*   **Code Review:** Comprehensive audit confirmed fix resolves the issue
+*   **Pattern Consistency:** All refresh handlers follow same async/await pattern
+*   **Error Handling:** Maintained proper try/catch blocks and loading states
+*   **TypeScript Compliance:** No type safety issues introduced
+
+---
 **App Version:** `v4.0.0.5` (🔄 **ON-DEMAND UI ACTIONS IMPLEMENTATION**)
 **Tag:** `Phase-v4.0.0.5_OnDemandUI`
 **Commit Hash:** `TBD`

@@ -448,15 +448,15 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setIsLoadingExpirations(false);
   };
 
-  // On-demand component refresh handlers (v4.0.0.5)
+  // On-demand component refresh handlers (v4.0.0.6)
   const refreshHandlers = {
-    refreshStockSnapshot: () => handleGetStockData(),
-    refreshMarketStatus: () => handleGetStockData(), // Market status comes with stock data
-    refreshStandardTa: () => handleGetStockData(), // Standard TA comes with stock data  
-    refreshAiTa: () => handleGetAiTechnicalAnalysis(),
-    refreshAiKeyTakeaways: () => handleOnDemandKeyTakeaways(),
-    refreshAiOptionsAnalysis: () => handleOnDemandOptionsAnalysis(),
-    refreshKeyMetrics: () => handleGetStockData(), // Key metrics derived from stock data
+    refreshStockSnapshot: async () => await handleGetStockData(),
+    refreshMarketStatus: async () => await handleGetStockData(), // Market status comes with stock data
+    refreshStandardTa: async () => await handleGetStockData(), // Standard TA comes with stock data  
+    refreshAiTa: async () => await handleGetAiTechnicalAnalysis(),
+    refreshAiKeyTakeaways: async () => await handleOnDemandKeyTakeaways(),
+    refreshAiOptionsAnalysis: async () => await handleOnDemandOptionsAnalysis(),
+    refreshKeyMetrics: async () => await handleGetStockData(), // Key metrics derived from stock data
   };
 
   // Computed states for on-demand architecture
