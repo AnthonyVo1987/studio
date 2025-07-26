@@ -43,7 +43,9 @@
       "Bash(do)",
       "Bash(sed:*)",
       "Bash(echo:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(/init)",
+      "Bash(npm run:*)"
     ],
     "deny": []
   }

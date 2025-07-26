@@ -1,0 +1,83 @@
+"use client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+
+export function SpyKeyMetricsDisplay() {
+  // Static placeholder data - future task will connect to SPY context
+  const metricsData = {
+    ticker: "SPY",
+    currentPrice: "Data will load here",
+    changeAmount: "0.00",
+    changePercent: "0.00",
+    isDataReady: false
+  };
+
+  const isLoading = true; // Always loading for now since not connected to data
+
+  const getTrendIcon = (changeAmount: string) => {
+    const change = parseFloat(changeAmount);
+    if (change > 0) return <TrendingUp className="h-4 w-4" />;
+    if (change < 0) return <TrendingDown className="h-4 w-4" />;
+    return <Minus className="h-4 w-4" />;
+  };
+
+  const getTrendColor = (changeAmount: string) => {
+    const change = parseFloat(changeAmount);
+    if (change > 0) return "text-green-600";
+    if (change < 0) return "text-red-600";
+    return "text-gray-600";
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            {getTrendIcon(metricsData.changeAmount)}
+            SPY Key Metrics
+          </span>
+          <Badge variant="outline">{metricsData.ticker}</Badge>
+        </CardTitle>
+        <CardDescription>
+          Real-time price and change information for SPY
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="text-center text-muted-foreground">
+              Waiting for SPY price data...
+            </div>
+          ) : (
+            <>
+              {/* Current Price */}
+              <div className="text-center">
+                <div className="text-3xl font-bold">${metricsData.currentPrice}</div>
+                <div className="text-sm text-muted-foreground">Current Price</div>
+              </div>
+
+              {/* Change Information */}
+              <div className={`text-center ${getTrendColor(metricsData.changeAmount)}`}>
+                <div className="flex items-center justify-center gap-1">
+                  {getTrendIcon(metricsData.changeAmount)}
+                  <span className="text-lg font-semibold">
+                    ${metricsData.changeAmount} ({metricsData.changePercent}%)
+                  </span>
+                </div>
+                <div className="text-sm">Today's Change</div>
+              </div>
+            </>
+          )}
+
+          {/* Loading Badge */}
+          {isLoading && (
+            <div className="flex justify-center">
+              <Badge variant="outline">Loading SPY Data...</Badge>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

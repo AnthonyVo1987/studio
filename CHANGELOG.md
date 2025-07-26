@@ -7,6 +7,40 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.0.0` (🎯 **SPY DEDICATED TAB ARCHITECTURE**)
+**Tag:** `Phase-v4.1.0.0_SPY_Tab`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.1.0.0] [OVERHAUL] SPY Dedicated & Isolated Tab`
+**Details:**
+This commit introduces a completely new SPY-dedicated tab with ground-up rewrite using modern React best practices, fully isolated from the Main tab architecture.
+
+**Architecture Features:**
+*   **Complete Isolation:** SPY tab has its own context, state management, and components - zero cross-contamination with Main tab
+*   **Modern React Patterns:** Implemented using Context + Reducer pattern with custom hooks (useSpyAnalysis, useSpyDispatch)
+*   **Deterministic Handlers:** Uses async/await handlers instead of reactive useEffect orchestrators
+*   **Self-Contained Data:** Integrated data section at bottom of SPY page (no separate Debug tab needed)
+*   **Future-Ready:** Architecture supports upcoming automated pipeline features
+
+**Implementation Details:**
+*   **New Context:** `spy-analysis-context.tsx` with reducer pattern following React best practices
+*   **Dedicated Components:** All SPY components (`spy-*.tsx`) are completely isolated
+*   **Auto-Fetch Expirations:** SPY expirations load automatically when tab is selected
+*   **Batch Data Operations:** "Get Stock Data" fetches all SPY data in one operation
+*   **Static UI Scaffolding:** UI cards display placeholder data (future task will connect to context)
+
+**Code Quality:**
+*   **Fixed React Anti-Patterns:** Proper useEffect cleanup, no unused imports
+*   **TypeScript Compliant:** All SPY code passes TypeScript checks
+*   **Token-Optimized:** Follows patterns from v4.0.0.7 optimization efforts
+*   **Clean Architecture:** Clear separation of concerns, immutable state updates
+
+**Files Created:**
+*   `src/contexts/spy-analysis-context.tsx` - SPY state management
+*   `src/components/spy-tab-content.tsx` - Main SPY page
+*   `src/components/spy-data-section.tsx` - Raw data display
+*   `src/components/spy-*.tsx` - 5 isolated UI display components
+
+---
 **App Version:** `v4.0.0.7` (🔄 **SINGLE SHOT UI UPDATE ARCHITECTURE**)
 **Tag:** `Phase-v4.0.0.7_SingleShotUI`
 **Commit Hash:** `TBD`
