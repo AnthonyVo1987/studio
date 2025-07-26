@@ -1,8 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatCurrency, formatPercentage, formatCompactNumber } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
@@ -37,8 +39,13 @@ const renderDetailRow = (item: StockDetailItem, index: number, isLoading: boolea
   );
 };
 
-export function StockSnapshotDetailsDisplay() {
+interface StockSnapshotDetailsDisplayProps {
+  onRefresh?: () => void;
+}
+
+export function StockSnapshotDetailsDisplay({ onRefresh }: StockSnapshotDetailsDisplayProps) {
   const business = useStockAnalysis();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse stock snapshot data directly from business context
   const stockData = business.stockSnapshotJson ? (() => {
@@ -83,11 +90,36 @@ export function StockSnapshotDetailsDisplay() {
     );
   }
 
+  // On-demand refresh handler (v4.0.0.5)
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Stock Snapshot Details</CardTitle>
-        <CardDescription>Detailed price and volume information for {stockData.ticker || "the selected ticker"}.</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Stock Snapshot Details</CardTitle>
+            <CardDescription>Detailed price and volume information for {stockData.ticker || "the selected ticker"}.</CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing || !onRefresh}
+            className="h-8 w-8 p-0"
+            title="Refresh Stock Snapshot Data"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>

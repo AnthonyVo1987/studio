@@ -7,6 +7,33 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.0.0.5` (🔄 **ON-DEMAND UI ACTIONS IMPLEMENTATION**)
+**Tag:** `Phase-v4.0.0.5_OnDemandUI`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.0.0.5] [BUG REPORT] Add Missing On Demand UI Actions`
+**Details:**
+This commit addresses the missing on-demand UI actions that were supposed to be implemented in v4.0.0.4. Previously, only the main "Get Stock Data" button was functional, and no individual component refresh functionality existed.
+
+**Key Additions:**
+*   **Complete On-Demand UI Actions:** Added refresh buttons to ALL 7 display components:
+    *   KeyMetricsDisplay - refreshes stock data
+    *   StockSnapshotDetailsDisplay - refreshes stock snapshot
+    *   StandardTaDisplay - refreshes technical analysis
+    *   AiAnalyzedTaDisplay - refreshes AI technical analysis
+    *   AiKeyTakeawaysDisplay - refreshes AI key takeaways
+    *   AiOptionsAnalysisDisplay - refreshes AI options analysis  
+    *   MarketStatusDisplay - refreshes market status
+*   **Individual Component Control:** Each component can refresh its own data independently with proper loading states
+*   **Consistent UI Pattern:** All refresh buttons follow unified design with tooltips and spinning animations
+*   **Proper Error Handling:** Each refresh operation wrapped in try/catch blocks
+*   **TypeScript Support:** Added proper interfaces for onRefresh props across all components
+
+**Architecture Improvements:**
+*   **Data Flow**: User clicks refresh → Component calls onRefresh prop → Main component executes server action → Business context updates → Component re-renders
+*   **Loading States**: Individual isRefreshing state per component with disabled button states
+*   **Code Review**: Comprehensive codebase audit verified no anti-patterns, proper data flow, and clean architecture
+
+---
 **App Version:** `v3.7.4.4` (🛠️ **INFINITE RENDER LOOP FIX & CLAUDE.md CREATION**)
 **Tag:** `Phase-v3.7.4.4_StabilityFix`
 **Commit Hash:** `f7a7650`

@@ -1,8 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 
 interface MarketDetailItem {
@@ -28,8 +30,13 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
   );
 };
 
-export function MarketStatusDisplay() {
+interface MarketStatusDisplayProps {
+  onRefresh?: () => void;
+}
+
+export function MarketStatusDisplay({ onRefresh }: MarketStatusDisplayProps) {
   const business = useStockAnalysis();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse market status data directly from business context
   const marketData = business.marketStatusJson ? (() => {
@@ -62,11 +69,36 @@ export function MarketStatusDisplay() {
     );
   }
 
+  // On-demand refresh handler (v4.0.0.5)
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Market Status</CardTitle>
-        <CardDescription>Current status of relevant markets and exchanges.</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Market Status</CardTitle>
+            <CardDescription>Current status of relevant markets and exchanges.</CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing || !onRefresh}
+            className="h-8 w-8 p-0"
+            title="Refresh Market Status Data"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>

@@ -78,9 +78,13 @@ function KeyMetricCard({ label, value, changeAbsolute, changePercent, icon, isLo
 }
 
 
-export function KeyMetricsDisplay() {
+interface KeyMetricsDisplayProps {
+  onRefresh?: () => void;
+}
+
+export function KeyMetricsDisplay({ onRefresh }: KeyMetricsDisplayProps) {
   const business = useStockAnalysis();
-  const [uiDataVersion, setUiDataVersion] = useState(0); // Force UI update trigger
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse stock snapshot data directly from business context
   const stockData = business.stockSnapshotJson ? (() => {
@@ -110,9 +114,15 @@ export function KeyMetricsDisplay() {
   const displayValueForDayChange = isLoading ? "Loading..." : 
     stockData.changePercent !== null ? formatPercentage(stockData.changePercent, "N/A", true, 2) : "N/A";
 
-  // On-demand UI update handler (development phase)
-  const handleUpdateUI = () => {
-    setUiDataVersion(prev => prev + 1); // Force re-render
+  // On-demand refresh handler (v4.0.0.5)
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -122,11 +132,12 @@ export function KeyMetricsDisplay() {
         <Button 
           variant="outline" 
           size="sm"
-          onClick={handleUpdateUI}
-          disabled={isLoading}
+          onClick={handleRefresh}
+          disabled={isLoading || isRefreshing || !onRefresh}
           className="h-8 w-8 p-0"
+          title="Refresh Key Metrics Data"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </Button>
       </CardHeader>
       <CardContent>

@@ -1,8 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from "@/components/ui/table";
+import { RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 import { cn } from "@/lib/utils";
@@ -43,8 +45,13 @@ const renderMultiWindowValues = (
   );
 };
 
-export function StandardTaDisplay() {
+interface StandardTaDisplayProps {
+  onRefresh?: () => void;
+}
+
+export function StandardTaDisplay({ onRefresh }: StandardTaDisplayProps) {
   const business = useStockAnalysis();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Parse standard TA data directly from business context
   const taData = business.standardTasJson ? (() => {
@@ -77,11 +84,36 @@ export function StandardTaDisplay() {
     return 'neutral';
   };
 
+  // On-demand refresh handler (v4.0.0.5)
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Standard Technical Indicators</CardTitle>
-        <CardDescription>Commonly used technical indicators with multiple time windows.</CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Standard Technical Indicators</CardTitle>
+            <CardDescription>Commonly used technical indicators with multiple time windows.</CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing || !onRefresh}
+            className="h-8 w-8 p-0"
+            title="Refresh Technical Analysis Data"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>

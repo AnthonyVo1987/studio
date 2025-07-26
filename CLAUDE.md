@@ -35,15 +35,15 @@ npm run typecheck
 - **Data Sources**: Polygon.io API
 - **AI Model**: Google Gemini 2.5-flash-lite
 
-### Simplified Architecture (v4.0.0.4+)
+### Simplified Architecture (v4.0.0.5+)
 
 **The application now uses standard React best practices with direct business context consumption:**
 
 #### 1. Business Logic Layer
 - **Location**: `src/contexts/business-logic-context.tsx`
 - **Purpose**: All application state, business logic, FSM state management, and data processing
-- **FSM States**: Simplified enum (APP_INITIALIZING, IDLE, DATA_FETCH_IN_PROGRESS, CALCULATING_AI_TA)
-- **Orchestrator**: `src/components/business-orchestrator.tsx` - Executes basic pipeline (data fetch + AI TA)
+- **FSM States**: Simplified enum (APP_INITIALIZING, IDLE, LOADING)
+- **Orchestrator**: `src/components/main-tab-content-ui.tsx` - Contains deterministic handlers for on-demand operations
 - **Pattern**: Standard React Context with useReducer for FSM state
 
 #### 2. Presentation Layer
@@ -57,8 +57,7 @@ npm run typecheck
 
 ### Core Architecture Files (Tier 1 - Critical)
 - `src/contexts/business-logic-context.tsx` - All application state & FSM management
-- `src/components/business-orchestrator.tsx` - Basic pipeline execution (data + AI TA)
-- `src/components/main-tab-content-ui.tsx` - Main UI component using business context
+- `src/components/main-tab-content-ui.tsx` - Main UI component with deterministic handlers for on-demand operations
 - `src/services/data-sources/adapters/polygon-adapter.ts` - API integration
 - `src/types/` - Type definitions directory (e.g., `options.ts`)
 
@@ -73,7 +72,7 @@ npm run typecheck
 - `src/ai/definitions/` - JSON prompt templates
 - `src/ai/schemas/` - Zod validation schemas
 
-## Critical Architectural Rules (v4.0.0.4+)
+## Critical Architectural Rules (v4.0.0.5+)
 
 ### 1. Standard React Context Pattern
 ```typescript
@@ -93,20 +92,28 @@ const MyDisplayComponent = () => {
 };
 ```
 
-### 2. FSM Feedback Loop (Business Layer Only)
+### 2. On-Demand Handler Pattern (Main UI Component)
 ```typescript
-// CORRECT - Business orchestrator pattern with FSM feedback
-const BusinessOrchestrator = () => {
-  const handleBasicAnalysis = async () => {
-    // Update business state BEFORE dispatching FSM event
-    if (result.status === 'success' && result.data) {
-      setStockSnapshotJson(result.data.stockSnapshotJson);
+// CORRECT - Deterministic handler pattern in main-tab-content-ui.tsx
+const MainTabContentUI = () => {
+  const business = useStockAnalysis();
+  
+  const handleOnDemandDataFetch = async () => {
+    // Set loading state
+    business.dispatchGlobalFsmEvent({ type: 'SET_LOADING' });
+    
+    try {
+      // Execute server action
+      const result = await fetchStockDataAction({...});
+      
+      // Update business state based on result
+      if (result.status === 'success' && result.data) {
+        business.setStockSnapshotJson(result.data.stockSnapshotJson);
+      }
+    } finally {
+      // Reset to idle state
+      business.dispatchGlobalFsmEvent({ type: 'SET_IDLE' });
     }
-    // REQUIRED: Dispatch FSM event for business state transition
-    dispatchGlobalFsmEvent({ 
-      type: result.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', 
-      payload: result 
-    });
   };
 };
 ```
@@ -215,25 +222,26 @@ GEMINI_API_KEY=your_google_ai_api_key
 
 ## Performance & Optimization
 
-### Recent Achievements (v4.0.0.4+)
+### Recent Achievements (v4.0.0.5+)
 - **Architecture Simplification**: Removed complex UI state layer, now uses standard React patterns
 - **On-Demand AI**: Simplified pipeline with manual AI analysis (no automated steps)
-- **FSM Simplification**: Reduced states, removed automated pipeline complexity
+- **FSM Simplification**: Reduced states (APP_INITIALIZING, IDLE, LOADING), removed automated pipeline complexity
 - **Code Cleanup**: Removed "one step behind" UI update mechanism
-- **Direct Context Consumption**: All 7 display components now use business context directly
+- **Direct Context Consumption**: All display components now use business context directly
 
 ### Current Metrics
 - **Architecture Simplicity**: Standard React best practices, no complex UI state layer
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.0.0.4+)
+## Important Notes for AI Assistants (v4.0.0.5+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
-2. **Maintain the business orchestrator pattern** in `business-orchestrator.tsx` for the basic pipeline
+2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
 4. **AI actions are on-demand only** - no automated pipeline states or toggles
 5. **Keep business logic in the business context** - UI components focus on presentation
 6. **Always update version metadata** in `src/config/app-metadata.json` for any code changes
 7. **Display components follow the pattern**: `useStockAnalysis()` → parse data → derive loading states → render
+8. **FSM has minimal states** - APP_INITIALIZING, IDLE, LOADING (for any on-demand operation)
 
-This simplified architecture (v4.0.0.4) focuses on React best practices and on-demand AI analysis, removing the complex UI state layer that was determined to be unnecessary for the application's needs.
+This simplified architecture (v4.0.0.5) focuses on React best practices and on-demand AI analysis, using deterministic handlers in the main UI component for all operations.

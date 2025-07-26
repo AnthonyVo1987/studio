@@ -448,6 +448,17 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
     setIsLoadingExpirations(false);
   };
 
+  // On-demand component refresh handlers (v4.0.0.5)
+  const refreshHandlers = {
+    refreshStockSnapshot: () => handleGetStockData(),
+    refreshMarketStatus: () => handleGetStockData(), // Market status comes with stock data
+    refreshStandardTa: () => handleGetStockData(), // Standard TA comes with stock data  
+    refreshAiTa: () => handleGetAiTechnicalAnalysis(),
+    refreshAiKeyTakeaways: () => handleOnDemandKeyTakeaways(),
+    refreshAiOptionsAnalysis: () => handleOnDemandOptionsAnalysis(),
+    refreshKeyMetrics: () => handleGetStockData(), // Key metrics derived from stock data
+  };
+
   // Computed states for on-demand architecture
   const isAnyChatPending = isAppDataChatPending || isWebSearchChatPending;
   const getStockDataButtonDisabled = isAnyOperationLoading || isAnyChatPending || 
@@ -658,13 +669,13 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
       
       {/* Data Display Components */}
       <div className="space-y-6">
-        <KeyMetricsDisplay />
-        <StockSnapshotDetailsDisplay />
-        <StandardTaDisplay />
-        <AiAnalyzedTaDisplay />
-        <AiKeyTakeawaysDisplay />
+        <KeyMetricsDisplay onRefresh={refreshHandlers.refreshKeyMetrics} />
+        <StockSnapshotDetailsDisplay onRefresh={refreshHandlers.refreshStockSnapshot} />
+        <StandardTaDisplay onRefresh={refreshHandlers.refreshStandardTa} />
+        <AiAnalyzedTaDisplay onRefresh={refreshHandlers.refreshAiTa} />
+        <AiKeyTakeawaysDisplay onRefresh={refreshHandlers.refreshAiKeyTakeaways} />
         <OptionsChainTable />
-        <AiOptionsAnalysisDisplay />
+        <AiOptionsAnalysisDisplay onRefresh={refreshHandlers.refreshAiOptionsAnalysis} />
         
         {/* Chat Components */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -695,7 +706,7 @@ export function MainTabContentUI({ appVersion }: MainTabContentUIProps) {
         </div>
         
         <Separator />
-        <MarketStatusDisplay />
+        <MarketStatusDisplay onRefresh={refreshHandlers.refreshMarketStatus} />
         <Separator />
         <DebugSnapshotControls appVersion={appVersion} />
       </div>

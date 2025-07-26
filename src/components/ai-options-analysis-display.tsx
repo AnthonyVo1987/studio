@@ -1,14 +1,19 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Copy } from "lucide-react";
+import { Download, Copy, RefreshCw } from "lucide-react";
 import { useStockAnalysis, BusinessFsmState } from "@/contexts/business-logic-context";
 import { useQuickExport } from "@/hooks/use-export-actions";
 
-export function AiOptionsAnalysisDisplay() {
+interface AiOptionsAnalysisDisplayProps {
+  onRefresh?: () => void;
+}
+
+export function AiOptionsAnalysisDisplay({ onRefresh }: AiOptionsAnalysisDisplayProps) {
   const business = useStockAnalysis();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // AI Options Analysis are now on-demand only (no FSM loading state)
   const isLoading = false; // On-demand actions handle their own loading states
@@ -42,6 +47,17 @@ export function AiOptionsAnalysisDisplay() {
     }
   };
 
+  // On-demand refresh handler (v4.0.0.5)
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -53,6 +69,15 @@ export function AiOptionsAnalysisDisplay() {
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading || isRefreshing || !onRefresh}
+              title="Refresh AI Options Analysis"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 
