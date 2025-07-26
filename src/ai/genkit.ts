@@ -16,9 +16,19 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 import { DEFAULT_ANALYSIS_MODEL_ID } from './models'; // DEFAULT_ANALYSIS_MODEL_ID will now be gemini-2.5-flash-lite-preview-06-17
+import { getSecret } from '@/lib/aws-secrets';
+
+// Initialize Google AI plugin with API key from AWS Secrets Manager or environment variable
+const initializeGoogleAI = async () => {
+  let apiKey = await getSecret("GOOGLE_API_KEY");
+  if (!apiKey) {
+    apiKey = process.env.GOOGLE_API_KEY;
+  }
+  return googleAI({ apiKey });
+};
 
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [await initializeGoogleAI()],
   model: DEFAULT_ANALYSIS_MODEL_ID, // This now correctly uses the updated model from models.ts
   enableOpenTelemetry: false, // Explicitly disable OpenTelemetry
 });

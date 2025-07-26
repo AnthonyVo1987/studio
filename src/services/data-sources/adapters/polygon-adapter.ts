@@ -23,6 +23,7 @@ import type {
 import type { OptionType, StrikeCount } from '@/contexts/staging-options-context';
 import { findNextAvailableDate } from '@/lib/date-utils';
 import { formatToTwoDecimals, roundNumber } from '@/lib/number-utils';
+import { getSecret } from '@/lib/aws-secrets';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -31,7 +32,7 @@ class PolygonAdapter {
   private readonly currentTickerForClient: string;
 
   constructor(apiKey?: string, tickerForThisInstance?: string) {
-    const keyToUse = apiKey || process.env.POLYGON_API_KEY;
+    const keyToUse = apiKey;
     this.currentTickerForClient = (tickerForThisInstance || "UNKNOWN_TICKER_AT_CONSTRUCTOR").toUpperCase();
     const logPrefix = `[PolygonAdapter.constructor InstanceFor: ${this.currentTickerForClient}]`;
 
@@ -434,7 +435,8 @@ class PolygonAdapter {
 
 export async function getExpirationDates(ticker: string): Promise<string[]> {
     const uppercasedTicker = ticker.toUpperCase();
-    const adapter = new PolygonAdapter(process.env.POLYGON_API_KEY, uppercasedTicker);
+    const apiKey = await getSecret("POLYGON_API_KEY") || process.env.POLYGON_API_KEY;
+    const adapter = new PolygonAdapter(apiKey, uppercasedTicker);
     return adapter.getExpirationDates(uppercasedTicker);
 }
   
@@ -444,7 +446,8 @@ export async function getOptionsChainForDate(
   options: { optionType: OptionType, strikeCount: StrikeCount }
 ): Promise<OptionsChainData> {
     const uppercasedTicker = ticker.toUpperCase();
-    const adapter = new PolygonAdapter(process.env.POLYGON_API_KEY, uppercasedTicker);
+    const apiKey = await getSecret("POLYGON_API_KEY") || process.env.POLYGON_API_KEY;
+    const adapter = new PolygonAdapter(apiKey, uppercasedTicker);
 
     const snapshotResponse = await adapter['client'].stocks.snapshotTicker(uppercasedTicker, undefined, { query: { _t: Date.now() } });
     let currentStockPrice: number | undefined;
@@ -465,8 +468,8 @@ export async function getOptionsChainForDate(
 }
 
 export async function getFullStockData(ticker: string, options?: { expirationDate?: string; optionType?: OptionType; strikeCount?: StrikeCount }): Promise<AdapterOutput> {
-  const apiKeyFromEnv = process.env.POLYGON_API_KEY;
+  const apiKey = await getSecret("POLYGON_API_KEY") || process.env.POLYGON_API_KEY;
   const uppercasedTicker = ticker.toUpperCase();
-  const adapter = new PolygonAdapter(apiKeyFromEnv, uppercasedTicker);
+  const adapter = new PolygonAdapter(apiKey, uppercasedTicker);
   return adapter.getFullStockData(uppercasedTicker, options);
 }
