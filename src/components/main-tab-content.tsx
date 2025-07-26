@@ -121,118 +121,211 @@ export function MainTabContent({ appVersion }: MainTabContentProps) {
     }
   }, [dispatchGlobalFsmEvent]);
 
-  // Reactive Pipeline Orchestrator
+  // Deterministic Pipeline Orchestrator - ONLY reacts to FSM state changes
+  const previousFsmStateRef = useRef<GlobalFsmState | null>(null);
+  const orchestratorExecutingRef = useRef<boolean>(false);
+  
+  // Use refs to capture latest values without causing effect re-runs
+  const latestValuesRef = useRef({
+    activeTicker: globalFsmVariables.activeTicker,
+    selectedExpirationDate,
+    optionType,
+    strikeCount,
+    contextStockSnapshotJson,
+    contextStandardTasJson,
+    contextAiAnalyzedTaJson,
+    contextMarketStatusJson,
+    contextOptionsChainJson,
+  });
+  
+  // Update refs on every render without triggering effects
+  latestValuesRef.current = {
+    activeTicker: globalFsmVariables.activeTicker,
+    selectedExpirationDate,
+    optionType,
+    strikeCount,
+    contextStockSnapshotJson,
+    contextStandardTasJson,
+    contextAiAnalyzedTaJson,
+    contextMarketStatusJson,
+    contextOptionsChainJson,
+  };
+
   useEffect(() => {
-    const orchestratorLogPrefix = 'MainTabContent:Orchestrator';
+    const orchestratorLogPrefix = 'MainTabContent:DeterministicOrchestrator';
+    
+    // Prevent duplicate execution and only react to actual state changes
+    if (orchestratorExecutingRef.current || 
+        previousFsmStateRef.current === globalFsmStateFromContext) {
+      return;
+    }
 
     const runPipelineStep = async () => {
-      switch (globalFsmStateFromContext) {
-        case GlobalFsmState.DATA_FETCH_IN_PROGRESS: {
-          const newTicker = globalFsmVariables.activeTicker;
-          
-          const result = await fetchStockDataAction({
-            ticker: newTicker!,
-            expirationDate: selectedExpirationDate, // This is now guaranteed to be set correctly by proactive hook
-            optionType: optionType,
-            strikeCount: strikeCount,
-          });
-          // Handle state updates before dispatching FSM event to avoid render-phase updates
-          if (result.status === 'success' && result.data) {
-            setMarketStatusJson(result.data.marketStatusJson);
-            setStockSnapshotJson(result.data.stockSnapshotJson);
-            setStandardTasJson(result.data.standardTasJson);
-            setOptionsChainJson(result.data.optionsChainJson);
-            setPolygonApiRequestLogJson(result.data.polygonApiRequestLogJson);
-            setPolygonApiResponseLogJson(result.data.polygonApiResponseLogJson);
-            // Handle auto-selected expiration date from response
-            try {
-              const responseLog = JSON.parse(result.data.polygonApiResponseLogJson);
-              if (responseLog.autoSelectedExpirationDate) {
-                setSelectedExpirationDate(responseLog.autoSelectedExpirationDate);
+      orchestratorExecutingRef.current = true;
+      const currentValues = latestValuesRef.current; // Capture latest values at execution time
+      
+      try {
+        switch (globalFsmStateFromContext) {
+          case GlobalFsmState.DATA_FETCH_IN_PROGRESS: {
+            const result = await fetchStockDataAction({
+              ticker: currentValues.activeTicker!,
+              expirationDate: currentValues.selectedExpirationDate,
+              optionType: currentValues.optionType,
+              strikeCount: currentValues.strikeCount,
+            });
+            
+            // Batch all state updates in startTransition to prevent render interruption
+            startTransition(() => {
+              if (result.status === 'success' && result.data) {
+                setMarketStatusJson(result.data.marketStatusJson);
+                setStockSnapshotJson(result.data.stockSnapshotJson);
+                setStandardTasJson(result.data.standardTasJson);
+                setOptionsChainJson(result.data.optionsChainJson);
+                setPolygonApiRequestLogJson(result.data.polygonApiRequestLogJson);
+                setPolygonApiResponseLogJson(result.data.polygonApiResponseLogJson);
+                
+                // Handle auto-selected expiration date from response
+                try {
+                  const responseLog = JSON.parse(result.data.polygonApiResponseLogJson);
+                  if (responseLog.autoSelectedExpirationDate) {
+                    setSelectedExpirationDate(responseLog.autoSelectedExpirationDate);
+                  }
+                } catch (e) { }
+              } else if (result.status === 'error' && result.data) {
+                // Handle failure case with partial data
+                setMarketStatusJson(result.data.marketStatusJson || '{}');
+                setStockSnapshotJson(result.data.stockSnapshotJson || '{}');
+                setStandardTasJson(result.data.standardTasJson || '{}');
+                setOptionsChainJson(result.data.optionsChainJson || '{}');
+                setPolygonApiRequestLogJson(result.data.polygonApiRequestLogJson || '{}');
+                setPolygonApiResponseLogJson(result.data.polygonApiResponseLogJson || '{}');
               }
-            } catch (e) { }
-          } else if (result.status === 'error' && result.data) {
-            // Handle failure case with partial data
-            setMarketStatusJson(result.data.marketStatusJson || '{}');
-            setStockSnapshotJson(result.data.stockSnapshotJson || '{}');
-            setStandardTasJson(result.data.standardTasJson || '{}');
-            setOptionsChainJson(result.data.optionsChainJson || '{}');
-            setPolygonApiRequestLogJson(result.data.polygonApiRequestLogJson || '{}');
-            setPolygonApiResponseLogJson(result.data.polygonApiResponseLogJson || '{}');
+            });
+            
+            // Dispatch FSM event AFTER state updates are batched
+            dispatchGlobalFsmEvent({ 
+              type: result.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', 
+              payload: result 
+            });
+            
+            if(result.status !== 'success') {
+              toast({ title: "Data Fetch Failed", description: result.message, variant: 'destructive' });
+            }
+            break;
           }
-          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'FETCH_DATA_SUCCESS' : 'FETCH_DATA_FAILURE', payload: result });
-          if(result.status !== 'success') toast({ title: "Data Fetch Failed", description: result.message, variant: 'destructive' });
-          break;
+          
+          case GlobalFsmState.CALCULATING_AI_TA: {
+            const result = await analyzeTaAction({ 
+              stockSnapshotJson: currentValues.contextStockSnapshotJson, 
+              ticker: currentValues.activeTicker! 
+            });
+            
+            startTransition(() => {
+              if (result.status === 'success' && result.data) {
+                setAiAnalyzedTaRequestJson(result.data.aiAnalyzedTaRequestJson);
+                setAiAnalyzedTaJson(result.data.aiAnalyzedTaJson);
+              } else if (result.status === 'error') {
+                const errorJson = JSON.stringify({ 
+                  error: result.message || 'AI TA analysis failed', 
+                  details: result.error 
+                });
+                setAiAnalyzedTaRequestJson(result.data?.aiAnalyzedTaRequestJson || errorJson);
+                setAiAnalyzedTaJson(errorJson);
+              }
+            });
+            
+            dispatchGlobalFsmEvent({ 
+              type: result.status === 'success' ? 'AI_TA_SUCCESS' : 'AI_TA_FAILURE', 
+              payload: result 
+            });
+            
+            if(result.status !== 'success') {
+              toast({ title: "AI TA Calculation Failed", description: result.message, variant: 'destructive' });
+            }
+            break;
+          }
+          
+          case GlobalFsmState.GENERATING_KEY_TAKEAWAYS: {
+            const result = await performAiAnalysisAction({
+              ticker: currentValues.activeTicker!, 
+              stockSnapshotJson: currentValues.contextStockSnapshotJson, 
+              standardTasJson: currentValues.contextStandardTasJson, 
+              aiAnalyzedTaJson: currentValues.contextAiAnalyzedTaJson, 
+              marketStatusJson: currentValues.contextMarketStatusJson
+            });
+            
+            startTransition(() => {
+              if (result.status === 'success' && result.data) {
+                setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
+                setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
+              } else if (result.status === 'error') {
+                const errorJson = JSON.stringify({ 
+                  error: result.message || 'Key takeaways generation failed', 
+                  details: result.error 
+                });
+                setAiKeyTakeawaysRequestJson(result.data?.aiKeyTakeawaysRequestJson || errorJson);
+                setAiKeyTakeawaysJson(errorJson);
+              }
+            });
+            
+            dispatchGlobalFsmEvent({ 
+              type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', 
+              payload: result 
+            });
+            
+            if(result.status !== 'success') {
+              toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
+              console.error(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Failed to generate AI Key Takeaways: ${result.message}`);
+            }
+            break;
+          }
+          
+          case GlobalFsmState.ANALYZING_OPTIONS: {
+            const result = await performAiOptionsAnalysisAction({
+              ticker: currentValues.activeTicker!, 
+              stockSnapshotJson: currentValues.contextStockSnapshotJson, 
+              optionsChainJson: currentValues.contextOptionsChainJson,
+            });
+            
+            startTransition(() => {
+              if(result.status === 'success' && result.data) {
+                setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
+                setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
+              } else if (result.status === 'error') {
+                const errorJson = JSON.stringify({ 
+                  error: result.message || 'Options analysis failed', 
+                  details: result.error 
+                });
+                setAiOptionsAnalysisRequestJson(result.data?.aiOptionsAnalysisRequestJson || errorJson);
+                setAiOptionsAnalysisJson(errorJson);
+              }
+            });
+            
+            dispatchGlobalFsmEvent({ 
+              type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', 
+              payload: result 
+            });
+            
+            if(result.status !== 'success') {
+              toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
+              console.error(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Failed to generate AI Options Analysis: ${result.message}`);
+            }
+            break;
+          }
+          
+          default: 
+            // Explicitly do nothing for other states - no fallthrough
+            break;
         }
-        case GlobalFsmState.CALCULATING_AI_TA: {
-          const result = await analyzeTaAction({ stockSnapshotJson: contextStockSnapshotJson, ticker: globalFsmVariables.activeTicker! });
-          // Handle state updates before dispatching FSM event to avoid render-phase updates
-          if (result.status === 'success' && result.data) {
-            setAiAnalyzedTaRequestJson(result.data.aiAnalyzedTaRequestJson);
-            setAiAnalyzedTaJson(result.data.aiAnalyzedTaJson);
-          } else if (result.status === 'error') {
-            // Handle AI TA failure with error state
-            const errorJson = JSON.stringify({ error: result.message || 'AI TA analysis failed', details: result.error });
-            setAiAnalyzedTaRequestJson(result.data?.aiAnalyzedTaRequestJson || errorJson);
-            setAiAnalyzedTaJson(errorJson);
-          }
-          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'AI_TA_SUCCESS' : 'AI_TA_FAILURE', payload: result });
-          if(result.status !== 'success') toast({ title: "AI TA Calculation Failed", description: result.message, variant: 'destructive' });
-          break;
-        }
-        case GlobalFsmState.GENERATING_KEY_TAKEAWAYS: {
-          const result = await performAiAnalysisAction({
-            ticker: globalFsmVariables.activeTicker!, 
-            stockSnapshotJson: contextStockSnapshotJson, 
-            standardTasJson: contextStandardTasJson, 
-            aiAnalyzedTaJson: contextAiAnalyzedTaJson, 
-            marketStatusJson: contextMarketStatusJson
-          });
-          if (result.status === 'success' && result.data) {
-            setAiKeyTakeawaysRequestJson(result.data.aiKeyTakeawaysRequestJson);
-            setAiKeyTakeawaysJson(result.data.aiKeyTakeawaysJson);
-          } else if (result.status === 'error') {
-            // Handle AI Key Takeaways failure with error state
-            const errorJson = JSON.stringify({ error: result.message || 'Key takeaways generation failed', details: result.error });
-            setAiKeyTakeawaysRequestJson(result.data?.aiKeyTakeawaysRequestJson || errorJson);
-            setAiKeyTakeawaysJson(errorJson);
-          }
-          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'KEY_TAKEAWAYS_SUCCESS' : 'KEY_TAKEAWAYS_FAILURE', payload: result });
-          if(result.status !== 'success') {
-            toast({ title: "Pipeline Step Failed: AI Key Takeaways", description: result.message, variant: 'destructive' });
-            console.error(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Failed to generate AI Key Takeaways via pipeline method: ${result.message}`);
-          }
-          break;
-        }
-        case GlobalFsmState.ANALYZING_OPTIONS: {
-          const result = await performAiOptionsAnalysisAction({
-            ticker: globalFsmVariables.activeTicker!, 
-            stockSnapshotJson: contextStockSnapshotJson, 
-            optionsChainJson: contextOptionsChainJson,
-          });
-          if(result.status === 'success' && result.data) {
-            setAiOptionsAnalysisRequestJson(result.data.aiOptionsAnalysisRequestJson);
-            setAiOptionsAnalysisJson(result.data.aiOptionsAnalysisJson);
-          } else if (result.status === 'error') {
-            // Handle AI Options Analysis failure with error state
-            const errorJson = JSON.stringify({ error: result.message || 'Options analysis failed', details: result.error });
-            setAiOptionsAnalysisRequestJson(result.data?.aiOptionsAnalysisRequestJson || errorJson);
-            setAiOptionsAnalysisJson(errorJson);
-          }
-          dispatchGlobalFsmEvent({ type: result.status === 'success' ? 'OPTIONS_ANALYSIS_SUCCESS' : 'OPTIONS_ANALYSIS_FAILURE', payload: result });
-          if(result.status !== 'success') {
-            toast({ title: "Pipeline Step Failed: AI Options Analysis", description: result.message, variant: 'destructive' });
-            console.error(`[MainTabContent:Pipeline] ${orchestratorLogPrefix}: Failed to generate AI Options Analysis via pipeline method: ${result.message}`);
-          }
-          break;
-        }
-        default: break;
+      } finally {
+        orchestratorExecutingRef.current = false;
+        previousFsmStateRef.current = globalFsmStateFromContext;
       }
     };
 
     runPipelineStep();
 
-  }, [globalFsmStateFromContext, globalFsmVariables.activeTicker, dispatchGlobalFsmEvent, selectedExpirationDate, optionType, strikeCount, contextStockSnapshotJson, contextStandardTasJson, contextAiAnalyzedTaJson, contextMarketStatusJson, contextOptionsChainJson, setMarketStatusJson, setStockSnapshotJson, setStandardTasJson, setOptionsChainJson, setPolygonApiRequestLogJson, setPolygonApiResponseLogJson, setAiAnalyzedTaRequestJson, setAiAnalyzedTaJson, setAiKeyTakeawaysRequestJson, setAiKeyTakeawaysJson, setAiOptionsAnalysisRequestJson, setAiOptionsAnalysisJson, setSelectedExpirationDate, toast]);
+  }, [globalFsmStateFromContext, dispatchGlobalFsmEvent, toast]);
 
 
   // Effect to handle App Data Chat results
