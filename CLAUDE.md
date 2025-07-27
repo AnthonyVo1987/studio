@@ -200,7 +200,7 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.1.4.0 (as of this documentation update)
+- **Current Version**: v4.1.5.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
 
@@ -227,6 +227,11 @@ GEMINI_API_KEY=your_google_ai_api_key
 
 ### Testing Strategy
 - **No formal test suite exists** - manual testing required
+- **Manual Testing Checklist**:
+  - Main tab: Stock analysis pipeline (data fetch → AI TA → on-demand AI features)
+  - SPY tab: Auto-expiration fetch and options chain display
+  - Both tabs: JSON export functionality on all data cards
+  - Debug tabs: Verify logging and FSM state transitions
 - Use the built-in Debug tabs in the application for verification:
   - "Debug" tab: Raw JSON inputs/outputs
   - "Debug Logs" tab: Application trace logs with filtering
@@ -252,7 +257,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.1.0.0+)
+## Important Notes for AI Assistants (v4.1.5.0+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -265,22 +270,35 @@ GEMINI_API_KEY=your_google_ai_api_key
 10. **Token-optimized codebase** - Utilizes factory patterns, shared utilities, and centralized configurations
 11. **SPY Tab Isolation** - SPY tab uses completely separate context (`spy-analysis-context.tsx`) with `useSpyAnalysis()` hook
 12. **SPY Components Pattern** - All SPY components follow `spy-*.tsx` naming and are isolated from Main tab
-13. **SPY Implementation Status** - SPY display components are now connected to SPY context data with proper JSON parsing
+13. **SPY Options Chain Re-architecture (v4.1.5.0)** - SPY Options Chain Table has been re-architected to eliminate React anti-patterns:
+    - **Removed complex useEffect**: Eliminated 95-line useEffect with 6 state variables
+    - **Pure function approach**: Uses helper functions for JSON parsing and data processing
+    - **Derived state pattern**: Calculates values during render instead of useState hooks
+    - **useMemo for expensive operations**: Only ATM strike calculation uses useMemo
+    - **React best practices**: Follows React documentation guidelines for derived state
+14. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds (see `next.config.ts`) for deployment flexibility
+15. **Parallel Architecture** - Main and SPY tabs operate independently with zero cross-dependencies
 
-This architecture (v4.1.4.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker).
+This architecture (v4.1.5.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with robust options chain implementation).
 
 ## Current Development State & Recent Changes
 
-### Latest Updates (v4.1.4.0)
-- **SPY Tab Enhancement**: Dedicated and isolated SPY tab with auto-fetch functionality
-- **JSON Parsing Fixes**: Corrected JSON parsing for SPY Market Status, Key Metrics, and Stock Snapshot components
-- **UI Component Updates**: Enhanced SPY tab UI components with proper data integration
-- **Architecture Documentation**: Updated CLAUDE.md with comprehensive SPY tab architecture
+### Latest Updates (v4.1.5.0)
+- **SPY Options Chain Re-architecture**: Complete elimination of React anti-patterns in SPY Options Chain Table
+- **Pure Function Implementation**: Replaced 95-line complex useEffect with pure helper functions
+- **Derived State Pattern**: Implemented React best practices with direct state calculation during render
+- **Performance Optimization**: Reduced to single useMemo for expensive ATM strike calculation only
+- **Code Quality Improvement**: Follows React documentation guidelines for proper component architecture
 
 ### Development Branch Information
 - **Current Branch**: v4.0.0.0_UI_Overhaul
 - **Main Branch**: v3.6.5.14_STABLE_RELEASE (use for PRs)
-- **Recent Commits**: SPY tab isolation, Polygon API improvements, UI action fixes
+- **Recent Commits**: 
+  - d7aa5a7: [v4.1.0.0] [DOCS] Update CLAUDE.md with SPY tab architecture
+  - 2cf59f5: [v4.1.0.0] [OVERHAUL] SPY Dedicated & Isolated Tab
+  - 427896a: [v4.0.0.7] [OVERHAUL] Polygon API Data UI Populate Only
+  - 3a23952: [v4.0.0.6] [BUG REPORT] Cannot press ANY On Demand UI Actions Buttons
+  - 0a37e02: [v4.0.0.5] [BUG REPORT] Add Missing On Demand UI Actions
 
 ## Quick Start for New Development
 

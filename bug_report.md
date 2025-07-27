@@ -1,6 +1,7 @@
 [v4.1.5.0] [BUG REPORT] SPY UI: Options Chain Table Re-Architect
 
 - USE SEQUENTIAL THINKING TOOL
+- USE CONTEXT7
 - Refer to Main Page tab if there are other data parsing issues for Polygon API JSON data
 
 ###
@@ -12,7 +13,10 @@
 [Detailed Symptom(s) / Change Request(s)]:
 - SPY Options Chain was implemented to mirror the robust Main Page implementation
 - But The Main page has architectural flaw that violates "React anti-pattern" and "complex\convoluted" useEffect/dependency array/UI/Render
-- So let's re-archite
+- So let's re-architect JUST the SPY Options Chain table code to follow best practices
+- Since we want to leave the main page alone, we may need implement from the ground up a more robust implementation
+- Keep the re-architect isolated from main page flow and enforce DETERMINISTIC concepts for the new implmentation of JUST the SPY options
+- There will be initial redundant/duplicate code to handle 2 types of options chain implementations, but once we have the re-architecture working and robust, we can then refactor and migrate to the new robust method and depracate and convert the main page options table in a later task
 
 ###
 [Log(s)]:

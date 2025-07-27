@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -27,6 +27,156 @@ const callHeadersConfig: ColumnConfig<StreamlinedOptionContract>[] = getCallHead
 const putHeadersConfig: ColumnConfig<StreamlinedOptionContract>[] = getPutHeadersConfig();
 const singleTableHeadersConfig: ColumnConfig<StreamlinedOptionContract>[] = getSingleTableHeadersConfig();
 
+// Helper functions for JSON parsing and validation (Phase 2 of re-architecture)
+interface OptionsChainParseResult {
+  data: OptionsChainData | null;
+  isLoading: boolean;
+  isError: boolean;
+  errorMessage: string;
+}
+
+interface StockSnapshotParseResult {
+  currentPrice: number | null;
+  hasValidData: boolean;
+}
+
+function parseOptionsChainJson(optionsChainJson: string): OptionsChainParseResult {
+  if (!optionsChainJson || optionsChainJson === '{}') {
+    return {
+      data: null,
+      isLoading: false,
+      isError: false,
+      errorMessage: 'No options chain data. This data is fetched with "Get SPY Stock Data".',
+    };
+  }
+
+  if (PENDING_STATUS_JSON_VARIANTS.includes(optionsChainJson.trim())) {
+    return {
+      data: null,
+      isLoading: true,
+      isError: false,
+      errorMessage: 'Loading options chain...',
+    };
+  }
+
+  if (optionsChainJson.includes('"status": "error"') || optionsChainJson.includes('"error":')) {
+    try {
+      const statusObj = JSON.parse(optionsChainJson);
+      return {
+        data: null,
+        isLoading: false,
+        isError: true,
+        errorMessage: statusObj.message || statusObj.error || 'Error loading options data.',
+      };
+    } catch (e) {
+      return {
+        data: null,
+        isLoading: false,
+        isError: true,
+        errorMessage: 'Error loading options data (malformed error JSON).',
+      };
+    }
+  }
+
+  if (optionsChainJson.includes('"status": "skipped"')) {
+    try {
+      const statusObj = JSON.parse(optionsChainJson);
+      return {
+        data: null,
+        isLoading: false,
+        isError: true,
+        errorMessage: statusObj.message || 'Options data loading was skipped.',
+      };
+    } catch (e) {
+      return {
+        data: null,
+        isLoading: false,
+        isError: true,
+        errorMessage: 'Options data loading was skipped (malformed skipped JSON).',
+      };
+    }
+  }
+
+  try {
+    const data = JSON.parse(optionsChainJson) as OptionsChainData;
+    if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
+      return {
+        data,
+        isLoading: false,
+        isError: false,
+        errorMessage: '',
+      };
+    } else {
+      return {
+        data: null,
+        isLoading: false,
+        isError: true,
+        errorMessage: 'Options data is malformed or incomplete.',
+      };
+    }
+  } catch (e) {
+    return {
+      data: null,
+      isLoading: false,
+      isError: true,
+      errorMessage: 'Failed to parse options data.',
+    };
+  }
+}
+
+function parseStockSnapshotJson(stockSnapshotJson: string): StockSnapshotParseResult {
+  if (!stockSnapshotJson || stockSnapshotJson === '{}') {
+    return {
+      currentPrice: null,
+      hasValidData: false,
+    };
+  }
+
+  try {
+    if (!PENDING_STATUS_JSON_VARIANTS.includes(stockSnapshotJson.trim()) && 
+        !stockSnapshotJson.includes('"status":') && 
+        !stockSnapshotJson.includes('"error":')) {
+      const parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;
+      const currentPrice = parsedSnapshotData?.currentPrice ?? parsedSnapshotData?.day?.c ?? null;
+      return {
+        currentPrice,
+        hasValidData: currentPrice !== null,
+      };
+    } else {
+      return {
+        currentPrice: null,
+        hasValidData: false,
+      };
+    }
+  } catch (e) {
+    return {
+      currentPrice: null,
+      hasValidData: false,
+    };
+  }
+}
+
+function calculateATMStrike(contracts: OptionsTableRow[], currentPrice: number | null, underlyingPrice?: number): number | null {
+  if (!contracts || contracts.length === 0) {
+    return null;
+  }
+
+  let priceToUse = currentPrice;
+  if (priceToUse === null && underlyingPrice) {
+    priceToUse = underlyingPrice;
+  }
+
+  if (priceToUse === null) {
+    return null;
+  }
+
+  const atmStrike = contracts.reduce((prev, curr) => {
+    return (Math.abs((curr.strike || 0) - priceToUse!) < Math.abs((prev.strike || 0) - priceToUse!)) ? curr : prev;
+  }).strike;
+
+  return atmStrike;
+}
+
 export function SpyOptionsChainTable() {
   const spyState = useSpyAnalysis();
   const { toast } = useToast();
@@ -38,108 +188,29 @@ export function SpyOptionsChainTable() {
     tableDisplayType
   } = spyState;
 
-  const [isLoadingState, setIsLoadingState] = useState(true);
-  const [isErrorState, setIsErrorState] = useState(false);
-  const [errorOrSkippedMessageState, setErrorOrSkippedMessageState] = useState('Options data failed to load.');
-  const [parsedDataState, setParsedDataState] = useState<OptionsChainData | null>(null);
-  const [currentPriceForATMState, setCurrentPriceForATMState] = useState<number | null>(null);
-  const [atmStrikeValueState, setAtmStrikeValueState] = useState<number | null>(null);
+  // Phase 3: Derived state calculations using helper functions (replaces useState hooks)
+  const optionsParseResult = parseOptionsChainJson(optionsChainJson);
+  const snapshotParseResult = parseStockSnapshotJson(stockSnapshotJson);
+  
+  // Direct derived values (no useState needed)
+  const isLoadingState = optionsParseResult.isLoading;
+  const isErrorState = optionsParseResult.isError;
+  const errorOrSkippedMessageState = optionsParseResult.errorMessage;
+  const parsedDataState = optionsParseResult.data;
+  const currentPriceForATMState = snapshotParseResult.currentPrice;
+  
+  // Expensive calculation using useMemo (ATM strike calculation)
+  const atmStrikeValueState = React.useMemo(() => {
+    if (!parsedDataState?.contracts) return null;
+    return calculateATMStrike(
+      parsedDataState.contracts, 
+      currentPriceForATMState, 
+      parsedDataState.underlying_price ?? undefined
+    );
+  }, [parsedDataState?.contracts, currentPriceForATMState, parsedDataState?.underlying_price]);
   
   const showCalls = optionType === 'both' || optionType === 'calls';
   const showPuts = optionType === 'both' || optionType === 'puts';
-  
-  useEffect(() => {
-    const currentOptionsJson = optionsChainJson;
-    const currentSnapshotJson = stockSnapshotJson;
-
-    let newIsLoading = isLoadingState;
-    let newIsError = isErrorState;
-    let newErrorMsg = errorOrSkippedMessageState;
-    let newParsedData = parsedDataState;
-    let newCurrentPriceForATM = currentPriceForATMState;
-
-    // Process options data if it changed
-    newIsLoading = true;
-    newIsError = false;
-    newErrorMsg = 'Options data failed to load.';
-    newParsedData = null;
-
-    if (!currentOptionsJson || currentOptionsJson === '{}') {
-        newIsLoading = false;
-        newErrorMsg = 'No options chain data. This data is fetched with "Get SPY Stock Data".';
-    } else if (PENDING_STATUS_JSON_VARIANTS.includes(currentOptionsJson.trim())) {
-        newIsLoading = true;
-        newErrorMsg = 'Loading options chain...';
-    } else if (currentOptionsJson.includes('"status": "error"') || currentOptionsJson.includes('"error":')) {
-        newIsLoading = false;
-        newIsError = true;
-        try {
-            const statusObj = JSON.parse(currentOptionsJson);
-            newErrorMsg = statusObj.message || statusObj.error || 'Error loading options data.';
-        } catch(e) { newErrorMsg = 'Error loading options data (malformed error JSON).'; }
-    } else if (currentOptionsJson.includes('"status": "skipped"')) {
-        newIsLoading = false;
-        newIsError = true;
-        try {
-            const statusObj = JSON.parse(currentOptionsJson);
-            newErrorMsg = statusObj.message || 'Options data loading was skipped.';
-        } catch(e) { newErrorMsg = 'Options data loading was skipped (malformed skipped JSON).'; }
-    } else {
-        try {
-        const data = JSON.parse(currentOptionsJson) as OptionsChainData;
-        if (data && typeof data === 'object' && !(data as any).error && Array.isArray(data.contracts)) {
-            newIsLoading = false;
-            newIsError = false;
-            newParsedData = data;
-            newErrorMsg = ''; 
-        } else {
-            newIsLoading = false;
-            newIsError = true;
-            newErrorMsg = 'Options data is malformed or incomplete.';
-        }
-        } catch (e) {
-        newIsLoading = false;
-        newIsError = true;
-        newErrorMsg = 'Failed to parse options data.';
-        }
-    }
-    setParsedDataState(newParsedData);
-
-    // Process snapshot data if it changed
-    if (currentSnapshotJson && currentSnapshotJson !== '{}') {
-        try {
-          if (!PENDING_STATUS_JSON_VARIANTS.includes(currentSnapshotJson.trim()) && !currentSnapshotJson.includes('"status":') && !currentSnapshotJson.includes('"error":')) {
-            const parsedSnapshotData = JSON.parse(currentSnapshotJson) as StockSnapshotData;
-            newCurrentPriceForATM = parsedSnapshotData?.currentPrice ?? parsedSnapshotData?.day?.c ?? null;
-          } else {
-            newCurrentPriceForATM = null; 
-          }
-        } catch (e) {
-          newCurrentPriceForATM = null;
-        }
-        setCurrentPriceForATMState(newCurrentPriceForATM);
-    }
-    
-    const finalContracts = newParsedData?.contracts || [];
-    let newAtmStrikeValue: number | null = null;
-    let priceToUseForAtm = newCurrentPriceForATM;
-
-    if (priceToUseForAtm === null && newParsedData?.underlying_price) {
-        priceToUseForAtm = newParsedData.underlying_price;
-    }
-
-    if (priceToUseForAtm !== null && finalContracts.length > 0) {
-        newAtmStrikeValue = finalContracts.reduce((prev, curr) => {
-        return (Math.abs((curr.strike || 0) - (priceToUseForAtm!)) < Math.abs((prev.strike || 0) - (priceToUseForAtm!))) ? curr : prev;
-        }).strike;
-    }
-    
-    setAtmStrikeValueState(newAtmStrikeValue);
-    setIsLoadingState(newIsLoading);
-    setIsErrorState(newIsError);
-    setErrorOrSkippedMessageState(newErrorMsg);
-
-  }, [optionsChainJson, stockSnapshotJson]);
 
   const displayTicker = parsedDataState?.ticker || (isLoadingState ? '' : 'N/A');
   const displayExpirationDate = parsedDataState?.expiration_date ? formatDisplayDate(parsedDataState.expiration_date) : (isLoadingState ? '' : 'N/A');

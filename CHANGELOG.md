@@ -7,9 +7,35 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.5.0` (🎯 **SPY OPTIONS CHAIN REACT ANTI-PATTERN ELIMINATION**)
+**Tag:** `Phase-v4.1.5.0_SPY_Options_Chain_Refactor`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.1.5.0] [REFACTOR] SPY Options Chain React Anti-Pattern Elimination`
+**Details:**
+This commit re-architects the SPY Options Chain Table to eliminate React anti-patterns and implement React best practices for derived state management.
+
+**Key Changes:**
+*   **React Anti-Pattern Elimination:** Removed 95-line complex useEffect with 6 state variables that violated React best practices
+*   **Pure Function Implementation:** Replaced useState hooks with pure helper functions for JSON parsing and data processing
+*   **Derived State Pattern:** Implemented React documentation guidelines for direct state calculation during render
+*   **Performance Optimization:** Reduced to single useMemo for expensive ATM strike calculation only
+
+**Technical Implementation:**
+*   **Helper Functions:** Created `parseOptionsChainJson()` and `parseStockSnapshotJson()` for safe JSON parsing with status validation
+*   **Pure Functions:** Implemented `calculateATMStrike()` as memoized expensive calculation function
+*   **Derived State:** Direct state derivation during render instead of complex useEffect dependency arrays
+*   **React Best Practices:** Follows React documentation guidelines for component architecture
+
+**Performance Benefits:**
+*   **Eliminated React Anti-Patterns:** Removed potential race conditions and infinite render loops
+*   **Improved Maintainability:** Reduced component complexity and enhanced code readability
+*   **Better Separation of Concerns:** Clear distinction between data processing and UI rendering
+*   **Future-Proof Architecture:** Ground-up robust implementation ready for Main tab migration
+
+---
 **App Version:** `v4.1.4.0` (🎯 **SPY OPTIONS CHAIN IMPLEMENTATION**)
 **Tag:** `Phase-v4.1.4.0_SPY_Options_Chain_Complete`
-**Commit Hash:** `TBD`
+**Commit Hash:** `d7aa5a7`
 **Subject:** `[v4.1.4.0] [SPY] feat: Complete SPY Options Chain implementation with full feature parity`
 **Details:**
 This commit implements complete SPY Options Chain functionality with full feature parity to the Main tab while maintaining strict SPY tab isolation.
