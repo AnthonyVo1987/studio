@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Agent Operating Mode Guidelines
+
+**Agents**: Call and Use whatever Agents needed for the requested task(s), allowing ALL tool and MCP Tool use for ALL Agents:
+
+Additional Tools that Every Agent can use as needed:
+- **Context Gathering**: Use CONTEXT7 tool as needed to understand current architecture and best practices based on the app's tech stack
+- **Sequential Analysis**: Use SEQUENTIAL THINKING tool as needed for complex investigations requiring step-by-step reasoning
+
+### Custom Slash Commands
+- **New custom slash command "/task"**: Add new customer slash command for "/task" that will have Claude Code Agent(s) to open and read the "task.md" file in the "docs" folder for the next User Task
+
 ## Overview
 StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.10.0, it includes a dedicated SPY tab with completely isolated architecture and advanced specialized AI chat system.
 
