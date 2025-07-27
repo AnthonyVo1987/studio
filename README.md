@@ -24,7 +24,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 6.  **Implement Fix:** Only after receiving explicit user approval will I proceed with generating the code changes for the agreed-upon fix.
 
 #### Section 4: Versioning & Documentation
-7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.1.8.0 latest).
+7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.1.10.0 latest).
 8.  **Bug Report Versioning (NEW):** I will **not** increment versions on my own. The user will provide the exact new application version (e.g., `v4.w.x.y.(z+1)`) as part of the bug report submission. My fix will then be associated with that user-provided version.
 9.  **Metadata Updates:** Any code change must include an automatic update to the `appVersion` and `lastUpdatedTimestamp` in `src/config/app-metadata.json` to match the version specified in the task.
 10. **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.26
-**Application Version (from `app-metadata.json`):** v4.1.8.0
-**Last Updated:** 2025-01-27
+**README Document Version:** 3.27
+**Application Version (from `app-metadata.json`):** v4.1.10.0
+**Last Updated:** 2025-01-28
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
@@ -94,11 +94,18 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   Dedicated SPY data display components
     *   AI Key Takeaways with hardcoded metrics (Price Action, Trend, Volatility, Momentum, Patterns)
     *   AI Options Analysis with Call/Put Walls
-*   **Consolidated AI Chat (as of v4.1.7.0):** A single unified chat interface that combines both app data analysis and web search capabilities using the modern Google GenAI SDK with conditional GoogleSearch tool. Features:
+*   **Advanced AI Chat System (as of v4.1.10.0):** A sophisticated unified chat interface with specialized trading-focused prompts and enhanced UX. Features:
     *   Radio toggle for chat mode (App Data Only vs Web Search Enabled)
-    *   Quick prompt buttons for both app data and web search queries
+    *   Specialized prompt system with three distinct templates:
+        *   `stock-trader-takeaways.json` - Trading-focused market analysis
+        *   `options-trader-takeaways.json` - Options strategy insights
+        *   `holistic-takeaways.json` - Comprehensive market analysis
+    *   Dynamic responsive UI with cross-device optimization (min-h-[400px] max-h-[80vh])
+    *   Enhanced multi-line input with Textarea component for complex queries
+    *   Comprehensive Copy/Export JSON functionality for chat responses
+    *   Race condition protection with request ID tracking
     *   Conditional tool loading: `tools: webSearchEnabled ? [{googleSearch: {}}] : []`
-    *   Unified server action (`spy-consolidated-chat-action.ts`) replacing dual chat architecture
+    *   Unified server action (`spy-consolidated-chat-action.ts`) with advanced error handling
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
@@ -264,8 +271,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.21
-*   **Current Application Version:** `v3.6.5.14`
+*   **This README Document Version:** 3.27
+*   **Current Application Version:** `v4.1.10.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
