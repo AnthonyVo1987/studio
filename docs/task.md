@@ -1,10 +1,11 @@
 [v4.1.10.0] [BUG REPORT] AI Chats mis-wired & not properly using dynamic sizing with scroll bars
 ###
 
-[v4.1.10.0] [DOCS UPDATE]
-- let's do an atomic commit of the latest docs
+[v4.1.10.0] [CLAUDE DOCS UPDATE]
+- let's do an atomic git commit and push of the latest docs updates and changes
 - There are no code changes this commit so the version stays the same since it is just a docs update
-- I also renamed bug_report.md
+- I also renamed bug_report.md to "task.md", and moved to "docs" folder for the updated operating procedures
+- I also moved "reinit.md" to "docs" folder
 
  let's do a multi step update for the CLAUDE.md file. 
  ###
