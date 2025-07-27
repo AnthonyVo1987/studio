@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CalendarDays, Search, Zap } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Loader2, CalendarDays, Search, Zap, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // SPY Context
-import { useSpyAnalysis, useSpyDispatch, SPY_TICKER } from '@/contexts/spy-analysis-context';
+import { useSpyAnalysis, useSpyDispatch, SPY_TICKER, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/spy-analysis-context';
 
 // Server Actions (reused from Main tab)
 import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
@@ -20,12 +21,13 @@ import { findNextAvailableDate } from '@/lib/date-utils';
 // SPY Data Section Component
 import { SpyDataSection } from '@/components/spy-data-section';
 
-// Placeholder UI Components (copied from Main tab but isolated)
+// SPY UI Components (isolated)
 import { SpyMarketStatusDisplay } from '@/components/spy-market-status-display';
 import { SpyKeyMetricsDisplay } from '@/components/spy-key-metrics-display';
 import { SpyStockSnapshotDisplay } from '@/components/spy-stock-snapshot-display';
 import { SpyStandardTaDisplay } from '@/components/spy-standard-ta-display';
 import { SpyAiAnalyzedTaDisplay } from '@/components/spy-ai-analyzed-ta-display';
+import { SpyOptionsChainTable } from '@/components/spy-options-chain-table';
 
 export function SpyTabContent() {
   const spyState = useSpyAnalysis();
@@ -78,7 +80,7 @@ export function SpyTabContent() {
     return () => {
       mounted = false;
     };
-  }, [spyDispatch, toast]);
+  }, []); // Empty deps - initialization should only run once on mount
 
   // Deterministic Handler: Fetch SPY Expirations
   const handleFetchExpirations = async () => {
@@ -127,10 +129,12 @@ export function SpyTabContent() {
       spyDispatch({ type: 'SET_LOADING' });
       spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: false });
 
-      // Step 1: Fetch Stock Data
+      // Step 1: Fetch Stock Data (including Options Chain)
       const stockDataResult = await fetchStockDataAction({
         ticker: SPY_TICKER,
         expirationDate: spyState.selectedExpirationDate,
+        optionType: spyState.optionType,
+        strikeCount: spyState.strikeCount,
       });
 
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
@@ -147,8 +151,7 @@ export function SpyTabContent() {
         throw new Error(taResult.error || 'Failed to fetch technical analysis');
       }
 
-      // Step 3: Batch Update SPY State
-      // Key metrics will be derived from stock snapshot in UI components
+      // Step 3: Batch Update SPY State (including Options Chain)
       spyDispatch({ 
         type: 'SET_STOCK_DATA', 
         payload: {
@@ -159,13 +162,19 @@ export function SpyTabContent() {
         }
       });
 
-      // Step 4: Signal that ALL data retrieval is complete for batch UI updates
+      // Step 4: Set Options Chain Data
+      spyDispatch({ 
+        type: 'SET_OPTIONS_CHAIN_DATA', 
+        payload: stockDataResult.data.optionsChainJson 
+      });
+
+      // Step 5: Signal that ALL data retrieval is complete for batch UI updates
       spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: true });
       spyDispatch({ type: 'SET_IDLE' });
 
       toast({
         title: `${SPY_TICKER} Data Retrieved`,
-        description: 'Stock data and technical analysis loaded successfully.',
+        description: 'Stock data, technical analysis, and options chain loaded successfully.',
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -182,6 +191,19 @@ export function SpyTabContent() {
   // Expiration Selection Handler
   const handleExpirationChange = (value: string) => {
     spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: value });
+  };
+
+  // Options Chain Settings Handlers
+  const handleOptionTypeChange = (value: OptionType) => {
+    spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { optionType: value } });
+  };
+
+  const handleStrikeCountChange = (value: StrikeCount) => {
+    spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { strikeCount: value } });
+  };
+
+  const handleTableDisplayTypeChange = (value: TableDisplayType) => {
+    spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { tableDisplayType: value } });
   };
 
   const isLoading = spyState.status === 'loading';
@@ -248,6 +270,80 @@ export function SpyTabContent() {
 
           <Separator />
 
+          {/* Options Chain Settings */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="text-sm font-medium">Options Chain Settings</span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Option Type Selector */}
+              <div className="space-y-2">
+                <Label htmlFor="spy-option-type" className="text-sm font-medium">
+                  Option Type
+                </Label>
+                <Select
+                  value={spyState.optionType}
+                  onValueChange={handleOptionTypeChange}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="spy-option-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="both">Both (Calls & Puts)</SelectItem>
+                    <SelectItem value="calls">Calls Only</SelectItem>
+                    <SelectItem value="puts">Puts Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Strike Count Selector */}
+              <div className="space-y-2">
+                <Label htmlFor="spy-strike-count" className="text-sm font-medium">
+                  Strike Count
+                </Label>
+                <Select
+                  value={spyState.strikeCount.toString()}
+                  onValueChange={(value) => handleStrikeCountChange(parseInt(value) as StrikeCount)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="spy-strike-count">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="20">20 Strikes</SelectItem>
+                    <SelectItem value="30">30 Strikes</SelectItem>
+                    <SelectItem value="40">40 Strikes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Table Display Type Selector */}
+              <div className="space-y-2">
+                <Label htmlFor="spy-table-display" className="text-sm font-medium">
+                  Table Layout
+                </Label>
+                <Select
+                  value={spyState.tableDisplayType}
+                  onValueChange={handleTableDisplayTypeChange}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="spy-table-display">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="side-by-side">Side by Side</SelectItem>
+                    <SelectItem value="top-bottom">Top & Bottom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Get Stock Data Button */}
           <div className="flex justify-center">
             <Button
@@ -267,7 +363,7 @@ export function SpyTabContent() {
         </CardContent>
       </Card>
 
-      {/* SPY UI Cards Grid (Static for now - future task will connect data) */}
+      {/* SPY UI Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SpyMarketStatusDisplay />
         <SpyKeyMetricsDisplay />
@@ -275,6 +371,9 @@ export function SpyTabContent() {
         <SpyStandardTaDisplay />
         <SpyAiAnalyzedTaDisplay />
       </div>
+
+      {/* SPY Options Chain Table (Full Width) */}
+      <SpyOptionsChainTable />
 
       {/* SPY Data Section (Self-contained JSON display) */}
       <SpyDataSection />

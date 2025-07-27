@@ -5,6 +5,11 @@ import { createContext, useContext, useReducer } from 'react';
 
 const SPY_TICKER = 'SPY';
 
+// Options Chain Settings (matching Main tab pattern)
+export type OptionType = 'both' | 'calls' | 'puts';
+export type StrikeCount = 20 | 30 | 40;
+export type TableDisplayType = 'side-by-side' | 'top-bottom';
+
 interface SpyAnalysisState {
   // Status Management
   status: 'idle' | 'loading' | 'error';
@@ -14,6 +19,11 @@ interface SpyAnalysisState {
   availableExpirationDates: string[];
   selectedExpirationDate: string;
   
+  // Options Chain Settings
+  optionType: OptionType;
+  strikeCount: StrikeCount;
+  tableDisplayType: TableDisplayType;
+  
   // Raw Data (JSON strings from server actions)
   stockSnapshotJson: string;
   marketStatusJson: string;
@@ -21,12 +31,14 @@ interface SpyAnalysisState {
   aiAnalyzedTaJson: string;
   aiKeyTakeawaysJson: string;
   aiOptionsAnalysisJson: string;
+  optionsChainJson: string;
   
   // Data Flags
   hasStockData: boolean;
   hasAiTaData: boolean;
   hasAiKeyTakeaways: boolean;
   hasAiOptionsAnalysis: boolean;
+  hasOptionsChainData: boolean;
   
   // UI Update Flag - signals when ALL data retrieval is complete for batch UI updates
   dataRetrievalComplete: boolean;
@@ -38,12 +50,18 @@ type SpyAnalysisAction =
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'SET_EXPIRATION_DATES'; payload: string[] }
   | { type: 'SET_SELECTED_EXPIRATION'; payload: string }
+  | { type: 'SET_OPTIONS_SETTINGS'; payload: {
+      optionType?: OptionType;
+      strikeCount?: StrikeCount;
+      tableDisplayType?: TableDisplayType;
+    }}
   | { type: 'SET_STOCK_DATA'; payload: {
       stockSnapshotJson: string;
       marketStatusJson: string;
       standardTaJson: string;
       aiAnalyzedTaJson: string;
     }}
+  | { type: 'SET_OPTIONS_CHAIN_DATA'; payload: string }
   | { type: 'SET_AI_KEY_TAKEAWAYS'; payload: string }
   | { type: 'SET_AI_OPTIONS_ANALYSIS'; payload: string }
   | { type: 'SET_DATA_RETRIEVAL_COMPLETE'; payload: boolean }
@@ -54,16 +72,21 @@ const initialState: SpyAnalysisState = {
   error: null,
   availableExpirationDates: [],
   selectedExpirationDate: '',
+  optionType: 'both',
+  strikeCount: 20,
+  tableDisplayType: 'side-by-side',
   stockSnapshotJson: '',
   marketStatusJson: '',
   standardTaJson: '',
   aiAnalyzedTaJson: '',
   aiKeyTakeawaysJson: '',
   aiOptionsAnalysisJson: '',
+  optionsChainJson: '',
   hasStockData: false,
   hasAiTaData: false,
   hasAiKeyTakeaways: false,
   hasAiOptionsAnalysis: false,
+  hasOptionsChainData: false,
   dataRetrievalComplete: false,
 };
 
@@ -103,6 +126,14 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         selectedExpirationDate: action.payload,
       };
 
+    case 'SET_OPTIONS_SETTINGS':
+      return {
+        ...state,
+        ...(action.payload.optionType !== undefined && { optionType: action.payload.optionType }),
+        ...(action.payload.strikeCount !== undefined && { strikeCount: action.payload.strikeCount }),
+        ...(action.payload.tableDisplayType !== undefined && { tableDisplayType: action.payload.tableDisplayType }),
+      };
+
     case 'SET_STOCK_DATA':
       return {
         ...state,
@@ -112,6 +143,13 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         aiAnalyzedTaJson: action.payload.aiAnalyzedTaJson,
         hasStockData: true,
         hasAiTaData: true,
+      };
+
+    case 'SET_OPTIONS_CHAIN_DATA':
+      return {
+        ...state,
+        optionsChainJson: action.payload,
+        hasOptionsChainData: true,
       };
 
     case 'SET_AI_KEY_TAKEAWAYS':

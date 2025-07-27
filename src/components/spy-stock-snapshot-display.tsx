@@ -28,8 +28,8 @@ const renderDetailRow = (item: SnapshotDetailItem, index: number, isLoading: boo
     <TableRow key={item.label}>
       <TableCell className="font-medium">{item.label}</TableCell>
       <TableCell>{item.current ?? "N/A"}</TableCell>
-      <TableCell>{item.previous ?? "N/A"}</TableCell>
       <TableCell>{item.minute ?? "N/A"}</TableCell>
+      <TableCell>{item.previous ?? "N/A"}</TableCell>
     </TableRow>
   );
 };
@@ -157,8 +157,8 @@ export function SpyStockSnapshotDisplay() {
               <TableRow>
                 <TableHead>Metric</TableHead>
                 <TableHead>Current Day</TableHead>
-                <TableHead>Previous Day</TableHead>
                 <TableHead>Current Minute</TableHead>
+                <TableHead>Previous Day</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

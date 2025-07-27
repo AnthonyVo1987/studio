@@ -32,9 +32,9 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.23
-**Application Version (from `app-metadata.json`):** v4.1.1.0
-**Last Updated:** 2025-01-26
+**README Document Version:** 3.24
+**Application Version (from `app-metadata.json`):** v4.1.4.0
+**Last Updated:** 2025-01-27
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.

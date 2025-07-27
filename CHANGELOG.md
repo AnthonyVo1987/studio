@@ -7,9 +7,37 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.4.0` (🎯 **SPY OPTIONS CHAIN IMPLEMENTATION**)
+**Tag:** `Phase-v4.1.4.0_SPY_Options_Chain_Complete`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.1.4.0] [SPY] feat: Complete SPY Options Chain implementation with full feature parity`
+**Details:**
+This commit implements complete SPY Options Chain functionality with full feature parity to the Main tab while maintaining strict SPY tab isolation.
+
+**Major New Features:**
+*   **Complete Options Chain Integration:** Added full options chain data retrieval, processing, and display
+*   **Advanced Settings Control:** Option Type (both/calls/puts), Strike Count (20/30/40), Table Layout (side-by-side/top-bottom)
+*   **Dynamic Table Display:** Side-by-side and top-bottom layouts with ATM strike highlighting
+*   **Data Export Capabilities:** Copy/Export JSON for options chain data, integrated with unified export ALL functionality
+*   **Column Reordering:** Moved "Current Minute" column in Stock Snapshot (Current Day → Current Minute → Previous Day)
+
+**Technical Implementation:**
+*   **SPY Context Extension:** Enhanced `spy-analysis-context.tsx` with options chain state management
+*   **New Components:** Created `spy-options-chain-table.tsx` with complete table functionality
+*   **Settings Integration:** Added options chain settings UI to SPY tab controls
+*   **Raw Data Integration:** Enhanced SPY data section with options chain raw data support
+*   **Server Action Integration:** Connected SPY options to `fetchStockDataAction` with proper parameter passing
+
+**Code Quality & Architecture:**
+*   **SPY Isolation Maintained:** Zero cross-dependencies with Main tab, dedicated SPY components
+*   **Deterministic Patterns:** All handlers use deterministic async/await patterns
+*   **Safe JSON Parsing:** Consistent error handling and data validation
+*   **React Best Practices:** Standard useContext + useReducer patterns throughout
+
+---
 **App Version:** `v4.1.3.0` (🎯 **SPY UI ENHANCEMENTS & FIXES**)
 **Tag:** `Phase-v4.1.3.0_SPY_UI_Complete`
-**Commit Hash:** `TBD`
+**Commit Hash:** `d7aa5a7`
 **Subject:** `[v4.1.3.0] [SPY] fix: Complete UI enhancements with TA population and UX improvements`
 **Details:**
 This commit completes the SPY tab UI implementation with full data population, minute data support, and UX refinements.

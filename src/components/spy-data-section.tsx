@@ -34,6 +34,12 @@ export function SpyDataSection() {
       hasData: spyState.hasStockData,
     },
     {
+      id: 'options-chain',
+      title: 'Options Chain',
+      data: spyState.optionsChainJson,
+      hasData: spyState.hasOptionsChainData,
+    },
+    {
       id: 'standard-ta',
       title: 'Standard TA',
       data: spyState.standardTaJson,
@@ -128,6 +134,7 @@ export function SpyDataSection() {
       data: {
         stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
         marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
+        optionsChain: spyState.optionsChainJson ? safeJsonParse(spyState.optionsChainJson) : null,
         standardTa: spyState.standardTaJson ? safeJsonParse(spyState.standardTaJson) : null,
         aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
         aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
@@ -168,6 +175,7 @@ export function SpyDataSection() {
       data: {
         stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
         marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
+        optionsChain: spyState.optionsChainJson ? safeJsonParse(spyState.optionsChainJson) : null,
         standardTa: spyState.standardTaJson ? safeJsonParse(spyState.standardTaJson) : null,
         aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
         aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
@@ -296,6 +304,10 @@ export function SpyDataSection() {
             <div>
               <span className="text-muted-foreground">Stock Data:</span>
               <span className="ml-2">{spyState.hasStockData ? 'Loaded' : 'Not Loaded'}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Options Data:</span>
+              <span className="ml-2">{spyState.hasOptionsChainData ? 'Loaded' : 'Not Loaded'}</span>
             </div>
             <div>
               <span className="text-muted-foreground">AI Data:</span>
