@@ -12,6 +12,7 @@ Additional Tools that Every Agent can use as needed:
 
 ### Custom Slash Commands
 - **New custom slash command "/task"**: Add new customer slash command for "/task" that will have Claude Code Agent(s) to open and read the "task.md" file in the "docs" folder for the next User Task
+- **New custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
 
 ## Overview
 StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.10.0, it includes a dedicated SPY tab with completely isolated architecture and advanced specialized AI chat system.

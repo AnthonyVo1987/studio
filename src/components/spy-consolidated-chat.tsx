@@ -26,6 +26,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSpyAnalysis, SPY_TICKER } from '@/contexts/spy-analysis-context';
 import { spyConsolidatedChatAction } from '@/actions/spy-consolidated-chat-action';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { 
   SpyConsolidatedChatState, 
   SpyConsolidatedChatInput 
@@ -41,7 +43,7 @@ const CHAT_HEIGHTS = {
 } as const;
 
 const SCROLL_AREA_CONFIG = {
-  MAX_HEIGHT: 'max-h-[50vh]',
+  MAX_HEIGHT: 'max-h-[calc(100%-180px)]', // Account for header, footer, and other elements
   MIN_HEIGHT: 'min-h-[200px]'
 } as const;
 
@@ -359,7 +361,7 @@ export function SpyConsolidatedChat() {
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col space-y-4">
+      <CardContent className="flex-1 flex flex-col space-y-4 overflow-hidden">
         {/* Example Prompts */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Quick Prompts</Label>
@@ -444,7 +446,7 @@ export function SpyConsolidatedChat() {
 
         {/* Chat Messages */}
         <ScrollArea className={`flex-1 space-y-4 ${SCROLL_AREA_CONFIG.MAX_HEIGHT} ${SCROLL_AREA_CONFIG.MIN_HEIGHT} overflow-y-auto overflow-x-hidden`}>
-          <div className="space-y-4 pr-4">
+          <div className="space-y-4 pr-4 overflow-hidden">
             {chatHistory.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-8">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -459,16 +461,47 @@ export function SpyConsolidatedChat() {
               chatHistory.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} overflow-hidden w-full`}
                 >
                   <div
-                    className={`max-w-[80%] sm:max-w-[85%] md:max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                    className={`max-w-[80%] sm:max-w-[85%] md:max-w-[80%] rounded-lg px-3 py-2 text-sm overflow-hidden ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere word-break-break-word overflow-hidden">{message.content}</div>
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]} 
+                      className="prose dark:prose-invert prose-sm max-w-none overflow-hidden whitespace-pre-wrap break-words overflow-wrap-anywhere word-break-break-word"
+                      components={{
+                        // Ensure code blocks don't overflow
+                        code: ({node, ...props}) => {
+                          const {children, className, ...rest} = props;
+                          const isInline = !className || !className.includes('language-');
+                          return (
+                            <code 
+                              {...rest} 
+                              className={`${className || ''} ${isInline ? "break-words overflow-hidden" : "block whitespace-pre-wrap break-words overflow-x-hidden overflow-y-hidden"}`}
+                            >
+                              {children}
+                            </code>
+                          );
+                        },
+                        // Ensure pre blocks don't overflow
+                        pre: ({node, ...props}) => (
+                          <pre {...props} className="whitespace-pre-wrap break-words overflow-x-hidden overflow-y-hidden max-w-full" />
+                        ),
+                        // Ensure all block elements respect container boundaries
+                        p: ({node, ...props}) => (
+                          <p {...props} className="break-words overflow-wrap-anywhere word-break-break-word overflow-hidden" />
+                        ),
+                        div: ({node, ...props}) => (
+                          <div {...props} className="break-words overflow-wrap-anywhere word-break-break-word overflow-hidden" />
+                        )
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                     {message.webSearchUsed && (
                       <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
                         <Globe className="h-3 w-3" />

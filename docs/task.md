@@ -1,10 +1,11 @@
-[v4.1.12.0] [BUG REPORT] AI Chat Text is NOT being properly outputted inside the size of the AI Chat Box
+[v4.1.13.0] [BUG REPORT] AI Chat Text is STILL not being properly formatted to match the AI Chat Component
 
 ###
 [Detailed Symptom(s) / Change Request(s)]:
-- Responses from AI Chat box are NOT being properly outputted and formatted to fit and adjust it's size\content dynamically according to the dynamic AI Chat box sizing
-- Right now, if the AI Chat output text is large enough, it overflows completlely outside the AI Chat Box component with no proper width and height adjustments with proper word wrapping and vertical scroll bars etc
-- We may have to update some of the hard coded AI Chat box dimensions to be less strict BUT still compatible with the adaptable dyanmic sizing code across different viewing platforms and devices
+- Responses from AI Chat box are STILL NOT being properly outputted and formatted to fit inside the AI Chat component
+- See screenshot of UI issue  docs folder "v4.1.13.0_bug_report_screenshot.png"
+- Screenshot shows the very first response completely overflows and even outputs outside the bounds of the Ai Chat box, AND it covers up elements below the output, where I can't even press or select the export buttons behind it to extract raw debug data
+
 
 ###
 [Log(s)]:
