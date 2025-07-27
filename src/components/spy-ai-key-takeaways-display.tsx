@@ -23,12 +23,13 @@ export function SpyAiKeyTakeawaysDisplay() {
   })() : {};
 
   // Extract metrics from AI analysis for display (hardcoded labels as requested)
+  // Fix: Extract takeaway strings from objects to prevent React rendering crash
   const metrics = isDataReady ? {
-    priceAction: keyTakeawaysData.priceAction || 'No data',
-    trend: keyTakeawaysData.trend || 'No data', 
-    volatility: keyTakeawaysData.volatility || 'No data',
-    momentum: keyTakeawaysData.momentum || 'No data',
-    patterns: keyTakeawaysData.patterns || 'No data'
+    priceAction: keyTakeawaysData.priceAction?.takeaway || 'No data',
+    trend: keyTakeawaysData.trend?.takeaway || 'No data', 
+    volatility: keyTakeawaysData.volatility?.takeaway || 'No data',
+    momentum: keyTakeawaysData.momentum?.takeaway || 'No data',
+    patterns: keyTakeawaysData.patterns?.takeaway || 'No data'
   } : null;
 
   // Export functionality

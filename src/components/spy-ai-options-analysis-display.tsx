@@ -23,9 +23,14 @@ export function SpyAiOptionsAnalysisDisplay() {
   })() : {};
 
   // Extract wall metrics from AI analysis for display (hardcoded labels as requested)
+  // Fix: Format arrays of wall objects into readable strings to prevent React rendering crash
   const wallMetrics = isDataReady ? {
-    callWalls: optionsAnalysisData.callWalls || 'No data',
-    putWalls: optionsAnalysisData.putWalls || 'No data'
+    callWalls: Array.isArray(optionsAnalysisData.callWalls) && optionsAnalysisData.callWalls.length > 0
+      ? `${optionsAnalysisData.callWalls.length} call wall${optionsAnalysisData.callWalls.length > 1 ? 's' : ''} identified`
+      : 'No call walls detected',
+    putWalls: Array.isArray(optionsAnalysisData.putWalls) && optionsAnalysisData.putWalls.length > 0
+      ? `${optionsAnalysisData.putWalls.length} put wall${optionsAnalysisData.putWalls.length > 1 ? 's' : ''} identified`
+      : 'No put walls detected'
   } : null;
 
   // Export functionality
