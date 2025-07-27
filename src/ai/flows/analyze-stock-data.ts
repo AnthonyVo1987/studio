@@ -125,7 +125,12 @@ const analyzeStockDataFlow = ai.defineFlow(
       throw error; 
     }
     
-    const finalOutput: StockAnalysisOutput = {
+    const finalOutput: StockAnalysisOutput = outputFromPrompt || {
+      priceAction: defaultTakeaway("priceAction", input.ticker),
+      trend: defaultTakeaway("trend", input.ticker),
+      volatility: defaultTakeaway("volatility", input.ticker),
+      momentum: defaultTakeaway("momentum", input.ticker),
+      patterns: defaultTakeaway("patterns", input.ticker),
     };
     
     const categories: (keyof StockAnalysisOutput)[] = ["priceAction", "trend", "volatility", "momentum", "patterns"];

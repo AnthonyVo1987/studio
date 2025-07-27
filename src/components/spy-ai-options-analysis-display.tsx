@@ -7,6 +7,13 @@ import { Download, Copy, Shield, TrendingUp, TrendingDown, CandlestickChart } fr
 import { useSpyAnalysis, SPY_TICKER } from '@/contexts/spy-analysis-context';
 import { useQuickExport } from '@/hooks/use-export-actions';
 
+interface OptionsWall {
+  strike: number;
+  openInterest?: number;
+  volume?: number;
+  type: 'call' | 'put';
+}
+
 export function SpyAiOptionsAnalysisDisplay() {
   const spyState = useSpyAnalysis();
 
@@ -91,22 +98,58 @@ export function SpyAiOptionsAnalysisDisplay() {
         {isDataReady && wallMetrics ? (
           <div className="space-y-4">
             {/* Hardcoded wall metric labels as requested */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-                <div className="flex-1">
-                  <p className="font-medium text-green-900 dark:text-green-100">Call Walls</p>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">{wallMetrics.callWalls}</p>
-                </div>
+            {/* Call Walls Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">Call Walls</h3>
               </div>
-              
-              <div className="flex items-center space-x-3 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-                <TrendingDown className="h-6 w-6 text-red-600" />
-                <div className="flex-1">
-                  <p className="font-medium text-red-900 dark:text-red-100">Put Walls</p>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">{wallMetrics.putWalls}</p>
+              {Array.isArray(optionsAnalysisData.callWalls) && optionsAnalysisData.callWalls.length > 0 ? (
+                <div className="space-y-2">
+                  {optionsAnalysisData.callWalls.map((wall: OptionsWall, index: number) => (
+                    <div key={index} className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-medium text-green-900 dark:text-green-100">Strike: ${wall.strike}</span>
+                        </div>
+                        <div className="text-right text-sm">
+                          <div className="text-green-700 dark:text-green-300">OI: {wall.openInterest?.toLocaleString()}</div>
+                          {wall.volume && <div className="text-green-600 dark:text-green-400">Vol: {wall.volume.toLocaleString()}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-green-700 dark:text-green-300 italic">No call walls detected</p>
+              )}
+            </div>
+
+            {/* Put Walls Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-5 w-5 text-red-600" />
+                <h3 className="text-lg font-semibold text-red-900 dark:text-red-100">Put Walls</h3>
               </div>
+              {Array.isArray(optionsAnalysisData.putWalls) && optionsAnalysisData.putWalls.length > 0 ? (
+                <div className="space-y-2">
+                  {optionsAnalysisData.putWalls.map((wall: OptionsWall, index: number) => (
+                    <div key={index} className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-medium text-red-900 dark:text-red-100">Strike: ${wall.strike}</span>
+                        </div>
+                        <div className="text-right text-sm">
+                          <div className="text-red-700 dark:text-red-300">OI: {wall.openInterest?.toLocaleString()}</div>
+                          {wall.volume && <div className="text-red-600 dark:text-red-400">Vol: {wall.volume.toLocaleString()}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-red-700 dark:text-red-300 italic">No put walls detected</p>
+              )}
             </div>
             
             <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">

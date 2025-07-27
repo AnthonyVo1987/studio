@@ -341,3 +341,138 @@ GEMINI_API_KEY=your_google_ai_api_key
 15. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds for deployment flexibility
 
 This architecture (v4.1.10.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with advanced AI chat).
+
+---
+
+## AI Development Team Configuration
+*Updated by team-configurator on 2025-07-27*
+
+Your StockSage project has been analyzed and configured with a specialized AI development team optimized for your Next.js financial analysis application.
+
+### Detected Technology Stack
+- **Frontend**: Next.js 15.3.3 with React 18.3.1, App Router architecture
+- **AI Backend**: Google Genkit + Google AI SDK with Gemini 2.5-flash-lite
+- **UI Framework**: ShadCN UI components with Tailwind CSS
+- **State Management**: React Context with useReducer patterns
+- **Data Sources**: Polygon.io API for real-time financial data
+- **Type Safety**: TypeScript with Zod validation schemas
+- **Architecture**: Server Actions, Server Components, and isolated context patterns
+
+### Specialist Team Assignments
+
+#### 🚀 Frontend Development & Architecture
+- **Next.js Applications** → @react-nextjs-expert
+  - App Router architecture, Server Components, Server Actions
+  - SSR/SSG optimization, ISR for financial data caching
+  - Performance optimization for real-time data rendering
+  
+- **React Components** → @react-component-architect
+  - Complex financial UI components (charts, tables, data displays)
+  - State management patterns with Context and useReducer
+  - Interactive trading interfaces and dashboard components
+  
+- **UI/UX Implementation** → @tailwind-css-expert
+  - ShadCN UI component customization and theming
+  - Responsive design for financial dashboards
+  - Mobile-first approach for trading interfaces
+
+#### 🔧 Backend & API Development
+- **AI Flow Development** → @api-architect
+  - Google Genkit flow design and optimization
+  - Server Actions architecture for AI analysis
+  - Financial data processing and validation patterns
+  
+- **Data Integration** → @backend-developer
+  - Polygon.io API integration and optimization
+  - Real-time data fetching strategies
+  - Error handling and retry logic for financial APIs
+  
+- **AI Prompt Engineering** → @api-architect
+  - Specialized trading prompt system (stock-trader, options-trader, holistic)
+  - Context-aware AI analysis for financial insights
+  - Gemini model optimization for financial use cases
+
+#### 🔍 Quality Assurance & Optimization
+- **Code Review & Security** → @code-reviewer
+  - Financial application security audits
+  - React anti-pattern prevention
+  - Context isolation and state management review
+  
+- **Performance Optimization** → @performance-optimizer
+  - Real-time data rendering optimization
+  - Bundle analysis and code splitting
+  - Memory management for continuous market data
+  
+- **Documentation & Analysis** → @documentation-specialist
+  - Codebase architecture documentation
+  - API documentation and integration guides
+  - Financial feature specifications
+
+#### 🎯 Project Management & Coordination
+- **Technical Leadership** → @tech-lead-orchestrator
+  - Cross-team coordination for complex features
+  - Architecture decision guidance
+  - Release planning and version management
+  
+- **Project Analysis** → @project-analyst
+  - Feature requirement analysis
+  - Technology stack optimization recommendations
+  - Development workflow improvements
+
+### Task-Based Routing Examples
+
+**For Frontend Development:**
+- "Build a new SPY options chain component" → @react-component-architect
+- "Optimize the dashboard for mobile devices" → @tailwind-css-expert
+- "Implement real-time chart updates" → @react-nextjs-expert
+
+**For Backend & AI:**
+- "Create a new AI analysis prompt for earnings data" → @api-architect
+- "Optimize Polygon.io data fetching" → @backend-developer
+- "Design REST endpoints for portfolio tracking" → @api-architect
+
+**For Quality & Performance:**
+- "Review the SPY chat implementation" → @code-reviewer
+- "Optimize bundle size and loading times" → @performance-optimizer
+- "Audit financial data security" → @code-reviewer
+
+**For Project Coordination:**
+- "Plan the v4.2 release features" → @tech-lead-orchestrator
+- "Analyze technical debt in the codebase" → @project-analyst
+- "Document the new AI prompt system" → @documentation-specialist
+
+### Specialized Knowledge Areas
+
+#### Financial Application Expertise
+- **Real-time Data Handling**: Optimized for continuous market data streams
+- **Trading Interface Design**: SPY-focused UI with advanced chat system
+- **AI Financial Analysis**: Context-aware prompts for stock and options analysis
+- **Performance Optimization**: Efficient rendering for high-frequency data updates
+
+#### React/Next.js Best Practices
+- **Context Isolation**: Separate contexts for Main and SPY tabs
+- **Deterministic Handlers**: On-demand operations with FSM state management
+- **Server Components**: Optimal SSR for SEO and performance
+- **Type Safety**: Comprehensive TypeScript with Zod validation
+
+#### Architecture Patterns
+- **Factory Patterns**: Centralized setter creation and configuration
+- **Token Optimization**: 27.9% codebase reduction while preserving functionality
+- **Simplified FSM**: Clean state management (APP_INITIALIZING, IDLE, LOADING)
+- **Direct Context Consumption**: Standard React patterns throughout
+
+### Development Workflow Integration
+
+1. **Feature Development**: Start with @react-nextjs-expert or @react-component-architect
+2. **AI Integration**: Use @api-architect for Genkit flows and prompt engineering
+3. **Quality Review**: Always route through @code-reviewer before production
+4. **Performance Check**: Use @performance-optimizer for optimization opportunities
+5. **Documentation**: Update with @documentation-specialist for complex features
+
+### Team Coordination Commands
+
+- **"Assemble full team for [feature]"** → @tech-lead-orchestrator coordinates specialists
+- **"Review entire codebase"** → @project-analyst provides comprehensive analysis
+- **"Plan next sprint"** → @tech-lead-orchestrator with relevant specialists
+
+Your specialized AI development team is now configured and ready to handle the unique challenges of building a sophisticated financial analysis application with Next.js and AI integration!
