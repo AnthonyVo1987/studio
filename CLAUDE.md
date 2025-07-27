@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.0.0, it includes a dedicated SPY tab with completely isolated architecture.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.5.0, it includes a dedicated SPY tab with completely isolated architecture and React anti-pattern elimination.
 
 ## Common Development Commands
 
@@ -53,7 +53,7 @@ npm run typecheck
 - **Loading States**: Derived from FSM state and business flags
 - **On-Demand AI**: AI Key Takeaways and Options Analysis are manual button-triggered only
 
-### SPY Tab Architecture (v4.1.0.0+)
+### SPY Tab Architecture (v4.1.5.0+)
 
 **Completely isolated SPY-dedicated tab with ground-up rewrite:**
 
@@ -73,7 +73,9 @@ npm run typecheck
 
 ### Core Architecture Files (Tier 1 - Critical)
 - `src/contexts/business-logic-context.tsx` - All application state & FSM management
+- `src/contexts/spy-analysis-context.tsx` - SPY dedicated state management (isolated)
 - `src/components/main-tab-content-ui.tsx` - Main UI component with deterministic handlers for on-demand operations
+- `src/components/spy-tab-content.tsx` - SPY UI component with deterministic handlers
 - `src/services/data-sources/adapters/polygon-adapter.ts` - API integration
 - `src/types/` - Type definitions directory (e.g., `options.ts`)
 
@@ -160,10 +162,11 @@ const handleOnDemandKeyTakeaways = async () => {
 - **Validation**: Use Zod schemas for all data validation
 
 ### 2. UI/UX Conventions
-- **Components**: ShadCN UI components with Tailwind styling
-- **Icons**: Lucide React icons
+- **Components**: ShadCN UI components with Tailwind styling (configured in `components.json`)
+- **Icons**: Lucide React icons (as specified in iconLibrary config)
 - **Loading States**: Derive from FSM state and business flags
 - **Responsiveness**: Mobile-first approach with proper breakpoints
+- **Styling**: CSS variables enabled with neutral base color
 
 ### 3. Data Export Features
 - All data cards support "Copy JSON" and "Export JSON" functionality
@@ -229,9 +232,10 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **No formal test suite exists** - manual testing required
 - **Manual Testing Checklist**:
   - Main tab: Stock analysis pipeline (data fetch → AI TA → on-demand AI features)
-  - SPY tab: Auto-expiration fetch and options chain display
+  - SPY tab: Auto-expiration fetch and complete options chain analysis with full feature parity
   - Both tabs: JSON export functionality on all data cards
   - Debug tabs: Verify logging and FSM state transitions
+  - SPY Options Chain: Test derived state calculations and performance optimizations
 - Use the built-in Debug tabs in the application for verification:
   - "Debug" tab: Raw JSON inputs/outputs
   - "Debug Logs" tab: Application trace logs with filtering
@@ -276,6 +280,7 @@ GEMINI_API_KEY=your_google_ai_api_key
     - **Derived state pattern**: Calculates values during render instead of useState hooks
     - **useMemo for expensive operations**: Only ATM strike calculation uses useMemo
     - **React best practices**: Follows React documentation guidelines for derived state
+    - **Full Feature Parity**: SPY Options Chain now has complete implementation matching Main tab functionality
 14. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds (see `next.config.ts`) for deployment flexibility
 15. **Parallel Architecture** - Main and SPY tabs operate independently with zero cross-dependencies
 
@@ -294,11 +299,11 @@ This architecture (v4.1.5.0) maintains React best practices with two parallel, i
 - **Current Branch**: v4.0.0.0_UI_Overhaul
 - **Main Branch**: v3.6.5.14_STABLE_RELEASE (use for PRs)
 - **Recent Commits**: 
-  - d7aa5a7: [v4.1.0.0] [DOCS] Update CLAUDE.md with SPY tab architecture
-  - 2cf59f5: [v4.1.0.0] [OVERHAUL] SPY Dedicated & Isolated Tab
-  - 427896a: [v4.0.0.7] [OVERHAUL] Polygon API Data UI Populate Only
-  - 3a23952: [v4.0.0.6] [BUG REPORT] Cannot press ANY On Demand UI Actions Buttons
-  - 0a37e02: [v4.0.0.5] [BUG REPORT] Add Missing On Demand UI Actions
+  - e7a39e4: [v4.1.5.0] [REFACTOR] SPY Options Chain React Anti-Pattern Elimination
+  - 24f5d38: [v4.1.4.0] [SPY] feat: Complete SPY Options Chain implementation with full feature parity
+  - 3f6f746: [v4.1.3.0] [SPY] fix: Complete UI enhancements with TA population and UX improvements
+  - 8c3f70a: [v4.1.2.0] [SPY] fix: Correct JSON parsing for Market Status, Key Metrics, and Stock Snapshot components
+  - af1f15e: [v4.1.1.0] [SPY] feat: Update UI for Market Status, Key Metrics, and Stock Snapshot
 
 ## Quick Start for New Development
 

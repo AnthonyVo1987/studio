@@ -33,7 +33,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 ###
 ---
 **README Document Version:** 3.25
-**Application Version (from `app-metadata.json`):** v4.1.5.0
+**Application Version (from `app-metadata.json`):** v4.1.6.0
 **Last Updated:** 2025-01-27
 
 ## 1. Introduction

@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Loader2, CalendarDays, Search, Zap, Settings } from 'lucide-react';
+import { Loader2, CalendarDays, Search, Zap, Settings, FileText, CandlestickChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // SPY Context
@@ -16,6 +15,8 @@ import { useSpyAnalysis, useSpyDispatch, SPY_TICKER, type OptionType, type Strik
 import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
+import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
+import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 import { findNextAvailableDate } from '@/lib/date-utils';
 
 // SPY Data Section Component
@@ -28,59 +29,14 @@ import { SpyStockSnapshotDisplay } from '@/components/spy-stock-snapshot-display
 import { SpyStandardTaDisplay } from '@/components/spy-standard-ta-display';
 import { SpyAiAnalyzedTaDisplay } from '@/components/spy-ai-analyzed-ta-display';
 import { SpyOptionsChainTable } from '@/components/spy-options-chain-table';
+import { SpyAiKeyTakeawaysDisplay } from '@/components/spy-ai-key-takeaways-display';
+import { SpyAiOptionsAnalysisDisplay } from '@/components/spy-ai-options-analysis-display';
 
 export function SpyTabContent() {
   const spyState = useSpyAnalysis();
   const spyDispatch = useSpyDispatch();
   const { toast } = useToast();
 
-  // Auto-fetch SPY expirations when component mounts
-  useEffect(() => {
-    let mounted = true;
-    
-    const fetchInitialData = async () => {
-      if (!mounted) return;
-      
-      try {
-        spyDispatch({ type: 'SET_LOADING' });
-        
-        const expirations = await getExpirationDates(SPY_TICKER);
-        const nextAvailableDate = findNextAvailableDate(expirations);
-        
-        if (!mounted) return;
-        
-        spyDispatch({ type: 'SET_EXPIRATION_DATES', payload: expirations });
-        
-        if (nextAvailableDate) {
-          spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: nextAvailableDate });
-        }
-        
-        spyDispatch({ type: 'SET_IDLE' });
-        
-        toast({
-          title: `${SPY_TICKER} Expirations Loaded`,
-          description: `Found ${expirations.length} available dates. Selected: ${nextAvailableDate || 'None'}`,
-        });
-      } catch (error) {
-        if (!mounted) return;
-        
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
-        
-        toast({
-          title: 'Error Fetching Expirations',
-          description: errorMessage,
-          variant: 'destructive',
-        });
-      }
-    };
-    
-    fetchInitialData();
-    
-    return () => {
-      mounted = false;
-    };
-  }, []); // Empty deps - initialization should only run once on mount
 
   // Deterministic Handler: Fetch SPY Expirations
   const handleFetchExpirations = async () => {
@@ -182,6 +138,84 @@ export function SpyTabContent() {
       
       toast({
         title: 'Error Fetching Stock Data',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Deterministic Handler: SPY AI Key Takeaways (Phase 1)
+  const handleSpyAiKeyTakeaways = async () => {
+    try {
+      spyDispatch({ type: 'SET_LOADING' });
+
+      const result = await performAiAnalysisAction({
+        ticker: SPY_TICKER,
+        stockSnapshotJson: spyState.stockSnapshotJson,
+        standardTasJson: spyState.standardTaJson,
+        aiAnalyzedTaJson: spyState.aiAnalyzedTaJson,
+        marketStatusJson: spyState.marketStatusJson,
+      });
+
+      if (result.status === 'success' && result.data) {
+        spyDispatch({ 
+          type: 'SET_AI_KEY_TAKEAWAYS', 
+          payload: result.data.aiKeyTakeawaysJson 
+        });
+        
+        spyDispatch({ type: 'SET_IDLE' });
+        
+        toast({ 
+          title: 'Success', 
+          description: `${SPY_TICKER} AI Key Takeaways generated successfully` 
+        });
+      } else {
+        throw new Error(result.message || 'Failed to generate AI Key Takeaways');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
+      
+      toast({
+        title: 'Error Generating AI Key Takeaways',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Deterministic Handler: SPY AI Options Analysis (Phase 1)
+  const handleSpyAiOptionsAnalysis = async () => {
+    try {
+      spyDispatch({ type: 'SET_LOADING' });
+
+      const result = await performAiOptionsAnalysisAction({
+        ticker: SPY_TICKER,
+        stockSnapshotJson: spyState.stockSnapshotJson,
+        optionsChainJson: spyState.optionsChainJson,
+      });
+
+      if (result.status === 'success' && result.data) {
+        spyDispatch({ 
+          type: 'SET_AI_OPTIONS_ANALYSIS', 
+          payload: result.data.aiOptionsAnalysisJson 
+        });
+        
+        spyDispatch({ type: 'SET_IDLE' });
+        
+        toast({ 
+          title: 'Success', 
+          description: `${SPY_TICKER} AI Options Analysis generated successfully` 
+        });
+      } else {
+        throw new Error(result.message || 'Failed to generate AI Options Analysis');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
+      
+      toast({
+        title: 'Error Generating AI Options Analysis',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -363,6 +397,41 @@ export function SpyTabContent() {
         </CardContent>
       </Card>
 
+      {/* SPY AI Analysis Controls (Phase 1) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {SPY_TICKER} AI Analysis (On-Demand)
+          </CardTitle>
+          <CardDescription>
+            Generate AI analysis manually. Each button is independent and requires specific data to be available.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={handleSpyAiKeyTakeaways}
+              disabled={!spyState.hasStockData || !spyState.hasAiTaData || isLoading}
+              variant="outline"
+              className="flex-1"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Generate AI Key Takeaways
+            </Button>
+            <Button 
+              onClick={handleSpyAiOptionsAnalysis}
+              disabled={!spyState.hasOptionsChainData || isLoading}
+              variant="outline"
+              className="flex-1"
+            >
+              <CandlestickChart className="mr-2 h-4 w-4" />
+              Generate AI Options Analysis
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* SPY UI Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SpyMarketStatusDisplay />
@@ -371,6 +440,10 @@ export function SpyTabContent() {
         <SpyStandardTaDisplay />
         <SpyAiAnalyzedTaDisplay />
       </div>
+
+      {/* SPY AI Analysis Components (Full Width) */}
+      <SpyAiKeyTakeawaysDisplay />
+      <SpyAiOptionsAnalysisDisplay />
 
       {/* SPY Options Chain Table (Full Width) */}
       <SpyOptionsChainTable />
