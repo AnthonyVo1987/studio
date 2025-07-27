@@ -35,27 +35,30 @@ const renderDetailRow = (item: SnapshotDetailItem, index: number, isLoading: boo
 export function SpyStockSnapshotDisplay() {
   const spyState = useSpyAnalysis();
 
-  // Safe JSON parsing pattern following CLAUDE.md guidelines
+  // Safe JSON parsing pattern following actual Polygon API structure
   const snapshotData = spyState.stockSnapshotJson ? (() => {
     try {
       const parsed = JSON.parse(spyState.stockSnapshotJson);
-      const result = parsed.results?.[0] || {};
-      const prevResult = parsed.results?.[1] || {};
+      const day = parsed.day || {};
+      const prevDay = parsed.prevDay || {};
       
       return {
-        ticker: result.T || "SPY",
-        open: result.o?.toFixed(2) || "N/A",
-        high: result.h?.toFixed(2) || "N/A",
-        low: result.l?.toFixed(2) || "N/A",
-        close: result.c?.toFixed(2) || "N/A",
-        volume: result.v?.toLocaleString() || "N/A",
-        vwap: result.vw?.toFixed(2) || "N/A",
-        prevOpen: prevResult.o?.toFixed(2) || "N/A",
-        prevHigh: prevResult.h?.toFixed(2) || "N/A",
-        prevLow: prevResult.l?.toFixed(2) || "N/A",
-        prevClose: prevResult.c?.toFixed(2) || "N/A",
-        prevVolume: prevResult.v?.toLocaleString() || "N/A",
-        prevVwap: prevResult.vw?.toFixed(2) || "N/A",
+        ticker: parsed.ticker || "SPY",
+        open: day.o?.toFixed(2) || "N/A",
+        high: day.h?.toFixed(2) || "N/A",
+        low: day.l?.toFixed(2) || "N/A",
+        close: day.c?.toFixed(2) || "N/A",
+        volume: day.v?.toLocaleString() || "N/A",
+        vwap: day.vw?.toFixed(2) || "N/A",
+        prevOpen: prevDay.o?.toFixed(2) || "N/A",
+        prevHigh: prevDay.h?.toFixed(2) || "N/A",
+        prevLow: prevDay.l?.toFixed(2) || "N/A",
+        prevClose: prevDay.c?.toFixed(2) || "N/A",
+        prevVolume: prevDay.v?.toLocaleString() || "N/A",
+        prevVwap: prevDay.vw?.toFixed(2) || "N/A",
+        currentPrice: parsed.currentPrice?.toFixed(2) || "N/A",
+        todaysChange: parsed.todaysChange?.toFixed(2) || "N/A",
+        todaysChangePerc: parsed.todaysChangePerc?.toFixed(2) || "N/A",
         isDataReady: spyState.dataRetrievalComplete
       };
     } catch (e) {
@@ -73,6 +76,9 @@ export function SpyStockSnapshotDisplay() {
         prevClose: "N/A",
         prevVolume: "N/A",
         prevVwap: "N/A",
+        currentPrice: "N/A",
+        todaysChange: "N/A",
+        todaysChangePerc: "N/A",
         isDataReady: false
       };
     }
@@ -90,6 +96,9 @@ export function SpyStockSnapshotDisplay() {
     prevClose: "N/A",
     prevVolume: "N/A",
     prevVwap: "N/A",
+    currentPrice: "N/A",
+    todaysChange: "N/A",
+    todaysChangePerc: "N/A",
     isDataReady: false
   };
 

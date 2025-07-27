@@ -148,29 +148,12 @@ export function SpyTabContent() {
       }
 
       // Step 3: Batch Update SPY State
-      // Parse key metrics from stock snapshot
-      let keyMetricsJson = '';
-      try {
-        const snapshotData = JSON.parse(stockDataResult.data.stockSnapshotJson);
-        if (snapshotData.results && snapshotData.results.length > 0) {
-          const result = snapshotData.results[0];
-          keyMetricsJson = JSON.stringify({
-            ticker: result.T || SPY_TICKER,
-            currentPrice: result.c || 0,
-            changeAmount: ((result.c || 0) - (result.pc || 0)).toFixed(2),
-            changePercent: (((result.c || 0) - (result.pc || 0)) / (result.pc || 1) * 100).toFixed(2),
-          });
-        }
-      } catch (e) {
-        keyMetricsJson = JSON.stringify({ error: 'Failed to parse key metrics' });
-      }
-
+      // Key metrics will be derived from stock snapshot in UI components
       spyDispatch({ 
         type: 'SET_STOCK_DATA', 
         payload: {
           stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
           marketStatusJson: stockDataResult.data.marketStatusJson,
-          keyMetricsJson,
           standardTaJson: stockDataResult.data.standardTasJson,
           aiAnalyzedTaJson: taResult.data.aiAnalyzedTaJson,
         }

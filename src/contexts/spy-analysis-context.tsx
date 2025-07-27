@@ -17,7 +17,6 @@ interface SpyAnalysisState {
   // Raw Data (JSON strings from server actions)
   stockSnapshotJson: string;
   marketStatusJson: string;
-  keyMetricsJson: string;
   standardTaJson: string;
   aiAnalyzedTaJson: string;
   aiKeyTakeawaysJson: string;
@@ -42,7 +41,6 @@ type SpyAnalysisAction =
   | { type: 'SET_STOCK_DATA'; payload: {
       stockSnapshotJson: string;
       marketStatusJson: string;
-      keyMetricsJson: string;
       standardTaJson: string;
       aiAnalyzedTaJson: string;
     }}
@@ -58,7 +56,6 @@ const initialState: SpyAnalysisState = {
   selectedExpirationDate: '',
   stockSnapshotJson: '',
   marketStatusJson: '',
-  keyMetricsJson: '',
   standardTaJson: '',
   aiAnalyzedTaJson: '',
   aiKeyTakeawaysJson: '',
@@ -111,7 +108,6 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         ...state,
         stockSnapshotJson: action.payload.stockSnapshotJson,
         marketStatusJson: action.payload.marketStatusJson,
-        keyMetricsJson: action.payload.keyMetricsJson,
         standardTaJson: action.payload.standardTaJson,
         aiAnalyzedTaJson: action.payload.aiAnalyzedTaJson,
         hasStockData: true,

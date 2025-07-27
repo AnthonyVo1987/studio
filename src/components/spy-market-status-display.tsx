@@ -33,14 +33,18 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 export function SpyMarketStatusDisplay() {
   const spyState = useSpyAnalysis();
 
-  // Safe JSON parsing pattern following CLAUDE.md guidelines
+  // Safe JSON parsing pattern following actual Polygon API structure
   const marketData = spyState.marketStatusJson ? (() => {
     try {
       const parsed = JSON.parse(spyState.marketStatusJson);
       return {
-        status: parsed.status || "Unknown",
+        status: parsed.market || "Unknown",
         isOpen: parsed.market === "open",
-        localDateTime: parsed.local_datetime || new Date().toISOString(),
+        localDateTime: parsed.serverTime || new Date().toISOString(),
+        earlyHours: parsed.earlyHours || false,
+        lateHours: parsed.lateHours || false,
+        exchanges: parsed.exchanges || {},
+        currencies: parsed.currencies || {},
         isDataReady: spyState.dataRetrievalComplete
       };
     } catch (e) {
@@ -48,6 +52,10 @@ export function SpyMarketStatusDisplay() {
         status: "Error parsing market data",
         isOpen: false,
         localDateTime: new Date().toISOString(),
+        earlyHours: false,
+        lateHours: false,
+        exchanges: {},
+        currencies: {},
         isDataReady: false
       };
     }
@@ -55,6 +63,10 @@ export function SpyMarketStatusDisplay() {
     status: "No market data available",
     isOpen: false,
     localDateTime: new Date().toISOString(),
+    earlyHours: false,
+    lateHours: false,
+    exchanges: {},
+    currencies: {},
     isDataReady: false
   };
 
@@ -64,7 +76,9 @@ export function SpyMarketStatusDisplay() {
   const marketDetails: MarketDetailItem[] = [
     { label: "Market Status", value: marketData.status || "Unknown" },
     { label: "Is Open", value: marketData.isOpen ? "Yes" : "No" },
-    { label: "Local Date/Time", value: marketData.localDateTime ? new Date(marketData.localDateTime).toLocaleString() : null },
+    { label: "Early Hours", value: marketData.earlyHours ? "Yes" : "No" },
+    { label: "Late Hours", value: marketData.lateHours ? "Yes" : "No" },
+    { label: "Server Time", value: marketData.localDateTime ? new Date(marketData.localDateTime).toLocaleString() : null },
   ];
 
   return (

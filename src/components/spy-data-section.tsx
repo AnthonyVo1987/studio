@@ -34,12 +34,6 @@ export function SpyDataSection() {
       hasData: spyState.hasStockData,
     },
     {
-      id: 'key-metrics',
-      title: 'Key Metrics',
-      data: spyState.keyMetricsJson,
-      hasData: spyState.hasStockData,
-    },
-    {
       id: 'standard-ta',
       title: 'Standard TA',
       data: spyState.standardTaJson,
@@ -118,6 +112,81 @@ export function SpyDataSection() {
     });
   };
 
+  // Unified Copy All Handler
+  const handleCopyAll = async () => {
+    const safeJsonParse = (jsonString: string) => {
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        return { error: 'Failed to parse JSON', raw: jsonString };
+      }
+    };
+
+    const allData = {
+      ticker: SPY_TICKER,
+      timestamp: new Date().toISOString(),
+      data: {
+        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
+        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
+        standardTa: spyState.standardTaJson ? safeJsonParse(spyState.standardTaJson) : null,
+        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
+      }
+    };
+
+    const formattedData = JSON.stringify(allData, null, 2);
+    const success = await copyToClipboard(formattedData);
+    
+    if (success) {
+      toast({
+        title: 'All SPY Data Copied',
+        description: `Complete ${SPY_TICKER} dataset copied to clipboard.`,
+      });
+    } else {
+      toast({
+        title: 'Copy Failed',
+        description: 'Could not copy all data to clipboard.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Unified Export All Handler
+  const handleExportAll = () => {
+    const allData = {
+      ticker: SPY_TICKER,
+      timestamp: new Date().toISOString(),
+      data: {
+        stockSnapshot: spyState.stockSnapshotJson ? JSON.parse(spyState.stockSnapshotJson) : null,
+        marketStatus: spyState.marketStatusJson ? JSON.parse(spyState.marketStatusJson) : null,
+        standardTa: spyState.standardTaJson ? JSON.parse(spyState.standardTaJson) : null,
+        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? JSON.parse(spyState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? JSON.parse(spyState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? JSON.parse(spyState.aiOptionsAnalysisJson) : null,
+      }
+    };
+
+    const formattedData = JSON.stringify(allData, null, 2);
+    const filename = `spy-complete-dataset-${new Date().toISOString().split('T')[0]}.json`;
+    
+    // Create download link
+    const blob = new Blob([formattedData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'All SPY Data Exported',
+      description: `Complete ${SPY_TICKER} dataset exported as ${filename}.`,
+    });
+  };
+
   // Find active section
   const activeSection = dataSections.find(section => section.id === activeTab);
 
@@ -133,6 +202,34 @@ export function SpyDataSection() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Unified Export ALL SPY Data Actions */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+          <div>
+            <h3 className="text-lg font-semibold">Export All {SPY_TICKER} Data</h3>
+            <p className="text-sm text-muted-foreground">Copy or export all available SPY data in one action</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleCopyAll()}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy ALL
+            </Button>
+            <Button
+              onClick={() => handleExportAll()}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export ALL
+            </Button>
+          </div>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-4 lg:grid-cols-7 mb-4">
             {dataSections.map((section) => (

@@ -9,15 +9,16 @@ import { useSpyAnalysis } from "@/contexts/spy-analysis-context";
 export function SpyKeyMetricsDisplay() {
   const spyState = useSpyAnalysis();
 
-  // Safe JSON parsing pattern following CLAUDE.md guidelines
-  const metricsData = spyState.keyMetricsJson ? (() => {
+  // Safe JSON parsing pattern following actual Polygon API structure
+  // Derive key metrics from stock snapshot data (no separate keyMetricsJson needed)
+  const metricsData = spyState.stockSnapshotJson ? (() => {
     try {
-      const parsed = JSON.parse(spyState.keyMetricsJson);
+      const parsed = JSON.parse(spyState.stockSnapshotJson);
       return {
         ticker: parsed.ticker || "SPY",
         currentPrice: parsed.currentPrice?.toString() || "0.00",
-        changeAmount: parsed.changeAmount?.toString() || "0.00",
-        changePercent: parsed.changePercent?.toString() || "0.00",
+        changeAmount: parsed.todaysChange?.toString() || "0.00",
+        changePercent: parsed.todaysChangePerc?.toString() || "0.00",
         isDataReady: spyState.dataRetrievalComplete
       };
     } catch (e) {
