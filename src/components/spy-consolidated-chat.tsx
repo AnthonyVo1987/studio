@@ -4,6 +4,7 @@ import React, { useState, useActionState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
@@ -18,7 +19,9 @@ import {
   FileText,
   CandlestickChart,
   SearchCode,
-  Globe
+  Globe,
+  Copy,
+  Download
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSpyAnalysis, SPY_TICKER } from '@/contexts/spy-analysis-context';
@@ -27,6 +30,21 @@ import type {
   SpyConsolidatedChatState, 
   SpyConsolidatedChatInput 
 } from '@/ai/schemas/spy-consolidated-chat-schemas';
+
+// UI Constants
+const CHAT_HEIGHTS = {
+  MIN: 'min-h-[400px]',
+  MAX: 'max-h-[80vh]',
+  MOBILE: 'h-[600px]',
+  TABLET: 'sm:h-[650px]',
+  DESKTOP: 'md:h-[700px]'
+} as const;
+
+const TEXTAREA_CONFIG = {
+  MIN_HEIGHT: 'min-h-[80px]',
+  MAX_HEIGHT: 'max-h-[200px]',
+  DEFAULT_ROWS: 3
+} as const;
 
 // Chat message interface
 interface ChatMessage {
@@ -58,6 +76,7 @@ export function SpyConsolidatedChat() {
   const [userInput, setUserInput] = useState('');
   const [webSearchMode, setWebSearchMode] = useState<'app-data' | 'web-search'>('app-data');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
 
   // Action state for unified chat
   const [chatState, submitChat, isChatPending] = useActionState<SpyConsolidatedChatState, SpyConsolidatedChatInput>(
@@ -70,17 +89,26 @@ export function SpyConsolidatedChat() {
   const hasStockData = spyState.hasStockData;
   const hasAnyData = hasStockData || spyState.hasAiTaData || spyState.hasAiKeyTakeaways || spyState.hasAiOptionsAnalysis;
 
-  // Handle chat response
+  // Handle chat response with race condition protection
   React.useEffect(() => {
     if (chatState.status === 'idle' || isChatPending) return;
 
+    // Only process responses for the current request to prevent race conditions
     const { data, error, message, status } = chatState;
     
     if (status === 'success' && data) {
-      try {
-        const responseData = JSON.parse(data.responseJson);
-        const responseContent = responseData.response || 'No response received.';
-        const webSearchUsed = responseData.webSearchUsed || false;
+      // Safe JSON parsing pattern
+      const responseData = (() => {
+        try {
+          return JSON.parse(data.responseJson);
+        } catch (e) {
+          console.error('Failed to parse response JSON:', e);
+          return { response: 'Error: Invalid response format', webSearchUsed: false };
+        }
+      })();
+      
+      const responseContent = responseData.response || 'No response received.';
+      const webSearchUsed = responseData.webSearchUsed || false;
         
         // Add model response to chat history
         setChatHistory(prev => [...prev, {
@@ -95,15 +123,6 @@ export function SpyConsolidatedChat() {
           title: 'Response Generated', 
           description: webSearchUsed ? 'Response with web search' : 'Response with app data',
         });
-      } catch (e) {
-        console.error('Failed to parse chat response:', e);
-        setChatHistory(prev => [...prev, {
-          id: crypto.randomUUID(),
-          role: 'model',
-          content: 'Error: Failed to parse response.',
-          timestamp: new Date(),
-        }]);
-      }
     } else if (status === 'error') {
       setChatHistory(prev => [...prev, {
         id: crypto.randomUUID(),
@@ -118,22 +137,32 @@ export function SpyConsolidatedChat() {
         variant: 'destructive',
       });
     }
-  }, [chatState, isChatPending, toast]);
+    
+    // Clear current request ID when response is processed
+    setCurrentRequestId(null);
+  }, [chatState.status, isChatPending]);
 
   // Submit chat message
-  const handleSubmitChat = (promptName?: string, customInput?: string) => {
+  const handleSubmitChat = (promptName?: string, customInput?: string, overrideWebSearchEnabled?: boolean) => {
+    const effectiveWebSearchEnabled = overrideWebSearchEnabled !== undefined ? overrideWebSearchEnabled : webSearchEnabled;
+    
     console.log('[SPY:Chat:Submit] Starting chat submission...', {
       promptName,
       hasCustomInput: !!customInput,
       webSearchMode,
+      effectiveWebSearchEnabled,
       hasAnyData,
       isChatPending
     });
     
-    if (isChatPending) {
-      console.log('[SPY:Chat:Submit] Blocked - chat already pending');
+    if (isChatPending || currentRequestId) {
+      console.log('[SPY:Chat:Submit] Blocked - chat already pending or request in progress');
       return;
     }
+    
+    // Generate and track request ID for race condition protection
+    const requestId = crypto.randomUUID();
+    setCurrentRequestId(requestId);
 
     const finalInput = customInput || userInput.trim();
     if (!finalInput) {
@@ -161,11 +190,11 @@ export function SpyConsolidatedChat() {
       ticker: SPY_TICKER,
       userInput: finalInput,
       promptName,
-      webSearchEnabled,
+      webSearchEnabled: effectiveWebSearchEnabled,
       chatHistory: chatHistory,
       
       // Include app data context for non-web search prompts
-      ...((!webSearchEnabled && hasAnyData) && {
+      ...((!effectiveWebSearchEnabled && hasAnyData) && {
         stockSnapshotJson: spyState.stockSnapshotJson,
         aiKeyTakeawaysJson: spyState.aiKeyTakeawaysJson,
         aiAnalyzedTaJson: spyState.aiAnalyzedTaJson,
@@ -175,8 +204,8 @@ export function SpyConsolidatedChat() {
     };
 
     console.log('[SPY:Chat:Submit] Submitting to server action...', {
-      webSearchEnabled,
-      hasAppData: !webSearchEnabled && hasAnyData,
+      effectiveWebSearchEnabled,
+      hasAppData: !effectiveWebSearchEnabled && hasAnyData,
       historyLength: chatHistory.length
     });
     
@@ -198,23 +227,8 @@ export function SpyConsolidatedChat() {
       currentMode: webSearchMode
     });
     
-    // Temporarily set web search mode for the request
-    const originalMode = webSearchMode;
-    if (button.webSearchEnabled !== webSearchEnabled) {
-      console.log('[SPY:Chat:ButtonPrompt] Temporarily switching chat mode:', {
-        from: originalMode,
-        to: button.webSearchEnabled ? 'web-search' : 'app-data'
-      });
-      setWebSearchMode(button.webSearchEnabled ? 'web-search' : 'app-data');
-    }
-
-    // Submit with prompt name
-    handleSubmitChat(button.promptName, button.title);
-
-    // Restore original mode
-    if (button.webSearchEnabled !== webSearchEnabled) {
-      setTimeout(() => setWebSearchMode(originalMode), 100);
-    }
+    // Submit with button-specific web search setting (no mode switching needed)
+    handleSubmitChat(button.promptName, button.title, button.webSearchEnabled);
   };
 
   // Clear chat history
@@ -226,8 +240,75 @@ export function SpyConsolidatedChat() {
     toast({ title: 'Chat Cleared', description: 'Chat history has been cleared.' });
   };
 
+  // Copy chat history to clipboard
+  const handleCopyChat = async () => {
+    try {
+      const chatData = {
+        ticker: SPY_TICKER,
+        timestamp: new Date().toISOString(),
+        chatHistory: chatHistory.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp,
+          webSearchUsed: msg.webSearchUsed || false
+        }))
+      };
+      
+      await navigator.clipboard.writeText(JSON.stringify(chatData, null, 2));
+      toast({ 
+        title: 'Chat Copied', 
+        description: 'Chat history copied to clipboard as JSON.' 
+      });
+    } catch (error) {
+      console.error('Failed to copy chat history:', error);
+      toast({ 
+        title: 'Copy Failed', 
+        description: 'Failed to copy chat history to clipboard.',
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  // Export chat history as JSON file
+  const handleExportChat = () => {
+    try {
+      const chatData = {
+        ticker: SPY_TICKER,
+        timestamp: new Date().toISOString(),
+        chatHistory: chatHistory.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp,
+          webSearchUsed: msg.webSearchUsed || false
+        }))
+      };
+
+      const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${SPY_TICKER}_chat_history_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({ 
+        title: 'Chat Exported', 
+        description: 'Chat history exported as JSON file.' 
+      });
+    } catch (error) {
+      console.error('Failed to export chat history:', error);
+      toast({ 
+        title: 'Export Failed', 
+        description: 'Failed to export chat history.',
+        variant: 'destructive' 
+      });
+    }
+  };
+
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className={`${CHAT_HEIGHTS.MIN} ${CHAT_HEIGHTS.MAX} ${CHAT_HEIGHTS.MOBILE} ${CHAT_HEIGHTS.TABLET} ${CHAT_HEIGHTS.DESKTOP} flex flex-col`}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -239,47 +320,41 @@ export function SpyConsolidatedChat() {
               Unified chat interface with app data analysis and web search capabilities
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearChat}
-            disabled={isChatPending || chatHistory.length === 0}
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Clear
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyChat}
+              disabled={isChatPending || chatHistory.length === 0}
+              title="Copy chat history as JSON"
+            >
+              <Copy className="h-4 w-4 mr-1" />
+              Copy JSON
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportChat}
+              disabled={isChatPending || chatHistory.length === 0}
+              title="Export chat history as JSON file"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export JSON
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearChat}
+              disabled={isChatPending || chatHistory.length === 0}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col space-y-4">
-        {/* Web Search Mode Toggle */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Chat Mode</Label>
-          <RadioGroup
-            value={webSearchMode}
-            onValueChange={(value) => setWebSearchMode(value as 'app-data' | 'web-search')}
-            className="flex space-x-6"
-            disabled={isChatPending}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="app-data" id="app-data" />
-              <Label htmlFor="app-data" className="flex items-center gap-2 cursor-pointer">
-                <Database className="h-4 w-4" />
-                App Data Only
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="web-search" id="web-search" />
-              <Label htmlFor="web-search" className="flex items-center gap-2 cursor-pointer">
-                <Globe className="h-4 w-4" />
-                Web Search Enabled
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        <Separator />
-
         {/* Example Prompts */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Quick Prompts</Label>
@@ -336,8 +411,34 @@ export function SpyConsolidatedChat() {
 
         <Separator />
 
+        {/* Web Search Mode Toggle - Positioned near input for better UX */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Chat Mode</Label>
+          <RadioGroup
+            value={webSearchMode}
+            onValueChange={(value) => setWebSearchMode(value as 'app-data' | 'web-search')}
+            className="flex flex-wrap space-x-6"
+            disabled={isChatPending}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="app-data" id="app-data" />
+              <Label htmlFor="app-data" className="flex items-center gap-2 cursor-pointer">
+                <Database className="h-4 w-4" />
+                App Data Only
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="web-search" id="web-search" />
+              <Label htmlFor="web-search" className="flex items-center gap-2 cursor-pointer">
+                <Globe className="h-4 w-4" />
+                Web Search Enabled
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+
         {/* Chat Messages */}
-        <ScrollArea className="flex-1 space-y-4">
+        <ScrollArea className="flex-1 space-y-4 max-h-[400px] overflow-y-auto">
           <div className="space-y-4 pr-4">
             {chatHistory.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-8">
@@ -356,13 +457,13 @@ export function SpyConsolidatedChat() {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                    className={`max-w-[80%] sm:max-w-[85%] md:max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap">{message.content}</div>
+                    <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</div>
                     {message.webSearchUsed && (
                       <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
                         <Globe className="h-3 w-3" />
@@ -377,11 +478,11 @@ export function SpyConsolidatedChat() {
         </ScrollArea>
 
         {/* Chat Input */}
-        <div className="flex space-x-2">
-          <Input
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+          <Textarea
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            placeholder={webSearchEnabled ? 'Ask anything with web search...' : 'Ask about SPY data...'}
+            placeholder={webSearchEnabled ? 'Ask anything with web search... (Shift+Enter for new line)' : 'Ask about SPY data... (Shift+Enter for new line)'}
             disabled={isChatPending}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -389,7 +490,8 @@ export function SpyConsolidatedChat() {
                 handleSubmitChat();
               }
             }}
-            className="flex-1"
+            className={`flex-1 ${TEXTAREA_CONFIG.MIN_HEIGHT} ${TEXTAREA_CONFIG.MAX_HEIGHT} resize-none`}
+            rows={TEXTAREA_CONFIG.DEFAULT_ROWS}
           />
           <Button
             onClick={() => handleSubmitChat()}

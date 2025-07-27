@@ -34,11 +34,24 @@ async function getAppDataPrompt(promptName: string): Promise<string> {
   }
 
   try {
-    const definition = await loadDefinition('app-data-chatbot');
+    // Map prompt names to their corresponding definition files
+    const promptNameToFile: Record<string, string> = {
+      'stock-trader-takeaways': 'stock-trader-takeaways',
+      'options-trader-takeaways': 'options-trader-takeaways', 
+      'holistic-takeaways': 'holistic-takeaways',
+      'general': 'app-data-chatbot'
+    };
+
+    // Use specific definition file for the prompt, fallback to general app-data-chatbot
+    const definitionFile = promptNameToFile[promptName] || 'app-data-chatbot';
+    console.log(`[getAppDataPrompt] Loading definition for promptName: ${promptName}, file: ${definitionFile}`);
+    
+    const definition = await loadDefinition(definitionFile);
     if (definition.definitionType === 'llm-prompt') {
       const promptDefinition = definition as LlmPromptDefinition;
       const promptString = buildPromptStringFromLlmDefinition(promptDefinition);
       appDataPromptCache[promptName] = promptString;
+      console.log(`[getAppDataPrompt] Successfully cached prompt for: ${promptName}`);
       return promptString;
     }
   } catch (error) {
@@ -46,6 +59,7 @@ async function getAppDataPrompt(promptName: string): Promise<string> {
   }
   
   // Fallback prompt
+  console.log(`[getAppDataPrompt] Using fallback prompt for: ${promptName}`);
   return "You are a helpful AI assistant specializing in stock market analysis. Use the provided context data to answer the user's question accurately and concisely.";
 }
 
@@ -153,8 +167,10 @@ export async function spyConsolidatedChatAction(
       throw new Error('User input cannot be empty.');
     }
 
-    // Configure model with conditional GoogleSearch tool
-    const tools = payload.webSearchEnabled ? [{ googleSearch: {} }] : [];
+    // Configure model with conditional GoogleSearch tool (Tool type, not FunctionDeclarationsTool)
+    const tools = payload.webSearchEnabled ? [{
+      googleSearch: {} // GoogleSearch tool configuration
+    }] as any[] : [];
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash-lite",
       tools,
