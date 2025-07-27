@@ -4,6 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { BarChart3 } from "lucide-react";
 
+// SPY Context
+import { useSpyAnalysis } from "@/contexts/spy-analysis-context";
+
 interface SnapshotDetailItem {
   label: string;
   current: string | null;
@@ -30,27 +33,76 @@ const renderDetailRow = (item: SnapshotDetailItem, index: number, isLoading: boo
 };
 
 export function SpyStockSnapshotDisplay() {
-  // Static placeholder data - future task will connect to SPY context
-  const snapshotData = {
+  const spyState = useSpyAnalysis();
+
+  // Safe JSON parsing pattern following CLAUDE.md guidelines
+  const snapshotData = spyState.stockSnapshotJson ? (() => {
+    try {
+      const parsed = JSON.parse(spyState.stockSnapshotJson);
+      const result = parsed.results?.[0] || {};
+      const prevResult = parsed.results?.[1] || {};
+      
+      return {
+        ticker: result.T || "SPY",
+        open: result.o?.toFixed(2) || "N/A",
+        high: result.h?.toFixed(2) || "N/A",
+        low: result.l?.toFixed(2) || "N/A",
+        close: result.c?.toFixed(2) || "N/A",
+        volume: result.v?.toLocaleString() || "N/A",
+        vwap: result.vw?.toFixed(2) || "N/A",
+        prevOpen: prevResult.o?.toFixed(2) || "N/A",
+        prevHigh: prevResult.h?.toFixed(2) || "N/A",
+        prevLow: prevResult.l?.toFixed(2) || "N/A",
+        prevClose: prevResult.c?.toFixed(2) || "N/A",
+        prevVolume: prevResult.v?.toLocaleString() || "N/A",
+        prevVwap: prevResult.vw?.toFixed(2) || "N/A",
+        isDataReady: spyState.dataRetrievalComplete
+      };
+    } catch (e) {
+      return {
+        ticker: "SPY",
+        open: "Error parsing data",
+        high: "Error parsing data",
+        low: "Error parsing data",
+        close: "Error parsing data",
+        volume: "Error parsing data",
+        vwap: "Error parsing data",
+        prevOpen: "N/A",
+        prevHigh: "N/A",
+        prevLow: "N/A",
+        prevClose: "N/A",
+        prevVolume: "N/A",
+        prevVwap: "N/A",
+        isDataReady: false
+      };
+    }
+  })() : {
     ticker: "SPY",
-    open: "Data will load here",
-    high: "Data will load here", 
-    low: "Data will load here",
-    close: "Data will load here",
-    volume: "Data will load here",
-    vwap: "Data will load here",
+    open: "No data available",
+    high: "No data available",
+    low: "No data available",
+    close: "No data available",
+    volume: "No data available",
+    vwap: "No data available",
+    prevOpen: "N/A",
+    prevHigh: "N/A",
+    prevLow: "N/A",
+    prevClose: "N/A",
+    prevVolume: "N/A",
+    prevVwap: "N/A",
     isDataReady: false
   };
 
-  const isLoading = true; // Always loading for now since not connected to data
+  // Derive loading state from FSM state and data availability
+  const isLoading = spyState.status === 'loading' || !spyState.dataRetrievalComplete;
 
   const snapshotDetails: SnapshotDetailItem[] = [
-    { label: "Open", current: snapshotData.open, previous: "Previous day data" },
-    { label: "High", current: snapshotData.high, previous: "Previous day data" },
-    { label: "Low", current: snapshotData.low, previous: "Previous day data" },
-    { label: "Close", current: snapshotData.close, previous: "Previous day data" },
-    { label: "Volume", current: snapshotData.volume, previous: "Previous day data" },
-    { label: "VWAP", current: snapshotData.vwap, previous: "Previous day data" },
+    { label: "Open", current: snapshotData.open, previous: snapshotData.prevOpen },
+    { label: "High", current: snapshotData.high, previous: snapshotData.prevHigh },
+    { label: "Low", current: snapshotData.low, previous: snapshotData.prevLow },
+    { label: "Close", current: snapshotData.close, previous: snapshotData.prevClose },
+    { label: "Volume", current: snapshotData.volume, previous: snapshotData.prevVolume },
+    { label: "VWAP", current: snapshotData.vwap, previous: snapshotData.prevVwap },
   ];
 
   return (

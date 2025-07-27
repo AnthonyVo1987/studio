@@ -4,6 +4,9 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
 
+// SPY Context
+import { useSpyAnalysis } from "@/contexts/spy-analysis-context";
+
 interface MarketDetailItem {
   label: string;
   value: string | null;
@@ -28,15 +31,35 @@ const renderDetailRow = (item: MarketDetailItem, index: number, isLoading: boole
 };
 
 export function SpyMarketStatusDisplay() {
-  // Static placeholder data - future task will connect to SPY context
-  const marketData = {
-    status: "Market data will be loaded here",
+  const spyState = useSpyAnalysis();
+
+  // Safe JSON parsing pattern following CLAUDE.md guidelines
+  const marketData = spyState.marketStatusJson ? (() => {
+    try {
+      const parsed = JSON.parse(spyState.marketStatusJson);
+      return {
+        status: parsed.status || "Unknown",
+        isOpen: parsed.market === "open",
+        localDateTime: parsed.local_datetime || new Date().toISOString(),
+        isDataReady: spyState.dataRetrievalComplete
+      };
+    } catch (e) {
+      return {
+        status: "Error parsing market data",
+        isOpen: false,
+        localDateTime: new Date().toISOString(),
+        isDataReady: false
+      };
+    }
+  })() : {
+    status: "No market data available",
     isOpen: false,
     localDateTime: new Date().toISOString(),
     isDataReady: false
   };
 
-  const isLoading = true; // Always loading for now since not connected to data
+  // Derive loading state from FSM state and data availability
+  const isLoading = spyState.status === 'loading' || !spyState.dataRetrievalComplete;
 
   const marketDetails: MarketDetailItem[] = [
     { label: "Market Status", value: marketData.status || "Unknown" },

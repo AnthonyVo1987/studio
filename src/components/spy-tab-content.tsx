@@ -37,8 +37,39 @@ export function SpyTabContent() {
     let mounted = true;
     
     const fetchInitialData = async () => {
-      if (mounted) {
-        await handleFetchExpirations();
+      if (!mounted) return;
+      
+      try {
+        spyDispatch({ type: 'SET_LOADING' });
+        
+        const expirations = await getExpirationDates(SPY_TICKER);
+        const nextAvailableDate = findNextAvailableDate(expirations);
+        
+        if (!mounted) return;
+        
+        spyDispatch({ type: 'SET_EXPIRATION_DATES', payload: expirations });
+        
+        if (nextAvailableDate) {
+          spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: nextAvailableDate });
+        }
+        
+        spyDispatch({ type: 'SET_IDLE' });
+        
+        toast({
+          title: `${SPY_TICKER} Expirations Loaded`,
+          description: `Found ${expirations.length} available dates. Selected: ${nextAvailableDate || 'None'}`,
+        });
+      } catch (error) {
+        if (!mounted) return;
+        
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
+        
+        toast({
+          title: 'Error Fetching Expirations',
+          description: errorMessage,
+          variant: 'destructive',
+        });
       }
     };
     
@@ -47,7 +78,7 @@ export function SpyTabContent() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [spyDispatch, toast]);
 
   // Deterministic Handler: Fetch SPY Expirations
   const handleFetchExpirations = async () => {
@@ -94,6 +125,7 @@ export function SpyTabContent() {
 
     try {
       spyDispatch({ type: 'SET_LOADING' });
+      spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: false });
 
       // Step 1: Fetch Stock Data
       const stockDataResult = await fetchStockDataAction({
@@ -144,6 +176,8 @@ export function SpyTabContent() {
         }
       });
 
+      // Step 4: Signal that ALL data retrieval is complete for batch UI updates
+      spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: true });
       spyDispatch({ type: 'SET_IDLE' });
 
       toast({

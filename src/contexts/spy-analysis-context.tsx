@@ -28,6 +28,9 @@ interface SpyAnalysisState {
   hasAiTaData: boolean;
   hasAiKeyTakeaways: boolean;
   hasAiOptionsAnalysis: boolean;
+  
+  // UI Update Flag - signals when ALL data retrieval is complete for batch UI updates
+  dataRetrievalComplete: boolean;
 }
 
 type SpyAnalysisAction =
@@ -45,6 +48,7 @@ type SpyAnalysisAction =
     }}
   | { type: 'SET_AI_KEY_TAKEAWAYS'; payload: string }
   | { type: 'SET_AI_OPTIONS_ANALYSIS'; payload: string }
+  | { type: 'SET_DATA_RETRIEVAL_COMPLETE'; payload: boolean }
   | { type: 'RESET_STATE' };
 
 const initialState: SpyAnalysisState = {
@@ -63,6 +67,7 @@ const initialState: SpyAnalysisState = {
   hasAiTaData: false,
   hasAiKeyTakeaways: false,
   hasAiOptionsAnalysis: false,
+  dataRetrievalComplete: false,
 };
 
 function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction): SpyAnalysisState {
@@ -72,6 +77,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         ...state,
         status: 'loading',
         error: null,
+        dataRetrievalComplete: false,
       };
 
     case 'SET_IDLE':
@@ -124,6 +130,12 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         ...state,
         aiOptionsAnalysisJson: action.payload,
         hasAiOptionsAnalysis: true,
+      };
+
+    case 'SET_DATA_RETRIEVAL_COMPLETE':
+      return {
+        ...state,
+        dataRetrievalComplete: action.payload,
       };
 
     case 'RESET_STATE':
