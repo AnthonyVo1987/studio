@@ -1,76 +1,80 @@
 "use client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Brain, TrendingUp } from "lucide-react";
+import { Brain } from "lucide-react";
 
-interface AiIndicator {
-  name: string;
+// SPY Context
+import { useSpyAnalysis } from "@/contexts/spy-analysis-context";
+import { formatCurrency } from "@/lib/number-utils";
+
+interface SupportResistanceItem {
+  label: string;
   value: string | null;
-  confidence: number;
-  trend: 'up' | 'down' | 'sideways';
+  level?: 'support' | 'resistance' | 'pivot';
 }
 
-const renderAiIndicatorRow = (indicator: AiIndicator, index: number, isLoading: boolean) => {
+const getLevelColorClass = (level?: 'support' | 'resistance' | 'pivot'): string => {
+  if (level === 'support') return 'text-positive';
+  if (level === 'resistance') return 'text-destructive';
+  if (level === 'pivot') return 'text-primary';
+  return '';
+};
+
+const renderLevelRow = (item: SupportResistanceItem, index: number, isLoading: boolean) => {
   if (isLoading) {
     return (
       <TableRow key={`loading-spy-ai-ta-${index}`}>
-        <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+        <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
           Waiting for SPY AI technical analysis...
         </TableCell>
       </TableRow>
     );
   }
-
-  const getTrendBadge = (trend: string) => {
-    switch (trend) {
-      case 'up':
-        return <Badge variant="default" className="bg-green-500">↑ Up</Badge>;
-      case 'down':
-        return <Badge variant="destructive">↓ Down</Badge>;
-      default:
-        return <Badge variant="secondary">→ Sideways</Badge>;
-    }
-  };
-
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "text-green-600";
-    if (confidence >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
   return (
-    <TableRow key={indicator.name}>
-      <TableCell className="font-medium">{indicator.name}</TableCell>
-      <TableCell>{indicator.value ?? "N/A"}</TableCell>
-      <TableCell className={getConfidenceColor(indicator.confidence)}>
-        {indicator.confidence}%
+    <TableRow key={item.label}>
+      <TableCell className="font-medium">{item.label}</TableCell>
+      <TableCell className={`text-right font-semibold ${getLevelColorClass(item.level)}`}>
+        {item.value ?? "N/A"}
       </TableCell>
-      <TableCell>{getTrendBadge(indicator.trend)}</TableCell>
     </TableRow>
   );
 };
 
 export function SpyAiAnalyzedTaDisplay() {
-  // Static placeholder data - future task will connect to SPY context
-  const aiTaData = {
-    pivotPoints: "Data will load here",
-    supportLevels: "Data will load here",
-    resistanceLevels: "Data will load here",
-    trendAnalysis: "Data will load here",
-    momentum: "Data will load here",
-    isDataReady: false
-  };
+  const spyState = useSpyAnalysis();
 
-  const isLoading = true; // Always loading for now since not connected to data
+  // Parse AI analyzed TA data directly from SPY context
+  const aiTaData = spyState.aiAnalyzedTaJson ? (() => {
+    try {
+      const parsed = JSON.parse(spyState.aiAnalyzedTaJson);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          technicalAnalysis: parsed,
+          isDataReady: spyState.dataRetrievalComplete
+        };
+      }
+    } catch (e) {}
+    return { technicalAnalysis: null, isDataReady: false };
+  })() : { technicalAnalysis: null, isDataReady: false };
 
-  const aiIndicators: AiIndicator[] = [
-    { name: "AI Pivot Points", value: aiTaData.pivotPoints, confidence: 0, trend: 'sideways' },
-    { name: "Support Levels", value: aiTaData.supportLevels, confidence: 0, trend: 'sideways' },
-    { name: "Resistance Levels", value: aiTaData.resistanceLevels, confidence: 0, trend: 'sideways' },
-    { name: "Trend Analysis", value: aiTaData.trendAnalysis, confidence: 0, trend: 'sideways' },
-    { name: "Momentum", value: aiTaData.momentum, confidence: 0, trend: 'sideways' },
-  ];
+  // Derive loading state from FSM state and data availability
+  const isLoading = spyState.status === 'loading' || !spyState.dataRetrievalComplete;
+
+  // Build levels array if data is ready
+  const levels: SupportResistanceItem[] = [];
+  
+  if (aiTaData.isDataReady && aiTaData.technicalAnalysis) {
+    const ta = aiTaData.technicalAnalysis;
+    levels.push(
+      { label: "Pivot Point", value: formatCurrency(ta.pivotPoint), level: 'pivot' },
+      { label: "Support 1", value: formatCurrency(ta.support1), level: 'support' },
+      { label: "Support 2", value: formatCurrency(ta.support2), level: 'support' },
+      { label: "Support 3", value: formatCurrency(ta.support3), level: 'support' },
+      { label: "Resistance 1", value: formatCurrency(ta.resistance1), level: 'resistance' },
+      { label: "Resistance 2", value: formatCurrency(ta.resistance2), level: 'resistance' },
+      { label: "Resistance 3", value: formatCurrency(ta.resistance3), level: 'resistance' }
+    );
+  }
 
   return (
     <Card>
@@ -80,41 +84,31 @@ export function SpyAiAnalyzedTaDisplay() {
           SPY AI Technical Analysis
         </CardTitle>
         <CardDescription>
-          AI-powered technical analysis and market insights for SPY
+          AI-calculated support, resistance, and pivot levels for SPY
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {/* AI Analysis Header */}
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-sm font-medium">Powered by Gemini AI</span>
-          </div>
-
-          {/* AI Technical Indicators Table */}
-          <Table>
-            <TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Level</TableHead>
+              <TableHead className="text-right">Price</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 7 }).map((_, index) => renderLevelRow({label: "", value: null}, index, true))
+            ) : levels.length > 0 ? (
+              levels.map((item, index) => renderLevelRow(item, index, false))
+            ) : (
               <TableRow>
-                <TableHead>AI Indicator</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Confidence</TableHead>
-                <TableHead>Trend</TableHead>
+                <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                  No SPY AI technical analysis data available.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {aiIndicators.map((indicator, index) => 
-                renderAiIndicatorRow(indicator, index, isLoading)
-              )}
-            </TableBody>
-          </Table>
-
-          {/* Loading Badge */}
-          {isLoading && (
-            <div className="flex justify-center">
-              <Badge variant="outline">Loading SPY AI Analysis...</Badge>
-            </div>
-          )}
-        </div>
+            )}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

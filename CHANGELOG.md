@@ -7,9 +7,45 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.3.0` (🎯 **SPY UI ENHANCEMENTS & FIXES**)
+**Tag:** `Phase-v4.1.3.0_SPY_UI_Complete`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.1.3.0] [SPY] fix: Complete UI enhancements with TA population and UX improvements`
+**Details:**
+This commit completes the SPY tab UI implementation with full data population, minute data support, and UX refinements.
+
+**Major Enhancements:**
+*   **Minute Data Support:** Added current minute data column to SPY Stock Snapshot alongside day/previous day
+*   **Technical Analysis Population:** Connected SPY Technical Analysis component to live `standardTa` data (RSI, MACD, VWAP, EMA, SMA)
+*   **AI Technical Analysis Population:** Connected SPY AI Technical Analysis component to live `aiAnalyzedTa` data (pivot points, support/resistance levels)
+*   **Export Architecture Cleanup:** Removed ALL granular Copy/Export buttons, unified to single Copy ALL/Export ALL functionality
+*   **UX Improvements:** Removed redundant "Is Open" field from Market Status component
+
+**Technical Implementation:**
+*   **JSON Parsing Enhancement:** Added minute data parsing (`min` object) to Stock Snapshot component
+*   **Component Pattern Consistency:** SPY TA components now follow exact Main tab patterns for data display
+*   **Safe JSON Handling:** Fixed remaining unsafe JSON.parse instances with proper error handling
+*   **Code Quality:** Removed unused imports and ensured React best practices throughout
+
+---
+**App Version:** `v4.1.2.0` (🎯 **SPY UI BUG FIXES**)
+**Tag:** `Phase-v4.1.2.0_SPY_UI_Fixes`
+**Commit Hash:** `8c3f70a`
+**Subject:** `[v4.1.2.0] [SPY] fix: Correct JSON parsing for Market Status, Key Metrics, and Stock Snapshot components`
+**Details:**
+This commit fixes critical JSON parsing issues discovered during SPY tab testing.
+
+**Critical Bug Fixes:**
+*   **Market Status Parsing:** Fixed to parse direct API structure (market, earlyHours, lateHours, serverTime)
+*   **Key Metrics Architecture:** Removed keyMetricsJson - now derives from stockSnapshotJson for consistency
+*   **Stock Snapshot Parsing:** Fixed to parse day/prevDay structure correctly per actual Polygon API
+*   **Export Safety:** Added safeJsonParse helper to prevent unsafe JSON operations
+*   **Context Cleanup:** Updated SPY context to remove keyMetricsJson state and actions
+
+---
 **App Version:** `v4.1.1.0` (🎯 **SPY UI UPDATES BATCH**)
 **Tag:** `Phase-v4.1.1.0_SPY_UI_Updates`
-**Commit Hash:** `TBD`
+**Commit Hash:** `af1f15e`
 **Subject:** `[v4.1.1.0] [SPY] feat: Update UI for Market Status, Key Metrics, and Stock Snapshot`
 **Details:**
 This commit connects the SPY tab UI components to live data with deterministic batch updates and React best practices.

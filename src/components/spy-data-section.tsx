@@ -154,16 +154,24 @@ export function SpyDataSection() {
 
   // Unified Export All Handler
   const handleExportAll = () => {
+    const safeJsonParse = (jsonString: string) => {
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        return { error: 'Failed to parse JSON', raw: jsonString };
+      }
+    };
+
     const allData = {
       ticker: SPY_TICKER,
       timestamp: new Date().toISOString(),
       data: {
-        stockSnapshot: spyState.stockSnapshotJson ? JSON.parse(spyState.stockSnapshotJson) : null,
-        marketStatus: spyState.marketStatusJson ? JSON.parse(spyState.marketStatusJson) : null,
-        standardTa: spyState.standardTaJson ? JSON.parse(spyState.standardTaJson) : null,
-        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? JSON.parse(spyState.aiAnalyzedTaJson) : null,
-        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? JSON.parse(spyState.aiKeyTakeawaysJson) : null,
-        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? JSON.parse(spyState.aiOptionsAnalysisJson) : null,
+        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
+        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
+        standardTa: spyState.standardTaJson ? safeJsonParse(spyState.standardTaJson) : null,
+        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
       }
     };
 
@@ -259,28 +267,6 @@ export function SpyDataSection() {
                   </Badge>
                 </div>
                 
-                {section.hasData && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => handleCopy(section.data, section.title)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Copy className="h-3 w-3" />
-                      Copy JSON
-                    </Button>
-                    <Button
-                      onClick={() => handleExport(section.data, section.title)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Download className="h-3 w-3" />
-                      Export JSON
-                    </Button>
-                  </div>
-                )}
               </div>
 
               {/* JSON Data Display */}

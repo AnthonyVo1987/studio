@@ -75,7 +75,6 @@ export function SpyMarketStatusDisplay() {
 
   const marketDetails: MarketDetailItem[] = [
     { label: "Market Status", value: marketData.status || "Unknown" },
-    { label: "Is Open", value: marketData.isOpen ? "Yes" : "No" },
     { label: "Early Hours", value: marketData.earlyHours ? "Yes" : "No" },
     { label: "Late Hours", value: marketData.lateHours ? "Yes" : "No" },
     { label: "Server Time", value: marketData.localDateTime ? new Date(marketData.localDateTime).toLocaleString() : null },

@@ -200,7 +200,7 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.1.1.0 (as of this documentation update)
+- **Current Version**: v4.1.3.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
 
@@ -265,16 +265,17 @@ GEMINI_API_KEY=your_google_ai_api_key
 10. **Token-optimized codebase** - Utilizes factory patterns, shared utilities, and centralized configurations
 11. **SPY Tab Isolation** - SPY tab uses completely separate context (`spy-analysis-context.tsx`) with `useSpyAnalysis()` hook
 12. **SPY Components Pattern** - All SPY components follow `spy-*.tsx` naming and are isolated from Main tab
-13. **Future SPY Work** - SPY display components currently show placeholders; future task will connect to SPY context data
+13. **SPY Implementation Status** - SPY display components are now connected to SPY context data with proper JSON parsing
 
-This architecture (v4.1.1.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker).
+This architecture (v4.1.3.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker).
 
 ## Current Development State & Recent Changes
 
-### Latest Updates (v4.1.1.0)
+### Latest Updates (v4.1.3.0)
 - **SPY Tab Enhancement**: Dedicated and isolated SPY tab with auto-fetch functionality
+- **JSON Parsing Fixes**: Corrected JSON parsing for SPY Market Status, Key Metrics, and Stock Snapshot components
+- **UI Component Updates**: Enhanced SPY tab UI components with proper data integration
 - **Architecture Documentation**: Updated CLAUDE.md with comprehensive SPY tab architecture
-- **UI Improvements**: Polygon API data UI population and on-demand action fixes
 
 ### Development Branch Information
 - **Current Branch**: v4.0.0.0_UI_Overhaul

@@ -1,66 +1,81 @@
 "use client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Activity } from "lucide-react";
 
-interface TechnicalIndicator {
-  name: string;
-  value: string | null;
-  signal: 'bullish' | 'bearish' | 'neutral';
-}
+// SPY Context
+import { useSpyAnalysis } from "@/contexts/spy-analysis-context";
+import { formatToTwoDecimals } from "@/lib/number-utils";
 
-const renderIndicatorRow = (indicator: TechnicalIndicator, index: number, isLoading: boolean) => {
-  if (isLoading) {
-    return (
-      <TableRow key={`loading-spy-ta-${index}`}>
-        <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
-          Waiting for SPY technical analysis...
-        </TableCell>
-      </TableRow>
-    );
-  }
+const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
+  if (sentiment === 'bullish') return 'text-positive';
+  if (sentiment === 'bearish') return 'text-destructive';
+  return '';
+};
 
-  const getSignalBadge = (signal: string) => {
-    switch (signal) {
-      case 'bullish':
-        return <Badge variant="default" className="bg-green-500">Bullish</Badge>;
-      case 'bearish':
-        return <Badge variant="destructive">Bearish</Badge>;
-      default:
-        return <Badge variant="secondary">Neutral</Badge>;
+const renderMultiWindowValues = (
+  label: string,
+  data?: Record<string, number> | null,
+  windows?: string[], 
+  sentimentKey?: string, 
+  getSentiment?: (value?: number | null) => 'bullish' | 'bearish' | 'neutral'
+) => {
+  if (!windows || windows.length === 0) return null;
+
+  const valuesExist = data && windows.some(w => data[w] !== undefined && data[w] !== null);
+  if (!valuesExist) return null; 
+
+  const displayValues = windows.map(window => {
+    const val = data?.[window];
+    const formattedVal = formatToTwoDecimals(val);
+    let sentimentColor = '';
+    if (sentimentKey === window && getSentiment && val !== undefined) {
+      sentimentColor = getSentimentColorClass(getSentiment(val));
     }
-  };
+    return `${window}: ` + (sentimentColor ? `<span class="${sentimentColor}">${formattedVal}</span>` : formattedVal);
+  }).join(' | ');
 
   return (
-    <TableRow key={indicator.name}>
-      <TableCell className="font-medium">{indicator.name}</TableCell>
-      <TableCell>{indicator.value ?? "N/A"}</TableCell>
-      <TableCell>{getSignalBadge(indicator.signal)}</TableCell>
+    <TableRow>
+      <TableCell className="font-medium">{label}</TableCell>
+      <TableCell className="text-right" dangerouslySetInnerHTML={{ __html: displayValues }} />
     </TableRow>
   );
 };
 
 export function SpyStandardTaDisplay() {
-  // Static placeholder data - future task will connect to SPY context
-  const taData = {
-    rsi: "Data will load here",
-    macd: "Data will load here",
-    bollinger: "Data will load here",
-    sma: "Data will load here",
-    ema: "Data will load here",
-    isDataReady: false
+  const spyState = useSpyAnalysis();
+
+  // Parse standard TA data directly from SPY context
+  const taData = spyState.standardTaJson ? (() => {
+    try {
+      const parsed = JSON.parse(spyState.standardTaJson);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          indicators: parsed,
+          isDataReady: spyState.dataRetrievalComplete
+        };
+      }
+    } catch (e) {}
+    return { indicators: {}, isDataReady: false };
+  })() : { indicators: {}, isDataReady: false };
+
+  // Derive loading state from FSM state and data availability
+  const isLoading = spyState.status === 'loading' || !spyState.dataRetrievalComplete;
+  
+  const rsiSentiment = (val?: number | null) => {
+    if (val === undefined || val === null) return 'neutral';
+    if (val < 30) return 'bullish';
+    if (val > 70) return 'bearish';
+    return 'neutral';
   };
 
-  const isLoading = true; // Always loading for now since not connected to data
-
-  const technicalIndicators: TechnicalIndicator[] = [
-    { name: "RSI (14)", value: taData.rsi, signal: 'neutral' },
-    { name: "MACD", value: taData.macd, signal: 'neutral' },
-    { name: "Bollinger Bands", value: taData.bollinger, signal: 'neutral' },
-    { name: "SMA (20)", value: taData.sma, signal: 'neutral' },
-    { name: "EMA (12)", value: taData.ema, signal: 'neutral' },
-  ];
+  const macdSentiment = (histogram?: number | null) => {
+    if (histogram === undefined || histogram === null) return 'neutral';
+    if (histogram > 0) return 'bullish';
+    if (histogram < 0) return 'bearish';
+    return 'neutral';
+  };
 
   return (
     <Card>
@@ -74,30 +89,53 @@ export function SpyStandardTaDisplay() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {/* Technical Indicators Table */}
-          <Table>
-            <TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Indicator</TableHead>
+              <TableHead className="text-right">Value(s)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
               <TableRow>
-                <TableHead>Indicator</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Signal</TableHead>
+                <TableCell colSpan={2} className="text-center text-sm text-muted-foreground h-24">
+                  Waiting for SPY technical analysis data...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {technicalIndicators.map((indicator, index) => 
-                renderIndicatorRow(indicator, index, isLoading)
-              )}
-            </TableBody>
-          </Table>
-
-          {/* Loading Badge */}
-          {isLoading && (
-            <div className="flex justify-center">
-              <Badge variant="outline">Loading SPY Technical Analysis...</Badge>
-            </div>
-          )}
-        </div>
+            ) : !taData.isDataReady ? (
+              <TableRow>
+                <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                  No SPY technical analysis data available.
+                </TableCell>
+              </TableRow>
+            ) : (
+              <>
+                {renderMultiWindowValues("RSI", taData.indicators.RSI, ["7", "10", "14"], "14", rsiSentiment)}
+                <TableRow>
+                  <TableCell className="font-medium">MACD (12,26,9)</TableCell>
+                  <TableCell className="text-right">
+                    {taData.indicators.MACD ? (
+                      <>
+                        {formatToTwoDecimals(taData.indicators.MACD.value)} / {formatToTwoDecimals(taData.indicators.MACD.signal)} / <span className={getSentimentColorClass(macdSentiment(taData.indicators.MACD.histogram))}>{formatToTwoDecimals(taData.indicators.MACD.histogram)}</span>
+                      </>
+                    ) : "N/A"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">VWAP</TableCell>
+                  <TableCell className="text-right">
+                    {taData.indicators.VWAP ? (
+                      `Day: $${formatToTwoDecimals(taData.indicators.VWAP.day)} | Minute: $${formatToTwoDecimals(taData.indicators.VWAP.minute)}`
+                    ) : "N/A"}
+                  </TableCell>
+                </TableRow>
+                {renderMultiWindowValues("EMA", taData.indicators.EMA, ["5", "10", "20", "50", "200"])}
+                {renderMultiWindowValues("SMA", taData.indicators.SMA, ["5", "10", "20", "50", "200"])}
+              </>
+            )}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

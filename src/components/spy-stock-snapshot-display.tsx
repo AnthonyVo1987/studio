@@ -11,13 +11,14 @@ interface SnapshotDetailItem {
   label: string;
   current: string | null;
   previous: string | null;
+  minute: string | null;
 }
 
 const renderDetailRow = (item: SnapshotDetailItem, index: number, isLoading: boolean) => {
   if (isLoading) {
     return (
       <TableRow key={`loading-spy-snapshot-${index}`}>
-        <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+        <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
           Waiting for SPY snapshot data...
         </TableCell>
       </TableRow>
@@ -28,6 +29,7 @@ const renderDetailRow = (item: SnapshotDetailItem, index: number, isLoading: boo
       <TableCell className="font-medium">{item.label}</TableCell>
       <TableCell>{item.current ?? "N/A"}</TableCell>
       <TableCell>{item.previous ?? "N/A"}</TableCell>
+      <TableCell>{item.minute ?? "N/A"}</TableCell>
     </TableRow>
   );
 };
@@ -41,6 +43,7 @@ export function SpyStockSnapshotDisplay() {
       const parsed = JSON.parse(spyState.stockSnapshotJson);
       const day = parsed.day || {};
       const prevDay = parsed.prevDay || {};
+      const min = parsed.min || {};
       
       return {
         ticker: parsed.ticker || "SPY",
@@ -56,6 +59,12 @@ export function SpyStockSnapshotDisplay() {
         prevClose: prevDay.c?.toFixed(2) || "N/A",
         prevVolume: prevDay.v?.toLocaleString() || "N/A",
         prevVwap: prevDay.vw?.toFixed(2) || "N/A",
+        minOpen: min.o?.toFixed(2) || "N/A",
+        minHigh: min.h?.toFixed(2) || "N/A",
+        minLow: min.l?.toFixed(2) || "N/A",
+        minClose: min.c?.toFixed(2) || "N/A",
+        minVolume: min.v?.toLocaleString() || "N/A",
+        minVwap: min.vw?.toFixed(2) || "N/A",
         currentPrice: parsed.currentPrice?.toFixed(2) || "N/A",
         todaysChange: parsed.todaysChange?.toFixed(2) || "N/A",
         todaysChangePerc: parsed.todaysChangePerc?.toFixed(2) || "N/A",
@@ -76,6 +85,12 @@ export function SpyStockSnapshotDisplay() {
         prevClose: "N/A",
         prevVolume: "N/A",
         prevVwap: "N/A",
+        minOpen: "N/A",
+        minHigh: "N/A",
+        minLow: "N/A",
+        minClose: "N/A",
+        minVolume: "N/A",
+        minVwap: "N/A",
         currentPrice: "N/A",
         todaysChange: "N/A",
         todaysChangePerc: "N/A",
@@ -96,6 +111,12 @@ export function SpyStockSnapshotDisplay() {
     prevClose: "N/A",
     prevVolume: "N/A",
     prevVwap: "N/A",
+    minOpen: "N/A",
+    minHigh: "N/A",
+    minLow: "N/A",
+    minClose: "N/A",
+    minVolume: "N/A",
+    minVwap: "N/A",
     currentPrice: "N/A",
     todaysChange: "N/A",
     todaysChangePerc: "N/A",
@@ -106,12 +127,12 @@ export function SpyStockSnapshotDisplay() {
   const isLoading = spyState.status === 'loading' || !spyState.dataRetrievalComplete;
 
   const snapshotDetails: SnapshotDetailItem[] = [
-    { label: "Open", current: snapshotData.open, previous: snapshotData.prevOpen },
-    { label: "High", current: snapshotData.high, previous: snapshotData.prevHigh },
-    { label: "Low", current: snapshotData.low, previous: snapshotData.prevLow },
-    { label: "Close", current: snapshotData.close, previous: snapshotData.prevClose },
-    { label: "Volume", current: snapshotData.volume, previous: snapshotData.prevVolume },
-    { label: "VWAP", current: snapshotData.vwap, previous: snapshotData.prevVwap },
+    { label: "Open", current: snapshotData.open, previous: snapshotData.prevOpen, minute: snapshotData.minOpen },
+    { label: "High", current: snapshotData.high, previous: snapshotData.prevHigh, minute: snapshotData.minHigh },
+    { label: "Low", current: snapshotData.low, previous: snapshotData.prevLow, minute: snapshotData.minLow },
+    { label: "Close", current: snapshotData.close, previous: snapshotData.prevClose, minute: snapshotData.minClose },
+    { label: "Volume", current: snapshotData.volume, previous: snapshotData.prevVolume, minute: snapshotData.minVolume },
+    { label: "VWAP", current: snapshotData.vwap, previous: snapshotData.prevVwap, minute: snapshotData.minVwap },
   ];
 
   return (
@@ -137,6 +158,7 @@ export function SpyStockSnapshotDisplay() {
                 <TableHead>Metric</TableHead>
                 <TableHead>Current Day</TableHead>
                 <TableHead>Previous Day</TableHead>
+                <TableHead>Current Minute</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
