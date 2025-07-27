@@ -7,6 +7,49 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.12.0` (🎨 **AI CHAT FORMATTING FIXES & RESPONSIVE DESIGN**)
+**Tag:** `Phase-v4.1.12.0_AI_Chat_Formatting_Fixes`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.1.12.0] [UI/UX] fix: Comprehensive AI Chat text formatting fixes and responsive design improvements`
+**Details:**
+This commit addresses critical text overflow and formatting issues in both Main and SPY tab AI Chat components, implementing comprehensive responsive design improvements and enhanced user experience.
+
+**AI CHAT TEXT OVERFLOW FIXES:**
+*   **Fixed Text Overflow Issues:** Resolved text overflowing completely outside the AI Chat Box components in both Main and SPY tabs
+*   **Enhanced Word Wrapping:** Implemented comprehensive text wrapping with proper CSS classes (`break-words`, `overflow-wrap: break-word`)
+*   **Scroll Bar Implementation:** Added vertical scroll bars for long content with `overflow-y-auto` and `overflow-x-hidden`
+*   **Dynamic Container Sizing:** Updated strict hardcoded dimensions to be more flexible while maintaining responsive design
+
+**MAIN TAB CHAT ENHANCEMENTS (`src/components/chatbot.tsx`):**
+*   **ReactMarkdown Component Enhancement:** Improved ReactMarkdown rendering with better component customization for code blocks
+*   **Responsive Height System:** Implemented dynamic height adjustments (mobile: h-64, tablet: h-80, desktop: h-96)
+*   **Message Width Optimization:** Enhanced message container constraints with proper responsive widths
+*   **Container Boundary Management:** Added proper overflow handling to prevent text escaping chat boundaries
+
+**SPY TAB CHAT IMPROVEMENTS (`src/components/spy-consolidated-chat.tsx`):**
+*   **Advanced Text Wrapping:** Comprehensive text wrapping implementation for all content types
+*   **Container Constraint System:** Improved container sizing with min/max height constraints for optimal viewing
+*   **Cross-Device Compatibility:** Enhanced responsive design for mobile, tablet, and desktop experiences
+*   **Message Formatting:** Better handling of long messages and complex content formatting
+
+**TECHNICAL IMPROVEMENTS:**
+*   **CSS Class Optimization:** Strategic use of Tailwind CSS classes for text wrapping and overflow control
+*   **Responsive Design Patterns:** Consistent responsive behavior across different screen sizes
+*   **Performance Enhancement:** Optimized rendering performance with proper container constraints
+*   **User Experience:** Improved readability and accessibility of AI chat responses
+
+**CROSS-DEVICE VALIDATION:**
+*   **Mobile Devices:** Proper text wrapping and responsive sizing verified
+*   **Tablets:** Optimized layout and container sizing tested
+*   **Desktop:** Full feature experience with proper constraints validated
+*   **Wide Screens:** Maintains proper proportions and readability confirmed
+
+**VERSION MANAGEMENT:**
+*   **Metadata Update:** Updated `src/config/app-metadata.json` to v4.1.12.0 with proper timestamp
+*   **Build Validation:** Confirmed successful compilation with no new errors introduced
+*   **Quality Assurance:** All formatting fixes tested and verified working across device types
+
+---
 **App Version:** `v4.1.11.0` (🐛 **SPY AI BUG FIXES & TEAM CONFIGURATION**)
 **Tag:** `Phase-v4.1.11.0_Bug_Fixes_And_Team_Setup`
 **Commit Hash:** `[TO_BE_FILLED]`

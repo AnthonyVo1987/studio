@@ -37,6 +37,15 @@ interface ChatbotProps {
   onFormSubmit: (payload: { userInput?: string; promptName?: string }) => void;
 }
 
+// UI Constants for responsive chat heights
+const CHAT_HEIGHTS = {
+  MIN: 'min-h-[400px]',
+  MAX: 'max-h-[85vh]',
+  MOBILE: 'h-[500px]',
+  TABLET: 'sm:h-[600px]',
+  DESKTOP: 'md:h-[650px]'
+} as const;
+
 export function Chatbot({
   title,
   description,
@@ -107,7 +116,7 @@ export function Chatbot({
   );
 
   return (
-    <Card className="flex flex-col h-[650px]">
+    <Card className={`${CHAT_HEIGHTS.MIN} ${CHAT_HEIGHTS.MAX} ${CHAT_HEIGHTS.MOBILE} ${CHAT_HEIGHTS.TABLET} ${CHAT_HEIGHTS.DESKTOP} flex flex-col`}>
       <CardHeader className="flex-shrink-0">
         <div className="flex flex-row items-center justify-between">
             <div>
@@ -142,17 +151,50 @@ export function Chatbot({
             </div>
         </div>
       </CardHeader>
-      <CardContent ref={viewportRef} className="flex-grow overflow-y-auto p-4 space-y-4">
+      <CardContent ref={viewportRef} className="flex-grow overflow-y-auto overflow-x-hidden p-4 space-y-4 max-h-[calc(100%-120px)]">
         {chatHistory.length === 0 && (
         <div className="text-center text-muted-foreground py-8">No messages yet. Try a prompt or ask a question!</div>
         )}
         {chatHistory.map((msg) => (
-        <div key={msg.id} className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", msg.role === 'user' ? "ml-auto bg-primary text-primary-foreground" : "bg-muted")}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose dark:prose-invert prose-sm max-w-none">{msg.content}</ReactMarkdown>
+        <div key={msg.id} className={cn(
+          "flex w-full flex-col gap-2 rounded-lg px-3 py-2 text-sm",
+          "max-w-[85%] sm:max-w-[90%] md:max-w-[85%]",
+          "whitespace-pre-wrap break-words overflow-wrap-anywhere word-break-break-word",
+          msg.role === 'user' ? "ml-auto bg-primary text-primary-foreground" : "bg-muted"
+        )}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              className="prose dark:prose-invert prose-sm max-w-none overflow-hidden"
+              components={{
+                // Ensure code blocks don't overflow
+                code: ({node, ...props}) => {
+                  const {children, className, ...rest} = props;
+                  const isInline = !className || !className.includes('language-');
+                  return (
+                    <code 
+                      {...rest} 
+                      className={`${className || ''} ${isInline ? "break-words" : "block whitespace-pre-wrap break-words overflow-x-auto"}`}
+                    >
+                      {children}
+                    </code>
+                  );
+                },
+                // Ensure pre blocks don't overflow
+                pre: ({node, ...props}) => (
+                  <pre {...props} className="whitespace-pre-wrap break-words overflow-x-auto max-w-full" />
+                )
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
         </div>
         ))}
         {isProcessing && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user' && (
-            <div className={cn("flex w-full max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm break-words", "bg-muted")}> 
+            <div className={cn(
+              "flex w-full flex-col gap-2 rounded-lg px-3 py-2 text-sm",
+              "max-w-[85%] sm:max-w-[90%] md:max-w-[85%]",
+              "bg-muted"
+            )}> 
                 <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     <span className="text-muted-foreground italic">StockSage is thinking...</span>

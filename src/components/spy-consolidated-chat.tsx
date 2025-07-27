@@ -34,10 +34,15 @@ import type {
 // UI Constants
 const CHAT_HEIGHTS = {
   MIN: 'min-h-[400px]',
-  MAX: 'max-h-[80vh]',
-  MOBILE: 'h-[600px]',
-  TABLET: 'sm:h-[650px]',
-  DESKTOP: 'md:h-[700px]'
+  MAX: 'max-h-[85vh]',
+  MOBILE: 'h-[500px]',
+  TABLET: 'sm:h-[600px]',
+  DESKTOP: 'md:h-[650px]'
+} as const;
+
+const SCROLL_AREA_CONFIG = {
+  MAX_HEIGHT: 'max-h-[50vh]',
+  MIN_HEIGHT: 'min-h-[200px]'
 } as const;
 
 const TEXTAREA_CONFIG = {
@@ -438,7 +443,7 @@ export function SpyConsolidatedChat() {
         </div>
 
         {/* Chat Messages */}
-        <ScrollArea className="flex-1 space-y-4 max-h-[400px] overflow-y-auto">
+        <ScrollArea className={`flex-1 space-y-4 ${SCROLL_AREA_CONFIG.MAX_HEIGHT} ${SCROLL_AREA_CONFIG.MIN_HEIGHT} overflow-y-auto overflow-x-hidden`}>
           <div className="space-y-4 pr-4">
             {chatHistory.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-8">
@@ -463,7 +468,7 @@ export function SpyConsolidatedChat() {
                         : 'bg-muted'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</div>
+                    <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere word-break-break-word overflow-hidden">{message.content}</div>
                     {message.webSearchUsed && (
                       <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
                         <Globe className="h-3 w-3" />
