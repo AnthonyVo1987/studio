@@ -7,6 +7,31 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.1.0` (🎯 **SPY UI UPDATES BATCH**)
+**Tag:** `Phase-v4.1.1.0_SPY_UI_Updates`
+**Commit Hash:** `TBD`
+**Subject:** `[v4.1.1.0] [SPY] feat: Update UI for Market Status, Key Metrics, and Stock Snapshot`
+**Details:**
+This commit connects the SPY tab UI components to live data with deterministic batch updates and React best practices.
+
+**UI Update Features:**
+*   **Deterministic Data Retrieval:** Added `dataRetrievalComplete` flag for batch UI updates after all data operations complete
+*   **Safe JSON Parsing:** All UI components use try/catch patterns with fallbacks as per CLAUDE.md guidelines
+*   **Direct Context Consumption:** UI components use `useSpyAnalysis()` hook directly following React best practices
+*   **Loading State Derivation:** Loading states derived from FSM state and data availability flags
+
+**Connected UI Components:**
+*   **Market Status Display:** Parses `marketStatusJson` for market open/closed status and timestamps
+*   **Key Metrics Display:** Parses `keyMetricsJson` for current price, change amount, and change percentage with trend indicators
+*   **Stock Snapshot Display:** Parses `stockSnapshotJson` for OHLCV data with current vs previous day comparison
+
+**Technical Implementation:**
+*   **Context Enhancement:** Added `dataRetrievalComplete` boolean to SPY context state
+*   **Handler Updates:** Modified `handleGetStockData` to set completion flag after ALL operations finish
+*   **React Anti-Pattern Prevention:** Fixed useEffect dependency issues to prevent infinite loops
+*   **Batch UI Updates:** UI only updates once all data retrieval is complete and steady state
+
+---
 **App Version:** `v4.1.0.0` (🎯 **SPY DEDICATED TAB ARCHITECTURE**)
 **Tag:** `Phase-v4.1.0.0_SPY_Tab`
 **Commit Hash:** `TBD`
