@@ -36,6 +36,12 @@ export async function performAiOptionsAnalysisAction(
   } = payload;
   const actionLogPrefix = `[ServerAction:performAiOptionsAnalysisAction:Ticker:${ticker}]`;
 
+  console.log(`${actionLogPrefix} Starting AI options analysis...`, {
+    ticker,
+    hasOptionsChain: !!optionsChainJson,
+    hasStockSnapshot: !!stockSnapshotJson
+  });
+
   let currentUnderlyingPrice: number;
   let flowInput: AiOptionsAnalysisInput;
   let aiOptionsAnalysisRequestJson: string = JSON.stringify({ error: "Request preparation incomplete", ticker }, null, 2);
@@ -53,7 +59,9 @@ export async function performAiOptionsAnalysisAction(
   };
 
   try {
+    console.log(`${actionLogPrefix} Validating input data...`);
     if (!ticker || !optionsChainJson || optionsChainJson === '{}' || !stockSnapshotJson || stockSnapshotJson === '{}') {
+      console.error(`${actionLogPrefix} Validation error: Missing prerequisite data`);
       return baseErrorReturnForValidation('Ticker, Options Chain, or Snapshot JSON missing.', 'Prerequisite data not available.');
     }
 
@@ -70,10 +78,13 @@ export async function performAiOptionsAnalysisAction(
     flowInput = { ticker, optionsChainJson, currentUnderlyingPrice };
     aiOptionsAnalysisRequestJson = JSON.stringify(flowInput, null, 2);
 
+    console.log(`${actionLogPrefix} Calling AI flow for options analysis...`);
     const flowOutput: AiOptionsAnalysisOutput = await analyzeOptionsChain(flowInput);
+    console.log(`${actionLogPrefix} AI flow completed successfully`);
     
     const aiOptionsAnalysisJsonOutput = JSON.stringify(flowOutput, null, 2);
 
+    console.log(`${actionLogPrefix} SUCCESS - AI options analysis completed`);
     return {
       status: 'success',
       data: { aiOptionsAnalysisRequestJson, aiOptionsAnalysisJson: aiOptionsAnalysisJsonOutput },
@@ -82,6 +93,7 @@ export async function performAiOptionsAnalysisAction(
     };
   } catch (error: any) {
     const errorMessage = error.message || 'An unknown error occurred.';
+    console.error(`${actionLogPrefix} CATCH ERROR:`, errorMessage);
     return {
       status: 'error',
       error: errorMessage,

@@ -122,10 +122,22 @@ export function SpyConsolidatedChat() {
 
   // Submit chat message
   const handleSubmitChat = (promptName?: string, customInput?: string) => {
-    if (isChatPending) return;
+    console.log('[SPY:Chat:Submit] Starting chat submission...', {
+      promptName,
+      hasCustomInput: !!customInput,
+      webSearchMode,
+      hasAnyData,
+      isChatPending
+    });
+    
+    if (isChatPending) {
+      console.log('[SPY:Chat:Submit] Blocked - chat already pending');
+      return;
+    }
 
     const finalInput = customInput || userInput.trim();
     if (!finalInput) {
+      console.log('[SPY:Chat:Submit] Blocked - empty input');
       toast({ 
         title: 'Invalid Input', 
         description: 'Please enter a message.',
@@ -142,6 +154,7 @@ export function SpyConsolidatedChat() {
       timestamp: new Date(),
     };
     setChatHistory(prev => [...prev, userMessage]);
+    console.log('[SPY:Chat:Submit] User message added to history');
 
     // Prepare chat input
     const chatInput: SpyConsolidatedChatInput = {
@@ -161,6 +174,12 @@ export function SpyConsolidatedChat() {
       }),
     };
 
+    console.log('[SPY:Chat:Submit] Submitting to server action...', {
+      webSearchEnabled,
+      hasAppData: !webSearchEnabled && hasAnyData,
+      historyLength: chatHistory.length
+    });
+    
     // Submit to action
     submitChat(chatInput);
     
@@ -172,9 +191,20 @@ export function SpyConsolidatedChat() {
 
   // Handle button prompts
   const handleButtonPrompt = (button: typeof appDataButtons[0] | typeof webSearchButtons[0]) => {
+    console.log('[SPY:Chat:ButtonPrompt] Button clicked:', {
+      title: button.title,
+      promptName: button.promptName,
+      webSearchEnabled: button.webSearchEnabled,
+      currentMode: webSearchMode
+    });
+    
     // Temporarily set web search mode for the request
     const originalMode = webSearchMode;
     if (button.webSearchEnabled !== webSearchEnabled) {
+      console.log('[SPY:Chat:ButtonPrompt] Temporarily switching chat mode:', {
+        from: originalMode,
+        to: button.webSearchEnabled ? 'web-search' : 'app-data'
+      });
       setWebSearchMode(button.webSearchEnabled ? 'web-search' : 'app-data');
     }
 
@@ -189,6 +219,9 @@ export function SpyConsolidatedChat() {
 
   // Clear chat history
   const handleClearChat = () => {
+    console.log('[SPY:Chat:Clear] Clearing chat history...', { 
+      previousMessageCount: chatHistory.length 
+    });
     setChatHistory([]);
     toast({ title: 'Chat Cleared', description: 'Chat history has been cleared.' });
   };

@@ -91,8 +91,11 @@ const initialState: SpyAnalysisState = {
 };
 
 function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction): SpyAnalysisState {
+  console.log('[SPY:State] Reducer action:', { type: action.type, previousStatus: state.status });
+  
   switch (action.type) {
     case 'SET_LOADING':
+      console.log('[SPY:State] FSM transition: -> LOADING');
       return {
         ...state,
         status: 'loading',
@@ -101,6 +104,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_IDLE':
+      console.log('[SPY:State] FSM transition: -> IDLE');
       return {
         ...state,
         status: 'idle',
@@ -108,6 +112,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_ERROR':
+      console.log('[SPY:State] FSM transition: -> ERROR', { error: action.payload });
       return {
         ...state,
         status: 'error',
@@ -115,18 +120,21 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_EXPIRATION_DATES':
+      console.log('[SPY:State] Setting expiration dates:', { count: action.payload.length });
       return {
         ...state,
         availableExpirationDates: action.payload,
       };
 
     case 'SET_SELECTED_EXPIRATION':
+      console.log('[SPY:State] Setting selected expiration:', { expiration: action.payload });
       return {
         ...state,
         selectedExpirationDate: action.payload,
       };
 
     case 'SET_OPTIONS_SETTINGS':
+      console.log('[SPY:State] Updating options settings:', action.payload);
       return {
         ...state,
         ...(action.payload.optionType !== undefined && { optionType: action.payload.optionType }),
@@ -135,6 +143,12 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_STOCK_DATA':
+      console.log('[SPY:State] Setting stock data:', {
+        hasSnapshot: !!action.payload.stockSnapshotJson,
+        hasMarketStatus: !!action.payload.marketStatusJson,
+        hasStandardTA: !!action.payload.standardTaJson,
+        hasAITA: !!action.payload.aiAnalyzedTaJson
+      });
       return {
         ...state,
         stockSnapshotJson: action.payload.stockSnapshotJson,
@@ -146,6 +160,17 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_OPTIONS_CHAIN_DATA':
+      const optionsData = action.payload ? (() => {
+        try {
+          return JSON.parse(action.payload);
+        } catch {
+          return {};
+        }
+      })() : {};
+      console.log('[SPY:State] Setting options chain data:', {
+        hasData: !!action.payload,
+        strikeCount: optionsData.strikes?.length || 0
+      });
       return {
         ...state,
         optionsChainJson: action.payload,
@@ -153,6 +178,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_AI_KEY_TAKEAWAYS':
+      console.log('[SPY:State] Setting AI key takeaways:', { hasData: !!action.payload });
       return {
         ...state,
         aiKeyTakeawaysJson: action.payload,
@@ -160,6 +186,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_AI_OPTIONS_ANALYSIS':
+      console.log('[SPY:State] Setting AI options analysis:', { hasData: !!action.payload });
       return {
         ...state,
         aiOptionsAnalysisJson: action.payload,
@@ -167,15 +194,18 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_DATA_RETRIEVAL_COMPLETE':
+      console.log('[SPY:State] Setting data retrieval complete:', { complete: action.payload });
       return {
         ...state,
         dataRetrievalComplete: action.payload,
       };
 
     case 'RESET_STATE':
+      console.log('[SPY:State] Resetting state to initial values');
       return initialState;
 
     default:
+      console.error('[SPY:State] Unknown action type:', action);
       throw new Error(`Unknown action type`);
   }
 }

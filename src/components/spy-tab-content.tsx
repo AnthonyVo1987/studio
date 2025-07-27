@@ -41,11 +41,15 @@ export function SpyTabContent() {
 
   // Deterministic Handler: Fetch SPY Expirations
   const handleFetchExpirations = async () => {
+    console.log('[SPY:UserAction:FetchExpirations] Starting expiration fetch...', { ticker: SPY_TICKER });
     try {
       spyDispatch({ type: 'SET_LOADING' });
       
       const expirations = await getExpirationDates(SPY_TICKER);
+      console.log('[SPY:UserAction:FetchExpirations] Expirations received:', { count: expirations.length });
+      
       const nextAvailableDate = findNextAvailableDate(expirations);
+      console.log('[SPY:UserAction:FetchExpirations] Next available date:', nextAvailableDate);
       
       spyDispatch({ type: 'SET_EXPIRATION_DATES', payload: expirations });
       
@@ -59,8 +63,12 @@ export function SpyTabContent() {
         title: `${SPY_TICKER} Expirations Loaded`,
         description: `Found ${expirations.length} available dates. Selected: ${nextAvailableDate || 'None'}`,
       });
+      
+      console.log('[SPY:UserAction:FetchExpirations] Completed successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('[SPY:UserAction:FetchExpirations] Error:', errorMessage);
+      
       spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
@@ -73,7 +81,15 @@ export function SpyTabContent() {
 
   // Deterministic Handler: Get SPY Stock Data (Batch Operation)
   const handleGetStockData = async () => {
+    console.log('[SPY:UserAction:GetStockData] Starting stock data fetch...', {
+      ticker: SPY_TICKER,
+      expiration: spyState.selectedExpirationDate,
+      optionType: spyState.optionType,
+      strikeCount: spyState.strikeCount
+    });
+    
     if (!spyState.selectedExpirationDate) {
+      console.warn('[SPY:UserAction:GetStockData] No expiration date selected');
       toast({
         title: 'No Expiration Selected',
         description: 'Please select an expiration date first.',
@@ -87,6 +103,7 @@ export function SpyTabContent() {
       spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: false });
 
       // Step 1: Fetch Stock Data (including Options Chain)
+      console.log('[SPY:UserAction:GetStockData] Step 1: Fetching stock data...');
       const stockDataResult = await fetchStockDataAction({
         ticker: SPY_TICKER,
         expirationDate: spyState.selectedExpirationDate,
@@ -97,8 +114,10 @@ export function SpyTabContent() {
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
         throw new Error(stockDataResult.error || 'Failed to fetch stock data');
       }
+      console.log('[SPY:UserAction:GetStockData] Step 1: Stock data received');
 
       // Step 2: Fetch Technical Analysis Data
+      console.log('[SPY:UserAction:GetStockData] Step 2: Fetching technical analysis...');
       const taResult = await analyzeTaAction({
         ticker: SPY_TICKER,
         stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
@@ -107,8 +126,10 @@ export function SpyTabContent() {
       if (taResult.status !== 'success' || !taResult.data) {
         throw new Error(taResult.error || 'Failed to fetch technical analysis');
       }
+      console.log('[SPY:UserAction:GetStockData] Step 2: Technical analysis received');
 
       // Step 3: Batch Update SPY State (including Options Chain)
+      console.log('[SPY:UserAction:GetStockData] Step 3: Updating state with stock data');
       spyDispatch({ 
         type: 'SET_STOCK_DATA', 
         payload: {
@@ -120,12 +141,20 @@ export function SpyTabContent() {
       });
 
       // Step 4: Set Options Chain Data
+      const optionsData = stockDataResult.data.optionsChainJson ? JSON.parse(stockDataResult.data.optionsChainJson) : {};
+      console.log('[SPY:UserAction:GetStockData] Step 4: Setting options chain data', {
+        hasData: !!stockDataResult.data.optionsChainJson,
+        strikeCount: optionsData.strikes?.length || 0,
+        callCount: optionsData.calls?.length || 0,
+        putCount: optionsData.puts?.length || 0
+      });
       spyDispatch({ 
         type: 'SET_OPTIONS_CHAIN_DATA', 
         payload: stockDataResult.data.optionsChainJson 
       });
 
       // Step 5: Signal that ALL data retrieval is complete for batch UI updates
+      console.log('[SPY:UserAction:GetStockData] Step 5: Marking data retrieval complete');
       spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: true });
       spyDispatch({ type: 'SET_IDLE' });
 
@@ -133,8 +162,12 @@ export function SpyTabContent() {
         title: `${SPY_TICKER} Data Retrieved`,
         description: 'Stock data, technical analysis, and options chain loaded successfully.',
       });
+      
+      console.log('[SPY:UserAction:GetStockData] Completed successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('[SPY:UserAction:GetStockData] Error:', errorMessage);
+      
       spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
@@ -147,6 +180,14 @@ export function SpyTabContent() {
 
   // Deterministic Handler: SPY AI Key Takeaways (Phase 1)
   const handleSpyAiKeyTakeaways = async () => {
+    console.log('[SPY:UserAction:AIKeyTakeaways] Starting AI key takeaways generation...', {
+      ticker: SPY_TICKER,
+      hasStockData: !!spyState.stockSnapshotJson,
+      hasStandardTA: !!spyState.standardTaJson,
+      hasAITA: !!spyState.aiAnalyzedTaJson,
+      hasMarketStatus: !!spyState.marketStatusJson
+    });
+    
     try {
       spyDispatch({ type: 'SET_LOADING' });
 
@@ -159,6 +200,8 @@ export function SpyTabContent() {
       });
 
       if (result.status === 'success' && result.data) {
+        console.log('[SPY:UserAction:AIKeyTakeaways] AI analysis completed successfully');
+        
         spyDispatch({ 
           type: 'SET_AI_KEY_TAKEAWAYS', 
           payload: result.data.aiKeyTakeawaysJson 
@@ -175,6 +218,8 @@ export function SpyTabContent() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('[SPY:UserAction:AIKeyTakeaways] Error:', errorMessage);
+      
       spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
@@ -187,6 +232,12 @@ export function SpyTabContent() {
 
   // Deterministic Handler: SPY AI Options Analysis (Phase 1)
   const handleSpyAiOptionsAnalysis = async () => {
+    console.log('[SPY:UserAction:AIOptionsAnalysis] Starting AI options analysis...', {
+      ticker: SPY_TICKER,
+      hasStockData: !!spyState.stockSnapshotJson,
+      hasOptionsChain: !!spyState.optionsChainJson
+    });
+    
     try {
       spyDispatch({ type: 'SET_LOADING' });
 
@@ -197,6 +248,8 @@ export function SpyTabContent() {
       });
 
       if (result.status === 'success' && result.data) {
+        console.log('[SPY:UserAction:AIOptionsAnalysis] AI options analysis completed successfully');
+        
         spyDispatch({ 
           type: 'SET_AI_OPTIONS_ANALYSIS', 
           payload: result.data.aiOptionsAnalysisJson 
@@ -213,6 +266,8 @@ export function SpyTabContent() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('[SPY:UserAction:AIOptionsAnalysis] Error:', errorMessage);
+      
       spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
@@ -225,19 +280,35 @@ export function SpyTabContent() {
 
   // Expiration Selection Handler
   const handleExpirationChange = (value: string) => {
+    console.log('[SPY:UserAction:ExpirationChange] Expiration date changed:', { 
+      from: spyState.selectedExpirationDate, 
+      to: value 
+    });
     spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: value });
   };
 
   // Options Chain Settings Handlers
   const handleOptionTypeChange = (value: OptionType) => {
+    console.log('[SPY:UserAction:OptionTypeChange] Option type changed:', { 
+      from: spyState.optionType, 
+      to: value 
+    });
     spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { optionType: value } });
   };
 
   const handleStrikeCountChange = (value: StrikeCount) => {
+    console.log('[SPY:UserAction:StrikeCountChange] Strike count changed:', { 
+      from: spyState.strikeCount, 
+      to: value 
+    });
     spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { strikeCount: value } });
   };
 
   const handleTableDisplayTypeChange = (value: TableDisplayType) => {
+    console.log('[SPY:UserAction:TableDisplayChange] Table display type changed:', { 
+      from: spyState.tableDisplayType, 
+      to: value 
+    });
     spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { tableDisplayType: value } });
   };
 

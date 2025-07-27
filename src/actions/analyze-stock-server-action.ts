@@ -37,8 +37,16 @@ export async function fetchStockDataAction(
   const requestedTickerUpperCase = ticker.toUpperCase();
   const actionLogPrefix = `[ServerAction:fetchStockDataAction:Ticker:${requestedTickerUpperCase}]`;
 
+  console.log(`${actionLogPrefix} Starting stock data fetch...`, {
+    ticker: requestedTickerUpperCase,
+    expirationDate,
+    optionType,
+    strikeCount
+  });
+
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
     const errorMsg = 'Ticker symbol is required and must be a non-empty string.';
+    console.error(`${actionLogPrefix} Validation error:`, errorMsg);
     return {
       status: 'error',
       error: errorMsg,
@@ -48,7 +56,9 @@ export async function fetchStockDataAction(
   }
 
   try {
+    console.log(`${actionLogPrefix} Calling polygon adapter...`);
     const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase, { expirationDate, optionType, strikeCount });
+    console.log(`${actionLogPrefix} Adapter response received`);
     
     
     const adapterStockDataTicker = adapterOutput.stockData.ticker;
@@ -57,6 +67,7 @@ export async function fetchStockDataAction(
     
     if (adapterSnapshotTicker && adapterSnapshotTicker !== requestedTickerUpperCase) {
         const staleDataErrorMsg = `CRITICAL STALE DATA (Snapshot): Adapter returned snapshot data for ${adapterSnapshotTicker} when ${requestedTickerUpperCase} was requested.`;
+        console.error(`${actionLogPrefix} STALE DATA ERROR:`, { expected: requestedTickerUpperCase, received: adapterSnapshotTicker });
         const errorJson = JSON.stringify({ error: staleDataErrorMsg, details: `Expected ${requestedTickerUpperCase}, adapter provided snapshot for ${adapterSnapshotTicker}.` }, null, 2);
         
         return {
@@ -73,6 +84,7 @@ export async function fetchStockDataAction(
     }
 
     if (adapterOutput.stockData.error) {
+      console.error(`${actionLogPrefix} Adapter error:`, adapterOutput.stockData.error);
       const adapterErrorJson = JSON.stringify({ error: adapterOutput.stockData.error, rawErrorDetails: adapterOutput.stockData.rawOverallError || adapterOutput.stockData.rawErrorDetails }, null, 2);
       return {
         status: 'error',
@@ -105,6 +117,15 @@ export async function fetchStockDataAction(
     const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams, "rawRequestParams");
     const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary, "rawResponseSummary");
 
+    console.log(`${actionLogPrefix} Data processing complete:`, {
+      hasMarketStatus: !!adapterOutput.stockData.marketStatus,
+      hasStockSnapshot: !!adapterOutput.stockData.stockSnapshot,
+      hasTechnicalIndicators: !!adapterOutput.stockData.technicalIndicators,
+      hasOptionsChain: !!adapterOutput.stockData.optionsChain,
+      optionsChainSize: (adapterOutput.stockData.optionsChain && 'results' in adapterOutput.stockData.optionsChain) ? adapterOutput.stockData.optionsChain.results?.length || 0 : 0
+    });
+
+    console.log(`${actionLogPrefix} SUCCESS - Stock data fetch completed`);
     return {
       status: 'success',
       data: {
@@ -115,6 +136,7 @@ export async function fetchStockDataAction(
       error: null,
     };
   } catch (error: any) {
+    console.error(`${actionLogPrefix} CATCH ERROR:`, error.message || error);
     return {
       status: 'error',
       error: error.message || 'An unknown error occurred during data fetching.',

@@ -24,16 +24,16 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 6.  **Implement Fix:** Only after receiving explicit user approval will I proceed with generating the code changes for the agreed-upon fix.
 
 #### Section 4: Versioning & Documentation
-7.  **Versioning Scheme:** Features will be staged as version '3.w.x.y.z' series.
-8.  **Bug Report Versioning (NEW):** I will **not** increment versions on my own. The user will provide the exact new application version (e.g., `v3.w.x.y.(z+1)`) as part of the bug report submission. My fix will then be associated with that user-provided version.
+7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.1.8.0 latest).
+8.  **Bug Report Versioning (NEW):** I will **not** increment versions on my own. The user will provide the exact new application version (e.g., `v4.w.x.y.(z+1)`) as part of the bug report submission. My fix will then be associated with that user-provided version.
 9.  **Metadata Updates:** Any code change must include an automatic update to the `appVersion` and `lastUpdatedTimestamp` in `src/config/app-metadata.json` to match the version specified in the task.
 10. **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
 11. **New Feature Documentation:** All new features need to provide `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` files in the `docs` folder with the specified content.
 
 ###
 ---
-**README Document Version:** 3.25
-**Application Version (from `app-metadata.json`):** v4.1.7.0
+**README Document Version:** 3.26
+**Application Version (from `app-metadata.json`):** v4.1.8.0
 **Last Updated:** 2025-01-27
 
 ## 1. Introduction
@@ -185,7 +185,7 @@ This section outlines the application's core data analysis pipeline. This archit
 
 ### 3.4. Error Handling & Logging
 *   **Error Handling:** `try...catch` in Server Actions and AI Flows.
-*   **Logging System:** `logDebug()` for client-side, `console.*` for server-side. The in-app consoles are now reliable after the `v3.6.4.22` logging system fix.
+*   **Logging System:** Standard `console.*` methods for both client-side and server-side logging. The custom `logDebug()` system has been retired.
 *   **Debug Console (Simplified as of v3.6.5.14):** A single "Debug Logs" tab serves as the primary debugging view, displaying curated trace logs. The complex log source filtering UI has been removed to simplify the codebase.
 
 ### 3.5. Coding Standards & Conventions

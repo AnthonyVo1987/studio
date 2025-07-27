@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.7.0, it includes a dedicated SPY tab with completely isolated architecture and consolidated AI chat.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.8.0, it includes a dedicated SPY tab with completely isolated architecture and consolidated AI chat.
 
 ## Common Development Commands
 
@@ -33,7 +33,7 @@ npm run typecheck
 - **State Management**: Standard React Context + FSM (Simplified)
 - **UI Components**: ShadCN UI + Tailwind CSS
 - **Data Sources**: Polygon.io API
-- **AI Model**: Google Gemini 2.0-flash-thinking-exp-01-21
+- **AI Model**: Google Gemini 2.5-flash-lite
 
 ### Simplified Architecture (v4.0.0.7+)
 
@@ -53,7 +53,7 @@ npm run typecheck
 - **Loading States**: Derived from FSM state and business flags
 - **On-Demand AI**: AI Key Takeaways and Options Analysis are manual button-triggered only
 
-### SPY Tab Architecture (v4.1.7.0+)
+### SPY Tab Architecture (v4.1.8.0+)
 
 **Completely isolated SPY-dedicated tab with ground-up rewrite:**
 
@@ -70,7 +70,7 @@ npm run typecheck
 - **Consolidated Chat**: `src/components/spy-consolidated-chat.tsx` - Unified AI chat with conditional web search
 - **AI Analysis**: Full feature parity with Main tab (Key Takeaways, Options Analysis)
 
-#### 3. SPY Chat Architecture (v4.1.7.0)
+#### 3. SPY Chat Architecture (v4.1.8.0)
 - **Unified Interface**: Single chat component with radio toggle for mode selection
 - **Modern Google GenAI SDK**: Direct SDK usage with conditional GoogleSearch tool
 - **Conditional Tools**: `tools: webSearchEnabled ? [{googleSearch: {}}] : []`
@@ -167,7 +167,7 @@ const handleOnDemandKeyTakeaways = async () => {
 ### 1. Code Quality Standards
 - **TypeScript**: Strict mode enabled, use `import type` for type imports
 - **Error Handling**: Wrap all async operations in try/catch blocks
-- **Logging**: Use `logDebug()` for client-side, `console.*` for server-side
+- **Logging**: Use standard `console.*` methods for both client-side and server-side
 - **Validation**: Use Zod schemas for all data validation
 
 ### 2. UI/UX Conventions
@@ -211,14 +211,46 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.1.7.0 (as of this documentation update)
+- **Current Version**: v4.1.8.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
+
+## Code Review Process
+
+### Comprehensive Code Review Methodology
+Use this process for any significant code changes or new implementations:
+
+#### Phase 1: Targeted Implementation Review
+- **USE SEQUENTIAL THINKING TOOL** for systematic analysis
+- **USE CONTEXT7 TOOL** to ensure up-to-date robust practices for the app's stack
+- Focus on specific implementation of code changes for current tasks
+- Verify proper logic and input/output wiring for data and UI/Render updates
+
+#### Phase 2: Generic Codebase Audit
+After targeted review, check for these items (non-exhaustive list):
+- Verify all logic is enforced to be DETERMINISTIC
+- Verify there are no "complex/convoluted" useEffect/dependency array/UI/Render that can affect main business logic
+- Verify there are no unused code, functions, imports etc that have been removed and/or deprecated
+- Verify there are no other "React anti-pattern" issues
+- Verify no other orchestrator vs reducer issues
+- Verify no potential infinite loops during UI/Render vs a dependency
+- Verify no console logs can cause infinite loops during UI/Render, triggering another console log, triggering another UI/Render loop etc
+- Verify proper JSON parsing, comparing to current working Main page JSON parsing
+- Add any other items to check depending on the scope of changes for the current task
+
+#### Phase 3: Post-Review Actions
+- **If code review FAILED**: Fix issues, summarize fixes, wait for next task, do NOT commit
+- **If code review PASSED**: Perform all actions in order:
+  1. Update README.md, CHANGELOG.md
+  2. Perform Claude command "/init" to update CLAUDE.md project doc
+  3. Git commit and push as completely single shot atomic operation with ALL code changes, doc changes, CLAUDE.md changes, settings json etc
+  4. This ensures code changes go along with documentation changes instead of needing additional commits just for docs
 
 ## Testing & Quality Assurance
 - Always run `npm run lint` and `npm run typecheck` before committing
 - Simplified architecture uses standard React patterns
 - Direct business context consumption with safe JSON parsing patterns
+- Follow the comprehensive code review process above for all significant changes
 
 ## Environment & Configuration
 
@@ -246,7 +278,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 ### Debugging Tools
 - **Debug Snapshot**: Export comprehensive application state for bug reports
 - **JSON Export**: All data cards support "Copy JSON" and "Export JSON"
-- **Logging**: `logDebug()` for client-side, `console.*` for server-side
+- **Logging**: Standard `console.*` methods for both client-side and server-side
 
 ## Performance & Optimization
 
@@ -263,7 +295,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.1.7.0+)
+## Important Notes for AI Assistants (v4.1.8.0+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -276,7 +308,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 10. **Token-optimized codebase** - Utilizes factory patterns, shared utilities, and centralized configurations
 11. **SPY Tab Isolation** - SPY tab uses completely separate context (`spy-analysis-context.tsx`) with `useSpyAnalysis()` hook
 12. **SPY Components Pattern** - All SPY components follow `spy-*.tsx` naming and are isolated from Main tab
-13. **SPY Consolidated Chat (v4.1.7.0)** - Unified AI chat interface replacing dual chat architecture:
+13. **SPY Consolidated Chat (v4.1.8.0)** - Unified AI chat interface replacing dual chat architecture:
     - **Single Chat Component**: `spy-consolidated-chat.tsx` with radio toggle for mode selection
     - **Conditional Web Search**: Uses modern Google GenAI SDK with `tools: webSearchEnabled ? [{googleSearch: {}}] : []`
     - **Unified Server Action**: `spy-consolidated-chat-action.ts` handles both app data and web search queries
@@ -284,4 +316,4 @@ GEMINI_API_KEY=your_google_ai_api_key
 14. **SPY AI Analysis (v4.1.6.0)** - Complete deterministic implementation with feature parity to Main tab
 15. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds for deployment flexibility
 
-This architecture (v4.1.7.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker).
+This architecture (v4.1.8.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker).
