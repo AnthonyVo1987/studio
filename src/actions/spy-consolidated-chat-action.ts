@@ -1,0 +1,252 @@
+'use server';
+/**
+ * @fileOverview Unified server action for SPY consolidated chat interface.
+ * Combines both app data and web search capabilities using the modern
+ * unified Google GenAI SDK with conditional GoogleSearch tool.
+ */
+
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+  type SpyConsolidatedChatState,
+  type SpyConsolidatedChatInput,
+  type SpyConsolidatedChatOutput,
+  SpyConsolidatedChatInputSchema,
+} from '@/ai/schemas/spy-consolidated-chat-schemas';
+import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition, loadExamplePrompts } from '@/ai/definition-loader';
+
+// Initialize Google GenAI SDK
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY is not set in environment variables.');
+}
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// Cache for app data prompt templates
+let appDataPromptCache: Record<string, string> = {};
+let webSearchPromptCache: Record<string, string> = {};
+
+/**
+ * Load and cache prompt templates for app data prompts
+ */
+async function getAppDataPrompt(promptName: string): Promise<string> {
+  if (appDataPromptCache[promptName]) {
+    return appDataPromptCache[promptName];
+  }
+
+  try {
+    const definition = await loadDefinition('app-data-chatbot');
+    if (definition.definitionType === 'llm-prompt') {
+      const promptDefinition = definition as LlmPromptDefinition;
+      const promptString = buildPromptStringFromLlmDefinition(promptDefinition);
+      appDataPromptCache[promptName] = promptString;
+      return promptString;
+    }
+  } catch (error) {
+    console.error(`Failed to load app data prompt for ${promptName}:`, error);
+  }
+  
+  // Fallback prompt
+  return "You are a helpful AI assistant specializing in stock market analysis. Use the provided context data to answer the user's question accurately and concisely.";
+}
+
+/**
+ * Load and cache prompt templates for web search prompts
+ */
+async function getWebSearchPrompt(promptName: string): Promise<string> {
+  if (webSearchPromptCache[promptName]) {
+    return webSearchPromptCache[promptName];
+  }
+
+  try {
+    const examplePrompts = await loadExamplePrompts('example-web-search-prompts.json');
+    const promptData = examplePrompts.find(p => p.promptName === promptName);
+    if (promptData) {
+      webSearchPromptCache[promptName] = promptData.promptTemplate;
+      return promptData.promptTemplate;
+    }
+  } catch (error) {
+    console.error(`Failed to load web search prompt for ${promptName}:`, error);
+  }
+
+  // Fallback prompt
+  return "You are a helpful AI assistant with access to current web information. Use Google Search to find the most recent and relevant information to answer the user's question.";
+}
+
+/**
+ * Build context string for app data prompts
+ */
+function buildAppDataContext(payload: SpyConsolidatedChatInput): string {
+  const contextParts: string[] = [];
+  
+  if (payload.stockSnapshotJson) {
+    contextParts.push(`STOCK SNAPSHOT DATA:\n${payload.stockSnapshotJson}`);
+  }
+  
+  if (payload.aiKeyTakeawaysJson) {
+    contextParts.push(`AI KEY TAKEAWAYS:\n${payload.aiKeyTakeawaysJson}`);
+  }
+  
+  if (payload.aiAnalyzedTaJson) {
+    contextParts.push(`AI TECHNICAL ANALYSIS:\n${payload.aiAnalyzedTaJson}`);
+  }
+  
+  if (payload.aiOptionsAnalysisJson) {
+    contextParts.push(`AI OPTIONS ANALYSIS:\n${payload.aiOptionsAnalysisJson}`);
+  }
+  
+  if (payload.marketStatusJson) {
+    contextParts.push(`MARKET STATUS:\n${payload.marketStatusJson}`);
+  }
+
+  return contextParts.length > 0 ? `\n\nCONTEXT DATA:\n${contextParts.join('\n\n')}` : '';
+}
+
+/**
+ * Build chat history for model context
+ */
+function buildChatHistory(chatHistory?: Array<{role: 'user' | 'model'; content: string; id: string}>): Array<{role: 'user' | 'model'; parts: [{text: string}]}> {
+  if (!chatHistory || chatHistory.length === 0) {
+    return [];
+  }
+
+  return chatHistory.map(message => ({
+    role: message.role,
+    parts: [{ text: message.content }]
+  }));
+}
+
+/**
+ * Main unified chat action
+ */
+export async function spyConsolidatedChatAction(
+  prevState: SpyConsolidatedChatState,
+  payload: SpyConsolidatedChatInput
+): Promise<SpyConsolidatedChatState> {
+  const actionLogPrefix = `[ServerAction:spyConsolidatedChatAction:${payload.promptName || 'user_input'}]`;
+  
+  // Validate input
+  try {
+    SpyConsolidatedChatInputSchema.parse(payload);
+  } catch (error) {
+    return {
+      status: 'error',
+      error: 'Invalid input parameters',
+      message: 'Please check your input and try again.',
+    };
+  }
+
+  // Create request payload for logging
+  const requestPayload = {
+    ticker: payload.ticker,
+    promptName: payload.promptName,
+    webSearchEnabled: payload.webSearchEnabled,
+    userInput: payload.userInput,
+    hasContext: !!(payload.stockSnapshotJson || payload.aiKeyTakeawaysJson || payload.aiAnalyzedTaJson),
+  };
+  const requestJson = JSON.stringify(requestPayload, null, 2);
+
+  try {
+    console.log(`${actionLogPrefix} Starting unified chat request`);
+    
+    // Validate user input
+    if (!payload.userInput || payload.userInput.trim() === '') {
+      throw new Error('User input cannot be empty.');
+    }
+
+    // Configure model with conditional GoogleSearch tool
+    const tools = payload.webSearchEnabled ? [{ googleSearch: {} }] : [];
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash-lite",
+      tools,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      }
+    });
+
+    // Build system instruction based on prompt type
+    let systemInstruction = '';
+    let finalUserInput = payload.userInput;
+
+    if (payload.promptName) {
+      if (payload.webSearchEnabled) {
+        // Web search prompt
+        const promptTemplate = await getWebSearchPrompt(payload.promptName);
+        systemInstruction = promptTemplate;
+        finalUserInput = promptTemplate.replace(/\{TICKER\}/g, payload.ticker || 'the stock');
+      } else {
+        // App data prompt
+        const promptTemplate = await getAppDataPrompt(payload.promptName);
+        systemInstruction = promptTemplate;
+        const contextData = buildAppDataContext(payload);
+        finalUserInput = payload.userInput + contextData;
+      }
+    } else {
+      // User input prompt
+      if (payload.webSearchEnabled) {
+        systemInstruction = await getWebSearchPrompt('general');
+      } else {
+        systemInstruction = await getAppDataPrompt('general');
+        const contextData = buildAppDataContext(payload);
+        finalUserInput = payload.userInput + contextData;
+      }
+    }
+
+    // Build conversation history
+    const history = buildChatHistory(payload.chatHistory);
+
+    // Generate content
+    console.log(`${actionLogPrefix} Generating content with webSearch: ${payload.webSearchEnabled}`);
+    const result = await model.generateContent({
+      contents: [
+        ...history,
+        {
+          role: 'user',
+          parts: [{ text: finalUserInput }]
+        }
+      ],
+      systemInstruction: systemInstruction,
+    });
+
+    const response = result.response;
+    const responseText = response.text();
+    
+    // Extract grounding metadata if available
+    const groundingMetadata = (response as any).groundingMetadata || null;
+    const webSearchUsed = payload.webSearchEnabled && !!groundingMetadata;
+
+    // Prepare output
+    const outputData: SpyConsolidatedChatOutput = {
+      response: responseText,
+      webSearchUsed,
+      groundingMetadata,
+      rawResponse: response,
+    };
+
+    const responseJson = JSON.stringify(outputData, null, 2);
+
+    console.log(`${actionLogPrefix} Successfully generated response`);
+
+    return {
+      status: 'success',
+      data: {
+        requestJson,
+        responseJson,
+      },
+    };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error(`${actionLogPrefix} Error:`, error);
+
+    return {
+      status: 'error',
+      error: errorMessage,
+      message: 'Failed to generate chat response. Please try again.',
+      data: {
+        requestJson,
+        responseJson: JSON.stringify({ error: errorMessage }, null, 2),
+      },
+    };
+  }
+}

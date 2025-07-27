@@ -31,6 +31,7 @@ import { SpyAiAnalyzedTaDisplay } from '@/components/spy-ai-analyzed-ta-display'
 import { SpyOptionsChainTable } from '@/components/spy-options-chain-table';
 import { SpyAiKeyTakeawaysDisplay } from '@/components/spy-ai-key-takeaways-display';
 import { SpyAiOptionsAnalysisDisplay } from '@/components/spy-ai-options-analysis-display';
+import { SpyConsolidatedChat } from '@/components/spy-consolidated-chat';
 
 export function SpyTabContent() {
   const spyState = useSpyAnalysis();
@@ -447,6 +448,9 @@ export function SpyTabContent() {
 
       {/* SPY Options Chain Table (Full Width) */}
       <SpyOptionsChainTable />
+
+      {/* SPY Consolidated AI Chat Interface */}
+      <SpyConsolidatedChat />
 
       {/* SPY Data Section (Self-contained JSON display) */}
       <SpyDataSection />

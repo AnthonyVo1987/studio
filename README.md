@@ -33,7 +33,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 ###
 ---
 **README Document Version:** 3.25
-**Application Version (from `app-metadata.json`):** v4.1.6.0
+**Application Version (from `app-metadata.json`):** v4.1.7.0
 **Last Updated:** 2025-01-27
 
 ## 1. Introduction
@@ -86,6 +86,19 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
 *   **Dual AI Chat Architecture (as of v3.6.5.14):**
     *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application. It uses a single, robust Genkit flow (`app-data-chat-flow.ts`) and a core prompt definition (`app-data-chatbot.json`). Example prompts are now loaded from a single, simple text-template file (`example-chat-prompts.json`), making the architecture highly efficient.
     *   **Web Search Chat:** A separate chat box that handles all queries requiring real-time web search. This now uses the **raw Google AI SDK** for improved stability. Example prompts are loaded from their own dedicated text-template file (`example-web-search-prompts.json`).
+
+#### 3.1.6. SPY Dedicated Tab (as of v4.1.0.0)
+*   **Completely Isolated Architecture:** The SPY tab features a ground-up rewrite with its own dedicated context (`spy-analysis-context.tsx`), components (prefixed with `spy-*`), and state management.
+*   **SPY-Only Functionality:** Hardcoded to analyze only the SPY ticker with dedicated features:
+    *   Auto-fetch SPY expirations on tab load (removed in v4.1.6.0 for deterministic patterns)
+    *   Dedicated SPY data display components
+    *   AI Key Takeaways with hardcoded metrics (Price Action, Trend, Volatility, Momentum, Patterns)
+    *   AI Options Analysis with Call/Put Walls
+*   **Consolidated AI Chat (as of v4.1.7.0):** A single unified chat interface that combines both app data analysis and web search capabilities using the modern Google GenAI SDK with conditional GoogleSearch tool. Features:
+    *   Radio toggle for chat mode (App Data Only vs Web Search Enabled)
+    *   Quick prompt buttons for both app data and web search queries
+    *   Conditional tool loading: `tools: webSearchEnabled ? [{googleSearch: {}}] : []`
+    *   Unified server action (`spy-consolidated-chat-action.ts`) replacing dual chat architecture
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.

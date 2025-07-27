@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.5.0, it includes a dedicated SPY tab with completely isolated architecture and React anti-pattern elimination.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.7.0, it includes a dedicated SPY tab with completely isolated architecture and consolidated AI chat.
 
 ## Common Development Commands
 
@@ -33,7 +33,7 @@ npm run typecheck
 - **State Management**: Standard React Context + FSM (Simplified)
 - **UI Components**: ShadCN UI + Tailwind CSS
 - **Data Sources**: Polygon.io API
-- **AI Model**: Google Gemini 2.5-flash-lite
+- **AI Model**: Google Gemini 2.0-flash-thinking-exp-01-21
 
 ### Simplified Architecture (v4.0.0.7+)
 
@@ -53,7 +53,7 @@ npm run typecheck
 - **Loading States**: Derived from FSM state and business flags
 - **On-Demand AI**: AI Key Takeaways and Options Analysis are manual button-triggered only
 
-### SPY Tab Architecture (v4.1.5.0+)
+### SPY Tab Architecture (v4.1.7.0+)
 
 **Completely isolated SPY-dedicated tab with ground-up rewrite:**
 
@@ -67,7 +67,15 @@ npm run typecheck
 - **Main Component**: `src/components/spy-tab-content.tsx` - Deterministic handlers
 - **Data Section**: `src/components/spy-data-section.tsx` - Self-contained JSON display
 - **Display Components**: `spy-*.tsx` pattern - All isolated from Main tab components
-- **Auto-Features**: Auto-fetch SPY expirations on tab load
+- **Consolidated Chat**: `src/components/spy-consolidated-chat.tsx` - Unified AI chat with conditional web search
+- **AI Analysis**: Full feature parity with Main tab (Key Takeaways, Options Analysis)
+
+#### 3. SPY Chat Architecture (v4.1.7.0)
+- **Unified Interface**: Single chat component with radio toggle for mode selection
+- **Modern Google GenAI SDK**: Direct SDK usage with conditional GoogleSearch tool
+- **Conditional Tools**: `tools: webSearchEnabled ? [{googleSearch: {}}] : []`
+- **Quick Prompts**: Separate button groups for app data vs web search queries
+- **Server Action**: `spy-consolidated-chat-action.ts` handles both modes
 
 ## File Organization
 
@@ -84,6 +92,7 @@ npm run typecheck
 - `src/actions/analyze-ta-action.ts` - Technical analysis
 - `src/actions/perform-ai-analysis-action.ts` - AI key takeaways
 - `src/actions/perform-ai-options-analysis-action.ts` - AI options analysis
+- `src/actions/spy-consolidated-chat-action.ts` - SPY unified AI chat with conditional web search
 
 ### AI Flows & Prompts (Tier 2 - High Priority)
 - `src/ai/flows/` - Genkit AI flow definitions
@@ -162,11 +171,10 @@ const handleOnDemandKeyTakeaways = async () => {
 - **Validation**: Use Zod schemas for all data validation
 
 ### 2. UI/UX Conventions
-- **Components**: ShadCN UI components with Tailwind styling (configured in `components.json`)
-- **Icons**: Lucide React icons (as specified in iconLibrary config)
+- **Components**: ShadCN UI components with Tailwind styling
+- **Icons**: Lucide React icons
 - **Loading States**: Derive from FSM state and business flags
 - **Responsiveness**: Mobile-first approach with proper breakpoints
-- **Styling**: CSS variables enabled with neutral base color
 
 ### 3. Data Export Features
 - All data cards support "Copy JSON" and "Export JSON" functionality
@@ -203,7 +211,7 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.1.5.0 (as of this documentation update)
+- **Current Version**: v4.1.7.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
 
@@ -230,12 +238,6 @@ GEMINI_API_KEY=your_google_ai_api_key
 
 ### Testing Strategy
 - **No formal test suite exists** - manual testing required
-- **Manual Testing Checklist**:
-  - Main tab: Stock analysis pipeline (data fetch → AI TA → on-demand AI features)
-  - SPY tab: Auto-expiration fetch and complete options chain analysis with full feature parity
-  - Both tabs: JSON export functionality on all data cards
-  - Debug tabs: Verify logging and FSM state transitions
-  - SPY Options Chain: Test derived state calculations and performance optimizations
 - Use the built-in Debug tabs in the application for verification:
   - "Debug" tab: Raw JSON inputs/outputs
   - "Debug Logs" tab: Application trace logs with filtering
@@ -261,7 +263,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.1.5.0+)
+## Important Notes for AI Assistants (v4.1.7.0+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -274,50 +276,12 @@ GEMINI_API_KEY=your_google_ai_api_key
 10. **Token-optimized codebase** - Utilizes factory patterns, shared utilities, and centralized configurations
 11. **SPY Tab Isolation** - SPY tab uses completely separate context (`spy-analysis-context.tsx`) with `useSpyAnalysis()` hook
 12. **SPY Components Pattern** - All SPY components follow `spy-*.tsx` naming and are isolated from Main tab
-13. **SPY Options Chain Re-architecture (v4.1.5.0)** - SPY Options Chain Table has been re-architected to eliminate React anti-patterns:
-    - **Removed complex useEffect**: Eliminated 95-line useEffect with 6 state variables
-    - **Pure function approach**: Uses helper functions for JSON parsing and data processing
-    - **Derived state pattern**: Calculates values during render instead of useState hooks
-    - **useMemo for expensive operations**: Only ATM strike calculation uses useMemo
-    - **React best practices**: Follows React documentation guidelines for derived state
-    - **Full Feature Parity**: SPY Options Chain now has complete implementation matching Main tab functionality
-14. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds (see `next.config.ts`) for deployment flexibility
-15. **Parallel Architecture** - Main and SPY tabs operate independently with zero cross-dependencies
+13. **SPY Consolidated Chat (v4.1.7.0)** - Unified AI chat interface replacing dual chat architecture:
+    - **Single Chat Component**: `spy-consolidated-chat.tsx` with radio toggle for mode selection
+    - **Conditional Web Search**: Uses modern Google GenAI SDK with `tools: webSearchEnabled ? [{googleSearch: {}}] : []`
+    - **Unified Server Action**: `spy-consolidated-chat-action.ts` handles both app data and web search queries
+    - **Quick Prompts**: Separate button groups for app data analysis and web search prompts
+14. **SPY AI Analysis (v4.1.6.0)** - Complete deterministic implementation with feature parity to Main tab
+15. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds for deployment flexibility
 
-This architecture (v4.1.5.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with robust options chain implementation).
-
-## Current Development State & Recent Changes
-
-### Latest Updates (v4.1.5.0)
-- **SPY Options Chain Re-architecture**: Complete elimination of React anti-patterns in SPY Options Chain Table
-- **Pure Function Implementation**: Replaced 95-line complex useEffect with pure helper functions
-- **Derived State Pattern**: Implemented React best practices with direct state calculation during render
-- **Performance Optimization**: Reduced to single useMemo for expensive ATM strike calculation only
-- **Code Quality Improvement**: Follows React documentation guidelines for proper component architecture
-
-### Development Branch Information
-- **Current Branch**: v4.0.0.0_UI_Overhaul
-- **Main Branch**: v3.6.5.14_STABLE_RELEASE (use for PRs)
-- **Recent Commits**: 
-  - e7a39e4: [v4.1.5.0] [REFACTOR] SPY Options Chain React Anti-Pattern Elimination
-  - 24f5d38: [v4.1.4.0] [SPY] feat: Complete SPY Options Chain implementation with full feature parity
-  - 3f6f746: [v4.1.3.0] [SPY] fix: Complete UI enhancements with TA population and UX improvements
-  - 8c3f70a: [v4.1.2.0] [SPY] fix: Correct JSON parsing for Market Status, Key Metrics, and Stock Snapshot components
-  - af1f15e: [v4.1.1.0] [SPY] feat: Update UI for Market Status, Key Metrics, and Stock Snapshot
-
-## Quick Start for New Development
-
-### Development Server Setup
-1. **Environment**: Ensure `.env` file exists with required API keys
-2. **Install Dependencies**: `npm install`
-3. **Start Development**: 
-   - Main app: `npm run dev` (http://localhost:9002)
-   - AI Genkit: `npm run genkit:watch` (http://localhost:3400)
-4. **Pre-commit Checks**: Always run `npm run lint && npm run typecheck`
-
-### Key Architecture Entry Points
-- **Main Context**: `src/contexts/business-logic-context.tsx` - Core application state
-- **SPY Context**: `src/contexts/spy-analysis-context.tsx` - Isolated SPY functionality  
-- **Main UI**: `src/components/main-tab-content-ui.tsx` - Primary user interface
-- **SPY UI**: `src/components/spy-tab-content.tsx` - SPY dedicated interface
-- **API Layer**: `src/services/data-sources/adapters/polygon-adapter.ts` - Data integration
+This architecture (v4.1.7.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker).
