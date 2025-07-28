@@ -33,6 +33,21 @@ interface SpyAnalysisState {
   aiOptionsAnalysisJson: string;
   optionsChainJson: string;
   
+  // AI Chat Raw Debug Data (JSON strings for each chat response type)
+  // App Data Analysis Button Responses
+  stockTraderTakeawaysRawJson: string;
+  optionsTraderTakeawaysRawJson: string;
+  holisticTakeawaysRawJson: string;
+  
+  // Web Search Analysis Button Responses  
+  supportResistanceWebSearchRawJson: string;
+  technicalAnalysisWebSearchRawJson: string;
+  optionsFlowWebSearchRawJson: string;
+  
+  // User Input Responses (separated by mode)
+  userInputAppDataRawJson: string;
+  userInputWebSearchRawJson: string;
+  
   // Data Flags
   hasStockData: boolean;
   hasAiTaData: boolean;
@@ -65,6 +80,12 @@ type SpyAnalysisAction =
   | { type: 'SET_AI_KEY_TAKEAWAYS'; payload: string }
   | { type: 'SET_AI_OPTIONS_ANALYSIS'; payload: string }
   | { type: 'SET_DATA_RETRIEVAL_COMPLETE'; payload: boolean }
+  | { type: 'SET_AI_CHAT_RAW_DATA'; payload: {
+      promptName: string;
+      responseJson: string;
+      webSearchEnabled: boolean;
+      isUserInput?: boolean;
+    }}
   | { type: 'RESET_STATE' };
 
 const initialState: SpyAnalysisState = {
@@ -82,6 +103,17 @@ const initialState: SpyAnalysisState = {
   aiKeyTakeawaysJson: '',
   aiOptionsAnalysisJson: '',
   optionsChainJson: '',
+  
+  // Initialize AI Chat Raw Debug Data
+  stockTraderTakeawaysRawJson: '',
+  optionsTraderTakeawaysRawJson: '',
+  holisticTakeawaysRawJson: '',
+  supportResistanceWebSearchRawJson: '',
+  technicalAnalysisWebSearchRawJson: '',
+  optionsFlowWebSearchRawJson: '',
+  userInputAppDataRawJson: '',
+  userInputWebSearchRawJson: '',
+  
   hasStockData: false,
   hasAiTaData: false,
   hasAiKeyTakeaways: false,
@@ -198,6 +230,56 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       return {
         ...state,
         dataRetrievalComplete: action.payload,
+      };
+
+    case 'SET_AI_CHAT_RAW_DATA':
+      const { promptName, responseJson, webSearchEnabled, isUserInput } = action.payload;
+      console.log('[SPY:State] Setting AI chat raw data:', { 
+        promptName, 
+        webSearchEnabled, 
+        isUserInput: !!isUserInput,
+        hasData: !!responseJson 
+      });
+      
+      // Map prompt names to state fields
+      const updates: Partial<SpyAnalysisState> = {};
+      
+      if (isUserInput) {
+        // User input responses (based on mode)
+        if (webSearchEnabled) {
+          updates.userInputWebSearchRawJson = responseJson;
+        } else {
+          updates.userInputAppDataRawJson = responseJson;
+        }
+      } else {
+        // Button prompt responses
+        switch (promptName) {
+          case 'stock-trader-takeaways':
+            updates.stockTraderTakeawaysRawJson = responseJson;
+            break;
+          case 'options-trader-takeaways':
+            updates.optionsTraderTakeawaysRawJson = responseJson;
+            break;
+          case 'holistic-takeaways':
+            updates.holisticTakeawaysRawJson = responseJson;
+            break;
+          case 'support-resistance-web-search':
+            updates.supportResistanceWebSearchRawJson = responseJson;
+            break;
+          case 'technical-analysis-web-search':
+            updates.technicalAnalysisWebSearchRawJson = responseJson;
+            break;
+          case 'options-flow-web-search':
+            updates.optionsFlowWebSearchRawJson = responseJson;
+            break;
+          default:
+            console.warn('[SPY:State] Unknown prompt name for raw data storage:', promptName);
+        }
+      }
+      
+      return {
+        ...state,
+        ...updates,
       };
 
     case 'RESET_STATE':

@@ -102,7 +102,7 @@ npm run typecheck    # TypeScript type checking
 - **Advanced Chat**: `src/components/spy-consolidated-chat.tsx` - Specialized trading-focused AI chat
 - **AI Analysis**: Full feature parity with Main tab (Key Takeaways, Options Analysis)
 
-#### 3. Advanced SPY Chat Architecture (v4.1.10.0)
+#### 3. Advanced SPY Chat Architecture (v4.1.15.0)
 - **Specialized Prompt System**: Three distinct trading-focused prompt templates:
   - `stock-trader-takeaways.json` - Trading-focused market analysis
   - `options-trader-takeaways.json` - Options strategy insights
@@ -112,12 +112,22 @@ npm run typecheck    # TypeScript type checking
   - Textarea component for enhanced multi-line input experience
   - Improved UX flow with Chat Mode toggle positioned near input section
 - **Comprehensive Export Features**: Copy/Export JSON functionality for chat responses
-- **Race Condition Protection**: Request ID tracking prevents concurrent request conflicts
+- **Advanced Race Condition Protection**: 
+  - Request ID tracking prevents concurrent request conflicts
+  - Automatic 30-second timeout cleanup prevents stuck states
+  - Complete request validation with currentRequestId checks
+- **Granular Debug Data Storage (v4.1.15.0)**: Dedicated raw debug data for each AI Chat response type
+  - **App Data Button Responses**: `stockTraderTakeawaysRawJson`, `optionsTraderTakeawaysRawJson`, `holisticTakeawaysRawJson`
+  - **Web Search Button Responses**: `supportResistanceWebSearchRawJson`, `technicalAnalysisWebSearchRawJson`, `optionsFlowWebSearchRawJson`
+  - **User Input Responses**: Separated by mode (`userInputAppDataRawJson`, `userInputWebSearchRawJson`)
+  - **Context Tracking**: Request context storage for proper debug data mapping
 - **Technical Excellence**: 
+  - Proper `startTransition` usage with `useActionState` to prevent async errors
   - Modern Google GenAI SDK with conditional GoogleSearch tool
-  - Comprehensive error handling with toast notifications
+  - Comprehensive error handling with toast notifications and timeout protection
+  - Enhanced console logging with detailed request lifecycle tracking
   - Maintainable constants (CHAT_HEIGHTS, TEXTAREA_CONFIG)
-  - Safe JSON parsing with error handling
+  - Safe JSON parsing with error handling and user feedback
 - **Server Action**: `spy-consolidated-chat-action.ts` with advanced request lifecycle management
 
 ## File Organization

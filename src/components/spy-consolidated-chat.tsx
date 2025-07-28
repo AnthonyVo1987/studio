@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useActionState } from 'react';
+import React, { useState, useActionState, startTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -24,7 +23,7 @@ import {
   Download
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useSpyAnalysis, SPY_TICKER } from '@/contexts/spy-analysis-context';
+import { useSpyAnalysis, useSpyDispatch, SPY_TICKER } from '@/contexts/spy-analysis-context';
 import { spyConsolidatedChatAction } from '@/actions/spy-consolidated-chat-action';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -77,6 +76,7 @@ const webSearchButtons = [
 
 export function SpyConsolidatedChat() {
   const spyState = useSpyAnalysis();
+  const spyDispatch = useSpyDispatch();
   const { toast } = useToast();
 
   // Local state
@@ -84,6 +84,11 @@ export function SpyConsolidatedChat() {
   const [webSearchMode, setWebSearchMode] = useState<'app-data' | 'web-search'>('app-data');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
+  const [currentRequestContext, setCurrentRequestContext] = useState<{
+    promptName?: string;
+    webSearchEnabled: boolean;
+    isUserInput: boolean;
+  } | null>(null);
 
   // Action state for unified chat
   const [chatState, submitChat, isChatPending] = useActionState<SpyConsolidatedChatState, SpyConsolidatedChatInput>(
@@ -99,6 +104,12 @@ export function SpyConsolidatedChat() {
   // Handle chat response with race condition protection
   React.useEffect(() => {
     if (chatState.status === 'idle' || isChatPending) return;
+
+    // Race condition protection: Only process if we have a current request
+    if (!currentRequestId) {
+      console.warn('[SPY:Chat:Effect] No current request ID, ignoring response');
+      return;
+    }
 
     // Only process responses for the current request to prevent race conditions
     const { data, error, message, status } = chatState;
@@ -116,6 +127,26 @@ export function SpyConsolidatedChat() {
       
       const responseContent = responseData.response || 'No response received.';
       const webSearchUsed = responseData.webSearchUsed || false;
+      
+      // Store raw debug data if we have current request context
+      if (currentRequestContext) {
+        console.log('[SPY:Chat:Debug] Storing raw debug data:', {
+          promptName: currentRequestContext.promptName,
+          webSearchEnabled: currentRequestContext.webSearchEnabled,
+          isUserInput: currentRequestContext.isUserInput,
+          hasRawData: !!data.responseJson
+        });
+        
+        spyDispatch({
+          type: 'SET_AI_CHAT_RAW_DATA',
+          payload: {
+            promptName: currentRequestContext.promptName || 'user-input',
+            responseJson: data.responseJson,
+            webSearchEnabled: currentRequestContext.webSearchEnabled,
+            isUserInput: currentRequestContext.isUserInput,
+          }
+        });
+      }
         
         // Add model response to chat history
         setChatHistory(prev => [...prev, {
@@ -145,9 +176,29 @@ export function SpyConsolidatedChat() {
       });
     }
     
-    // Clear current request ID when response is processed
+    // Clear current request context and ID when response is processed
     setCurrentRequestId(null);
-  }, [chatState.status, isChatPending]);
+    setCurrentRequestContext(null);
+  }, [chatState.status, chatState.data, chatState.error, chatState.message, 
+      isChatPending, currentRequestContext, currentRequestId, spyDispatch, toast]);
+
+  // Request timeout cleanup to prevent stuck states
+  React.useEffect(() => {
+    if (!currentRequestId) return;
+    
+    const timeoutId = setTimeout(() => {
+      console.warn('[SPY:Chat:Timeout] Request timeout, clearing request ID');
+      setCurrentRequestId(null);
+      setCurrentRequestContext(null);
+      toast({
+        title: 'Request Timeout',
+        description: 'Request took too long, please try again.',
+        variant: 'destructive'
+      });
+    }, 30000); // 30 second timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [currentRequestId, toast]);
 
   // Submit chat message
   const handleSubmitChat = (promptName?: string, customInput?: string, overrideWebSearchEnabled?: boolean) => {
@@ -170,6 +221,13 @@ export function SpyConsolidatedChat() {
     // Generate and track request ID for race condition protection
     const requestId = crypto.randomUUID();
     setCurrentRequestId(requestId);
+    
+    // Set request context for debug data storage
+    setCurrentRequestContext({
+      promptName,
+      webSearchEnabled: effectiveWebSearchEnabled,
+      isUserInput: !promptName, // If no promptName, this is user input
+    });
 
     const finalInput = customInput || userInput.trim();
     if (!finalInput) {
@@ -216,8 +274,10 @@ export function SpyConsolidatedChat() {
       historyLength: chatHistory.length
     });
     
-    // Submit to action
-    submitChat(chatInput);
+    // Submit to action with proper transition
+    startTransition(() => {
+      submitChat(chatInput);
+    });
     
     // Clear user input
     if (!customInput) {
@@ -231,8 +291,16 @@ export function SpyConsolidatedChat() {
       title: button.title,
       promptName: button.promptName,
       webSearchEnabled: button.webSearchEnabled,
-      currentMode: webSearchMode
+      currentMode: webSearchMode,
+      hasStockData,
+      hasAnyData,
+      isChatPending
     });
+    
+    if (isChatPending) {
+      console.warn('[SPY:Chat:ButtonPrompt] Blocked - chat request already pending');
+      return;
+    }
     
     // Submit with button-specific web search setting (no mode switching needed)
     handleSubmitChat(button.promptName, button.title, button.webSearchEnabled);

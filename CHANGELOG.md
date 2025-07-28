@@ -7,6 +7,94 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.15.0` (🐛 **AI CHAT RESPONSE FIXES & DEBUG INFRASTRUCTURE**)
+**Tag:** `Phase-v4.1.15.0_AI_Chat_Response_Fixes_Debug_Infrastructure`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.1.15.0] [BUG FIXES] AI Chat Response Fixes and comprehensive debug infrastructure enhancements`
+**Details:**
+This commit implements comprehensive AI Chat bug fixes for SPY tab with enhanced debug infrastructure and race condition protection.
+
+**CRITICAL AI CHAT FIXES:**
+*   **useActionState Transition Error Fix**: Fixed async function error with proper `startTransition` wrapper to prevent "called outside of a transition" errors
+*   **Subsequent Button Failure Fix**: Resolved race condition causing AI Chat button failures after first successful response
+*   **30-Second Timeout Protection**: Added automatic timeout cleanup to prevent stuck states during long AI processing
+*   **Race Condition Protection**: Enhanced request ID tracking with complete request validation and currentRequestId checks
+
+**DEBUG INFRASTRUCTURE ENHANCEMENTS:**
+*   **Granular Raw Debug Data Storage**: Added 8 dedicated raw debug data fields for comprehensive AI Chat response tracking:
+    *   **App Data Analysis**: `stockTraderTakeawaysRawJson`, `optionsTraderTakeawaysRawJson`, `holisticTakeawaysRawJson`
+    *   **Web Search Analysis**: `supportResistanceWebSearchRawJson`, `technicalAnalysisWebSearchRawJson`, `optionsFlowWebSearchRawJson`
+    *   **User Input Responses**: `userInputAppDataRawJson`, `userInputWebSearchRawJson` (separated by mode)
+*   **Request Context Tracking**: Enhanced context storage for proper debug data mapping to specific request types
+*   **Debug Data Mapping**: Comprehensive request context tracking to ensure proper debug data assignment
+
+**CODE QUALITY IMPROVEMENTS:**
+*   **Enhanced Console Logging**: Added comprehensive logging with `[SPY:Chat:*]` prefixes for detailed request lifecycle tracking
+*   **Error Handling Enhancement**: Improved error handling with toast notifications and timeout protection mechanisms
+*   **useEffect Dependency Fix**: Corrected dependency arrays to prevent unnecessary re-renders and potential infinite loops
+*   **React Anti-Pattern Prevention**: Verified no React anti-patterns or infinite render loop issues
+
+**ARCHITECTURE DOCUMENTATION:**
+*   **CLAUDE.md Updates**: Updated SPY Chat architecture documentation to v4.1.15.0 with granular debug data architecture
+*   **Future-Proof Design**: Established pattern for any additional AI Chat prompts requiring dedicated raw data for debugging
+*   **Debug Visibility**: Transformed "all or nothing" blackbox approach to granular visibility for specific prompt analysis
+
+**DEVELOPMENT WORKFLOW:**
+*   **Enhanced Debugging**: Comprehensive console logging without UI/Render loop risks
+*   **Request Lifecycle Tracking**: Complete visibility into AI Chat request processing from initiation to completion
+*   **Error Diagnostics**: Improved error reporting with detailed context and user feedback mechanisms
+
+**QUALITY ASSURANCE:**
+*   **Multi-Agent Verification**: Code-reviewer and project-analyst agents confirmed 100% task completion
+*   **Build Verification**: Successful build with no new compilation errors
+*   **Functionality Testing**: All AI Chat features tested and verified operational
+*   **Documentation Consistency**: All architecture documentation updated to reflect v4.1.15.0 enhancements
+
+---
+**App Version:** `v4.1.15.0` (🐛 **AI CHAT RESPONSE FIXES & DEBUG INFRASTRUCTURE**)
+**Tag:** `Phase-v4.1.15.0_AI_Chat_Response_Fixes_Debug_Infrastructure`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.1.15.0] [BUG FIXES] AI Chat Response Fixes and comprehensive debug infrastructure enhancements`
+**Details:**
+This commit implements comprehensive AI Chat bug fixes for SPY tab with enhanced debug infrastructure and race condition protection.
+
+**CRITICAL AI CHAT FIXES:**
+*   **useActionState Transition Error Fix**: Fixed async function error with proper `startTransition` wrapper to prevent "called outside of a transition" errors
+*   **Subsequent Button Failure Fix**: Resolved race condition causing AI Chat button failures after first successful response
+*   **30-Second Timeout Protection**: Added automatic timeout cleanup to prevent stuck states during long AI processing
+*   **Race Condition Protection**: Enhanced request ID tracking with complete request validation and currentRequestId checks
+
+**DEBUG INFRASTRUCTURE ENHANCEMENTS:**
+*   **Granular Raw Debug Data Storage**: Added 8 dedicated raw debug data fields for comprehensive AI Chat response tracking:
+    *   **App Data Analysis**: `stockTraderTakeawaysRawJson`, `optionsTraderTakeawaysRawJson`, `holisticTakeawaysRawJson`
+    *   **Web Search Analysis**: `supportResistanceWebSearchRawJson`, `technicalAnalysisWebSearchRawJson`, `optionsFlowWebSearchRawJson`
+    *   **User Input Responses**: `userInputAppDataRawJson`, `userInputWebSearchRawJson` (separated by mode)
+*   **Request Context Tracking**: Enhanced context storage for proper debug data mapping to specific request types
+*   **Debug Data Mapping**: Comprehensive request context tracking to ensure proper debug data assignment
+
+**CODE QUALITY IMPROVEMENTS:**
+*   **Enhanced Console Logging**: Added comprehensive logging with `[SPY:Chat:*]` prefixes for detailed request lifecycle tracking
+*   **Error Handling Enhancement**: Improved error handling with toast notifications and timeout protection mechanisms
+*   **useEffect Dependency Fix**: Corrected dependency arrays to prevent unnecessary re-renders and potential infinite loops
+*   **React Anti-Pattern Prevention**: Verified no React anti-patterns or infinite render loop issues
+
+**ARCHITECTURE DOCUMENTATION:**
+*   **CLAUDE.md Updates**: Updated SPY Chat architecture documentation to v4.1.15.0 with granular debug data architecture
+*   **Future-Proof Design**: Established pattern for any additional AI Chat prompts requiring dedicated raw data for debugging
+*   **Debug Visibility**: Transformed "all or nothing" blackbox approach to granular visibility for specific prompt analysis
+
+**DEVELOPMENT WORKFLOW:**
+*   **Enhanced Debugging**: Comprehensive console logging without UI/Render loop risks
+*   **Request Lifecycle Tracking**: Complete visibility into AI Chat request processing from initiation to completion
+*   **Error Diagnostics**: Improved error reporting with detailed context and user feedback mechanisms
+
+**QUALITY ASSURANCE:**
+*   **Multi-Agent Verification**: Code-reviewer and project-analyst agents confirmed 100% task completion
+*   **Build Verification**: Successful build with no new compilation errors
+*   **Functionality Testing**: All AI Chat features tested and verified operational
+*   **Documentation Consistency**: All architecture documentation updated to reflect v4.1.15.0 enhancements
+
+---
 **App Version:** `v4.1.14.0` (📚 **DOCUMENTATION: PORT CONFIGURATION & ESLINT SETUP**)
 **Tag:** `Phase-v4.1.14.0_Documentation_Port_ESLint_Updates`
 **Commit Hash:** `[TO_BE_FILLED]`
