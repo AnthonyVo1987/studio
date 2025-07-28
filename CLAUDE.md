@@ -21,21 +21,41 @@ StockSage is a Next.js financial analysis application that provides real-time st
 
 ### Build & Development
 ```bash
-npm run dev          # Development server (http://localhost:9002)
+npm run dev          # Development server (http://localhost:9002) - USER RESERVED PORT
 npm run build        # Production build
 npm run start        # Production server
-npm run lint         # ESLint linting
+npm run lint         # ESLint linting (fully configured)
 npm run typecheck    # TypeScript type checking
 npm run genkit:dev   # Genkit AI flows dev server (http://localhost:3400)
 npm run genkit:watch # Genkit AI flows dev server with watch mode
 ```
 
+### IMPORTANT: Port Usage Guidelines
+**USER RESERVED PORTS - DO NOT USE FOR TESTING:**
+- **Port 9002**: Reserved exclusively for user development testing
+- **Port 3400**: Reserved for user Genkit testing
+
+**CLAUDE CODE TESTING PORTS - USE THESE FOR INTERNAL TESTING:**
+When Claude Code needs to test builds or start development servers for code review or testing purposes, use these alternative ports to avoid conflicts:
+```bash
+# For internal testing only - DO NOT use user ports 9002 or 3400
+next dev --turbopack -p 9003    # Claude Code dev server testing
+next dev --turbopack -p 9004    # Alternative testing port
+genkit start -p 3401            # Claude Code Genkit testing
+```
+
 ### Critical Pre-Commit Commands
 Always run these before committing:
 ```bash
-npm run lint
-npm run typecheck
+npm run lint         # ESLint is fully configured and operational
+npm run typecheck    # TypeScript type checking
 ```
+
+### ESLint Configuration
+- **Status**: Fully configured and operational ESLint setup
+- **Configuration Files**: ESLint config files are committed to the project
+- **Customization**: ESLint settings and configuration can be updated by Claude Code on an as-needed basis for project requirements
+- **Integration**: ESLint is integrated with the build process and pre-commit workflow
 
 ## High-Level Architecture (v4.0.0.7+)
 

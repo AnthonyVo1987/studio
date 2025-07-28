@@ -7,6 +7,43 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.14.0` (📚 **DOCUMENTATION: PORT CONFIGURATION & ESLINT SETUP**)
+**Tag:** `Phase-v4.1.14.0_Documentation_Port_ESLint_Updates`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.1.14.0] [DOCUMENTATION] Port configuration guidelines and ESLint setup finalization`
+**Details:**
+This commit finalizes comprehensive documentation updates for port usage guidelines and ESLint configuration setup to improve development workflow and prevent conflicts.
+
+**PORT CONFIGURATION GUIDELINES:**
+*   **User Reserved Ports**: Clear designation of ports 9002 (Next.js) and 3400 (Genkit) exclusively for user development and testing
+*   **Internal Testing Ports**: Designated alternative ports (9003, 9004, 3401) for Claude Code internal testing and code review processes
+*   **Conflict Prevention**: Prevents port conflicts between user development sessions and internal testing workflows
+*   **Documentation Coverage**: Updated both CLAUDE.md and README.md with comprehensive port usage guidelines
+
+**ESLINT CONFIGURATION UPDATES:**
+*   **Status Clarification**: Updated documentation to reflect fully configured and operational ESLint setup
+*   **Configuration Management**: ESLint config files are committed to the project and can be customized as needed
+*   **Integration Documentation**: Clear documentation of ESLint integration with build process and pre-commit workflow
+*   **Development Workflow**: Enhanced pre-commit command documentation with ESLint usage guidelines
+
+**DOCUMENTATION IMPROVEMENTS:**
+*   **CLAUDE.md Updates**: Enhanced development command documentation with port guidelines and ESLint status
+*   **README.md Updates**: Added comprehensive ESLint configuration section (5.3.1) and port usage guidelines
+*   **Version Management**: Updated README document version to 3.31 with current application version v4.1.14.0
+*   **Cross-Reference Consistency**: Ensured consistent documentation across all project documentation files
+
+**DEVELOPMENT WORKFLOW ENHANCEMENTS:**
+*   **Clear Port Separation**: Prevents confusion and conflicts during development and testing processes
+*   **ESLint Clarity**: Removes ambiguity about ESLint configuration status and capabilities
+*   **Command Documentation**: Enhanced npm command documentation with clear usage guidelines
+*   **Testing Guidelines**: Comprehensive internal testing port guidelines for code review processes
+
+**QUALITY ASSURANCE:**
+*   **Documentation Consistency**: All documentation files updated with consistent information
+*   **Cross-Platform Compatibility**: Port guidelines work across all development environments
+*   **Future-Proof Setup**: ESLint configuration ready for ongoing customization and enhancement
+
+---
 **App Version:** `v4.1.13.0` (🔧 **AI CHAT CONTAINER OVERFLOW FIX**)
 **Tag:** `Phase-v4.1.13.0_AI_Chat_Container_Overflow_Fix`
 **Commit Hash:** `[TO_BE_FILLED]`

@@ -258,9 +258,30 @@ GEMINI_API_KEY=your_google_ai_api_key
 npm install
 ```
 
+### 5.3.1. ESLint Configuration
+- **Status**: Fully configured and operational ESLint setup
+- **Configuration Files**: ESLint config files are committed to the project
+- **Usage**: Run `npm run lint` for linting with comprehensive rules
+- **Integration**: ESLint is integrated with the build process and pre-commit workflow
+- **Customization**: ESLint settings can be updated as needed for project requirements
+
 ### 5.4. Running the Development Server
-1.  Next.js: `npm run dev` (App: `http://localhost:9002`)
-2.  Genkit: `npm run genkit:watch` (Genkit Dev UI: `http://localhost:3400`)
+1.  Next.js: `npm run dev` (App: `http://localhost:9002`) - **USER RESERVED PORT**
+2.  Genkit: `npm run genkit:watch` (Genkit Dev UI: `http://localhost:3400`) - **USER RESERVED PORT**
+
+#### Port Usage Guidelines
+**USER RESERVED PORTS - For Development & Testing:**
+- **Port 9002**: Reserved exclusively for user development testing
+- **Port 3400**: Reserved for user Genkit testing
+
+**INTERNAL TESTING PORTS - For Code Review & Internal Testing:**
+When running internal tests or code reviews, use alternative ports to avoid conflicts:
+```bash
+# Internal testing only - avoid user ports 9002 and 3400
+next dev --turbopack -p 9003    # Internal dev server testing
+next dev --turbopack -p 9004    # Alternative testing port  
+genkit start -p 3401            # Internal Genkit testing
+```
 
 ### 5.5. Building for Production
 ```bash
@@ -271,8 +292,8 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.27
-*   **Current Application Version:** `v4.1.10.0`
+*   **This README Document Version:** 3.31
+*   **Current Application Version:** `v4.1.13.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
