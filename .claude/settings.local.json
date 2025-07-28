@@ -48,7 +48,8 @@
       "Bash(npm run:*)",
       "Bash(pkill:*)",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

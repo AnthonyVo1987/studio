@@ -47,21 +47,28 @@ export async function performAiAnalysisAction(
     hasMarketStatus: !!marketStatusJson
   });
 
+  // Check only for essential data - allow technical analysis to contain errors
   if (!ticker || !stockSnapshotJson || stockSnapshotJson === '{}' ||
-      !standardTasJson || standardTasJson === '{}' ||
-      !aiAnalyzedTaJson || aiAnalyzedTaJson === '{}' ||
       !marketStatusJson || marketStatusJson === '{}') {
-    const errorMsg = 'One or more required data inputs for AI Key Takeaways analysis are missing or empty.';
+    const errorMsg = 'Essential data inputs (ticker, stock snapshot, market status) are missing for AI Key Takeaways analysis.';
     console.error(`${actionLogPrefix} Validation error:`, errorMsg);
     return {
       status: 'error',
       error: errorMsg,
-      message: 'Prerequisite data not available for AI key takeaways.',
+      message: 'Essential prerequisite data not available for AI key takeaways.',
       data: {
         aiKeyTakeawaysRequestJson: JSON.stringify({ error: errorMsg, ticker }, null, 2),
-        aiKeyTakeawaysJson: JSON.stringify({ error: errorMsg, details: "Missing prerequisite data." }, null, 2),
+        aiKeyTakeawaysJson: JSON.stringify({ error: errorMsg, details: "Missing essential prerequisite data." }, null, 2),
       },
     };
+  }
+
+  // Log warning if technical analysis data is missing or contains errors, but continue processing
+  if (!standardTasJson || standardTasJson === '{}') {
+    console.warn(`${actionLogPrefix} Warning: Standard technical analysis data is missing or empty`);
+  }
+  if (!aiAnalyzedTaJson || aiAnalyzedTaJson === '{}') {
+    console.warn(`${actionLogPrefix} Warning: AI analyzed technical analysis data is missing or empty`);
   }
 
   const flowInput: StockAnalysisInput = {

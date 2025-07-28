@@ -15,7 +15,7 @@ Additional Tools that Every Agent can use as needed:
 - **New custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.2.0.0, it features four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated, and Main (legacy), each with advanced specialized AI chat systems and ticker-agnostic logging.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.2.1.0, it features four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated, and Main (legacy), each with advanced specialized AI chat systems and ticker-agnostic logging.
 
 ## Common Development Commands
 
@@ -354,9 +354,9 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.2.0.0 (as of this documentation update)
+- **Current Version**: v4.2.1.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.2.0.0+ for multi-tab architecture with User Input Ticker and NVDA dedicated pages)
+- **Versioning Scheme**: `v4.w.x.y.z` format (v4.2.1.0 latest with AI Key Takeaways bug fix; v4.2.0.0+ for multi-tab architecture with User Input Ticker and NVDA dedicated pages)
 
 ## Code Review Process
 
@@ -484,8 +484,15 @@ GEMINI_API_KEY=your_google_ai_api_key
     - NVDA Dedicated: `nvda-*.tsx` pattern with NVDA-specific implementations  
     - SPY Dedicated: `spy-*.tsx` pattern serving as blueprint reference
     - Main Legacy: Mixed patterns maintained for compatibility
+21. **AI Key Takeaways Bug Fix (v4.2.1.0)** - Critical bug fix for User Input Ticker AI chat functionality:
+    - **Root Cause**: Google AI SDK API format mismatch in `user-ticker-consolidated-chat-action.ts`
+    - **Fix Applied**: Changed `googleSearchRetrieval: {}` to correct `googleSearch: {}` format
+    - **Grounding Metadata**: Fixed grounding metadata access pattern to match SPY implementation
+    - **User Input Validation**: Added user input validation to prevent empty requests
+    - **Cross-Tab Consistency**: Ensured AI Key Takeaways work uniformly across all ticker tabs
+    - **Affected File**: `src/actions/user-ticker-consolidated-chat-action.ts`
 
-This architecture (v4.2.0.0) maintains React best practices with four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated (blueprint), and Main (legacy). Each tab features advanced AI chat systems, complete state isolation, and ticker-agnostic logging for consistent debugging experience across all ticker contexts.
+This architecture (v4.2.1.0) maintains React best practices with four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated (blueprint), and Main (legacy). Each tab features advanced AI chat systems, complete state isolation, and ticker-agnostic logging for consistent debugging experience across all ticker contexts.
 
 ---
 

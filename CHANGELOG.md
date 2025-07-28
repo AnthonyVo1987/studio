@@ -7,6 +7,32 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.2.1.0` (🐛 **BUG FIX: AI KEY TAKEAWAYS CHAT FUNCTIONALITY**)
+**Tag:** `Phase-v4.2.1.0_AI_Key_Takeaways_Bug_Fix`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.2.1.0] [BUG FIX] AI Key Takeaways functionality restored across all ticker tabs`
+**Details:**
+This commit resolves a critical bug in the AI Key Takeaways functionality that was preventing User Input ticker chat from working properly. The issue stemmed from incorrect Google AI SDK API format usage in the user-ticker-consolidated-chat-action.ts file.
+
+**🔧 BUG FIXES:**
+
+**AI KEY TAKEAWAYS RESTORATION:**
+*   **Root Cause**: Google AI API format mismatch - `googleSearchRetrieval: {}` vs correct `googleSearch: {}` format
+*   **Fix Applied**: Updated `user-ticker-consolidated-chat-action.ts` to use proper Google AI SDK format
+*   **Grounding Metadata**: Fixed grounding metadata access pattern to match SPY implementation
+*   **User Input Validation**: Added user input validation to prevent empty requests
+*   **Cross-Tab Consistency**: Ensured AI Key Takeaways work uniformly across User Input, SPY, and NVDA tabs
+
+**📁 FILES MODIFIED:**
+*   `src/actions/user-ticker-consolidated-chat-action.ts` - Fixed Google AI SDK format and grounding metadata access
+
+**✅ FUNCTIONALITY VALIDATED:**
+*   **User Input Ticker Tab**: AI Key Takeaways chat now fully functional
+*   **SPY Dedicated Tab**: Existing functionality preserved and validated
+*   **NVDA Dedicated Tab**: Existing functionality preserved and validated
+*   **Ticker-Agnostic Architecture**: All changes maintain isolation between ticker contexts
+
+---
 **App Version:** `v4.2.0.0` (🚀 **MAJOR RELEASE: USER INPUT TICKER & NVDA DEDICATED PAGES**)
 **Tag:** `Phase-v4.2.0.0_User_Input_Ticker_NVDA_Dedicated_Pages_Multi_Tab_Architecture`
 **Commit Hash:** `[TO_BE_FILLED]`

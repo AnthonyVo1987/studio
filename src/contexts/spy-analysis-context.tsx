@@ -203,7 +203,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       console.log('[SPY:State] Setting stock data:', {
         hasSnapshot: !!action.payload.stockSnapshotJson,
         hasMarketStatus: !!action.payload.marketStatusJson,
-        hasStandardTA: !!action.payload.standardTaJson,
+        hasStandardTA: !!action.payload.standardTasJson,
         hasAITA: !!action.payload.aiAnalyzedTaJson
       });
       return {

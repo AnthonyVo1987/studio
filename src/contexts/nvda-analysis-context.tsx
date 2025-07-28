@@ -201,7 +201,7 @@ function nvdaAnalysisReducer(state: NvdaAnalysisState, action: NvdaAnalysisActio
       logger.state('StockData', 'Setting stock data', {
         hasSnapshot: !!action.payload.stockSnapshotJson,
         hasMarketStatus: !!action.payload.marketStatusJson,
-        hasStandardTA: !!action.payload.standardTaJson,
+        hasStandardTA: !!action.payload.standardTasJson,
         hasAITA: !!action.payload.aiAnalyzedTaJson
       });
       return {

@@ -227,6 +227,10 @@ export async function userTickerConsolidatedChatAction(
     const useWebSearch = validatedInput.webSearchEnabled;
     console.log(`[userTickerConsolidatedChatAction] Using web search: ${useWebSearch}`);
 
+    // Validate user input
+    if (!validatedInput.userInput || validatedInput.userInput.trim() === "") {
+      throw new Error("User input cannot be empty.");
+    }
     // Get appropriate prompt
     const promptName = validatedInput.promptName || (useWebSearch ? 'general' : 'general');
     const systemPrompt = useWebSearch 
@@ -272,7 +276,7 @@ export async function userTickerConsolidatedChatAction(
         maxOutputTokens: 4000,
       },
       ...(useWebSearch && {
-        tools: [{ googleSearch: {} }] // Enable Google Search tool conditionally
+        tools: [{ googleSearch: {} }] as any[] // Enable Google Search tool conditionally
       })
     };
 
@@ -280,17 +284,22 @@ export async function userTickerConsolidatedChatAction(
 
     // Generate response
     console.log(`[userTickerConsolidatedChatAction] Generating response with model: ${modelConfig.model}`);
-    const result = await model.generateContent([
-      { role: 'user', parts: [{ text: systemPrompt }] },
-      { role: 'model', parts: [{ text: 'I understand. I\'m ready to help with your analysis.' }] },
-      { role: 'user', parts: [{ text: userMessage }] }
-    ]);
+    
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: userMessage }]
+        }
+      ],
+      systemInstruction: systemPrompt,
+    });
 
     const response = await result.response;
     const responseText = response.text();
 
     // Check if web search was actually used
-    const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+    const groundingMetadata = (response as any).groundingMetadata || null;
     const webSearchUsed = useWebSearch && !!groundingMetadata;
 
     console.log(`[userTickerConsolidatedChatAction] Generated response length: ${responseText.length}`);

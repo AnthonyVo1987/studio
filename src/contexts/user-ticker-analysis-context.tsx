@@ -242,7 +242,7 @@ function userTickerAnalysisReducer(state: UserTickerAnalysisState, action: UserT
       logger.state('StockData', 'Setting stock data', {
         hasSnapshot: !!action.payload.stockSnapshotJson,
         hasMarketStatus: !!action.payload.marketStatusJson,
-        hasStandardTA: !!action.payload.standardTaJson,
+        hasStandardTA: !!action.payload.standardTasJson,
         hasAITA: !!action.payload.aiAnalyzedTaJson
       });
       return {

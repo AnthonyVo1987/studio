@@ -24,7 +24,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 6.  **Implement Fix:** Only after receiving explicit user approval will I proceed with generating the code changes for the agreed-upon fix.
 
 #### Section 4: Versioning & Documentation
-7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.2.0.0 latest).
+7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.2.1.0 latest).
 8.  **Bug Report Versioning (NEW):** I will **not** increment versions on my own. The user will provide the exact new application version (e.g., `v4.w.x.y.(z+1)`) as part of the bug report submission. My fix will then be associated with that user-provided version.
 9.  **Metadata Updates:** Any code change must include an automatic update to the `appVersion` and `lastUpdatedTimestamp` in `src/config/app-metadata.json` to match the version specified in the task.
 10. **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
@@ -33,7 +33,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 ###
 ---
 **README Document Version:** 4.20
-**Application Version (from `app-metadata.json`):** v4.2.0.0
+**Application Version (from `app-metadata.json`):** v4.2.1.0
 **Last Updated:** 2025-07-28
 
 ## 1. Introduction
@@ -326,8 +326,9 @@ npm run start
 
 ## 6. Change History & Versioning
 *   **This README Document Version:** 4.20
-*   **Current Application Version:** `v4.2.0.0`
+*   **Current Application Version:** `v4.2.1.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
+*   **Latest Update (v4.2.1.0):** Bug fix for AI Key Takeaways functionality across all ticker tabs
 *   **Major Release (v4.2.0.0):** Multi-tab architecture with User Input Ticker, NVDA dedicated pages, and ticker-agnostic logging system
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
