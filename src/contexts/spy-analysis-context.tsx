@@ -55,6 +55,10 @@ interface SpyAnalysisState {
   hasAiOptionsAnalysis: boolean;
   hasOptionsChainData: boolean;
   
+  // AI Operation Loading States (separate from main FSM)
+  isAiKeyTakeawaysLoading: boolean;
+  isAiOptionsAnalysisLoading: boolean;
+  
   // UI Update Flag - signals when ALL data retrieval is complete for batch UI updates
   dataRetrievalComplete: boolean;
 }
@@ -78,7 +82,9 @@ type SpyAnalysisAction =
     }}
   | { type: 'SET_OPTIONS_CHAIN_DATA'; payload: string }
   | { type: 'SET_AI_KEY_TAKEAWAYS'; payload: string }
+  | { type: 'SET_AI_KEY_TAKEAWAYS_LOADING'; payload: boolean }
   | { type: 'SET_AI_OPTIONS_ANALYSIS'; payload: string }
+  | { type: 'SET_AI_OPTIONS_ANALYSIS_LOADING'; payload: boolean }
   | { type: 'SET_DATA_RETRIEVAL_COMPLETE'; payload: boolean }
   | { type: 'SET_AI_CHAT_RAW_DATA'; payload: {
       promptName: string;
@@ -119,6 +125,8 @@ const initialState: SpyAnalysisState = {
   hasAiKeyTakeaways: false,
   hasAiOptionsAnalysis: false,
   hasOptionsChainData: false,
+  isAiKeyTakeawaysLoading: false,
+  isAiOptionsAnalysisLoading: false,
   dataRetrievalComplete: false,
 };
 
@@ -215,6 +223,14 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         ...state,
         aiKeyTakeawaysJson: action.payload,
         hasAiKeyTakeaways: true,
+        isAiKeyTakeawaysLoading: false,
+      };
+
+    case 'SET_AI_KEY_TAKEAWAYS_LOADING':
+      console.log('[SPY:State] Setting AI key takeaways loading:', { loading: action.payload });
+      return {
+        ...state,
+        isAiKeyTakeawaysLoading: action.payload,
       };
 
     case 'SET_AI_OPTIONS_ANALYSIS':
@@ -223,6 +239,14 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         ...state,
         aiOptionsAnalysisJson: action.payload,
         hasAiOptionsAnalysis: true,
+        isAiOptionsAnalysisLoading: false,
+      };
+
+    case 'SET_AI_OPTIONS_ANALYSIS_LOADING':
+      console.log('[SPY:State] Setting AI options analysis loading:', { loading: action.payload });
+      return {
+        ...state,
+        isAiOptionsAnalysisLoading: action.payload,
       };
 
     case 'SET_DATA_RETRIEVAL_COMPLETE':

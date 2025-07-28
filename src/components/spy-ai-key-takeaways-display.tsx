@@ -10,8 +10,9 @@ import { useQuickExport } from '@/hooks/use-export-actions';
 export function SpyAiKeyTakeawaysDisplay() {
   const spyState = useSpyAnalysis();
 
-  // Derived state - data availability
+  // Derived state - data availability and loading state
   const isDataReady = spyState.hasAiKeyTakeaways;
+  const isLoading = spyState.isAiKeyTakeawaysLoading;
   
   // Parse AI key takeaways data for export and display
   const keyTakeawaysData = spyState.aiKeyTakeawaysJson ? (() => {
@@ -137,6 +138,10 @@ export function SpyAiKeyTakeawaysDisplay() {
                 {SPY_TICKER} AI analysis completed successfully. Use the export buttons above to view the detailed insights.
               </p>
             </div>
+          </div>
+        ) : isLoading ? (
+          <div className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            Generating {SPY_TICKER} AI key takeaways...
           </div>
         ) : (
           <div className="text-center text-muted-foreground h-24 flex items-center justify-center">

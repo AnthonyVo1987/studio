@@ -7,6 +7,49 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.1.16.0` (🐛 **SPY AI ON-DEMAND ANALYSIS DATA WIPE BUG FIX**)
+**Tag:** `Phase-v4.1.16.0_SPY_AI_Data_Wipe_Bug_Fix`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.1.16.0] [CRITICAL BUG FIX] SPY AI on-demand analysis data wipe fix with isolated loading states`
+**Details:**
+This commit fixes a critical bug where SPY AI on-demand buttons were incorrectly wiping out existing stock data and causing loading state conflicts.
+
+**CRITICAL BUG FIX:**
+*   **Data Wipe Prevention**: Fixed SPY AI on-demand buttons (Key Takeaways & Options Analysis) incorrectly clearing existing stock data
+*   **Loading State Isolation**: Added separate AI loading states (`isAiKeyTakeawaysLoading`, `isAiOptionsAnalysisLoading`) that don't affect main data state
+*   **State Management Fix**: AI handlers no longer call `SET_LOADING` which was resetting `dataRetrievalComplete` flag
+*   **UI Consistency**: Eliminated "Waiting for SPY market data..." messages appearing after AI analysis completion
+
+**ROOT CAUSE ANALYSIS:**
+*   **Problem**: AI handlers called `SET_LOADING` which reset `dataRetrievalComplete` flag, causing UI to show loading states
+*   **Impact**: Users lost existing stock data when performing AI analysis, requiring re-fetch of market data
+*   **Solution**: Introduced dedicated AI loading states that preserve main data state integrity
+
+**IMPLEMENTATION DETAILS:**
+*   **Context Updates**: Added `isAiKeyTakeawaysLoading` and `isAiOptionsAnalysisLoading` states to SPY analysis context
+*   **Reducer Logic**: Enhanced reducer with `SET_AI_KEY_TAKEAWAYS_LOADING` and `SET_AI_OPTIONS_ANALYSIS_LOADING` actions
+*   **Handler Isolation**: Modified AI handlers to use specific loading states instead of global FSM loading
+*   **UI Component Updates**: Updated AI display components with consistent loading state handling
+
+**QUALITY ASSURANCE:**
+*   **Code Review Passed**: Comprehensive review verified no React anti-patterns or infinite loop issues
+*   **Loading State Consistency**: All SPY components now use appropriate loading indicators
+*   **Data Preservation**: Get Stock Data remains single source of truth for data reset
+*   **Chat History Persistence**: AI Chat history persists after Get Stock Data operations
+
+**FILES MODIFIED:**
+*   `src/contexts/spy-analysis-context.tsx` - Added AI loading states and reducer logic
+*   `src/components/spy-tab-content.tsx` - Modified AI handlers to use specific loading states
+*   `src/components/spy-ai-key-takeaways-display.tsx` - Added loading state consistency
+*   `src/components/spy-ai-options-analysis-display.tsx` - Added loading state consistency
+
+**USER EXPERIENCE IMPROVEMENTS:**
+*   **Data Integrity**: AI operations no longer affect existing market data
+*   **Clear Feedback**: Individual loading indicators for each AI operation
+*   **Workflow Continuity**: Users can perform multiple AI analyses without data loss
+*   **Consistent Interface**: Unified loading state behavior across all SPY components
+
+---
 **App Version:** `v4.1.15.0` (🐛 **AI CHAT RESPONSE FIXES & DEBUG INFRASTRUCTURE**)
 **Tag:** `Phase-v4.1.15.0_AI_Chat_Response_Fixes_Debug_Infrastructure`
 **Commit Hash:** `[TO_BE_FILLED]`

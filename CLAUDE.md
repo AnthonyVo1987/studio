@@ -15,7 +15,7 @@ Additional Tools that Every Agent can use as needed:
 - **New custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.10.0, it includes a dedicated SPY tab with completely isolated architecture and advanced specialized AI chat system.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.16.0, it includes a dedicated SPY tab with completely isolated architecture and advanced specialized AI chat system.
 
 ## Common Development Commands
 
@@ -264,7 +264,7 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.1.10.0 (as of this documentation update)
+- **Current Version**: v4.1.16.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
 
@@ -348,7 +348,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.1.10.0+)
+## Important Notes for AI Assistants (v4.1.16.0+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -368,10 +368,13 @@ GEMINI_API_KEY=your_google_ai_api_key
     - **Race Condition Protection**: Request ID tracking prevents concurrent request conflicts
     - **Advanced Error Handling**: Toast notifications and safe JSON parsing
     - **Maintainable Architecture**: Extracted constants and improved code organization
-14. **SPY AI Analysis (v4.1.6.0)** - Complete deterministic implementation with feature parity to Main tab
+14. **SPY AI Analysis (v4.1.16.0)** - Complete deterministic implementation with feature parity to Main tab:
+    - **Isolated Loading States**: Dedicated AI loading states (`isAiKeyTakeawaysLoading`, `isAiOptionsAnalysisLoading`) prevent data wipe issues
+    - **Data Preservation**: AI operations no longer affect existing market data or reset `dataRetrievalComplete` flag
+    - **Loading State Consistency**: All SPY components use appropriate loading indicators without affecting main data state
 15. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds for deployment flexibility
 
-This architecture (v4.1.10.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with advanced AI chat).
+This architecture (v4.1.16.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with advanced AI chat and isolated loading states).
 
 ---
 

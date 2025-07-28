@@ -32,8 +32,8 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.32
-**Application Version (from `app-metadata.json`):** v4.1.15.0
+**README Document Version:** 3.33
+**Application Version (from `app-metadata.json`):** v4.1.16.0
 **Last Updated:** 2025-07-28
 
 ## 1. Introduction
@@ -293,7 +293,7 @@ npm run start
 
 ## 6. Change History & Versioning
 *   **This README Document Version:** 3.32
-*   **Current Application Version:** `v4.1.15.0`
+*   **Current Application Version:** `v4.1.16.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 

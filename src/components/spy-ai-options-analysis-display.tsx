@@ -17,8 +17,9 @@ interface OptionsWall {
 export function SpyAiOptionsAnalysisDisplay() {
   const spyState = useSpyAnalysis();
 
-  // Derived state - data availability
+  // Derived state - data availability and loading state
   const isDataReady = spyState.hasAiOptionsAnalysis;
+  const isLoading = spyState.isAiOptionsAnalysisLoading;
   
   // Parse AI options analysis data for export and display
   const optionsAnalysisData = spyState.aiOptionsAnalysisJson ? (() => {
@@ -167,6 +168,10 @@ export function SpyAiOptionsAnalysisDisplay() {
                 {SPY_TICKER} AI options analysis completed successfully. Use the export buttons above to view the detailed insights.
               </p>
             </div>
+          </div>
+        ) : isLoading ? (
+          <div className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            Generating {SPY_TICKER} AI options analysis...
           </div>
         ) : (
           <div className="text-center text-muted-foreground h-24 flex items-center justify-center">

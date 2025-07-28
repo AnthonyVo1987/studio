@@ -189,7 +189,8 @@ export function SpyTabContent() {
     });
     
     try {
-      spyDispatch({ type: 'SET_LOADING' });
+      // Use specific AI loading state instead of global FSM loading
+      spyDispatch({ type: 'SET_AI_KEY_TAKEAWAYS_LOADING', payload: true });
 
       const result = await performAiAnalysisAction({
         ticker: SPY_TICKER,
@@ -207,8 +208,6 @@ export function SpyTabContent() {
           payload: result.data.aiKeyTakeawaysJson 
         });
         
-        spyDispatch({ type: 'SET_IDLE' });
-        
         toast({ 
           title: 'Success', 
           description: `${SPY_TICKER} AI Key Takeaways generated successfully` 
@@ -220,7 +219,8 @@ export function SpyTabContent() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('[SPY:UserAction:AIKeyTakeaways] Error:', errorMessage);
       
-      spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
+      // Clear loading state on error
+      spyDispatch({ type: 'SET_AI_KEY_TAKEAWAYS_LOADING', payload: false });
       
       toast({
         title: 'Error Generating AI Key Takeaways',
@@ -239,7 +239,8 @@ export function SpyTabContent() {
     });
     
     try {
-      spyDispatch({ type: 'SET_LOADING' });
+      // Use specific AI loading state instead of global FSM loading
+      spyDispatch({ type: 'SET_AI_OPTIONS_ANALYSIS_LOADING', payload: true });
 
       const result = await performAiOptionsAnalysisAction({
         ticker: SPY_TICKER,
@@ -255,8 +256,6 @@ export function SpyTabContent() {
           payload: result.data.aiOptionsAnalysisJson 
         });
         
-        spyDispatch({ type: 'SET_IDLE' });
-        
         toast({ 
           title: 'Success', 
           description: `${SPY_TICKER} AI Options Analysis generated successfully` 
@@ -268,7 +267,8 @@ export function SpyTabContent() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('[SPY:UserAction:AIOptionsAnalysis] Error:', errorMessage);
       
-      spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
+      // Clear loading state on error
+      spyDispatch({ type: 'SET_AI_OPTIONS_ANALYSIS_LOADING', payload: false });
       
       toast({
         title: 'Error Generating AI Options Analysis',
@@ -484,20 +484,28 @@ export function SpyTabContent() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Button 
               onClick={handleSpyAiKeyTakeaways}
-              disabled={!spyState.hasStockData || !spyState.hasAiTaData || isLoading}
+              disabled={!spyState.hasStockData || !spyState.hasAiTaData || isLoading || spyState.isAiKeyTakeawaysLoading}
               variant="outline"
               className="flex-1"
             >
-              <FileText className="mr-2 h-4 w-4" />
+              {spyState.isAiKeyTakeawaysLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-2 h-4 w-4" />
+              )}
               Generate AI Key Takeaways
             </Button>
             <Button 
               onClick={handleSpyAiOptionsAnalysis}
-              disabled={!spyState.hasOptionsChainData || isLoading}
+              disabled={!spyState.hasOptionsChainData || isLoading || spyState.isAiOptionsAnalysisLoading}
               variant="outline"
               className="flex-1"
             >
-              <CandlestickChart className="mr-2 h-4 w-4" />
+              {spyState.isAiOptionsAnalysisLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CandlestickChart className="mr-2 h-4 w-4" />
+              )}
               Generate AI Options Analysis
             </Button>
           </div>
