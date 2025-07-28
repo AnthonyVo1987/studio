@@ -1,4 +1,24 @@
 "use client";
+
+/**
+ * @fileOverview SPY Market Status Display - Blueprint Component
+ * 
+ * This component demonstrates the ticker-agnostic pattern used throughout SPY display components.
+ * 
+ * REPLICATION PATTERN for new ticker display components:
+ * 1. Copy this file: spy-market-status-display.tsx → nvda-market-status-display.tsx
+ * 2. Update imports: useSpyAnalysis → useNvdaAnalysis
+ * 3. Update component name: SpyMarketStatusDisplay → NvdaMarketStatusDisplay
+ * 4. Update loading text: "SPY market data" → "NVDA market data"
+ * 5. Update card title if needed
+ * 
+ * ARCHITECTURE PATTERN:
+ * - Direct context consumption via custom hook
+ * - Safe JSON parsing with error handling
+ * - Loading state derivation from FSM and data flags
+ * - Consistent error handling and fallback values
+ */
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";

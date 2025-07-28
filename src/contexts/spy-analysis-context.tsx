@@ -1,9 +1,26 @@
 'use client';
 
+/**
+ * @fileOverview SPY Analysis Context - Blueprint Implementation
+ * 
+ * This context serves as a BLUEPRINT for ticker-specific analysis tabs.
+ * Architecture Pattern: Isolated Context + useReducer + Custom Hooks
+ * 
+ * REPLICATION GUIDE for creating new ticker pages (e.g., NVDA):
+ * 1. Copy this file: spy-analysis-context.tsx → nvda-analysis-context.tsx
+ * 2. Update ticker constant: SPY_TICKER → NVDA_TICKER
+ * 3. Rename hooks: useSpyAnalysis → useNvdaAnalysis, useSpyDispatch → useNvdaDispatch
+ * 4. Update provider: SpyAnalysisProvider → NvdaAnalysisProvider
+ * 5. Update all context names and function names to match new ticker
+ * 
+ * This pattern ensures complete isolation between ticker-specific tabs.
+ */
+
 import type { ReactNode } from 'react';
 import { createContext, useContext, useReducer } from 'react';
 
-const SPY_TICKER = 'SPY';
+// Ticker configuration for this specific analysis tab
+export const SPY_TICKER = 'SPY';
 
 // Options Chain Settings (matching Main tab pattern)
 export type OptionType = 'both' | 'calls' | 'puts';

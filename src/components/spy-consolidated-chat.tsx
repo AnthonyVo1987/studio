@@ -101,88 +101,97 @@ export function SpyConsolidatedChat() {
   const hasStockData = spyState.hasStockData;
   const hasAnyData = hasStockData || spyState.hasAiTaData || spyState.hasAiKeyTakeaways || spyState.hasAiOptionsAnalysis;
 
-  // Handle chat response with race condition protection
-  React.useEffect(() => {
-    if (chatState.status === 'idle' || isChatPending) return;
-
-    // Race condition protection: Only process if we have a current request
-    if (!currentRequestId) {
-      console.warn('[SPY:Chat:Effect] No current request ID, ignoring response');
-      return;
-    }
-
-    // Only process responses for the current request to prevent race conditions
-    const { data, error, message, status } = chatState;
+  // Handle chat response success with race condition protection
+  const handleChatSuccess = React.useCallback((data: any) => {
+    if (!currentRequestId || !data) return;
     
-    if (status === 'success' && data) {
-      // Safe JSON parsing pattern
-      const responseData = (() => {
-        try {
-          return JSON.parse(data.responseJson);
-        } catch (e) {
-          console.error('Failed to parse response JSON:', e);
-          return { response: 'Error: Invalid response format', webSearchUsed: false };
-        }
-      })();
+    // Safe JSON parsing pattern
+    const responseData = (() => {
+      try {
+        return JSON.parse(data.responseJson);
+      } catch (e) {
+        console.error('Failed to parse response JSON:', e);
+        return { response: 'Error: Invalid response format', webSearchUsed: false };
+      }
+    })();
+    
+    const responseContent = responseData.response || 'No response received.';
+    const webSearchUsed = responseData.webSearchUsed || false;
+    
+    // Store raw debug data if we have current request context
+    if (currentRequestContext) {
+      console.log('[SPY:Chat:Debug] Storing raw debug data:', {
+        promptName: currentRequestContext.promptName,
+        webSearchEnabled: currentRequestContext.webSearchEnabled,
+        isUserInput: currentRequestContext.isUserInput,
+        hasRawData: !!data.responseJson
+      });
       
-      const responseContent = responseData.response || 'No response received.';
-      const webSearchUsed = responseData.webSearchUsed || false;
-      
-      // Store raw debug data if we have current request context
-      if (currentRequestContext) {
-        console.log('[SPY:Chat:Debug] Storing raw debug data:', {
-          promptName: currentRequestContext.promptName,
+      spyDispatch({
+        type: 'SET_AI_CHAT_RAW_DATA',
+        payload: {
+          promptName: currentRequestContext.promptName || 'user-input',
+          responseJson: data.responseJson,
           webSearchEnabled: currentRequestContext.webSearchEnabled,
           isUserInput: currentRequestContext.isUserInput,
-          hasRawData: !!data.responseJson
-        });
-        
-        spyDispatch({
-          type: 'SET_AI_CHAT_RAW_DATA',
-          payload: {
-            promptName: currentRequestContext.promptName || 'user-input',
-            responseJson: data.responseJson,
-            webSearchEnabled: currentRequestContext.webSearchEnabled,
-            isUserInput: currentRequestContext.isUserInput,
-          }
-        });
-      }
-        
-        // Add model response to chat history
-        setChatHistory(prev => [...prev, {
-          id: crypto.randomUUID(),
-          role: 'model',
-          content: responseContent,
-          timestamp: new Date(),
-          webSearchUsed,
-        }]);
-        
-        toast({ 
-          title: 'Response Generated', 
-          description: webSearchUsed ? 'Response with web search' : 'Response with app data',
-        });
-    } else if (status === 'error') {
-      setChatHistory(prev => [...prev, {
-        id: crypto.randomUUID(),
-        role: 'model',
-        content: `Error: ${message || error}`,
-        timestamp: new Date(),
-      }]);
-      
-      toast({ 
-        title: 'Chat Error', 
-        description: message || error || 'An error occurred',
-        variant: 'destructive',
+        }
       });
     }
+      
+    // Add model response to chat history
+    setChatHistory(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role: 'model',
+      content: responseContent,
+      timestamp: new Date(),
+      webSearchUsed,
+    }]);
+    
+    toast({ 
+      title: 'Response Generated', 
+      description: webSearchUsed ? 'Response with web search' : 'Response with app data',
+    });
     
     // Clear current request context and ID when response is processed
     setCurrentRequestId(null);
     setCurrentRequestContext(null);
-  }, [chatState.status, chatState.data, chatState.error, chatState.message, 
-      isChatPending, currentRequestContext, currentRequestId, spyDispatch, toast]);
+  }, [currentRequestId, currentRequestContext, spyDispatch, toast]);
 
-  // Request timeout cleanup to prevent stuck states
+  // Handle chat response error with race condition protection
+  const handleChatError = React.useCallback((error: string, message?: string) => {
+    if (!currentRequestId) return;
+    
+    setChatHistory(prev => [...prev, {
+      id: crypto.randomUUID(),
+      role: 'model',
+      content: `Error: ${message || error}`,
+      timestamp: new Date(),
+    }]);
+    
+    toast({ 
+      title: 'Chat Error', 
+      description: message || error || 'An error occurred',
+      variant: 'destructive',
+    });
+    
+    // Clear current request context and ID when error is processed
+    setCurrentRequestId(null);
+    setCurrentRequestContext(null);
+  }, [currentRequestId, toast]);
+
+  // Simplified useEffect for chat status changes
+  React.useEffect(() => {
+    if (chatState.status === 'idle' || isChatPending || !currentRequestId) return;
+
+    if (chatState.status === 'success' && chatState.data) {
+      handleChatSuccess(chatState.data);
+    } else if (chatState.status === 'error') {
+      handleChatError(chatState.error || '', chatState.message);
+    }
+  }, [chatState.status, chatState.data, chatState.error, chatState.message, 
+      isChatPending, currentRequestId, handleChatSuccess, handleChatError]);
+
+  // Request timeout cleanup to prevent stuck states  
   React.useEffect(() => {
     if (!currentRequestId) return;
     

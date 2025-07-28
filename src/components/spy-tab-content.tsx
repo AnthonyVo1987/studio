@@ -1,5 +1,26 @@
 'use client';
 
+/**
+ * @fileOverview SPY Tab Content - Blueprint Orchestrator Component
+ * 
+ * This component serves as the main orchestrator for ticker-specific analysis tabs.
+ * Architecture Pattern: Deterministic Handlers + Context Integration + FSM State Management
+ * 
+ * REPLICATION GUIDE for creating new ticker pages (e.g., NVDA):
+ * 1. Copy this file: spy-tab-content.tsx → nvda-tab-content.tsx
+ * 2. Update imports: useSpyAnalysis → useNvdaAnalysis, SPY_TICKER → NVDA_TICKER
+ * 3. Update component name: SpyTabContent → NvdaTabContent
+ * 4. Update display component imports: spy-*-display.tsx → nvda-*-display.tsx
+ * 5. Update header text and descriptions to reference new ticker
+ * 
+ * ARCHITECTURE STRENGTHS:
+ * - All handlers follow async/await deterministic patterns
+ * - Complete error handling with user feedback via toast
+ * - Proper FSM state transitions (loading → idle/error)
+ * - Server actions are ticker-agnostic and reusable
+ * - Batch data operations prevent race conditions
+ */
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
