@@ -203,6 +203,122 @@ export function SpyDataSection() {
     });
   };
 
+  // Helper function to generate truncated options chain summary
+  const generateOptionsChainSummary = (optionsChainJson: string) => {
+    if (!optionsChainJson) return null;
+    
+    try {
+      const parsed = JSON.parse(optionsChainJson);
+      
+      // Extract summary statistics instead of full strike data
+      const summary = {
+        status: parsed.status,
+        request_id: parsed.request_id,
+        next_url: parsed.next_url,
+        summary: {
+          total_results: parsed.results?.length || 0,
+          call_count: parsed.results?.filter((option: any) => option.contract_type === 'call')?.length || 0,
+          put_count: parsed.results?.filter((option: any) => option.contract_type === 'put')?.length || 0,
+          strike_range: parsed.results?.length > 0 ? {
+            min_strike: Math.min(...parsed.results.map((option: any) => option.strike_price || 0)),
+            max_strike: Math.max(...parsed.results.map((option: any) => option.strike_price || 0))
+          } : null,
+          expiration_dates: [...new Set(parsed.results?.map((option: any) => option.expiration_date) || [])],
+        },
+        note: "Full strike details excluded in truncated version - use 'Copy ALL' or 'Export ALL' for complete data"
+      };
+      
+      return summary;
+    } catch (e) {
+      return { error: 'Failed to parse options chain JSON', raw: optionsChainJson };
+    }
+  };
+
+  // Truncated Copy All Handler (excludes full options chain data)
+  const handleCopyTruncated = async () => {
+    const safeJsonParse = (jsonString: string) => {
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        return { error: 'Failed to parse JSON', raw: jsonString };
+      }
+    };
+
+    const truncatedData = {
+      ticker: SPY_TICKER,
+      timestamp: new Date().toISOString(),
+      data: {
+        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
+        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
+        optionsChainSummary: generateOptionsChainSummary(spyState.optionsChainJson),
+        standardTa: spyState.standardTaJson ? safeJsonParse(spyState.standardTaJson) : null,
+        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
+      }
+    };
+
+    const formattedData = JSON.stringify(truncatedData, null, 2);
+    const success = await copyToClipboard(formattedData);
+    
+    if (success) {
+      toast({
+        title: 'Truncated SPY Data Copied',
+        description: `${SPY_TICKER} dataset (without full options chain) copied to clipboard.`,
+      });
+    } else {
+      toast({
+        title: 'Copy Failed',
+        description: 'Could not copy truncated data to clipboard.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Truncated Export All Handler (excludes full options chain data)
+  const handleExportTruncated = () => {
+    const safeJsonParse = (jsonString: string) => {
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        return { error: 'Failed to parse JSON', raw: jsonString };
+      }
+    };
+
+    const truncatedData = {
+      ticker: SPY_TICKER,
+      timestamp: new Date().toISOString(),
+      data: {
+        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
+        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
+        optionsChainSummary: generateOptionsChainSummary(spyState.optionsChainJson),
+        standardTa: spyState.standardTaJson ? safeJsonParse(spyState.standardTaJson) : null,
+        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
+      }
+    };
+
+    const formattedData = JSON.stringify(truncatedData, null, 2);
+    const filename = `spy-truncated-dataset-${new Date().toISOString().split('T')[0]}.json`;
+    
+    // Create download link
+    const blob = new Blob([formattedData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'Truncated SPY Data Exported',
+      description: `${SPY_TICKER} dataset (without full options chain) exported as ${filename}.`,
+    });
+  };
+
   // Find active section
   const activeSection = dataSections.find(section => section.id === activeTab);
 
@@ -219,12 +335,12 @@ export function SpyDataSection() {
       </CardHeader>
       <CardContent>
         {/* Unified Export ALL SPY Data Actions */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+        <div className="flex flex-col gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
           <div>
             <h3 className="text-lg font-semibold">Export All {SPY_TICKER} Data</h3>
             <p className="text-sm text-muted-foreground">Copy or export all available SPY data in one action</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               onClick={() => handleCopyAll()}
               variant="outline"
@@ -243,7 +359,28 @@ export function SpyDataSection() {
               <Download className="h-4 w-4" />
               Export ALL
             </Button>
+            <Button
+              onClick={() => handleCopyTruncated()}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Truncated
+            </Button>
+            <Button
+              onClick={() => handleExportTruncated()}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export Truncated
+            </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            <strong>Truncated version:</strong> Excludes full options chain data, includes summary statistics only (strike count, call/put count, strike range).
+          </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

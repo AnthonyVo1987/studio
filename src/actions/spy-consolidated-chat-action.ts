@@ -64,6 +64,34 @@ async function getAppDataPrompt(promptName: string): Promise<string> {
 }
 
 /**
+ * Extract current date from market status data for date grounding
+ */
+function extractCurrentDate(marketStatusJson?: string): string {
+  try {
+    if (marketStatusJson) {
+      const marketData = JSON.parse(marketStatusJson);
+      if (marketData.serverTime) {
+        const date = new Date(marketData.serverTime);
+        // Format as mm/dd/yyyy
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
+      }
+    }
+  } catch (error) {
+    console.log('[extractCurrentDate] Failed to parse market status for date:', error);
+  }
+  
+  // Fallback to current date
+  const now = new Date();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const year = now.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
+/**
  * Load and cache prompt templates for web search prompts
  */
 async function getWebSearchPrompt(promptName: string): Promise<string> {
@@ -84,6 +112,16 @@ async function getWebSearchPrompt(promptName: string): Promise<string> {
 
   // Fallback prompt
   return "You are a helpful AI assistant with access to current web information. Use Google Search to find the most recent and relevant information to answer the user's question.";
+}
+
+/**
+ * Build date-grounded web search system instruction
+ */
+function buildWebSearchSystemInstruction(promptTemplate: string, currentDate: string): string {
+  const dateGroundingHeader = `CURRENT DATE: ${currentDate}\n\n`;
+  const searchInstructions = `\n\nIMPORTANT: When using Google Search, include "as of ${currentDate}" in your search queries to find the most current and recent information. This ensures results are filtered for up-to-date data.`;
+  
+  return dateGroundingHeader + promptTemplate + searchInstructions;
 }
 
 /**
@@ -175,10 +213,14 @@ export async function spyConsolidatedChatAction(
       model: "gemini-2.5-flash-lite",
       tools,
       generationConfig: {
-        temperature: 0.7,
+        temperature: 0.2,
         maxOutputTokens: 2048,
       }
     });
+
+    // Extract current date for web search grounding
+    const currentDate = extractCurrentDate(payload.marketStatusJson);
+    console.log(`${actionLogPrefix} Extracted current date for grounding: ${currentDate}`);
 
     // Build system instruction based on prompt type
     let systemInstruction = '';
@@ -186,9 +228,9 @@ export async function spyConsolidatedChatAction(
 
     if (payload.promptName) {
       if (payload.webSearchEnabled) {
-        // Web search prompt
+        // Web search prompt with date grounding
         const promptTemplate = await getWebSearchPrompt(payload.promptName);
-        systemInstruction = promptTemplate;
+        systemInstruction = buildWebSearchSystemInstruction(promptTemplate, currentDate);
         finalUserInput = promptTemplate.replace(/\{TICKER\}/g, payload.ticker || 'the stock');
       } else {
         // App data prompt
@@ -200,7 +242,8 @@ export async function spyConsolidatedChatAction(
     } else {
       // User input prompt
       if (payload.webSearchEnabled) {
-        systemInstruction = await getWebSearchPrompt('general');
+        const promptTemplate = await getWebSearchPrompt('general');
+        systemInstruction = buildWebSearchSystemInstruction(promptTemplate, currentDate);
       } else {
         systemInstruction = await getAppDataPrompt('general');
         const contextData = buildAppDataContext(payload);

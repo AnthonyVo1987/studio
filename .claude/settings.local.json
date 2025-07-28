@@ -47,7 +47,8 @@
       "Bash(/init)",
       "Bash(npm run:*)",
       "Bash(pkill:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DebugTabContent } from "@/components/debug-tab-content";
 import { MainTabContentUI } from "@/components/main-tab-content-ui";
 import { FsmDebugTabContent } from "@/components/fsm-debug-tab-content";
-import { SpyAnalysisProvider } from "@/contexts/spy-analysis-context";
 import { SpyTabContent } from "@/components/spy-tab-content";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +35,7 @@ export function PageContent({ appVersion, lastUpdatedTimestamp }: PageContentPro
             <MainTabContentUI appVersion={appVersion} /> 
           </TabsContent>
           <TabsContent value="spy">
-            <SpyAnalysisProvider>
-              <SpyTabContent />
-            </SpyAnalysisProvider>
+            <SpyTabContent />
           </TabsContent>
           <TabsContent value="data">
             <DebugTabContent />

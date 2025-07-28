@@ -15,7 +15,7 @@ Additional Tools that Every Agent can use as needed:
 - **New custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.16.0, it includes a dedicated SPY tab with completely isolated architecture and advanced specialized AI chat system.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.17.0, it includes a dedicated SPY tab with completely isolated architecture and advanced specialized AI chat system.
 
 ## Common Development Commands
 
@@ -94,6 +94,7 @@ npm run typecheck    # TypeScript type checking
 - **Purpose**: Dedicated state management for SPY analysis only
 - **Pattern**: Context + Reducer with custom hooks (`useSpyAnalysis()`, `useSpyDispatch()`)
 - **Isolation**: Zero cross-dependencies with Main tab context
+- **Critical Architecture Fix (v4.1.17.0)**: SPY Provider moved to page level (`src/app/page.tsx`) to prevent state reset on tab switching
 
 #### 2. SPY UI Components
 - **Main Component**: `src/components/spy-tab-content.tsx` - Deterministic handlers
@@ -102,7 +103,7 @@ npm run typecheck    # TypeScript type checking
 - **Advanced Chat**: `src/components/spy-consolidated-chat.tsx` - Specialized trading-focused AI chat
 - **AI Analysis**: Full feature parity with Main tab (Key Takeaways, Options Analysis)
 
-#### 3. Advanced SPY Chat Architecture (v4.1.15.0)
+#### 3. Advanced SPY Chat Architecture (v4.1.17.0)
 - **Specialized Prompt System**: Three distinct trading-focused prompt templates:
   - `stock-trader-takeaways.json` - Trading-focused market analysis
   - `options-trader-takeaways.json` - Options strategy insights
@@ -112,6 +113,8 @@ npm run typecheck    # TypeScript type checking
   - Textarea component for enhanced multi-line input experience
   - Improved UX flow with Chat Mode toggle positioned near input section
 - **Comprehensive Export Features**: Copy/Export JSON functionality for chat responses
+  - **Truncated Export Capability (v4.1.17.0)**: "Copy Truncated" and "Export Truncated" options for SPY Raw Data
+  - Options chain data is summarized (strike count, call/put count, ranges) for reduced token usage
 - **Advanced Race Condition Protection**: 
   - Request ID tracking prevents concurrent request conflicts
   - Automatic 30-second timeout cleanup prevents stuck states
@@ -121,6 +124,10 @@ npm run typecheck    # TypeScript type checking
   - **Web Search Button Responses**: `supportResistanceWebSearchRawJson`, `technicalAnalysisWebSearchRawJson`, `optionsFlowWebSearchRawJson`
   - **User Input Responses**: Separated by mode (`userInputAppDataRawJson`, `userInputWebSearchRawJson`)
   - **Context Tracking**: Request context storage for proper debug data mapping
+- **Optimized AI Response Quality (v4.1.17.0)**:
+  - **Temperature Optimization**: Reduced from 0.7 to 0.2 for more focused, deterministic responses
+  - **Web Search Date Grounding**: Current date extraction from market status data for accurate search context
+  - All web search prompts include "as of mm/dd/yyyy" for temporal accuracy
 - **Technical Excellence**: 
   - Proper `startTransition` usage with `useActionState` to prevent async errors
   - Modern Google GenAI SDK with conditional GoogleSearch tool
@@ -264,7 +271,7 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.1.16.0 (as of this documentation update)
+- **Current Version**: v4.1.17.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
 
@@ -348,7 +355,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.1.16.0+)
+## Important Notes for AI Assistants (v4.1.17.0+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -374,7 +381,7 @@ GEMINI_API_KEY=your_google_ai_api_key
     - **Loading State Consistency**: All SPY components use appropriate loading indicators without affecting main data state
 15. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds for deployment flexibility
 
-This architecture (v4.1.16.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with advanced AI chat and isolated loading states).
+This architecture (v4.1.17.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with advanced AI chat, persistent state management, and optimized AI responses).
 
 ---
 
