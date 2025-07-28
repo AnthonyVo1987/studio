@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Activity } from "lucide-react";
 
-// SPY Context
-import { useSpyAnalysis } from "@/contexts/spy-analysis-context";
+// NVDA Context
+import { useNvdaAnalysis } from "@/contexts/nvda-analysis-context";
 import { formatToTwoDecimals } from "@/lib/number-utils";
 
 const getSentimentColorClass = (sentiment?: 'bullish' | 'bearish' | 'neutral'): string => {
@@ -43,17 +43,17 @@ const renderMultiWindowValues = (
   );
 };
 
-export function SpyStandardTaDisplay() {
-  const spyState = useSpyAnalysis();
+export function NvdaStandardTaDisplay() {
+  const nvdaState = useNvdaAnalysis();
 
-  // Parse standard TA data directly from SPY context
-  const taData = spyState.standardTasJson ? (() => {
+  // Parse standard TA data directly from NVDA context
+  const taData = nvdaState.standardTasJson ? (() => {
     try {
-      const parsed = JSON.parse(spyState.standardTasJson);
+      const parsed = JSON.parse(nvdaState.standardTasJson);
       if (parsed && typeof parsed === 'object') {
         return {
           indicators: parsed,
-          isDataReady: spyState.dataRetrievalComplete
+          isDataReady: nvdaState.dataRetrievalComplete
         };
       }
     } catch (e) {}
@@ -61,7 +61,7 @@ export function SpyStandardTaDisplay() {
   })() : { indicators: {}, isDataReady: false };
 
   // Derive loading state from FSM state and data availability
-  const isLoading = spyState.status === 'loading' || !spyState.dataRetrievalComplete;
+  const isLoading = nvdaState.status === 'loading' || !nvdaState.dataRetrievalComplete;
   
   const rsiSentiment = (val?: number | null) => {
     if (val === undefined || val === null) return 'neutral';
@@ -82,10 +82,10 @@ export function SpyStandardTaDisplay() {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Activity className="h-5 w-5" />
-          SPY Technical Analysis
+          NVDA Technical Analysis
         </CardTitle>
         <CardDescription>
-          Standard technical indicators and market signals for SPY
+          Standard technical indicators and market signals for NVDA
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -100,13 +100,13 @@ export function SpyStandardTaDisplay() {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-sm text-muted-foreground h-24">
-                  Waiting for SPY technical analysis data...
+                  Waiting for NVDA technical analysis data...
                 </TableCell>
               </TableRow>
             ) : !taData.isDataReady ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                  No SPY technical analysis data available.
+                  No NVDA technical analysis data available.
                 </TableCell>
               </TableRow>
             ) : (

@@ -1,4 +1,4 @@
-[v4.1.18.0] [ARCHITECUTRAL CODE REVIEW] SPY Tab
+[v4.2.0.0] [feat] Add New User Input Ticker & Dedicated NVDA Pages 
 
 ###
 - USE AS MANY AGENT(S) & Tool Calls as needed
@@ -8,28 +8,18 @@
 
 ###
 [Symptoms_or_Change_Request]:
-- The SPY Tab has been fully tested and looks to be working robustly and stable as of the latest code versions
-- So in preparation for future tasks to fully migrate the app to use the new architecture in the dedicated SPY tab, we need to perform a full codebase audit and architectural code review
-- Even though everything seems to be in working order, we need a full archictural review of the SPY dedicated tab to ensure it is sound and can serve as a future baseline, blueprint, and scaffolding for future expansion of adding a dedicated 'NVDA" page, and also a standard User Input Ticker Page.  So that is on the future todo list to have a standard user input page AND a dedicated NVDA page.
-- We do not want to re-invent the wheel and would like to leverage as many concepts as possible from the SPY page
-- So call as many agents you need, especially code-review and arhcitecture agents to thoroughly review, audit, and analyze the architecture of the SPY page to ensure it matches best robust practices
-- Use CONTEXT7 tool especially to compare against known best practices for our entire app's stack
-- In addition to the standard things to check for as part of the Agent's roles, here are additional things to watch out for that is specific to our app, so ensure the agents also take all of these into account:
+- Let's implement 2x new Pages: Main(NEW), and NVDA using the verified blueprint architecture from the SPY tab
+- Enforce complete isolation from each tab\page to ensure issues are completely isolated from each tab
+- Add console messages for easier debug, and we may have to rework some console messages to be more ticker agnostic in order to reduce haveing to write separate console messages for each ticker.  There should be a common console message format that any ticker and any of the pages can use, passing in the proper ticker, page, and data context to match the corresponding ticker\page
 
-Additional StockSage specific comprehensive code and architectural review checklist, to be checked in addition to the standard Agent's generic code and architectural review checklist.  IMPORTANT NOTE that the checklist below should NOT replace the standard code review checklist, as theses are additional things to check for from our experience and previous pain points etc:
-- An entire codebase audit and full code data path execution flow trace to confirm upstream and downstream for any potential issues
-- Verify all logic is enforced to be DETERMINISTIC
-- Verify there are no "complex\convoluted" useEffect/dependency array/UI/Render that can affect the main business logic
-- Verify there are no unused code, functions, imports etc that have been removed and/or deprecated
-- Verify there are no other "React anti-pattern" issues
-- Verify no other orchestrator vs reducer issues
-- Verify no potential ininite loops during UI/Render vs a dependency
-- Verify no console logs can cause ininite loops during UI/Render, triggering another console log, triggering another UI/Render loop etc
-- Verify proper JSON parsing, comparing to current working Main page JSON parsing
-- Add any other items to check depending on the scope of changes for the current task etc
+1. Main (NEW): This tab is dedicated and focused on any user input ticker
+2. NVDA: This tab is dedicated and focused on JUST 'NVDA' similiar to our dedicated SPY tab
 
 ###
-- If fixes need to be performed after the comprehensive code and architectural review, then implement the fixes and then call the code-review agent again
+Actions & Agents to be run only AFTER ALL coding tasks are complete:
+- Run code-review agent only after ALL coding tasks are complete
+- If code-review agent finds any issues to fix, then fix them automatically, and re-run the code-review agent and fix cycle again until all issues are resolved
+- If code-review agent PASSED, run the task close agent with "claude /init" command, and update CLAUDE.MD as needed in case task close agent or "claude /init" command fails. 
 ###
 
 [Log(s)]:

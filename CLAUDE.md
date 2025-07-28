@@ -15,7 +15,7 @@ Additional Tools that Every Agent can use as needed:
 - **New custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.1.18.0, it includes a dedicated SPY tab with completely isolated architecture and advanced specialized AI chat system.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.2.0.0, it features four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated, and Main (legacy), each with advanced specialized AI chat systems and ticker-agnostic logging.
 
 ## Common Development Commands
 
@@ -85,9 +85,68 @@ npm run typecheck    # TypeScript type checking
 - **Loading States**: Derived from FSM state and business flags
 - **On-Demand AI**: AI Key Takeaways and Options Analysis are manual button-triggered only
 
-### SPY Tab Architecture (v4.1.18.0+)
+### Multi-Tab Architecture (v4.2.0.0+)
 
-**Completely isolated SPY-dedicated tab with specialized AI chat system:**
+**Four completely isolated ticker analysis tabs with ticker-agnostic logging system:**
+
+#### Tab Architecture Overview (v4.2.0.0)
+1. **User Input Ticker Tab** (Default) - Dynamic ticker input with validation for any symbol
+2. **NVDA Dedicated Tab** - Complete NVDA-specific analysis using SPY blueprint 
+3. **SPY Dedicated Tab** - Original production-ready blueprint with advanced features
+4. **Main Tab** (Legacy) - Original implementation maintained for compatibility
+
+### User Input Ticker Architecture (v4.2.0.0+)
+
+**Dynamic ticker analysis with complete isolation and ticker-agnostic components:**
+
+#### 1. User Input Ticker Context Layer
+- **Location**: `src/contexts/user-ticker-analysis-context.tsx`
+- **Purpose**: Dynamic state management for user-specified ticker analysis
+- **Pattern**: Context + Reducer with custom hooks (`useUserTickerAnalysis()`, `useUserTickerDispatch()`)
+- **Isolation**: Zero cross-dependencies with other ticker contexts
+- **Ticker Validation**: Dynamic ticker input with real-time validation and error handling
+
+#### 2. User Input Ticker UI Components
+- **Main Component**: `src/components/user-ticker-tab-content.tsx` - Deterministic handlers with ticker input
+- **Data Section**: `src/components/user-ticker-data-section.tsx` - Dynamic ticker display
+- **Display Components**: `user-ticker-*.tsx` pattern - Ticker-agnostic design for any symbol
+- **Advanced Chat**: `src/components/user-ticker-consolidated-chat.tsx` - Universal trading-focused AI chat
+- **AI Analysis**: Full feature parity with SPY/NVDA tabs (Key Takeaways, Options Analysis)
+- **Server Actions**: `user-ticker-consolidated-chat-action.ts` with user-specified ticker support
+
+#### 3. Ticker-Agnostic Logging System (v4.2.0.0)
+- **Location**: `src/lib/ticker-logger.ts` - Centralized logging utility for all ticker tabs
+- **Purpose**: Standardized console messaging across all ticker contexts to avoid UI/render infinite loops
+- **Pattern**: Function factory that accepts ticker, page context, and data context for consistent formatting
+- **Usage**: `tickerLogger(ticker, 'User Input Tab', 'Data Fetch', data)` produces formatted console messages
+- **Benefits**: 
+  - Eliminates duplicate console message logic across tabs
+  - Prevents UI/render infinite loops with proper logging guards
+  - Consistent debugging experience across User Input, NVDA, and SPY tabs
+  - Centralized console message formatting and filtering
+
+### NVDA Dedicated Architecture (v4.2.0.0+)
+
+**Complete NVDA-specific analysis tab using SPY blueprint architecture:**
+
+#### 1. NVDA Context Layer
+- **Location**: `src/contexts/nvda-analysis-context.tsx`
+- **Purpose**: Dedicated state management for NVDA analysis only
+- **Pattern**: Context + Reducer with custom hooks (`useNvdaAnalysis()`, `useNvdaDispatch()`)
+- **Isolation**: Zero cross-dependencies with other ticker contexts
+- **Blueprint Implementation**: Direct replication of SPY architecture patterns
+
+#### 2. NVDA UI Components
+- **Main Component**: `src/components/nvda-tab-content.tsx` - Deterministic handlers for NVDA
+- **Data Section**: `src/components/nvda-data-section.tsx` - NVDA-specific JSON display
+- **Display Components**: `nvda-*.tsx` pattern - All NVDA-isolated components
+- **Advanced Chat**: `src/components/nvda-consolidated-chat.tsx` - NVDA-focused trading AI chat
+- **AI Analysis**: Complete feature parity with SPY tab implementation
+- **Server Actions**: `nvda-consolidated-chat-action.ts` with NVDA-specific configurations
+
+### SPY Tab Architecture (v4.1.18.0+ - Blueprint Reference)
+
+**Original production-ready blueprint - completely isolated SPY-dedicated tab with specialized AI chat system:**
 
 #### 1. SPY Context Layer
 - **Location**: `src/contexts/spy-analysis-context.tsx`
@@ -155,13 +214,17 @@ npm run typecheck    # TypeScript type checking
 ## File Organization
 
 ### Core Architecture Files (Tier 1 - Critical)
-- `src/contexts/business-logic-context.tsx` - All application state & FSM management
+- `src/contexts/business-logic-context.tsx` - All application state & FSM management (Main tab legacy)
+- `src/contexts/user-ticker-analysis-context.tsx` - **NEW v4.2.0.0**: User Input Ticker state management (isolated)
+- `src/contexts/nvda-analysis-context.tsx` - **NEW v4.2.0.0**: NVDA dedicated state management (isolated)
 - `src/contexts/spy-analysis-context.tsx` - SPY dedicated state management (isolated) - **BLUEPRINT REFERENCE**
-- `src/components/main-tab-content-ui.tsx` - Main UI component with deterministic handlers for on-demand operations
+- `src/components/main-tab-content-ui.tsx` - Main UI component with deterministic handlers for on-demand operations (legacy)
+- `src/components/user-ticker-tab-content.tsx` - **NEW v4.2.0.0**: User Input Ticker orchestrator with deterministic handlers
+- `src/components/nvda-tab-content.tsx` - **NEW v4.2.0.0**: NVDA orchestrator with deterministic handlers
 - `src/components/spy-tab-content.tsx` - SPY UI component with deterministic handlers - **BLUEPRINT REFERENCE**
 - `src/services/data-sources/adapters/polygon-adapter.ts` - API integration
 - `src/types/` - Type definitions directory (e.g., `options.ts`)
-- `src/lib/ticker-blueprint-config.ts` - **NEW**: Configuration system for ticker-specific page creation
+- `src/lib/ticker-logger.ts` - **NEW v4.2.0.0**: Ticker-agnostic logging system for all tabs
 
 ### Server Actions (Tier 2 - High Priority)
 - `src/actions/analyze-stock-server-action.ts` - Stock data fetching
@@ -169,11 +232,15 @@ npm run typecheck    # TypeScript type checking
 - `src/actions/perform-ai-analysis-action.ts` - AI key takeaways
 - `src/actions/perform-ai-options-analysis-action.ts` - AI options analysis
 - `src/actions/spy-consolidated-chat-action.ts` - SPY unified AI chat with conditional web search
+- `src/actions/nvda-consolidated-chat-action.ts` - **NEW v4.2.0.0**: NVDA unified AI chat with conditional web search
+- `src/actions/user-ticker-consolidated-chat-action.ts` - **NEW v4.2.0.0**: User Input Ticker unified AI chat with conditional web search
 
 ### AI Flows & Prompts (Tier 2 - High Priority)
 - `src/ai/flows/` - Genkit AI flow definitions
 - `src/ai/definitions/` - JSON prompt templates
 - `src/ai/schemas/` - Zod validation schemas
+- `src/ai/schemas/nvda-consolidated-chat-schemas.ts` - **NEW v4.2.0.0**: NVDA-specific chat validation schemas
+- `src/ai/schemas/user-ticker-consolidated-chat-schemas.ts` - **NEW v4.2.0.0**: User Input Ticker chat validation schemas
 
 ## Critical Architectural Rules (v4.0.0.7+)
 
@@ -287,9 +354,9 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.1.18.0 (as of this documentation update)
+- **Current Version**: v4.2.0.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.0.0.7+ for current simplified architecture)
+- **Versioning Scheme**: `v4.w.x.y.z` format (v4.2.0.0+ for multi-tab architecture with User Input Ticker and NVDA dedicated pages)
 
 ## Code Review Process
 
@@ -371,7 +438,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **Pipeline Efficiency**: Basic analysis (data + AI TA) with on-demand AI features
 - **Code Maintainability**: Straightforward context consumption across all components
 
-## Important Notes for AI Assistants (v4.1.18.0+)
+## Important Notes for AI Assistants (v4.2.0.0+)
 1. **Use standard React patterns** - UI components use `useStockAnalysis()` directly for all data
 2. **Maintain the deterministic handler pattern** in `main-tab-content-ui.tsx` for on-demand operations
 3. **Parse JSON data in components** as needed using try/catch patterns for safety
@@ -402,8 +469,23 @@ GEMINI_API_KEY=your_google_ai_api_key
     - **Pre-configured Tickers**: NVDA, AAPL, MSFT, TSLA, GOOGL, AMZN configurations ready for implementation
     - **Implementation Guide**: Detailed step-by-step instructions in `IMPLEMENTATION_EXAMPLES` constant
 16. **Build Configuration Note** - TypeScript and ESLint errors are ignored during builds for deployment flexibility
+17. **Multi-Tab Architecture (v4.2.0.0)** - Four completely isolated ticker analysis tabs:
+    - **User Input Ticker Tab** (Default) - Dynamic ticker input with validation using `useUserTickerAnalysis()` hook
+    - **NVDA Dedicated Tab** - Complete NVDA-specific analysis using `useNvdaAnalysis()` hook  
+    - **SPY Dedicated Tab** - Original blueprint reference using `useSpyAnalysis()` hook
+    - **Main Tab** (Legacy) - Original implementation using `useStockAnalysis()` hook
+18. **Ticker-Agnostic Logging (v4.2.0.0)** - Use `tickerLogger()` from `src/lib/ticker-logger.ts` for all console messaging:
+    - Prevents UI/render infinite loops with proper logging guards
+    - Standardized format: `tickerLogger(ticker, pageContext, actionContext, data)`
+    - Centralized console message formatting across all ticker tabs
+19. **Context Isolation** - Each ticker tab has completely isolated state management with zero cross-dependencies
+20. **Component Naming Patterns**:
+    - User Input Ticker: `user-ticker-*.tsx` pattern with ticker-agnostic design
+    - NVDA Dedicated: `nvda-*.tsx` pattern with NVDA-specific implementations  
+    - SPY Dedicated: `spy-*.tsx` pattern serving as blueprint reference
+    - Main Legacy: Mixed patterns maintained for compatibility
 
-This architecture (v4.1.18.0) maintains React best practices with two parallel, isolated analysis tabs: Main (user input) and SPY (dedicated ticker with advanced AI chat, persistent state management, and optimized AI responses). The SPY tab now serves as a production-ready blueprint for creating additional ticker-specific analysis pages.
+This architecture (v4.2.0.0) maintains React best practices with four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated (blueprint), and Main (legacy). Each tab features advanced AI chat systems, complete state isolation, and ticker-agnostic logging for consistent debugging experience across all ticker contexts.
 
 ---
 

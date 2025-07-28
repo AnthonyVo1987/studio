@@ -24,7 +24,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 6.  **Implement Fix:** Only after receiving explicit user approval will I proceed with generating the code changes for the agreed-upon fix.
 
 #### Section 4: Versioning & Documentation
-7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.1.10.0 latest).
+7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.2.0.0 latest).
 8.  **Bug Report Versioning (NEW):** I will **not** increment versions on my own. The user will provide the exact new application version (e.g., `v4.w.x.y.(z+1)`) as part of the bug report submission. My fix will then be associated with that user-provided version.
 9.  **Metadata Updates:** Any code change must include an automatic update to the `appVersion` and `lastUpdatedTimestamp` in `src/config/app-metadata.json` to match the version specified in the task.
 10. **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
@@ -32,8 +32,8 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 3.33
-**Application Version (from `app-metadata.json`):** v4.1.18.0
+**README Document Version:** 4.20
+**Application Version (from `app-metadata.json`):** v4.2.0.0
 **Last Updated:** 2025-07-28
 
 ## 1. Introduction
@@ -87,30 +87,63 @@ This document serves as the comprehensive Product Requirements Document (PRD) an
     *   **App Data Chat:** A non-grounded chat box focused exclusively on analyzing data already loaded into the application. It uses a single, robust Genkit flow (`app-data-chat-flow.ts`) and a core prompt definition (`app-data-chatbot.json`). Example prompts are now loaded from a single, simple text-template file (`example-chat-prompts.json`), making the architecture highly efficient.
     *   **Web Search Chat:** A separate chat box that handles all queries requiring real-time web search. This now uses the **raw Google AI SDK** for improved stability. Example prompts are loaded from their own dedicated text-template file (`example-web-search-prompts.json`).
 
-#### 3.1.6. SPY Dedicated Tab (as of v4.1.0.0)
-*   **Completely Isolated Architecture:** The SPY tab features a ground-up rewrite with its own dedicated context (`spy-analysis-context.tsx`), components (prefixed with `spy-*`), and state management.
+#### 3.1.6. Multi-Tab Architecture (as of v4.2.0.0)
+**Four completely isolated ticker analysis tabs with comprehensive state isolation and ticker-agnostic logging:**
+
+##### 3.1.6.1. User Input Ticker Tab (Default - NEW v4.2.0.0)
+*   **Dynamic Ticker Analysis:** Users can input any ticker symbol for real-time analysis
+*   **Complete Feature Parity:** All functionality of SPY/NVDA tabs but for user-specified tickers
+*   **Isolated Architecture:** Dedicated context (`user-ticker-analysis-context.tsx`) with `useUserTickerAnalysis()` hook
+*   **Ticker-Agnostic Components:** All UI components (`user-ticker-*.tsx`) designed for any ticker symbol
+*   **Advanced AI Chat:** Universal trading-focused AI chat with user-specified ticker integration
+*   **Real-time Validation:** Ticker input validation with error handling and user feedback
+
+##### 3.1.6.2. NVDA Dedicated Tab (NEW v4.2.0.0)
+*   **NVDA-Specific Analysis:** Complete NVDA ticker analysis using SPY blueprint architecture
+*   **Isolated Architecture:** Dedicated context (`nvda-analysis-context.tsx`) with `useNvdaAnalysis()` hook
+*   **Complete Feature Parity:** All SPY tab functionality adapted for NVDA ticker
+*   **NVDA Components:** All UI components (`nvda-*.tsx`) specifically for NVDA analysis
+*   **AI Integration:** NVDA-focused AI chat and analysis with dedicated server actions
+
+##### 3.1.6.3. SPY Dedicated Tab (Blueprint Reference - v4.1.0.0+)
+*   **Original Production-Ready Blueprint:** Serves as the reference architecture for other ticker tabs
+*   **Completely Isolated Architecture:** Dedicated context (`spy-analysis-context.tsx`) with `useSpyAnalysis()` hook
 *   **SPY-Only Functionality:** Hardcoded to analyze only the SPY ticker with dedicated features:
-    *   Auto-fetch SPY expirations on tab load (removed in v4.1.6.0 for deterministic patterns)
     *   Dedicated SPY data display components
     *   AI Key Takeaways with hardcoded metrics (Price Action, Trend, Volatility, Momentum, Patterns)
     *   AI Options Analysis with Call/Put Walls
-*   **Advanced AI Chat System (as of v4.1.10.0):** A sophisticated unified chat interface with specialized trading-focused prompts and enhanced UX. Features:
+*   **Advanced AI Chat System (v4.1.10.0):** Sophisticated unified chat interface with specialized trading-focused prompts:
     *   Radio toggle for chat mode (App Data Only vs Web Search Enabled)
     *   Specialized prompt system with three distinct templates:
         *   `stock-trader-takeaways.json` - Trading-focused market analysis
         *   `options-trader-takeaways.json` - Options strategy insights
         *   `holistic-takeaways.json` - Comprehensive market analysis
-    *   Dynamic responsive UI with cross-device optimization (min-h-[400px] max-h-[80vh])
+    *   Dynamic responsive UI with cross-device optimization
     *   Enhanced multi-line input with Textarea component for complex queries
     *   Comprehensive Copy/Export JSON functionality for chat responses
     *   Race condition protection with request ID tracking
-    *   Conditional tool loading: `tools: webSearchEnabled ? [{googleSearch: {}}] : []`
-    *   Unified server action (`spy-consolidated-chat-action.ts`) with advanced error handling
+
+##### 3.1.6.4. Main Tab (Legacy - Original Implementation)
+*   **Original Architecture:** Maintained for compatibility with existing workflows
+*   **User Input Capability:** Manual ticker input with traditional analysis pipeline
+*   **Legacy State Management:** Uses original `useStockAnalysis()` hook from `business-logic-context.tsx`
+
+##### 3.1.6.5. Ticker-Agnostic Logging System (v4.2.0.0)
+*   **Centralized Logging:** `src/lib/ticker-logger.ts` provides standardized console messaging across all tabs
+*   **Consistent Format:** `tickerLogger(ticker, pageContext, actionContext, data)` for uniform debug output
+*   **UI/Render Loop Prevention:** Proper logging guards prevent infinite console logging during render cycles
+*   **Cross-Tab Debugging:** Consistent debugging experience across User Input, NVDA, SPY, and Main tabs
 
 #### 3.1.4. User Interface (UI) & User Experience (UX)
 *   Modern, clean, and intuitive design.
 *   Responsive layout for various screen sizes.
-*   Main application interface organized into "Main", "Debug", "Debug Logs", and "Debug FSM" tabs, which are horizontally scrollable on narrow viewports.
+*   **Multi-Tab Navigation (v4.2.0.0):** Primary interface organized into four analysis tabs:
+    *   **User Ticker** (Default) - Dynamic ticker input for any symbol
+    *   **NVDA** - Dedicated NVDA analysis
+    *   **SPY** - Dedicated SPY analysis (blueprint reference)
+    *   **Main** - Legacy analysis interface
+*   **Secondary Tabs:** "Debug", "Debug Logs", and "Debug FSM" tabs available for development and debugging
+*   Horizontally scrollable on narrow viewports for optimal mobile experience.
 *   **Styling:**
     *   Primary color: HSL(210, 75%, 50%) - Vibrant Blue
     *   Background color: HSL(210, 20%, 95%) - Light Desaturated Blue
@@ -292,9 +325,10 @@ npm run start
 ---
 
 ## 6. Change History & Versioning
-*   **This README Document Version:** 3.32
-*   **Current Application Version:** `v4.1.18.0`
+*   **This README Document Version:** 4.20
+*   **Current Application Version:** `v4.2.0.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
+*   **Major Release (v4.2.0.0):** Multi-tab architecture with User Input Ticker, NVDA dedicated pages, and ticker-agnostic logging system
 *   **Changelogs:** Refer to `CHANGELOG.md`.
 
 ---

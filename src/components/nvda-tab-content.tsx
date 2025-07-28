@@ -1,19 +1,12 @@
 'use client';
 
 /**
- * @fileOverview SPY Tab Content - Blueprint Orchestrator Component
+ * @fileOverview NVDA Tab Content - Created from SPY Blueprint Orchestrator
  * 
- * This component serves as the main orchestrator for ticker-specific analysis tabs.
+ * Main orchestrator component for the NVDA-specific analysis tab.
  * Architecture Pattern: Deterministic Handlers + Context Integration + FSM State Management
  * 
- * REPLICATION GUIDE for creating new ticker pages (e.g., NVDA):
- * 1. Copy this file: spy-tab-content.tsx → nvda-tab-content.tsx
- * 2. Update imports: useSpyAnalysis → useNvdaAnalysis, SPY_TICKER → NVDA_TICKER
- * 3. Update component name: SpyTabContent → NvdaTabContent
- * 4. Update display component imports: spy-*-display.tsx → nvda-*-display.tsx
- * 5. Update header text and descriptions to reference new ticker
- * 
- * ARCHITECTURE STRENGTHS:
+ * Created from the SPY blueprint which demonstrated excellent architectural patterns:
  * - All handlers follow async/await deterministic patterns
  * - Complete error handling with user feedback via toast
  * - Proper FSM state transitions (loading → idle/error)
@@ -29,10 +22,10 @@ import { Label } from '@/components/ui/label';
 import { Loader2, CalendarDays, Search, Zap, Settings, FileText, CandlestickChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// SPY Context
-import { useSpyAnalysis, useSpyDispatch, SPY_TICKER, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/spy-analysis-context';
+// NVDA Context
+import { useNvdaAnalysis, useNvdaDispatch, NVDA_TICKER, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/nvda-analysis-context';
 
-// Server Actions (reused from Main tab)
+// Server Actions (reused from Main/SPY tabs)
 import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
 import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
@@ -43,59 +36,59 @@ import { findNextAvailableDate } from '@/lib/date-utils';
 // Ticker Logger
 import { createTickerLogger, TICKER_PAGES } from '@/lib/ticker-logger';
 
-// SPY Data Section Component
-import { SpyDataSection } from '@/components/spy-data-section';
+// NVDA Data Section Component
+import { NvdaDataSection } from '@/components/nvda-data-section';
 
-// SPY UI Components (isolated)
-import { SpyMarketStatusDisplay } from '@/components/spy-market-status-display';
-import { SpyKeyMetricsDisplay } from '@/components/spy-key-metrics-display';
-import { SpyStockSnapshotDisplay } from '@/components/spy-stock-snapshot-display';
-import { SpyStandardTaDisplay } from '@/components/spy-standard-ta-display';
-import { SpyAiAnalyzedTaDisplay } from '@/components/spy-ai-analyzed-ta-display';
-import { SpyOptionsChainTable } from '@/components/spy-options-chain-table';
-import { SpyAiKeyTakeawaysDisplay } from '@/components/spy-ai-key-takeaways-display';
-import { SpyAiOptionsAnalysisDisplay } from '@/components/spy-ai-options-analysis-display';
-import { SpyConsolidatedChat } from '@/components/spy-consolidated-chat';
+// NVDA UI Components (will be created next)
+import { NvdaMarketStatusDisplay } from '@/components/nvda-market-status-display';
+import { NvdaKeyMetricsDisplay } from '@/components/nvda-key-metrics-display';
+import { NvdaStockSnapshotDisplay } from '@/components/nvda-stock-snapshot-display';
+import { NvdaStandardTaDisplay } from '@/components/nvda-standard-ta-display';
+import { NvdaAiAnalyzedTaDisplay } from '@/components/nvda-ai-analyzed-ta-display';
+import { NvdaOptionsChainTable } from '@/components/nvda-options-chain-table';
+import { NvdaAiKeyTakeawaysDisplay } from '@/components/nvda-ai-key-takeaways-display';
+import { NvdaAiOptionsAnalysisDisplay } from '@/components/nvda-ai-options-analysis-display';
+import { NvdaConsolidatedChat } from '@/components/nvda-consolidated-chat';
 
-export function SpyTabContent() {
-  const spyState = useSpyAnalysis();
-  const spyDispatch = useSpyDispatch();
+// Create NVDA-specific logger
+const logger = createTickerLogger(NVDA_TICKER, TICKER_PAGES.NVDA_TAB);
+
+export function NvdaTabContent() {
+  const nvdaState = useNvdaAnalysis();
+  const nvdaDispatch = useNvdaDispatch();
   const { toast } = useToast();
 
-  // Create SPY-specific logger
-  const logger = createTickerLogger(SPY_TICKER, TICKER_PAGES.SPY_TAB);
-
-  // Deterministic Handler: Fetch SPY Expirations
+  // Deterministic Handler: Fetch NVDA Expirations
   const handleFetchExpirations = async () => {
-    logger.userAction('FetchExpirations', 'Starting expiration fetch...', { ticker: SPY_TICKER });
+    logger.userAction('FetchExpirations', 'Starting expiration fetch...', { ticker: NVDA_TICKER });
     try {
-      spyDispatch({ type: 'SET_LOADING' });
+      nvdaDispatch({ type: 'SET_LOADING' });
       
-      const expirations = await getExpirationDates(SPY_TICKER);
+      const expirations = await getExpirationDates(NVDA_TICKER);
       logger.dataFetch('FetchExpirations', 'Expirations received', { count: expirations.length });
       
       const nextAvailableDate = findNextAvailableDate(expirations);
-      logger.dataFetch('FetchExpirations', 'Next available date selected', { nextAvailableDate });
+      logger.userAction('FetchExpirations', 'Next available date determined', { date: nextAvailableDate });
       
-      spyDispatch({ type: 'SET_EXPIRATION_DATES', payload: expirations });
+      nvdaDispatch({ type: 'SET_EXPIRATION_DATES', payload: expirations });
       
       if (nextAvailableDate) {
-        spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: nextAvailableDate });
+        nvdaDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: nextAvailableDate });
       }
       
-      spyDispatch({ type: 'SET_IDLE' });
+      nvdaDispatch({ type: 'SET_IDLE' });
       
       toast({
-        title: `${SPY_TICKER} Expirations Loaded`,
+        title: `${NVDA_TICKER} Expirations Loaded`,
         description: `Found ${expirations.length} available dates. Selected: ${nextAvailableDate || 'None'}`,
       });
       
       logger.userAction('FetchExpirations', 'Completed successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error('FetchExpirations', 'Error occurred', { errorMessage });
+      logger.error('FetchExpirations', 'Failed to fetch expirations', error);
       
-      spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
+      nvdaDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
         title: 'Error Fetching Expirations',
@@ -105,17 +98,17 @@ export function SpyTabContent() {
     }
   };
 
-  // Deterministic Handler: Get SPY Stock Data (Batch Operation)
+  // Deterministic Handler: Get NVDA Stock Data (Batch Operation)
   const handleGetStockData = async () => {
-    logger.userAction('GetStockData', 'Starting stock data fetch', {
-      ticker: SPY_TICKER,
-      expiration: spyState.selectedExpirationDate,
-      optionType: spyState.optionType,
-      strikeCount: spyState.strikeCount
+    logger.userAction('GetStockData', 'Starting stock data fetch...', {
+      ticker: NVDA_TICKER,
+      expiration: nvdaState.selectedExpirationDate,
+      optionType: nvdaState.optionType,
+      strikeCount: nvdaState.strikeCount
     });
     
-    if (!spyState.selectedExpirationDate) {
-      logger.error('GetStockData', 'No expiration date selected');
+    if (!nvdaState.selectedExpirationDate) {
+      logger.userAction('GetStockData', 'No expiration date selected');
       toast({
         title: 'No Expiration Selected',
         description: 'Please select an expiration date first.',
@@ -125,16 +118,16 @@ export function SpyTabContent() {
     }
 
     try {
-      spyDispatch({ type: 'SET_LOADING' });
-      spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: false });
+      nvdaDispatch({ type: 'SET_LOADING' });
+      nvdaDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: false });
 
       // Step 1: Fetch Stock Data (including Options Chain)
-      logger.dataFetch('GetStockData', 'Step 1: Fetching stock data');
+      logger.serverAction('GetStockData', 'Step 1: Fetching stock data...');
       const stockDataResult = await fetchStockDataAction({
-        ticker: SPY_TICKER,
-        expirationDate: spyState.selectedExpirationDate,
-        optionType: spyState.optionType,
-        strikeCount: spyState.strikeCount,
+        ticker: NVDA_TICKER,
+        expirationDate: nvdaState.selectedExpirationDate,
+        optionType: nvdaState.optionType,
+        strikeCount: nvdaState.strikeCount,
       });
 
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
@@ -143,9 +136,9 @@ export function SpyTabContent() {
       logger.dataFetch('GetStockData', 'Step 1: Stock data received');
 
       // Step 2: Fetch Technical Analysis Data
-      logger.dataFetch('GetStockData', 'Step 2: Fetching technical analysis');
+      logger.serverAction('GetStockData', 'Step 2: Fetching technical analysis...');
       const taResult = await analyzeTaAction({
-        ticker: SPY_TICKER,
+        ticker: NVDA_TICKER,
         stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
       });
 
@@ -154,9 +147,9 @@ export function SpyTabContent() {
       }
       logger.dataFetch('GetStockData', 'Step 2: Technical analysis received');
 
-      // Step 3: Batch Update SPY State (including Options Chain)
+      // Step 3: Batch Update NVDA State (including Options Chain)
       logger.state('GetStockData', 'Step 3: Updating state with stock data');
-      spyDispatch({ 
+      nvdaDispatch({ 
         type: 'SET_STOCK_DATA', 
         payload: {
           stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
@@ -168,33 +161,33 @@ export function SpyTabContent() {
 
       // Step 4: Set Options Chain Data
       const optionsData = stockDataResult.data.optionsChainJson ? JSON.parse(stockDataResult.data.optionsChainJson) : {};
-      logger.state('GetStockData', 'Step 4: Setting options chain data', {
+      logger.dataFetch('GetStockData', 'Step 4: Setting options chain data', {
         hasData: !!stockDataResult.data.optionsChainJson,
         strikeCount: optionsData.strikes?.length || 0,
         callCount: optionsData.calls?.length || 0,
         putCount: optionsData.puts?.length || 0
       });
-      spyDispatch({ 
+      nvdaDispatch({ 
         type: 'SET_OPTIONS_CHAIN_DATA', 
         payload: stockDataResult.data.optionsChainJson 
       });
 
       // Step 5: Signal that ALL data retrieval is complete for batch UI updates
       logger.state('GetStockData', 'Step 5: Marking data retrieval complete');
-      spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: true });
-      spyDispatch({ type: 'SET_IDLE' });
+      nvdaDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: true });
+      nvdaDispatch({ type: 'SET_IDLE' });
 
       toast({
-        title: `${SPY_TICKER} Data Retrieved`,
+        title: `${NVDA_TICKER} Data Retrieved`,
         description: 'Stock data, technical analysis, and options chain loaded successfully.',
       });
       
       logger.userAction('GetStockData', 'Completed successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error('GetStockData', 'Error occurred', { errorMessage });
+      logger.error('GetStockData', 'Failed to fetch stock data', error);
       
-      spyDispatch({ type: 'SET_ERROR', payload: errorMessage });
+      nvdaDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
         title: 'Error Fetching Stock Data',
@@ -204,49 +197,49 @@ export function SpyTabContent() {
     }
   };
 
-  // Deterministic Handler: SPY AI Key Takeaways (Phase 1)
-  const handleSpyAiKeyTakeaways = async () => {
-    logger.userAction('AIKeyTakeaways', 'Starting AI key takeaways generation', {
-      ticker: SPY_TICKER,
-      hasStockData: !!spyState.stockSnapshotJson,
-      hasStandardTA: !!spyState.standardTasJson,
-      hasAITA: !!spyState.aiAnalyzedTaJson,
-      hasMarketStatus: !!spyState.marketStatusJson
+  // Deterministic Handler: NVDA AI Key Takeaways
+  const handleNvdaAiKeyTakeaways = async () => {
+    logger.userAction('AIKeyTakeaways', 'Starting AI key takeaways generation...', {
+      ticker: NVDA_TICKER,
+      hasStockData: !!nvdaState.stockSnapshotJson,
+      hasStandardTA: !!nvdaState.standardTasJson,
+      hasAITA: !!nvdaState.aiAnalyzedTaJson,
+      hasMarketStatus: !!nvdaState.marketStatusJson
     });
     
     try {
       // Use specific AI loading state instead of global FSM loading
-      spyDispatch({ type: 'SET_AI_KEY_TAKEAWAYS_LOADING', payload: true });
+      nvdaDispatch({ type: 'SET_AI_KEY_TAKEAWAYS_LOADING', payload: true });
 
       const result = await performAiAnalysisAction({
-        ticker: SPY_TICKER,
-        stockSnapshotJson: spyState.stockSnapshotJson,
-        standardTasJson: spyState.standardTasJson,
-        aiAnalyzedTaJson: spyState.aiAnalyzedTaJson,
-        marketStatusJson: spyState.marketStatusJson,
+        ticker: NVDA_TICKER,
+        stockSnapshotJson: nvdaState.stockSnapshotJson,
+        standardTasJson: nvdaState.standardTasJson,
+        aiAnalyzedTaJson: nvdaState.aiAnalyzedTaJson,
+        marketStatusJson: nvdaState.marketStatusJson,
       });
 
       if (result.status === 'success' && result.data) {
-        logger.userAction('AIKeyTakeaways', 'AI analysis completed successfully');
+        logger.aiFlow('AIKeyTakeaways', 'AI analysis completed successfully');
         
-        spyDispatch({ 
+        nvdaDispatch({ 
           type: 'SET_AI_KEY_TAKEAWAYS', 
           payload: result.data.aiKeyTakeawaysJson 
         });
         
         toast({ 
           title: 'Success', 
-          description: `${SPY_TICKER} AI Key Takeaways generated successfully` 
+          description: `${NVDA_TICKER} AI Key Takeaways generated successfully` 
         });
       } else {
         throw new Error(result.message || 'Failed to generate AI Key Takeaways');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error('AIKeyTakeaways', 'Error occurred', { errorMessage });
+      logger.error('AIKeyTakeaways', 'Failed to generate AI key takeaways', error);
       
       // Clear loading state on error
-      spyDispatch({ type: 'SET_AI_KEY_TAKEAWAYS_LOADING', payload: false });
+      nvdaDispatch({ type: 'SET_AI_KEY_TAKEAWAYS_LOADING', payload: false });
       
       toast({
         title: 'Error Generating AI Key Takeaways',
@@ -256,45 +249,45 @@ export function SpyTabContent() {
     }
   };
 
-  // Deterministic Handler: SPY AI Options Analysis (Phase 1)
-  const handleSpyAiOptionsAnalysis = async () => {
-    logger.userAction('AIOptionsAnalysis', 'Starting AI options analysis', {
-      ticker: SPY_TICKER,
-      hasStockData: !!spyState.stockSnapshotJson,
-      hasOptionsChain: !!spyState.optionsChainJson
+  // Deterministic Handler: NVDA AI Options Analysis
+  const handleNvdaAiOptionsAnalysis = async () => {
+    logger.userAction('AIOptionsAnalysis', 'Starting AI options analysis...', {
+      ticker: NVDA_TICKER,
+      hasStockData: !!nvdaState.stockSnapshotJson,
+      hasOptionsChain: !!nvdaState.optionsChainJson
     });
     
     try {
       // Use specific AI loading state instead of global FSM loading
-      spyDispatch({ type: 'SET_AI_OPTIONS_ANALYSIS_LOADING', payload: true });
+      nvdaDispatch({ type: 'SET_AI_OPTIONS_ANALYSIS_LOADING', payload: true });
 
       const result = await performAiOptionsAnalysisAction({
-        ticker: SPY_TICKER,
-        stockSnapshotJson: spyState.stockSnapshotJson,
-        optionsChainJson: spyState.optionsChainJson,
+        ticker: NVDA_TICKER,
+        stockSnapshotJson: nvdaState.stockSnapshotJson,
+        optionsChainJson: nvdaState.optionsChainJson,
       });
 
       if (result.status === 'success' && result.data) {
-        logger.userAction('AIOptionsAnalysis', 'AI options analysis completed successfully');
+        logger.aiFlow('AIOptionsAnalysis', 'AI options analysis completed successfully');
         
-        spyDispatch({ 
+        nvdaDispatch({ 
           type: 'SET_AI_OPTIONS_ANALYSIS', 
           payload: result.data.aiOptionsAnalysisJson 
         });
         
         toast({ 
           title: 'Success', 
-          description: `${SPY_TICKER} AI Options Analysis generated successfully` 
+          description: `${NVDA_TICKER} AI Options Analysis generated successfully` 
         });
       } else {
         throw new Error(result.message || 'Failed to generate AI Options Analysis');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error('AIOptionsAnalysis', 'Error occurred', { errorMessage });
+      logger.error('AIOptionsAnalysis', 'Failed to generate AI options analysis', error);
       
       // Clear loading state on error
-      spyDispatch({ type: 'SET_AI_OPTIONS_ANALYSIS_LOADING', payload: false });
+      nvdaDispatch({ type: 'SET_AI_OPTIONS_ANALYSIS_LOADING', payload: false });
       
       toast({
         title: 'Error Generating AI Options Analysis',
@@ -307,58 +300,58 @@ export function SpyTabContent() {
   // Expiration Selection Handler
   const handleExpirationChange = (value: string) => {
     logger.userAction('ExpirationChange', 'Expiration date changed', { 
-      from: spyState.selectedExpirationDate, 
+      from: nvdaState.selectedExpirationDate, 
       to: value 
     });
-    spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: value });
+    nvdaDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: value });
   };
 
   // Options Chain Settings Handlers
   const handleOptionTypeChange = (value: OptionType) => {
     logger.userAction('OptionTypeChange', 'Option type changed', { 
-      from: spyState.optionType, 
+      from: nvdaState.optionType, 
       to: value 
     });
-    spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { optionType: value } });
+    nvdaDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { optionType: value } });
   };
 
   const handleStrikeCountChange = (value: StrikeCount) => {
     logger.userAction('StrikeCountChange', 'Strike count changed', { 
-      from: spyState.strikeCount, 
+      from: nvdaState.strikeCount, 
       to: value 
     });
-    spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { strikeCount: value } });
+    nvdaDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { strikeCount: value } });
   };
 
   const handleTableDisplayTypeChange = (value: TableDisplayType) => {
     logger.userAction('TableDisplayChange', 'Table display type changed', { 
-      from: spyState.tableDisplayType, 
+      from: nvdaState.tableDisplayType, 
       to: value 
     });
-    spyDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { tableDisplayType: value } });
+    nvdaDispatch({ type: 'SET_OPTIONS_SETTINGS', payload: { tableDisplayType: value } });
   };
 
-  const isLoading = spyState.status === 'loading';
+  const isLoading = nvdaState.status === 'loading';
 
   return (
     <div className="space-y-6">
-      {/* SPY Analysis Header */}
+      {/* NVDA Analysis Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold">SPY Dedicated Analysis</h1>
+        <h1 className="text-3xl font-bold">NVDA Dedicated Analysis</h1>
         <p className="text-muted-foreground mt-2">
-          Real-time {SPY_TICKER} stock analysis with technical indicators and options data
+          Real-time {NVDA_TICKER} (NVIDIA Corporation) stock analysis with technical indicators and options data
         </p>
       </div>
 
-      {/* SPY Controls */}
+      {/* NVDA Controls */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            {SPY_TICKER} Analysis Controls
+            {NVDA_TICKER} Analysis Controls
           </CardTitle>
           <CardDescription>
-            Manage expiration dates and trigger data retrieval for {SPY_TICKER}
+            Manage expiration dates and trigger data retrieval for {NVDA_TICKER}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -369,15 +362,15 @@ export function SpyTabContent() {
                 Expiration Date
               </label>
               <Select
-                value={spyState.selectedExpirationDate}
+                value={nvdaState.selectedExpirationDate}
                 onValueChange={handleExpirationChange}
-                disabled={isLoading || spyState.availableExpirationDates.length === 0}
+                disabled={isLoading || nvdaState.availableExpirationDates.length === 0}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select expiration date" />
                 </SelectTrigger>
                 <SelectContent>
-                  {spyState.availableExpirationDates.map((date) => (
+                  {nvdaState.availableExpirationDates.map((date) => (
                     <SelectItem key={date} value={date}>
                       {date}
                     </SelectItem>
@@ -412,15 +405,15 @@ export function SpyTabContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Option Type Selector */}
               <div className="space-y-2">
-                <Label htmlFor="spy-option-type" className="text-sm font-medium">
+                <Label htmlFor="nvda-option-type" className="text-sm font-medium">
                   Option Type
                 </Label>
                 <Select
-                  value={spyState.optionType}
+                  value={nvdaState.optionType}
                   onValueChange={handleOptionTypeChange}
                   disabled={isLoading}
                 >
-                  <SelectTrigger id="spy-option-type">
+                  <SelectTrigger id="nvda-option-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -433,15 +426,15 @@ export function SpyTabContent() {
 
               {/* Strike Count Selector */}
               <div className="space-y-2">
-                <Label htmlFor="spy-strike-count" className="text-sm font-medium">
+                <Label htmlFor="nvda-strike-count" className="text-sm font-medium">
                   Strike Count
                 </Label>
                 <Select
-                  value={spyState.strikeCount.toString()}
+                  value={nvdaState.strikeCount.toString()}
                   onValueChange={(value) => handleStrikeCountChange(parseInt(value) as StrikeCount)}
                   disabled={isLoading}
                 >
-                  <SelectTrigger id="spy-strike-count">
+                  <SelectTrigger id="nvda-strike-count">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -454,15 +447,15 @@ export function SpyTabContent() {
 
               {/* Table Display Type Selector */}
               <div className="space-y-2">
-                <Label htmlFor="spy-table-display" className="text-sm font-medium">
+                <Label htmlFor="nvda-table-display" className="text-sm font-medium">
                   Table Layout
                 </Label>
                 <Select
-                  value={spyState.tableDisplayType}
+                  value={nvdaState.tableDisplayType}
                   onValueChange={handleTableDisplayTypeChange}
                   disabled={isLoading}
                 >
-                  <SelectTrigger id="spy-table-display">
+                  <SelectTrigger id="nvda-table-display">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -480,7 +473,7 @@ export function SpyTabContent() {
           <div className="flex justify-center">
             <Button
               onClick={handleGetStockData}
-              disabled={isLoading || !spyState.selectedExpirationDate}
+              disabled={isLoading || !nvdaState.selectedExpirationDate}
               size="lg"
               className="flex items-center gap-2"
             >
@@ -489,18 +482,18 @@ export function SpyTabContent() {
               ) : (
                 <Zap className="h-4 w-4" />
               )}
-              Get {SPY_TICKER} Stock Data
+              Get {NVDA_TICKER} Stock Data
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* SPY AI Analysis Controls (Phase 1) */}
+      {/* NVDA AI Analysis Controls */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            {SPY_TICKER} AI Analysis (On-Demand)
+            {NVDA_TICKER} AI Analysis (On-Demand)
           </CardTitle>
           <CardDescription>
             Generate AI analysis manually. Each button is independent and requires specific data to be available.
@@ -509,12 +502,12 @@ export function SpyTabContent() {
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button 
-              onClick={handleSpyAiKeyTakeaways}
-              disabled={!spyState.hasStockData || !spyState.hasAiTaData || isLoading || spyState.isAiKeyTakeawaysLoading}
+              onClick={handleNvdaAiKeyTakeaways}
+              disabled={!nvdaState.hasStockData || !nvdaState.hasAiTaData || isLoading || nvdaState.isAiKeyTakeawaysLoading}
               variant="outline"
               className="flex-1"
             >
-              {spyState.isAiKeyTakeawaysLoading ? (
+              {nvdaState.isAiKeyTakeawaysLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <FileText className="mr-2 h-4 w-4" />
@@ -522,12 +515,12 @@ export function SpyTabContent() {
               Generate AI Key Takeaways
             </Button>
             <Button 
-              onClick={handleSpyAiOptionsAnalysis}
-              disabled={!spyState.hasOptionsChainData || isLoading || spyState.isAiOptionsAnalysisLoading}
+              onClick={handleNvdaAiOptionsAnalysis}
+              disabled={!nvdaState.hasOptionsChainData || isLoading || nvdaState.isAiOptionsAnalysisLoading}
               variant="outline"
               className="flex-1"
             >
-              {spyState.isAiOptionsAnalysisLoading ? (
+              {nvdaState.isAiOptionsAnalysisLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <CandlestickChart className="mr-2 h-4 w-4" />
@@ -538,27 +531,27 @@ export function SpyTabContent() {
         </CardContent>
       </Card>
 
-      {/* SPY UI Cards Grid */}
+      {/* NVDA UI Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SpyMarketStatusDisplay />
-        <SpyKeyMetricsDisplay />
-        <SpyStockSnapshotDisplay />
-        <SpyStandardTaDisplay />
-        <SpyAiAnalyzedTaDisplay />
+        <NvdaMarketStatusDisplay />
+        <NvdaKeyMetricsDisplay />
+        <NvdaStockSnapshotDisplay />
+        <NvdaStandardTaDisplay />
+        <NvdaAiAnalyzedTaDisplay />
       </div>
 
-      {/* SPY AI Analysis Components (Full Width) */}
-      <SpyAiKeyTakeawaysDisplay />
-      <SpyAiOptionsAnalysisDisplay />
+      {/* NVDA AI Analysis Components (Full Width) */}
+      <NvdaAiKeyTakeawaysDisplay />
+      <NvdaAiOptionsAnalysisDisplay />
 
-      {/* SPY Options Chain Table (Full Width) */}
-      <SpyOptionsChainTable />
+      {/* NVDA Options Chain Table (Full Width) */}
+      <NvdaOptionsChainTable />
 
-      {/* SPY Consolidated AI Chat Interface */}
-      <SpyConsolidatedChat />
+      {/* NVDA Consolidated AI Chat Interface */}
+      <NvdaConsolidatedChat />
 
-      {/* SPY Data Section (Self-contained JSON display) */}
-      <SpyDataSection />
+      {/* NVDA Data Section (Self-contained JSON display) */}
+      <NvdaDataSection />
     </div>
   );
 }

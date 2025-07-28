@@ -8,14 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, Download, Database, CheckCircle2, Circle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// SPY Context
-import { useSpyAnalysis, SPY_TICKER } from '@/contexts/spy-analysis-context';
+// NVDA Context
+import { useNvdaAnalysis, NVDA_TICKER } from '@/contexts/nvda-analysis-context';
 
 // Export utilities (reused from existing codebase)
 import { copyToClipboard } from '@/lib/export-utils';
 
-export function SpyDataSection() {
-  const spyState = useSpyAnalysis();
+export function NvdaDataSection() {
+  const nvdaState = useNvdaAnalysis();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('stock-snapshot');
 
@@ -24,44 +24,44 @@ export function SpyDataSection() {
     {
       id: 'stock-snapshot',
       title: 'Stock Snapshot',
-      data: spyState.stockSnapshotJson,
-      hasData: spyState.hasStockData,
+      data: nvdaState.stockSnapshotJson,
+      hasData: nvdaState.hasStockData,
     },
     {
       id: 'market-status',
       title: 'Market Status',
-      data: spyState.marketStatusJson,
-      hasData: spyState.hasStockData,
+      data: nvdaState.marketStatusJson,
+      hasData: nvdaState.hasStockData,
     },
     {
       id: 'options-chain',
       title: 'Options Chain',
-      data: spyState.optionsChainJson,
-      hasData: spyState.hasOptionsChainData,
+      data: nvdaState.optionsChainJson,
+      hasData: nvdaState.hasOptionsChainData,
     },
     {
       id: 'standard-ta',
       title: 'Standard TA',
-      data: spyState.standardTasJson,
-      hasData: spyState.hasAiTaData,
+      data: nvdaState.standardTasJson,
+      hasData: nvdaState.hasAiTaData,
     },
     {
       id: 'ai-analyzed-ta',
       title: 'AI Analyzed TA',
-      data: spyState.aiAnalyzedTaJson,
-      hasData: spyState.hasAiTaData,
+      data: nvdaState.aiAnalyzedTaJson,
+      hasData: nvdaState.hasAiTaData,
     },
     {
       id: 'ai-key-takeaways',
       title: 'AI Key Takeaways',
-      data: spyState.aiKeyTakeawaysJson,
-      hasData: spyState.hasAiKeyTakeaways,
+      data: nvdaState.aiKeyTakeawaysJson,
+      hasData: nvdaState.hasAiKeyTakeaways,
     },
     {
       id: 'ai-options-analysis',
       title: 'AI Options Analysis',
-      data: spyState.aiOptionsAnalysisJson,
-      hasData: spyState.hasAiOptionsAnalysis,
+      data: nvdaState.aiOptionsAnalysisJson,
+      hasData: nvdaState.hasAiOptionsAnalysis,
     },
   ];
 
@@ -85,7 +85,7 @@ export function SpyDataSection() {
     if (success) {
       toast({
         title: 'Copied to Clipboard',
-        description: `${SPY_TICKER} ${title} data copied successfully.`,
+        description: `${NVDA_TICKER} ${title} data copied successfully.`,
       });
     } else {
       toast({
@@ -99,7 +99,7 @@ export function SpyDataSection() {
   // Export handler
   const handleExport = (data: string, title: string) => {
     const formattedData = formatJsonData(data);
-    const filename = `spy-${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+    const filename = `nvda-${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
     
     // Create download link
     const blob = new Blob([formattedData], { type: 'application/json' });
@@ -114,7 +114,7 @@ export function SpyDataSection() {
     
     toast({
       title: 'Export Complete',
-      description: `${SPY_TICKER} ${title} data exported as ${filename}.`,
+      description: `${NVDA_TICKER} ${title} data exported as ${filename}.`,
     });
   };
 
@@ -129,16 +129,16 @@ export function SpyDataSection() {
     };
 
     const allData = {
-      ticker: SPY_TICKER,
+      ticker: NVDA_TICKER,
       timestamp: new Date().toISOString(),
       data: {
-        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
-        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
-        optionsChain: spyState.optionsChainJson ? safeJsonParse(spyState.optionsChainJson) : null,
-        standardTa: spyState.standardTasJson ? safeJsonParse(spyState.standardTasJson) : null,
-        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
-        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
-        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
+        stockSnapshot: nvdaState.stockSnapshotJson ? safeJsonParse(nvdaState.stockSnapshotJson) : null,
+        marketStatus: nvdaState.marketStatusJson ? safeJsonParse(nvdaState.marketStatusJson) : null,
+        optionsChain: nvdaState.optionsChainJson ? safeJsonParse(nvdaState.optionsChainJson) : null,
+        standardTa: nvdaState.standardTasJson ? safeJsonParse(nvdaState.standardTasJson) : null,
+        aiAnalyzedTa: nvdaState.aiAnalyzedTaJson ? safeJsonParse(nvdaState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: nvdaState.aiKeyTakeawaysJson ? safeJsonParse(nvdaState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: nvdaState.aiOptionsAnalysisJson ? safeJsonParse(nvdaState.aiOptionsAnalysisJson) : null,
       }
     };
 
@@ -147,8 +147,8 @@ export function SpyDataSection() {
     
     if (success) {
       toast({
-        title: 'All SPY Data Copied',
-        description: `Complete ${SPY_TICKER} dataset copied to clipboard.`,
+        title: 'All NVDA Data Copied',
+        description: `Complete ${NVDA_TICKER} dataset copied to clipboard.`,
       });
     } else {
       toast({
@@ -170,21 +170,21 @@ export function SpyDataSection() {
     };
 
     const allData = {
-      ticker: SPY_TICKER,
+      ticker: NVDA_TICKER,
       timestamp: new Date().toISOString(),
       data: {
-        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
-        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
-        optionsChain: spyState.optionsChainJson ? safeJsonParse(spyState.optionsChainJson) : null,
-        standardTa: spyState.standardTasJson ? safeJsonParse(spyState.standardTasJson) : null,
-        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
-        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
-        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
+        stockSnapshot: nvdaState.stockSnapshotJson ? safeJsonParse(nvdaState.stockSnapshotJson) : null,
+        marketStatus: nvdaState.marketStatusJson ? safeJsonParse(nvdaState.marketStatusJson) : null,
+        optionsChain: nvdaState.optionsChainJson ? safeJsonParse(nvdaState.optionsChainJson) : null,
+        standardTa: nvdaState.standardTasJson ? safeJsonParse(nvdaState.standardTasJson) : null,
+        aiAnalyzedTa: nvdaState.aiAnalyzedTaJson ? safeJsonParse(nvdaState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: nvdaState.aiKeyTakeawaysJson ? safeJsonParse(nvdaState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: nvdaState.aiOptionsAnalysisJson ? safeJsonParse(nvdaState.aiOptionsAnalysisJson) : null,
       }
     };
 
     const formattedData = JSON.stringify(allData, null, 2);
-    const filename = `spy-complete-dataset-${new Date().toISOString().split('T')[0]}.json`;
+    const filename = `nvda-complete-dataset-${new Date().toISOString().split('T')[0]}.json`;
     
     // Create download link
     const blob = new Blob([formattedData], { type: 'application/json' });
@@ -198,8 +198,8 @@ export function SpyDataSection() {
     URL.revokeObjectURL(url);
     
     toast({
-      title: 'All SPY Data Exported',
-      description: `Complete ${SPY_TICKER} dataset exported as ${filename}.`,
+      title: 'All NVDA Data Exported',
+      description: `Complete ${NVDA_TICKER} dataset exported as ${filename}.`,
     });
   };
 
@@ -245,16 +245,16 @@ export function SpyDataSection() {
     };
 
     const truncatedData = {
-      ticker: SPY_TICKER,
+      ticker: NVDA_TICKER,
       timestamp: new Date().toISOString(),
       data: {
-        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
-        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
-        optionsChainSummary: generateOptionsChainSummary(spyState.optionsChainJson),
-        standardTa: spyState.standardTasJson ? safeJsonParse(spyState.standardTasJson) : null,
-        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
-        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
-        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
+        stockSnapshot: nvdaState.stockSnapshotJson ? safeJsonParse(nvdaState.stockSnapshotJson) : null,
+        marketStatus: nvdaState.marketStatusJson ? safeJsonParse(nvdaState.marketStatusJson) : null,
+        optionsChainSummary: generateOptionsChainSummary(nvdaState.optionsChainJson),
+        standardTa: nvdaState.standardTasJson ? safeJsonParse(nvdaState.standardTasJson) : null,
+        aiAnalyzedTa: nvdaState.aiAnalyzedTaJson ? safeJsonParse(nvdaState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: nvdaState.aiKeyTakeawaysJson ? safeJsonParse(nvdaState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: nvdaState.aiOptionsAnalysisJson ? safeJsonParse(nvdaState.aiOptionsAnalysisJson) : null,
       }
     };
 
@@ -263,8 +263,8 @@ export function SpyDataSection() {
     
     if (success) {
       toast({
-        title: 'Truncated SPY Data Copied',
-        description: `${SPY_TICKER} dataset (without full options chain) copied to clipboard.`,
+        title: 'Truncated NVDA Data Copied',
+        description: `${NVDA_TICKER} dataset (without full options chain) copied to clipboard.`,
       });
     } else {
       toast({
@@ -286,21 +286,21 @@ export function SpyDataSection() {
     };
 
     const truncatedData = {
-      ticker: SPY_TICKER,
+      ticker: NVDA_TICKER,
       timestamp: new Date().toISOString(),
       data: {
-        stockSnapshot: spyState.stockSnapshotJson ? safeJsonParse(spyState.stockSnapshotJson) : null,
-        marketStatus: spyState.marketStatusJson ? safeJsonParse(spyState.marketStatusJson) : null,
-        optionsChainSummary: generateOptionsChainSummary(spyState.optionsChainJson),
-        standardTa: spyState.standardTasJson ? safeJsonParse(spyState.standardTasJson) : null,
-        aiAnalyzedTa: spyState.aiAnalyzedTaJson ? safeJsonParse(spyState.aiAnalyzedTaJson) : null,
-        aiKeyTakeaways: spyState.aiKeyTakeawaysJson ? safeJsonParse(spyState.aiKeyTakeawaysJson) : null,
-        aiOptionsAnalysis: spyState.aiOptionsAnalysisJson ? safeJsonParse(spyState.aiOptionsAnalysisJson) : null,
+        stockSnapshot: nvdaState.stockSnapshotJson ? safeJsonParse(nvdaState.stockSnapshotJson) : null,
+        marketStatus: nvdaState.marketStatusJson ? safeJsonParse(nvdaState.marketStatusJson) : null,
+        optionsChainSummary: generateOptionsChainSummary(nvdaState.optionsChainJson),
+        standardTa: nvdaState.standardTasJson ? safeJsonParse(nvdaState.standardTasJson) : null,
+        aiAnalyzedTa: nvdaState.aiAnalyzedTaJson ? safeJsonParse(nvdaState.aiAnalyzedTaJson) : null,
+        aiKeyTakeaways: nvdaState.aiKeyTakeawaysJson ? safeJsonParse(nvdaState.aiKeyTakeawaysJson) : null,
+        aiOptionsAnalysis: nvdaState.aiOptionsAnalysisJson ? safeJsonParse(nvdaState.aiOptionsAnalysisJson) : null,
       }
     };
 
     const formattedData = JSON.stringify(truncatedData, null, 2);
-    const filename = `spy-truncated-dataset-${new Date().toISOString().split('T')[0]}.json`;
+    const filename = `nvda-truncated-dataset-${new Date().toISOString().split('T')[0]}.json`;
     
     // Create download link
     const blob = new Blob([formattedData], { type: 'application/json' });
@@ -314,8 +314,8 @@ export function SpyDataSection() {
     URL.revokeObjectURL(url);
     
     toast({
-      title: 'Truncated SPY Data Exported',
-      description: `${SPY_TICKER} dataset (without full options chain) exported as ${filename}.`,
+      title: 'Truncated NVDA Data Exported',
+      description: `${NVDA_TICKER} dataset (without full options chain) exported as ${filename}.`,
     });
   };
 
@@ -327,18 +327,18 @@ export function SpyDataSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Database className="h-5 w-5" />
-          {SPY_TICKER} Raw Data
+          {NVDA_TICKER} Raw Data
         </CardTitle>
         <CardDescription>
-          All API responses and processed data for {SPY_TICKER} analysis
+          All API responses and processed data for {NVDA_TICKER} analysis
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Unified Export ALL SPY Data Actions */}
+        {/* Unified Export ALL NVDA Data Actions */}
         <div className="flex flex-col gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
           <div>
-            <h3 className="text-lg font-semibold">Export All {SPY_TICKER} Data</h3>
-            <p className="text-sm text-muted-foreground">Copy or export all available SPY data in one action</p>
+            <h3 className="text-lg font-semibold">Export All {NVDA_TICKER} Data</h3>
+            <p className="text-sm text-muted-foreground">Copy or export all available NVDA data in one action</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
@@ -428,27 +428,27 @@ export function SpyDataSection() {
 
         {/* Data Summary */}
         <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-          <h4 className="font-semibold mb-2">{SPY_TICKER} Data Summary</h4>
+          <h4 className="font-semibold mb-2">{NVDA_TICKER} Data Summary</h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
             <div>
               <span className="text-muted-foreground">Status:</span>
-              <span className="ml-2 capitalize">{spyState.status}</span>
+              <span className="ml-2 capitalize">{nvdaState.status}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Selected Expiration:</span>
-              <span className="ml-2">{spyState.selectedExpirationDate || 'None'}</span>
+              <span className="ml-2">{nvdaState.selectedExpirationDate || 'None'}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Stock Data:</span>
-              <span className="ml-2">{spyState.hasStockData ? 'Loaded' : 'Not Loaded'}</span>
+              <span className="ml-2">{nvdaState.hasStockData ? 'Loaded' : 'Not Loaded'}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Options Data:</span>
-              <span className="ml-2">{spyState.hasOptionsChainData ? 'Loaded' : 'Not Loaded'}</span>
+              <span className="ml-2">{nvdaState.hasOptionsChainData ? 'Loaded' : 'Not Loaded'}</span>
             </div>
             <div>
               <span className="text-muted-foreground">AI Data:</span>
-              <span className="ml-2">{spyState.hasAiTaData ? 'Loaded' : 'Not Loaded'}</span>
+              <span className="ml-2">{nvdaState.hasAiTaData ? 'Loaded' : 'Not Loaded'}</span>
             </div>
           </div>
         </div>

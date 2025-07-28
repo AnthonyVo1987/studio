@@ -1,33 +1,31 @@
 'use client';
 
 /**
- * @fileOverview SPY Analysis Context - Blueprint Implementation
+ * @fileOverview NVDA Analysis Context - Created from SPY Blueprint
  * 
- * This context serves as a BLUEPRINT for ticker-specific analysis tabs.
+ * This context manages state for the NVDA-specific analysis tab.
  * Architecture Pattern: Isolated Context + useReducer + Custom Hooks
  * 
- * REPLICATION GUIDE for creating new ticker pages (e.g., NVDA):
- * 1. Copy this file: spy-analysis-context.tsx → nvda-analysis-context.tsx
- * 2. Update ticker constant: SPY_TICKER → NVDA_TICKER
- * 3. Rename hooks: useSpyAnalysis → useNvdaAnalysis, useSpyDispatch → useNvdaDispatch
- * 4. Update provider: SpyAnalysisProvider → NvdaAnalysisProvider
- * 5. Update all context names and function names to match new ticker
- * 
- * This pattern ensures complete isolation between ticker-specific tabs.
+ * Created from the SPY blueprint architecture which scored 9.8/10
+ * in architectural review. Complete isolation from other ticker tabs.
  */
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useReducer } from 'react';
+import { createTickerLogger, TICKER_PAGES } from '@/lib/ticker-logger';
 
-// Ticker configuration for this specific analysis tab
-export const SPY_TICKER = 'SPY';
+// Ticker configuration for NVDA analysis tab
+export const NVDA_TICKER = 'NVDA';
 
-// Options Chain Settings (matching Main tab pattern)
+// Create NVDA-specific logger
+const logger = createTickerLogger(NVDA_TICKER, TICKER_PAGES.NVDA_TAB);
+
+// Options Chain Settings (matching SPY pattern)
 export type OptionType = 'both' | 'calls' | 'puts';
 export type StrikeCount = 20 | 30 | 40;
 export type TableDisplayType = 'side-by-side' | 'top-bottom';
 
-interface SpyAnalysisState {
+interface NvdaAnalysisState {
   // Status Management
   status: 'idle' | 'loading' | 'error';
   error: string | null;
@@ -80,7 +78,7 @@ interface SpyAnalysisState {
   dataRetrievalComplete: boolean;
 }
 
-type SpyAnalysisAction =
+type NvdaAnalysisAction =
   | { type: 'SET_LOADING' }
   | { type: 'SET_IDLE' }
   | { type: 'SET_ERROR'; payload: string }
@@ -111,13 +109,13 @@ type SpyAnalysisAction =
     }}
   | { type: 'RESET_STATE' };
 
-const initialState: SpyAnalysisState = {
+const initialState: NvdaAnalysisState = {
   status: 'idle',
   error: null,
   availableExpirationDates: [],
   selectedExpirationDate: '',
   optionType: 'both',
-  strikeCount: 20,
+  strikeCount: 30, // NVDA default to 30 strikes
   tableDisplayType: 'side-by-side',
   stockSnapshotJson: '',
   marketStatusJson: '',
@@ -147,12 +145,12 @@ const initialState: SpyAnalysisState = {
   dataRetrievalComplete: false,
 };
 
-function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction): SpyAnalysisState {
-  console.log('[SPY:State] Reducer action:', { type: action.type, previousStatus: state.status });
+function nvdaAnalysisReducer(state: NvdaAnalysisState, action: NvdaAnalysisAction): NvdaAnalysisState {
+  logger.state('Reducer', 'Action dispatched', { type: action.type, previousStatus: state.status });
   
   switch (action.type) {
     case 'SET_LOADING':
-      console.log('[SPY:State] FSM transition: -> LOADING');
+      logger.state('FSM', 'Transition -> LOADING');
       return {
         ...state,
         status: 'loading',
@@ -161,7 +159,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_IDLE':
-      console.log('[SPY:State] FSM transition: -> IDLE');
+      logger.state('FSM', 'Transition -> IDLE');
       return {
         ...state,
         status: 'idle',
@@ -169,7 +167,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_ERROR':
-      console.log('[SPY:State] FSM transition: -> ERROR', { error: action.payload });
+      logger.error('FSM', 'Transition -> ERROR', action.payload);
       return {
         ...state,
         status: 'error',
@@ -177,21 +175,21 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_EXPIRATION_DATES':
-      console.log('[SPY:State] Setting expiration dates:', { count: action.payload.length });
+      logger.state('ExpirationDates', 'Setting expiration dates', { count: action.payload.length });
       return {
         ...state,
         availableExpirationDates: action.payload,
       };
 
     case 'SET_SELECTED_EXPIRATION':
-      console.log('[SPY:State] Setting selected expiration:', { expiration: action.payload });
+      logger.state('ExpirationSelection', 'Setting selected expiration', { expiration: action.payload });
       return {
         ...state,
         selectedExpirationDate: action.payload,
       };
 
     case 'SET_OPTIONS_SETTINGS':
-      console.log('[SPY:State] Updating options settings:', action.payload);
+      logger.state('OptionsSettings', 'Updating options settings', action.payload);
       return {
         ...state,
         ...(action.payload.optionType !== undefined && { optionType: action.payload.optionType }),
@@ -200,7 +198,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_STOCK_DATA':
-      console.log('[SPY:State] Setting stock data:', {
+      logger.state('StockData', 'Setting stock data', {
         hasSnapshot: !!action.payload.stockSnapshotJson,
         hasMarketStatus: !!action.payload.marketStatusJson,
         hasStandardTA: !!action.payload.standardTaJson,
@@ -224,7 +222,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
           return {};
         }
       })() : {};
-      console.log('[SPY:State] Setting options chain data:', {
+      logger.state('OptionsChain', 'Setting options chain data', {
         hasData: !!action.payload,
         strikeCount: optionsData.strikes?.length || 0
       });
@@ -235,7 +233,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_AI_KEY_TAKEAWAYS':
-      console.log('[SPY:State] Setting AI key takeaways:', { hasData: !!action.payload });
+      logger.state('AIKeyTakeaways', 'Setting AI key takeaways', { hasData: !!action.payload });
       return {
         ...state,
         aiKeyTakeawaysJson: action.payload,
@@ -244,14 +242,14 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_AI_KEY_TAKEAWAYS_LOADING':
-      console.log('[SPY:State] Setting AI key takeaways loading:', { loading: action.payload });
+      logger.state('AIKeyTakeaways', 'Setting loading state', { loading: action.payload });
       return {
         ...state,
         isAiKeyTakeawaysLoading: action.payload,
       };
 
     case 'SET_AI_OPTIONS_ANALYSIS':
-      console.log('[SPY:State] Setting AI options analysis:', { hasData: !!action.payload });
+      logger.state('AIOptionsAnalysis', 'Setting AI options analysis', { hasData: !!action.payload });
       return {
         ...state,
         aiOptionsAnalysisJson: action.payload,
@@ -260,14 +258,14 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'SET_AI_OPTIONS_ANALYSIS_LOADING':
-      console.log('[SPY:State] Setting AI options analysis loading:', { loading: action.payload });
+      logger.state('AIOptionsAnalysis', 'Setting loading state', { loading: action.payload });
       return {
         ...state,
         isAiOptionsAnalysisLoading: action.payload,
       };
 
     case 'SET_DATA_RETRIEVAL_COMPLETE':
-      console.log('[SPY:State] Setting data retrieval complete:', { complete: action.payload });
+      logger.state('DataRetrieval', 'Setting data retrieval complete', { complete: action.payload });
       return {
         ...state,
         dataRetrievalComplete: action.payload,
@@ -275,7 +273,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
 
     case 'SET_AI_CHAT_RAW_DATA':
       const { promptName, responseJson, webSearchEnabled, isUserInput } = action.payload;
-      console.log('[SPY:State] Setting AI chat raw data:', { 
+      logger.state('AIChatData', 'Setting AI chat raw data', { 
         promptName, 
         webSearchEnabled, 
         isUserInput: !!isUserInput,
@@ -283,7 +281,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       });
       
       // Map prompt names to state fields
-      const updates: Partial<SpyAnalysisState> = {};
+      const updates: Partial<NvdaAnalysisState> = {};
       
       if (isUserInput) {
         // User input responses (based on mode)
@@ -314,7 +312,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
             updates.optionsFlowWebSearchRawJson = responseJson;
             break;
           default:
-            console.warn('[SPY:State] Unknown prompt name for raw data storage:', promptName);
+            logger.state('AIChatData', `Unknown prompt name for raw data storage: ${promptName}`);
         }
       }
       
@@ -324,49 +322,48 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
       };
 
     case 'RESET_STATE':
-      console.log('[SPY:State] Resetting state to initial values');
+      logger.state('Reset', 'Resetting state to initial values');
       return initialState;
 
     default:
-      console.error('[SPY:State] Unknown action type:', action);
+      logger.error('Reducer', 'Unknown action type', action);
       throw new Error(`Unknown action type`);
   }
 }
 
-const SpyAnalysisContext = createContext<SpyAnalysisState | null>(null);
-const SpyAnalysisDispatchContext = createContext<React.Dispatch<SpyAnalysisAction> | null>(null);
+const NvdaAnalysisContext = createContext<NvdaAnalysisState | null>(null);
+const NvdaAnalysisDispatchContext = createContext<React.Dispatch<NvdaAnalysisAction> | null>(null);
 
-interface SpyAnalysisProviderProps {
+interface NvdaAnalysisProviderProps {
   children: ReactNode;
 }
 
-export function SpyAnalysisProvider({ children }: SpyAnalysisProviderProps) {
-  const [state, dispatch] = useReducer(spyAnalysisReducer, initialState);
+export function NvdaAnalysisProvider({ children }: NvdaAnalysisProviderProps) {
+  const [state, dispatch] = useReducer(nvdaAnalysisReducer, initialState);
 
   return (
-    <SpyAnalysisContext.Provider value={state}>
-      <SpyAnalysisDispatchContext.Provider value={dispatch}>
+    <NvdaAnalysisContext.Provider value={state}>
+      <NvdaAnalysisDispatchContext.Provider value={dispatch}>
         {children}
-      </SpyAnalysisDispatchContext.Provider>
-    </SpyAnalysisContext.Provider>
+      </NvdaAnalysisDispatchContext.Provider>
+    </NvdaAnalysisContext.Provider>
   );
 }
 
-export function useSpyAnalysis() {
-  const context = useContext(SpyAnalysisContext);
+export function useNvdaAnalysis() {
+  const context = useContext(NvdaAnalysisContext);
   if (!context) {
-    throw new Error('useSpyAnalysis must be used within a SpyAnalysisProvider');
+    throw new Error('useNvdaAnalysis must be used within a NvdaAnalysisProvider');
   }
   return context;
 }
 
-export function useSpyDispatch() {
-  const context = useContext(SpyAnalysisDispatchContext);
+export function useNvdaDispatch() {
+  const context = useContext(NvdaAnalysisDispatchContext);
   if (!context) {
-    throw new Error('useSpyDispatch must be used within a SpyAnalysisProvider');
+    throw new Error('useNvdaDispatch must be used within a NvdaAnalysisProvider');
   }
   return context;
 }
 
-export { SPY_TICKER };
-export type { SpyAnalysisState, SpyAnalysisAction };
+export type { NvdaAnalysisState, NvdaAnalysisAction };
