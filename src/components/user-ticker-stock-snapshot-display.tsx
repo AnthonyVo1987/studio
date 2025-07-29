@@ -1,284 +1,197 @@
 "use client";
-
-/**
- * @fileOverview User Ticker Stock Snapshot Display - Dynamic Ticker Component
- * 
- * This component is ticker-agnostic and works with any ticker symbol from
- * the user-ticker-analysis-context. It displays stock snapshot data for
- * the currently selected ticker.
- * 
- * ARCHITECTURE PATTERN:
- * - Direct context consumption via useUserTickerAnalysis hook
- * - Safe JSON parsing with error handling
- * - Loading state derivation from FSM and data flags
- * - Dynamic ticker display with proper fallback handling
- * - Consistent error handling for cases with no ticker set
- */
-
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Download, BarChart3, CheckCircle2, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { BarChart3 } from "lucide-react";
 
 // User Ticker Context
 import { useUserTickerAnalysis } from "@/contexts/user-ticker-analysis-context";
 
-// Export utilities
-import { copyToClipboard } from "@/lib/export-utils";
+interface SnapshotDetailItem {
+  label: string;
+  current: string | null;
+  previous: string | null;
+  minute: string | null;
+}
+
+const renderDetailRow = (item: SnapshotDetailItem, index: number, isLoading: boolean, ticker: string) => {
+  if (isLoading) {
+    return (
+      <TableRow key={`loading-user-ticker-snapshot-${index}`}>
+        <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+          Waiting for {ticker} snapshot data...
+        </TableCell>
+      </TableRow>
+    );
+  }
+  return (
+    <TableRow key={item.label}>
+      <TableCell className="font-medium">{item.label}</TableCell>
+      <TableCell>{item.current ?? "N/A"}</TableCell>
+      <TableCell>{item.minute ?? "N/A"}</TableCell>
+      <TableCell>{item.previous ?? "N/A"}</TableCell>
+    </TableRow>
+  );
+};
 
 export function UserTickerStockSnapshotDisplay() {
   const userTickerState = useUserTickerAnalysis();
-  const { toast } = useToast();
-  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Get current ticker for display
-  const currentTicker = userTickerState.currentTicker || '';
-  const displayTicker = currentTicker || 'No Ticker Selected';
+  // Use the ticker from state
+  const ticker = userTickerState.currentTicker || 'TICKER';
+  const displayTicker = ticker || 'No Ticker Selected';
 
-  // Safe JSON parsing pattern
-  const stockData = userTickerState.stockSnapshotJson ? (() => {
+  // Safe JSON parsing pattern following actual Polygon API structure
+  const snapshotData = userTickerState.stockSnapshotJson ? (() => {
     try {
       const parsed = JSON.parse(userTickerState.stockSnapshotJson);
+      const day = parsed.day || {};
+      const prevDay = parsed.prevDay || {};
+      const min = parsed.min || {};
+      
       return {
-        raw: parsed,
-        result: parsed.results?.[0] || {},
-        isValid: !!parsed.results?.[0],
-        ticker: parsed.results?.[0]?.ticker || currentTicker
+        ticker: parsed.ticker || ticker,
+        open: day.o?.toFixed(2) || "N/A",
+        high: day.h?.toFixed(2) || "N/A",
+        low: day.l?.toFixed(2) || "N/A",
+        close: day.c?.toFixed(2) || "N/A",
+        volume: day.v?.toLocaleString() || "N/A",
+        vwap: day.vw?.toFixed(2) || "N/A",
+        prevOpen: prevDay.o?.toFixed(2) || "N/A",
+        prevHigh: prevDay.h?.toFixed(2) || "N/A",
+        prevLow: prevDay.l?.toFixed(2) || "N/A",
+        prevClose: prevDay.c?.toFixed(2) || "N/A",
+        prevVolume: prevDay.v?.toLocaleString() || "N/A",
+        prevVwap: prevDay.vw?.toFixed(2) || "N/A",
+        minOpen: min.o?.toFixed(2) || "N/A",
+        minHigh: min.h?.toFixed(2) || "N/A",
+        minLow: min.l?.toFixed(2) || "N/A",
+        minClose: min.c?.toFixed(2) || "N/A",
+        minVolume: min.v?.toLocaleString() || "N/A",
+        minVwap: min.vw?.toFixed(2) || "N/A",
+        currentPrice: parsed.currentPrice?.toFixed(2) || "N/A",
+        todaysChange: parsed.todaysChange?.toFixed(2) || "N/A",
+        todaysChangePerc: parsed.todaysChangePerc?.toFixed(2) || "N/A",
+        isDataReady: userTickerState.dataRetrievalComplete
       };
     } catch (e) {
       return {
-        raw: {},
-        result: {},
-        isValid: false,
-        ticker: currentTicker
+        ticker: ticker,
+        open: "Error parsing data",
+        high: "Error parsing data",
+        low: "Error parsing data",
+        close: "Error parsing data",
+        volume: "Error parsing data",
+        vwap: "Error parsing data",
+        prevOpen: "N/A",
+        prevHigh: "N/A",
+        prevLow: "N/A",
+        prevClose: "N/A",
+        prevVolume: "N/A",
+        prevVwap: "N/A",
+        minOpen: "N/A",
+        minHigh: "N/A",
+        minLow: "N/A",
+        minClose: "N/A",
+        minVolume: "N/A",
+        minVwap: "N/A",
+        currentPrice: "N/A",
+        todaysChange: "N/A",
+        todaysChangePerc: "N/A",
+        isDataReady: false
       };
     }
   })() : {
-    raw: {},
-    result: {},
-    isValid: false,
-    ticker: currentTicker
+    ticker: ticker,
+    open: "No data available",
+    high: "No data available",
+    low: "No data available",
+    close: "No data available",
+    volume: "No data available",
+    vwap: "No data available",
+    prevOpen: "N/A",
+    prevHigh: "N/A",
+    prevLow: "N/A",
+    prevClose: "N/A",
+    prevVolume: "N/A",
+    prevVwap: "N/A",
+    minOpen: "N/A",
+    minHigh: "N/A",
+    minLow: "N/A",
+    minClose: "N/A",
+    minVolume: "N/A",
+    minVwap: "N/A",
+    currentPrice: "N/A",
+    todaysChange: "N/A",
+    todaysChangePerc: "N/A",
+    isDataReady: false
   };
 
   // Derive loading state from FSM state and data availability
   const isLoading = userTickerState.status === 'loading' || 
-                   (currentTicker && userTickerState.isTickerValid && !userTickerState.dataRetrievalComplete);
+                   (ticker && userTickerState.isTickerValid && !userTickerState.dataRetrievalComplete);
 
-  // Format JSON for display
-  const formatJsonData = (data: any) => {
-    try {
-      return JSON.stringify(data, null, 2);
-    } catch (e) {
-      return 'Invalid JSON data';
-    }
-  };
-
-  // Copy handler
-  const handleCopy = async () => {
-    if (!userTickerState.stockSnapshotJson) {
-      toast({
-        title: 'No Data Available',
-        description: `No stock snapshot data available for ${displayTicker}.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const formattedData = formatJsonData(stockData.raw);
-    const success = await copyToClipboard(formattedData);
-    
-    if (success) {
-      toast({
-        title: 'Copied to Clipboard',
-        description: `${displayTicker} stock snapshot data copied successfully.`,
-      });
-    } else {
-      toast({
-        title: 'Copy Failed',
-        description: 'Could not copy data to clipboard.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Export handler
-  const handleExport = () => {
-    if (!userTickerState.stockSnapshotJson) {
-      toast({
-        title: 'No Data Available',
-        description: `No stock snapshot data available for ${displayTicker}.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const formattedData = formatJsonData(stockData.raw);
-    const filename = `${currentTicker || 'unknown'}-stock-snapshot-${new Date().toISOString().split('T')[0]}.json`;
-    
-    // Create download link
-    const blob = new Blob([formattedData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: 'Export Complete',
-      description: `${displayTicker} stock snapshot data exported as ${filename}.`,
-    });
-  };
-
-  // Extract key information for summary
-  const summary = stockData.isValid ? {
-    price: stockData.result.value || stockData.result.price,
-    change: stockData.result.change,
-    changePercent: stockData.result.changePercent,
-    volume: stockData.result.day?.volume || stockData.result.volume,
-    timestamp: stockData.result.updated || stockData.result.timestamp
-  } : null;
+  const snapshotDetails: SnapshotDetailItem[] = [
+    { label: "Open", current: snapshotData.open, previous: snapshotData.prevOpen, minute: snapshotData.minOpen },
+    { label: "High", current: snapshotData.high, previous: snapshotData.prevHigh, minute: snapshotData.minHigh },
+    { label: "Low", current: snapshotData.low, previous: snapshotData.prevLow, minute: snapshotData.minLow },
+    { label: "Close", current: snapshotData.close, previous: snapshotData.prevClose, minute: snapshotData.minClose },
+    { label: "Volume", current: snapshotData.volume, previous: snapshotData.prevVolume, minute: snapshotData.minVolume },
+    { label: "VWAP", current: snapshotData.vwap, previous: snapshotData.prevVwap, minute: snapshotData.minVwap },
+  ];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          {displayTicker} Stock Snapshot
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            {displayTicker} Stock Snapshot
+          </span>
+          <Badge variant="outline">{snapshotData.ticker}</Badge>
         </CardTitle>
         <CardDescription>
-          {currentTicker 
-            ? `Raw stock snapshot data from Polygon.io API for ${currentTicker}`
-            : "Select a ticker symbol to view stock snapshot data"
+          {ticker && userTickerState.isTickerValid
+            ? `Detailed trading data and volume metrics for ${ticker}`
+            : "Select a valid ticker symbol to view stock snapshot data"
           }
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Status and Actions */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Badge variant={userTickerState.hasStockData ? "default" : "secondary"}>
-                {userTickerState.hasStockData ? (
-                  <><CheckCircle2 className="h-3 w-3 mr-1" />Data Available</>
-                ) : (
-                  <><AlertCircle className="h-3 w-3 mr-1" />No Data</>
-                )}
-              </Badge>
-              {isLoading && (
-                <Badge variant="outline">Loading...</Badge>
+          {/* Snapshot Data Table */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Metric</TableHead>
+                <TableHead>Current Day</TableHead>
+                <TableHead>Current Minute</TableHead>
+                <TableHead>Previous Day</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {!ticker || !userTickerState.isTickerValid ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground h-24">
+                    {!ticker ? "No ticker selected" : "Invalid ticker symbol"}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                snapshotDetails.map((item, index) => renderDetailRow(item, index, isLoading, ticker))
               )}
-              {!currentTicker && (
-                <Badge variant="outline">No Ticker</Badge>
-              )}
-              {currentTicker && !userTickerState.isTickerValid && (
-                <Badge variant="destructive">Invalid Ticker</Badge>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCopy}
-                variant="outline"
-                size="sm"
-                disabled={!userTickerState.stockSnapshotJson}
-                className="flex items-center gap-2"
-              >
-                <Copy className="h-4 w-4" />
-                Copy JSON
-              </Button>
-              <Button
-                onClick={handleExport}
-                variant="outline"
-                size="sm"
-                disabled={!userTickerState.stockSnapshotJson}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export JSON
-              </Button>
-            </div>
-          </div>
+            </TableBody>
+          </Table>
 
-          {/* Summary Information */}
-          {summary && (
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold mb-2">Quick Summary</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Price:</span>
-                  <span className="ml-2 font-medium">
-                    {summary.price ? `$${Number(summary.price).toFixed(2)}` : 'N/A'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Change:</span>
-                  <span className={`ml-2 font-medium ${
-                    summary.change && summary.change >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {summary.change ? `${summary.change >= 0 ? '+' : ''}${summary.change.toFixed(2)}` : 'N/A'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Change %:</span>
-                  <span className={`ml-2 font-medium ${
-                    summary.changePercent && summary.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {summary.changePercent ? `${summary.changePercent.toFixed(2)}%` : 'N/A'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Volume:</span>
-                  <span className="ml-2">{summary.volume ? summary.volume.toLocaleString() : 'N/A'}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Updated:</span>
-                  <span className="ml-2">
-                    {summary.timestamp ? new Date(summary.timestamp).toLocaleString() : 'N/A'}
-                  </span>
-                </div>
-              </div>
+          {/* Loading Badge */}
+          {isLoading && (
+            <div className="flex justify-center">
+              <Badge variant="outline">Loading {ticker} Snapshot...</Badge>
             </div>
           )}
-
-          {/* JSON Data Display */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="font-semibold">Raw JSON Data</h4>
-              <Button
-                onClick={() => setIsExpanded(!isExpanded)}
-                variant="ghost"
-                size="sm"
-              >
-                {isExpanded ? 'Collapse' : 'Expand'}
-              </Button>
-            </div>
-            
-            <div className="border rounded-lg">
-              <pre className={`p-4 text-sm overflow-auto bg-muted/50 ${
-                isExpanded ? 'max-h-none' : 'max-h-48'
-              }`}>
-                <code>
-                  {isLoading && currentTicker
-                    ? `Loading ${currentTicker} stock snapshot data...`
-                    : !currentTicker
-                    ? 'No ticker selected'
-                    : userTickerState.stockSnapshotJson
-                    ? formatJsonData(stockData.raw)
-                    : 'No stock snapshot data available'
-                  }
-                </code>
-              </pre>
-            </div>
-          </div>
-
+          
           {/* Error State */}
           {userTickerState.tickerValidationError && (
-            <div className="text-sm text-destructive">
+            <div className="text-sm text-destructive text-center">
               {userTickerState.tickerValidationError}
             </div>
           )}

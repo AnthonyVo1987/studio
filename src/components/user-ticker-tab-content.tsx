@@ -238,7 +238,7 @@ export function UserTickerTabContent() {
         payload: {
           stockSnapshotJson: stockDataResult.data.stockSnapshotJson,
           marketStatusJson: stockDataResult.data.marketStatusJson,
-          standardTaJson: stockDataResult.data.standardTasJson,
+          standardTasJson: stockDataResult.data.standardTasJson,
           aiAnalyzedTaJson: taResult.data.aiAnalyzedTaJson,
         }
       });

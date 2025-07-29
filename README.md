@@ -33,7 +33,7 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 ###
 ---
 **README Document Version:** 4.21
-**Application Version (from `app-metadata.json`):** v4.2.2.0
+**Application Version (from `app-metadata.json`):** v4.2.3.0
 **Last Updated:** 2025-07-28
 
 ## 1. Introduction
@@ -326,9 +326,10 @@ npm run start
 
 ## 6. Change History & Versioning
 *   **This README Document Version:** 4.21
-*   **Current Application Version:** `v4.2.2.0`
+*   **Current Application Version:** `v4.2.3.0`
     *   Sourced dynamically from `src/config/app-metadata.json`.
-*   **Latest Update (v4.2.2.0):** New task delegation system and /new_task command with updated operating procedures
+*   **Latest Update (v4.2.3.0):** User Input Ticker critical bug fixes achieving complete SPY/NVDA blueprint parity
+*   **Previous Update (v4.2.2.0):** New task delegation system and /new_task command with updated operating procedures
 *   **Previous Update (v4.2.1.0):** Bug fix for AI Key Takeaways functionality across all ticker tabs
 *   **Major Release (v4.2.0.0):** Multi-tab architecture with User Input Ticker, NVDA dedicated pages, and ticker-agnostic logging system
 *   **Changelogs:** Refer to `CHANGELOG.md`.

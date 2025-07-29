@@ -1,378 +1,201 @@
-"use client";
+'use client';
 
-/**
- * @fileOverview User Ticker AI Options Analysis Display - Dynamic Ticker Component
- * 
- * This component is ticker-agnostic and works with any ticker symbol from
- * the user-ticker-analysis-context. It displays AI-generated options analysis
- * for the currently selected ticker.
- * 
- * ARCHITECTURE PATTERN:
- * - Direct context consumption via useUserTickerAnalysis hook
- * - Safe JSON parsing with error handling
- * - Loading state derivation from FSM and data flags
- * - Dynamic ticker display with proper fallback handling
- * - Consistent error handling for cases with no ticker set
- */
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Download, Copy, Shield, TrendingUp, TrendingDown, CandlestickChart } from 'lucide-react';
+import { useUserTickerAnalysis } from '@/contexts/user-ticker-analysis-context';
+import { useQuickExport } from '@/hooks/use-export-actions';
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Copy, Download, TrendingUp, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-
-// User Ticker Context
-import { useUserTickerAnalysis } from "@/contexts/user-ticker-analysis-context";
-
-// Export utilities
-import { copyToClipboard } from "@/lib/export-utils";
+interface OptionsWall {
+  strike: number;
+  openInterest?: number;
+  volume?: number;
+  type: 'call' | 'put';
+}
 
 export function UserTickerAiOptionsAnalysisDisplay() {
   const userTickerState = useUserTickerAnalysis();
-  const { toast } = useToast();
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [viewMode, setViewMode] = useState<'formatted' | 'raw'>('formatted');
 
   // Get current ticker for display
-  const currentTicker = userTickerState.currentTicker || '';
-  const displayTicker = currentTicker || 'No Ticker Selected';
+  const ticker = userTickerState.currentTicker || 'TICKER';
+  const displayTicker = ticker || 'No Ticker Selected';
 
-  // Safe JSON parsing pattern
+  // Derived state - data availability and loading state
+  const isDataReady = userTickerState.hasAiOptionsAnalysis;
+  const isLoading = userTickerState.isAiOptionsAnalysisLoading;
+  
+  // Parse AI options analysis data for export and display
   const optionsAnalysisData = userTickerState.aiOptionsAnalysisJson ? (() => {
     try {
-      const parsed = JSON.parse(userTickerState.aiOptionsAnalysisJson);
-      return {
-        raw: parsed,
-        isValid: !!parsed && typeof parsed === 'object',
-        analysis: parsed.analysis || parsed.content || parsed.response || '',
-        summary: parsed.summary || '',
-        strategies: parsed.strategies || parsed.recommended_strategies || [],
-        riskAssessment: parsed.riskAssessment || parsed.risk_assessment || '',
-        keyLevels: parsed.keyLevels || parsed.key_levels || {},
-        confidence: parsed.confidence || null,
-        timestamp: parsed.timestamp || parsed.lastUpdated || new Date().toISOString()
-      };
+      return JSON.parse(userTickerState.aiOptionsAnalysisJson);
     } catch (e) {
-      return {
-        raw: {},
-        isValid: false,
-        analysis: '',
-        summary: '',
-        strategies: [],
-        riskAssessment: '',
-        keyLevels: {},
-        confidence: null,
-        timestamp: null
-      };
+      return {};
     }
-  })() : {
-    raw: {},
-    isValid: false,
-    analysis: '',
-    summary: '',
-    strategies: [],
-    riskAssessment: '',
-    keyLevels: {},
-    confidence: null,
-    timestamp: null
-  };
+  })() : {};
 
-  // Derive loading state from FSM state and data availability
-  const isLoading = userTickerState.status === 'loading' || 
-                   (currentTicker && userTickerState.isTickerValid && !userTickerState.dataRetrievalComplete);
+  // Extract wall metrics from AI analysis for display (hardcoded labels as requested)
+  // Fix: Format arrays of wall objects into readable strings to prevent React rendering crash
+  const wallMetrics = isDataReady ? {
+    callWalls: Array.isArray(optionsAnalysisData.callWalls) && optionsAnalysisData.callWalls.length > 0
+      ? `${optionsAnalysisData.callWalls.length} call wall${optionsAnalysisData.callWalls.length > 1 ? 's' : ''} identified`
+      : 'No call walls detected',
+    putWalls: Array.isArray(optionsAnalysisData.putWalls) && optionsAnalysisData.putWalls.length > 0
+      ? `${optionsAnalysisData.putWalls.length} put wall${optionsAnalysisData.putWalls.length > 1 ? 's' : ''} identified`
+      : 'No put walls detected'
+  } : null;
 
-  // Check if AI Options Analysis is currently loading (separate from main FSM)
-  const isAiLoading = userTickerState.isAiOptionsAnalysisLoading;
+  // Export functionality
+  const exportActions = useQuickExport(
+    optionsAnalysisData,
+    `${ticker}_ai_options_analysis`,
+    `${ticker} AI Options Analysis`
+  );
 
-  // Format JSON for display
-  const formatJsonData = (data: any) => {
-    try {
-      return JSON.stringify(data, null, 2);
-    } catch (e) {
-      return 'Invalid JSON data';
-    }
-  };
-
-  // Copy handler
-  const handleCopy = async () => {
-    if (!userTickerState.aiOptionsAnalysisJson) {
-      toast({
-        title: 'No Data Available',
-        description: `No AI options analysis available for ${displayTicker}.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const contentToCopy = viewMode === 'formatted' 
-      ? optionsAnalysisData.analysis || formatJsonData(optionsAnalysisData.raw)
-      : formatJsonData(optionsAnalysisData.raw);
-    
-    const success = await copyToClipboard(contentToCopy);
-    
-    if (success) {
-      toast({
-        title: 'Copied to Clipboard',
-        description: `${displayTicker} AI options analysis copied successfully.`,
-      });
-    } else {
-      toast({
-        title: 'Copy Failed',
-        description: 'Could not copy data to clipboard.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Export handler
   const handleExport = () => {
-    if (!userTickerState.aiOptionsAnalysisJson) {
-      toast({
-        title: 'No Data Available',
-        description: `No AI options analysis available for ${displayTicker}.`,
-        variant: 'destructive',
-      });
-      return;
+    if (isDataReady) {
+      exportActions.download();
     }
+  };
 
-    const contentToExport = viewMode === 'formatted' && optionsAnalysisData.analysis
-      ? optionsAnalysisData.analysis
-      : formatJsonData(optionsAnalysisData.raw);
-    
-    const fileExtension = viewMode === 'formatted' && optionsAnalysisData.analysis ? 'md' : 'json';
-    const mimeType = viewMode === 'formatted' && optionsAnalysisData.analysis ? 'text/markdown' : 'application/json';
-    const filename = `${currentTicker || 'unknown'}-ai-options-analysis-${new Date().toISOString().split('T')[0]}.${fileExtension}`;
-    
-    // Create download link
-    const blob = new Blob([contentToExport], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: 'Export Complete',
-      description: `${displayTicker} AI options analysis exported as ${filename}.`,
-    });
+  const handleCopy = async () => {
+    if (isDataReady) {
+      await exportActions.copy();
+    }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          {displayTicker} AI Options Analysis
-        </CardTitle>
-        <CardDescription>
-          {currentTicker 
-            ? `AI-powered options trading analysis and strategies for ${currentTicker}`
-            : "Select a ticker symbol to view AI options analysis"
-          }
-        </CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <CandlestickChart className="h-5 w-5" />
+              {displayTicker} AI Options Analysis
+            </CardTitle>
+            <CardDescription>
+              {ticker && userTickerState.isTickerValid
+                ? `AI-powered analysis of ${ticker} options chain data with strategic insights.`
+                : "Select a valid ticker symbol to view AI options analysis"
+              }
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCopy} 
+              disabled={!isDataReady}
+              title={`Copy ${ticker} AI Options Analysis as JSON`}
+            >
+              <Copy className="mr-2 h-4 w-4" /> Copy JSON
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExport} 
+              disabled={!isDataReady}
+              title={`Export ${ticker} AI Options Analysis as JSON`}
+            >
+              <Download className="mr-2 h-4 w-4" /> Export JSON
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {/* Status and Actions */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Badge variant={userTickerState.hasAiOptionsAnalysis ? "default" : "secondary"}>
-                {userTickerState.hasAiOptionsAnalysis ? (
-                  <><CheckCircle2 className="h-3 w-3 mr-1" />Data Available</>
-                ) : (
-                  <><AlertCircle className="h-3 w-3 mr-1" />No Data</>
-                )}
-              </Badge>
-              {optionsAnalysisData.confidence && (
-                <Badge variant="outline">
-                  Confidence: {optionsAnalysisData.confidence}%
-                </Badge>
-              )}
-              {isAiLoading && (
-                <Badge variant="outline">
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  AI Processing...
-                </Badge>
-              )}
-              {isLoading && !isAiLoading && (
-                <Badge variant="outline">Loading...</Badge>
-              )}
-              {!currentTicker && (
-                <Badge variant="outline">No Ticker</Badge>
-              )}
-              {currentTicker && !userTickerState.isTickerValid && (
-                <Badge variant="destructive">Invalid Ticker</Badge>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setViewMode(viewMode === 'formatted' ? 'raw' : 'formatted')}
-                variant="ghost"
-                size="sm"
-                disabled={!userTickerState.aiOptionsAnalysisJson}
-              >
-                {viewMode === 'formatted' ? 'Show Raw' : 'Show Formatted'}
-              </Button>
-              <Button
-                onClick={handleCopy}
-                variant="outline"
-                size="sm"
-                disabled={!userTickerState.aiOptionsAnalysisJson}
-                className="flex items-center gap-2"
-              >
-                <Copy className="h-4 w-4" />
-                Copy
-              </Button>
-              <Button
-                onClick={handleExport}
-                variant="outline"
-                size="sm"
-                disabled={!userTickerState.aiOptionsAnalysisJson}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-            </div>
+        {!ticker || !userTickerState.isTickerValid ? (
+          <div className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            {!ticker ? "No ticker selected" : "Invalid ticker symbol"}
           </div>
-
-          {/* Key Levels */}
-          {optionsAnalysisData.keyLevels && Object.keys(optionsAnalysisData.keyLevels).length > 0 && (
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold mb-2">Key Price Levels</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                {Object.entries(optionsAnalysisData.keyLevels).map(([level, value]: [string, any]) => (
-                  <div key={level}>
-                    <span className="text-muted-foreground capitalize">{level.replace('_', ' ')}:</span>
-                    <span className="ml-2 font-medium">
-                      {typeof value === 'number' ? `$${value.toFixed(2)}` : value}
-                    </span>
-                  </div>
-                ))}
+        ) : isDataReady && wallMetrics ? (
+          <div className="space-y-4">
+            {/* Hardcoded wall metric labels as requested */}
+            {/* Call Walls Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">Call Walls</h3>
               </div>
-            </div>
-          )}
-
-          {/* Recommended Strategies */}
-          {optionsAnalysisData.strategies && optionsAnalysisData.strategies.length > 0 && (
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold mb-2">Recommended Strategies</h4>
-              <ul className="text-sm space-y-2">
-                {optionsAnalysisData.strategies.map((strategy: any, index: number) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <div>
-                      <div className="font-medium">
-                        {typeof strategy === 'string' ? strategy : strategy.name || strategy.strategy}
-                      </div>
-                      {typeof strategy === 'object' && strategy.description && (
-                        <div className="text-muted-foreground mt-1">
-                          {strategy.description}
+              {Array.isArray(optionsAnalysisData.callWalls) && optionsAnalysisData.callWalls.length > 0 ? (
+                <div className="space-y-2">
+                  {optionsAnalysisData.callWalls.map((wall: OptionsWall, index: number) => (
+                    <div key={index} className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-medium text-green-900 dark:text-green-100">Strike: ${wall.strike}</span>
                         </div>
-                      )}
+                        <div className="text-right text-sm">
+                          <div className="text-green-700 dark:text-green-300">OI: {wall.openInterest?.toLocaleString()}</div>
+                          {wall.volume && <div className="text-green-600 dark:text-green-400">Vol: {wall.volume.toLocaleString()}</div>}
+                        </div>
+                      </div>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-green-700 dark:text-green-300 italic">No call walls detected</p>
+              )}
             </div>
-          )}
 
-          {/* Risk Assessment */}
-          {optionsAnalysisData.riskAssessment && (
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold mb-2">Risk Assessment</h4>
-              <div className="text-sm">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {optionsAnalysisData.riskAssessment}
-                </ReactMarkdown>
+            {/* Put Walls Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-5 w-5 text-red-600" />
+                <h3 className="text-lg font-semibold text-red-900 dark:text-red-100">Put Walls</h3>
               </div>
-            </div>
-          )}
-
-          {/* Summary */}
-          {optionsAnalysisData.summary && (
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold mb-2">Analysis Summary</h4>
-              <div className="text-sm">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {optionsAnalysisData.summary}
-                </ReactMarkdown>
-              </div>
-            </div>
-          )}
-
-          {/* Options Analysis Content */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="font-semibold">
-                {viewMode === 'formatted' ? 'AI Options Analysis' : 'Raw JSON Data'}
-              </h4>
-              <Button
-                onClick={() => setIsExpanded(!isExpanded)}
-                variant="ghost"
-                size="sm"
-              >
-                {isExpanded ? 'Collapse' : 'Expand'}
-              </Button>
+              {Array.isArray(optionsAnalysisData.putWalls) && optionsAnalysisData.putWalls.length > 0 ? (
+                <div className="space-y-2">
+                  {optionsAnalysisData.putWalls.map((wall: OptionsWall, index: number) => (
+                    <div key={index} className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-medium text-red-900 dark:text-red-100">Strike: ${wall.strike}</span>
+                        </div>
+                        <div className="text-right text-sm">
+                          <div className="text-red-700 dark:text-red-300">OI: {wall.openInterest?.toLocaleString()}</div>
+                          {wall.volume && <div className="text-red-600 dark:text-red-400">Vol: {wall.volume.toLocaleString()}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-red-700 dark:text-red-300 italic">No put walls detected</p>
+              )}
             </div>
             
-            <div className="border rounded-lg">
-              <div className={`p-4 text-sm overflow-auto bg-muted/50 ${
-                isExpanded ? 'max-h-none' : 'max-h-96'
-              }`}>
-                {isAiLoading ? (
-                  <div className="text-center text-muted-foreground flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating AI options analysis for {currentTicker}...
-                  </div>
-                ) : isLoading && currentTicker ? (
-                  <div className="text-center text-muted-foreground">
-                    Loading {currentTicker} data for AI options analysis...
-                  </div>
-                ) : !currentTicker ? (
-                  <div className="text-center text-muted-foreground">
-                    No ticker selected
-                  </div>
-                ) : !userTickerState.aiOptionsAnalysisJson ? (
-                  <div className="text-center text-muted-foreground">
-                    No AI options analysis available. Use the "AI Options Analysis" button to generate insights.
-                  </div>
-                ) : viewMode === 'formatted' && optionsAnalysisData.analysis ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {optionsAnalysisData.analysis}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <pre>
-                    <code>{formatJsonData(optionsAnalysisData.raw)}</code>
-                  </pre>
-                )}
+            <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+              <Shield className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium">Options Flow Analysis</p>
+                <p className="text-xs text-muted-foreground">
+                  AI analysis identifies key support and resistance levels through options positioning
+                </p>
               </div>
             </div>
+            
+            <div className="prose prose-sm max-w-none">
+              <p className="text-sm text-muted-foreground">
+                {ticker} AI options analysis completed successfully. Use the export buttons above to view the detailed insights.
+              </p>
+            </div>
           </div>
-
-          {/* Timestamp */}
-          {optionsAnalysisData.timestamp && (
-            <div className="text-xs text-muted-foreground">
-              Analysis generated: {new Date(optionsAnalysisData.timestamp).toLocaleString()}
-            </div>
-          )}
-
-          {/* Error State */}
-          {userTickerState.tickerValidationError && (
-            <div className="text-sm text-destructive">
-              {userTickerState.tickerValidationError}
-            </div>
-          )}
-        </div>
+        ) : isLoading ? (
+          <div className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            Generating {ticker} AI options analysis...
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            No {ticker} AI options analysis available. Generate analysis first using the button above.
+          </div>
+        )}
+        
+        {/* Error State */}
+        {userTickerState.tickerValidationError && (
+          <div className="text-sm text-destructive text-center mt-4">
+            {userTickerState.tickerValidationError}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

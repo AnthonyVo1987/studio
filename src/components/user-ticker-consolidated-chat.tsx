@@ -108,6 +108,7 @@ export function UserTickerConsolidatedChat() {
     promptName?: string;
     webSearchEnabled: boolean;
     isUserInput: boolean;
+    userInputText?: string;
   } | null>(null);
 
   // Action state for unified chat
@@ -131,9 +132,9 @@ export function UserTickerConsolidatedChat() {
         const userMessage: ChatMessage = {
           id: `user-${Date.now()}`,
           role: 'user',
-          content: currentRequestContext.isUserInput 
-            ? userInput 
-            : `[${currentRequestContext.promptName}] ${currentRequestContext.promptName?.replace('-', ' ')}`,
+          content: currentRequestContext.promptName && !currentRequestContext.isUserInput
+            ? `[${currentRequestContext.promptName}] ${currentRequestContext.userInputText || ''}`
+            : currentRequestContext.userInputText || userInput,
           timestamp: new Date(),
           webSearchUsed: currentRequestContext.webSearchEnabled
         };
@@ -216,7 +217,8 @@ export function UserTickerConsolidatedChat() {
     setCurrentRequestContext({
       promptName,
       webSearchEnabled,
-      isUserInput
+      isUserInput,
+      userInputText // Store the actual input text for later use
     });
 
     startTransition(() => {
@@ -255,8 +257,8 @@ export function UserTickerConsolidatedChat() {
   };
 
   // Button prompt submission
-  const handleButtonPromptSubmit = (promptName: string, webSearchEnabled: boolean) => {
-    handleChatSubmission(promptName, '', webSearchEnabled, false);
+  const handleButtonPromptSubmit = (button: typeof appDataButtons[0] | typeof webSearchButtons[0]) => {
+    handleChatSubmission(button.promptName, button.title, button.webSearchEnabled, false);
   };
 
   // Clear chat history
@@ -388,7 +390,7 @@ export function UserTickerConsolidatedChat() {
                 return (
                   <Button
                     key={button.promptName}
-                    onClick={() => handleButtonPromptSubmit(button.promptName, button.webSearchEnabled)}
+                    onClick={() => handleButtonPromptSubmit(button)}
                     variant="outline"
                     size="sm"
                     disabled={!hasValidTicker || isChatPending}

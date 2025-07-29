@@ -227,10 +227,6 @@ export async function userTickerConsolidatedChatAction(
     const useWebSearch = validatedInput.webSearchEnabled;
     console.log(`[userTickerConsolidatedChatAction] Using web search: ${useWebSearch}`);
 
-    // Validate user input
-    if (!validatedInput.userInput || validatedInput.userInput.trim() === "") {
-      throw new Error("User input cannot be empty.");
-    }
     // Get appropriate prompt
     const promptName = validatedInput.promptName || (useWebSearch ? 'general' : 'general');
     const systemPrompt = useWebSearch 
@@ -240,14 +236,23 @@ export async function userTickerConsolidatedChatAction(
     // Build user message
     let userMessage = '';
     
-    if (validatedInput.userInput) {
+    if (validatedInput.promptName) {
+      // Button prompt - generate appropriate message based on promptName
+      const buttonPromptMap: Record<string, string> = {
+        'stock-trader-takeaways': `Stock Trader's Takeaways`,
+        'options-trader-takeaways': `Options Trader's Takeaways`,
+        'holistic-takeaways': `Additional Holistic Takeaways`,
+        'support-resistance-web-search': 'S/R Levels Search',
+        'technical-analysis-web-search': 'Technical Analysis Search',
+        'options-flow-web-search': 'Options Flow Search'
+      };
+      userMessage = buttonPromptMap[validatedInput.promptName] || `Please provide ${validatedInput.promptName.replace(/-/g, ' ')} analysis for ${ticker}.`;
+    } else if (validatedInput.userInput && validatedInput.userInput.trim() !== "") {
       // User input message
       userMessage = validatedInput.userInput;
-    } else if (validatedInput.promptName) {
-      // Button prompt message
-      userMessage = `Please provide ${validatedInput.promptName.replace('-', ' ')} analysis for ${ticker}.`;
     } else {
-      userMessage = `Please analyze ${ticker}.`;
+      // No input provided - this is an error
+      throw new Error("User input cannot be empty.");
     }
 
     // Add context data for app data requests
