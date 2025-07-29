@@ -6,33 +6,94 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Agents**: Call and Use whatever Agents needed for the requested task(s), allowing ALL tool and MCP Tool use for ALL Agents:
 
-Additional Tools that Every Agent can use as needed:
-- **Context Gathering**: Use CONTEXT7 tool as needed to understand current architecture and best practices based on the app's tech stack
-- **Sequential Analysis**: Use SEQUENTIAL THINKING tool as needed for complex investigations requiring step-by-step reasoning
+### Tool Usage Optimization Guidelines
+
+**CRITICAL**: All AI specialists must follow these enhanced tool usage practices for optimal efficiency and quality delivery.
+
+#### Sequential Thinking Tool - Decision Criteria
+
+**✅ OPTIMAL USE CASES:**
+- Complex multi-step analysis requiring systematic breakdown
+- Tasks with uncertain scope or evolving requirements that need exploration
+- Architecture decisions needing comprehensive evaluation of trade-offs
+- Problem diagnosis requiring step-by-step reasoning and validation
+- Feature planning with multiple dependencies and integration points
+- Code review tasks involving complex architectural patterns
+
+**❌ AVOID FOR:**
+- Simple, straightforward single-step tasks (e.g., updating a single field)
+- Well-understood patterns already established in codebase
+- Basic syntax questions or routine implementation tasks
+- Tasks with clear, predetermined solutions
+
+**Quality Metrics:**
+- Use when task complexity score > 7/10 (requires significant analysis)
+- Apply for tasks estimated >2 hours of implementation time
+- Essential for tasks affecting multiple system components
+
+#### Context7 Tool - Decision Criteria  
+
+**✅ OPTIMAL USE CASES:**
+- Research on current best practices for technology stack components
+- Understanding new libraries/frameworks being integrated into project
+- Industry standards for implementation approaches not documented locally
+- External API integration patterns and authentication methods
+- Performance optimization techniques for specific technologies
+- Security best practices for financial application development
+
+**❌ AVOID FOR:**
+- Well-known patterns already documented in project CLAUDE.md
+- Simple syntax or basic language feature questions
+- Internal project-specific patterns and conventions
+- Tasks using established project utilities and helpers
+
+**Quality Metrics:**
+- Use when integrating external technologies or APIs
+- Apply for tasks requiring industry-standard compliance
+- Essential for security-critical implementations
+
+#### Tool Call Optimization Patterns
+
+**Efficient Tool Usage:**
+```
+1. Assess task complexity before beginning
+2. Choose appropriate tool based on decision criteria
+3. Use tools proactively at task start, not reactively during work
+4. Document tool insights in deliverables
+5. Avoid tool stacking unless genuinely required
+```
+
+**Anti-Patterns to Avoid:**
+- Using both tools for simple tasks
+- Excessive tool calls that don't add measurable value
+- Tool usage without incorporating insights into implementation
+- Sequential tool calls with redundant information gathering
 
 ### Custom Slash Commands
-- **Custom slash command "/new_task"**: ✅ **IMPLEMENTED** - NEW WORKFLOW: User runs "/new_task" command which activates @tech-lead-orchestrator to read `docs/new_task.md` (user-filled task template) and coordinate AI development team delegation workflow. Stored as `.claude/commands/new_task.md`
+- **Custom slash command "/new_task"**: ✅ **IMPLEMENTED** - NEW WORKFLOW: User runs "/new_task" command which activates @tech-lead-orchestrator to read `docs/new_task_details.md` (user-filled task template) and coordinate AI development team delegation workflow. Stored as `.claude/commands/new_task.md`
 - **Custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
 
 ### New Task Workflow Process (NEW WORKFLOW)
 
 #### User Workflow Steps:
-1. **User Preparation**: User fills out the standardized task template at `docs/new_task.md` with complete task requirements, objectives, and context
+1. **User Preparation**: User fills out the standardized task template at `docs/new_task_details.md` with complete task requirements, objectives, and context
 2. **Task Initiation**: User runs the "/new_task" custom command in Claude Code
 3. **Orchestrator Activation**: Command automatically activates @tech-lead-orchestrator to coordinate the task
 4. **Team Delegation**: @tech-lead-orchestrator reads the task template and delegates to appropriate AI development team specialists
 
 #### Template-Driven Task Management:
-- **Structured Requirements**: All tasks must follow the `docs/new_task.md` template format for consistency
+- **Structured Requirements**: All tasks must follow the `docs/new_task_details.md` template format for consistency
 - **Specialist Assignment Matrix**: Template includes clear mapping of task types to appropriate specialists
 - **Quality Gates**: Built-in checkpoints ensure proper code review and testing before delivery
 - **Documentation Requirements**: Mandatory documentation updates specified for each task type
 - **Progress Tracking**: Template milestones enable systematic progress monitoring
 
 #### Orchestrator Responsibilities in New Workflow:
-- **Template Analysis**: Read and parse the user-filled `docs/new_task.md` template
+- **Template Analysis**: Read and parse the user-filled `docs/new_task_details.md` template
+- **Tool Usage Coordination**: Apply enhanced tool usage guidelines and share with specialists
 - **Task Breakdown**: Decompose complex requirements into specialist-appropriate subtasks
 - **Team Coordination**: Route tasks to appropriate specialists based on technical requirements
+- **Tool Selection Guidance**: Ensure specialists use appropriate tools based on task complexity
 - **Quality Assurance**: Ensure all template requirements and quality gates are met
 - **Progress Management**: Monitor task completion against template milestones
 
@@ -45,6 +106,7 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 
 #### ✅ ALLOWED Orchestrator Activities:
 - **Task Analysis & Planning**: Break down complex tasks into specific, actionable subtasks
+- **Tool Usage Guidance**: Share enhanced tool usage guidelines with specialists and monitor appropriate tool selection
 - **Specialist Assignment**: Route tasks to appropriate specialist agents based on technical requirements
 - **Team Coordination**: Manage communication and dependencies between multiple specialists
 - **Progress Tracking**: Monitor task completion and identify blockers or bottlenecks
@@ -107,14 +169,14 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 
 ### New Task Template Integration (Updated for NEW WORKFLOW)
 
-**IMPORTANT**: The new workflow is fully integrated with the standardized task template at `docs/new_task.md`. This template provides:
+**IMPORTANT**: The new workflow is fully integrated with the standardized task template at `docs/new_task_details.md`. This template provides:
 - **Structured Task Definition**: Consistent format for all development tasks
 - **Specialist Assignment Matrix**: Clear mapping of task types to appropriate specialists
 - **Quality Gates**: Required checkpoints before task completion
 - **Documentation Requirements**: Mandatory updates for different task types
 
 #### Template Usage in NEW WORKFLOW:
-1. **User Template Completion**: User fills out `docs/new_task.md` with complete task requirements before running "/new_task" command
+1. **User Template Completion**: User fills out `docs/new_task_details.md` with complete task requirements before running "/new_task" command
 2. **Orchestrator Template Reading**: @tech-lead-orchestrator reads the user-completed template to understand full task scope
 3. **Specialist Briefing**: Template sections provide structured context for specialist assignments
 4. **Progress Tracking**: Template milestones enable systematic progress monitoring
@@ -145,6 +207,7 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 
 #### Effective Orchestration Indicators:
 - **Clear Task Delegation**: All implementation work is assigned to appropriate specialists
+- **Enhanced Tool Usage**: Specialists apply appropriate tools based on task complexity guidelines
 - **Minimal Role Boundary Violations**: Orchestrator stays within coordination responsibilities
 - **Efficient Specialist Utilization**: Right specialist assigned to right task consistently
 - **Quality Gate Compliance**: All code reviews and testing requirements are met
@@ -646,7 +709,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 23. **Tech Lead Orchestrator Role Boundaries** - CRITICAL role separation enforced:
     - **@tech-lead-orchestrator is COORDINATION-ONLY**: Must never perform hands-on implementation work
     - **Mandatory Delegation**: All code writing, editing, and technical tasks must be delegated to appropriate specialists
-    - **Task Template Compliance**: All workflows must reference `docs/new_task.md` template structure
+    - **Task Template Compliance**: All workflows must reference `docs/new_task_details.md` template structure
     - **Quality Gate Enforcement**: Orchestrator ensures code review processes without performing reviews directly
     - **Role Violation Prevention**: Immediate halt and reassignment if orchestrator attempts hands-on work
     - **Reference Section**: See "Tech Lead Orchestrator Operating Rules" section for complete guidelines
@@ -777,7 +840,7 @@ Your StockSage project has been analyzed and configured with a specialized AI de
 ### Development Workflow Integration (Updated for NEW WORKFLOW)
 
 #### Standard Development Process:
-1. **Task Initiation**: User fills `docs/new_task.md` template and runs "/new_task" command
+1. **Task Initiation**: User fills `docs/new_task_details.md` template and runs "/new_task" command
 2. **Orchestrator Coordination**: @tech-lead-orchestrator reads template and delegates to specialists
 3. **Feature Development**: Start with @react-nextjs-expert or @react-component-architect
 4. **AI Integration**: Use @api-architect for Genkit flows and prompt engineering
@@ -787,7 +850,7 @@ Your StockSage project has been analyzed and configured with a specialized AI de
 8. **Task Closure**: Complete all template requirements and use "/close_task" command
 
 #### New Workflow Benefits:
-- **Template-Driven Consistency**: Every task follows the standardized `docs/new_task.md` format
+- **Template-Driven Consistency**: Every task follows the standardized `docs/new_task_details.md` format
 - **Automatic Orchestrator Activation**: "/new_task" command ensures proper coordination from start
 - **Specialist Assignment Clarity**: Template mapping ensures right specialist for each task type
 - **Quality Gate Enforcement**: Built-in checkpoints prevent incomplete deliveries
@@ -805,7 +868,7 @@ Your StockSage project has been analyzed and configured with a specialized AI de
 
 1. **NO Direct Implementation**: @tech-lead-orchestrator MUST NOT write, edit, or modify any code files
 2. **Mandatory Delegation**: All hands-on work must be assigned to appropriate specialists
-3. **Task Template Compliance**: All workflows must reference `docs/new_task.md` template structure
+3. **Task Template Compliance**: All workflows must reference `docs/new_task_details.md` template structure
 4. **"/new_task" Command Integration**: Orchestrator must be activated via "/new_task" command to read user-filled template
 5. **Template-Driven Coordination**: Use template sections to provide structured context to specialists
 6. **Quality Gate Enforcement**: Ensure code review processes are followed before delivery
@@ -813,6 +876,6 @@ Your StockSage project has been analyzed and configured with a specialized AI de
 8. **Task Closure Integration**: Ensure "/close_task" workflow is followed for proper task finalization
 
 #### NEW WORKFLOW Summary:
-User fills `docs/new_task.md` → User runs "/new_task" → @tech-lead-orchestrator reads template → Delegates to specialists → Quality gates → Task completion → "/close_task" finalization
+User fills `docs/new_task_details.md` → User runs "/new_task" → @tech-lead-orchestrator reads template → Delegates to specialists → Quality gates → Task completion → "/close_task" finalization
 
 Your specialized AI development team is now configured and ready to handle the unique challenges of building a sophisticated financial analysis application with Next.js and AI integration!

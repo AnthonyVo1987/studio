@@ -32,9 +32,28 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 
 ###
 ---
-**README Document Version:** 4.21
-**Application Version (from `app-metadata.json`):** v4.2.3.0
-**Last Updated:** 2025-07-28
+**README Document Version:** 4.22
+**Application Version (from `app-metadata.json`):** v4.4.0.0
+**Last Updated:** 2025-07-29
+
+## AI Team Workflow Enhancement (v4.4.0.0)
+
+### Enhanced Autonomous Development Capabilities
+StockSage now features an **autonomous AI development team workflow** with specialized agents and comprehensive task tracking. This system enables fully autonomous development cycles with minimal user intervention.
+
+#### Key Features:
+- **Autonomous Task Execution**: Complete development tasks from planning to delivery
+- **Specialized AI Agents**: Expert specialists for different aspects of development
+- **Advanced Tool Integration**: Context7 and Sequential Thinking tools for enhanced analysis
+- **Comprehensive Task Tracking**: Complete history and metrics in `docs/ai_team_task_history.md`
+- **Quality Assurance**: Built-in code review and validation processes
+
+#### New `/new_task` Command
+The enhanced workflow introduces a streamlined task initiation system:
+- Users provide task requirements through standardized templates
+- AI team automatically coordinates specialist assignments
+- Complete autonomous execution with progress tracking
+- Quality gates ensure production-ready deliverables
 
 ## 1. Introduction
 This document serves as the comprehensive Product Requirements Document (PRD) and Technical Design for the **StockSage** application. StockSage is a Next.js-based financial analysis tool leveraging Genkit for AI-powered insights. It provides real-time stock data, options chain analysis, and AI-driven key takeaways.
