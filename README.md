@@ -3,10 +3,6 @@
 
 To prevent the severe audit failures of the v3.3.15.x series, the following procedures are now in effect and strictly enforced.
 
-#### Section 1: General Conduct & Output
-1.  **XML Output Mandate:** All code changes proposed by the AI Coding Agent MUST be provided exclusively in the specified XML format.
-2.  **Context Reset Confirmation:** At the beginning of new Phases or when explicitly requested, the AI Coding Agent will confirm that its internal context has been purged to ensure it is operating on the latest information.
-3.  **New Context Purge Directive:** To force a true context reset, the user will issue the following command: `[DIRECTIVE: CONTEXT_PURGE | ID: <unique_identifier>]`. The unique ID (e.g., a version number or timestamp) is mandatory and ensures the request is treated as new, preventing me from using a cached or stale understanding of the session.
 
 #### Section 2: Auditing & Debugging Protocol (NEW)
 4.  **Mandatory End-to-End Execution Trace:** When asked for a "comprehensive audit," I will not perform a shallow, localized review. My audit will consist of programmatically tracing the full execution path of the feature in question, from user interaction to the final UI update. This includes mapping logic through UI components, FSM events, FSM orchestrators, Server Actions, AI Flows, and Prompt Definitions.
@@ -19,16 +15,12 @@ This procedure ensures a thorough, top-down analysis for all bug reports to prev
 1.  **Review User Bug Report:** I will first analyze the symptoms and any provided logs from the user's bug report.
 2.  **Root Cause Analysis:** I will perform a deep-dive audit of the application's execution flow related to the bug's symptoms to identify the most likely root cause(s). This is to ensure the fix targets the core problem, not just a superficial symptom.
 3.  **Propose Bug Fix Scope:** I will provide a clear explanation of my root cause analysis and a detailed scope of the proposed code changes required to fix the issue.
-4.  **Await User Approval:** I will **stop** and await user review and approval of the root cause analysis and the proposed scope of the fix.
-5.  **Handle Rejection/Feedback:** If the user rejects the analysis or provides additional tasks, I will return to step 2 with the new information.
-6.  **Implement Fix:** Only after receiving explicit user approval will I proceed with generating the code changes for the agreed-upon fix.
 
 #### Section 4: Versioning & Documentation
 7.  **Versioning Scheme:** Features will be staged as version '4.w.x.y.z' series (v4.2.2.0 latest).
 8.  **Bug Report Versioning (NEW):** I will **not** increment versions on my own. The user will provide the exact new application version (e.g., `v4.w.x.y.(z+1)`) as part of the bug report submission. My fix will then be associated with that user-provided version.
 9.  **Metadata Updates:** Any code change must include an automatic update to the `appVersion` and `lastUpdatedTimestamp` in `src/config/app-metadata.json` to match the version specified in the task.
-10. **Strict Documentation Policy:** I am **strictly prohibited** from updating any documentation files (`.md`, `CHANGELOG`, etc.) on intermediate tasks. Documentation updates will **only** be performed when a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user.
-11. **New Feature Documentation:** All new features need to provide `FEAT_SCOPE_xxx.md` and `FEAT_STATUS_xxx.md` files in the `docs` folder with the specified content.
+Documentation updates will **only** be performed when a "Phase Completion Commit" or a dedicated documentation task is explicitly requested by the user
 
 ###
 ---

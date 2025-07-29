@@ -1,14 +1,14 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.0.0]
-**Task Type**: [DOCS] 
+**Version**: [v4.4.1.0]
+**Task Type**: [MAJOR CLEANUP\REFACTOR]
 ---
 
 ## Abstract
-**Brief Summary**: Update New Task Procedures with Better Tool Use & Autonomy
+**Brief Summary**: [New Architecture Phase 1] Retire & Cleanup ALL User Input & Legacy Main Tab Code/Data
 
-**Affected Systems**: _[DOCS]_
+**Affected Systems**: _[User Input UI, Legacy Code]_
 
 **Priority Level**: _[CRITICAL]_
 
@@ -106,32 +106,23 @@
 
 ## Task Details
 
-1. Use Context7 tool to perform some more research on best, optimal practices & prompt logic for having AI Agents use the SEQUENTIAL THINKING MCP TOOL & CONTEXT7 MCP Tool on a fully dynamic, adaptable, & proactive basis, where the AI Agent only calls the tool in scenarios that are absolutely neccessary and/or optimal, with the most optimal # of tool uses. We want to come up a an enhanced prompt logic to ensure the AI uses these tools smartly only when needed, to prevent excessive and unnecessary tool calls that do not fit the current scope of the task(s)
-
-2. After research has been performed for best practices, now we can try and update some details and operating procedures across all of those docs to sync up for the TECH-LEAD-ORCHESTRATOR when /new_task command is invoked:
-
-- We currently have a custom command "/new_task" stored in .claude/commands/new_task.md that will trigger the to read the docs/new_task.md for the details in order to fully delegate & coordinate to approrpiate AI Specialist to complete all task(s) requested.  There are also instructions in CLAUDE.md to follow this new task operating procedure
-- So now update all of these docs to ensure that when "/new_task" command is invoked, the .claude/commands/new_task.md command details, docs/new_task.md new task details, and CLAUDE.md are all in sync to ensure that the TECH-LEAD-ORCHESTRATOR properly follows the best practices for the tool calls in order to fully delegate & coordinate AI Specialist(s) to complete all tasks.
-- rename docs/new_task.md to docs/new_task_details.md to help distuguish between new_task command vs new_task details.  Update all references across project to now use docs/new_task_details.md instead of the older file
-- Create a new .md file in docs folder "ai_team_task_history.md", that will work similiar to CHANGELOG.md, but this just gets updated automically by the approriate specialist to track and summarize the Actions and Calls for the AI Team tied to the new specific task(s) outlined in new_task_details.md.  This will help manage, oversee, and review how the AI Team specialist for each Task request as a metric for workflow optimization later on. This needs to be a summarized version that finds the best balance between details and metrics vs too much overloading of details and information overload. It should be "snapshot" style type to quickly summarize and provide metrics on the AI Team for the entirety of the task workflow
-- We also need to ensure the AI Specialist needs to also adhere to the optimal tool use practices too that was researched, so we may need to have TECH-LEAD-ORCHESTRATOR pass along details about optimal tool use practices to each specialist
-- Once ALL code changes are fully implemented, code review, and tested by the AI team, the TECH-LEAD-ORCHESTRATOR  needs to delegate & coordinate AI Specialist(s) to follow procedure to fully close out a task by updating all project docs [ai_team_task_history.md, README.md, CHANGELOG.md, CLAUDE.md] AND performing a git commit AND push as completley atomic together with all code changes and doc updates and be unattendded by the user without needing confirmation for the git commit & push
-
-3. Enforce Mandatory rule and operating procedure that the entire new task(s) needs to be fully implemented, tested, git committed, and git push ALL unattended by the user to be completely autonomous. 
+[New Architecture Phase 1] Retire & Cleanup ALL User Input & Legacy Main Tab Code/Data
 
 ### Current Situation
-_[Describe the current state of the system/feature/issue]_
+- NVDA & SPY pages are working perfectly with zero issues, so it is time to start migrating, integrating, & consolidate the app to use the new architecture, and this major feature will be done in phases
+
+Phase 1 tasks:
+1. Completley Remove ALL of the legacy main page code, Legacy Data tab, legacy debug FSM tab, and anything else related to the legacy architecture
+2. Completely remove the new User Input Tab and anything else related to this tab. This will be reimplemented later
+3. Ensure we do NOT break the current implementation for the dedicated NVDA & SPY tabs as part of the cleanup, because there could be unintended side effects with a not as obvious dependency some where
+4. Audit the code to verify and double check that we no longer have ANY dead code and data from all the newly removed and cleaned up items
+5. Fully update and basically re-architect our project docs README.md & CLAUDE.md to sync up with the new cleaned up code, removing all old legacy and depracated remnants so that all docs are fully accurate with the new current architecture. The README.md & CLAUDE.md file need to be rewritten to match it's purpose, where README is geared towards higher level details, and CLAUDE.md is deeper details for Claude Code
+
+
 
 ### Desired Outcome
 _[Describe what the end result should look like]_
-
-
-So the end goal deliverable of these new operating procedure updates is:
-1. User fills in details of the next task in newly renamed file docs/new_task_details.md
-2. User invokes "/new_task" command, with details located in .claude/commands/new_task.md
-3. TECH-LEAD-ORCHESTRATOR follows the /new_task command directions
-4. TECH-LEAD-ORCHESTRATOR will act as the delegator, coordinator, and orchestrater to trigger and oversee ALL implementation tasks details until completion end to end
-5. All tasks in new_task_details.md will be fully scoped, planned out, researched, implemented, tested, code reviewed, docs fully updated, and finally fully atomic commit & pushed to repo completley autonomous without needing any user input to approve and/or confirm any commands, whether build, compile, bash, or any other commands
+- The end goal of this task is to have a cleaned up and consolidated app with JUST initial Dedicated NVDA & SPY tabs that are currently fully working.  These dedicated pages will serve as a blueprint to leverage for later tasks.  All docs will be fully updated and in sync an accurate to the current state of the project with no outdated legacy details that could confuse user or Claude Code AI.
 
 
 ### Acceptance Criteria
@@ -140,7 +131,6 @@ So the end goal deliverable of these new operating procedure updates is:
 3. _[Include performance, UX, and technical requirements]_
 
 
-- The user basically justs wants a fully streamlined autonomous workflow where after user invokes /new_task, User can step away and come back within 1-2 hours and the task is fully completed, committed, and pushed as a single atomic check in.
 
 ---
 
