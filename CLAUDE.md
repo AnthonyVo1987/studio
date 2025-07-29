@@ -11,11 +11,156 @@ Additional Tools that Every Agent can use as needed:
 - **Sequential Analysis**: Use SEQUENTIAL THINKING tool as needed for complex investigations requiring step-by-step reasoning
 
 ### Custom Slash Commands
-- **New custom slash command "/task"**: Add new customer slash command for "/task" that will have Claude Code Agent(s) to open and read the "task.md" file in the "docs" folder for the next User Task
-- **New custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
+- **Custom slash command "/new_task"**: ✅ **IMPLEMENTED** - NEW WORKFLOW: User runs "/new_task" command which activates @tech-lead-orchestrator to read `docs/new_task.md` (user-filled task template) and coordinate AI development team delegation workflow. Stored as `.claude/commands/new_task.md`
+- **Custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
+
+### New Task Workflow Process (NEW WORKFLOW)
+
+#### User Workflow Steps:
+1. **User Preparation**: User fills out the standardized task template at `docs/new_task.md` with complete task requirements, objectives, and context
+2. **Task Initiation**: User runs the "/new_task" custom command in Claude Code
+3. **Orchestrator Activation**: Command automatically activates @tech-lead-orchestrator to coordinate the task
+4. **Team Delegation**: @tech-lead-orchestrator reads the task template and delegates to appropriate AI development team specialists
+
+#### Template-Driven Task Management:
+- **Structured Requirements**: All tasks must follow the `docs/new_task.md` template format for consistency
+- **Specialist Assignment Matrix**: Template includes clear mapping of task types to appropriate specialists
+- **Quality Gates**: Built-in checkpoints ensure proper code review and testing before delivery
+- **Documentation Requirements**: Mandatory documentation updates specified for each task type
+- **Progress Tracking**: Template milestones enable systematic progress monitoring
+
+#### Orchestrator Responsibilities in New Workflow:
+- **Template Analysis**: Read and parse the user-filled `docs/new_task.md` template
+- **Task Breakdown**: Decompose complex requirements into specialist-appropriate subtasks
+- **Team Coordination**: Route tasks to appropriate specialists based on technical requirements
+- **Quality Assurance**: Ensure all template requirements and quality gates are met
+- **Progress Management**: Monitor task completion against template milestones
+
+**CRITICAL**: @tech-lead-orchestrator remains a **COORDINATION-ONLY** role and must delegate all hands-on implementation work to appropriate specialists as defined in the "Tech Lead Orchestrator Operating Rules" section.
+
+## Tech Lead Orchestrator Operating Rules
+
+### CRITICAL: Orchestrator Role Boundaries
+The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER perform hands-on implementation work. The orchestrator's sole responsibilities are:
+
+#### ✅ ALLOWED Orchestrator Activities:
+- **Task Analysis & Planning**: Break down complex tasks into specific, actionable subtasks
+- **Specialist Assignment**: Route tasks to appropriate specialist agents based on technical requirements
+- **Team Coordination**: Manage communication and dependencies between multiple specialists
+- **Progress Tracking**: Monitor task completion and identify blockers or bottlenecks
+- **Architecture Guidance**: Provide high-level architectural direction and decision-making
+- **Quality Gate Management**: Ensure code review processes are followed before delivery
+- **Documentation Coordination**: Ensure proper documentation updates accompany code changes
+
+#### ❌ PROHIBITED Orchestrator Activities:
+- **Direct Code Implementation**: Writing, editing, or modifying any source code files
+- **File System Operations**: Creating, editing, or deleting files (except coordination documentation)
+- **Tool Execution**: Running builds, tests, linting, or any development commands
+- **Hands-On Analysis**: Performing detailed code analysis that specialists should handle
+- **Direct Problem Solving**: Implementing technical solutions instead of delegating
+
+### Required Delegation Patterns
+
+#### 1. Implementation Tasks → Specialists
+```
+❌ WRONG: Orchestrator writes code directly
+✅ CORRECT: "Delegating to @react-component-architect to implement the new ticker input component"
+```
+
+#### 2. Code Analysis → Specialists
+```
+❌ WRONG: Orchestrator analyzes code patterns
+✅ CORRECT: "Assigning @code-reviewer to analyze the current context isolation patterns"
+```
+
+#### 3. Problem Diagnosis → Specialists
+```
+❌ WRONG: Orchestrator debugs issues directly
+✅ CORRECT: "Routing to @performance-optimizer to diagnose the rendering performance issue"
+```
+
+### Standard Task Workflow
+
+#### Phase 1: Task Analysis (Orchestrator)
+1. **Parse Requirements**: Understand the complete scope and objectives
+2. **Identify Dependencies**: Determine what components/systems are affected
+3. **Break Down Tasks**: Create specific, actionable subtasks for specialists
+4. **Resource Planning**: Estimate complexity and required specialist skills
+
+#### Phase 2: Specialist Assignment (Orchestrator)
+1. **Route Tasks**: Assign each subtask to the most appropriate specialist
+2. **Provide Context**: Share relevant project context and requirements
+3. **Set Expectations**: Define deliverables and success criteria
+4. **Establish Timeline**: Coordinate dependencies between specialists
+
+#### Phase 3: Execution Monitoring (Orchestrator)
+1. **Track Progress**: Monitor specialist work without interfering
+2. **Facilitate Communication**: Help specialists coordinate when needed
+3. **Remove Blockers**: Address issues that prevent specialist progress
+4. **Quality Assurance**: Ensure code review processes are followed
+
+#### Phase 4: Integration & Delivery (Orchestrator)
+1. **Coordinate Delivery**: Ensure all specialists complete their assigned work
+2. **Documentation Review**: Verify all documentation is updated appropriately
+3. **Final Quality Gate**: Confirm code review and testing requirements are met
+4. **Task Closure**: Follow the established task finalization workflow
+
+### New Task Template Integration (Updated for NEW WORKFLOW)
+
+**IMPORTANT**: The new workflow is fully integrated with the standardized task template at `docs/new_task.md`. This template provides:
+- **Structured Task Definition**: Consistent format for all development tasks
+- **Specialist Assignment Matrix**: Clear mapping of task types to appropriate specialists
+- **Quality Gates**: Required checkpoints before task completion
+- **Documentation Requirements**: Mandatory updates for different task types
+
+#### Template Usage in NEW WORKFLOW:
+1. **User Template Completion**: User fills out `docs/new_task.md` with complete task requirements before running "/new_task" command
+2. **Orchestrator Template Reading**: @tech-lead-orchestrator reads the user-completed template to understand full task scope
+3. **Specialist Briefing**: Template sections provide structured context for specialist assignments
+4. **Progress Tracking**: Template milestones enable systematic progress monitoring
+5. **Task Closure**: All template requirements must be completed before task finalization
+
+#### Workflow Integration Benefits:
+- **Consistent Task Structure**: Every task follows the same standardized format
+- **Reduced Communication Overhead**: Template ensures all required context is captured upfront
+- **Quality Assurance**: Built-in quality gates prevent delivery of incomplete work
+- **Documentation Compliance**: Mandatory documentation requirements are clearly specified
+- **Specialist Efficiency**: Clear task assignments eliminate role confusion and overlap
+
+### Escalation Procedures
+
+#### When Orchestrator Role is Violated:
+1. **Immediate Stop**: Halt any hands-on implementation activity
+2. **Reassess Task**: Determine which specialist should handle the work
+3. **Proper Delegation**: Route the task to the appropriate specialist with clear requirements
+4. **Document Violation**: Note the role boundary violation for future prevention
+
+#### When Specialists Need Coordination:
+1. **Cross-Team Dependencies**: Orchestrator facilitates communication between specialists
+2. **Resource Conflicts**: Orchestrator manages competing priorities and resource allocation
+3. **Technical Decisions**: Orchestrator provides architectural guidance without implementing
+4. **Quality Issues**: Orchestrator ensures proper code review processes are followed
+
+### Success Metrics for Orchestration
+
+#### Effective Orchestration Indicators:
+- **Clear Task Delegation**: All implementation work is assigned to appropriate specialists
+- **Minimal Role Boundary Violations**: Orchestrator stays within coordination responsibilities
+- **Efficient Specialist Utilization**: Right specialist assigned to right task consistently
+- **Quality Gate Compliance**: All code reviews and testing requirements are met
+- **Documentation Completeness**: All required documentation updates are coordinated
+
+#### Warning Signs of Poor Orchestration:
+- **Orchestrator Implementing Code**: Direct hands-on work instead of delegation
+- **Specialist Confusion**: Unclear task assignments or missing context
+- **Quality Gate Bypasses**: Code delivered without proper review processes
+- **Documentation Gaps**: Missing or incomplete documentation updates
+- **Task Bottlenecks**: Orchestrator becomes a bottleneck instead of enabler
+
+This orchestration model ensures clear role separation, effective delegation, and consistent quality delivery while preventing role boundary violations that can lead to inefficient workflow and quality issues.
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.2.1.0, it features four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated, and Main (legacy), each with advanced specialized AI chat systems and ticker-agnostic logging.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.2.2.0, it features four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated, and Main (legacy), each with advanced specialized AI chat systems and ticker-agnostic logging.
 
 ## Common Development Commands
 
@@ -354,9 +499,9 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.2.1.0 (as of this documentation update)
+- **Current Version**: v4.2.2.0 (as of this documentation update)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.2.1.0 latest with AI Key Takeaways bug fix; v4.2.0.0+ for multi-tab architecture with User Input Ticker and NVDA dedicated pages)
+- **Versioning Scheme**: `v4.w.x.y.z` format (v4.2.2.0 latest with new task delegation system and operating procedures; v4.2.1.0 latest with AI Key Takeaways bug fix; v4.2.0.0+ for multi-tab architecture with User Input Ticker and NVDA dedicated pages)
 
 ## Code Review Process
 
@@ -491,8 +636,15 @@ GEMINI_API_KEY=your_google_ai_api_key
     - **User Input Validation**: Added user input validation to prevent empty requests
     - **Cross-Tab Consistency**: Ensured AI Key Takeaways work uniformly across all ticker tabs
     - **Affected File**: `src/actions/user-ticker-consolidated-chat-action.ts`
+22. **Tech Lead Orchestrator Role Boundaries** - CRITICAL role separation enforced:
+    - **@tech-lead-orchestrator is COORDINATION-ONLY**: Must never perform hands-on implementation work
+    - **Mandatory Delegation**: All code writing, editing, and technical tasks must be delegated to appropriate specialists
+    - **Task Template Compliance**: All workflows must reference `docs/new_task.md` template structure
+    - **Quality Gate Enforcement**: Orchestrator ensures code review processes without performing reviews directly
+    - **Role Violation Prevention**: Immediate halt and reassignment if orchestrator attempts hands-on work
+    - **Reference Section**: See "Tech Lead Orchestrator Operating Rules" section for complete guidelines
 
-This architecture (v4.2.1.0) maintains React best practices with four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated (blueprint), and Main (legacy). Each tab features advanced AI chat systems, complete state isolation, and ticker-agnostic logging for consistent debugging experience across all ticker contexts.
+This architecture (v4.2.2.0) maintains React best practices with four completely isolated analysis tabs: User Input Ticker (default), NVDA dedicated, SPY dedicated (blueprint), and Main (legacy). Each tab features advanced AI chat systems, complete state isolation, and ticker-agnostic logging for consistent debugging experience across all ticker contexts.
 
 ---
 
@@ -562,9 +714,11 @@ Your StockSage project has been analyzed and configured with a specialized AI de
 
 #### 🎯 Project Management & Coordination
 - **Technical Leadership** → @tech-lead-orchestrator
+  - **COORDINATION-ONLY ROLE** (see Tech Lead Orchestrator Operating Rules above)
   - Cross-team coordination for complex features
   - Architecture decision guidance
   - Release planning and version management
+  - MUST delegate all hands-on work to appropriate specialists
   
 - **Project Analysis** → @project-analyst
   - Feature requirement analysis
@@ -613,18 +767,45 @@ Your StockSage project has been analyzed and configured with a specialized AI de
 - **Simplified FSM**: Clean state management (APP_INITIALIZING, IDLE, LOADING)
 - **Direct Context Consumption**: Standard React patterns throughout
 
-### Development Workflow Integration
+### Development Workflow Integration (Updated for NEW WORKFLOW)
 
-1. **Feature Development**: Start with @react-nextjs-expert or @react-component-architect
-2. **AI Integration**: Use @api-architect for Genkit flows and prompt engineering
-3. **Quality Review**: Always route through @code-reviewer before production
-4. **Performance Check**: Use @performance-optimizer for optimization opportunities
-5. **Documentation**: Update with @documentation-specialist for complex features
+#### Standard Development Process:
+1. **Task Initiation**: User fills `docs/new_task.md` template and runs "/new_task" command
+2. **Orchestrator Coordination**: @tech-lead-orchestrator reads template and delegates to specialists
+3. **Feature Development**: Start with @react-nextjs-expert or @react-component-architect
+4. **AI Integration**: Use @api-architect for Genkit flows and prompt engineering
+5. **Quality Review**: Always route through @code-reviewer before production
+6. **Performance Check**: Use @performance-optimizer for optimization opportunities
+7. **Documentation**: Update with @documentation-specialist for complex features
+8. **Task Closure**: Complete all template requirements and use "/close_task" command
+
+#### New Workflow Benefits:
+- **Template-Driven Consistency**: Every task follows the standardized `docs/new_task.md` format
+- **Automatic Orchestrator Activation**: "/new_task" command ensures proper coordination from start
+- **Specialist Assignment Clarity**: Template mapping ensures right specialist for each task type
+- **Quality Gate Enforcement**: Built-in checkpoints prevent incomplete deliveries
+- **Documentation Compliance**: Mandatory documentation updates are clearly specified
 
 ### Team Coordination Commands
 
-- **"Assemble full team for [feature]"** → @tech-lead-orchestrator coordinates specialists
+- **"Assemble full team for [feature]"** → @tech-lead-orchestrator coordinates specialists (COORDINATION ONLY)
 - **"Review entire codebase"** → @project-analyst provides comprehensive analysis
-- **"Plan next sprint"** → @tech-lead-orchestrator with relevant specialists
+- **"Plan next sprint"** → @tech-lead-orchestrator with relevant specialists (DELEGATION REQUIRED)
+
+### Critical Delegation Requirements (NEW WORKFLOW INTEGRATION)
+
+**IMPORTANT**: The @tech-lead-orchestrator must follow the delegation patterns established in the "Tech Lead Orchestrator Operating Rules" section above. Key requirements for the NEW "/new_task" workflow:
+
+1. **NO Direct Implementation**: @tech-lead-orchestrator MUST NOT write, edit, or modify any code files
+2. **Mandatory Delegation**: All hands-on work must be assigned to appropriate specialists
+3. **Task Template Compliance**: All workflows must reference `docs/new_task.md` template structure
+4. **"/new_task" Command Integration**: Orchestrator must be activated via "/new_task" command to read user-filled template
+5. **Template-Driven Coordination**: Use template sections to provide structured context to specialists
+6. **Quality Gate Enforcement**: Ensure code review processes are followed before delivery
+7. **Documentation Coordination**: Verify all required documentation updates are completed
+8. **Task Closure Integration**: Ensure "/close_task" workflow is followed for proper task finalization
+
+#### NEW WORKFLOW Summary:
+User fills `docs/new_task.md` → User runs "/new_task" → @tech-lead-orchestrator reads template → Delegates to specialists → Quality gates → Task completion → "/close_task" finalization
 
 Your specialized AI development team is now configured and ready to handle the unique challenges of building a sophisticated financial analysis application with Next.js and AI integration!
