@@ -1,7 +1,8 @@
 
 {
-  "appVersion": "v4.4.0.0",
-  "lastUpdatedTimestamp": "2025-07-29T21:15:00.000Z",
+  "appVersion": "v4.4.1.0",
+  "lastUpdatedTimestamp": "2025-07-29T23:45:00.000Z",
+  "description": "Legacy code cleanup complete - Removed 38 legacy files, streamlined to two-tab architecture (NVDA/SPY), preserved full functionality",
   "metadataSchemaVersion": "1.0.0"
 }
 

@@ -62,7 +62,7 @@ export async function fetchStockDataAction(
     
     
     const adapterStockDataTicker = adapterOutput.stockData.ticker;
-    const adapterSnapshotTicker = adapterOutput.stockData.stockSnapshot?.ticker;
+    const adapterSnapshotTicker = adapterOutput.stockData.stockSnapshot && 'ticker' in adapterOutput.stockData.stockSnapshot ? adapterOutput.stockData.stockSnapshot.ticker : undefined;
     
     
     if (adapterSnapshotTicker && adapterSnapshotTicker !== requestedTickerUpperCase) {

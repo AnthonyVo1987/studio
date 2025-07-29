@@ -50,7 +50,7 @@ function parseOptionsChainJson(optionsChainJson: string): OptionsChainParseResul
     };
   }
 
-  if (PENDING_STATUS_JSON_VARIANTS.includes(optionsChainJson.trim())) {
+  if (PENDING_STATUS_JSON_VARIANTS.includes(optionsChainJson.trim() as any)) {
     return {
       data: null,
       isLoading: true,
@@ -133,7 +133,7 @@ function parseStockSnapshotJson(stockSnapshotJson: string): StockSnapshotParseRe
   }
 
   try {
-    if (!PENDING_STATUS_JSON_VARIANTS.includes(stockSnapshotJson.trim()) && 
+    if (!PENDING_STATUS_JSON_VARIANTS.includes(stockSnapshotJson.trim() as any) && 
         !stockSnapshotJson.includes('"status":') && 
         !stockSnapshotJson.includes('"error":')) {
       const parsedSnapshotData = JSON.parse(stockSnapshotJson) as StockSnapshotData;

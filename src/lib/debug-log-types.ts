@@ -13,7 +13,6 @@ export const logSourceIds = [
   'OptionsChainTable',
   'AiOptionsAnalysisDisplay', 
   'DebugTabContent',
-  'MainTabContent',
   'StockAnalysisContext',
   'NATIVE_CONSOLE',
   'Chatbot',
@@ -31,9 +30,6 @@ export const logSourceIds = [
   'ChatbotFsmContext',
   'DebugConsoleFsmContext',
   'FsmStateDebugCard',
-  'MainTabContent_FSM:ButtonStateEffect_DB',
-  'MainTabContent_FSM:ButtonStateEffect_DC',
-  'MainTabContent_FSM:ButtonStateEffect_DA', 
   'LogBuffer', // Added new source
 ] as const;
 
@@ -51,7 +47,6 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   OptionsChainTable: false, 
   AiOptionsAnalysisDisplay: true, 
   DebugTabContent: true,
-  MainTabContent: true,
   StockAnalysisContext: true,
   NATIVE_CONSOLE: true,
   Chatbot: true,
@@ -69,9 +64,6 @@ export const defaultLogSourceConfig: LogSourceConfig = {
   ChatbotFsmContext: true,
   DebugConsoleFsmContext: true,
   FsmStateDebugCard: true,
-  'MainTabContent_FSM:ButtonStateEffect_DB': true,
-  'MainTabContent_FSM:ButtonStateEffect_DC': true,
-  'MainTabContent_FSM:ButtonStateEffect_DA': true,
   LogBuffer: true, // Added new source config
 };
 
@@ -85,7 +77,6 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   OptionsChainTable: 'Options Chain UI',
   AiOptionsAnalysisDisplay: 'AI Options Analysis UI', 
   DebugTabContent: 'Debug Tab UI',
-  MainTabContent: 'Main Tab UI/Logic',
   StockAnalysisContext: 'Global Context/FSM',
   NATIVE_CONSOLE: 'Native Console (General)',
   Chatbot: 'Chatbot UI',
@@ -103,9 +94,6 @@ export const logSourceLabels: Record<LogSourceId, string> = {
   ChatbotFsmContext: 'Chatbot FSM Context',
   DebugConsoleFsmContext: 'Debug Console FSM Context',
   FsmStateDebugCard: 'FSM State Debug Card UI',
-  'MainTabContent_FSM:ButtonStateEffect_DB': 'MTC Button Effect (D.B Minimal)',
-  'MainTabContent_FSM:ButtonStateEffect_DC': 'MTC Button Effect (D.C Full)',
-  'MainTabContent_FSM:ButtonStateEffect_DA': 'MTC Button Effect (D.A Test)',
   LogBuffer: 'Log Buffer System', // Added new label
 };
 

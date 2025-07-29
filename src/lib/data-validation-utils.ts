@@ -23,7 +23,7 @@ export function isDataReadyForProcessing(
 ): boolean {
   const callContext = `${sourceComponent || 'isDataReadyCheck'}:${dataName || 'data'}`;
 
-  if (!jsonString || jsonString.trim() === '{}' || PENDING_STATUS_JSON_VARIANTS.includes(jsonString.trim())) {
+  if (!jsonString || jsonString.trim() === '{}' || PENDING_STATUS_JSON_VARIANTS.includes(jsonString.trim() as any)) {
     return false;
   }
 

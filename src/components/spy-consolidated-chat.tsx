@@ -186,7 +186,7 @@ export function SpyConsolidatedChat() {
     if (chatState.status === 'success' && chatState.data) {
       handleChatSuccess(chatState.data);
     } else if (chatState.status === 'error') {
-      handleChatError(chatState.error || '', chatState.message);
+      handleChatError(chatState.error || '', chatState.message || undefined);
     }
   }, [chatState.status, chatState.data, chatState.error, chatState.message, 
       isChatPending, currentRequestId, handleChatSuccess, handleChatError]);

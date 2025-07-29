@@ -126,7 +126,7 @@ class PolygonAdapter {
       throw new ApiError(result.error || 'Failed to fetch expiration dates', 500, 'expiration-dates')
     }
 
-    return result.data
+    return result.data || []
   }
   
   async fetchOptionsChainForDate(
@@ -157,26 +157,26 @@ class PolygonAdapter {
         let callsSnapshot: any = { results: [] };
         if (fetchCalls) {
             await delay(apiCallDelay);
-            callsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'call' }, cacheBustQuery);
+            callsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'call' });
         }
 
         let putsSnapshot: any = { results: [] };
         if (fetchPuts) {
             await delay(apiCallDelay);
-            putsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'put' }, cacheBustQuery);
+            putsSnapshot = await this.client.options.snapshotOptionChain(ticker, { ...commonOptionsParams, contract_type: 'put' });
         }
 
         const allStrikes = new Set<number>();
         const callDataByStrike = new Map<number, any>();
         const putDataByStrike = new Map<number, any>();
 
-        (callsSnapshot.results || []).forEach(contract => {
+        (callsSnapshot.results || []).forEach((contract: any) => {
           const strike = roundNumber(contract.details.strike_price, 2);
           if(strike === undefined || strike === null) return;
           allStrikes.add(strike);
           callDataByStrike.set(strike, contract);
         });
-        (putsSnapshot.results || []).forEach(contract => {
+        (putsSnapshot.results || []).forEach((contract: any) => {
           const strike = roundNumber(contract.details.strike_price, 2);
           if(strike === undefined || strike === null) return;
           allStrikes.add(strike);
@@ -253,11 +253,11 @@ class PolygonAdapter {
     try {
       try {
         await delay(apiCallDelay);
-        const marketStatusResponse = await this.client.reference.marketStatus(undefined, cacheBustQuery);
+        const marketStatusResponse = await this.client.reference.marketStatus();
         stockDataPackage.marketStatus = {
           market: marketStatusResponse.market === 'extended-hours' ? 'Extended Hours' : marketStatusResponse.market,
-          earlyHours: marketStatusResponse.earlyHours || false,
-          lateHours: marketStatusResponse.lateHours || false,
+          earlyHours: (marketStatusResponse as any).earlyHours || (marketStatusResponse as any).earlyhours || false,
+          lateHours: (marketStatusResponse as any).lateHours || (marketStatusResponse as any).afterHours || false,
           serverTime: marketStatusResponse.serverTime || new Date().toISOString(),
           exchanges: marketStatusResponse.exchanges || {},
           currencies: marketStatusResponse.currencies || {},
@@ -269,7 +269,7 @@ class PolygonAdapter {
 
       try {
         await delay(apiCallDelay);
-        const snapshotResponse = await this.client.stocks.snapshotTicker(tickerToUse, undefined, cacheBustQuery);
+        const snapshotResponse = await this.client.stocks.snapshotTicker(tickerToUse);
 
         if (snapshotResponse.ticker && snapshotResponse.ticker.ticker === tickerToUse) {
           const { day, prevDay, min, todaysChange, todaysChangePerc, updated, lastTrade } = snapshotResponse.ticker;
@@ -282,13 +282,14 @@ class PolygonAdapter {
           } else if (prevDay?.c && prevDay.c > 0) {
               priceSourceVal = prevDay.c;
           }
-          currentStockPrice = roundNumber(priceSourceVal, 2); 
+          const roundedPrice = roundNumber(priceSourceVal, 2);
+          currentStockPrice = (roundedPrice !== null && roundedPrice !== undefined) ? roundedPrice : undefined; 
 
           stockDataPackage.stockSnapshot = {
             ticker: snapshotResponse.ticker.ticker,
-            day: this.mapToStockPriceData(day, day?.t || updated),
+            day: this.mapToStockPriceData(day, (day as any)?.t || updated),
             prevDay: this.mapToStockPriceData(prevDay, prevDay?.t),
-            min: this.mapToStockPriceData(min, min?.t || updated),
+            min: this.mapToStockPriceData(min, (min as any)?.t || updated),
             todaysChange: roundNumber(todaysChange, 2),
             todaysChangePerc: roundNumber(todaysChangePerc, 4),
             updated: updated,
@@ -314,7 +315,7 @@ class PolygonAdapter {
         for (const window of rsiWindows) {
           try {
             await delay(apiCallDelay);
-            const rsiRes = await this.client.stocks.rsi(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 }, cacheBustQuery);
+            const rsiRes = await this.client.stocks.rsi(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 });
             if (rsiRes.results?.values?.[0]?.value) {
               (technicalIndicators.RSI as MultiWindowIndicatorValues)[String(window)] = roundNumber(rsiRes.results.values[0].value, 2);
             }
@@ -323,7 +324,7 @@ class PolygonAdapter {
 
         try {
             await delay(apiCallDelay);
-            const macdRes = await this.client.stocks.macd(tickerToUse, { timespan: 'day', series_type: 'close', limit: 1 }, cacheBustQuery);
+            const macdRes = await this.client.stocks.macd(tickerToUse, { timespan: 'day', series_type: 'close', limit: 1 });
             if (macdRes.results?.values?.[0]) {
               const macdValue = macdRes.results.values[0];
               technicalIndicators.MACD = {
@@ -333,10 +334,10 @@ class PolygonAdapter {
         } catch (e: any) { taErrorOccurred = true; taErrorMessages.push(`MACD: ${e.message}`); }
 
         technicalIndicators.VWAP = {};
-        if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.day?.vw !== undefined) {
+        if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && 'day' in stockDataPackage.stockSnapshot && stockDataPackage.stockSnapshot.day?.vw !== undefined) {
           (technicalIndicators.VWAP as VWAPValue).day = roundNumber(stockDataPackage.stockSnapshot.day.vw, 4);
         }
-        if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.min?.vw !== undefined) {
+        if (stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && 'min' in stockDataPackage.stockSnapshot && stockDataPackage.stockSnapshot.min?.vw !== undefined) {
             (technicalIndicators.VWAP as VWAPValue).minute = roundNumber(stockDataPackage.stockSnapshot.min.vw, 4);
         }
 
@@ -345,7 +346,7 @@ class PolygonAdapter {
         for (const window of emaWindows) {
           try {
             await delay(apiCallDelay);
-            const emaRes = await this.client.stocks.ema(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 }, cacheBustQuery);
+            const emaRes = await this.client.stocks.ema(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 });
             if (emaRes.results?.values?.[0]?.value) {
               (technicalIndicators.EMA as MultiWindowIndicatorValues)[String(window)] = roundNumber(emaRes.results.values[0].value, 2);
             }
@@ -357,7 +358,7 @@ class PolygonAdapter {
         for (const window of smaWindows) {
           try {
             await delay(apiCallDelay);
-            const smaRes = await this.client.stocks.sma(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 }, cacheBustQuery);
+            const smaRes = await this.client.stocks.sma(tickerToUse, { timespan: 'day', window, series_type: 'close', limit: 1 });
             if (smaRes.results?.values?.[0]?.value) {
               (technicalIndicators.SMA as MultiWindowIndicatorValues)[String(window)] = roundNumber(smaRes.results.values[0].value, 2);
             }
@@ -416,9 +417,9 @@ class PolygonAdapter {
           adapterInstanceFor: this.currentTickerForClient,
           responseTicker: stockDataPackage.ticker,
           marketStatusLoaded: !!stockDataPackage.marketStatus && !stockDataPackage.marketStatus.error,
-          snapshotLoaded: !!stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && stockDataPackage.stockSnapshot.ticker === tickerToUse,
+          snapshotLoaded: !!stockDataPackage.stockSnapshot && !stockDataPackage.stockSnapshot.error && 'ticker' in stockDataPackage.stockSnapshot && stockDataPackage.stockSnapshot.ticker === tickerToUse,
           tasLoaded: !!stockDataPackage.technicalIndicators && !stockDataPackage.technicalIndicators.error,
-          optionsLoaded: !!stockDataPackage.optionsChain && !stockDataPackage.optionsChain.error && stockDataPackage.optionsChain.ticker === tickerToUse,
+          optionsLoaded: !!stockDataPackage.optionsChain && !stockDataPackage.optionsChain.error && 'ticker' in stockDataPackage.optionsChain && stockDataPackage.optionsChain.ticker === tickerToUse,
           autoSelectedExpirationDate: autoSelectedExpirationDate,
           error: stockDataPackage.error
         },
@@ -454,7 +455,7 @@ export async function getOptionsChainForDate(
     const uppercasedTicker = ticker.toUpperCase();
     const adapter = new PolygonAdapter(process.env.POLYGON_API_KEY, uppercasedTicker);
 
-    const snapshotResponse = await adapter['client'].stocks.snapshotTicker(uppercasedTicker, undefined, { query: { _t: Date.now() } });
+    const snapshotResponse = await adapter['client'].stocks.snapshotTicker(uppercasedTicker);
     let currentStockPrice: number | undefined;
     if (snapshotResponse.ticker) {
         const { day, prevDay, lastTrade } = snapshotResponse.ticker;
@@ -466,7 +467,8 @@ export async function getOptionsChainForDate(
         } else if (prevDay?.c && prevDay.c > 0) {
             priceSourceVal = prevDay.c;
         }
-        currentStockPrice = roundNumber(priceSourceVal, 2);
+        const roundedPrice = roundNumber(priceSourceVal, 2);
+        currentStockPrice = (roundedPrice !== null && roundedPrice !== undefined) ? roundedPrice : undefined;
     }
 
     return adapter.fetchOptionsChainForDate(uppercasedTicker, expirationDate, { ...options, currentStockPrice });

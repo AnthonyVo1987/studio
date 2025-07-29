@@ -18,6 +18,5 @@ import { DEFAULT_ANALYSIS_MODEL_ID } from './models'; // DEFAULT_ANALYSIS_MODEL_
 export const ai = genkit({
   plugins: [googleAI()],
   model: DEFAULT_ANALYSIS_MODEL_ID, // This now correctly uses the updated model from models.ts
-  enableOpenTelemetry: false, // Explicitly disable OpenTelemetry
 });
 
