@@ -368,5 +368,4 @@ export function useSpyDispatch() {
   return context;
 }
 
-export { SPY_TICKER };
 export type { SpyAnalysisState, SpyAnalysisAction };
