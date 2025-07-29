@@ -40,6 +40,9 @@ next-env.d.ts
 .genkit/*
 .env*
 
+# generated files
+/src/generated/
+
 # firebase
 firebase-debug.log
 firestore-debug.log

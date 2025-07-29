@@ -367,3 +367,6 @@ export function useNvdaDispatch() {
 }
 
 export type { NvdaAnalysisState, NvdaAnalysisAction };
+
+// Default export for dynamic imports
+export default NvdaAnalysisProvider;

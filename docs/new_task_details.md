@@ -1,14 +1,14 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.1.0]
-**Task Type**: [MAJOR CLEANUP\REFACTOR]
+**Version**: [v4.4.2.0]
+**Task Type**: [FEATURE]
 ---
 
 ## Abstract
-**Brief Summary**: [New Architecture Phase 1] Retire & Cleanup ALL User Input & Legacy Main Tab Code/Data
+**Brief Summary**: [New Architecture Phase 2] Develop new tab blueprint/template system scaffolding
 
-**Affected Systems**: _[User Input UI, Legacy Code]_
+**Affected Systems**: _[NEW Blueprint]_
 
 **Priority Level**: _[CRITICAL]_
 
@@ -106,30 +106,38 @@
 
 ## Task Details
 
-[New Architecture Phase 1] Retire & Cleanup ALL User Input & Legacy Main Tab Code/Data
+[New Architecture Phase 2] Develop new tab blueprint/template system scaffolding
 
 ### Current Situation
-- NVDA & SPY pages are working perfectly with zero issues, so it is time to start migrating, integrating, & consolidate the app to use the new architecture, and this major feature will be done in phases
-
-Phase 1 tasks:
-1. Completley Remove ALL of the legacy main page code, Legacy Data tab, legacy debug FSM tab, and anything else related to the legacy architecture
-2. Completely remove the new User Input Tab and anything else related to this tab. This will be reimplemented later
-3. Ensure we do NOT break the current implementation for the dedicated NVDA & SPY tabs as part of the cleanup, because there could be unintended side effects with a not as obvious dependency some where
-4. Audit the code to verify and double check that we no longer have ANY dead code and data from all the newly removed and cleaned up items
-5. Fully update and basically re-architect our project docs README.md & CLAUDE.md to sync up with the new cleaned up code, removing all old legacy and depracated remnants so that all docs are fully accurate with the new current architecture. The README.md & CLAUDE.md file need to be rewritten to match it's purpose, where README is geared towards higher level details, and CLAUDE.md is deeper details for Claude Code
-
+	⁃	This phase is focused on developing and implementing the initial scaffolding/blueprint/template system in order to make adding brand new dedicated stock, pages a trivial task
+ 
+	⁃	For example, it should be trivial to add 5x additional dedicated tabs utilizing the newly design and architecture blueprint system
+ 
+	⁃	So perform some research using context7, especially to find out the best practices and trying to implement a very modular blueprint system so that we can add additional app tabs very easily and streamline and make it very trivial
+ 
+	⁃	We will just work on just the blueprint system itself here for this phase and there will be follow on phases where we will actually use the new blueprint system in order to generate a brand new dedicated tap to test
+ 
+	⁃	Since the current NVDA and spy  isolated tabs are perfectly working you may review and leverage and understand the concepts and architecture that made it work and then your blueprint system needs to be modular plug and play where there should be very minimal changes to configure and add a new page so it’s helpful to see what were the main differences between the current dedicated spy and NVDA tabs and then what is duplicated code to come up with the most optimized blueprint system
+ 
+	⁃	There should be added extra comments and or instructions throughout the code based and documentation to instruct Claude AI, how to add future dedicated pages utilizing the blueprint system
+ 
+	⁃	In the perfect world, the blueprint system would allow us to add new dedicated ticker pages with very minimal code changes needed such as maybe just updating the main page for the additional tab and providing the ticker for the new dedicated page. In the perfect world, we will need very minimal parameters or config settings past him just a duplicate a page so find the best balance to create a truly modular extendable flexible easy to implement design for the blueprint architecture 
+ 
+	⁃	Eventually, the current isolated dedicated NVDA and spy pages will be retired and re factored, but that will come at a later phase once we have completed robust testing, so we’ll still keep those dedicated NVDA and spy pages to serve as a reference point and baseline to see what worked just in case we run into issues with our new blueprint system we could always refer back to the current baseline working Model to see what needs to be fixed
+ 
 
 
 ### Desired Outcome
 _[Describe what the end result should look like]_
-- The end goal of this task is to have a cleaned up and consolidated app with JUST initial Dedicated NVDA & SPY tabs that are currently fully working.  These dedicated pages will serve as a blueprint to leverage for later tasks.  All docs will be fully updated and in sync an accurate to the current state of the project with no outdated legacy details that could confuse user or Claude Code AI.
+	⁃	The end goal deliverable for this phase is that we have all the initial code, blueprint architecture, scaffolding, and documentation updated so that the next phase we can add a dedicated ticker page using the new blueprint system and start testing it so that it will have 100% feature parity with a current dedicated and Nvidia and spy pages
+
+  - Even though new ticker tabs will try and share and re-use the new blueprint components, each indivdual dedicated ticker tab neesd to operate in it's own "context space" where issues with one page, does NOT affect other pages. So it's a hybrid isolation architecture where the blueprint allows easy re-use of new tab components, BUT each new tab is separate from other tabs, even if they are all using the same underlying modular blueprint architecture
 
 
 ### Acceptance Criteria
 1. _[Specific, measurable criteria for task completion]_
 2. _[Additional criteria as needed]_
 3. _[Include performance, UX, and technical requirements]_
-
 
 
 ---

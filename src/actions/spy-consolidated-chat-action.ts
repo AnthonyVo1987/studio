@@ -309,3 +309,6 @@ export async function spyConsolidatedChatAction(
     };
   }
 }
+
+// Default export for dynamic imports
+export default spyConsolidatedChatAction;

@@ -309,3 +309,6 @@ export async function nvdaConsolidatedChatAction(
     };
   }
 }
+
+// Default export for dynamic imports
+export default nvdaConsolidatedChatAction;

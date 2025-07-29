@@ -562,3 +562,6 @@ export function SpyTabContent() {
     </div>
   );
 }
+
+// Default export for dynamic imports
+export default SpyTabContent;

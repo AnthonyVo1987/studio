@@ -369,3 +369,6 @@ export function useSpyDispatch() {
 }
 
 export type { SpyAnalysisState, SpyAnalysisAction };
+
+// Default export for dynamic imports
+export default SpyAnalysisProvider;
