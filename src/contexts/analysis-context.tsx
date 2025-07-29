@@ -23,7 +23,7 @@ export type OptionType = 'both' | 'calls' | 'puts';
 export type StrikeCount = 20 | 30 | 40;
 export type TableDisplayType = 'side-by-side' | 'top-bottom';
 
-interface UserTickerAnalysisState {
+interface StockAnalysisState {
   // Ticker Management (unique to User Input tab)
   currentTicker: string;
   isTickerValid: boolean;
@@ -81,7 +81,7 @@ interface UserTickerAnalysisState {
   dataRetrievalComplete: boolean;
 }
 
-type UserTickerAnalysisAction =
+type StockAnalysisAction =
   | { type: 'SET_CURRENT_TICKER'; payload: { ticker: string; isValid: boolean; error?: string } }
   | { type: 'SET_LOADING' }
   | { type: 'SET_IDLE' }
@@ -114,7 +114,7 @@ type UserTickerAnalysisAction =
   | { type: 'RESET_STATE' }
   | { type: 'CLEAR_TICKER_DATA' }; // Clear data when ticker changes
 
-const initialState: UserTickerAnalysisState = {
+const initialState: StockAnalysisState = {
   currentTicker: DEFAULT_TICKER,
   isTickerValid: false,
   tickerValidationError: null,
@@ -153,7 +153,7 @@ const initialState: UserTickerAnalysisState = {
   dataRetrievalComplete: false,
 };
 
-function userTickerAnalysisReducer(state: UserTickerAnalysisState, action: UserTickerAnalysisAction): UserTickerAnalysisState {
+function userTickerAnalysisReducer(state: StockAnalysisState, action: StockAnalysisAction): StockAnalysisState {
   // Create dynamic logger based on current ticker
   const ticker = action.type === 'SET_CURRENT_TICKER' ? action.payload.ticker : state.currentTicker;
   const logger = createTickerLogger(ticker || 'USER', TICKER_PAGES.USER_INPUT_TAB);
@@ -322,7 +322,7 @@ function userTickerAnalysisReducer(state: UserTickerAnalysisState, action: UserT
       });
       
       // Map prompt names to state fields
-      const updates: Partial<UserTickerAnalysisState> = {};
+      const updates: Partial<StockAnalysisState> = {};
       
       if (isUserInput) {
         // User input responses (based on mode)
@@ -402,8 +402,8 @@ function userTickerAnalysisReducer(state: UserTickerAnalysisState, action: UserT
   }
 }
 
-const UserTickerAnalysisContext = createContext<UserTickerAnalysisState | null>(null);
-const UserTickerAnalysisDispatchContext = createContext<React.Dispatch<UserTickerAnalysisAction> | null>(null);
+const UserTickerAnalysisContext = createContext<StockAnalysisState | null>(null);
+const UserTickerAnalysisDispatchContext = createContext<React.Dispatch<StockAnalysisAction> | null>(null);
 
 interface UserTickerAnalysisProviderProps {
   children: ReactNode;
@@ -456,4 +456,4 @@ export function validateTicker(ticker: string): { isValid: boolean; error?: stri
   return { isValid: true };
 }
 
-export type { UserTickerAnalysisState, UserTickerAnalysisAction };
+export type { StockAnalysisState, StockAnalysisAction };

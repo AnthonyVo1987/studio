@@ -50,7 +50,8 @@
       "Bash(curl:*)",
       "Bash(node:*)",
       "Bash(cp:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(true)"
     ],
     "deny": []
   }
