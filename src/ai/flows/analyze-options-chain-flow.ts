@@ -51,7 +51,11 @@ async function getAnalyzedOptionsChainPrompt() {
   const promptConfig: {
     safetySettings: any[];
     thinkingConfig?: { thinkingBudget?: number };
-    generationConfig?: { temperature?: number; seed?: number; maxOutputTokens?: number; topP?: number; topK?: number };
+    temperature?: number;
+    seed?: number;
+    maxOutputTokens?: number;
+    topP?: number;
+    topK?: number;
   } = {
     safetySettings: safetySettings,
   };
@@ -60,25 +64,21 @@ async function getAnalyzedOptionsChainPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition!.thinkingBudget };
   }
 
-  // Add generation config for temperature, seed, and other parameters
-  const generationConfig: any = {};
+  // Add generation config parameters directly to promptConfig (Genkit expects flat structure)
   if (analyzeOptionsChainPromptDefinition!.temperature !== undefined) {
-    generationConfig.temperature = analyzeOptionsChainPromptDefinition!.temperature;
+    promptConfig.temperature = analyzeOptionsChainPromptDefinition!.temperature;
   }
   if (analyzeOptionsChainPromptDefinition!.seed !== undefined) {
-    generationConfig.seed = analyzeOptionsChainPromptDefinition!.seed;
+    promptConfig.seed = analyzeOptionsChainPromptDefinition!.seed;
   }
   if (analyzeOptionsChainPromptDefinition!.maxOutputTokens !== undefined) {
-    generationConfig.maxOutputTokens = analyzeOptionsChainPromptDefinition!.maxOutputTokens;
+    promptConfig.maxOutputTokens = analyzeOptionsChainPromptDefinition!.maxOutputTokens;
   }
   if (analyzeOptionsChainPromptDefinition!.topP !== undefined) {
-    generationConfig.topP = analyzeOptionsChainPromptDefinition!.topP;
+    promptConfig.topP = analyzeOptionsChainPromptDefinition!.topP;
   }
   if (analyzeOptionsChainPromptDefinition!.topK !== undefined) {
-    generationConfig.topK = analyzeOptionsChainPromptDefinition!.topK;
-  }
-  if (Object.keys(generationConfig).length > 0) {
-    promptConfig.generationConfig = generationConfig;
+    promptConfig.topK = analyzeOptionsChainPromptDefinition!.topK;
   }
 
   

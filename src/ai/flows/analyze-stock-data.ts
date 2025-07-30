@@ -62,7 +62,11 @@ async function getAnalyzedStockDataPrompt() {
   const promptConfig: {
     safetySettings: any[];
     thinkingConfig?: { thinkingBudget?: number };
-    generationConfig?: { temperature?: number; seed?: number; maxOutputTokens?: number; topP?: number; topK?: number };
+    temperature?: number;
+    seed?: number;
+    maxOutputTokens?: number;
+    topP?: number;
+    topK?: number;
   } = {
     safetySettings: safetySettings,
   };
@@ -71,25 +75,21 @@ async function getAnalyzedStockDataPrompt() {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition.thinkingBudget };
   }
 
-  // Add generation config for temperature, seed, and other parameters
-  const generationConfig: any = {};
+  // Add generation config parameters directly to promptConfig (Genkit expects flat structure)
   if (analyzeStockDataPromptDefinition.temperature !== undefined) {
-    generationConfig.temperature = analyzeStockDataPromptDefinition.temperature;
+    promptConfig.temperature = analyzeStockDataPromptDefinition.temperature;
   }
   if (analyzeStockDataPromptDefinition.seed !== undefined) {
-    generationConfig.seed = analyzeStockDataPromptDefinition.seed;
+    promptConfig.seed = analyzeStockDataPromptDefinition.seed;
   }
   if (analyzeStockDataPromptDefinition.maxOutputTokens !== undefined) {
-    generationConfig.maxOutputTokens = analyzeStockDataPromptDefinition.maxOutputTokens;
+    promptConfig.maxOutputTokens = analyzeStockDataPromptDefinition.maxOutputTokens;
   }
   if (analyzeStockDataPromptDefinition.topP !== undefined) {
-    generationConfig.topP = analyzeStockDataPromptDefinition.topP;
+    promptConfig.topP = analyzeStockDataPromptDefinition.topP;
   }
   if (analyzeStockDataPromptDefinition.topK !== undefined) {
-    generationConfig.topK = analyzeStockDataPromptDefinition.topK;
-  }
-  if (Object.keys(generationConfig).length > 0) {
-    promptConfig.generationConfig = generationConfig;
+    promptConfig.topK = analyzeStockDataPromptDefinition.topK;
   }
   
   const prompt = ai.definePrompt({

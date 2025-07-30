@@ -115,7 +115,7 @@ const initialState: NvdaAnalysisState = {
   availableExpirationDates: [],
   selectedExpirationDate: '',
   optionType: 'both',
-  strikeCount: 30, // NVDA default to 30 strikes
+  strikeCount: 20, // Standardized default to 20 strikes
   tableDisplayType: 'side-by-side',
   stockSnapshotJson: '',
   marketStatusJson: '',

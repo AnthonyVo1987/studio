@@ -1,8 +1,8 @@
 
 {
-  "appVersion": "v4.4.2.4",
-  "lastUpdatedTimestamp": "2025-07-30T22:30:00.000Z",
-  "description": "AI chat enhancements: Doubled chat box size (75vh), temperature standardization (0.2, seed 42), professional formatting for regulatory compliance",
+  "appVersion": "v4.4.2.5",
+  "lastUpdatedTimestamp": "2025-07-30T06:30:00.000Z",
+  "description": "Critical bug fixes and AI restoration: AI Key Takeaways & Options Analysis fully restored, emoji engagement reverted for enhanced user experience, and options chain defaults standardized to 20 strikes across all tickers",
   "metadataSchemaVersion": "1.0.0"
 }
 

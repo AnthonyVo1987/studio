@@ -4,4 +4,4 @@
  */
 
 export type OptionType = 'calls' | 'puts' | 'both';
-export type StrikeCount = number; // Typically 10, 15, 20, 25, 30
+export type StrikeCount = number; // Default 20, typically 10, 15, 20, 25, 30
