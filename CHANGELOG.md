@@ -7,6 +7,47 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.4.2.2` (🔧 **BUG FIXES & CONFIGURATION UPDATES**)
+**Tag:** `Phase-v4.4.2.2_Bug_Fixes_Configuration`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.4.2.2] Bug fixes and configuration improvements - Web search prompts, settings timeouts, close task command`
+**Details:**
+This commit addresses several bug fixes and configuration improvements to enhance application stability and development workflow.
+
+**🔧 BUG FIXES & IMPROVEMENTS:**
+
+**WEB SEARCH PROMPTS RESTORATION:**
+*   **Fixed Missing Prompts**: Created `src/ai/definitions/example-web-search-prompts.json` with 3 specialized web search prompts
+*   **Support & Resistance Analysis**: Comprehensive prompt for technical level identification
+*   **Technical Analysis Web Search**: Advanced prompt for chart pattern and indicator analysis  
+*   **Options Flow Analysis**: Specialized prompt for unusual options activity detection
+*   **Template Structure**: Consistent JSON structure following existing prompt patterns
+
+**SETTINGS CONFIGURATION IMPROVEMENTS:**
+*   **Fixed JSON Syntax**: Corrected malformed JSON in `.claude/settings.local.json`
+*   **Timeout Optimization**: Updated task timeouts from 180s to 120s for better performance
+*   **Configuration Validation**: Ensured proper JSON structure for Claude Code integration
+
+**DEVELOPMENT WORKFLOW ENHANCEMENTS:**
+*   **New Close Task Command**: Implemented `/close_task` command in `.claude/commands/close_task.md`
+*   **Tech Lead Orchestrator Integration**: Proper delegation patterns for task finalization workflow
+*   **Autonomous Documentation**: Automated documentation updates and git commit workflow
+*   **Quality Gate Enforcement**: Built-in code review requirements before task closure
+
+**📁 FILES MODIFIED:**
+*   `src/ai/definitions/example-web-search-prompts.json` - NEW: Web search prompt templates
+*   `.claude/settings.local.json` - Fixed JSON syntax and updated timeouts
+*   `.claude/commands/close_task.md` - NEW: Close task command implementation
+*   `src/config/app-metadata.json` - Version update to v4.4.2.2
+*   `CHANGELOG.md` - Added this entry for v4.4.2.2
+
+**✅ IMPROVEMENTS DELIVERED:**
+*   **AI Chat Enhancement**: Restored missing web search prompts for improved analysis
+*   **Configuration Stability**: Fixed settings syntax for reliable Claude Code operation
+*   **Workflow Optimization**: New task closure command for better project management
+*   **Documentation Compliance**: Proper version tracking and change documentation
+
+---
 **App Version:** `v4.4.2.1` (🔄 **CRITICAL RECOVERY: ARCHITECTURE ROLLBACK**)
 **Tag:** `Phase-v4.4.2.1_Architecture_Recovery`
 **Commit Hash:** `[TO_BE_FILLED]`

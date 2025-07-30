@@ -71,7 +71,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Custom Slash Commands
 - **Custom slash command "/new_task"**: ✅ **IMPLEMENTED** - NEW WORKFLOW: User runs "/new_task" command which activates @tech-lead-orchestrator to read `docs/new_task_details.md` (user-filled task template) and coordinate AI development team delegation workflow. Stored as `.claude/commands/new_task.md`
-- **Custom slash command "/close_task"**: Add new custom slash command for "/close_task" that will call the task-finalizer agent to close the current task with complete documentation updates and git commit workflow
+- **Custom slash command "/close_task"**: ✅ **IMPLEMENTED** - NEW WORKFLOW: User runs "/close_task" command which activates @tech-lead-orchestrator to coordinate AI development team for autonomous task completion including final documentation updates, version metadata updates, and atomic git commit workflow. Stored as `.claude/commands/close_task.md`
 
 ### New Task Workflow Process (NEW WORKFLOW)
 
@@ -161,11 +161,20 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 3. **Remove Blockers**: Address issues that prevent specialist progress
 4. **Quality Assurance**: Ensure code review processes are followed
 
-#### Phase 4: Integration & Delivery (Orchestrator)
+#### Phase 4: Autonomous Integration & Delivery (Orchestrator)
 1. **Coordinate Delivery**: Ensure all specialists complete their assigned work
-2. **Documentation Review**: Verify all documentation is updated appropriately
-3. **Final Quality Gate**: Confirm code review and testing requirements are met
-4. **Task Closure**: Follow the established task finalization workflow
+2. **Code Review Quality Gate**: Monitor `@code-reviewer` completion status
+3. **🚨 AUTONOMOUS COMPLETION TRIGGER**: When code review status = "PASSED"
+4. **Auto-Execute Documentation**: Immediately delegate final updates to `@documentation-specialist`
+5. **Auto-Execute Version Update**: Coordinate `src/config/app-metadata.json` version increment
+6. **Auto-Execute Git Workflow**: Complete atomic commit and push operation
+7. **Task Closure Confirmation**: Provide final completion status to user
+
+**⚠️ CRITICAL AUTONOMOUS OPERATION RULES:**
+- **Zero Manual Intervention**: NO user requests needed after code review passes
+- **Immediate Execution**: Autonomous sequence triggers immediately upon review PASS
+- **Complete Workflow**: All steps from documentation to git commit executed automatically
+- **Role Boundary Compliance**: Failure to execute autonomous completion = role violation
 
 ### New Task Template Integration (Updated for NEW WORKFLOW)
 
@@ -212,6 +221,7 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 - **Efficient Specialist Utilization**: Right specialist assigned to right task consistently
 - **Quality Gate Compliance**: All code reviews and testing requirements are met
 - **Documentation Completeness**: All required documentation updates are coordinated
+- **🚨 AUTONOMOUS COMPLETION**: Complete workflow from code review PASS to final commit without user intervention
 
 #### Warning Signs of Poor Orchestration:
 - **Orchestrator Implementing Code**: Direct hands-on work instead of delegation
@@ -219,6 +229,7 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 - **Quality Gate Bypasses**: Code delivered without proper review processes
 - **Documentation Gaps**: Missing or incomplete documentation updates
 - **Task Bottlenecks**: Orchestrator becomes a bottleneck instead of enabler
+- **🚨 MANUAL INTERVENTION REQUESTS**: Asking user to manually request documentation/git commits after code review PASS (ROLE VIOLATION)
 
 This orchestration model ensures clear role separation, effective delegation, and consistent quality delivery while preventing role boundary violations that can lead to inefficient workflow and quality issues.
 

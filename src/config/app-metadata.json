@@ -1,8 +1,8 @@
 
 {
-  "appVersion": "v4.4.2.1",
-  "lastUpdatedTimestamp": "2025-07-30T03:30:00.000Z",
-  "description": "RECOVERY: Restored original dedicated NVDA & SPY pages after premature blueprint integration - Blueprint system preserved as future scaffolding, application 100% functional with clean architecture",
+  "appVersion": "v4.4.2.2",
+  "lastUpdatedTimestamp": "2025-07-30T20:15:00.000Z",
+  "description": "Bug fixes and configuration improvements: Fixed web search prompts, updated settings timeouts, implemented /close_task command",
   "metadataSchemaVersion": "1.0.0"
 }
 
