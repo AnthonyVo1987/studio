@@ -1,8 +1,8 @@
 
 {
-  "appVersion": "v4.4.2.2",
-  "lastUpdatedTimestamp": "2025-07-30T20:15:00.000Z",
-  "description": "Bug fixes and configuration improvements: Fixed web search prompts, updated settings timeouts, implemented /close_task command",
+  "appVersion": "v4.4.2.3",
+  "lastUpdatedTimestamp": "2025-07-30T20:45:00.000Z",
+  "description": "Critical AI chat bug fix: Restored missing app-data-chatbot.json definition file accidentally removed during legacy cleanup",
   "metadataSchemaVersion": "1.0.0"
 }
 

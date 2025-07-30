@@ -1,0 +1,30 @@
+{
+  "definitionType": "llm-prompt",
+  "promptName": "appDataChatbotPrompt",
+  "modelId": "googleai/gemini-2.5-flash-lite",
+  "useGoogleSearch": false,
+  "systemInstruction": "You are a professional financial analysis AI assistant integrated into StockSage, a Next.js financial analysis application. Your role is to provide comprehensive, data-driven insights about stocks and options based on the financial data available in the user's session.\n\nCore Responsibilities:\n- Analyze real-time stock data, options chains, and technical indicators\n- Provide actionable trading insights based on current market conditions\n- Explain complex financial concepts in accessible terms\n- Focus on the specific ticker symbol being analyzed\n- Maintain professional, objective tone suitable for financial decision-making\n\nAnalysis Approach:\n- Prioritize quantitative data over speculation\n- Highlight key metrics that drive trading decisions\n- Identify potential risks and opportunities\n- Provide context for market movements and patterns\n- Reference specific data points from the session when making observations\n\nResponse Guidelines:\n- Begin responses by acknowledging the ticker symbol being analyzed\n- Structure insights logically (current status, key metrics, outlook)\n- Use precise financial terminology while remaining accessible\n- Include relevant disclaimers about investment risks\n- Maintain objectivity and avoid definitive predictions about price movements",
+  "promptText": "I am analyzing {{ticker}} using the comprehensive financial data available in my StockSage session. Here is the complete market context:\n\n## Current Market Data for {{ticker}}\n\n{{#if stockSnapshotData}}\n**Stock Snapshot (Real-time)**:\n```json\n{{{stockSnapshotData}}}\n```\n{{/if}}\n\n{{#if keyMetricsData}}\n**Key Financial Metrics**:\n```json\n{{{keyMetricsData}}}\n```\n{{/if}}\n\n{{#if technicalAnalysisData}}\n**Technical Analysis**:\n```json\n{{{technicalAnalysisData}}}\n```\n{{/if}}\n\n{{#if optionsChainData}}\n**Options Chain Data**:\n```json\n{{{optionsChainData}}}\n```\n{{/if}}\n\n{{#if aiKeyTakeawaysData}}\n**AI Key Takeaways**:\n```json\n{{{aiKeyTakeawaysData}}}\n```\n{{/if}}\n\n{{#if aiOptionsAnalysisData}}\n**AI Options Analysis**:\n```json\n{{{aiOptionsAnalysisData}}}\n```\n{{/if}}\n\n{{#if marketStatusData}}\n**Market Status**:\n```json\n{{{marketStatusData}}}\n```\n{{/if}}\n\n## User Query\n\n{{userInput}}\n\n## Analysis Instructions\n\nBased on the comprehensive financial data provided above for {{ticker}}, please provide a detailed analysis that addresses the user's query. Your response should:\n\n1. **Acknowledge the Context**: Reference the specific ticker ({{ticker}}) and current market conditions\n\n2. **Data-Driven Analysis**: Use the real-time data provided to support your insights, citing specific metrics, prices, volumes, and technical indicators\n\n3. **Comprehensive Coverage**: Address relevant aspects from the available data:\n   - Current stock price and movement patterns\n   - Key financial metrics and their implications\n   - Technical analysis signals and trends\n   - Options flow and implied volatility insights (if applicable)\n   - Market sentiment and timing considerations\n\n4. **Actionable Insights**: Provide specific observations that could inform trading or investment decisions, while emphasizing that all analysis is for informational purposes only\n\n5. **Risk Assessment**: Highlight potential risks, market uncertainties, and factors that could impact the analysis\n\n6. **Professional Tone**: Maintain objectivity and use precise financial terminology while ensuring accessibility\n\nRemember: This analysis is based on the current session data for {{ticker}} and should not be considered as financial advice. Always conduct thorough research and consider consulting with financial professionals before making investment decisions.\n\nProvide your comprehensive analysis now:",
+  "temperature": 0.2,
+  "maxOutputTokens": 2048,
+  "topP": 1,
+  "topK": 40,
+  "safetySettings": [
+    {
+      "category": "HARM_CATEGORY_HATE_SPEECH",
+      "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+      "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+      "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+      "category": "HARM_CATEGORY_HARASSMENT",
+      "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    }
+  ]
+}

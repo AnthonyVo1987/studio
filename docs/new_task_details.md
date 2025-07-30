@@ -1,16 +1,16 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.2]
-**Task Type**: [BUG & CONFIG] 
+**Version**: [v4.4.2.3]
+**Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: Config Update & Fix mis-wired AI Chat Web Search Button Prompts for NVDA, SPY, & Blueprints
+**Brief Summary**: Phase 2 AI Chat Investigation & Fixes after Web Search Prompt Recovery
 
-**Affected Systems**: [BUG & CONFIG]
+**Affected Systems**: [BUG]
 
-**Priority Level**: _[CRITICAL]_
+**Priority Level**: _[HIGH]_
 
 ---
 
@@ -133,9 +133,9 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 
 ## Task Details
 
-[BUG & CONFIG] Config Update & Fix mis-wired AI Chat Web Search Button Prompts for NVDA, SPY, & Blueprints
-
-This is a bug report and new config request before moving onto the next phase of the new architcture, since I found bugs while testing as we move along each phase:
+Phase 2 AI Chat Investigation & Fixes after Web Search Prompt Recovery:
+- Review the raw logs and snapshot data for any issues in the AI chat path, and if there are issues, fix the issues
+- There may be fundamental issues that need to be implmented across NVDA, SPY, and the Blueprint scaffolding code
  
 ### Current Situation
 
@@ -157,19 +157,6 @@ _[Describe what the end result should look like]_
 ### Issue Description
 _[Detailed description of the problem or requested change]_
 
-1. Fix mis-wired AI Chat Web Search Button Prompts for NVDA, SPY, & Blueprints
-- AI Chat Web Search Button Prompts and user input web search chat prompts may be mis-wired and not using the correct Web Search prompts
-- This could be a systemtic symptom of a systematic issue, so the fix may need to be rolled into the NVDA, SPY, and new Blueprint code since I suspect the recent cleanup task introduced and/or caused side effects with the web search prompt wiring
-- You may have to review the git commit history and file changes from the recent legacy main tab clean up tasks that could have possibly removed key prompts\schemas that were incorrectly removed as part of legacy code clean up.  Some files and/or parts of code may have to be restored and/or re-worked across the dedicated tabs and blueprint scaffolding code
-- So double check for issues and fix code\wiring for ALL Web Search Prompt Buttons AND User Input Web Search across the dedicated tabs and blueprint scaffolding code
-
-
-2. Secondary Claude Config Settings update(s) settings.local.json:
-- Add to settings.local.json ALL project bash commands, such as the build and development commands, lint, start/kill dev servers etc, and any other commands that Claude runs to test/build the code changes so that Claude does not need user approval to perform the action.  This will help ensure even more autonomy to have issues fully fixed and tested
-- You may have to review the entire project docs, package json files and any other project environment commands to add too, since I may not have listed all of them and it was not an exhaustive list
-- Increase\Set ALL Bash command timeouts to 60s for every command to have enough margin for all the bash commands
-
-3. After a few /new_task commands, it seems the TECH-LEAD-ORCHESTRATOR forgets delegate and coordindate to fully close out a completed task, because I have to always manually request for TECH-LEAD-ORCHESTRATOR to coordinate the final documentation updates, and perform the git commit & push.  This should be done automatically once all new tasks are fininshed, basically after the passing code-review, since a passing code review means there are no other changes needed, and we are ready to commit.  So need to update /new_task commands, new_task_details.md, and CLAUDE.md to enforce a fully end to end autonomous task, from starting a new task all the way to code view, doc updates, and the final atomic commit & push steps unattended.
 
 ### Steps to Reproduce (if applicable)
 1. _[Step 1]_
@@ -199,170 +186,425 @@ _[Any architectural decisions or patterns that must be followed]_
 
 ### Error Logs
 ```
-2025-07-30T00:27:48Z [web] <Firebase Studio> Starting preview...
-2025-07-30T00:27:48Z [web] Waiting for your web server to start serving
-2025-07-30T00:27:48Z [web] Shutting down all Genkit servers...
-2025-07-30T00:27:49Z [web] [?25h
-2025-07-30T00:27:49Z [web] 
-2025-07-30T00:27:49Z [web] > nextn@0.1.0 dev
-2025-07-30T00:27:49Z [web] > next dev --turbopack -p 9002 --port 9002 --hostname 0.0.0.0
-2025-07-30T00:27:49Z [web] 
-2025-07-30T00:27:53Z [web] <Firebase Studio> ▶️ Preview running
-2025-07-30T00:27:53Z [web]    ▲ Next.js 15.3.3 (Turbopack)
-2025-07-30T00:27:53Z [web]    - Local:        http://localhost:9002
-2025-07-30T00:27:53Z [web]    - Network:      http://0.0.0.0:9002
-2025-07-30T00:27:53Z [web]    - Environments: .env
-2025-07-30T00:27:53Z [web] 
-2025-07-30T00:27:53Z [web]  ✓ Starting...
-2025-07-30T00:27:56Z [web]  ✓ Ready in 3s
-2025-07-30T00:27:56Z [web]  ○ Compiling / ...
-2025-07-30T00:28:54Z [web]  ✓ Compiled / in 58.4s
-2025-07-30T00:28:59Z [web]  GET /?monospaceUid=802659 200 in 2006ms
-2025-07-30T00:29:00Z [web] Error:  ⚠ Cross origin request detected from 9000-firebase-studio-1749581617260.cluster-t23zgfo255e32uuvburngnfnn4.cloudworkstations.dev to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
-2025-07-30T00:29:00Z [web] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
-2025-07-30T00:29:00Z [web] 
-2025-07-30T00:29:09Z [web]  POST /?monospaceUid=802659 200 in 3219ms
-2025-07-30T00:29:17Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Starting stock data fetch... {
-2025-07-30T00:29:17Z [web]   ticker: 'SPY',
-2025-07-30T00:29:17Z [web]   expirationDate: '2025-07-30',
-2025-07-30T00:29:17Z [web]   optionType: 'both',
-2025-07-30T00:29:17Z [web]   strikeCount: 20
-2025-07-30T00:29:17Z [web] }
-2025-07-30T00:29:17Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Calling polygon adapter...
-2025-07-30T00:29:21Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Adapter response received
-2025-07-30T00:29:21Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Data processing complete: {
-2025-07-30T00:29:21Z [web]   hasMarketStatus: true,
-2025-07-30T00:29:21Z [web]   hasStockSnapshot: true,
-2025-07-30T00:29:21Z [web]   hasTechnicalIndicators: true,
-2025-07-30T00:29:21Z [web]   hasOptionsChain: true,
-2025-07-30T00:29:21Z [web]   optionsChainSize: 0
-2025-07-30T00:29:21Z [web] }
-2025-07-30T00:29:21Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] SUCCESS - Stock data fetch completed
-2025-07-30T00:29:21Z [web]  POST /?monospaceUid=802659 200 in 4620ms
-2025-07-30T00:29:21Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Starting technical analysis... { hasStockSnapshot: true, dataSize: 569 }
-2025-07-30T00:29:21Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Parsing stock snapshot data...
-2025-07-30T00:29:21Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Stock snapshot parsed successfully
-2025-07-30T00:29:21Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Validating previous day data...
-2025-07-30T00:29:21Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Prepared flow input: {
-2025-07-30T00:29:21Z [web]   previousDayHigh: 638.04,
-2025-07-30T00:29:21Z [web]   previousDayLow: 635.54,
-2025-07-30T00:29:21Z [web]   previousDayClose: 636.94
-2025-07-30T00:29:21Z [web] }
-2025-07-30T00:29:21Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Calling AI flow for technical analysis...
-2025-07-30T00:29:22Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] AI flow completed successfully
-2025-07-30T00:29:22Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] SUCCESS - Technical analysis completed
-2025-07-30T00:29:22Z [web]  POST /?monospaceUid=802659 200 in 346ms
-2025-07-30T00:29:28Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Starting AI key takeaways analysis... {
-2025-07-30T00:29:28Z [web]   ticker: 'SPY',
-2025-07-30T00:29:28Z [web]   hasStockSnapshot: true,
-2025-07-30T00:29:28Z [web]   hasStandardTas: true,
-2025-07-30T00:29:28Z [web]   hasAiAnalyzedTa: true,
-2025-07-30T00:29:28Z [web]   hasMarketStatus: true
-2025-07-30T00:29:28Z [web] }
-2025-07-30T00:29:28Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Prepared flow input for AI analysis
-2025-07-30T00:29:28Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Calling AI flow for key takeaways generation...
-2025-07-30T00:29:41Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] AI flow completed successfully
-2025-07-30T00:29:41Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] SUCCESS - AI key takeaways analysis completed
-2025-07-30T00:29:41Z [web]  POST /?monospaceUid=802659 200 in 12536ms
-2025-07-30T00:29:44Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Starting AI options analysis... { ticker: 'SPY', hasOptionsChain: true, hasStockSnapshot: true }
-2025-07-30T00:29:44Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Validating input data...
-2025-07-30T00:29:44Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Calling AI flow for options analysis...
-2025-07-30T00:29:54Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] AI flow completed successfully
-2025-07-30T00:29:54Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] SUCCESS - AI options analysis completed
-2025-07-30T00:29:54Z [web]  POST /?monospaceUid=802659 200 in 10554ms
-2025-07-30T00:29:57Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
-2025-07-30T00:29:57Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T00:29:57Z [web] [getAppDataPrompt] Loading definition for promptName: stock-trader-takeaways, file: stock-trader-takeaways
-2025-07-30T00:29:57Z [web] [getAppDataPrompt] Successfully cached prompt for: stock-trader-takeaways
-2025-07-30T00:29:57Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
-2025-07-30T00:30:00Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
-2025-07-30T00:30:00Z [web]  POST /?monospaceUid=802659 200 in 3893ms
-2025-07-30T00:30:04Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
-2025-07-30T00:30:04Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T00:30:04Z [web] [getAppDataPrompt] Loading definition for promptName: options-trader-takeaways, file: options-trader-takeaways
-2025-07-30T00:30:04Z [web] [getAppDataPrompt] Successfully cached prompt for: options-trader-takeaways
-2025-07-30T00:30:04Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
-2025-07-30T00:30:09Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Successfully generated response
-2025-07-30T00:30:09Z [web]  POST /?monospaceUid=802659 200 in 4925ms
-2025-07-30T00:30:11Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Starting unified chat request
-2025-07-30T00:30:11Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T00:30:11Z [web] [getAppDataPrompt] Loading definition for promptName: holistic-takeaways, file: holistic-takeaways
-2025-07-30T00:30:11Z [web] [getAppDataPrompt] Successfully cached prompt for: holistic-takeaways
-2025-07-30T00:30:11Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
-2025-07-30T00:30:16Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Successfully generated response
-2025-07-30T00:30:16Z [web]  POST /?monospaceUid=802659 200 in 5160ms
-2025-07-30T00:30:20Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
-2025-07-30T00:30:20Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T00:30:21Z [web] Error: Failed to load web search prompt for support-resistance-web-search: Error: Failed to load or parse example-web-search-prompts.json: Cannot find module '@/ai/definitions/example-web-search-prompts.json'
-2025-07-30T00:30:21Z [web]     at loadExamplePrompts (src/ai/definition-loader.ts:145:10)
-2025-07-30T00:30:21Z [web]     at async getWebSearchPrompt (src/actions/spy-consolidated-chat-action.ts:103:27)
-2025-07-30T00:30:21Z [web]     at async spyConsolidatedChatAction (src/actions/spy-consolidated-chat-action.ts:232:31)
-2025-07-30T00:30:21Z [web]   143 |     return validationResult.data;
-2025-07-30T00:30:21Z [web]   144 |   } catch (error: any) {
-2025-07-30T00:30:21Z [web] > 145 |     throw new Error(`Failed to load or parse ${fileName}: ${error.message}`);
-2025-07-30T00:30:21Z [web]       |          ^
-2025-07-30T00:30:21Z [web]   146 |   }
-2025-07-30T00:30:21Z [web]   147 | }
-2025-07-30T00:30:21Z [web]   148 |
-2025-07-30T00:30:21Z [web] 
-2025-07-30T00:30:21Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
-2025-07-30T00:30:22Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Successfully generated response
-2025-07-30T00:30:22Z [web]  POST /?monospaceUid=802659 200 in 1945ms
-2025-07-30T00:30:33Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
-2025-07-30T00:30:33Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T00:30:34Z [web] Error: Failed to load web search prompt for technical-analysis-web-search: Error: Failed to load or parse example-web-search-prompts.json: Cannot find module '@/ai/definitions/example-web-search-prompts.json'
-2025-07-30T00:30:34Z [web]     at loadExamplePrompts (src/ai/definition-loader.ts:145:10)
-2025-07-30T00:30:34Z [web]     at async getWebSearchPrompt (src/actions/spy-consolidated-chat-action.ts:103:27)
-2025-07-30T00:30:34Z [web]     at async spyConsolidatedChatAction (src/actions/spy-consolidated-chat-action.ts:232:31)
-2025-07-30T00:30:34Z [web]   143 |     return validationResult.data;
-2025-07-30T00:30:34Z [web]   144 |   } catch (error: any) {
-2025-07-30T00:30:34Z [web] > 145 |     throw new Error(`Failed to load or parse ${fileName}: ${error.message}`);
-2025-07-30T00:30:34Z [web]       |          ^
-2025-07-30T00:30:34Z [web]   146 |   }
-2025-07-30T00:30:34Z [web]   147 | }
-2025-07-30T00:30:34Z [web]   148 |
-2025-07-30T00:30:34Z [web] 
-2025-07-30T00:30:34Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
-2025-07-30T00:30:47Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
-2025-07-30T00:30:47Z [web]  POST /?monospaceUid=802659 200 in 13909ms
-2025-07-30T00:30:50Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Starting unified chat request
-2025-07-30T00:30:50Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T00:30:51Z [web] Error: Failed to load web search prompt for options-flow-web-search: Error: Failed to load or parse example-web-search-prompts.json: Cannot find module '@/ai/definitions/example-web-search-prompts.json'
-2025-07-30T00:30:51Z [web]     at loadExamplePrompts (src/ai/definition-loader.ts:145:10)
-2025-07-30T00:30:51Z [web]     at async getWebSearchPrompt (src/actions/spy-consolidated-chat-action.ts:103:27)
-2025-07-30T00:30:51Z [web]     at async spyConsolidatedChatAction (src/actions/spy-consolidated-chat-action.ts:232:31)
-2025-07-30T00:30:51Z [web]   143 |     return validationResult.data;
-2025-07-30T00:30:51Z [web]   144 |   } catch (error: any) {
-2025-07-30T00:30:51Z [web] > 145 |     throw new Error(`Failed to load or parse ${fileName}: ${error.message}`);
-2025-07-30T00:30:51Z [web]       |          ^
-2025-07-30T00:30:51Z [web]   146 |   }
-2025-07-30T00:30:51Z [web]   147 | }
-2025-07-30T00:30:51Z [web]   148 |
-2025-07-30T00:30:51Z [web] 
-2025-07-30T00:30:51Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
-2025-07-30T00:31:03Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Successfully generated response
-2025-07-30T00:31:03Z [web]  POST /?monospaceUid=802659 200 in 13224ms
-2025-07-30T00:31:15Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Starting unified chat request
-2025-07-30T00:31:15Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
-2025-07-30T00:31:16Z [web] Error: Failed to load web search prompt for general: Error: Failed to load or parse example-web-search-prompts.json: Cannot find module '@/ai/definitions/example-web-search-prompts.json'
-2025-07-30T00:31:16Z [web]     at loadExamplePrompts (src/ai/definition-loader.ts:145:10)
-2025-07-30T00:31:16Z [web]     at async getWebSearchPrompt (src/actions/spy-consolidated-chat-action.ts:103:27)
-2025-07-30T00:31:16Z [web]     at async spyConsolidatedChatAction (src/actions/spy-consolidated-chat-action.ts:245:31)
-2025-07-30T00:31:16Z [web]   143 |     return validationResult.data;
-2025-07-30T00:31:16Z [web]   144 |   } catch (error: any) {
-2025-07-30T00:31:16Z [web] > 145 |     throw new Error(`Failed to load or parse ${fileName}: ${error.message}`);
-2025-07-30T00:31:16Z [web]       |          ^
-2025-07-30T00:31:16Z [web]   146 |   }
-2025-07-30T00:31:16Z [web]   147 | }
-2025-07-30T00:31:16Z [web]   148 |
-2025-07-30T00:31:16Z [web] 
-2025-07-30T00:31:16Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Generating content with webSearch: true
-2025-07-30T00:31:26Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Successfully generated response
-2025-07-30T00:31:26Z [web]  POST /?monospaceUid=802659 200 in 11916ms
+2025-07-30T01:31:05Z [web] <Firebase Studio> Starting preview...
+2025-07-30T01:31:05Z [web] Waiting for your web server to start serving
+2025-07-30T01:31:05Z [web] Shutting down all Genkit servers...
+2025-07-30T01:31:05Z [web] [?25h
+2025-07-30T01:31:07Z [web] 
+2025-07-30T01:31:07Z [web] > nextn@0.1.0 dev
+2025-07-30T01:31:07Z [web] > next dev --turbopack -p 9002 --port 9002 --hostname 0.0.0.0
+2025-07-30T01:31:07Z [web] 
+2025-07-30T01:31:11Z [web] <Firebase Studio> ▶️ Preview running
+2025-07-30T01:31:11Z [web]    ▲ Next.js 15.3.3 (Turbopack)
+2025-07-30T01:31:11Z [web]    - Local:        http://localhost:9002
+2025-07-30T01:31:11Z [web]    - Network:      http://0.0.0.0:9002
+2025-07-30T01:31:11Z [web]    - Environments: .env
+2025-07-30T01:31:11Z [web] 
+2025-07-30T01:31:11Z [web]  ✓ Starting...
+2025-07-30T01:31:14Z [web]  ✓ Ready in 3.3s
+2025-07-30T01:31:14Z [web]  ○ Compiling / ...
+2025-07-30T01:32:38Z [web]  ✓ Compiled / in 84s
+2025-07-30T01:32:44Z [web]  GET /?monospaceUid=952998 200 in 30674ms
+2025-07-30T01:32:45Z [web] Error:  ⚠ Cross origin request detected from 9000-firebase-studio-1749581617260.cluster-t23zgfo255e32uuvburngnfnn4.cloudworkstations.dev to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+2025-07-30T01:32:45Z [web] Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+2025-07-30T01:32:45Z [web] 
+2025-07-30T01:33:17Z [web]  POST /?monospaceUid=952998 200 in 1045ms
+2025-07-30T01:33:18Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Starting stock data fetch... {
+2025-07-30T01:33:18Z [web]   ticker: 'NVDA',
+2025-07-30T01:33:18Z [web]   expirationDate: '2025-08-01',
+2025-07-30T01:33:18Z [web]   optionType: 'both',
+2025-07-30T01:33:18Z [web]   strikeCount: 30
+2025-07-30T01:33:18Z [web] }
+2025-07-30T01:33:18Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Calling polygon adapter...
+2025-07-30T01:33:22Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Adapter response received
+2025-07-30T01:33:22Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Data processing complete: {
+2025-07-30T01:33:22Z [web]   hasMarketStatus: true,
+2025-07-30T01:33:22Z [web]   hasStockSnapshot: true,
+2025-07-30T01:33:22Z [web]   hasTechnicalIndicators: true,
+2025-07-30T01:33:22Z [web]   hasOptionsChain: true,
+2025-07-30T01:33:22Z [web]   optionsChainSize: 0
+2025-07-30T01:33:22Z [web] }
+2025-07-30T01:33:22Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] SUCCESS - Stock data fetch completed
+2025-07-30T01:33:22Z [web]  POST /?monospaceUid=952998 200 in 4329ms
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Starting technical analysis... { hasStockSnapshot: true, dataSize: 571 }
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Parsing stock snapshot data...
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Stock snapshot parsed successfully
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Validating previous day data...
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Prepared flow input: {
+2025-07-30T01:33:23Z [web]   previousDayHigh: 177,
+2025-07-30T01:33:23Z [web]   previousDayLow: 173.97,
+2025-07-30T01:33:23Z [web]   previousDayClose: 176.75
+2025-07-30T01:33:23Z [web] }
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Calling AI flow for technical analysis...
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T01:33:23Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] SUCCESS - Technical analysis completed
+2025-07-30T01:33:23Z [web]  POST /?monospaceUid=952998 200 in 356ms
+2025-07-30T01:33:25Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Starting AI key takeaways analysis... {
+2025-07-30T01:33:25Z [web]   ticker: 'NVDA',
+2025-07-30T01:33:25Z [web]   hasStockSnapshot: true,
+2025-07-30T01:33:25Z [web]   hasStandardTas: true,
+2025-07-30T01:33:25Z [web]   hasAiAnalyzedTa: true,
+2025-07-30T01:33:25Z [web]   hasMarketStatus: true
+2025-07-30T01:33:25Z [web] }
+2025-07-30T01:33:25Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Prepared flow input for AI analysis
+2025-07-30T01:33:25Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Calling AI flow for key takeaways generation...
+2025-07-30T01:33:31Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T01:33:31Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] SUCCESS - AI key takeaways analysis completed
+2025-07-30T01:33:31Z [web]  POST /?monospaceUid=952998 200 in 6517ms
+2025-07-30T01:33:33Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Starting AI options analysis... { ticker: 'NVDA', hasOptionsChain: true, hasStockSnapshot: true }
+2025-07-30T01:33:33Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Validating input data...
+2025-07-30T01:33:33Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Calling AI flow for options analysis...
+2025-07-30T01:33:43Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T01:33:43Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] SUCCESS - AI options analysis completed
+2025-07-30T01:33:43Z [web]  POST /?monospaceUid=952998 200 in 10752ms
+2025-07-30T01:33:46Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
+2025-07-30T01:33:46Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:33:46Z [web] [getAppDataPrompt] Loading definition for promptName: stock-trader-takeaways, file: stock-trader-takeaways
+2025-07-30T01:33:46Z [web] [getAppDataPrompt] Successfully cached prompt for: stock-trader-takeaways
+2025-07-30T01:33:46Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
+2025-07-30T01:33:49Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
+2025-07-30T01:33:49Z [web]  POST /?monospaceUid=952998 200 in 3504ms
+2025-07-30T01:33:51Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
+2025-07-30T01:33:51Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:33:51Z [web] [getAppDataPrompt] Loading definition for promptName: options-trader-takeaways, file: options-trader-takeaways
+2025-07-30T01:33:51Z [web] [getAppDataPrompt] Successfully cached prompt for: options-trader-takeaways
+2025-07-30T01:33:51Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
+2025-07-30T01:33:54Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Successfully generated response
+2025-07-30T01:33:54Z [web]  POST /?monospaceUid=952998 200 in 3462ms
+2025-07-30T01:33:56Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Starting unified chat request
+2025-07-30T01:33:56Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:33:56Z [web] [getAppDataPrompt] Loading definition for promptName: holistic-takeaways, file: holistic-takeaways
+2025-07-30T01:33:56Z [web] [getAppDataPrompt] Successfully cached prompt for: holistic-takeaways
+2025-07-30T01:33:56Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
+2025-07-30T01:34:03Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Successfully generated response
+2025-07-30T01:34:03Z [web]  POST /?monospaceUid=952998 200 in 6566ms
+2025-07-30T01:34:10Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
+2025-07-30T01:34:10Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:34:10Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
+2025-07-30T01:34:21Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Successfully generated response
+2025-07-30T01:34:21Z [web]  POST /?monospaceUid=952998 200 in 10913ms
+2025-07-30T01:34:32Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
+2025-07-30T01:34:32Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:34:32Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
+2025-07-30T01:34:45Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
+2025-07-30T01:34:45Z [web]  POST /?monospaceUid=952998 200 in 13347ms
+2025-07-30T01:35:00Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Starting unified chat request
+2025-07-30T01:35:00Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:35:00Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
+2025-07-30T01:35:11Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Successfully generated response
+2025-07-30T01:35:11Z [web]  POST /?monospaceUid=952998 200 in 11534ms
+2025-07-30T01:35:23Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Starting unified chat request
+2025-07-30T01:35:23Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:35:23Z [web] [getAppDataPrompt] Loading definition for promptName: general, file: app-data-chatbot
+2025-07-30T01:35:25Z [web] Error: Failed to load app data prompt for general: Error: Failed to load AI definition 'app-data-chatbot': Cannot find module '@/ai/definitions/app-data-chatbot.json'
+2025-07-30T01:35:25Z [web]     at loadDefinition (src/ai/definition-loader.ts:93:10)
+2025-07-30T01:35:25Z [web]     at async getAppDataPrompt (src/actions/nvda-consolidated-chat-action.ts:49:23)
+2025-07-30T01:35:25Z [web]     at async nvdaConsolidatedChatAction (src/actions/nvda-consolidated-chat-action.ts:248:28)
+2025-07-30T01:35:25Z [web]   91 |     if (error.message.includes('Cannot find module') || error.code === 'MODULE_NOT_FOUND') {
+2025-07-30T01:35:25Z [web]   92 |     }
+2025-07-30T01:35:25Z [web] > 93 |     throw new Error(`Failed to load AI definition '${definitionName}': ${error.message}`);
+2025-07-30T01:35:25Z [web]      |          ^
+2025-07-30T01:35:25Z [web]   94 |   }
+2025-07-30T01:35:25Z [web]   95 | }
+2025-07-30T01:35:25Z [web]   96 |
+2025-07-30T01:35:25Z [web] 
+2025-07-30T01:35:25Z [web] [getAppDataPrompt] Using fallback prompt for: general
+2025-07-30T01:35:25Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Generating content with webSearch: false
+2025-07-30T01:35:25Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Successfully generated response
+2025-07-30T01:35:25Z [web]  POST /?monospaceUid=952998 200 in 1868ms
+2025-07-30T01:35:32Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Starting unified chat request
+2025-07-30T01:35:32Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:35:32Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Generating content with webSearch: true
+2025-07-30T01:35:41Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Successfully generated response
+2025-07-30T01:35:41Z [web]  POST /?monospaceUid=952998 200 in 8756ms
+2025-07-30T01:35:56Z [web]  POST /?monospaceUid=952998 200 in 5687ms
+2025-07-30T01:35:59Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Starting stock data fetch... {
+2025-07-30T01:35:59Z [web]   ticker: 'SPY',
+2025-07-30T01:35:59Z [web]   expirationDate: '2025-07-30',
+2025-07-30T01:35:59Z [web]   optionType: 'both',
+2025-07-30T01:35:59Z [web]   strikeCount: 20
+2025-07-30T01:35:59Z [web] }
+2025-07-30T01:35:59Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Calling polygon adapter...
+2025-07-30T01:36:06Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Adapter response received
+2025-07-30T01:36:06Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Data processing complete: {
+2025-07-30T01:36:06Z [web]   hasMarketStatus: true,
+2025-07-30T01:36:06Z [web]   hasStockSnapshot: true,
+2025-07-30T01:36:06Z [web]   hasTechnicalIndicators: true,
+2025-07-30T01:36:06Z [web]   hasOptionsChain: true,
+2025-07-30T01:36:06Z [web]   optionsChainSize: 0
+2025-07-30T01:36:06Z [web] }
+2025-07-30T01:36:06Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] SUCCESS - Stock data fetch completed
+2025-07-30T01:36:06Z [web]  POST /?monospaceUid=952998 200 in 7444ms
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Starting technical analysis... { hasStockSnapshot: true, dataSize: 569 }
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Parsing stock snapshot data...
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Stock snapshot parsed successfully
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Validating previous day data...
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Prepared flow input: {
+2025-07-30T01:36:06Z [web]   previousDayHigh: 638.04,
+2025-07-30T01:36:06Z [web]   previousDayLow: 635.54,
+2025-07-30T01:36:06Z [web]   previousDayClose: 636.94
+2025-07-30T01:36:06Z [web] }
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Calling AI flow for technical analysis...
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] AI flow completed successfully
+2025-07-30T01:36:06Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] SUCCESS - Technical analysis completed
+2025-07-30T01:36:06Z [web]  POST /?monospaceUid=952998 200 in 204ms
+2025-07-30T01:36:09Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Starting AI key takeaways analysis... {
+2025-07-30T01:36:09Z [web]   ticker: 'SPY',
+2025-07-30T01:36:09Z [web]   hasStockSnapshot: true,
+2025-07-30T01:36:09Z [web]   hasStandardTas: true,
+2025-07-30T01:36:09Z [web]   hasAiAnalyzedTa: true,
+2025-07-30T01:36:09Z [web]   hasMarketStatus: true
+2025-07-30T01:36:09Z [web] }
+2025-07-30T01:36:09Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Prepared flow input for AI analysis
+2025-07-30T01:36:09Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Calling AI flow for key takeaways generation...
+2025-07-30T01:36:20Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] AI flow completed successfully
+2025-07-30T01:36:20Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] SUCCESS - AI key takeaways analysis completed
+2025-07-30T01:36:20Z [web]  POST /?monospaceUid=952998 200 in 10389ms
+2025-07-30T01:36:21Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Starting AI options analysis... { ticker: 'SPY', hasOptionsChain: true, hasStockSnapshot: true }
+2025-07-30T01:36:21Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Validating input data...
+2025-07-30T01:36:21Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Calling AI flow for options analysis...
+2025-07-30T01:36:31Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] AI flow completed successfully
+2025-07-30T01:36:31Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] SUCCESS - AI options analysis completed
+2025-07-30T01:36:31Z [web]  POST /?monospaceUid=952998 200 in 10736ms
+2025-07-30T01:36:40Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
+2025-07-30T01:36:40Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:36:40Z [web] [getAppDataPrompt] Loading definition for promptName: stock-trader-takeaways, file: stock-trader-takeaways
+2025-07-30T01:36:40Z [web] [getAppDataPrompt] Successfully cached prompt for: stock-trader-takeaways
+2025-07-30T01:36:40Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
+2025-07-30T01:36:43Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
+2025-07-30T01:36:43Z [web]  POST /?monospaceUid=952998 200 in 3456ms
+2025-07-30T01:36:46Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
+2025-07-30T01:36:46Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:36:46Z [web] [getAppDataPrompt] Loading definition for promptName: options-trader-takeaways, file: options-trader-takeaways
+2025-07-30T01:36:46Z [web] [getAppDataPrompt] Successfully cached prompt for: options-trader-takeaways
+2025-07-30T01:36:46Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
+2025-07-30T01:36:50Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Successfully generated response
+2025-07-30T01:36:50Z [web]  POST /?monospaceUid=952998 200 in 4533ms
+2025-07-30T01:36:53Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Starting unified chat request
+2025-07-30T01:36:53Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:36:53Z [web] [getAppDataPrompt] Loading definition for promptName: holistic-takeaways, file: holistic-takeaways
+2025-07-30T01:36:53Z [web] [getAppDataPrompt] Successfully cached prompt for: holistic-takeaways
+2025-07-30T01:36:53Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
+2025-07-30T01:36:59Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Successfully generated response
+2025-07-30T01:36:59Z [web]  POST /?monospaceUid=952998 200 in 6213ms
+2025-07-30T01:37:02Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
+2025-07-30T01:37:02Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:37:02Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
+2025-07-30T01:37:15Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Successfully generated response
+2025-07-30T01:37:15Z [web]  POST /?monospaceUid=952998 200 in 12808ms
+2025-07-30T01:37:17Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
+2025-07-30T01:37:17Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:37:17Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
+2025-07-30T01:37:33Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
+2025-07-30T01:37:33Z [web]  POST /?monospaceUid=952998 200 in 15666ms
+2025-07-30T01:37:40Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Starting unified chat request
+2025-07-30T01:37:40Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:37:40Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
+2025-07-30T01:37:56Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Successfully generated response
+2025-07-30T01:37:56Z [web]  POST /?monospaceUid=952998 200 in 16501ms
+2025-07-30T01:38:07Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Starting unified chat request
+2025-07-30T01:38:07Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:38:07Z [web] [getAppDataPrompt] Loading definition for promptName: general, file: app-data-chatbot
+2025-07-30T01:38:08Z [web] Error: Failed to load app data prompt for general: Error: Failed to load AI definition 'app-data-chatbot': Cannot find module '@/ai/definitions/app-data-chatbot.json'
+2025-07-30T01:38:08Z [web]     at loadDefinition (src/ai/definition-loader.ts:93:10)
+2025-07-30T01:38:08Z [web]     at async getAppDataPrompt (src/actions/spy-consolidated-chat-action.ts:49:23)
+2025-07-30T01:38:08Z [web]     at async spyConsolidatedChatAction (src/actions/spy-consolidated-chat-action.ts:248:28)
+2025-07-30T01:38:08Z [web]   91 |     if (error.message.includes('Cannot find module') || error.code === 'MODULE_NOT_FOUND') {
+2025-07-30T01:38:08Z [web]   92 |     }
+2025-07-30T01:38:08Z [web] > 93 |     throw new Error(`Failed to load AI definition '${definitionName}': ${error.message}`);
+2025-07-30T01:38:08Z [web]      |          ^
+2025-07-30T01:38:08Z [web]   94 |   }
+2025-07-30T01:38:08Z [web]   95 | }
+2025-07-30T01:38:08Z [web]   96 |
+2025-07-30T01:38:08Z [web] 
+2025-07-30T01:38:08Z [web] [getAppDataPrompt] Using fallback prompt for: general
+2025-07-30T01:38:08Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Generating content with webSearch: false
+2025-07-30T01:38:08Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Successfully generated response
+2025-07-30T01:38:09Z [web]  POST /?monospaceUid=952998 200 in 1930ms
+2025-07-30T01:38:17Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Starting unified chat request
+2025-07-30T01:38:17Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:38:17Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Generating content with webSearch: true
+2025-07-30T01:38:17Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Successfully generated response
+2025-07-30T01:38:17Z [web]  POST /?monospaceUid=952998 200 in 793ms
+2025-07-30T01:38:45Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Starting unified chat request
+2025-07-30T01:38:45Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
+2025-07-30T01:38:45Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Generating content with webSearch: true
+2025-07-30T01:38:53Z [web] [ServerAction:spyConsolidatedChatAction:user_input] Successfully generated response
+2025-07-30T01:38:53Z [web]  POST /?monospaceUid=952998 200 in 8523ms
+
 
 
 
 ###
+{
+  "ticker": "NVDA",
+  "timestamp": "2025-07-30T01:39:07.511Z",
+  "data": {
+    "stockSnapshot": {
+      "ticker": "NVDA",
+      "day": {
+        "o": 177.96,
+        "h": 179.38,
+        "l": 175.02,
+        "c": 175.51,
+        "v": 154068839,
+        "vw": 177.0364,
+        "t": 1753833600000000000
+      },
+      "prevDay": {
+        "o": 174.02,
+        "h": 177,
+        "l": 173.97,
+        "c": 176.75,
+        "v": 140023521,
+        "vw": 175.5154
+      },
+      "min": {
+        "o": 176.04,
+        "h": 176.1,
+        "l": 176.04,
+        "c": 176.08,
+        "v": 25313,
+        "vw": 176.0761,
+        "t": 1753833540000,
+        "n": 133
+      },
+      "todaysChange": -0.67,
+      "todaysChangePerc": -0.3791,
+      "updated": 1753833600000000000,
+      "currentPrice": 175.51
+    },
+    "marketStatus": {
+      "market": "closed",
+      "earlyHours": false,
+      "lateHours": false,
+      "serverTime": "2025-07-29T21:33:18-04:00",
+      "exchanges": {
+        "nasdaq": "closed",
+        "nyse": "closed",
+        "otc": "closed"
+      },
+      "currencies": {
+        "crypto": "open",
+        "fx": "open"
+      }
+    },
+    "optionsChainSummary": {
+      "summary": {
+        "total_results": 0,
+        "call_count": 0,
+        "put_count": 0,
+        "strike_range": null,
+        "expiration_dates": []
+      },
+      "note": "Full strike details excluded in truncated version - use 'Copy ALL' or 'Export ALL' for complete data"
+    },
+    "standardTa": {
+      "RSI": {
+        "7": 69.41,
+        "10": 70.37,
+        "14": 71.56
+      },
+      "MACD": {
+        "value": 7.0369,
+        "signal": 7.1959,
+        "histogram": -0.159
+      },
+      "VWAP": {
+        "day": 177.0364,
+        "minute": 176.0761
+      },
+      "EMA": {
+        "5": 174.21,
+        "10": 171.95,
+        "20": 166.95,
+        "50": 153.76,
+        "200": 132.2
+      },
+      "SMA": {
+        "5": 174.06,
+        "10": 172.55,
+        "20": 167.01,
+        "50": 152,
+        "200": 134.16
+      }
+    },
+    "aiAnalyzedTa": {
+      "pivotPoint": 175.91,
+      "support1": 174.81,
+      "support2": 172.88,
+      "support3": 171.78,
+      "resistance1": 177.84,
+      "resistance2": 178.94,
+      "resistance3": 180.87
+    },
+    "aiKeyTakeaways": {
+      "momentum": {
+        "sentiment": "decreasing",
+        "takeaway": "While RSI is elevated, the negative MACD histogram signals a decrease in recent upward momentum."
+      },
+      "patterns": {
+        "sentiment": "neutral",
+        "takeaway": "The stock is currently consolidating between the first support level at $174.81 and the daily pivot point at $175.91, showing no clear pattern development."
+      },
+      "priceAction": {
+        "sentiment": "bearish",
+        "takeaway": "The stock is trading below the daily pivot point of $175.91 and the day's VWAP of $177.04, indicating some downward pressure."
+      },
+      "trend": {
+        "sentiment": "bullish",
+        "takeaway": "The stock maintains an uptrend as it trades above all key moving averages, with shorter-term averages remaining above longer-term ones."
+      },
+      "volatility": {
+        "sentiment": "moderate",
+        "takeaway": "Volatility is moderate, with NVDA experiencing a slight pullback of -0.38% today after a more significant gain yesterday, as RSI approaches overbought territory."
+      }
+    },
+    "aiOptionsAnalysis": {
+      "callWalls": [
+        {
+          "openInterest": 111371,
+          "strike": 185,
+          "type": "call",
+          "volume": 76612
+        },
+        {
+          "openInterest": 102447,
+          "strike": 177.5,
+          "type": "call",
+          "volume": 139183
+        },
+        {
+          "openInterest": 100561,
+          "strike": 180,
+          "type": "call",
+          "volume": 379866
+        }
+      ],
+      "putWalls": [
+        {
+          "openInterest": 37783,
+          "strike": 170,
+          "type": "put",
+          "volume": 47468
+        },
+        {
+          "openInterest": 33555,
+          "strike": 165,
+          "type": "put",
+          "volume": 48351
+        },
+        {
+          "openInterest": 23515,
+          "strike": 175,
+          "type": "put",
+          "volume": 103196
+        }
+      ]
+    }
+  }
+}
+
 {
   "ticker": "SPY",
   "timestamp": "2025-07-30T00:31:35.777Z",
