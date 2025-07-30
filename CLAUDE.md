@@ -233,7 +233,7 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 
 This orchestration model ensures clear role separation, effective delegation, and consistent quality delivery while preventing role boundary violations that can lead to inefficient workflow and quality issues.
 
-## 🚨 PROTECTED BASELINE ARCHITECTURE (v4.4.2.1)
+## 🚨 PROTECTED BASELINE ARCHITECTURE (v4.4.2.3)
 
 ### CRITICAL PROTECTION RULE
 **These files represent the stable, battle-tested architecture and MUST NOT be modified without explicit user request:**
@@ -245,6 +245,7 @@ This orchestration model ensures clear role separation, effective delegation, an
 - `src/components/spy-tab-content.tsx` (main orchestrator, deterministic handlers)
 - `src/app/page.tsx` (direct context provider setup)
 - `src/components/page-content.tsx` (simple two-tab implementation)
+- `src/ai/definitions/app-data-chatbot.json` (RECENTLY RESTORED - enables AI chat functionality)
 
 #### Protection Rationale
 - **Stability**: These components ensure 100% application functionality
@@ -258,7 +259,7 @@ This orchestration model ensures clear role separation, effective delegation, an
 - **Deterministic Handlers**: Follow existing async/await patterns in tab content
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.4.2.1, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The application uses a simple hardcoded two-tab implementation in `src/components/page-content.tsx` with direct context providers in `src/app/page.tsx`. The blueprint system exists as preserved scaffolding in `src/lib/ticker-framework/` for future development phases but is not currently integrated into the application.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.4.2.3, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The application uses a simple hardcoded two-tab implementation in `src/components/page-content.tsx` with direct context providers in `src/app/page.tsx`. **Critical Recovery**: v4.4.2.3 includes full restoration of AI chat functionality through recovery of the essential `src/ai/definitions/app-data-chatbot.json` file. The blueprint system exists as preserved scaffolding in `src/lib/ticker-framework/` for future development phases but is not currently integrated into the application.
 
 ## Common Development Commands
 
@@ -294,7 +295,7 @@ npm run lint         # ESLint is fully configured and operational
 npm run typecheck    # TypeScript type checking
 ```
 
-### Debug & Validation Commands (v4.4.2.1)
+### Debug & Validation Commands (v4.4.2.3)
 Commands for working with the current architecture:
 ```bash
 # Standard development workflow
@@ -308,6 +309,7 @@ npm run typecheck    # TypeScript type checking
 # Architecture verification
 node -e "console.log('Current architecture: Dedicated NVDA/SPY tabs')"
 node -e "console.log('Blueprint status: Preserved as unused scaffolding')"
+node -e "console.log('AI Chat Status: Fully restored and operational (v4.4.2.3)')"
 ```
 
 ### ESLint Configuration (Fully Operational)
@@ -317,7 +319,17 @@ node -e "console.log('Blueprint status: Preserved as unused scaffolding')"
 - **Customization**: Claude Code can modify ESLint rules as needed
 - **Pre-commit**: Always run `npm run lint` before committing
 
-## Development Workflow (v4.4.2.1)
+## Recent Critical Fixes (v4.4.2.3)
+
+### AI Chat System Recovery
+- **Issue**: Complete AI chat failure across both NVDA and SPY tabs in previous versions
+- **Root Cause**: Missing `/src/ai/definitions/app-data-chatbot.json` file containing essential AI prompt definitions
+- **Solution**: Restored comprehensive AI definition with professional financial analyst persona
+- **Impact**: Full AI chat functionality now operational with advanced trading analysis capabilities
+- **Status**: All chat features fully restored and operational - users can now engage with AI for stock analysis, options strategies, and market insights
+- **Technical Details**: The restored file contains sophisticated prompts for professional financial analysis, market insights, and trading strategies
+
+## Development Workflow (v4.4.2.3)
 
 ### Current Development Pattern
 1. **Direct Component Development**: Modify existing `nvda-*` or `spy-*` components
@@ -356,7 +368,7 @@ npm run typecheck    # TypeScript validation
 npm run build        # Build verification
 ```
 
-## High-Level Architecture (v4.4.2.1 - Recovery State)
+## High-Level Architecture (v4.4.2.3 - Current State)
 
 ### Core Technology Stack
 - **Frontend**: Next.js 15.3.3 with React 18.3.1
@@ -366,7 +378,7 @@ npm run build        # Build verification
 - **Data Sources**: Polygon.io API
 - **AI Model**: Google Gemini 2.5-flash-lite
 
-### Current Implementation Architecture (v4.4.2.1)
+### Current Implementation Architecture (v4.4.2.3)
 
 #### ✅ ACTIVE IMPLEMENTATION
 - **Two-Tab System**: Hardcoded NVDA/SPY tabs in `src/components/page-content.tsx`
@@ -378,6 +390,7 @@ npm run build        # Build verification
   - `src/components/spy-tab-content.tsx` (main orchestrator)
   - Individual display components: `nvda-*-display.tsx`, `spy-*-display.tsx`
 - **Context Providers**: Direct setup in `src/app/page.tsx`
+- **AI Chat System**: Fully operational with restored `app-data-chatbot.json` (v4.4.2.3)
 
 #### 🚧 PRESERVED SCAFFOLDING (UNUSED)
 - **Blueprint Framework**: Complete but unused in `src/lib/ticker-framework/`
@@ -385,11 +398,12 @@ npm run build        # Build verification
 - **Ticker Registry**: `src/lib/ticker-registry.ts` (not integrated)
 - **Configuration System**: `src/config/ticker-configs.ts` (not integrated)
 
-## AI Integration Architecture (v4.4.2.1)
+## AI Integration Architecture (v4.4.2.3)
 
 ### Google Genkit + Gemini Integration
-- **AI Runtime**: Google Genkit with Gemini 2.5-flash-lite model
+- **AI Runtime**: Google Genkit 1.8.0 with Gemini 2.5-flash-lite model
 - **Prompt System**: Specialized JSON-based prompt definitions in `src/ai/definitions/`
+  - `app-data-chatbot.json` - **RESTORED v4.4.2.3** - Core AI personality and analysis capabilities
   - `stock-trader-takeaways.json` - Stock analysis prompts
   - `options-trader-takeaways.json` - Options strategy prompts
   - `holistic-takeaways.json` - Comprehensive analysis prompts
@@ -398,6 +412,7 @@ npm run build        # Build verification
   - `src/actions/spy-consolidated-chat-action.ts`
 - **Schema Validation**: Zod schemas in `src/ai/schemas/`
 - **Temperature Setting**: 0.2 for focused, deterministic responses
+- **Chat Status**: ✅ Fully operational AI chat with professional financial analyst persona
 
 ### AI Development Commands
 ```bash
@@ -405,7 +420,7 @@ npm run genkit:dev   # Start Genkit dev server (port 3400)
 npm run genkit:watch # Genkit with file watching
 ```
 
-### Dedicated Two-Tab Architecture (v4.4.2.1)
+### Dedicated Two-Tab Architecture (v4.4.2.3)
 
 **The application features a proven dedicated two-tab architecture using standard React best practices:**
 
@@ -427,7 +442,7 @@ npm run genkit:watch # Genkit with file watching
 - **Isolation**: Zero cross-dependencies with NVDA context
 - **Blueprint Quality**: Production-ready architecture serving as reference implementation
 
-### NVDA Dedicated Architecture (v4.4.2.1 - Protected Baseline)
+### NVDA Dedicated Architecture (v4.4.2.3 - Protected Baseline)
 
 **Complete NVDA-specific analysis tab with advanced AI chat system:**
 
@@ -450,7 +465,7 @@ npm run genkit:watch # Genkit with file watching
   - Consistent debugging experience across NVDA and SPY tabs
   - Centralized console message formatting and filtering
 
-### SPY Dedicated Architecture (v4.4.2.1 - Protected Baseline)
+### SPY Dedicated Architecture (v4.4.2.3 - Protected Baseline)
 
 **Production-ready SPY analysis serving as stable reference implementation:**
 
@@ -632,7 +647,7 @@ The previous SPY blueprint system (v4.1.18.0) has been integrated into the new f
 - **Advanced Chat**: SPY chat patterns incorporated into base template system
 - **Feature Parity**: All SPY features available to new tickers through templates
 
-## File Organization (v4.4.2.1 Current State)
+## File Organization (v4.4.2.3 Current State)
 
 ### Active Architecture Files (Tier 1 - Critical)
 - `src/contexts/nvda-analysis-context.tsx` - NVDA state management (79 fields)
@@ -645,6 +660,7 @@ The previous SPY blueprint system (v4.1.18.0) has been integrated into the new f
 ### AI System Files (Tier 1 - Critical)
 - `src/actions/nvda-consolidated-chat-action.ts` - NVDA AI chat server action
 - `src/actions/spy-consolidated-chat-action.ts` - SPY AI chat server action
+- `src/ai/definitions/app-data-chatbot.json` - **RESTORED v4.4.2.3** - Core AI chat functionality
 - `src/ai/definitions/*.json` - Specialized trading prompt templates
 - `src/ai/schemas/*-schemas.ts` - Zod validation schemas
 - `src/ai/flows/*.ts` - Genkit AI flow definitions
@@ -795,9 +811,9 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.1 (recovery state with dedicated NVDA/SPY architecture)
+- **Current Version**: v4.4.2.3 (stable state with dedicated NVDA/SPY architecture and restored AI chat)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.4.2.1 recovery state with dedicated NVDA and SPY tabs, blueprint system preserved as unused scaffolding)
+- **Versioning Scheme**: `v4.w.x.y.z` format (v4.4.2.3 stable state with dedicated NVDA and SPY tabs, fully operational AI chat, blueprint system preserved as unused scaffolding)
 
 ## Code Review Process
 
@@ -850,7 +866,7 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **ESLint errors are ignored during builds** (see `next.config.ts`)
 - **Strict TypeScript** is enabled in development but bypassed for builds
 
-## Code Quality Standards (v4.4.2.1)
+## Code Quality Standards (v4.4.2.3)
 
 ### TypeScript Configuration
 - **Strict Mode**: Enabled in development
@@ -946,60 +962,66 @@ GEMINI_API_KEY=your_google_ai_api_key
 31. **Quality Gate Enforcement**: Orchestrator ensures code review processes without performing reviews directly
 32. **Role Violation Prevention**: Immediate halt and reassignment if orchestrator attempts hands-on work
 
-## Important Notes for AI Assistants (v4.4.2.1 - Recovery State)
+## Important Notes for AI Assistants (v4.4.2.3 - Current State)
 
 ### Current Architecture Status (CRITICAL UNDERSTANDING)
 1. **Dedicated NVDA/SPY Architecture**: Application currently uses proven dedicated two-tab architecture
 2. **Blueprint System Status**: Preserved as unused scaffolding - NOT integrated into active application
 3. **Protected Baseline Files**: NVDA/SPY contexts and components are protected and stable
-4. **Development Focus**: All current development should use existing dedicated architecture patterns
-5. **Future Integration**: Blueprint system available for future enhancement phases when stability allows
+4. **AI Chat Status**: ✅ **FULLY RESTORED** - Complete AI chat functionality operational (v4.4.2.3)
+5. **Development Focus**: All current development should use existing dedicated architecture patterns
+6. **Future Integration**: Blueprint system available for future enhancement phases when stability allows
 
-### Current Development Patterns (v4.4.2.1)
-6. **Use Existing Hooks**: `useNvdaAnalysis()`, `useSpyAnalysis()` for current implementation
-7. **Component Patterns**: Follow existing `nvda-*.tsx` and `spy-*.tsx` naming conventions
-8. **Context Isolation**: Maintain complete independence between NVDA and SPY contexts
-9. **Deterministic Handlers**: Use proven async/await patterns in tab content components
+### Current Development Patterns (v4.4.2.3)
+7. **Use Existing Hooks**: `useNvdaAnalysis()`, `useSpyAnalysis()` for current implementation
+8. **Component Patterns**: Follow existing `nvda-*.tsx` and `spy-*.tsx` naming conventions
+9. **Context Isolation**: Maintain complete independence between NVDA and SPY contexts
+10. **Deterministic Handlers**: Use proven async/await patterns in tab content components
+11. **AI Chat Integration**: Leverage restored `app-data-chatbot.json` for professional financial analysis
 
 ### Blueprint System Future Integration
-10. **Scaffolding Preserved**: Blueprint framework exists in `src/lib/ticker-framework/` (unused)
-11. **Configuration Available**: `src/config/ticker-configs.ts` contains future ticker configurations
-12. **Registry System**: `src/lib/ticker-registry.ts` available for future dynamic loading
-13. **Template Components**: Base components preserved in `src/lib/ticker-framework/core/base-components/`
+12. **Scaffolding Preserved**: Blueprint framework exists in `src/lib/ticker-framework/` (unused)
+13. **Configuration Available**: `src/config/ticker-configs.ts` contains future ticker configurations
+14. **Registry System**: `src/lib/ticker-registry.ts` available for future dynamic loading
+15. **Template Components**: Base components preserved in `src/lib/ticker-framework/core/base-components/`
 
-### Quality Assurance (UPDATED FOR RECOVERY STATE)
-14. **Baseline Protection**: Dedicated NVDA/SPY components are protected from modification
-15. **Stability First**: Current architecture prioritized over experimental features
-16. **Context Isolation Verified**: Each ticker maintains independent state without cross-dependencies
-17. **Proven Patterns**: Battle-tested React Context + useReducer patterns throughout
+### Quality Assurance (UPDATED FOR CURRENT STATE)
+16. **Baseline Protection**: Dedicated NVDA/SPY components are protected from modification
+17. **Stability First**: Current architecture prioritized over experimental features
+18. **Context Isolation Verified**: Each ticker maintains independent state without cross-dependencies
+19. **Proven Patterns**: Battle-tested React Context + useReducer patterns throughout
+20. **AI Chat Validation**: Restored AI functionality provides professional financial analysis capabilities
 
-### Build & Development (RECOVERY STATE)
-18. **Standard Build Process**: `npm run build` uses current dedicated architecture
-19. **Tab System**: Standard React tabs with NVDA and SPY dedicated components
-20. **Runtime Stability**: No dynamic ticker loading - fixed NVDA/SPY tabs only
-21. **Debug Support**: Standard console logging and debugging tools
+### Build & Development (CURRENT STATE)
+21. **Standard Build Process**: `npm run build` uses current dedicated architecture
+22. **Tab System**: Standard React tabs with NVDA and SPY dedicated components
+23. **Runtime Stability**: No dynamic ticker loading - fixed NVDA/SPY tabs only
+24. **Debug Support**: Standard console logging and debugging tools
+25. **AI Integration**: Fully operational Google Genkit + Gemini chat system
 
-### AI Assistant Guidelines (RECOVERY STATE)
-22. **Current Architecture First**: Always use existing dedicated NVDA/SPY patterns
-23. **Blueprint Awareness**: Understand blueprint system exists but is unused scaffolding
-24. **Baseline Protection**: Never modify protected baseline files without explicit user request
-25. **Future Readiness**: Be prepared to integrate blueprint system when stability allows
+### AI Assistant Guidelines (CURRENT STATE)
+26. **Current Architecture First**: Always use existing dedicated NVDA/SPY patterns
+27. **Blueprint Awareness**: Understand blueprint system exists but is unused scaffolding
+28. **Baseline Protection**: Never modify protected baseline files without explicit user request
+29. **AI Chat Utilization**: Leverage restored AI chat capabilities for enhanced user experience
+30. **Future Readiness**: Be prepared to integrate blueprint system when stability allows
 
 ---
 
 ## AI Development Team Configuration
-*Updated for v4.4.1.0 on 2025-07-29*
+*Updated for v4.4.2.3 on 2025-07-30*
 
 Your StockSage project has been analyzed and configured with a specialized AI development team optimized for your simplified two-tab Next.js financial analysis application.
 
 ### Detected Technology Stack
 - **Frontend**: Next.js 15.3.3 with React 18.3.1, App Router architecture
-- **AI Backend**: Google Genkit + Google AI SDK with Gemini 2.5-flash-lite
+- **AI Backend**: Google Genkit 1.8.0 + Google AI SDK with Gemini 2.5-flash-lite
 - **UI Framework**: ShadCN UI components with Tailwind CSS
 - **State Management**: React Context with useReducer patterns
 - **Data Sources**: Polygon.io API for real-time financial data
 - **Type Safety**: TypeScript with Zod validation schemas
 - **Architecture**: Server Actions, Server Components, and isolated context patterns
+- **AI Chat Status**: ✅ Fully operational with restored professional financial analyst capabilities
 
 ### Specialist Team Assignments
 
