@@ -2,7 +2,7 @@
 
 **A Next.js Financial Analysis Application with AI-Powered Insights**
 
-[![Version](https://img.shields.io/badge/version-v4.4.2.5-blue.svg)](src/config/app-metadata.json)
+[![Version](https://img.shields.io/badge/version-v4.4.2.6-blue.svg)](src/config/app-metadata.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)

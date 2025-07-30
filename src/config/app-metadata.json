@@ -1,8 +1,8 @@
 
 {
-  "appVersion": "v4.4.2.5",
-  "lastUpdatedTimestamp": "2025-07-30T06:30:00.000Z",
-  "description": "Critical bug fixes and AI restoration: AI Key Takeaways & Options Analysis fully restored, emoji engagement reverted for enhanced user experience, and options chain defaults standardized to 20 strikes across all tickers",
+  "appVersion": "v4.4.2.6",
+  "lastUpdatedTimestamp": "2025-07-30T08:30:00.000Z",
+  "description": "Macro automation feature: 'Analyze All' button with 4-step sequential execution, progress tracking, cancellation support, architecture cleanup, TypeScript error resolution",
   "metadataSchemaVersion": "1.0.0"
 }
 

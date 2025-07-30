@@ -57,6 +57,9 @@ import { SpyAiKeyTakeawaysDisplay } from '@/components/spy-ai-key-takeaways-disp
 import { SpyAiOptionsAnalysisDisplay } from '@/components/spy-ai-options-analysis-display';
 import { SpyConsolidatedChat } from '@/components/spy-consolidated-chat';
 
+// Macro Orchestrator UI Component (Simplified)
+import { SimpleAnalyzeAllButton } from '@/components/macro-orchestrator/simple-analyze-all-button';
+
 export function SpyTabContent() {
   const spyState = useSpyAnalysis();
   const spyDispatch = useSpyDispatch();
@@ -537,6 +540,32 @@ export function SpyTabContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* SPY Macro Orchestrator */}
+      <SimpleAnalyzeAllButton
+        ticker={SPY_TICKER}
+        onFetchExpirations={handleFetchExpirations}
+        onGetStockData={handleGetStockData}
+        onGenerateAiKeyTakeaways={handleSpyAiKeyTakeaways}
+        onGenerateAiOptionsAnalysis={handleSpyAiOptionsAnalysis}
+        canFetchExpirations={() => !isLoading}
+        canGetStockData={() => !isLoading && !!spyState.selectedExpirationDate}
+        canGenerateAiKeyTakeaways={() => !isLoading && spyState.hasStockData && spyState.hasAiTaData && !spyState.isAiKeyTakeawaysLoading}
+        canGenerateAiOptionsAnalysis={() => !isLoading && spyState.hasOptionsChainData && !spyState.isAiOptionsAnalysisLoading}
+        onComplete={() => {
+          toast({
+            title: `${SPY_TICKER} Macro Complete`,
+            description: 'All analysis steps have been executed successfully!',
+          });
+        }}
+        onError={(error) => {
+          toast({
+            title: `${SPY_TICKER} Macro Failed`,
+            description: error.message,
+            variant: 'destructive',
+          });
+        }}
+      />
 
       {/* SPY UI Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

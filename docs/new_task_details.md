@@ -1,14 +1,14 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.5]
-**Task Type**: [BUG] 
+**Version**: [v4.4.2.6]
+**Task Type**: [FEATURE] 
 ---
 
 ## Abstract
-**Brief Summary**: Phase 2 AI Chat Fixes & Enhancements: Broken On Demand AI Key Takeaways & AI Options Analysis
+**Brief Summary**: Phase 2: Add New Analyze All Macro Buttons
 
-**Affected Systems**: [BUG]
+**Affected Systems**: []
 
 **Priority Level**: _[HIGH]_
 
@@ -133,11 +133,32 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 
 ## Task Details
 
-Phase 2 AI Chat: Broken On Demand AI Key Takeaways & AI Options Analysis
-- Both NVDA and SPY have broken On Demand AI Key Takeaways & AI Options Analysis, investigate and fix this issue
-- Put back emoji style bulleted list in AI Chat reponses and sprinkle in more emoji usage in general for the reponses, even though this does not match finanial professional standards, we will let it go and keep the AI Chat more engaging this way
-- Let's also make the default number of strike counts in Options Chain Settings 20 strikes selected across the board no matter what as the standard.  User can always manually change it on their own, but this will reduce complexity by removing an un-needed default strike parameter to be passed in with each ticker, we'll just make default 20.
+Phase 2: Add New Analyze All Macro Buttons
+- Add New "Analyze All" button that will run macros that will automaticaly trigger all user action buttons\events to fully retreive data and analyze everything automatically
+- This new feature will basically help the user save alot of time by wrapping alot of the app manual button actions to be done autonomously, mimic what A user would have to do manually over multiple steps in this exact sequence that a user normally does:
 
+1. Trigger the Fetch Expiration button action and have the default expiration selected
+2. Trigger the Get Stock Data button action to retreive all stock data
+3. Trigger the On Demand AI Key Takeaways button action
+4. Trigger the On Demand AI Options Analysis button action
+5. Trigger the AI Chat App Data Analysis Stock Trader's Takeways button action
+6. Trigger the AI Chat App Data Analysis Options Trader Takeways button action
+7. Trigger the AI Chat App Data Analysis Additional Holistic Takeways button action
+8. Trigger the AI Chat Web Search Analysis Support/Resistance button action
+9. Trigger the AI Chat Web Search Analysis Technical Analysis button action
+10. Trigger the AI Chat Web Search Analysis Options Flow button action
+
+###
+
+- You will  have to use CONTEXT7 to research on best, optimal, and robust practices to implement the new macro feature
+- You will  have to use CONTEXT7 to research and ensure that we have proper error handling, next macro step\state handling, race condition prevention, proper next action signaling etc
+- You MAY have to use SEQUENTIAL THINKING AND CONTEXT7 to come up with this complex "macro" architecture
+- We have to make sure it is robust and the macro does not do things out of order, or go too soon to the next step before the current step is fininshed, or if data is not ready yet etc
+- We need to ensure the new macro feature is deterministic for robustness, so make sure you research best practices for this initial "10 step macro\pipeline" automatation concept
+- State, flags, variables, and data tracking may be needed so a certain macro step knows what data it needs to perform its job, and what is the next state etc
+- We need the macro button for EVERY ticker page, so it needs to be modular enough to be used for multiple ticker pages, since every new page will have this feature
+- For now, implement for both the NVDA & SPY pages
+- Since this is a brand new and complex feature with many moving parts, we need to liberally add as many console outputs as feasible to help debug this issue while we are developing and testing it.  Off the top of my head, at the bare minimum, we need Start/End logs when user triggers the start of macro action, individual granular start/end output for EACH macro step, and add anything else you think may help.  With this level of granularity, we can then see if user triggered the macro, and if a macro step fails, we would know which macro step got started and which one ended etc.  You may add any relevent parameters to the console messages to provide more debug info.
 
 ### Current Situation
 
@@ -186,491 +207,9 @@ _[Any architectural decisions or patterns that must be followed]_
 
 ## Logs and Evidence
 
-### Error Logs```
+### Error Logs
+```
 
-2025-07-30T03:05:39Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Starting stock data fetch... {
-2025-07-30T03:05:39Z [web]   ticker: 'NVDA',
-2025-07-30T03:05:39Z [web]   expirationDate: '2025-08-01',
-2025-07-30T03:05:39Z [web]   optionType: 'both',
-2025-07-30T03:05:39Z [web]   strikeCount: 30
-2025-07-30T03:05:39Z [web] }
-2025-07-30T03:05:39Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Calling polygon adapter...
-2025-07-30T03:05:43Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Adapter response received
-2025-07-30T03:05:43Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Data processing complete: {
-2025-07-30T03:05:43Z [web]   hasMarketStatus: true,
-2025-07-30T03:05:43Z [web]   hasStockSnapshot: true,
-2025-07-30T03:05:43Z [web]   hasTechnicalIndicators: true,
-2025-07-30T03:05:43Z [web]   hasOptionsChain: true,
-2025-07-30T03:05:43Z [web]   optionsChainSize: 0
-2025-07-30T03:05:43Z [web] }
-2025-07-30T03:05:43Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] SUCCESS - Stock data fetch completed
-2025-07-30T03:05:43Z [web]  POST /?monospaceUid=242131 200 in 4460ms
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Starting technical analysis... { hasStockSnapshot: true, dataSize: 571 }
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Parsing stock snapshot data...
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Stock snapshot parsed successfully
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Validating previous day data...
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Prepared flow input: {
-2025-07-30T03:05:44Z [web]   previousDayHigh: 177,
-2025-07-30T03:05:44Z [web]   previousDayLow: 173.97,
-2025-07-30T03:05:44Z [web]   previousDayClose: 176.75
-2025-07-30T03:05:44Z [web] }
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Calling AI flow for technical analysis...
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] AI flow completed successfully
-2025-07-30T03:05:44Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] SUCCESS - Technical analysis completed
-2025-07-30T03:05:44Z [web]  POST /?monospaceUid=242131 200 in 521ms
-2025-07-30T03:05:46Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Starting AI key takeaways analysis... {
-2025-07-30T03:05:46Z [web]   ticker: 'NVDA',
-2025-07-30T03:05:46Z [web]   hasStockSnapshot: true,
-2025-07-30T03:05:46Z [web]   hasStandardTas: true,
-2025-07-30T03:05:46Z [web]   hasAiAnalyzedTa: true,
-2025-07-30T03:05:46Z [web]   hasMarketStatus: true
-2025-07-30T03:05:46Z [web] }
-2025-07-30T03:05:46Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Prepared flow input for AI analysis
-2025-07-30T03:05:46Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Calling AI flow for key takeaways generation...
-2025-07-30T03:05:47Z [web] Error: [ServerAction:performAiAnalysisAction:Ticker:NVDA] CATCH ERROR: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [400 Bad Request] Invalid JSON payload received. Unknown name "generationConfig" at 'generation_config': Cannot find field. [{"@type":"type.googleapis.com/google.rpc.BadRequest","fieldViolations":[{"field":"generation_config","description":"Invalid JSON payload received. Unknown name \"generationConfig\" at 'generation_config': Cannot find field."}]}]
-2025-07-30T03:05:47Z [web] 
-2025-07-30T03:05:47Z [web]  POST /?monospaceUid=242131 200 in 942ms
-2025-07-30T03:06:01Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Starting AI options analysis... { ticker: 'NVDA', hasOptionsChain: true, hasStockSnapshot: true }
-2025-07-30T03:06:01Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Validating input data...
-2025-07-30T03:06:01Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Calling AI flow for options analysis...
-2025-07-30T03:06:01Z [web] Error: [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] CATCH ERROR: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [400 Bad Request] Invalid JSON payload received. Unknown name "generationConfig" at 'generation_config': Cannot find field. [{"@type":"type.googleapis.com/google.rpc.BadRequest","fieldViolations":[{"field":"generation_config","description":"Invalid JSON payload received. Unknown name \"generationConfig\" at 'generation_config': Cannot find field."}]}]
-2025-07-30T03:06:01Z [web] 
-2025-07-30T03:06:01Z [web]  POST /?monospaceUid=242131 200 in 623ms
-2025-07-30T03:06:12Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
-2025-07-30T03:06:12Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:06:12Z [web] [getAppDataPrompt] Loading definition for promptName: stock-trader-takeaways, file: stock-trader-takeaways
-2025-07-30T03:06:12Z [web] [getAppDataPrompt] Successfully cached prompt for: stock-trader-takeaways
-2025-07-30T03:06:12Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
-2025-07-30T03:06:14Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
-2025-07-30T03:06:14Z [web]  POST /?monospaceUid=242131 200 in 2922ms
-2025-07-30T03:06:23Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
-2025-07-30T03:06:23Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:06:23Z [web] [getAppDataPrompt] Loading definition for promptName: options-trader-takeaways, file: options-trader-takeaways
-2025-07-30T03:06:23Z [web] [getAppDataPrompt] Successfully cached prompt for: options-trader-takeaways
-2025-07-30T03:06:23Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
-2025-07-30T03:06:27Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Successfully generated response
-2025-07-30T03:06:27Z [web]  POST /?monospaceUid=242131 200 in 4204ms
-2025-07-30T03:06:34Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Starting unified chat request
-2025-07-30T03:06:34Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:06:34Z [web] [getAppDataPrompt] Loading definition for promptName: holistic-takeaways, file: holistic-takeaways
-2025-07-30T03:06:34Z [web] [getAppDataPrompt] Successfully cached prompt for: holistic-takeaways
-2025-07-30T03:06:34Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
-2025-07-30T03:06:38Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Successfully generated response
-2025-07-30T03:06:38Z [web]  POST /?monospaceUid=242131 200 in 4616ms
-2025-07-30T03:06:44Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
-2025-07-30T03:06:44Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:06:44Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
-2025-07-30T03:06:58Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Successfully generated response
-2025-07-30T03:06:58Z [web]  POST /?monospaceUid=242131 200 in 14004ms
-2025-07-30T03:07:03Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
-2025-07-30T03:07:03Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:07:03Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
-2025-07-30T03:07:07Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
-2025-07-30T03:07:07Z [web]  POST /?monospaceUid=242131 200 in 3675ms
-2025-07-30T03:07:12Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Starting unified chat request
-2025-07-30T03:07:12Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:07:12Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
-2025-07-30T03:07:17Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Successfully generated response
-2025-07-30T03:07:17Z [web]  POST /?monospaceUid=242131 200 in 5812ms
-2025-07-30T03:07:28Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Starting unified chat request
-2025-07-30T03:07:28Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:07:28Z [web] [getAppDataPrompt] Loading definition for promptName: general, file: app-data-chatbot
-2025-07-30T03:07:30Z [web] Error: Failed to load app data prompt for general: Error: Failed to load AI definition 'app-data-chatbot': Invalid definition structure in app-data-chatbot.json: [
-2025-07-30T03:07:30Z [web]   {
-2025-07-30T03:07:30Z [web]     "code": "invalid_union",
-2025-07-30T03:07:30Z [web]     "unionErrors": [
-2025-07-30T03:07:30Z [web]       {
-2025-07-30T03:07:30Z [web]         "issues": [
-2025-07-30T03:07:30Z [web]           {
-2025-07-30T03:07:30Z [web]             "code": "invalid_type",
-2025-07-30T03:07:30Z [web]             "expected": "string",
-2025-07-30T03:07:30Z [web]             "received": "undefined",
-2025-07-30T03:07:30Z [web]             "path": [
-2025-07-30T03:07:30Z [web]               "description"
-2025-07-30T03:07:30Z [web]             ],
-2025-07-30T03:07:30Z [web]             "message": "Required"
-2025-07-30T03:07:30Z [web]           }
-2025-07-30T03:07:30Z [web]         ],
-2025-07-30T03:07:30Z [web]         "name": "ZodError"
-2025-07-30T03:07:30Z [web]       },
-2025-07-30T03:07:30Z [web]       {
-2025-07-30T03:07:30Z [web]         "issues": [
-2025-07-30T03:07:30Z [web]           {
-2025-07-30T03:07:30Z [web]             "received": "llm-prompt",
-2025-07-30T03:07:30Z [web]             "code": "invalid_literal",
-2025-07-30T03:07:30Z [web]             "expected": "calculation-logic",
-2025-07-30T03:07:30Z [web]             "path": [
-2025-07-30T03:07:30Z [web]               "definitionType"
-2025-07-30T03:07:30Z [web]             ],
-2025-07-30T03:07:30Z [web]             "message": "Invalid literal value, expected \"calculation-logic\""
-2025-07-30T03:07:30Z [web]           },
-2025-07-30T03:07:30Z [web]           {
-2025-07-30T03:07:30Z [web]             "code": "invalid_type",
-2025-07-30T03:07:30Z [web]             "expected": "string",
-2025-07-30T03:07:30Z [web]             "received": "undefined",
-2025-07-30T03:07:30Z [web]             "path": [
-2025-07-30T03:07:30Z [web]               "logicName"
-2025-07-30T03:07:30Z [web]             ],
-2025-07-30T03:07:30Z [web]             "message": "Required"
-2025-07-30T03:07:30Z [web]           },
-2025-07-30T03:07:30Z [web]           {
-2025-07-30T03:07:30Z [web]             "code": "invalid_type",
-2025-07-30T03:07:30Z [web]             "expected": "string",
-2025-07-30T03:07:30Z [web]             "received": "undefined",
-2025-07-30T03:07:30Z [web]             "path": [
-2025-07-30T03:07:30Z [web]               "description"
-2025-07-30T03:07:30Z [web]             ],
-2025-07-30T03:07:30Z [web]             "message": "Required"
-2025-07-30T03:07:30Z [web]           },
-2025-07-30T03:07:30Z [web]           {
-2025-07-30T03:07:30Z [web]             "code": "invalid_type",
-2025-07-30T03:07:30Z [web]             "expected": "array",
-2025-07-30T03:07:30Z [web]             "received": "undefined",
-2025-07-30T03:07:30Z [web]             "path": [
-2025-07-30T03:07:30Z [web]               "calculations"
-2025-07-30T03:07:30Z [web]             ],
-2025-07-30T03:07:30Z [web]             "message": "Required"
-2025-07-30T03:07:30Z [web]           },
-2025-07-30T03:07:30Z [web]           {
-2025-07-30T03:07:30Z [web]             "code": "invalid_type",
-2025-07-30T03:07:30Z [web]             "expected": "array",
-2025-07-30T03:07:30Z [web]             "received": "undefined",
-2025-07-30T03:07:30Z [web]             "path": [
-2025-07-30T03:07:30Z [web]               "outputs"
-2025-07-30T03:07:30Z [web]             ],
-2025-07-30T03:07:30Z [web]             "message": "Required"
-2025-07-30T03:07:30Z [web]           }
-2025-07-30T03:07:30Z [web]         ],
-2025-07-30T03:07:30Z [web]         "name": "ZodError"
-2025-07-30T03:07:30Z [web]       }
-2025-07-30T03:07:30Z [web]     ],
-2025-07-30T03:07:30Z [web]     "path": [],
-2025-07-30T03:07:30Z [web]     "message": "Invalid input"
-2025-07-30T03:07:30Z [web]   }
-2025-07-30T03:07:30Z [web] ]
-2025-07-30T03:07:30Z [web]     at loadDefinition (src/ai/definition-loader.ts:98:10)
-2025-07-30T03:07:30Z [web]     at async getAppDataPrompt (src/actions/nvda-consolidated-chat-action.ts:49:23)
-2025-07-30T03:07:30Z [web]     at async nvdaConsolidatedChatAction (src/actions/nvda-consolidated-chat-action.ts:248:28)
-2025-07-30T03:07:30Z [web]    96 |     if (error.message.includes('Cannot find module') || error.code === 'MODULE_NOT_FOUND') {
-2025-07-30T03:07:30Z [web]    97 |     }
-2025-07-30T03:07:30Z [web] >  98 |     throw new Error(`Failed to load AI definition '${definitionName}': ${error.message}`);
-2025-07-30T03:07:30Z [web]       |          ^
-2025-07-30T03:07:30Z [web]    99 |   }
-2025-07-30T03:07:30Z [web]   100 | }
-2025-07-30T03:07:30Z [web]   101 |
-2025-07-30T03:07:30Z [web] 
-2025-07-30T03:07:30Z [web] [getAppDataPrompt] Using fallback prompt for: general
-2025-07-30T03:07:30Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Generating content with webSearch: false
-2025-07-30T03:07:30Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Successfully generated response
-2025-07-30T03:07:30Z [web]  POST /?monospaceUid=242131 200 in 2343ms
-2025-07-30T03:07:34Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Starting unified chat request
-2025-07-30T03:07:34Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:07:34Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Generating content with webSearch: true
-2025-07-30T03:07:42Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Successfully generated response
-2025-07-30T03:07:42Z [web]  POST /?monospaceUid=242131 200 in 8087ms
-2025-07-30T03:08:03Z [web]  POST /?monospaceUid=242131 200 in 2923ms
-2025-07-30T03:08:08Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Starting stock data fetch... {
-2025-07-30T03:08:08Z [web]   ticker: 'SPY',
-2025-07-30T03:08:08Z [web]   expirationDate: '2025-07-30',
-2025-07-30T03:08:08Z [web]   optionType: 'both',
-2025-07-30T03:08:08Z [web]   strikeCount: 20
-2025-07-30T03:08:08Z [web] }
-2025-07-30T03:08:08Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Calling polygon adapter...
-2025-07-30T03:08:12Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Adapter response received
-2025-07-30T03:08:12Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] Data processing complete: {
-2025-07-30T03:08:12Z [web]   hasMarketStatus: true,
-2025-07-30T03:08:12Z [web]   hasStockSnapshot: true,
-2025-07-30T03:08:12Z [web]   hasTechnicalIndicators: true,
-2025-07-30T03:08:12Z [web]   hasOptionsChain: true,
-2025-07-30T03:08:12Z [web]   optionsChainSize: 0
-2025-07-30T03:08:12Z [web] }
-2025-07-30T03:08:12Z [web] [ServerAction:fetchStockDataAction:Ticker:SPY] SUCCESS - Stock data fetch completed
-2025-07-30T03:08:12Z [web]  POST /?monospaceUid=242131 200 in 4417ms
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Starting technical analysis... { hasStockSnapshot: true, dataSize: 569 }
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Parsing stock snapshot data...
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Stock snapshot parsed successfully
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Validating previous day data...
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Prepared flow input: {
-2025-07-30T03:08:12Z [web]   previousDayHigh: 638.04,
-2025-07-30T03:08:12Z [web]   previousDayLow: 635.54,
-2025-07-30T03:08:12Z [web]   previousDayClose: 636.94
-2025-07-30T03:08:12Z [web] }
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] Calling AI flow for technical analysis...
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] AI flow completed successfully
-2025-07-30T03:08:12Z [web] [ServerAction:analyzeTaAction:Ticker:SPY] SUCCESS - Technical analysis completed
-2025-07-30T03:08:12Z [web]  POST /?monospaceUid=242131 200 in 170ms
-2025-07-30T03:08:18Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Starting AI key takeaways analysis... {
-2025-07-30T03:08:18Z [web]   ticker: 'SPY',
-2025-07-30T03:08:18Z [web]   hasStockSnapshot: true,
-2025-07-30T03:08:18Z [web]   hasStandardTas: true,
-2025-07-30T03:08:18Z [web]   hasAiAnalyzedTa: true,
-2025-07-30T03:08:18Z [web]   hasMarketStatus: true
-2025-07-30T03:08:18Z [web] }
-2025-07-30T03:08:18Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Prepared flow input for AI analysis
-2025-07-30T03:08:18Z [web] [ServerAction:performAiAnalysisAction:Ticker:SPY] Calling AI flow for key takeaways generation...
-2025-07-30T03:08:18Z [web] Error: [ServerAction:performAiAnalysisAction:Ticker:SPY] CATCH ERROR: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [400 Bad Request] Invalid JSON payload received. Unknown name "generationConfig" at 'generation_config': Cannot find field. [{"@type":"type.googleapis.com/google.rpc.BadRequest","fieldViolations":[{"field":"generation_config","description":"Invalid JSON payload received. Unknown name \"generationConfig\" at 'generation_config': Cannot find field."}]}]
-2025-07-30T03:08:18Z [web] 
-2025-07-30T03:08:18Z [web]  POST /?monospaceUid=242131 200 in 259ms
-2025-07-30T03:08:22Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Starting AI options analysis... { ticker: 'SPY', hasOptionsChain: true, hasStockSnapshot: true }
-2025-07-30T03:08:22Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Validating input data...
-2025-07-30T03:08:22Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] Calling AI flow for options analysis...
-2025-07-30T03:08:22Z [web] Error: [ServerAction:performAiOptionsAnalysisAction:Ticker:SPY] CATCH ERROR: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [400 Bad Request] Invalid JSON payload received. Unknown name "generationConfig" at 'generation_config': Cannot find field. [{"@type":"type.googleapis.com/google.rpc.BadRequest","fieldViolations":[{"field":"generation_config","description":"Invalid JSON payload received. Unknown name \"generationConfig\" at 'generation_config': Cannot find field."}]}]
-2025-07-30T03:08:22Z [web] 
-2025-07-30T03:08:22Z [web]  POST /?monospaceUid=242131 200 in 276ms
-2025-07-30T03:08:27Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
-2025-07-30T03:08:27Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:08:27Z [web] [getAppDataPrompt] Loading definition for promptName: stock-trader-takeaways, file: stock-trader-takeaways
-2025-07-30T03:08:27Z [web] [getAppDataPrompt] Successfully cached prompt for: stock-trader-takeaways
-2025-07-30T03:08:27Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
-2025-07-30T03:08:29Z [web] [ServerAction:spyConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
-2025-07-30T03:08:29Z [web]  POST /?monospaceUid=242131 200 in 2572ms
-2025-07-30T03:08:35Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
-2025-07-30T03:08:35Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:08:35Z [web] [getAppDataPrompt] Loading definition for promptName: options-trader-takeaways, file: options-trader-takeaways
-2025-07-30T03:08:35Z [web] [getAppDataPrompt] Successfully cached prompt for: options-trader-takeaways
-2025-07-30T03:08:35Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
-2025-07-30T03:08:39Z [web] [ServerAction:spyConsolidatedChatAction:options-trader-takeaways] Successfully generated response
-2025-07-30T03:08:39Z [web]  POST /?monospaceUid=242131 200 in 4371ms
-2025-07-30T03:08:41Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Starting unified chat request
-2025-07-30T03:08:41Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:08:41Z [web] [getAppDataPrompt] Loading definition for promptName: holistic-takeaways, file: holistic-takeaways
-2025-07-30T03:08:41Z [web] [getAppDataPrompt] Successfully cached prompt for: holistic-takeaways
-2025-07-30T03:08:41Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
-2025-07-30T03:08:45Z [web] [ServerAction:spyConsolidatedChatAction:holistic-takeaways] Successfully generated response
-2025-07-30T03:08:46Z [web]  POST /?monospaceUid=242131 200 in 5034ms
-2025-07-30T03:08:48Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
-2025-07-30T03:08:48Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:08:48Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
-2025-07-30T03:09:00Z [web] [ServerAction:spyConsolidatedChatAction:support-resistance-web-search] Successfully generated response
-2025-07-30T03:09:00Z [web]  POST /?monospaceUid=242131 200 in 12650ms
-2025-07-30T03:09:02Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
-2025-07-30T03:09:02Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:09:02Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
-2025-07-30T03:09:07Z [web] [ServerAction:spyConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
-2025-07-30T03:09:07Z [web]  POST /?monospaceUid=242131 200 in 4456ms
-2025-07-30T03:09:08Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Starting unified chat request
-2025-07-30T03:09:08Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T03:09:08Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
-2025-07-30T03:09:13Z [web] [ServerAction:spyConsolidatedChatAction:options-flow-web-search] Successfully generated response
-2025-07-30T03:09:13Z [web]  POST /?monospaceUid=242131 200 in 4704ms
-
-
-
-{
-  "ticker": "NVDA",
-  "timestamp": "2025-07-30T03:07:49.701Z",
-  "data": {
-    "stockSnapshot": {
-      "ticker": "NVDA",
-      "day": {
-        "o": 177.96,
-        "h": 179.38,
-        "l": 175.02,
-        "c": 175.51,
-        "v": 154068839,
-        "vw": 177.0364,
-        "t": 1753833600000000000
-      },
-      "prevDay": {
-        "o": 174.02,
-        "h": 177,
-        "l": 173.97,
-        "c": 176.75,
-        "v": 140023521,
-        "vw": 175.5154
-      },
-      "min": {
-        "o": 176.04,
-        "h": 176.1,
-        "l": 176.04,
-        "c": 176.08,
-        "v": 25313,
-        "vw": 176.0761,
-        "t": 1753833540000,
-        "n": 133
-      },
-      "todaysChange": -0.67,
-      "todaysChangePerc": -0.3791,
-      "updated": 1753833600000000000,
-      "currentPrice": 175.51
-    },
-    "marketStatus": {
-      "market": "closed",
-      "earlyHours": false,
-      "lateHours": false,
-      "serverTime": "2025-07-29T23:05:39-04:00",
-      "exchanges": {
-        "nasdaq": "closed",
-        "nyse": "closed",
-        "otc": "closed"
-      },
-      "currencies": {
-        "crypto": "open",
-        "fx": "open"
-      }
-    },
-    "optionsChainSummary": {
-      "summary": {
-        "total_results": 0,
-        "call_count": 0,
-        "put_count": 0,
-        "strike_range": null,
-        "expiration_dates": []
-      },
-      "note": "Full strike details excluded in truncated version - use 'Copy ALL' or 'Export ALL' for complete data"
-    },
-    "standardTa": {
-      "RSI": {
-        "7": 69.41,
-        "10": 70.37,
-        "14": 71.56
-      },
-      "MACD": {
-        "value": 7.0369,
-        "signal": 7.1959,
-        "histogram": -0.159
-      },
-      "VWAP": {
-        "day": 177.0364,
-        "minute": 176.0761
-      },
-      "EMA": {
-        "5": 174.21,
-        "10": 171.95,
-        "20": 166.95,
-        "50": 153.76,
-        "200": 132.2
-      },
-      "SMA": {
-        "5": 174.06,
-        "10": 172.55,
-        "20": 167.01,
-        "50": 152,
-        "200": 134.16
-      }
-    },
-    "aiAnalyzedTa": {
-      "pivotPoint": 175.91,
-      "support1": 174.81,
-      "support2": 172.88,
-      "support3": 171.78,
-      "resistance1": 177.84,
-      "resistance2": 178.94,
-      "resistance3": 180.87
-    },
-    "aiKeyTakeaways": null,
-    "aiOptionsAnalysis": null
-  }
-}
-
-
-
-{
-  "ticker": "SPY",
-  "timestamp": "2025-07-30T03:09:39.870Z",
-  "data": {
-    "stockSnapshot": {
-      "ticker": "SPY",
-      "day": {
-        "o": 638.35,
-        "h": 638.67,
-        "l": 634.34,
-        "c": 635.26,
-        "v": 60625002,
-        "vw": 636.1079,
-        "t": 1753833600000000000
-      },
-      "prevDay": {
-        "o": 637.48,
-        "h": 638.04,
-        "l": 635.54,
-        "c": 636.94,
-        "v": 54917102,
-        "vw": 636.8501
-      },
-      "min": {
-        "o": 635.43,
-        "h": 635.44,
-        "l": 635.43,
-        "c": 635.44,
-        "v": 699,
-        "vw": 635.4342,
-        "t": 1753833540000,
-        "n": 18
-      },
-      "todaysChange": -1.68,
-      "todaysChangePerc": -0.2638,
-      "updated": 1753833600000000000,
-      "currentPrice": 635.26
-    },
-    "marketStatus": {
-      "market": "closed",
-      "earlyHours": false,
-      "lateHours": false,
-      "serverTime": "2025-07-29T23:08:08-04:00",
-      "exchanges": {
-        "nasdaq": "closed",
-        "nyse": "closed",
-        "otc": "closed"
-      },
-      "currencies": {
-        "crypto": "open",
-        "fx": "open"
-      }
-    },
-    "optionsChainSummary": {
-      "summary": {
-        "total_results": 0,
-        "call_count": 0,
-        "put_count": 0,
-        "strike_range": null,
-        "expiration_dates": []
-      },
-      "note": "Full strike details excluded in truncated version - use 'Copy ALL' or 'Export ALL' for complete data"
-    },
-    "standardTa": {
-      "RSI": {
-        "7": 72.74,
-        "10": 72.29,
-        "14": 72.48
-      },
-      "MACD": {
-        "value": 8.153,
-        "signal": 8.2395,
-        "histogram": -0.0865
-      },
-      "VWAP": {
-        "day": 636.1079,
-        "minute": 635.4342
-      },
-      "EMA": {
-        "5": 634.73,
-        "10": 631.93,
-        "20": 626.15,
-        "50": 610.29,
-        "200": 582.36
-      },
-      "SMA": {
-        "5": 635.59,
-        "10": 631.54,
-        "20": 627.02,
-        "50": 609.16,
-        "200": 587.74
-      }
-    },
-    "aiAnalyzedTa": {
-      "pivotPoint": 636.84,
-      "support1": 635.64,
-      "support2": 634.34,
-      "support3": 633.14,
-      "resistance1": 638.14,
-      "resistance2": 639.34,
-      "resistance3": 640.64
-    },
-    "aiKeyTakeaways": null,
-    "aiOptionsAnalysis": null
-  }
-}
 
 ```
 

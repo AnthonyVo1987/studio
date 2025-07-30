@@ -50,6 +50,9 @@ import { NvdaAiKeyTakeawaysDisplay } from '@/components/nvda-ai-key-takeaways-di
 import { NvdaAiOptionsAnalysisDisplay } from '@/components/nvda-ai-options-analysis-display';
 import { NvdaConsolidatedChat } from '@/components/nvda-consolidated-chat';
 
+// Macro Orchestrator UI Component (Simplified)
+import { SimpleAnalyzeAllButton } from '@/components/macro-orchestrator/simple-analyze-all-button';
+
 // Create NVDA-specific logger
 const logger = createTickerLogger(NVDA_TICKER, TICKER_PAGES.NVDA_TAB);
 
@@ -530,6 +533,32 @@ export function NvdaTabContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* NVDA Macro Orchestrator */}
+      <SimpleAnalyzeAllButton
+        ticker={NVDA_TICKER}
+        onFetchExpirations={handleFetchExpirations}
+        onGetStockData={handleGetStockData}
+        onGenerateAiKeyTakeaways={handleNvdaAiKeyTakeaways}
+        onGenerateAiOptionsAnalysis={handleNvdaAiOptionsAnalysis}
+        canFetchExpirations={() => !isLoading}
+        canGetStockData={() => !isLoading && !!nvdaState.selectedExpirationDate}
+        canGenerateAiKeyTakeaways={() => !isLoading && nvdaState.hasStockData && nvdaState.hasAiTaData && !nvdaState.isAiKeyTakeawaysLoading}
+        canGenerateAiOptionsAnalysis={() => !isLoading && nvdaState.hasOptionsChainData && !nvdaState.isAiOptionsAnalysisLoading}
+        onComplete={() => {
+          toast({
+            title: `${NVDA_TICKER} Macro Complete`,
+            description: 'All analysis steps have been executed successfully!',
+          });
+        }}
+        onError={(error) => {
+          toast({
+            title: `${NVDA_TICKER} Macro Failed`,
+            description: error.message,
+            variant: 'destructive',
+          });
+        }}
+      />
 
       {/* NVDA UI Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
