@@ -222,8 +222,18 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 
 This orchestration model ensures clear role separation, effective delegation, and consistent quality delivery while preventing role boundary violations that can lead to inefficient workflow and quality issues.
 
+## 🚨 BASELINE PROTECTION RULE
+
+**CRITICAL**: The current dedicated NVDA and SPY pages are the stable baseline architecture:
+- `src/components/nvda-tab-content.tsx`
+- `src/components/spy-tab-content.tsx` 
+- `src/contexts/nvda-analysis-context.tsx`
+- `src/contexts/spy-analysis-context.tsx`
+
+**These files are NOT TO BE MODIFIED unless explicitly requested by the user.** They represent the stable, tested architecture that ensures application functionality.
+
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.4.2.0, it features a revolutionary blueprint system architecture that enables trivial addition of new ticker analysis tabs through configuration-driven development. The system includes dynamic tab management, context factory patterns, and template-based component generation, achieving 95% code reduction for new ticker implementations.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.4.2.1, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The blueprint system exists as preserved scaffolding for future development phases but is not currently integrated into the application.
 
 ## Common Development Commands
 
@@ -259,22 +269,20 @@ npm run lint         # ESLint is fully configured and operational
 npm run typecheck    # TypeScript type checking
 ```
 
-### Blueprint Development Commands (v4.4.2.0+)
-Commands for working with the blueprint system:
+### Debug & Validation Commands (v4.4.2.1)
+Commands for working with the current architecture:
 ```bash
-# Ticker addition workflow
-npm run build        # Auto-discovery and registration of enabled tickers
-npm run dev          # Development server with dynamic tab system
+# Standard development workflow
+npm run build        # Production build
+npm run dev          # Development server with dedicated tab system
 
-# Configuration validation
-npm run lint         # Validates ticker configuration syntax
-npm run typecheck    # Ensures generated types are correct
+# Code quality validation
+npm run lint         # ESLint validation (fully configured)
+npm run typecheck    # TypeScript type checking
 
-# Debug blueprint system
-node -e "console.log(require('./src/config/ticker-configs').DevUtils.getConfigSummary())"
-
-# Test ticker registry
-node -e "require('./src/lib/ticker-registry').tickerRegistry.debug.getFullState().then(console.log)"
+# Architecture verification
+node -e "console.log('Current architecture: Dedicated NVDA/SPY tabs')"
+node -e "console.log('Blueprint status: Preserved as unused scaffolding')"
 ```
 
 ### ESLint Configuration
@@ -283,7 +291,7 @@ node -e "require('./src/lib/ticker-registry').tickerRegistry.debug.getFullState(
 - **Customization**: ESLint settings and configuration can be updated by Claude Code on an as-needed basis for project requirements
 - **Integration**: ESLint is integrated with the build process and pre-commit workflow
 
-## High-Level Architecture (v4.4.1.0)
+## High-Level Architecture (v4.4.2.1 - Recovery State)
 
 ### Core Technology Stack
 - **Frontend**: Next.js 15.3.3 with React 18.3.1
@@ -293,9 +301,9 @@ node -e "require('./src/lib/ticker-registry').tickerRegistry.debug.getFullState(
 - **Data Sources**: Polygon.io API
 - **AI Model**: Google Gemini 2.5-flash-lite
 
-### Simplified Two-Tab Architecture (v4.4.1.0)
+### Dedicated Two-Tab Architecture (v4.4.2.1)
 
-**The application features a clean two-tab architecture using standard React best practices:**
+**The application features a proven dedicated two-tab architecture using standard React best practices:**
 
 #### Tab Architecture Overview
 1. **NVDA Dedicated Tab** - Complete NVDA-specific analysis with advanced AI chat system
@@ -315,7 +323,7 @@ node -e "require('./src/lib/ticker-registry').tickerRegistry.debug.getFullState(
 - **Isolation**: Zero cross-dependencies with NVDA context
 - **Blueprint Quality**: Production-ready architecture serving as reference implementation
 
-### NVDA Dedicated Architecture (v4.4.1.0)
+### NVDA Dedicated Architecture (v4.4.2.1 - Protected Baseline)
 
 **Complete NVDA-specific analysis tab with advanced AI chat system:**
 
@@ -338,9 +346,9 @@ node -e "require('./src/lib/ticker-registry').tickerRegistry.debug.getFullState(
   - Consistent debugging experience across NVDA and SPY tabs
   - Centralized console message formatting and filtering
 
-### SPY Dedicated Architecture (v4.4.1.0 - Blueprint Reference)
+### SPY Dedicated Architecture (v4.4.2.1 - Protected Baseline)
 
-**Production-ready SPY analysis serving as architecture blueprint:**
+**Production-ready SPY analysis serving as stable reference implementation:**
 
 #### 1. SPY UI Components
 - **Main Component**: `src/components/spy-tab-content.tsx` - Deterministic handlers
@@ -398,9 +406,11 @@ node -e "require('./src/lib/ticker-registry').tickerRegistry.debug.getFullState(
   - FSM integration patterns
 - **Pre-configured Tickers**: SPY, NVDA, AAPL, MSFT, TSLA, GOOGL, AMZN with complete configuration objects
 
-## Blueprint System Architecture (v4.4.2.0+)
+## Future Development - Blueprint System (v4.4.2.0+ Scaffolding)
 
-**Revolutionary configuration-driven architecture for trivial ticker addition:**
+**IMPORTANT**: The blueprint system exists as unused scaffolding for future development phases. It is NOT currently integrated into the application.
+
+**Preserved scaffolding for configuration-driven architecture:**
 
 ### Core Blueprint Components
 
@@ -673,9 +683,9 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.1.0 (as of this documentation update)
+- **Current Version**: v4.4.2.1 (recovery state with dedicated NVDA/SPY architecture)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.4.1.0 latest with Phase 1 architecture cleanup - removed 38 legacy files, simplified to two-tab architecture with NVDA and SPY dedicated tabs)
+- **Versioning Scheme**: `v4.w.x.y.z` format (v4.4.2.1 recovery state with dedicated NVDA and SPY tabs, blueprint system preserved as unused scaffolding)
 
 ## Code Review Process
 
@@ -810,7 +820,44 @@ GEMINI_API_KEY=your_google_ai_api_key
 31. **Quality Gate Enforcement**: Orchestrator ensures code review processes without performing reviews directly
 32. **Role Violation Prevention**: Immediate halt and reassignment if orchestrator attempts hands-on work
 
-This architecture (v4.4.2.0) represents a revolutionary leap in development efficiency through the blueprint system, enabling trivial ticker addition while maintaining complete state isolation and consistent architecture patterns across all ticker implementations.
+## Important Notes for AI Assistants (v4.4.2.1 - Recovery State)
+
+### Current Architecture Status (CRITICAL UNDERSTANDING)
+1. **Dedicated NVDA/SPY Architecture**: Application currently uses proven dedicated two-tab architecture
+2. **Blueprint System Status**: Preserved as unused scaffolding - NOT integrated into active application
+3. **Protected Baseline Files**: NVDA/SPY contexts and components are protected and stable
+4. **Development Focus**: All current development should use existing dedicated architecture patterns
+5. **Future Integration**: Blueprint system available for future enhancement phases when stability allows
+
+### Current Development Patterns (v4.4.2.1)
+6. **Use Existing Hooks**: `useNvdaAnalysis()`, `useSpyAnalysis()` for current implementation
+7. **Component Patterns**: Follow existing `nvda-*.tsx` and `spy-*.tsx` naming conventions
+8. **Context Isolation**: Maintain complete independence between NVDA and SPY contexts
+9. **Deterministic Handlers**: Use proven async/await patterns in tab content components
+
+### Blueprint System Future Integration
+10. **Scaffolding Preserved**: Blueprint framework exists in `src/lib/ticker-framework/` (unused)
+11. **Configuration Available**: `src/config/ticker-configs.ts` contains future ticker configurations
+12. **Registry System**: `src/lib/ticker-registry.ts` available for future dynamic loading
+13. **Template Components**: Base components preserved in `src/lib/ticker-framework/core/base-components/`
+
+### Quality Assurance (UPDATED FOR RECOVERY STATE)
+14. **Baseline Protection**: Dedicated NVDA/SPY components are protected from modification
+15. **Stability First**: Current architecture prioritized over experimental features
+16. **Context Isolation Verified**: Each ticker maintains independent state without cross-dependencies
+17. **Proven Patterns**: Battle-tested React Context + useReducer patterns throughout
+
+### Build & Development (RECOVERY STATE)
+18. **Standard Build Process**: `npm run build` uses current dedicated architecture
+19. **Tab System**: Standard React tabs with NVDA and SPY dedicated components
+20. **Runtime Stability**: No dynamic ticker loading - fixed NVDA/SPY tabs only
+21. **Debug Support**: Standard console logging and debugging tools
+
+### AI Assistant Guidelines (RECOVERY STATE)
+22. **Current Architecture First**: Always use existing dedicated NVDA/SPY patterns
+23. **Blueprint Awareness**: Understand blueprint system exists but is unused scaffolding
+24. **Baseline Protection**: Never modify protected baseline files without explicit user request
+25. **Future Readiness**: Be prepared to integrate blueprint system when stability allows
 
 ---
 

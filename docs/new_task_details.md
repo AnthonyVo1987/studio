@@ -1,14 +1,14 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.0]
-**Task Type**: [FEATURE]
+**Version**: [v4.4.2.1]
+**Task Type**: [BUG]
 ---
 
 ## Abstract
-**Brief Summary**: [New Architecture Phase 2] Develop new tab blueprint/template system scaffolding
+**Brief Summary**: Phase 2 Recover incorrectly removed dedicated NVDA & SPY pages
 
-**Affected Systems**: _[NEW Blueprint]_
+**Affected Systems**: [BUG]
 
 **Priority Level**: _[CRITICAL]_
 
@@ -106,33 +106,23 @@
 
 ## Task Details
 
-[New Architecture Phase 2] Develop new tab blueprint/template system scaffolding
+Phase 2 Recover incorrectly removed dedicated NVDA & SPY pages
+
+- I just reviewed and tested your initial phase 2 changes of the blueprint and you completely and utterly violated and failed the task
+- The entire point of this phase was to just create the blueprint scaffolding system only and keep the existing isolated in Nvidia and spy Pages untouched to serve as a stable baseline as we still test and developed the new blueprint system.
+- What you did incorrectly was you created a blueprint system which was correct but then you incorrectly violated the rule when you tried to then integrate and convert our existing dedicated, isolated Nvidia and spy pages utilizing the blueprint system, which was not part of this phase. I told you to leave it alone and now the app is utterly broken because we haven’t fully even implemented the blueprint system or tested it and yet you went along and blindly converted the app to the blueprint system, which I did not want.
+- The end result of that phase was the blueprint scaffolding code all in the code base and implemented, but it is NOT to be  used at all yet because that’s not the point of this phase so the Nvidia and spy was to be left alone
+- So now you need to go back and review your git commits from the previous commit, you need to roll back and put back our dedicated pages for Nvidia and spy completely untouched, but keep the blueprint system.  Go through the git commit history to the the actual granualar file changes in order to properly revert and put back the correct code
+- You made quite a bit of a mess here and you got ahead of yourself trying to migrate to use the new blueprints when I said NOT to do this yet
+-  there’s a reason I split this into small digestible phases, because I know I did not want to design a whole blueprint system and then convert our app to the blueprint system All in one shot because we still need to refine the blueprint system.
+- so you are prohibited from ever touching modifying, editing, removing or deleting the dedicated and Nvidia and spy pages unless there is a phase and specific task and explicitly tells you to do so, so you need to do whatever you need to rectify the situation for the end goal of having a completely rolled back and everted untouched, working Nvidia and spy dedicated pages along with all our initial scaffolding for the blueprint system
 
 ### Current Situation
-	⁃	This phase is focused on developing and implementing the initial scaffolding/blueprint/template system in order to make adding brand new dedicated stock, pages a trivial task
- 
-	⁃	For example, it should be trivial to add 5x additional dedicated tabs utilizing the newly design and architecture blueprint system
- 
-	⁃	So perform some research using context7, especially to find out the best practices and trying to implement a very modular blueprint system so that we can add additional app tabs very easily and streamline and make it very trivial
- 
-	⁃	We will just work on just the blueprint system itself here for this phase and there will be follow on phases where we will actually use the new blueprint system in order to generate a brand new dedicated tap to test
- 
-	⁃	Since the current NVDA and spy  isolated tabs are perfectly working you may review and leverage and understand the concepts and architecture that made it work and then your blueprint system needs to be modular plug and play where there should be very minimal changes to configure and add a new page so it’s helpful to see what were the main differences between the current dedicated spy and NVDA tabs and then what is duplicated code to come up with the most optimized blueprint system
- 
-	⁃	There should be added extra comments and or instructions throughout the code based and documentation to instruct Claude AI, how to add future dedicated pages utilizing the blueprint system
- 
-	⁃	In the perfect world, the blueprint system would allow us to add new dedicated ticker pages with very minimal code changes needed such as maybe just updating the main page for the additional tab and providing the ticker for the new dedicated page. In the perfect world, we will need very minimal parameters or config settings past him just a duplicate a page so find the best balance to create a truly modular extendable flexible easy to implement design for the blueprint architecture 
- 
-	⁃	Eventually, the current isolated dedicated NVDA and spy pages will be retired and re factored, but that will come at a later phase once we have completed robust testing, so we’ll still keep those dedicated NVDA and spy pages to serve as a reference point and baseline to see what worked just in case we run into issues with our new blueprint system we could always refer back to the current baseline working Model to see what needs to be fixed
  
 
 
 ### Desired Outcome
 _[Describe what the end result should look like]_
-	⁃	The end goal deliverable for this phase is that we have all the initial code, blueprint architecture, scaffolding, and documentation updated so that the next phase we can add a dedicated ticker page using the new blueprint system and start testing it so that it will have 100% feature parity with a current dedicated and Nvidia and spy pages
-
-  - Even though new ticker tabs will try and share and re-use the new blueprint components, each indivdual dedicated ticker tab neesd to operate in it's own "context space" where issues with one page, does NOT affect other pages. So it's a hybrid isolation architecture where the blueprint allows easy re-use of new tab components, BUT each new tab is separate from other tabs, even if they are all using the same underlying modular blueprint architecture
-
 
 ### Acceptance Criteria
 1. _[Specific, measurable criteria for task completion]_
@@ -146,6 +136,7 @@ _[Describe what the end result should look like]_
 
 ### Issue Description
 _[Detailed description of the problem or requested change]_
+
 
 ### Steps to Reproduce (if applicable)
 1. _[Step 1]_

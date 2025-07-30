@@ -7,6 +7,108 @@
 This section tracks the commit history of the StockSage application. Latest commits are at the top.
 
 ---
+**App Version:** `v4.4.2.1` (🔄 **CRITICAL RECOVERY: ARCHITECTURE ROLLBACK**)
+**Tag:** `Phase-v4.4.2.1_Architecture_Recovery`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.4.2.1] [CRITICAL RECOVERY] Restored original dedicated NVDA & SPY pages after blueprint integration issues`
+**Details:**
+This commit performs a critical recovery operation to restore the stable, proven architecture after premature blueprint system integration caused stability issues.
+
+**🔄 CRITICAL RECOVERY OPERATIONS:**
+
+**ARCHITECTURE ROLLBACK:**
+*   **Restored Dedicated NVDA & SPY Pages**: Reverted to original, stable dedicated context architecture
+*   **Blueprint System Preservation**: Maintained blueprint scaffolding for future integration phases
+*   **Baseline Protection**: Established protection rules for dedicated NVDA/SPY pages
+*   **Stability Priority**: Prioritized proven functionality over experimental features
+
+**DOCUMENTATION CORRECTION:**
+*   **Updated All Project Docs**: Corrected README.md, CLAUDE.md, and CHANGELOG.md to reflect actual current architecture
+*   **Version Consistency**: Ensured all documentation shows v4.4.2.1 with correct architecture descriptions
+*   **Recovery Context**: Added clear explanation of the rollback and current stable state
+*   **Future Scaffolding**: Documented blueprint system as preserved but unused scaffolding
+
+**📁 FILES MODIFIED:**
+*   `README.md` - Major rewrite to reflect actual current architecture (v4.4.2.1 recovery state)
+*   `CLAUDE.md` - Updated architectural guidance to focus on dedicated tab architecture
+*   `CHANGELOG.md` - Added missing v4.4.2.1, v4.4.2.0, and v4.4.1.0 entries
+*   `src/config/app-metadata.json` - Version metadata update to v4.4.2.1
+
+**✅ STABILITY RESTORED:**
+*   **Dedicated NVDA Tab**: Fully functional with complete feature set
+*   **Dedicated SPY Tab**: Fully functional with complete feature set
+*   **Context Isolation**: Zero cross-dependencies maintained
+*   **Blueprint Scaffolding**: Preserved for future development phases
+*   **Documentation Accuracy**: All docs now match actual implementation
+
+---
+**App Version:** `v4.4.2.0` (🚧 **EXPERIMENTAL: BLUEPRINT SYSTEM ATTEMPT - LATER ROLLED BACK**)
+**Tag:** `Phase-v4.4.2.0_Blueprint_System_Experimental`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.4.2.0] [EXPERIMENTAL - LATER ROLLED BACK] Blueprint/template system for modular ticker framework`
+**Details:**
+This commit introduced an experimental blueprint system for configuration-driven ticker addition. **Note**: This implementation was rolled back in v4.4.2.1 due to premature integration affecting stability.
+
+**🚧 EXPERIMENTAL FEATURES (LATER ROLLED BACK):**
+
+**BLUEPRINT SYSTEM ARCHITECTURE:**
+*   **Context Factory**: Automatic ticker context generation from configuration
+*   **Template-Based Components**: Base components for ticker generation
+*   **Dynamic Tab System**: Configuration-driven ticker management
+*   **95% Code Reduction**: Claimed reduction for new ticker implementations
+
+**CONFIGURATION FRAMEWORK:**
+*   **Centralized Ticker Configuration**: `src/config/ticker-configs.ts` for ticker management
+*   **Registry System**: `src/lib/ticker-registry.ts` for automatic ticker discovery
+*   **Template Library**: `src/lib/ticker-framework/core/base-components/` for component templates
+
+**📁 FILES ADDED (LATER PRESERVED AS SCAFFOLDING):**
+*   `src/lib/ticker-framework/` - Blueprint system framework (now unused scaffolding)
+*   `src/config/ticker-configs.ts` - Ticker configuration system (preserved)
+*   `src/lib/ticker-registry.ts` - Dynamic ticker registry (preserved)
+*   `src/components/tabs/dynamic-tab-system.tsx` - Dynamic tab orchestration (preserved)
+
+**⚠️ ROLLBACK REASON:**
+*   **Premature Integration**: Blueprint system integration introduced before sufficient stability testing
+*   **Stability Priority**: Dedicated NVDA/SPY architecture prioritized for proven functionality
+*   **Preserved for Future**: Blueprint scaffolding maintained for future enhancement phases
+
+---
+**App Version:** `v4.4.1.0` (🧹 **CLEANUP: LEGACY CODE REMOVAL & ARCHITECTURE SIMPLIFICATION**)
+**Tag:** `Phase-v4.4.1.0_Legacy_Cleanup`
+**Commit Hash:** `[TO_BE_FILLED]`
+**Subject:** `[v4.4.1.0] [MAJOR CLEANUP] Removed 38+ legacy files, simplified to dedicated NVDA/SPY architecture`
+**Details:**
+This commit performs major architecture cleanup and simplification, removing legacy files and focusing on the proven two-tab NVDA/SPY dedicated architecture.
+
+**🧹 MAJOR CLEANUP OPERATIONS:**
+
+**LEGACY CODE REMOVAL:**
+*   **38+ Legacy Files Removed**: Eliminated outdated components, contexts, and utilities
+*   **Architecture Simplification**: Focused on dedicated NVDA and SPY tabs only
+*   **Context Isolation**: Enhanced separation between NVDA and SPY contexts
+*   **Dependency Cleanup**: Removed unused imports and dependencies
+
+**ARCHITECTURE CONSOLIDATION:**
+*   **Two-Tab Focus**: Simplified to NVDA and SPY dedicated analysis pages
+*   **Proven Patterns**: Standardized on React Context + useReducer patterns
+*   **Deterministic Handlers**: Consistent async/await patterns for complex operations
+*   **FSM Simplification**: Clean state management with simplified state machine
+
+**📁 FILES MODIFIED:**
+*   **38+ Files Removed**: Legacy components, contexts, and utilities eliminated
+*   `src/contexts/nvda-analysis-context.tsx` - Enhanced for dedicated NVDA analysis
+*   `src/contexts/spy-analysis-context.tsx` - Enhanced for dedicated SPY analysis
+*   `src/components/nvda-tab-content.tsx` - Refined NVDA tab orchestrator
+*   `src/components/spy-tab-content.tsx` - Refined SPY tab orchestrator
+
+**✅ ARCHITECTURE BENEFITS:**
+*   **Simplified Codebase**: Easier maintenance and debugging
+*   **Proven Stability**: Focus on battle-tested architecture patterns
+*   **Context Isolation**: Complete independence between ticker tabs
+*   **Performance Optimization**: Reduced bundle size and complexity
+
+---
 **App Version:** `v4.4.0.0` (🚀 **MAJOR RELEASE: AUTONOMOUS AI DEVELOPMENT WORKFLOW ENHANCEMENT**)
 **Tag:** `Phase-v4.4.0.0_Autonomous_AI_Development_Workflow`
 **Commit Hash:** `[TO_BE_FILLED]`

@@ -1,7 +1,8 @@
 
 import { getAppConfig, type AppConfig } from '@/lib/app-config-loader';
 import { PageContent } from '@/components/page-content'; // Import the new client component
-import { ProviderOrchestrator } from '@/contexts/provider-orchestrator';
+import { SpyAnalysisProvider } from '@/contexts/spy-analysis-context';
+import { NvdaAnalysisProvider } from '@/contexts/nvda-analysis-context';
 
 export default async function Home() {
   let appConfig: AppConfig;
@@ -19,9 +20,11 @@ export default async function Home() {
   }
 
   return (
-    <ProviderOrchestrator>
-      <PageContent appVersion={appConfig.appVersion} lastUpdatedTimestamp={appConfig.lastUpdatedTimestamp} />
-    </ProviderOrchestrator>
+    <SpyAnalysisProvider>
+      <NvdaAnalysisProvider>
+        <PageContent appVersion={appConfig.appVersion} lastUpdatedTimestamp={appConfig.lastUpdatedTimestamp} />
+      </NvdaAnalysisProvider>
+    </SpyAnalysisProvider>
   );
 }
 

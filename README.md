@@ -2,13 +2,23 @@
 
 **A Next.js Financial Analysis Application with AI-Powered Insights**
 
-[![Version](https://img.shields.io/badge/version-v4.4.2.0-blue.svg)](src/config/app-metadata.json)
+[![Version](https://img.shields.io/badge/version-v4.4.2.1-blue.svg)](src/config/app-metadata.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-38B2AC.svg)](https://tailwindcss.com/)
 
 StockSage is a sophisticated financial analysis application built with Next.js that provides real-time stock data, options chain analysis, and AI-powered insights. The application features a clean, modern interface with dedicated analysis tabs for specific tickers, powered by Google's Gemini AI and real-time financial data from Polygon.io.
+
+## 🚨 BASELINE PROTECTION RULE
+
+**CRITICAL**: The current dedicated NVDA and SPY pages are the stable baseline architecture:
+- `src/components/nvda-tab-content.tsx`
+- `src/components/spy-tab-content.tsx` 
+- `src/contexts/nvda-analysis-context.tsx`
+- `src/contexts/spy-analysis-context.tsx`
+
+**These files are NOT TO BE MODIFIED unless explicitly requested by the user.** They represent the stable, tested architecture that ensures application functionality.
 
 ## Features
 
@@ -19,14 +29,13 @@ StockSage is a sophisticated financial analysis application built with Next.js t
 - **Technical Analysis**: Standard and AI-enhanced technical indicators including pivot points and trend analysis
 - **Specialized Chat Systems**: Advanced AI chat interface with trading-focused prompts and web search capabilities
 
-### Application Architecture (v4.4.2.0)
-- **Blueprint System Architecture**: Revolutionary configuration-driven ticker addition with 95% code reduction
-- **Dynamic Tab System**: Automatic ticker discovery and registration through centralized configuration
-- **Template-Based Components**: All ticker UI generated from reusable base component templates
+### Application Architecture (v4.4.2.1 - Recovery State)
+- **Dedicated Ticker Tabs**: Clean two-tab architecture with NVDA and SPY dedicated analysis pages
 - **Complete Context Isolation**: Each ticker maintains independent state management with zero cross-dependencies
-- **Trivial Ticker Addition**: Add new tickers by updating single configuration file
+- **Proven Architecture Patterns**: Battle-tested React Context + useReducer patterns with deterministic handlers
 - **On-Demand Analysis**: Manual trigger system for AI analysis to optimize performance and API usage
 - **Advanced Export Features**: Comprehensive JSON export functionality for all data components
+- **Future-Ready Scaffolding**: Blueprint system preserved as unused scaffolding for future development phases
 
 ### AI Integration
 - **Google Gemini 2.5-flash-lite**: Latest AI model optimized for financial analysis
@@ -98,21 +107,19 @@ npm run genkit:watch # Runs with file watching enabled
 ```bash
 npm run lint         # ESLint linting (fully configured)
 npm run typecheck    # TypeScript type checking
-npm run build        # Production build with blueprint auto-discovery
+npm run build        # Production build
 npm run start        # Production server
 ```
 
-#### Blueprint System Commands (v4.4.2.0)
+#### Development & Testing Commands
 ```bash
-# Ticker addition workflow
-npm run build        # Auto-discovery and registration of enabled tickers
-npm run dev          # Development server with dynamic tab system
+# Standard development workflow
+npm run build        # Production build
+npm run dev          # Development server with dedicated tab system
 
-# Configuration debugging
-node -e "console.log(require('./src/config/ticker-configs').DevUtils.getConfigSummary())"
-
-# Registry testing  
-node -e "require('./src/lib/ticker-registry').tickerRegistry.getRegistryStats().then(console.log)"
+# Debug and validation
+node -e "console.log('Current architecture: Dedicated NVDA/SPY tabs')" 
+node -e "console.log('Blueprint status: Preserved as unused scaffolding')"
 ```
 
 ### Port Usage Guidelines
@@ -131,58 +138,36 @@ genkit start -p 3401            # Internal Genkit testing
 
 ## Application Architecture
 
-### Blueprint System Architecture (v4.4.2.0)
+### Dedicated Tab Architecture (v4.4.2.1 - Current Implementation)
 
-StockSage features a revolutionary blueprint system that enables trivial ticker addition through configuration-driven development:
+StockSage features a clean, proven two-tab architecture with complete context isolation:
 
-#### Core Blueprint Components
+#### Current Architecture Components
 
-##### 1. Context Factory System
-- **Automatic Context Generation**: Creates ticker-specific React contexts from configuration
-- **Type-Safe Hook Generation**: Generates `use{Ticker}Analysis()` and `use{Ticker}Dispatch()` hooks
-- **FSM Integration**: Built-in finite state machine management for each ticker
-- **Provider Orchestration**: Dynamic provider composition with complete context isolation
+##### 1. NVDA Dedicated Tab
+- **Complete Independence**: Dedicated context (`nvda-analysis-context.tsx`) with zero cross-dependencies
+- **Advanced AI Chat**: Specialized NVDA trading chat with context-aware prompts
+- **Full Feature Set**: Stock data, options chain, technical analysis, and AI key takeaways
+- **Proven Patterns**: Battle-tested React Context + useReducer with deterministic handlers
 
-##### 2. Template-Based Component Generation
-- **95% Code Reduction**: New tickers require minimal custom code implementation
-- **Consistent UI Patterns**: Standardized layouts and behaviors across all ticker implementations
-- **Template Library**: Base components for tab content, data sections, AI chat, and options chains
-- **Display Templates**: Stock snapshots, key metrics, technical analysis, and AI insights
+##### 2. SPY Dedicated Tab
+- **Complete Independence**: Dedicated context (`spy-analysis-context.tsx`) with zero cross-dependencies  
+- **Blueprint Reference**: Production-ready architecture serving as implementation reference
+- **Advanced AI Chat**: Specialized SPY trading chat with web search capabilities
+- **Full Feature Set**: Complete feature parity with NVDA tab
 
-##### 3. Dynamic Tab System  
-- **Build-Time Discovery**: Automatic ticker registration from centralized configuration
-- **Runtime Management**: Enable/disable tickers without rebuilds through registry system
-- **Lazy Loading**: Code splitting and dynamic component loading for optimal performance
-- **Context Orchestration**: Multi-provider composition ensuring complete state isolation
+##### 3. Context Isolation Pattern
+- **Zero Cross-Dependencies**: Each ticker maintains completely independent state
+- **Proven Stability**: Thoroughly tested architecture with consistent behavior
+- **Deterministic Handlers**: Reliable async/await patterns for all complex operations
+- **FSM Integration**: Clean state management with simplified state machine
 
-#### Trivial Ticker Addition Process
+#### Recovery Architecture Notes (v4.4.2.1)
 
-Adding a new ticker (e.g., AAPL) requires only:
-
-1. **Configuration Update** (1 line change):
-   ```typescript
-   // src/config/ticker-configs.ts
-   createTickerConfig('AAPL', 'Apple Inc.', { enabled: true })
-   ```
-
-2. **Optional Chat Action** (copy existing template):
-   ```typescript
-   // src/actions/aapl-consolidated-chat-action.ts
-   // Copy nvda-consolidated-chat-action.ts and update ticker references
-   ```
-
-3. **Build & Deploy**:
-   ```bash
-   npm run build  # Automatic discovery and tab generation
-   npm run dev    # New AAPL tab appears automatically
-   ```
-
-#### Legacy Architecture Integration
-
-During the transition period, the system supports both:
-- **Blueprint-Generated Components**: New tickers use template-based generation
-- **Legacy Direct Components**: Existing NVDA/SPY components maintained for validation reference
-- **Hybrid Architecture**: Seamless integration between legacy and blueprint systems
+**Blueprint System Status**: Preserved as unused scaffolding for future development phases
+- **Current State**: Blueprint framework exists but is not integrated into application
+- **Stability Priority**: Dedicated tab architecture prioritized for proven functionality
+- **Future Integration**: Blueprint system available for future enhancement phases when stability allows
 
 ### State Management Architecture
 
@@ -250,37 +235,47 @@ src/actions/
 
 ## File Organization
 
-### Blueprint Framework Structure (v4.4.2.0)
+### Current Architecture Structure (v4.4.2.1)
 ```
 src/
-├── lib/ticker-framework/              # Blueprint system core
-│   ├── core/
-│   │   ├── context-factory.ts         # Automatic context generation
-│   │   ├── base-components/           # Component templates
-│   │   │   ├── base-tab-content.tsx   # Main tab orchestrator
-│   │   │   ├── base-data-section.tsx  # Data display container
-│   │   │   ├── base-consolidated-chat.tsx # AI chat interface
-│   │   │   └── displays/              # Display templates
-│   │   └── types.ts                   # Blueprint type definitions
-│   └── examples/                      # Usage examples and guides
+├── components/                        # UI Components
+│   ├── nvda-tab-content.tsx          # NVDA dedicated tab (PROTECTED BASELINE)
+│   ├── spy-tab-content.tsx           # SPY dedicated tab (PROTECTED BASELINE)
+│   ├── nvda-*.tsx                    # NVDA-specific components
+│   ├── spy-*.tsx                     # SPY-specific components
+│   └── ui/                           # ShadCN UI components
 │
-├── config/
-│   └── ticker-configs.ts              # Centralized ticker configuration
-│
-├── lib/
-│   └── ticker-registry.ts             # Dynamic ticker registration
-│
-├── components/
-│   └── tabs/
-│       └── dynamic-tab-system.tsx     # Dynamic tab orchestration
-│
-├── contexts/                          # Legacy/Generated contexts
-│   ├── nvda-analysis-context.tsx      # NVDA state (legacy)
-│   └── spy-analysis-context.tsx       # SPY state (legacy)
+├── contexts/                          # State Management (PROTECTED BASELINE)
+│   ├── nvda-analysis-context.tsx     # NVDA independent state
+│   └── spy-analysis-context.tsx      # SPY independent state
 │
 ├── actions/                           # Server Actions
-├── ai/                                # AI flows and prompts
-└── types/                             # TypeScript definitions
+│   ├── nvda-consolidated-chat-action.ts  # NVDA AI chat
+│   ├── spy-consolidated-chat-action.ts   # SPY AI chat
+│   ├── analyze-stock-server-action.ts    # Stock data fetching
+│   └── perform-ai-*.ts               # AI analysis actions
+│
+├── lib/                              # Utilities & Infrastructure
+│   ├── ticker-logger.ts              # Centralized logging system
+│   ├── ticker-framework/             # Blueprint system (UNUSED SCAFFOLDING)
+│   └── utils.ts                      # Shared utilities
+│
+├── ai/                               # AI System
+│   ├── flows/                        # Genkit AI flows
+│   ├── definitions/                  # JSON prompt templates
+│   └── schemas/                      # Zod validation schemas
+│
+└── types/                            # TypeScript definitions
+```
+
+### Blueprint Framework (Preserved as Unused Scaffolding)
+```
+src/lib/ticker-framework/              # UNUSED - Future development scaffolding
+├── core/
+│   ├── context-factory.ts            # Context generation templates
+│   ├── base-components/              # Component templates (unused)
+│   └── types.ts                      # Blueprint type definitions
+└── examples/                         # Usage examples and guides
 ```
 
 ### AI System Organization
@@ -337,7 +332,7 @@ Always follow this process for significant changes:
 
 ### Recent Achievements
 - **Architecture Simplification**: Standard React patterns throughout the application
-- **Token-Optimized Codebase**: 27.9% reduction in codebase size while preserving functionality
+- **Recovery Stability**: Restored proven dedicated tab architecture for reliable functionality
 - **On-Demand AI**: Manual trigger system prevents unnecessary API calls
 - **Context Isolation**: Clean separation prevents state pollution between tabs
 
@@ -377,9 +372,25 @@ GEMINI_API_KEY=your_google_ai_api_key   # Google AI API access
 ## Version Management
 
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.0 (blueprint system architecture with 95% code reduction)
+- **Current Version**: v4.4.2.1 (recovery state with dedicated NVDA/SPY architecture)
 - **Versioning Scheme**: `v4.w.x.y.z` format for clear version tracking
 - **Update Policy**: Version and timestamp updates required for all code changes
+
+## Future Development
+
+### Blueprint System (Preserved Scaffolding)
+The blueprint system remains available as unused scaffolding for future development phases:
+
+- **Status**: Preserved but not integrated into current application
+- **Purpose**: Future ticker addition with configuration-driven development
+- **Location**: `src/lib/ticker-framework/` (unused scaffolding)
+- **Integration**: Available when stability requirements allow for enhancement phases
+
+### Potential Future Enhancements
+- Blueprint system integration for additional ticker support
+- Enhanced AI analysis capabilities
+- Advanced charting and visualization features
+- Portfolio tracking and management tools
 
 ## Contributing
 
@@ -395,6 +406,7 @@ GEMINI_API_KEY=your_google_ai_api_key   # Google AI API access
 - **Deterministic Handlers**: Use proven async/await patterns for complex operations
 - **FSM Integration**: Provide proper state feedback for UI consistency
 - **Type Safety**: Leverage TypeScript for compile-time error prevention
+- **Baseline Protection**: Preserve stable, tested components unless explicitly requested to modify
 
 ## License
 
@@ -406,4 +418,4 @@ For technical issues or questions about the codebase architecture, refer to the 
 
 ---
 
-**StockSage v4.4.2.0** - A sophisticated financial analysis platform powered by Next.js and AI with revolutionary blueprint system architecture.
+**StockSage v4.4.2.1** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture and future-ready blueprint scaffolding.
