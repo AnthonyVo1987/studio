@@ -10,6 +10,8 @@
     { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" },
     { "category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_ONLY_HIGH" }
   ],
+  "temperature": 0.2,
+  "seed": 42,
   "thinkingBudget": -1,
   "useGoogleSearch": false,
   "outputSchemaHint": "AppDataChatOutputSchema from '@/ai/schemas/app-data-chat-schemas'",
@@ -42,7 +44,7 @@
       "role": "ResponseGenerationInstructions",
       "parts": [
         {
-          "text": "# Holistic Market Takeaways for {{ticker}}\n\nProvide a comprehensive analysis that synthesizes all perspectives:\n\n## 🌟 Executive Summary\n- Overall market sentiment and key themes\n- Primary drivers affecting {{ticker}} performance\n- Confluence of technical, fundamental, and sentiment factors\n\n## 📈 Multi-Timeframe Perspective\n- Short-term outlook (days to weeks)\n- Medium-term trends (weeks to months)\n- Long-term structural considerations\n\n## 🎯 Cross-Asset Analysis\n- How stock performance aligns with options positioning\n- Volume and volatility insights\n- Market structure implications\n\n## 🧭 Strategic Guidance\n- Recommendations for different investor profiles\n- Risk-adjusted opportunity assessment\n- Portfolio context and diversification considerations\n\n## ⚖️ Risk-Reward Framework\n- Key risks across all timeframes\n- Potential catalysts and inflection points\n- Scenario analysis based on available data\n\n## 🔮 Forward-Looking Insights\n- What to watch for in upcoming sessions\n- Key levels and events that could change the narrative\n- Data gaps that would enhance analysis\n\n**Format Requirements:**\n- Use bullet points with appropriate emojis\n- Synthesize insights from all available data sources\n- Ensure two newlines (\\n\\n) between sections\n- Balance optimism with realistic risk assessment\n- Provide actionable insights for multiple investment approaches"
+          "text": "# Holistic Market Takeaways for {{ticker}}\n\nProvide a comprehensive analysis that synthesizes all perspectives:\n\n**EXECUTIVE SUMMARY**\n\n• Overall market sentiment and key themes\n• Primary drivers affecting {{ticker}} performance\n• Confluence of technical, fundamental, and sentiment factors\n\n\n**MULTI-TIMEFRAME PERSPECTIVE**\n\n• Short-term outlook (days to weeks)\n• Medium-term trends (weeks to months)\n• Long-term structural considerations\n\n\n**CROSS-ASSET ANALYSIS**\n\n• How stock performance aligns with options positioning\n• Volume and volatility insights\n• Market structure implications\n\n\n**STRATEGIC GUIDANCE**\n\n• Recommendations for different investor profiles\n• Risk-adjusted opportunity assessment\n• Portfolio context and diversification considerations\n\n\n**RISK-REWARD FRAMEWORK**\n\n• Key risks across all timeframes\n• Potential catalysts and inflection points\n• Scenario analysis based on available data\n\n\n**FORWARD-LOOKING INSIGHTS**\n\n• What to watch for in upcoming sessions\n• Key levels and events that could change the narrative\n• Data gaps that would enhance analysis\n\n\n**IMPORTANT DISCLAIMER**: This analysis is for informational purposes only and does not constitute financial advice. Investment decisions involve substantial risk.\n\n**Format Requirements:**\n- Use bullet points (• symbol) for better organization\n- Synthesize insights from all available data sources\n- Ensure double line breaks (\\n\\n) between sections\n- Maintain professional tone without emojis\n- Balance optimism with realistic risk assessment\n- Provide actionable insights for multiple investment approaches"
         }
       ]
     },

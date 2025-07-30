@@ -32,18 +32,18 @@ import type {
   SpyConsolidatedChatInput 
 } from '@/ai/schemas/spy-consolidated-chat-schemas';
 
-// UI Constants
+// UI Constants - Responsive viewport-based heights for optimal message viewing
 const CHAT_HEIGHTS = {
-  MIN: 'min-h-[400px]',
-  MAX: 'max-h-[85vh]',
-  MOBILE: 'h-[500px]',
-  TABLET: 'sm:h-[600px]',
-  DESKTOP: 'md:h-[650px]'
+  // Responsive height strategy: 50vh mobile → 65vh desktop → 75vh xl screens
+  RESPONSIVE: 'h-[50vh] sm:h-[55vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] 2xl:h-[75vh]',
+  MIN: 'min-h-[400px]', // Fallback minimum height
+  MAX: 'max-h-[80vh]'   // Maximum height constraint
 } as const;
 
 const SCROLL_AREA_CONFIG = {
-  MAX_HEIGHT: 'max-h-[calc(100%-180px)]', // Account for header, footer, and other elements
-  MIN_HEIGHT: 'min-h-[200px]'
+  // Optimized for smooth scrolling with auto-scroll to bottom for new responses
+  FLEXIBLE_HEIGHT: 'flex-1 overflow-y-auto', 
+  MIN_HEIGHT: 'min-h-[300px]' // Increased for better message visibility
 } as const;
 
 const TEXTAREA_CONFIG = {
@@ -101,6 +101,19 @@ export function SpyConsolidatedChat() {
   const hasStockData = spyState.hasStockData;
   const hasAnyData = hasStockData || spyState.hasAiTaData || spyState.hasAiKeyTakeaways || spyState.hasAiOptionsAnalysis;
 
+  // Ref for scroll area to enable auto-scroll functionality
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom for new messages
+  const scrollToBottom = React.useCallback(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, []);
+
   // Handle chat response success with race condition protection
   const handleChatSuccess = React.useCallback((data: any) => {
     if (!currentRequestId || !data) return;
@@ -147,6 +160,9 @@ export function SpyConsolidatedChat() {
       webSearchUsed,
     }]);
     
+    // Auto-scroll to bottom for new AI responses
+    setTimeout(scrollToBottom, 100);
+    
     toast({ 
       title: 'Response Generated', 
       description: webSearchUsed ? 'Response with web search' : 'Response with app data',
@@ -155,7 +171,7 @@ export function SpyConsolidatedChat() {
     // Clear current request context and ID when response is processed
     setCurrentRequestId(null);
     setCurrentRequestContext(null);
-  }, [currentRequestId, currentRequestContext, spyDispatch, toast]);
+  }, [currentRequestId, currentRequestContext, spyDispatch, toast, scrollToBottom]);
 
   // Handle chat response error with race condition protection
   const handleChatError = React.useCallback((error: string, message?: string) => {
@@ -257,6 +273,10 @@ export function SpyConsolidatedChat() {
       timestamp: new Date(),
     };
     setChatHistory(prev => [...prev, userMessage]);
+    
+    // Auto-scroll to bottom for new user messages
+    setTimeout(scrollToBottom, 100);
+    
     console.log('[SPY:Chat:Submit] User message added to history');
 
     // Prepare chat input
@@ -392,7 +412,7 @@ export function SpyConsolidatedChat() {
   };
 
   return (
-    <Card className={`${CHAT_HEIGHTS.MIN} ${CHAT_HEIGHTS.MAX} ${CHAT_HEIGHTS.MOBILE} ${CHAT_HEIGHTS.TABLET} ${CHAT_HEIGHTS.DESKTOP} flex flex-col`}>
+    <Card className={`${CHAT_HEIGHTS.RESPONSIVE} ${CHAT_HEIGHTS.MAX} flex flex-col border rounded-lg`}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -522,8 +542,11 @@ export function SpyConsolidatedChat() {
         </div>
 
         {/* Chat Messages */}
-        <ScrollArea className={`flex-1 space-y-4 ${SCROLL_AREA_CONFIG.MAX_HEIGHT} ${SCROLL_AREA_CONFIG.MIN_HEIGHT} overflow-y-auto overflow-x-hidden`}>
-          <div className="space-y-4 pr-4 overflow-hidden">
+        <ScrollArea 
+          ref={scrollAreaRef}
+          className={`${SCROLL_AREA_CONFIG.FLEXIBLE_HEIGHT} ${SCROLL_AREA_CONFIG.MIN_HEIGHT} scroll-smooth`}
+        >
+          <div className="space-y-4 p-4 overflow-hidden">
             {chatHistory.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-8">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />

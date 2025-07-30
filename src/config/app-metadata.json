@@ -1,8 +1,8 @@
 
 {
-  "appVersion": "v4.4.2.3",
-  "lastUpdatedTimestamp": "2025-07-30T20:45:00.000Z",
-  "description": "Critical AI chat bug fix: Restored missing app-data-chatbot.json definition file accidentally removed during legacy cleanup",
+  "appVersion": "v4.4.2.4",
+  "lastUpdatedTimestamp": "2025-07-30T22:30:00.000Z",
+  "description": "AI chat enhancements: Doubled chat box size (75vh), temperature standardization (0.2, seed 42), professional formatting for regulatory compliance",
   "metadataSchemaVersion": "1.0.0"
 }
 

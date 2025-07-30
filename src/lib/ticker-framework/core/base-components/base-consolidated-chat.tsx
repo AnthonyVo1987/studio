@@ -259,7 +259,7 @@ export function BaseConsolidatedChat<T extends TickerConfig>({
             </div>
 
             {/* Chat Messages */}
-            <div className="min-h-[400px] max-h-[600px] overflow-y-auto border rounded-lg p-4 space-y-4">
+            <div className="h-[50vh] sm:h-[55vh] md:h-[60vh] lg:h-[65vh] xl:h-[70vh] 2xl:h-[75vh] max-h-[80vh] overflow-y-auto border rounded-lg p-4 space-y-4 scroll-smooth">
               {messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   <Brain className="h-12 w-12 mx-auto mb-4" />

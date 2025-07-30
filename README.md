@@ -2,7 +2,7 @@
 
 **A Next.js Financial Analysis Application with AI-Powered Insights**
 
-[![Version](https://img.shields.io/badge/version-v4.4.2.2-blue.svg)](src/config/app-metadata.json)
+[![Version](https://img.shields.io/badge/version-v4.4.2.4-blue.svg)](src/config/app-metadata.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
@@ -27,9 +27,9 @@ StockSage is a sophisticated financial analysis application built with Next.js t
 - **Advanced Options Analysis**: Complete options chain data with AI-powered call/put wall analysis
 - **AI-Powered Insights**: Intelligent key takeaways covering price action, trends, volatility, momentum, and chart patterns
 - **Technical Analysis**: Standard and AI-enhanced technical indicators including pivot points and trend analysis
-- **Specialized Chat Systems**: Advanced AI chat interface with trading-focused prompts and web search capabilities
+- **Enhanced AI Chat Systems**: Professional AI chat interface with optimized sizing (75vh viewport), standardized temperature controls (0.2 with seed 42), and regulatory-compliant formatting
 
-### Application Architecture (v4.4.2.2 - Current Implementation)
+### Application Architecture (v4.4.2.4 - Current Implementation)
 - **Dedicated Ticker Tabs**: Clean two-tab architecture with NVDA and SPY dedicated analysis pages
 - **Complete Context Isolation**: Each ticker maintains independent state management with zero cross-dependencies
 - **Proven Architecture Patterns**: Battle-tested React Context + useReducer patterns with deterministic handlers
@@ -42,6 +42,8 @@ StockSage is a sophisticated financial analysis application built with Next.js t
 - **Specialized Trading Prompts**: Purpose-built prompts for stock traders, options traders, and holistic market analysis
 - **Conditional Web Search**: Enhanced AI responses with real-time web search when appropriate
 - **Context-Aware Analysis**: AI systems trained on financial data patterns and trading terminology
+- **Professional AI Responses**: Standardized temperature settings (0.2 with seed 42) ensure consistent, focused responses with regulatory-compliant formatting
+- **Optimized Chat Experience**: Enhanced AI chat box sizing (75vh viewport) eliminates scrolling limitations for improved user experience
 
 ## Technology Stack
 
@@ -235,7 +237,7 @@ src/actions/
 
 ## File Organization
 
-### Current Architecture Structure (v4.4.2.2)
+### Current Architecture Structure (v4.4.2.4)
 ```
 src/
 ├── components/                        # UI Components
@@ -372,7 +374,7 @@ GEMINI_API_KEY=your_google_ai_api_key   # Google AI API access
 ## Version Management
 
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.2 (bug fixes and configuration improvements)
+- **Current Version**: v4.4.2.4 (AI chat enhancements: optimized sizing, temperature standardization, professional formatting)
 - **Versioning Scheme**: `v4.w.x.y.z` format for clear version tracking
 - **Update Policy**: Version and timestamp updates required for all code changes
 
@@ -418,4 +420,4 @@ For technical issues or questions about the codebase architecture, refer to the 
 
 ---
 
-**StockSage v4.4.2.2** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture and future-ready blueprint scaffolding.
+**StockSage v4.4.2.4** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced AI chat experience, and future-ready blueprint scaffolding.

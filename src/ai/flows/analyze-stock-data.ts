@@ -62,12 +62,34 @@ async function getAnalyzedStockDataPrompt() {
   const promptConfig: {
     safetySettings: any[];
     thinkingConfig?: { thinkingBudget?: number };
+    generationConfig?: { temperature?: number; seed?: number; maxOutputTokens?: number; topP?: number; topK?: number };
   } = {
     safetySettings: safetySettings,
   };
 
   if (analyzeStockDataPromptDefinition.thinkingBudget !== undefined) {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeStockDataPromptDefinition.thinkingBudget };
+  }
+
+  // Add generation config for temperature, seed, and other parameters
+  const generationConfig: any = {};
+  if (analyzeStockDataPromptDefinition.temperature !== undefined) {
+    generationConfig.temperature = analyzeStockDataPromptDefinition.temperature;
+  }
+  if (analyzeStockDataPromptDefinition.seed !== undefined) {
+    generationConfig.seed = analyzeStockDataPromptDefinition.seed;
+  }
+  if (analyzeStockDataPromptDefinition.maxOutputTokens !== undefined) {
+    generationConfig.maxOutputTokens = analyzeStockDataPromptDefinition.maxOutputTokens;
+  }
+  if (analyzeStockDataPromptDefinition.topP !== undefined) {
+    generationConfig.topP = analyzeStockDataPromptDefinition.topP;
+  }
+  if (analyzeStockDataPromptDefinition.topK !== undefined) {
+    generationConfig.topK = analyzeStockDataPromptDefinition.topK;
+  }
+  if (Object.keys(generationConfig).length > 0) {
+    promptConfig.generationConfig = generationConfig;
   }
   
   const prompt = ai.definePrompt({

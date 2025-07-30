@@ -20,6 +20,11 @@ export const LlmPromptDefinitionSchema = z.object({
   promptName: z.string(),
   description: z.string(),
   modelId: z.string().optional(),
+  temperature: z.number().optional().describe("Model temperature for consistency. 0.2 recommended for financial analysis."),
+  seed: z.number().optional().describe("Random seed for reproducibility. 42 recommended for consistency."),
+  maxOutputTokens: z.number().optional().describe("Maximum output tokens for the model response."),
+  topP: z.number().optional().describe("Top-p sampling parameter."),
+  topK: z.number().optional().describe("Top-k sampling parameter."),
   safetySettings: z.array(z.object({
     category: z.string(),
     threshold: z.string(),

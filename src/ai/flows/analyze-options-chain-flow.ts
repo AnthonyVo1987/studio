@@ -51,12 +51,34 @@ async function getAnalyzedOptionsChainPrompt() {
   const promptConfig: {
     safetySettings: any[];
     thinkingConfig?: { thinkingBudget?: number };
+    generationConfig?: { temperature?: number; seed?: number; maxOutputTokens?: number; topP?: number; topK?: number };
   } = {
     safetySettings: safetySettings,
   };
 
   if (analyzeOptionsChainPromptDefinition!.thinkingBudget !== undefined) {
     promptConfig.thinkingConfig = { thinkingBudget: analyzeOptionsChainPromptDefinition!.thinkingBudget };
+  }
+
+  // Add generation config for temperature, seed, and other parameters
+  const generationConfig: any = {};
+  if (analyzeOptionsChainPromptDefinition!.temperature !== undefined) {
+    generationConfig.temperature = analyzeOptionsChainPromptDefinition!.temperature;
+  }
+  if (analyzeOptionsChainPromptDefinition!.seed !== undefined) {
+    generationConfig.seed = analyzeOptionsChainPromptDefinition!.seed;
+  }
+  if (analyzeOptionsChainPromptDefinition!.maxOutputTokens !== undefined) {
+    generationConfig.maxOutputTokens = analyzeOptionsChainPromptDefinition!.maxOutputTokens;
+  }
+  if (analyzeOptionsChainPromptDefinition!.topP !== undefined) {
+    generationConfig.topP = analyzeOptionsChainPromptDefinition!.topP;
+  }
+  if (analyzeOptionsChainPromptDefinition!.topK !== undefined) {
+    generationConfig.topK = analyzeOptionsChainPromptDefinition!.topK;
+  }
+  if (Object.keys(generationConfig).length > 0) {
+    promptConfig.generationConfig = generationConfig;
   }
 
   
