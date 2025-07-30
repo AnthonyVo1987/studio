@@ -13,6 +13,7 @@ import {
   NvdaConsolidatedChatInputSchema,
 } from '@/ai/schemas/nvda-consolidated-chat-schemas';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition, loadExamplePrompts } from '@/ai/definition-loader';
+import { withServerLogging } from '@/lib/server-action-logging-wrapper';
 
 // Initialize Google GenAI SDK
 const apiKey = process.env.GEMINI_API_KEY;
@@ -309,6 +310,9 @@ export async function nvdaConsolidatedChatAction(
     };
   }
 }
+
+// Export the wrapped version with server logging
+export const nvdaConsolidatedChatActionWithLogging = withServerLogging(nvdaConsolidatedChatAction);
 
 // Default export for dynamic imports
 export default nvdaConsolidatedChatAction;

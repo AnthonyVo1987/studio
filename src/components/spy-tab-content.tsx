@@ -669,6 +669,8 @@ export function SpyTabContent() {
         canGetStockData={() => !isLoading && !!spyState.selectedExpirationDate}
         canGenerateAiKeyTakeaways={() => !isLoading && spyState.hasStockData && spyState.hasAiTaData && !spyState.isAiKeyTakeawaysLoading}
         canGenerateAiOptionsAnalysis={() => !isLoading && spyState.hasOptionsChainData && !spyState.isAiOptionsAnalysisLoading}
+        getCurrentExpiration={() => spyState.selectedExpirationDate}
+        getAvailableExpirations={() => spyState.availableExpirationDates}
         onComplete={() => {
           toast({
             title: `${SPY_TICKER} Macro Complete`,

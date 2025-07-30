@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNvdaAnalysis, useNvdaDispatch, NVDA_TICKER } from '@/contexts/nvda-analysis-context';
-import { nvdaConsolidatedChatAction } from '@/actions/nvda-consolidated-chat-action';
+import { nvdaConsolidatedChatAction, nvdaConsolidatedChatActionWithLogging } from '@/actions/nvda-consolidated-chat-action';
+import { useServerLogs } from '@/lib/client-log-handler';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { 
@@ -78,6 +79,7 @@ export function NvdaConsolidatedChat() {
   const nvdaState = useNvdaAnalysis();
   const nvdaDispatch = useNvdaDispatch();
   const { toast } = useToast();
+  const { processLogs } = useServerLogs();
 
   // Local state
   const [userInput, setUserInput] = useState('');
@@ -92,7 +94,7 @@ export function NvdaConsolidatedChat() {
 
   // Action state for unified chat
   const [chatState, submitChat, isChatPending] = useActionState<NvdaConsolidatedChatState, NvdaConsolidatedChatInput>(
-    nvdaConsolidatedChatAction, 
+    nvdaConsolidatedChatActionWithLogging, 
     { status: 'idle' }
   );
 
@@ -199,13 +201,16 @@ export function NvdaConsolidatedChat() {
   React.useEffect(() => {
     if (chatState.status === 'idle' || isChatPending || !currentRequestId) return;
 
+    // Process server logs from the response
+    processLogs(chatState);
+
     if (chatState.status === 'success' && chatState.data) {
       handleChatSuccess(chatState.data);
     } else if (chatState.status === 'error') {
       handleChatError(chatState.error || '', chatState.message || undefined);
     }
   }, [chatState.status, chatState.data, chatState.error, chatState.message, 
-      isChatPending, currentRequestId, handleChatSuccess, handleChatError]);
+      isChatPending, currentRequestId, handleChatSuccess, handleChatError, processLogs]);
 
   // Request timeout cleanup to prevent stuck states  
   React.useEffect(() => {

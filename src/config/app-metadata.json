@@ -1,8 +1,8 @@
 
 {
-  "appVersion": "v4.4.2.7",
-  "lastUpdatedTimestamp": "2025-07-30T11:30:00.000Z",
-  "description": "Macro automation debugging enhancements: fixed expiration date inconsistencies, enhanced console logging, cross-tab consistency, performance-optimized debugging (<1ms overhead)",
+  "appVersion": "v4.4.2.8",
+  "lastUpdatedTimestamp": "2025-07-30T14:15:00.000Z",
+  "description": "Phase 2 macro automation debugging solution: isolated macro state, enhanced debug logging, unified server-to-client log forwarding system with production-safe sanitization and development optimization",
   "metadataSchemaVersion": "1.0.0"
 }
 

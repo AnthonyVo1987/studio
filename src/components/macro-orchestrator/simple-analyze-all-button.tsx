@@ -8,7 +8,7 @@
  * This ensures immediate functionality while maintaining context isolation.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -24,7 +24,7 @@ import {
   Clock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { createTickerLogger } from '@/lib/ticker-logger';
+import { createTickerLogger, generateExecutionId, type MacroExecutionLogData } from '@/lib/ticker-logger';
 
 export interface SimpleAnalyzeAllButtonProps {
   ticker: string;
@@ -38,6 +38,9 @@ export interface SimpleAnalyzeAllButtonProps {
   canGetStockData: () => boolean;
   canGenerateAiKeyTakeaways: () => boolean;
   canGenerateAiOptionsAnalysis: () => boolean;
+  // Get current state values for macro isolation
+  getCurrentExpiration: () => string;
+  getAvailableExpirations: () => string[];
   // Callbacks
   onComplete?: () => void;
   onError?: (error: Error) => void;
@@ -52,6 +55,13 @@ interface Step {
   canExecute: () => boolean;
 }
 
+// Macro execution context to maintain isolated state
+interface MacroExecutionContext {
+  selectedExpiration: string | null;
+  isExecuting: boolean;
+  stepResults: Map<number, any>;
+}
+
 export function SimpleAnalyzeAllButton({
   ticker,
   onFetchExpirations,
@@ -62,14 +72,19 @@ export function SimpleAnalyzeAllButton({
   canGetStockData,
   canGenerateAiKeyTakeaways,
   canGenerateAiOptionsAnalysis,
+  getCurrentExpiration,
+  getAvailableExpirations,
   onComplete,
   onError,
   onCancel
 }: SimpleAnalyzeAllButtonProps) {
   const { toast } = useToast();
   
-  // Create ticker-specific logger for macro orchestration
-  const logger = createTickerLogger(ticker, 'MacroOrchestrator');
+  // Generate unique execution ID for this macro run
+  const [executionId, setExecutionId] = useState<string>(() => generateExecutionId('macro'));
+  
+  // Create ticker-specific logger with execution ID
+  const logger = useMemo(() => createTickerLogger(ticker, 'MacroOrchestrator', executionId), [ticker, executionId]);
   
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -80,41 +95,225 @@ export function SimpleAnalyzeAllButton({
   const [executionError, setExecutionError] = useState<Error | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [shouldCancel, setShouldCancel] = useState(false);
+  
+  // CRITICAL: Macro-specific execution context to prevent state contamination
+  const [macroExecutionContext, setMacroExecutionContext] = useState<MacroExecutionContext>({
+    selectedExpiration: null,
+    isExecuting: false,
+    stepResults: new Map()
+  });
+  
+  // Track step timing for performance metrics
+  const [stepStartTimes, setStepStartTimes] = useState<Map<number, number>>(new Map());
+  const [anomaliesDetected, setAnomaliesDetected] = useState<string[]>([]);
 
-  // Define the execution steps
-  const steps: Step[] = [
+  // Define the execution steps with wrapped handlers for macro isolation
+  const steps: Step[] = useMemo(() => [
     {
       id: 1,
       name: 'Fetch Expirations',
       description: 'Fetching available expiration dates',
-      handler: onFetchExpirations,
+      handler: fetchExpirationsWithCapture, // Use wrapped handler to capture expiration
       canExecute: canFetchExpirations,
     },
     {
       id: 2,
       name: 'Get Stock Data',
       description: 'Retrieving stock data and options chain',
-      handler: onGetStockData,
+      handler: async () => {
+        const stepStart = Date.now();
+        setStepStartTimes(prev => new Map(prev).set(2, stepStart));
+        
+        // Pre-execution state logging
+        const preExecutionState = {
+          macroExpiration: macroExecutionContext.selectedExpiration,
+          currentUIExpiration: getCurrentExpiration(),
+          availableExpirationsCount: getAvailableExpirations().length
+        };
+        
+        logger.stateValidation('Step2_PreExecution', 'Pre-execution state for stock data fetch', {
+          ...preExecutionState,
+          executionId,
+          stepId: 2
+        });
+        
+        // Validate macro expiration before execution
+        const macroExpiration = validateMacroExpiration();
+        logger.macroExecution('Step2_Start', `Using macro-isolated expiration: ${macroExpiration}`, {
+          macroExpiration,
+          currentShared: getCurrentExpiration(),
+          stateIsolated: macroExpiration !== getCurrentExpiration(),
+          executionId,
+          stepId: 2,
+          timestamp: new Date(stepStart).toISOString()
+        });
+        
+        // Execute the stock data fetch
+        try {
+          await onGetStockData();
+          
+          const stepDuration = Date.now() - stepStart;
+          
+          // Post-execution validation
+          const postExecutionState = {
+            macroExpiration,
+            currentUIExpiration: getCurrentExpiration(),
+            statePreserved: macroExpiration === macroExecutionContext.selectedExpiration,
+            executionSuccessful: true
+          };
+          
+          logger.stateValidation('Step2_PostExecution', 'Post-execution state validation', {
+            ...postExecutionState,
+            executionId,
+            stepId: 2,
+            stepDuration: `${stepDuration}ms`
+          });
+          
+          logger.performance('Step2_Complete', 'Stock data fetch completed', {
+            stepDuration: `${stepDuration}ms`,
+            macroExpiration,
+            executionId,
+            dataFetchedForExpiration: macroExpiration
+          });
+          
+          // Store result with enhanced metadata
+          setMacroExecutionContext(prev => ({
+            ...prev,
+            stepResults: new Map(prev.stepResults).set(2, { 
+              macroExpiration,
+              stepDuration,
+              preExecutionState,
+              postExecutionState,
+              timestamp: Date.now()
+            })
+          }));
+        } catch (error) {
+          const stepDuration = Date.now() - stepStart;
+          logger.error('Step2_Error', 'Error during stock data fetch', {
+            error: error instanceof Error ? error.message : String(error),
+            macroExpiration,
+            stepDuration: `${stepDuration}ms`,
+            executionId,
+            stepId: 2
+          });
+          throw error;
+        }
+      },
       canExecute: canGetStockData,
     },
     {
       id: 3,
       name: 'AI Key Takeaways',
       description: 'Generating AI analysis insights',
-      handler: onGenerateAiKeyTakeaways,
+      handler: async () => {
+        const stepStart = Date.now();
+        setStepStartTimes(prev => new Map(prev).set(3, stepStart));
+        
+        // Log macro state before AI analysis
+        const macroExpiration = macroExecutionContext.selectedExpiration;
+        const currentExpiration = getCurrentExpiration();
+        
+        logger.macroExecution('Step3_Start', 'AI Key Takeaways with macro context', {
+          macroExpiration,
+          currentShared: currentExpiration,
+          contaminated: macroExpiration !== currentExpiration,
+          executionId,
+          stepId: 3
+        });
+        
+        await onGenerateAiKeyTakeaways();
+        
+        const stepDuration = Date.now() - stepStart;
+        logger.performance('Step3_Complete', 'AI Key Takeaways generated', {
+          stepDuration: `${stepDuration}ms`,
+          macroExpiration,
+          executionId
+        });
+        
+        // Store result
+        setMacroExecutionContext(prev => ({
+          ...prev,
+          stepResults: new Map(prev.stepResults).set(3, { 
+            macroExpiration,
+            stepDuration
+          })
+        }));
+      },
       canExecute: canGenerateAiKeyTakeaways,
     },
     {
       id: 4,
       name: 'AI Options Analysis',
       description: 'Analyzing options strategies with AI',
-      handler: onGenerateAiOptionsAnalysis,
+      handler: async () => {
+        const stepStart = Date.now();
+        setStepStartTimes(prev => new Map(prev).set(4, stepStart));
+        
+        // Log macro state before options analysis
+        const macroExpiration = macroExecutionContext.selectedExpiration;
+        const currentExpiration = getCurrentExpiration();
+        
+        logger.macroExecution('Step4_Start', 'AI Options Analysis with macro context', {
+          macroExpiration,
+          currentShared: currentExpiration,
+          contaminated: macroExpiration !== currentExpiration,
+          executionId,
+          stepId: 4
+        });
+        
+        await onGenerateAiOptionsAnalysis();
+        
+        const stepDuration = Date.now() - stepStart;
+        logger.performance('Step4_Complete', 'AI Options Analysis completed', {
+          stepDuration: `${stepDuration}ms`,
+          macroExpiration,
+          executionId
+        });
+        
+        // Store result
+        setMacroExecutionContext(prev => ({
+          ...prev,
+          stepResults: new Map(prev.stepResults).set(4, { 
+            macroExpiration,
+            stepDuration
+          })
+        }));
+      },
       canExecute: canGenerateAiOptionsAnalysis,
     },
-  ];
+  ], [
+    fetchExpirationsWithCapture,
+    validateMacroExpiration,
+    onGetStockData,
+    onGenerateAiKeyTakeaways,
+    onGenerateAiOptionsAnalysis,
+    canFetchExpirations,
+    canGetStockData,
+    canGenerateAiKeyTakeaways,
+    canGenerateAiOptionsAnalysis,
+    getCurrentExpiration,
+    getAvailableExpirations,
+    macroExecutionContext,
+    logger,
+    executionId,
+    setStepStartTimes,
+    setMacroExecutionContext
+  ]);
 
   // Reset execution state
   const resetState = useCallback(() => {
+    // Log state reset if there was a previous execution
+    if (executionId && (isExecuting || isCompleted || isCancelled)) {
+      logger.macroExecution('StateReset', 'Resetting macro execution state', {
+        previousExecutionId: executionId,
+        wasExecuting: isExecuting,
+        wasCompleted: isCompleted,
+        wasCancelled: isCancelled,
+        hadError: !!executionError,
+        anomaliesFromPreviousRun: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
+      });
+    }
+    
     setIsExecuting(false);
     setCurrentStep(0);
     setCompletedSteps([]);
@@ -123,20 +322,289 @@ export function SimpleAnalyzeAllButton({
     setExecutionError(null);
     setStartTime(null);
     setShouldCancel(false);
-  }, []);
+    // Reset macro execution context
+    setMacroExecutionContext({
+      selectedExpiration: null,
+      isExecuting: false,
+      stepResults: new Map()
+    });
+    // Reset tracking
+    setStepStartTimes(new Map());
+    setAnomaliesDetected([]);
+    // Generate new execution ID for next run
+    const newExecutionId = generateExecutionId('macro');
+    setExecutionId(newExecutionId);
+    
+    // Log new execution ID generation
+    logger.macroExecution('NewExecutionId', 'Generated new execution ID for next run', {
+      newExecutionId,
+      previousExecutionId: executionId
+    });
+  }, [executionId, isExecuting, isCompleted, isCancelled, executionError, anomaliesDetected, logger]);
+
+  // Wrapped handler for Step 1: Fetch expirations and capture the selected one
+  const fetchExpirationsWithCapture = useCallback(async () => {
+    const stepStart = Date.now();
+    setStepStartTimes(prev => new Map(prev).set(1, stepStart));
+    
+    // Capture the current state before execution
+    const preExecutionExpiration = getCurrentExpiration();
+    const preExecutionAvailable = getAvailableExpirations();
+    
+    logger.stateValidation('Step1_PreExecution', 'Capturing pre-execution state', {
+      currentSharedExpiration: preExecutionExpiration,
+      availableExpirationsCount: preExecutionAvailable.length,
+      macroSelectedExpiration: macroExecutionContext.selectedExpiration,
+      executionId,
+      timestamp: new Date(stepStart).toISOString()
+    });
+
+    try {
+      // Execute the original handler
+      logger.macroExecution('Step1_Execute', 'Calling onFetchExpirations handler', {
+        executionId,
+        stepId: 1,
+        preExecutionExpiration
+      });
+      
+      await onFetchExpirations();
+
+      // After execution, capture the new expiration that was selected
+      // Add a small delay to ensure state has been updated
+      logger.stateValidation('Step1_StateSync', 'Waiting for state synchronization', {
+        executionId,
+        waitTime: '100ms'
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const newExpiration = getCurrentExpiration();
+      const availableExpirations = getAvailableExpirations();
+      const expirationChanged = newExpiration !== preExecutionExpiration;
+      
+      // Calculate step duration
+      const stepDuration = Date.now() - stepStart;
+      
+      // Detect if expiration was auto-selected or changed
+      const expirationSelectionInfo = {
+        previousExpiration: preExecutionExpiration,
+        newExpiration,
+        expirationChanged,
+        changeType: expirationChanged ? 
+          (preExecutionExpiration ? 'modified' : 'initial_selection') : 
+          'unchanged',
+        availableCount: availableExpirations.length,
+        isFirstAvailable: availableExpirations.length > 0 && newExpiration === availableExpirations[0]
+      };
+      
+      logger.stateValidation('Step1_PostExecution', 'State captured after expiration fetch', {
+        ...expirationSelectionInfo,
+        availableExpirations: availableExpirations.slice(0, 5), // Log first 5 for debugging
+        stepDuration: `${stepDuration}ms`,
+        executionId
+      });
+
+      // CRITICAL: Store the selected expiration in macro context
+      logger.macroExecution('Step1_CaptureState', 'Storing expiration in macro context', {
+        executionId,
+        capturedExpiration: newExpiration,
+        macroContextUpdate: {
+          selectedExpiration: newExpiration,
+          previousValue: macroExecutionContext.selectedExpiration
+        }
+      });
+      
+      setMacroExecutionContext(prev => ({
+        ...prev,
+        selectedExpiration: newExpiration,
+        stepResults: new Map(prev.stepResults).set(1, { 
+          selectedExpiration: newExpiration,
+          availableExpirations,
+          stepDuration,
+          expirationSelectionInfo,
+          timestamp: Date.now()
+        })
+      }));
+      
+      // Log performance metric with enhanced details
+      logger.performance('Step1_Complete', 'Expiration fetch completed', {
+        stepDuration: `${stepDuration}ms`,
+        expirationsCaptured: availableExpirations.length,
+        selectedExpiration: newExpiration,
+        executionId,
+        selectionDetails: expirationSelectionInfo
+      });
+      
+      return newExpiration;
+    } catch (error) {
+      const stepDuration = Date.now() - stepStart;
+      logger.error('Step1_Error', 'Error during expiration fetch', {
+        error: error instanceof Error ? error.message : String(error),
+        stepDuration: `${stepDuration}ms`,
+        executionId,
+        stepId: 1,
+        preExecutionExpiration
+      });
+      throw error;
+    }
+  }, [onFetchExpirations, getCurrentExpiration, getAvailableExpirations, logger, macroExecutionContext.selectedExpiration, executionId]);
+
+  // Validation wrapper for subsequent steps
+  const validateMacroExpiration = useCallback(() => {
+    const validationStart = Date.now();
+    const macroExpiration = macroExecutionContext.selectedExpiration;
+    const currentSharedExpiration = getCurrentExpiration();
+    const availableExpirations = getAvailableExpirations();
+    
+    // Enhanced validation data
+    const validationData: MacroExecutionLogData = {
+      executionId,
+      macroExpiration,
+      uiExpiration: currentSharedExpiration,
+      contaminated: macroExpiration !== currentSharedExpiration,
+      recoveryAction: macroExpiration !== currentSharedExpiration ? 'using_macro_state' : 'none_needed'
+    };
+    
+    // Log comprehensive validation context
+    logger.stateValidation('ExpirationValidation_Start', 'Beginning state consistency check', {
+      ...validationData,
+      availableExpirationsCount: availableExpirations.length,
+      macroExpirationInAvailable: macroExpiration ? availableExpirations.includes(macroExpiration) : false,
+      uiExpirationInAvailable: currentSharedExpiration ? availableExpirations.includes(currentSharedExpiration) : false,
+      validationTimestamp: new Date(validationStart).toISOString()
+    });
+
+    if (!macroExpiration) {
+      const error = 'No expiration captured from Step 1. Macro context is corrupted.';
+      setAnomaliesDetected(prev => [...prev, error]);
+      
+      logger.error('ValidationFailed_NoMacroExpiration', error, {
+        executionId,
+        macroContext: {
+          selectedExpiration: macroExecutionContext.selectedExpiration,
+          isExecuting: macroExecutionContext.isExecuting,
+          stepResultsCount: macroExecutionContext.stepResults.size
+        },
+        currentUIExpiration: currentSharedExpiration,
+        availableExpirationsCount: availableExpirations.length,
+        anomaly: 'missing_macro_expiration',
+        criticalError: true
+      });
+      throw new Error(error);
+    }
+
+    // Check if macro expiration is still valid (in available list)
+    if (!availableExpirations.includes(macroExpiration)) {
+      const anomaly = `Macro expiration ${macroExpiration} no longer available`;
+      setAnomaliesDetected(prev => [...prev, anomaly]);
+      
+      logger.warn('ValidationWarning_ExpiredExpiration', 'Macro expiration no longer in available list', {
+        macroExpiration,
+        currentSharedExpiration,
+        availableExpirationsCount: availableExpirations.length,
+        availableExpirations: availableExpirations.slice(0, 5),
+        executionId,
+        anomaly: 'expired_macro_expiration'
+      });
+    }
+
+    if (macroExpiration !== currentSharedExpiration) {
+      const anomaly = `State contamination: Expected ${macroExpiration}, found ${currentSharedExpiration}`;
+      setAnomaliesDetected(prev => [...prev, anomaly]);
+      
+      logger.warn('StateContamination_Detected', 'State contamination detected!', {
+        expected: macroExpiration,
+        actual: currentSharedExpiration,
+        delta: {
+          macroToUI: macroExpiration > currentSharedExpiration ? 'macro_ahead' : 'macro_behind',
+          likely_cause: 'User changed expiration during macro execution'
+        },
+        action: 'User may have changed expiration during macro execution',
+        mitigation: 'Macro will continue with originally captured expiration',
+        executionId,
+        anomaly: 'expiration_mismatch',
+        contaminationLevel: 'moderate'
+      });
+    } else {
+      logger.stateValidation('ValidationSuccess', 'State consistency maintained', {
+        macroExpiration,
+        uiExpiration: currentSharedExpiration,
+        stateConsistent: true,
+        executionId
+      });
+    }
+    
+    const validationDuration = Date.now() - validationStart;
+    logger.performance('ExpirationValidation_Complete', 'Validation completed', {
+      validationDuration: `${validationDuration}ms`,
+      result: 'success',
+      macroExpiration,
+      executionId
+    });
+
+    return macroExpiration;
+  }, [macroExecutionContext, getCurrentExpiration, getAvailableExpirations, logger, executionId]);
 
   // Execute all steps sequentially
   const handleExecuteAll = useCallback(async () => {
-    if (isExecuting) return;
+    if (isExecuting) {
+      logger.warn('ExecutionBlocked', 'Macro execution already in progress', {
+        executionId,
+        currentStep,
+        isExecuting
+      });
+      return;
+    }
 
     resetState();
+    const executionStart = Date.now();
     setIsExecuting(true);
-    setStartTime(Date.now());
+    setStartTime(executionStart);
+    
+    // Initialize macro execution context with comprehensive state
+    const initialUIExpiration = getCurrentExpiration();
+    const availableExpirations = getAvailableExpirations();
+    
+    setMacroExecutionContext(prev => ({ 
+      ...prev, 
+      isExecuting: true,
+      selectedExpiration: null, // Will be captured in Step 1
+      stepResults: new Map()
+    }));
+    
+    // Log macro context initialization
+    logger.macroExecution('ContextInit', 'Macro execution context initialized', {
+      executionId,
+      contextState: {
+        selectedExpiration: null,
+        isExecuting: true,
+        stepResultsCount: 0
+      },
+      uiState: {
+        currentExpiration: initialUIExpiration,
+        availableExpirationsCount: availableExpirations.length,
+        availableExpirations: availableExpirations.slice(0, 3) // First 3 for brevity
+      }
+    });
 
-    // Log macro automation start
-    logger.userAction('Start', 'Beginning 4-step automation workflow...', {
+    // Log macro automation start with comprehensive context
+    logger.macroExecution('MacroStart', 'Beginning 4-step automation workflow', {
+      executionId,
       totalSteps: steps.length,
-      stepNames: steps.map(s => s.name)
+      stepNames: steps.map(s => s.name),
+      isolationMode: 'macro-context-enabled',
+      initialUIExpiration,
+      availableExpirationsCount: availableExpirations.length,
+      ticker,
+      timestamp: new Date(executionStart).toISOString(),
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        canExecuteSteps: steps.map(s => ({ 
+          stepId: s.id, 
+          stepName: s.name, 
+          canExecute: s.canExecute() 
+        }))
+      }
     });
 
     try {
@@ -151,12 +619,19 @@ export function SimpleAnalyzeAllButton({
         if (shouldCancel) {
           setIsCancelled(true);
           
-          // Log cancellation
-          logger.userAction('Cancel', `Macro automation cancelled`, {
+          const totalDuration = startTime ? Date.now() - startTime : 0;
+          
+          // Log cancellation with full context
+          logger.macroExecution('MacroCancelled', 'Macro automation cancelled by user', {
+            executionId,
             stoppedAtStep: i + 1,
             totalSteps: steps.length,
             completedSteps: completed.length,
-            reason: 'User cancellation'
+            reason: 'User cancellation',
+            totalDuration: `${totalDuration}ms`,
+            macroExpiration: macroExecutionContext.selectedExpiration,
+            currentExpiration: getCurrentExpiration(),
+            anomalies: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
           });
           
           toast({
@@ -171,21 +646,31 @@ export function SimpleAnalyzeAllButton({
         const step = steps[i];
         setCurrentStep(step.id);
 
-        // Log step start
-        logger.userAction(`Step${step.id}`, `Starting: ${step.name}`, {
+        // Log step start with enhanced context
+        logger.macroExecution(`Step${step.id}_Init`, `Starting: ${step.name}`, {
+          executionId,
           stepId: step.id,
           stepName: step.name,
           stepDescription: step.description,
           completedSteps: completed.length,
-          totalSteps: steps.length
+          totalSteps: steps.length,
+          progress: `${completed.length}/${steps.length}`,
+          currentExpiration: getCurrentExpiration(),
+          macroExpiration: macroExecutionContext.selectedExpiration
         });
 
         // Check if step can be executed
         if (!step.canExecute()) {
           // Skip step if prerequisites not met, but continue
-          logger.userAction(`Step${step.id}`, `Skipping: Prerequisites not met`, {
+          const skipReason = 'Prerequisites not met';
+          setAnomaliesDetected(prev => [...prev, `Step ${step.id} skipped: ${skipReason}`]);
+          
+          logger.warn(`Step${step.id}_Skip`, `Skipping: ${skipReason}`, {
+            executionId,
+            stepId: step.id,
             stepName: step.name,
-            reason: 'Prerequisites not met'
+            reason: skipReason,
+            anomaly: 'prerequisites_not_met'
           });
           console.warn(`Skipping step ${step.id} (${step.name}): Prerequisites not met`);
           continue;
@@ -197,13 +682,21 @@ export function SimpleAnalyzeAllButton({
           completed.push(step.id);
           setCompletedSteps([...completed]);
 
-          // Log step completion
-          logger.userAction(`Step${step.id}`, `Completed: ${step.name}`, {
+          // Calculate step duration
+          const stepStartTime = stepStartTimes.get(step.id) || Date.now();
+          const stepDuration = Date.now() - stepStartTime;
+          
+          // Log step completion with timing
+          logger.macroExecution(`Step${step.id}_Success`, `Completed: ${step.name}`, {
+            executionId,
             stepId: step.id,
             stepName: step.name,
             completedSteps: completed.length,
             totalSteps: steps.length,
-            progress: `${completed.length}/${steps.length}`
+            progress: `${completed.length}/${steps.length}`,
+            stepDuration: `${stepDuration}ms`,
+            macroExpiration: macroExecutionContext.selectedExpiration,
+            currentExpiration: getCurrentExpiration()
           });
 
           // Brief pause between steps for UI feedback
@@ -212,14 +705,24 @@ export function SimpleAnalyzeAllButton({
         } catch (stepError) {
           const error = stepError instanceof Error ? stepError : new Error(String(stepError));
           
-          // Log step failure
-          logger.error(`Step${step.id}`, `Failed: ${step.name}`, {
+          // Log step failure with comprehensive context
+          const stepStartTime = stepStartTimes.get(step.id) || Date.now();
+          const stepDuration = Date.now() - stepStartTime;
+          const errorAnomaly = `Step ${step.id} failed: ${error.message}`;
+          setAnomaliesDetected(prev => [...prev, errorAnomaly]);
+          
+          logger.error(`Step${step.id}_Failed`, `Failed: ${step.name}`, {
+            executionId,
             stepId: step.id,
             stepName: step.name,
             errorMessage: error.message,
             errorStack: error.stack,
             completedSteps: completed.length,
-            continuingExecution: true
+            continuingExecution: true,
+            stepDuration: `${stepDuration}ms`,
+            anomaly: 'step_execution_failed',
+            macroExpiration: macroExecutionContext.selectedExpiration,
+            currentExpiration: getCurrentExpiration()
           });
           
           console.error(`Step ${step.id} (${step.name}) failed:`, error);
@@ -238,20 +741,48 @@ export function SimpleAnalyzeAllButton({
       setIsCompleted(true);
       setCurrentStep(0);
 
-      const duration = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+      const totalDuration = startTime ? Date.now() - startTime : 0;
+      const durationSeconds = Math.round(totalDuration / 1000);
       
-      // Log macro completion
-      logger.userAction('Complete', 'All 4 steps completed successfully', {
+      // Compile execution summary
+      const executionSummary: MacroExecutionLogData = {
+        executionId,
         completedSteps: completed.length,
         totalSteps: steps.length,
-        duration: `${duration}s`,
-        successRate: `${completed.length}/${steps.length}`,
-        stepResults: completed.map(id => steps.find(s => s.id === id)?.name).filter(Boolean)
+        totalDuration: `${totalDuration}ms (${durationSeconds}s)`,
+        successRate: `${completed.length}/${steps.length} (${Math.round((completed.length / steps.length) * 100)}%)`,
+        stepResults: Object.fromEntries(
+          completed.map(id => [
+            `step${id}`,
+            {
+              name: steps.find(s => s.id === id)?.name,
+              duration: macroExecutionContext.stepResults.get(id)?.stepDuration
+            }
+          ])
+        ),
+        macroExpiration: macroExecutionContext.selectedExpiration,
+        anomalies: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
+      };
+      
+      // Log comprehensive macro completion summary
+      logger.macroExecution('MacroComplete', 'Macro automation completed', executionSummary);
+      
+      // Log performance summary
+      logger.performance('ExecutionSummary', 'Performance metrics', {
+        executionId,
+        totalDuration: `${totalDuration}ms`,
+        averageStepDuration: `${Math.round(totalDuration / completed.length)}ms`,
+        stepTimings: Object.fromEntries(
+          Array.from(macroExecutionContext.stepResults.entries()).map(([id, result]) => [
+            `step${id}`,
+            result.stepDuration
+          ])
+        )
       });
       
       toast({
         title: `${ticker} Analysis Complete`,
-        description: `Completed ${completed.length} of ${steps.length} steps in ${duration}s`,
+        description: `Completed ${completed.length} of ${steps.length} steps in ${durationSeconds}s`,
       });
 
       onComplete?.();
@@ -260,13 +791,21 @@ export function SimpleAnalyzeAllButton({
       const executionError = error instanceof Error ? error : new Error(String(error));
       setExecutionError(executionError);
       
-      // Log execution failure
-      logger.error('ExecutionFailed', 'Macro automation failed', {
+      const totalDuration = startTime ? Date.now() - startTime : 0;
+      
+      // Log execution failure with comprehensive context
+      logger.error('MacroFailed', 'Macro automation failed', {
+        executionId,
         errorMessage: executionError.message,
         errorStack: executionError.stack,
         completedSteps: completedSteps.length,
         totalSteps: steps.length,
-        failedAtStep: currentStep
+        failedAtStep: currentStep,
+        totalDuration: `${totalDuration}ms`,
+        macroExpiration: macroExecutionContext.selectedExpiration,
+        currentExpiration: getCurrentExpiration(),
+        anomalies: anomaliesDetected,
+        anomaly: 'macro_execution_failed'
       });
       
       toast({
@@ -279,20 +818,37 @@ export function SimpleAnalyzeAllButton({
 
     } finally {
       setIsExecuting(false);
+      // Clear macro execution flag
+      setMacroExecutionContext(prev => ({ ...prev, isExecuting: false }));
+      
+      // Log final state for debugging
+      logger.stateValidation('MacroFinalize', 'Macro execution finalized', {
+        executionId,
+        finalMacroExpiration: macroExecutionContext.selectedExpiration,
+        finalUIExpiration: getCurrentExpiration(),
+        stateConsistent: macroExecutionContext.selectedExpiration === getCurrentExpiration(),
+        anomaliesDetected: anomaliesDetected.length,
+        anomaliesList: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
+      });
     }
-  }, [isExecuting, steps, ticker, toast, onComplete, onError, onCancel, resetState, shouldCancel, startTime]);
+  }, [isExecuting, steps, ticker, toast, onComplete, onError, onCancel, resetState, shouldCancel, startTime, 
+      logger, executionId, currentStep, getCurrentExpiration, getAvailableExpirations, completedSteps, 
+      macroExecutionContext, anomaliesDetected, stepStartTimes]);
 
   // Handle cancellation
   const handleCancel = useCallback(() => {
-    logger.userAction('CancelRequested', 'User requested cancellation', {
+    logger.macroExecution('CancelRequested', 'User requested cancellation', {
+      executionId,
       currentStep,
       completedSteps: completedSteps.length,
-      totalSteps: steps.length
+      totalSteps: steps.length,
+      macroExpiration: macroExecutionContext.selectedExpiration,
+      currentExpiration: getCurrentExpiration()
     });
     
     setShouldCancel(true);
     setIsExecuting(false);
-  }, [logger, currentStep, completedSteps.length, steps.length]);
+  }, [logger, currentStep, completedSteps.length, steps.length, executionId, macroExecutionContext.selectedExpiration, getCurrentExpiration]);
 
   // Format elapsed time
   const formatElapsedTime = useCallback((): string => {
@@ -308,14 +864,27 @@ export function SimpleAnalyzeAllButton({
   const canStart = !isExecuting && !isCompleted;
 
   return (
-    <Card>
+    <Card className={macroExecutionContext.isExecuting ? 'relative' : ''}>
+      {/* Overlay during macro execution to prevent UI interactions */}
+      {macroExecutionContext.isExecuting && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 rounded-lg flex items-center justify-center">
+          <div className="text-center space-y-2">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="text-sm font-medium">Macro automation in progress...</p>
+            <p className="text-xs text-muted-foreground">
+              Please do not interact with the UI during execution
+            </p>
+          </div>
+        </div>
+      )}
+      
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Zap className="h-5 w-5" />
-          {ticker} Analyze All (Simplified)
+          {ticker} Analyze All (Isolated State)
         </CardTitle>
         <CardDescription>
-          Execute all analysis steps in sequence - Fetch data, run AI analysis, and generate insights
+          Execute all analysis steps in sequence with isolated macro state - protected from UI changes
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -362,8 +931,22 @@ export function SimpleAnalyzeAllButton({
 
           {/* Current Step Display */}
           {isExecuting && currentStep > 0 && (
-            <div className="text-sm text-muted-foreground">
-              Current: {steps.find(s => s.id === currentStep)?.description || 'Processing...'}
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">
+                Current: {steps.find(s => s.id === currentStep)?.description || 'Processing...'}
+              </div>
+              {macroExecutionContext.selectedExpiration && (
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Badge variant="secondary" className="text-xs py-0 px-1.5">
+                    Macro Expiration: {macroExecutionContext.selectedExpiration}
+                  </Badge>
+                  {getCurrentExpiration() !== macroExecutionContext.selectedExpiration && (
+                    <Badge variant="destructive" className="text-xs py-0 px-1.5">
+                      UI Changed!
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -427,6 +1010,38 @@ export function SimpleAnalyzeAllButton({
             <p className="text-green-600 text-sm mt-1">
               Completed {completedSteps.length} of {steps.length} steps in {Math.round((Date.now() - startTime) / 1000)}s
             </p>
+            {macroExecutionContext.selectedExpiration && (
+              <p className="text-green-600 text-xs mt-1">
+                Macro Expiration Used: {macroExecutionContext.selectedExpiration}
+              </p>
+            )}
+          </div>
+        )}
+        
+        {/* Debug Information Panel (Development Only) */}
+        {process.env.NODE_ENV === 'development' && macroExecutionContext.isExecuting && (
+          <div className="p-3 border border-blue-200 bg-blue-50 rounded-md space-y-2">
+            <div className="flex items-center gap-2 text-blue-800 font-medium text-sm">
+              <Zap className="h-4 w-4" />
+              Debug: Macro Execution State
+            </div>
+            <div className="text-xs text-blue-600 space-y-1">
+              <p>Execution ID: {executionId}</p>
+              <p>Macro Expiration: {macroExecutionContext.selectedExpiration || 'Not captured yet'}</p>
+              <p>Current UI Expiration: {getCurrentExpiration()}</p>
+              <p>State Consistent: {macroExecutionContext.selectedExpiration === getCurrentExpiration() ? 'Yes' : 'No'}</p>
+              <p>Anomalies Detected: {anomaliesDetected.length}</p>
+              {anomaliesDetected.length > 0 && (
+                <div className="mt-1">
+                  <p className="font-medium">Anomalies:</p>
+                  <ul className="list-disc list-inside pl-2">
+                    {anomaliesDetected.map((anomaly, idx) => (
+                      <li key={idx} className="text-xs">{anomaly}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>

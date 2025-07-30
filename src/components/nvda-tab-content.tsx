@@ -27,11 +27,14 @@ import { useNvdaAnalysis, useNvdaDispatch, NVDA_TICKER, type OptionType, type St
 
 // Server Actions (reused from Main/SPY tabs)
 import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
-import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
+import { fetchStockDataAction, fetchStockDataActionWithLogging } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 import { findNextAvailableDate } from '@/lib/date-utils';
+
+// Server Log Handler
+import { useServerLogs } from '@/lib/client-log-handler';
 
 // Ticker Logger
 import { createTickerLogger, TICKER_PAGES } from '@/lib/ticker-logger';
@@ -60,6 +63,7 @@ export function NvdaTabContent() {
   const nvdaState = useNvdaAnalysis();
   const nvdaDispatch = useNvdaDispatch();
   const { toast } = useToast();
+  const { processLogs } = useServerLogs();
 
   // Deterministic Handler: Fetch NVDA Expirations
   const handleFetchExpirations = async () => {
@@ -193,12 +197,15 @@ export function NvdaTabContent() {
         context: 'Step2_GetStockData_API_Call'
       });
       
-      const stockDataResult = await fetchStockDataAction({
+      const stockDataResult = await fetchStockDataActionWithLogging({
         ticker: NVDA_TICKER,
         expirationDate: finalExpirationToUse, // ← CRITICAL: Use validated expiration
         optionType: nvdaState.optionType,
         strikeCount: nvdaState.strikeCount,
       });
+
+      // Process server logs to client console
+      processLogs(stockDataResult);
 
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
         throw new Error(stockDataResult.error || 'Failed to fetch stock data');
@@ -668,6 +675,8 @@ export function NvdaTabContent() {
         canGetStockData={() => !isLoading && !!nvdaState.selectedExpirationDate}
         canGenerateAiKeyTakeaways={() => !isLoading && nvdaState.hasStockData && nvdaState.hasAiTaData && !nvdaState.isAiKeyTakeawaysLoading}
         canGenerateAiOptionsAnalysis={() => !isLoading && nvdaState.hasOptionsChainData && !nvdaState.isAiOptionsAnalysisLoading}
+        getCurrentExpiration={() => nvdaState.selectedExpirationDate}
+        getAvailableExpirations={() => nvdaState.availableExpirationDates}
         onComplete={() => {
           toast({
             title: `${NVDA_TICKER} Macro Complete`,

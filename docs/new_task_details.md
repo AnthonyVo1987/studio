@@ -1,16 +1,16 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.7]
+**Version**: [v4.4.2.8]
 **Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: [Phase_2] Fix Macro\Automation Issues
+**Brief Summary**: [Phase_2] More Macro\Automation Fixes & Enhanced Console Logs
 
 **Affected Systems**: []
 
-**Priority Level**: _[HIGH]_
+**Priority Level**: _[CRITICAL]_
 
 ---
 
@@ -133,21 +133,20 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 
 ## Task Details
 
-[Phase_2] Fix Macro\Automation Issues
-- I just started testing the new Macro\Automation feature and here are some symptoms and/or potential issues that need to be investigated
-- Provided logs show snapshot after user manual actions, following by automation snapshot and logs for an apples to apples comparison
-- Full Console and Web Console logs provided
-- The initial user manual action test picked 8/15/25 expiration as our baseline
-- The macro test relied on complete default according to macro
-- So we expect user action baseline to be based on 8/15/25, and conversely macro relies on default expiration, which is currently 8/1/25
+[Phase_2] More Macro\Automation Fixes & Enhanced Console Logs
+- Review all logs and snapshots for any additional issues in the Macro\Automation path
+- One issue I see is that after Macro ran, the date for the options chain table does NOT match the expected date :"NVDA options chain for NVDA - Expires: Aug 08, 2025"
+- Macro should auto use the very next expiration after fetching, in this case, macro should have used 8/1/25 data
+- So double check and investigate the wiring to ensure that macro did indeed retrieve correct data, or if it could just be a display issue or not etc
+- Since this issue seems like it never truly got fixed from the previosu commit, make sure you dig deeper to find true root cause and not just fix symptoms
+- Snapshot was provided AFTER the macro ran, but logs show the full execution
 
-- Review the full trace of execution code and data path for the automation code, verifying correct wiring
-- Verify expected macro behavior that the correct expiration, data flow, and analysis matches the default expiration data and analaysis. I.E. check for miswired and wrong expiration dates
-- I can see a potential issue where after running the macro, I checked the options chain table date and it is the incorrect 8/15/25 date, so verify if the macro was properly pulling\updating the correct code\data\dates\UI render etc
-- Make sure All app analysis and AI analysis, chat anlaysis matches expected dates\data
-- We also need explicit console output for the Macro path too, when macro starts\ends, when each macro step starts\ends to help in debugging
-- Fix any issues for both NVDA & SPY paths to keep parity
-- We will deal with blueprint scaffloding fixes later once we get the dedicated NVDA-SPY more robust
+- Secondary task of reviewing the console outputs for the standard console vs web console logs.  Which logs were more useful in helping to debug the issue?
+- We need to ensure both standard console and web console are matching with parity with the console messages.
+- I.E User should be able to debug issues using either the standard Console or the web console
+- We should NOT have a case where Standard Console had a critical output to debug an issue, and the the web console was missing the critcial output, and vice versa
+- This allows flexibility in case user is debugging in development environment where they have access to standard console, and if user was live testing a deployed version where they only have access to the web console
+
 
 
 ### Current Situation
@@ -200,23 +199,23 @@ _[Any architectural decisions or patterns that must be followed]_
 ### Error Logs
 ```
 
-1. NVDA 8/15/25 Data snapshot after manual user actions:
 
+Snapshot after macro automation
 
 {
   "ticker": "NVDA",
-  "timestamp": "2025-07-30T17:10:38.732Z",
+  "timestamp": "2025-07-30T19:05:44.511Z",
   "data": {
     "stockSnapshot": {
       "ticker": "NVDA",
       "day": {
         "o": 176.51,
-        "h": 179.28,
+        "h": 179.89,
         "l": 176.04,
-        "c": 179.03,
-        "v": 74664370,
-        "vw": 178.1813,
-        "t": 1753893938317535500
+        "c": 178.36,
+        "v": 115212293,
+        "vw": 178.53,
+        "t": 1753902246118945000
       },
       "prevDay": {
         "o": 177.96,
@@ -227,199 +226,25 @@ _[Any architectural decisions or patterns that must be followed]_
         "vw": 177.0364
       },
       "min": {
-        "o": 179.07,
-        "h": 179.13,
-        "l": 178.99,
-        "c": 179.02,
-        "v": 275035,
-        "vw": 179.0602,
-        "t": 1753893840000,
-        "n": 2547
+        "o": 178.55,
+        "h": 178.56,
+        "l": 178.33,
+        "c": 178.39,
+        "v": 556835,
+        "vw": 178.4552,
+        "t": 1753902180000,
+        "n": 6342
       },
-      "todaysChange": 3.45,
-      "todaysChangePerc": 1.9658,
-      "updated": 1753893938317535500,
-      "currentPrice": 179.03
+      "todaysChange": 2.91,
+      "todaysChangePerc": 1.6552,
+      "updated": 1753902246118945000,
+      "currentPrice": 178.36
     },
     "marketStatus": {
       "market": "open",
       "earlyHours": false,
       "lateHours": false,
-      "serverTime": "2025-07-30T12:45:38-04:00",
-      "exchanges": {
-        "nasdaq": "open",
-        "nyse": "open",
-        "otc": "open"
-      },
-      "currencies": {
-        "crypto": "open",
-        "fx": "open"
-      }
-    },
-    "optionsChainSummary": {
-      "summary": {
-        "total_results": 0,
-        "call_count": 0,
-        "put_count": 0,
-        "strike_range": null,
-        "expiration_dates": []
-      },
-      "note": "Full strike details excluded in truncated version - use 'Copy ALL' or 'Export ALL' for complete data"
-    },
-    "standardTa": {
-      "RSI": {
-        "7": 75.65,
-        "10": 74.66,
-        "14": 74.5
-      },
-      "MACD": {
-        "value": 7.1431,
-        "signal": 7.1852,
-        "histogram": -0.0421
-      },
-      "VWAP": {
-        "day": 178.1813,
-        "minute": 179.0602
-      },
-      "EMA": {
-        "5": 175.75,
-        "10": 173.2,
-        "20": 168.09,
-        "50": 154.74,
-        "200": 132.66
-      },
-      "SMA": {
-        "5": 175.67,
-        "10": 173.3,
-        "20": 168.29,
-        "50": 152.87,
-        "200": 134.38
-      }
-    },
-    "aiAnalyzedTa": {
-      "pivotPoint": 176.64,
-      "support1": 173.89,
-      "support2": 172.28,
-      "support3": 169.53,
-      "resistance1": 178.25,
-      "resistance2": 181,
-      "resistance3": 182.61
-    },
-    "aiKeyTakeaways": {
-      "momentum": {
-        "sentiment": "strong",
-        "takeaway": "Momentum is strong, indicated by a high RSI of 74.5, although the MACD shows a bearish crossover with a negative histogram (-0.04), suggesting potential for a short-term pullback."
-      },
-      "patterns": {
-        "sentiment": "neutral",
-        "takeaway": "No distinct chart patterns are evident; the stock is in a strong upward trajectory, approaching the second resistance level at $181."
-      },
-      "priceAction": {
-        "sentiment": "bullish",
-        "takeaway": "The stock is trading above the day's Volume Weighted Average Price ($178.18) and has surpassed the first resistance level ($178.25), indicating strong upward price action."
-      },
-      "trend": {
-        "sentiment": "bullish",
-        "takeaway": "The stock is in a strong bullish trend, with the current price trading significantly above all short-term and long-term moving averages (5, 10, 20, 50, 200-day EMAs and SMAs)."
-      },
-      "volatility": {
-        "sentiment": "moderate",
-        "takeaway": "Volatility is moderate, with the stock exhibiting a notable upward price movement of 1.97% today after a slight decline yesterday, suggesting active trading interest."
-      }
-    },
-    "aiOptionsAnalysis": {
-      "callWalls": [
-        {
-          "openInterest": 61910,
-          "strike": 180,
-          "type": "call",
-          "volume": 13422
-        },
-        {
-          "openInterest": 50678,
-          "strike": 170,
-          "type": "call",
-          "volume": 6716
-        },
-        {
-          "openInterest": 50157,
-          "strike": 175,
-          "type": "call",
-          "volume": 7093
-        }
-      ],
-      "putWalls": [
-        {
-          "openInterest": 44920,
-          "strike": 160,
-          "type": "put",
-          "volume": 3976
-        },
-        {
-          "openInterest": 38169,
-          "strike": 165,
-          "type": "put",
-          "volume": 2889
-        },
-        {
-          "openInterest": 10809,
-          "strike": 175,
-          "type": "put",
-          "volume": 10446
-        }
-      ]
-    }
-  }
-}
-
-###
-
-2. NVDA Data snapshot after Macro Automation:
-
-
-{
-  "ticker": "NVDA",
-  "timestamp": "2025-07-30T17:42:39.997Z",
-  "data": {
-    "stockSnapshot": {
-      "ticker": "NVDA",
-      "day": {
-        "o": 176.51,
-        "h": 179.4,
-        "l": 176.04,
-        "c": 179.09,
-        "v": 83606521,
-        "vw": 178.2879,
-        "t": 1753896275169325000
-      },
-      "prevDay": {
-        "o": 177.96,
-        "h": 179.38,
-        "l": 175.02,
-        "c": 175.51,
-        "v": 154077512,
-        "vw": 177.0364
-      },
-      "min": {
-        "o": 179.19,
-        "h": 179.2,
-        "l": 179.08,
-        "c": 179.1,
-        "v": 179567,
-        "vw": 179.1299,
-        "t": 1753896180000,
-        "n": 1872
-      },
-      "todaysChange": 3.61,
-      "todaysChangePerc": 2.0559,
-      "updated": 1753896275169325000,
-      "currentPrice": 179.09
-    },
-    "marketStatus": {
-      "market": "open",
-      "earlyHours": false,
-      "lateHours": false,
-      "serverTime": "2025-07-30T13:24:34-04:00",
+      "serverTime": "2025-07-30T15:04:05-04:00",
       "exchanges": {
         "nasdaq": "open",
         "nyse": "open",
@@ -432,66 +257,37 @@ _[Any architectural decisions or patterns that must be followed]_
     },
     "optionsChain": {
       "ticker": "NVDA",
-      "expiration_date": "2025-08-15",
+      "expiration_date": "2025-08-08",
       "contracts": [
-        {
-          "strike": 205,
-          "call": {
-            "strike_price": 205,
-            "option_type": "call",
-            "iv": 0.3546,
-            "last_price": 0.2,
-            "change": 0.09,
-            "percent_change": 81.82,
-            "volume": 1421,
-            "open_interest": 5604,
-            "delta": 0.0385,
-            "gamma": 0.0063,
-            "theta": -0.0355,
-            "vega": 0.0432
-          },
-          "put": {
-            "strike_price": 205,
-            "option_type": "put",
-            "iv": 0.3753,
-            "last_price": 26.26,
-            "change": -2.45,
-            "percent_change": -8.53,
-            "volume": 3,
-            "open_interest": 4,
-            "delta": -0.964,
-            "gamma": 0.008,
-            "theta": -0.0259,
-            "vega": 0.0328
-          }
-        },
         {
           "strike": 202.5,
           "call": {
             "strike_price": 202.5,
             "option_type": "call",
-            "iv": 0.3429,
-            "last_price": 0.28,
-            "change": 0.13,
-            "percent_change": 86.67,
-            "volume": 515,
-            "open_interest": 603,
-            "delta": 0.0507,
-            "gamma": 0.008,
-            "theta": -0.0426,
-            "vega": 0.0429
+            "iv": 0.3742,
+            "last_price": 0.1,
+            "change": 0.04,
+            "percent_change": 66.67,
+            "volume": 746,
+            "open_interest": 2257,
+            "delta": 0.0236,
+            "gamma": 0.0052,
+            "theta": -0.0326,
+            "vega": 0.016
           },
           "put": {
             "strike_price": 202.5,
             "option_type": "put",
-            "iv": 0.3006,
-            "last_price": 23.6,
-            "volume": 1,
+            "iv": 0.3609,
+            "last_price": 23.67,
+            "change": -3.84,
+            "percent_change": -14,
+            "volume": 2,
             "open_interest": 0,
-            "delta": -0.9913,
-            "gamma": 0.0057,
-            "theta": -0.0047,
-            "vega": 0.0089
+            "delta": -0.9933,
+            "gamma": 0.0045,
+            "theta": -0.0079,
+            "vega": 0.0079
           }
         },
         {
@@ -499,30 +295,25 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 200,
             "option_type": "call",
-            "iv": 0.338,
-            "last_price": 0.38,
-            "change": 0.18,
-            "percent_change": 90,
-            "volume": 6709,
-            "open_interest": 34144,
-            "delta": 0.0676,
-            "gamma": 0.0103,
-            "theta": -0.0532,
-            "vega": 0.0425
+            "iv": 0.3715,
+            "last_price": 0.15,
+            "change": 0.06,
+            "percent_change": 66.67,
+            "volume": 9444,
+            "open_interest": 6847,
+            "delta": 0.0349,
+            "gamma": 0.0074,
+            "theta": -0.0457,
+            "vega": 0.0318
           },
           "put": {
             "strike_price": 200,
             "option_type": "put",
-            "iv": 0.3338,
-            "last_price": 21.19,
-            "change": -2.66,
-            "percent_change": -11.2,
-            "volume": 18,
-            "open_interest": 603,
-            "delta": -0.9485,
-            "gamma": 0.011,
-            "theta": -0.031,
-            "vega": 0.0357
+            "last_price": 20.5,
+            "change": -3.7,
+            "percent_change": -15.3,
+            "volume": 31,
+            "open_interest": 4
           }
         },
         {
@@ -530,30 +321,25 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 197.5,
             "option_type": "call",
-            "iv": 0.3325,
-            "last_price": 0.51,
-            "change": 0.25,
-            "percent_change": 96.15,
-            "volume": 2858,
-            "open_interest": 755,
-            "delta": 0.0908,
-            "gamma": 0.0131,
-            "theta": -0.0654,
-            "vega": 0.0727
+            "iv": 0.3587,
+            "last_price": 0.22,
+            "change": 0.11,
+            "percent_change": 100,
+            "volume": 805,
+            "open_interest": 3362,
+            "delta": 0.0521,
+            "gamma": 0.0104,
+            "theta": -0.0603,
+            "vega": 0.0315
           },
           "put": {
             "strike_price": 197.5,
             "option_type": "put",
-            "iv": 0.3262,
-            "last_price": 22.07,
-            "change": 0,
-            "percent_change": 0,
-            "volume": 4,
-            "open_interest": 20,
-            "delta": -0.9276,
-            "gamma": 0.0137,
-            "theta": -0.042,
-            "vega": 0.0615
+            "last_price": 19.15,
+            "change": -0.2,
+            "percent_change": -1.03,
+            "volume": 26,
+            "open_interest": 5
           }
         },
         {
@@ -561,30 +347,25 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 195,
             "option_type": "call",
-            "iv": 0.326,
-            "last_price": 0.71,
-            "change": 0.33,
-            "percent_change": 86.84,
-            "volume": 4735,
-            "open_interest": 12103,
-            "delta": 0.1209,
-            "gamma": 0.0164,
-            "theta": -0.0792,
-            "vega": 0.072
+            "iv": 0.3563,
+            "last_price": 0.36,
+            "change": 0.21,
+            "percent_change": 140,
+            "volume": 5266,
+            "open_interest": 5820,
+            "delta": 0.0766,
+            "gamma": 0.0144,
+            "theta": -0.0823,
+            "vega": 0.0539
           },
           "put": {
             "strike_price": 195,
             "option_type": "put",
-            "iv": 0.3229,
-            "last_price": 16.2,
-            "change": -1.11,
-            "percent_change": -6.41,
-            "volume": 92,
-            "open_interest": 625,
-            "delta": -0.8926,
-            "gamma": 0.0171,
-            "theta": -0.0577,
-            "vega": 0.0676
+            "last_price": 16.1,
+            "change": -1.5,
+            "percent_change": -8.52,
+            "volume": 30,
+            "open_interest": 9
           }
         },
         {
@@ -592,30 +373,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 192.5,
             "option_type": "call",
-            "iv": 0.3247,
-            "last_price": 1.01,
-            "change": 0.48,
-            "percent_change": 90.57,
-            "volume": 9191,
-            "open_interest": 1278,
-            "delta": 0.1602,
-            "gamma": 0.0201,
-            "theta": -0.0963,
-            "vega": 0.1067
+            "iv": 0.342,
+            "last_price": 0.52,
+            "change": 0.29,
+            "percent_change": 126.09,
+            "volume": 157242,
+            "open_interest": 3867,
+            "delta": 0.1098,
+            "gamma": 0.0193,
+            "theta": -0.1022,
+            "vega": 0.0534
           },
           "put": {
             "strike_price": 192.5,
             "option_type": "put",
-            "iv": 0.3206,
-            "last_price": 14.25,
-            "change": -2.1,
-            "percent_change": -12.8,
-            "volume": 131,
-            "open_interest": 72,
-            "delta": -0.8536,
-            "gamma": 0.0208,
-            "theta": -0.0741,
-            "vega": 0.0999
+            "iv": 0.3032,
+            "last_price": 13.6,
+            "change": -0.25,
+            "percent_change": -1.81,
+            "volume": 57,
+            "open_interest": 6,
+            "delta": -0.9311,
+            "gamma": 0.018,
+            "theta": -0.0518,
+            "vega": 0.0459
           }
         },
         {
@@ -623,30 +404,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 190,
             "option_type": "call",
-            "iv": 0.3202,
-            "last_price": 1.41,
-            "change": 0.63,
-            "percent_change": 80.77,
-            "volume": 6810,
-            "open_interest": 29466,
-            "delta": 0.2103,
-            "gamma": 0.024,
-            "theta": -0.1125,
-            "vega": 0.1055
+            "iv": 0.3369,
+            "last_price": 0.79,
+            "change": 0.44,
+            "percent_change": 125.71,
+            "volume": 9851,
+            "open_interest": 6829,
+            "delta": 0.1562,
+            "gamma": 0.0252,
+            "theta": -0.1299,
+            "vega": 0.0793
           },
           "put": {
             "strike_price": 190,
             "option_type": "put",
-            "iv": 0.3153,
-            "last_price": 11.91,
-            "change": -2.39,
-            "percent_change": -16.7,
-            "volume": 234,
-            "open_interest": 1343,
-            "delta": -0.8018,
-            "gamma": 0.0248,
-            "theta": -0.0898,
-            "vega": 0.103
+            "iv": 0.2971,
+            "last_price": 10.8,
+            "change": -3.75,
+            "percent_change": -25.8,
+            "volume": 510,
+            "open_interest": 486,
+            "delta": -0.8829,
+            "gamma": 0.0253,
+            "theta": -0.0787,
+            "vega": 0.0512
           }
         },
         {
@@ -654,30 +435,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 187.5,
             "option_type": "call",
-            "iv": 0.3216,
-            "last_price": 1.93,
-            "change": 0.82,
-            "percent_change": 73.87,
-            "volume": 1824,
-            "open_interest": 4051,
-            "delta": 0.2707,
-            "gamma": 0.0276,
-            "theta": -0.131,
-            "vega": 0.1363
+            "iv": 0.3328,
+            "last_price": 1.19,
+            "change": 0.64,
+            "percent_change": 116.36,
+            "volume": 9232,
+            "open_interest": 5759,
+            "delta": 0.2219,
+            "gamma": 0.0318,
+            "theta": -0.1601,
+            "vega": 0.0784
           },
           "put": {
             "strike_price": 187.5,
             "option_type": "put",
-            "iv": 0.3171,
-            "last_price": 9.9,
-            "change": -3.04,
-            "percent_change": -23.5,
-            "volume": 184,
-            "open_interest": 897,
-            "delta": -0.7397,
-            "gamma": 0.0284,
-            "theta": -0.1088,
-            "vega": 0.1334
+            "iv": 0.3014,
+            "last_price": 8.65,
+            "change": -3.65,
+            "percent_change": -29.7,
+            "volume": 217,
+            "open_interest": 142,
+            "delta": -0.8081,
+            "gamma": 0.0332,
+            "theta": -0.1152,
+            "vega": 0.0775
           }
         },
         {
@@ -685,30 +466,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 185,
             "option_type": "call",
-            "iv": 0.3216,
-            "last_price": 2.69,
-            "change": 1.07,
-            "percent_change": 66.05,
-            "volume": 11472,
-            "open_interest": 42269,
-            "delta": 0.3414,
-            "gamma": 0.0305,
-            "theta": -0.1457,
-            "vega": 0.1346
+            "iv": 0.3325,
+            "last_price": 1.83,
+            "change": 0.94,
+            "percent_change": 105.62,
+            "volume": 51375,
+            "open_interest": 11127,
+            "delta": 0.3057,
+            "gamma": 0.0372,
+            "theta": -0.1883,
+            "vega": 0.1013
           },
           "put": {
             "strike_price": 185,
             "option_type": "put",
-            "iv": 0.3177,
-            "last_price": 8.05,
-            "change": -2.6,
-            "percent_change": -24.4,
-            "volume": 467,
-            "open_interest": 3038,
-            "delta": -0.6661,
-            "gamma": 0.0313,
-            "theta": -0.1237,
-            "vega": 0.1341
+            "iv": 0.316,
+            "last_price": 6.78,
+            "change": -3.52,
+            "percent_change": -34.2,
+            "volume": 1388,
+            "open_interest": 371,
+            "delta": -0.7096,
+            "gamma": 0.039,
+            "theta": -0.1564,
+            "vega": 0.1007
           }
         },
         {
@@ -716,30 +497,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 182.5,
             "option_type": "call",
-            "iv": 0.325,
-            "last_price": 3.6,
-            "change": 1.3,
-            "percent_change": 56.52,
-            "volume": 3434,
-            "open_interest": 6923,
-            "delta": 0.4182,
-            "gamma": 0.0321,
-            "theta": -0.1577,
-            "vega": 0.1519
+            "iv": 0.3397,
+            "last_price": 2.73,
+            "change": 1.35,
+            "percent_change": 97.83,
+            "volume": 12740,
+            "open_interest": 23446,
+            "delta": 0.4026,
+            "gamma": 0.0405,
+            "theta": -0.2148,
+            "vega": 0.1143
           },
           "put": {
             "strike_price": 182.5,
             "option_type": "put",
             "iv": 0.3199,
-            "last_price": 6.6,
-            "change": -2.45,
-            "percent_change": -27.1,
-            "volume": 309,
-            "open_interest": 654,
-            "delta": -0.5877,
-            "gamma": 0.033,
-            "theta": -0.1355,
-            "vega": 0.1513
+            "last_price": 5.22,
+            "change": -2.98,
+            "percent_change": -36.3,
+            "volume": 1259,
+            "open_interest": 970,
+            "delta": -0.6088,
+            "gamma": 0.0433,
+            "theta": -0.1821,
+            "vega": 0.1139
           }
         },
         {
@@ -747,30 +528,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 180,
             "option_type": "call",
-            "iv": 0.3309,
-            "last_price": 4.77,
-            "change": 1.62,
-            "percent_change": 51.43,
-            "volume": 14595,
-            "open_interest": 61910,
-            "delta": 0.4989,
-            "gamma": 0.0324,
-            "theta": -0.1659,
-            "vega": 0.15
+            "iv": 0.3524,
+            "last_price": 3.94,
+            "change": 1.8,
+            "percent_change": 84.11,
+            "volume": 43790,
+            "open_interest": 34899,
+            "delta": 0.505,
+            "gamma": 0.0405,
+            "theta": -0.2325,
+            "vega": 0.1129
           },
           "put": {
             "strike_price": 180,
             "option_type": "put",
-            "iv": 0.3275,
-            "last_price": 5.24,
-            "change": -2.11,
-            "percent_change": -28.7,
-            "volume": 7201,
-            "open_interest": 5680,
-            "delta": -0.5047,
-            "gamma": 0.033,
-            "theta": -0.1444,
-            "vega": 0.15
+            "iv": 0.3298,
+            "last_price": 3.9,
+            "change": -2.57,
+            "percent_change": -39.7,
+            "volume": 11691,
+            "open_interest": 3373,
+            "delta": -0.4993,
+            "gamma": 0.0435,
+            "theta": -0.198,
+            "vega": 0.1129
           }
         },
         {
@@ -778,30 +559,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 177.5,
             "option_type": "call",
-            "iv": 0.3358,
-            "last_price": 6.15,
-            "change": 1.91,
-            "percent_change": 45.05,
-            "volume": 4739,
-            "open_interest": 6278,
-            "delta": 0.5771,
-            "gamma": 0.0311,
-            "theta": -0.1659,
-            "vega": 0.1482
+            "iv": 0.3595,
+            "last_price": 5.4,
+            "change": 2.27,
+            "percent_change": 72.52,
+            "volume": 17328,
+            "open_interest": 30924,
+            "delta": 0.6018,
+            "gamma": 0.0379,
+            "theta": -0.2291,
+            "vega": 0.1116
           },
           "put": {
             "strike_price": 177.5,
             "option_type": "put",
-            "iv": 0.3328,
-            "last_price": 4.1,
-            "change": -1.8,
-            "percent_change": -30.5,
-            "volume": 2174,
-            "open_interest": 2460,
-            "delta": -0.4248,
-            "gamma": 0.0317,
-            "theta": -0.1446,
-            "vega": 0.1482
+            "iv": 0.3354,
+            "last_price": 2.79,
+            "change": -2.12,
+            "percent_change": -43.2,
+            "volume": 8156,
+            "open_interest": 6249,
+            "delta": -0.3948,
+            "gamma": 0.0408,
+            "theta": -0.194,
+            "vega": 0.1116
           }
         },
         {
@@ -809,30 +590,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 175,
             "option_type": "call",
-            "iv": 0.3464,
-            "last_price": 7.74,
-            "change": 2.28,
-            "percent_change": 41.76,
-            "volume": 7549,
-            "open_interest": 50157,
-            "delta": 0.6511,
-            "gamma": 0.0287,
-            "theta": -0.1646,
-            "vega": 0.1464
+            "iv": 0.3727,
+            "last_price": 7.06,
+            "change": 2.61,
+            "percent_change": 58.65,
+            "volume": 21265,
+            "open_interest": 32212,
+            "delta": 0.6885,
+            "gamma": 0.0337,
+            "theta": -0.221,
+            "vega": 0.0966
           },
           "put": {
             "strike_price": 175,
             "option_type": "put",
-            "iv": 0.3431,
-            "last_price": 3.16,
-            "change": -1.52,
-            "percent_change": -32.5,
-            "volume": 10610,
-            "open_interest": 10809,
-            "delta": -0.3498,
-            "gamma": 0.0292,
-            "theta": -0.1434,
-            "vega": 0.1464
+            "iv": 0.3494,
+            "last_price": 1.97,
+            "change": -1.65,
+            "percent_change": -45.6,
+            "volume": 12701,
+            "open_interest": 29707,
+            "delta": -0.3033,
+            "gamma": 0.0356,
+            "theta": -0.1853,
+            "vega": 0.0965
           }
         },
         {
@@ -840,30 +621,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 172.5,
             "option_type": "call",
-            "iv": 0.3537,
-            "last_price": 9.49,
-            "change": 2.39,
-            "percent_change": 33.66,
-            "volume": 1593,
-            "open_interest": 5710,
-            "delta": 0.7158,
-            "gamma": 0.0256,
-            "theta": -0.1548,
-            "vega": 0.1266
+            "iv": 0.385,
+            "last_price": 8.95,
+            "change": 3,
+            "percent_change": 50.42,
+            "volume": 2427,
+            "open_interest": 9859,
+            "delta": 0.7631,
+            "gamma": 0.0285,
+            "theta": -0.2019,
+            "vega": 0.0955
           },
           "put": {
             "strike_price": 172.5,
             "option_type": "put",
-            "iv": 0.3477,
-            "last_price": 2.43,
-            "change": -1.22,
-            "percent_change": -33.4,
-            "volume": 1947,
-            "open_interest": 9381,
-            "delta": -0.2825,
-            "gamma": 0.026,
-            "theta": -0.1321,
-            "vega": 0.1266
+            "iv": 0.3623,
+            "last_price": 1.38,
+            "change": -1.26,
+            "percent_change": -47.7,
+            "volume": 5023,
+            "open_interest": 5833,
+            "delta": -0.2246,
+            "gamma": 0.0296,
+            "theta": -0.1668,
+            "vega": 0.0954
           }
         },
         {
@@ -871,30 +652,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 170,
             "option_type": "call",
-            "iv": 0.3672,
-            "last_price": 11.39,
-            "change": 2.74,
-            "percent_change": 31.68,
-            "volume": 6916,
-            "open_interest": 50678,
-            "delta": 0.7724,
-            "gamma": 0.0221,
-            "theta": -0.1459,
-            "vega": 0.1252
+            "iv": 0.4011,
+            "last_price": 11.02,
+            "change": 3.27,
+            "percent_change": 42.19,
+            "volume": 4108,
+            "open_interest": 9684,
+            "delta": 0.8201,
+            "gamma": 0.0231,
+            "theta": -0.1806,
+            "vega": 0.0723
           },
           "put": {
             "strike_price": 170,
             "option_type": "put",
-            "iv": 0.3612,
-            "last_price": 1.84,
-            "change": -0.94,
-            "percent_change": -33.8,
-            "volume": 6844,
-            "open_interest": 23716,
-            "delta": -0.2251,
-            "gamma": 0.0224,
-            "theta": -0.1234,
-            "vega": 0.1252
+            "iv": 0.3719,
+            "last_price": 0.97,
+            "change": -0.93,
+            "percent_change": -48.9,
+            "volume": 15533,
+            "open_interest": 12333,
+            "delta": -0.1639,
+            "gamma": 0.0235,
+            "theta": -0.1399,
+            "vega": 0.0721
           }
         },
         {
@@ -902,30 +683,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 167.5,
             "option_type": "call",
-            "iv": 0.3743,
-            "last_price": 13.42,
-            "change": 2.87,
-            "percent_change": 27.2,
-            "volume": 1814,
-            "open_interest": 2313,
-            "delta": 0.8205,
-            "gamma": 0.0187,
-            "theta": -0.1309,
-            "vega": 0.0946
+            "iv": 0.424,
+            "last_price": 12.95,
+            "change": 3.45,
+            "percent_change": 36.32,
+            "volume": 849,
+            "open_interest": 7108,
+            "delta": 0.8639,
+            "gamma": 0.0183,
+            "theta": -0.1621,
+            "vega": 0.0716
           },
           "put": {
             "strike_price": 167.5,
             "option_type": "put",
-            "iv": 0.3684,
-            "last_price": 1.4,
-            "change": -0.78,
-            "percent_change": -35.8,
-            "volume": 5020,
-            "open_interest": 9801,
-            "delta": -0.1768,
-            "gamma": 0.0188,
-            "theta": -0.1084,
-            "vega": 0.0946
+            "iv": 0.3948,
+            "last_price": 0.68,
+            "change": -0.68,
+            "percent_change": -50,
+            "volume": 1898,
+            "open_interest": 6613,
+            "delta": -0.1194,
+            "gamma": 0.0181,
+            "theta": -0.1218,
+            "vega": 0.0478
           }
         },
         {
@@ -933,30 +714,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 165,
             "option_type": "call",
-            "iv": 0.3894,
-            "last_price": 15.75,
-            "change": 3.1,
-            "percent_change": 24.51,
-            "volume": 2863,
-            "open_interest": 39587,
-            "delta": 0.8579,
-            "gamma": 0.0154,
-            "theta": -0.119,
-            "vega": 0.0937
+            "iv": 0.4583,
+            "last_price": 15.47,
+            "change": 3.67,
+            "percent_change": 31.1,
+            "volume": 4340,
+            "open_interest": 9700,
+            "delta": 0.8903,
+            "gamma": 0.0145,
+            "theta": -0.1521,
+            "vega": 0.0474
           },
           "put": {
             "strike_price": 165,
             "option_type": "put",
-            "iv": 0.3829,
-            "last_price": 1.07,
-            "change": -0.57,
-            "percent_change": -34.8,
-            "volume": 5601,
-            "open_interest": 38169,
-            "delta": -0.1385,
-            "gamma": 0.0154,
-            "theta": -0.0964,
-            "vega": 0.0936
+            "iv": 0.41,
+            "last_price": 0.49,
+            "change": -0.5,
+            "percent_change": -50.5,
+            "volume": 4746,
+            "open_interest": 10941,
+            "delta": -0.0877,
+            "gamma": 0.0137,
+            "theta": -0.0997,
+            "vega": 0.0472
           }
         },
         {
@@ -964,30 +745,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 162.5,
             "option_type": "call",
-            "iv": 0.408,
-            "last_price": 17.1,
-            "change": 2.55,
-            "percent_change": 17.53,
-            "volume": 111,
-            "open_interest": 802,
-            "delta": 0.8873,
-            "gamma": 0.0126,
-            "theta": -0.1091,
-            "vega": 0.0619
+            "iv": 0.477,
+            "last_price": 17.68,
+            "change": 3.86,
+            "percent_change": 27.93,
+            "volume": 778,
+            "open_interest": 3775,
+            "delta": 0.9162,
+            "gamma": 0.0113,
+            "theta": -0.1316,
+            "vega": 0.0469
           },
           "put": {
             "strike_price": 162.5,
             "option_type": "put",
-            "iv": 0.3986,
-            "last_price": 0.83,
-            "change": -0.48,
-            "percent_change": -36.6,
-            "volume": 1872,
-            "open_interest": 3407,
-            "delta": -0.1087,
-            "gamma": 0.0126,
-            "theta": -0.0853,
-            "vega": 0.0619
+            "iv": 0.4373,
+            "last_price": 0.38,
+            "change": -0.34,
+            "percent_change": -47.2,
+            "volume": 1076,
+            "open_interest": 4146,
+            "delta": -0.0648,
+            "gamma": 0.0103,
+            "theta": -0.0856,
+            "vega": 0.0468
           }
         },
         {
@@ -995,30 +776,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 160,
             "option_type": "call",
-            "iv": 0.4226,
-            "last_price": 20.24,
-            "change": 3.24,
-            "percent_change": 19.06,
-            "volume": 581,
-            "open_interest": 59881,
-            "delta": 0.9093,
-            "gamma": 0.0103,
-            "theta": -0.0975,
-            "vega": 0.0612
+            "iv": 0.5122,
+            "last_price": 20.35,
+            "change": 4.08,
+            "percent_change": 25.08,
+            "volume": 670,
+            "open_interest": 6723,
+            "delta": 0.9328,
+            "gamma": 0.009,
+            "theta": -0.122,
+            "vega": 0.0465
           },
           "put": {
             "strike_price": 160,
             "option_type": "put",
-            "iv": 0.4115,
-            "last_price": 0.65,
-            "change": -0.34,
-            "percent_change": -34.3,
-            "volume": 4051,
-            "open_interest": 44920,
-            "delta": -0.0855,
-            "gamma": 0.0101,
-            "theta": -0.0732,
-            "vega": 0.0612
+            "iv": 0.4593,
+            "last_price": 0.29,
+            "change": -0.24,
+            "percent_change": -45.3,
+            "volume": 2044,
+            "open_interest": 10577,
+            "delta": -0.0498,
+            "gamma": 0.0079,
+            "theta": -0.0725,
+            "vega": 0.0268
           }
         },
         {
@@ -1026,30 +807,30 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 157.5,
             "option_type": "call",
-            "iv": 0.4334,
-            "last_price": 22.37,
-            "change": 3.19,
-            "percent_change": 16.63,
-            "volume": 6,
-            "open_interest": 601,
-            "delta": 0.932,
-            "gamma": 0.0081,
-            "theta": -0.0839,
-            "vega": 0.0606
+            "iv": 0.4871,
+            "last_price": 22.31,
+            "change": 3.89,
+            "percent_change": 21.12,
+            "volume": 68,
+            "open_interest": 1598,
+            "delta": 0.9611,
+            "gamma": 0.0061,
+            "theta": -0.0814,
+            "vega": 0.0266
           },
           "put": {
             "strike_price": 157.5,
             "option_type": "put",
-            "iv": 0.433,
-            "last_price": 0.51,
-            "change": -0.28,
-            "percent_change": -35.4,
-            "volume": 503,
-            "open_interest": 2607,
-            "delta": -0.068,
-            "gamma": 0.0081,
-            "theta": -0.0653,
-            "vega": 0.0606
+            "iv": 0.4834,
+            "last_price": 0.22,
+            "change": -0.19,
+            "percent_change": -46.3,
+            "volume": 439,
+            "open_interest": 4699,
+            "delta": -0.0378,
+            "gamma": 0.006,
+            "theta": -0.0609,
+            "vega": 0.0266
           }
         },
         {
@@ -1057,61 +838,92 @@ _[Any architectural decisions or patterns that must be followed]_
           "call": {
             "strike_price": 155,
             "option_type": "call",
-            "iv": 0.4735,
-            "last_price": 24.97,
-            "change": 3.32,
-            "percent_change": 15.34,
-            "volume": 303,
-            "open_interest": 44137,
-            "delta": 0.9388,
-            "gamma": 0.0069,
-            "theta": -0.0847,
-            "vega": 0.0602
+            "iv": 0.5939,
+            "last_price": 25.16,
+            "change": 3.86,
+            "percent_change": 18.12,
+            "volume": 134,
+            "open_interest": 1666,
+            "delta": 0.949,
+            "gamma": 0.0062,
+            "theta": -0.1144,
+            "vega": 0.0265
           },
           "put": {
             "strike_price": 155,
             "option_type": "put",
-            "iv": 0.4555,
-            "last_price": 0.42,
-            "change": -0.2,
-            "percent_change": -32.3,
-            "volume": 794,
-            "open_interest": 28395,
-            "delta": -0.0554,
-            "gamma": 0.0066,
-            "theta": -0.0589,
-            "vega": 0.0348
+            "iv": 0.5155,
+            "last_price": 0.18,
+            "change": -0.13,
+            "percent_change": -41.9,
+            "volume": 884,
+            "open_interest": 9758,
+            "delta": -0.0295,
+            "gamma": 0.0046,
+            "theta": -0.0535,
+            "vega": 0.0264
+          }
+        },
+        {
+          "strike": 152.5,
+          "call": {
+            "strike_price": 152.5,
+            "option_type": "call",
+            "iv": 0.5884,
+            "last_price": 27.44,
+            "change": 3.94,
+            "percent_change": 16.77,
+            "volume": 40,
+            "open_interest": 1479,
+            "delta": 0.9665,
+            "gamma": 0.0045,
+            "theta": -0.0856,
+            "vega": 0.0263
+          },
+          "put": {
+            "strike_price": 152.5,
+            "option_type": "put",
+            "iv": 0.5432,
+            "last_price": 0.15,
+            "change": -0.09,
+            "percent_change": -37.5,
+            "volume": 193,
+            "open_interest": 7584,
+            "delta": -0.0238,
+            "gamma": 0.0036,
+            "theta": -0.047,
+            "vega": 0.0131
           }
         }
       ],
-      "underlying_price": 179.09
+      "underlying_price": 178.36
     },
     "standardTa": {
       "RSI": {
-        "7": 76.1,
-        "10": 74.99,
-        "14": 74.75
+        "7": 76.61,
+        "10": 75.38,
+        "14": 75.03
       },
       "MACD": {
-        "value": 7.1674,
-        "signal": 7.19,
-        "histogram": -0.0226
+        "value": 7.1965,
+        "signal": 7.1958,
+        "histogram": 0.0007
       },
       "VWAP": {
-        "day": 178.2879,
-        "minute": 179.1299
+        "day": 178.53,
+        "minute": 178.4552
       },
       "EMA": {
-        "5": 175.86,
-        "10": 173.26,
-        "20": 168.11,
-        "50": 154.76,
-        "200": 132.66
+        "5": 175.98,
+        "10": 173.33,
+        "20": 168.15,
+        "50": 154.77,
+        "200": 132.67
       },
       "SMA": {
-        "5": 175.73,
-        "10": 173.33,
-        "20": 168.31,
+        "5": 175.8,
+        "10": 173.36,
+        "20": 168.32,
         "50": 152.88,
         "200": 134.38
       }
@@ -1128,64 +940,64 @@ _[Any architectural decisions or patterns that must be followed]_
     "aiKeyTakeaways": {
       "momentum": {
         "sentiment": "strong",
-        "takeaway": "Momentum is strong, indicated by a high RSI of 74.5, although the MACD shows a bearish crossover with a negative histogram (-0.04), suggesting potential for a short-term pullback."
+        "takeaway": "Momentum is strong, evidenced by high RSI values (14-day RSI at 75.12) indicating overbought conditions, and a slightly positive MACD histogram, suggesting continued upward pressure."
       },
       "patterns": {
-        "sentiment": "neutral",
-        "takeaway": "No distinct chart patterns are evident; the stock is in a strong upward trajectory, approaching the second resistance level at $181."
+        "sentiment": "bullish",
+        "takeaway": "The stock is trading above the pivot point ($176.64) and the first resistance ($178.25), suggesting a bullish continuation pattern is currently in play."
       },
       "priceAction": {
         "sentiment": "bullish",
-        "takeaway": "The stock is trading above the day's Volume Weighted Average Price ($178.18) and has surpassed the first resistance level ($178.25), indicating strong upward price action."
+        "takeaway": "NVDA is trading above the day's VWAP ($178.54) and has broken through the first resistance level ($178.25), indicating strong bullish price action."
       },
       "trend": {
-        "sentiment": "bullish",
-        "takeaway": "The stock is in a strong bullish trend, with the current price trading significantly above all short-term and long-term moving averages (5, 10, 20, 50, 200-day EMAs and SMAs)."
+        "sentiment": "strong",
+        "takeaway": "The stock is in a strong uptrend, trading well above all key short-term and long-term moving averages (5, 10, 20, 50, 200 EMA/SMA)."
       },
       "volatility": {
         "sentiment": "moderate",
-        "takeaway": "Volatility is moderate, with the stock exhibiting a notable upward price movement of 1.97% today after a slight decline yesterday, suggesting active trading interest."
+        "takeaway": "Volatility is moderate, with NVDA experiencing a notable 2.17% increase today within a daily range of $3.85, suggesting positive market sentiment and active trading."
       }
     },
     "aiOptionsAnalysis": {
       "callWalls": [
         {
-          "openInterest": 61910,
+          "openInterest": 34899,
           "strike": 180,
           "type": "call",
-          "volume": 13422
+          "volume": 41023
         },
         {
-          "openInterest": 50678,
-          "strike": 170,
-          "type": "call",
-          "volume": 6716
-        },
-        {
-          "openInterest": 50157,
+          "openInterest": 32212,
           "strike": 175,
           "type": "call",
-          "volume": 7093
+          "volume": 21203
+        },
+        {
+          "openInterest": 23446,
+          "strike": 182.5,
+          "type": "call",
+          "volume": 12242
         }
       ],
       "putWalls": [
         {
-          "openInterest": 44920,
-          "strike": 160,
-          "type": "put",
-          "volume": 3976
-        },
-        {
-          "openInterest": 38169,
-          "strike": 165,
-          "type": "put",
-          "volume": 2889
-        },
-        {
-          "openInterest": 10809,
+          "openInterest": 29707,
           "strike": 175,
           "type": "put",
-          "volume": 10446
+          "volume": 12431
+        },
+        {
+          "openInterest": 12333,
+          "strike": 170,
+          "type": "put",
+          "volume": 15385
+        },
+        {
+          "openInterest": 10941,
+          "strike": 165,
+          "type": "put",
+          "volume": 4376
         }
       ]
     }
@@ -1193,27 +1005,269 @@ _[Any architectural decisions or patterns that must be followed]_
 }
 
 
+###
+
+Console output:
+2025-07-30T18:55:29Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Starting stock data fetch... {
+2025-07-30T18:55:29Z [web]   ticker: 'NVDA',
+2025-07-30T18:55:29Z [web]   expirationDate: '2025-08-08',
+2025-07-30T18:55:29Z [web]   optionType: 'both',
+2025-07-30T18:55:29Z [web]   strikeCount: 20
+2025-07-30T18:55:29Z [web] }
+2025-07-30T18:55:29Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] API Request Parameters: {
+2025-07-30T18:55:29Z [web]   ticker: 'NVDA',
+2025-07-30T18:55:29Z [web]   expirationDate: '2025-08-08',
+2025-07-30T18:55:29Z [web]   optionType: 'both',
+2025-07-30T18:55:29Z [web]   strikeCount: 20,
+2025-07-30T18:55:29Z [web]   hasExpirationDate: true
+2025-07-30T18:55:29Z [web] }
+2025-07-30T18:55:29Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Calling polygon adapter...
+2025-07-30T18:55:33Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Adapter response received
+2025-07-30T18:55:33Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Expiration Date Tracking: {
+2025-07-30T18:55:33Z [web]   requested: '2025-08-08',
+2025-07-30T18:55:33Z [web]   received: '2025-08-08',
+2025-07-30T18:55:33Z [web]   match: true,
+2025-07-30T18:55:33Z [web]   hasOptionsChain: true
+2025-07-30T18:55:33Z [web] }
+2025-07-30T18:55:33Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Data processing complete: {
+2025-07-30T18:55:33Z [web]   hasMarketStatus: true,
+2025-07-30T18:55:33Z [web]   hasStockSnapshot: true,
+2025-07-30T18:55:33Z [web]   hasTechnicalIndicators: true,
+2025-07-30T18:55:33Z [web]   hasOptionsChain: true,
+2025-07-30T18:55:33Z [web]   optionsChainSize: 0,
+2025-07-30T18:55:33Z [web]   requestedExpiration: '2025-08-08',
+2025-07-30T18:55:33Z [web]   finalExpiration: '2025-08-08',
+2025-07-30T18:55:33Z [web]   expirationMatch: true,
+2025-07-30T18:55:33Z [web]   dataIntegrityCheck: 'PASSED'
+2025-07-30T18:55:33Z [web] }
+2025-07-30T18:55:33Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] SUCCESS - Stock data fetch completed {
+2025-07-30T18:55:33Z [web]   ticker: 'NVDA',
+2025-07-30T18:55:33Z [web]   finalExpiration: '2025-08-08',
+2025-07-30T18:55:33Z [web]   dataPackagesGenerated: {
+2025-07-30T18:55:33Z [web]     marketStatus: true,
+2025-07-30T18:55:33Z [web]     stockSnapshot: true,
+2025-07-30T18:55:33Z [web]     technicalAnalysis: true,
+2025-07-30T18:55:33Z [web]     optionsChain: true
+2025-07-30T18:55:33Z [web]   }
+2025-07-30T18:55:33Z [web] }
+2025-07-30T18:55:33Z [web]  POST /?monospaceUid=545192 200 in 4975ms
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Starting technical analysis... { hasStockSnapshot: true, dataSize: 574 }
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Parsing stock snapshot data...
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Stock snapshot parsed successfully
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Validating previous day data...
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Prepared flow input: {
+2025-07-30T18:55:34Z [web]   previousDayHigh: 179.38,
+2025-07-30T18:55:34Z [web]   previousDayLow: 175.02,
+2025-07-30T18:55:34Z [web]   previousDayClose: 175.51
+2025-07-30T18:55:34Z [web] }
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Calling AI flow for technical analysis...
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T18:55:34Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] SUCCESS - Technical analysis completed
+2025-07-30T18:55:34Z [web]  POST /?monospaceUid=545192 200 in 254ms
+2025-07-30T18:57:05Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Starting AI key takeaways analysis... {
+2025-07-30T18:57:05Z [web]   ticker: 'NVDA',
+2025-07-30T18:57:05Z [web]   hasStockSnapshot: true,
+2025-07-30T18:57:05Z [web]   hasStandardTas: true,
+2025-07-30T18:57:05Z [web]   hasAiAnalyzedTa: true,
+2025-07-30T18:57:05Z [web]   hasMarketStatus: true
+2025-07-30T18:57:05Z [web] }
+2025-07-30T18:57:05Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Prepared flow input for AI analysis
+2025-07-30T18:57:05Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Calling AI flow for key takeaways generation...
+2025-07-30T18:57:14Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T18:57:14Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] SUCCESS - AI key takeaways analysis completed
+2025-07-30T18:57:14Z [web]  POST /?monospaceUid=545192 200 in 9252ms
+2025-07-30T18:57:15Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Starting AI options analysis... { ticker: 'NVDA', hasOptionsChain: true, hasStockSnapshot: true }
+2025-07-30T18:57:15Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Validating input data...
+2025-07-30T18:57:15Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Calling AI flow for options analysis...
+2025-07-30T18:57:24Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T18:57:24Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] SUCCESS - AI options analysis completed
+2025-07-30T18:57:24Z [web]  POST /?monospaceUid=545192 200 in 8259ms
+2025-07-30T19:00:27Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
+2025-07-30T19:00:27Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:00:27Z [web] [getAppDataPrompt] Loading definition for promptName: stock-trader-takeaways, file: stock-trader-takeaways
+2025-07-30T19:00:27Z [web] [getAppDataPrompt] Successfully cached prompt for: stock-trader-takeaways
+2025-07-30T19:00:27Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
+2025-07-30T19:00:30Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
+2025-07-30T19:00:30Z [web]  POST /?monospaceUid=545192 200 in 3269ms
+2025-07-30T19:00:33Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
+2025-07-30T19:00:33Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:00:33Z [web] [getAppDataPrompt] Loading definition for promptName: options-trader-takeaways, file: options-trader-takeaways
+2025-07-30T19:00:33Z [web] [getAppDataPrompt] Successfully cached prompt for: options-trader-takeaways
+2025-07-30T19:00:33Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
+2025-07-30T19:00:38Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Successfully generated response
+2025-07-30T19:00:38Z [web]  POST /?monospaceUid=545192 200 in 4741ms
+2025-07-30T19:01:26Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Starting unified chat request
+2025-07-30T19:01:26Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:01:26Z [web] [getAppDataPrompt] Loading definition for promptName: holistic-takeaways, file: holistic-takeaways
+2025-07-30T19:01:26Z [web] [getAppDataPrompt] Successfully cached prompt for: holistic-takeaways
+2025-07-30T19:01:26Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
+2025-07-30T19:01:34Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Successfully generated response
+2025-07-30T19:01:34Z [web]  POST /?monospaceUid=545192 200 in 7567ms
+2025-07-30T19:01:36Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
+2025-07-30T19:01:36Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:01:36Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
+2025-07-30T19:01:50Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Successfully generated response
+2025-07-30T19:01:50Z [web]  POST /?monospaceUid=545192 200 in 13829ms
+2025-07-30T19:02:27Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
+2025-07-30T19:02:27Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:02:27Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
+2025-07-30T19:02:30Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
+2025-07-30T19:02:30Z [web]  POST /?monospaceUid=545192 200 in 3394ms
+2025-07-30T19:02:33Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Starting unified chat request
+2025-07-30T19:02:33Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:02:33Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
+2025-07-30T19:02:37Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Successfully generated response
+2025-07-30T19:02:37Z [web]  POST /?monospaceUid=545192 200 in 4663ms
+2025-07-30T19:03:31Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Starting unified chat request
+2025-07-30T19:03:31Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:03:31Z [web] [getAppDataPrompt] Loading definition for promptName: general, file: app-data-chatbot
+2025-07-30T19:03:31Z [web] [getAppDataPrompt] Successfully cached prompt for: general
+2025-07-30T19:03:31Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Generating content with webSearch: false
+2025-07-30T19:03:32Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Successfully generated response
+2025-07-30T19:03:32Z [web]  POST /?monospaceUid=545192 200 in 750ms
+2025-07-30T19:03:40Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Starting unified chat request
+2025-07-30T19:03:40Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:03:40Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Generating content with webSearch: true
+2025-07-30T19:03:50Z [web] [ServerAction:nvdaConsolidatedChatAction:user_input] Successfully generated response
+2025-07-30T19:03:50Z [web]  POST /?monospaceUid=545192 200 in 9865ms
+2025-07-30T19:04:03Z [web]  POST /?monospaceUid=545192 200 in 1595ms
+2025-07-30T19:04:05Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Starting stock data fetch... {
+2025-07-30T19:04:05Z [web]   ticker: 'NVDA',
+2025-07-30T19:04:05Z [web]   expirationDate: '2025-08-08',
+2025-07-30T19:04:05Z [web]   optionType: 'both',
+2025-07-30T19:04:05Z [web]   strikeCount: 20
+2025-07-30T19:04:05Z [web] }
+2025-07-30T19:04:05Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] API Request Parameters: {
+2025-07-30T19:04:05Z [web]   ticker: 'NVDA',
+2025-07-30T19:04:05Z [web]   expirationDate: '2025-08-08',
+2025-07-30T19:04:05Z [web]   optionType: 'both',
+2025-07-30T19:04:05Z [web]   strikeCount: 20,
+2025-07-30T19:04:05Z [web]   hasExpirationDate: true
+2025-07-30T19:04:05Z [web] }
+2025-07-30T19:04:05Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Calling polygon adapter...
+2025-07-30T19:04:10Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Adapter response received
+2025-07-30T19:04:10Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Expiration Date Tracking: {
+2025-07-30T19:04:10Z [web]   requested: '2025-08-08',
+2025-07-30T19:04:10Z [web]   received: '2025-08-08',
+2025-07-30T19:04:10Z [web]   match: true,
+2025-07-30T19:04:10Z [web]   hasOptionsChain: true
+2025-07-30T19:04:10Z [web] }
+2025-07-30T19:04:10Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Data processing complete: {
+2025-07-30T19:04:10Z [web]   hasMarketStatus: true,
+2025-07-30T19:04:10Z [web]   hasStockSnapshot: true,
+2025-07-30T19:04:10Z [web]   hasTechnicalIndicators: true,
+2025-07-30T19:04:10Z [web]   hasOptionsChain: true,
+2025-07-30T19:04:10Z [web]   optionsChainSize: 0,
+2025-07-30T19:04:10Z [web]   requestedExpiration: '2025-08-08',
+2025-07-30T19:04:10Z [web]   finalExpiration: '2025-08-08',
+2025-07-30T19:04:10Z [web]   expirationMatch: true,
+2025-07-30T19:04:10Z [web]   dataIntegrityCheck: 'PASSED'
+2025-07-30T19:04:10Z [web] }
+2025-07-30T19:04:10Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] SUCCESS - Stock data fetch completed {
+2025-07-30T19:04:10Z [web]   ticker: 'NVDA',
+2025-07-30T19:04:10Z [web]   finalExpiration: '2025-08-08',
+2025-07-30T19:04:10Z [web]   dataPackagesGenerated: {
+2025-07-30T19:04:10Z [web]     marketStatus: true,
+2025-07-30T19:04:10Z [web]     stockSnapshot: true,
+2025-07-30T19:04:10Z [web]     technicalAnalysis: true,
+2025-07-30T19:04:10Z [web]     optionsChain: true
+2025-07-30T19:04:10Z [web]   }
+2025-07-30T19:04:10Z [web] }
+2025-07-30T19:04:10Z [web]  POST /?monospaceUid=545192 200 in 4970ms
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Starting technical analysis... { hasStockSnapshot: true, dataSize: 573 }
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Parsing stock snapshot data...
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Stock snapshot parsed successfully
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Validating previous day data...
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Prepared flow input: {
+2025-07-30T19:04:10Z [web]   previousDayHigh: 179.38,
+2025-07-30T19:04:10Z [web]   previousDayLow: 175.02,
+2025-07-30T19:04:10Z [web]   previousDayClose: 175.51
+2025-07-30T19:04:10Z [web] }
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Calling AI flow for technical analysis...
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T19:04:10Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] SUCCESS - Technical analysis completed
+2025-07-30T19:04:10Z [web]  POST /?monospaceUid=545192 200 in 133ms
+2025-07-30T19:04:12Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Starting AI key takeaways analysis... {
+2025-07-30T19:04:12Z [web]   ticker: 'NVDA',
+2025-07-30T19:04:12Z [web]   hasStockSnapshot: true,
+2025-07-30T19:04:12Z [web]   hasStandardTas: true,
+2025-07-30T19:04:12Z [web]   hasAiAnalyzedTa: true,
+2025-07-30T19:04:12Z [web]   hasMarketStatus: true
+2025-07-30T19:04:12Z [web] }
+2025-07-30T19:04:12Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Prepared flow input for AI analysis
+2025-07-30T19:04:12Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Calling AI flow for key takeaways generation...
+2025-07-30T19:04:20Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T19:04:20Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] SUCCESS - AI key takeaways analysis completed
+2025-07-30T19:04:20Z [web]  POST /?monospaceUid=545192 200 in 8499ms
+2025-07-30T19:04:21Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Starting AI options analysis... { ticker: 'NVDA', hasOptionsChain: true, hasStockSnapshot: true }
+2025-07-30T19:04:21Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Validating input data...
+2025-07-30T19:04:21Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Calling AI flow for options analysis...
+2025-07-30T19:04:31Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] AI flow completed successfully
+2025-07-30T19:04:31Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] SUCCESS - AI options analysis completed
+2025-07-30T19:04:31Z [web]  POST /?monospaceUid=545192 200 in 9959ms
+2025-07-30T19:04:53Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
+2025-07-30T19:04:53Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:04:53Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
+2025-07-30T19:04:55Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
+2025-07-30T19:04:55Z [web]  POST /?monospaceUid=545192 200 in 2209ms
+2025-07-30T19:04:59Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
+2025-07-30T19:04:59Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:04:59Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
+2025-07-30T19:05:02Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Successfully generated response
+2025-07-30T19:05:02Z [web]  POST /?monospaceUid=545192 200 in 3234ms
+2025-07-30T19:05:06Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Starting unified chat request
+2025-07-30T19:05:06Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:05:06Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
+2025-07-30T19:05:10Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Successfully generated response
+2025-07-30T19:05:10Z [web]  POST /?monospaceUid=545192 200 in 3745ms
+2025-07-30T19:05:15Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
+2025-07-30T19:05:15Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:05:15Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
+2025-07-30T19:05:18Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Successfully generated response
+2025-07-30T19:05:18Z [web]  POST /?monospaceUid=545192 200 in 4055ms
+2025-07-30T19:05:22Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
+2025-07-30T19:05:22Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:05:22Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
+2025-07-30T19:05:24Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
+2025-07-30T19:05:24Z [web]  POST /?monospaceUid=545192 200 in 2390ms
+2025-07-30T19:05:31Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Starting unified chat request
+2025-07-30T19:05:31Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
+2025-07-30T19:05:31Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
+2025-07-30T19:05:35Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Successfully generated response
+2025-07-30T19:05:35Z [web]  POST /?monospaceUid=545192 200 in 4291ms
+
 
 ###
 
-
+Web Console Output:
 
 
 [Fast Refresh] rebuilding 
-[Fast Refresh] done in 371ms 
+[Fast Refresh] done in 816ms 
 [NVDA:NVDA-Tab:UserAction:FetchExpirations] Starting expiration fetch... 
 {ticker: "NVDA"}
+[NVDA:NVDA-Tab:State:FetchExpirations] Clearing previous expiration selection to prevent contamination 
+{previousSelection: "", context: "Step1_StateCleanup_PreFetch"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_LOADING", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_LOADING", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: ""}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: ""}
 [NVDA:NVDA-Tab:DataFetch:FetchExpirations] Expirations received 
 {count: 20}
 [NVDA:NVDA-Tab:UserAction:FetchExpirations] Next available date determined 
 {date: "2025-08-01"}
-[NVDA:NVDA-Tab:UserAction:FetchExpirations] Completed successfully 
+[NVDA:NVDA-Tab:State:FetchExpirations] Setting default expiration date for macro automation 
+{selectedExpiration: "2025-08-01", availableCount: 20, isDefaultSelection: true, context: "Step1_FetchExpirations_DefaultSelection"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_EXPIRATION_DATES", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:ExpirationDates] Setting expiration dates 
@@ -1230,25 +1284,33 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
 {expiration: "2025-08-01"}
+[NVDA:NVDA-Tab:State:FetchExpirations] State update committed - ready for Step 2 
+{finalSelectedExpiration: "2025-08-01", context: "Step1_StateCommit_Complete"}
+[NVDA:NVDA-Tab:UserAction:FetchExpirations] Completed successfully with state cleanup 
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_IDLE", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> IDLE 
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_IDLE", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> IDLE 
-[NVDA:NVDA-Tab:UserAction:ExpirationChange] Expiration date changed 
-{from: "2025-08-01", to: "2025-08-15"}
+[NVDA:NVDA-Tab:UserAction:ExpirationChange] Expiration date manually changed by user 
+{from: "2025-08-01", to: "2025-08-08", changeType: "manual_user_selection", context: "UI_ExpirationDropdown_Change"}
+[NVDA:NVDA-Tab:State:ExpirationChange] State updated with new expiration 
+{newSelectedExpiration: "2025-08-08", context: "Post_Manual_Selection"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_SELECTED_EXPIRATION", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
-{expiration: "2025-08-15"}
+{expiration: "2025-08-08"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_SELECTED_EXPIRATION", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
-{expiration: "2025-08-15"}
-[NVDA:NVDA-Tab:UserAction:GetStockData] Starting stock data fetch... 
-{ticker: "NVDA", expiration: "2025-08-15", optionType: "both", strikeCount: 20}
-[NVDA:NVDA-Tab:ServerAction:GetStockData] Step 1: Fetching stock data... 
+{expiration: "2025-08-08"}
+[NVDA:NVDA-Tab:UserAction:GetStockData] Starting stock data fetch - Step 2 of macro automation 
+{ticker: "NVDA", selectedExpiration: "2025-08-08", optionType: "both", strikeCount: 20, context: "Step2_GetStockData_PreExecution"}
+[NVDA:NVDA-Tab:State:GetStockData] Final expiration validation before API call 
+{finalExpiration: "2025-08-08", fromState: "2025-08-08", fromRecovery: undefined, isValid: true, context: "Step2_FinalValidation_PreAPI"}
+[NVDA:NVDA-Tab:ServerAction:GetStockData] Step 1: About to call fetchStockDataAction 
+{ticker: "NVDA", expirationDate: "2025-08-08", optionType: "both", strikeCount: 20, context: "Step2_GetStockData_API_Call"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_LOADING", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
@@ -1263,10 +1325,12 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_DATA_RETRIEVAL_COMPLETE", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:DataRetrieval] Setting data retrieval complete 
 {complete: false}
-[NVDA:NVDA-Tab:DataFetch:GetStockData] Step 1: Stock data received 
+[NVDA:NVDA-Tab:DataFetch:GetStockData] Step 1: Stock data received - expiration validation 
+{requestedExpiration: "2025-08-08", receivedExpiration: "2025-08-08", expirationMatch: true, hasOptionsChain: true, context: "Step2_GetStockData_Response_Validation"}
 [NVDA:NVDA-Tab:ServerAction:GetStockData] Step 2: Fetching technical analysis... 
 [NVDA:NVDA-Tab:DataFetch:GetStockData] Step 2: Technical analysis received 
-[NVDA:NVDA-Tab:State:GetStockData] Step 3: Updating state with stock data 
+[NVDA:NVDA-Tab:State:GetStockData] Step 3: About to update state with received data 
+{requestedExpiration: "2025-08-08", receivedExpiration: "2025-08-08", dataIntegrityCheck: "PASSED", context: "Step2_GetStockData_State_Update"}
 [NVDA:NVDA-Tab:DataFetch:GetStockData] Step 4: Setting options chain data 
 {hasData: true, strikeCount: 0, callCount: 0, putCount: 0}
 [NVDA:NVDA-Tab:State:GetStockData] Step 5: Marking data retrieval complete 
@@ -1441,19 +1505,64 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_AI_CHAT_RAW_DATA", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
 {promptName: "options-flow-web-search", webSearchEnabled: true, isUserInput: false, hasData: true}
+[NVDA:Chat:Submit] Starting chat submission... 
+{promptName: undefined, hasCustomInput: false, webSearchMode: "app-data", effectiveWebSearchEnabled: false, hasAnyData: true…}
+[NVDA:Chat:Submit] User message added to history 
+[NVDA:Chat:Submit] Submitting to server action... 
+{effectiveWebSearchEnabled: false, hasAppData: true, historyLength: 12}
+[NVDA:Chat:Debug] Storing raw debug data: 
+{promptName: undefined, webSearchEnabled: false, isUserInput: true, hasRawData: true}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_AI_CHAT_RAW_DATA", previousStatus: "idle"}
+[NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
+{promptName: "user-input", webSearchEnabled: false, isUserInput: true, hasData: true}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_AI_CHAT_RAW_DATA", previousStatus: "idle"}
+[NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
+{promptName: "user-input", webSearchEnabled: false, isUserInput: true, hasData: true}
+[NVDA:Chat:Submit] Starting chat submission... 
+{promptName: undefined, hasCustomInput: false, webSearchMode: "web-search", effectiveWebSearchEnabled: true, hasAnyData: true…}
+[NVDA:Chat:Submit] User message added to history 
+[NVDA:Chat:Submit] Submitting to server action... 
+{effectiveWebSearchEnabled: true, hasAppData: false, historyLength: 14}
+[NVDA:Chat:Debug] Storing raw debug data: 
+{promptName: undefined, webSearchEnabled: true, isUserInput: true, hasRawData: true}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_AI_CHAT_RAW_DATA", previousStatus: "idle"}
+[NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
+{promptName: "user-input", webSearchEnabled: true, isUserInput: true, hasData: true}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_AI_CHAT_RAW_DATA", previousStatus: "idle"}
+[NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
+{promptName: "user-input", webSearchEnabled: true, isUserInput: true, hasData: true}
+[NVDA:MacroOrchestrator:UserAction:Start] Beginning 4-step automation workflow... 
+{totalSteps: 4, stepNames: Array(4)}
+[NVDA:MacroOrchestrator:UserAction:Step1] Starting: Fetch Expirations 
+{stepId: 1, stepName: "Fetch Expirations", stepDescription: "Fetching available expiration dates", completedSteps: 0, totalSteps: 4}
 [NVDA:NVDA-Tab:UserAction:FetchExpirations] Starting expiration fetch... 
 {ticker: "NVDA"}
+[NVDA:NVDA-Tab:State:FetchExpirations] Clearing previous expiration selection to prevent contamination 
+{previousSelection: "2025-08-08", context: "Step1_StateCleanup_PreFetch"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_LOADING", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_LOADING", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: ""}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: ""}
 [NVDA:NVDA-Tab:DataFetch:FetchExpirations] Expirations received 
 {count: 20}
 [NVDA:NVDA-Tab:UserAction:FetchExpirations] Next available date determined 
 {date: "2025-08-01"}
-[NVDA:NVDA-Tab:UserAction:FetchExpirations] Completed successfully 
+[NVDA:NVDA-Tab:State:FetchExpirations] Setting default expiration date for macro automation 
+{selectedExpiration: "2025-08-01", availableCount: 20, isDefaultSelection: true, context: "Step1_FetchExpirations_DefaultSelection"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_EXPIRATION_DATES", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:ExpirationDates] Setting expiration dates 
@@ -1470,15 +1579,25 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
 {expiration: "2025-08-01"}
+[NVDA:NVDA-Tab:State:FetchExpirations] State update committed - ready for Step 2 
+{finalSelectedExpiration: "2025-08-01", context: "Step1_StateCommit_Complete"}
+[NVDA:NVDA-Tab:UserAction:FetchExpirations] Completed successfully with state cleanup 
+[NVDA:MacroOrchestrator:UserAction:Step1] Completed: Fetch Expirations 
+{stepId: 1, stepName: "Fetch Expirations", completedSteps: 1, totalSteps: 4, progress: "1/4"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_IDLE", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> IDLE 
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_IDLE", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> IDLE 
-[NVDA:NVDA-Tab:UserAction:GetStockData] Starting stock data fetch... 
-{ticker: "NVDA", expiration: "2025-08-15", optionType: "both", strikeCount: 20}
-[NVDA:NVDA-Tab:ServerAction:GetStockData] Step 1: Fetching stock data... 
+[NVDA:MacroOrchestrator:UserAction:Step2] Starting: Get Stock Data 
+{stepId: 2, stepName: "Get Stock Data", stepDescription: "Retrieving stock data and options chain", completedSteps: 1, totalSteps: 4}
+[NVDA:NVDA-Tab:UserAction:GetStockData] Starting stock data fetch - Step 2 of macro automation 
+{ticker: "NVDA", selectedExpiration: "2025-08-08", optionType: "both", strikeCount: 20, context: "Step2_GetStockData_PreExecution"}
+[NVDA:NVDA-Tab:State:GetStockData] Final expiration validation before API call 
+{finalExpiration: "2025-08-08", fromState: "2025-08-08", fromRecovery: undefined, isValid: true, context: "Step2_FinalValidation_PreAPI"}
+[NVDA:NVDA-Tab:ServerAction:GetStockData] Step 1: About to call fetchStockDataAction 
+{ticker: "NVDA", expirationDate: "2025-08-08", optionType: "both", strikeCount: 20, context: "Step2_GetStockData_API_Call"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_LOADING", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
@@ -1493,14 +1612,18 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_DATA_RETRIEVAL_COMPLETE", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:DataRetrieval] Setting data retrieval complete 
 {complete: false}
-[NVDA:NVDA-Tab:DataFetch:GetStockData] Step 1: Stock data received 
+[NVDA:NVDA-Tab:DataFetch:GetStockData] Step 1: Stock data received - expiration validation 
+{requestedExpiration: "2025-08-08", receivedExpiration: "2025-08-08", expirationMatch: true, hasOptionsChain: true, context: "Step2_GetStockData_Response_Validation"}
 [NVDA:NVDA-Tab:ServerAction:GetStockData] Step 2: Fetching technical analysis... 
 [NVDA:NVDA-Tab:DataFetch:GetStockData] Step 2: Technical analysis received 
-[NVDA:NVDA-Tab:State:GetStockData] Step 3: Updating state with stock data 
+[NVDA:NVDA-Tab:State:GetStockData] Step 3: About to update state with received data 
+{requestedExpiration: "2025-08-08", receivedExpiration: "2025-08-08", dataIntegrityCheck: "PASSED", context: "Step2_GetStockData_State_Update"}
 [NVDA:NVDA-Tab:DataFetch:GetStockData] Step 4: Setting options chain data 
 {hasData: true, strikeCount: 0, callCount: 0, putCount: 0}
 [NVDA:NVDA-Tab:State:GetStockData] Step 5: Marking data retrieval complete 
 [NVDA:NVDA-Tab:UserAction:GetStockData] Completed successfully 
+[NVDA:MacroOrchestrator:UserAction:Step2] Completed: Get Stock Data 
+{stepId: 2, stepName: "Get Stock Data", completedSteps: 2, totalSteps: 4, progress: "2/4"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_STOCK_DATA", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:StockData] Setting stock data 
@@ -1531,6 +1654,8 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_IDLE", previousStatus: "loading"}
 [NVDA:NVDA-Tab:State:FSM] Transition -> IDLE 
+[NVDA:MacroOrchestrator:UserAction:Step3] Starting: AI Key Takeaways 
+{stepId: 3, stepName: "AI Key Takeaways", stepDescription: "Generating AI analysis insights", completedSteps: 2, totalSteps: 4}
 [NVDA:NVDA-Tab:UserAction:AIKeyTakeaways] Starting AI key takeaways generation... 
 {ticker: "NVDA", hasStockData: true, hasStandardTA: true, hasAITA: true, hasMarketStatus: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1542,6 +1667,8 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:AIKeyTakeaways] Setting loading state 
 {loading: true}
 [NVDA:NVDA-Tab:AIFlow:AIKeyTakeaways] AI analysis completed successfully 
+[NVDA:MacroOrchestrator:UserAction:Step3] Completed: AI Key Takeaways 
+{stepId: 3, stepName: "AI Key Takeaways", completedSteps: 3, totalSteps: 4, progress: "3/4"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_AI_KEY_TAKEAWAYS", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:AIKeyTakeaways] Setting AI key takeaways 
@@ -1550,6 +1677,8 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_AI_KEY_TAKEAWAYS", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:AIKeyTakeaways] Setting AI key takeaways 
 {hasData: true}
+[NVDA:MacroOrchestrator:UserAction:Step4] Starting: AI Options Analysis 
+{stepId: 4, stepName: "AI Options Analysis", stepDescription: "Analyzing options strategies with AI", completedSteps: 3, totalSteps: 4}
 [NVDA:NVDA-Tab:UserAction:AIOptionsAnalysis] Starting AI options analysis... 
 {ticker: "NVDA", hasStockData: true, hasOptionsChain: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1561,6 +1690,8 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:AIOptionsAnalysis] Setting loading state 
 {loading: true}
 [NVDA:NVDA-Tab:AIFlow:AIOptionsAnalysis] AI options analysis completed successfully 
+[NVDA:MacroOrchestrator:UserAction:Step4] Completed: AI Options Analysis 
+{stepId: 4, stepName: "AI Options Analysis", completedSteps: 4, totalSteps: 4, progress: "4/4"}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
 {type: "SET_AI_OPTIONS_ANALYSIS", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:AIOptionsAnalysis] Setting AI options analysis 
@@ -1569,13 +1700,15 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_AI_OPTIONS_ANALYSIS", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:AIOptionsAnalysis] Setting AI options analysis 
 {hasData: true}
+[NVDA:MacroOrchestrator:UserAction:Complete] All 4 steps completed successfully 
+{completedSteps: 4, totalSteps: 4, duration: "0s", successRate: "4/4", stepResults: Array(4)}
 [NVDA:Chat:ButtonPrompt] Button clicked: 
-{title: "Stock Trader's Takeaways", promptName: "stock-trader-takeaways", webSearchEnabled: false, currentMode: "app-data", hasStockData: true…}
+{title: "Stock Trader's Takeaways", promptName: "stock-trader-takeaways", webSearchEnabled: false, currentMode: "web-search", hasStockData: true…}
 [NVDA:Chat:Submit] Starting chat submission... 
-{promptName: "stock-trader-takeaways", hasCustomInput: true, webSearchMode: "app-data", effectiveWebSearchEnabled: false, hasAnyData: true…}
+{promptName: "stock-trader-takeaways", hasCustomInput: true, webSearchMode: "web-search", effectiveWebSearchEnabled: false, hasAnyData: true…}
 [NVDA:Chat:Submit] User message added to history 
 [NVDA:Chat:Submit] Submitting to server action... 
-{effectiveWebSearchEnabled: false, hasAppData: true, historyLength: 12}
+{effectiveWebSearchEnabled: false, hasAppData: true, historyLength: 16}
 [NVDA:Chat:Debug] Storing raw debug data: 
 {promptName: "stock-trader-takeaways", webSearchEnabled: false, isUserInput: false, hasRawData: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1587,12 +1720,12 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
 {promptName: "stock-trader-takeaways", webSearchEnabled: false, isUserInput: false, hasData: true}
 [NVDA:Chat:ButtonPrompt] Button clicked: 
-{title: "Options Trader's Takeaways", promptName: "options-trader-takeaways", webSearchEnabled: false, currentMode: "app-data", hasStockData: true…}
+{title: "Options Trader's Takeaways", promptName: "options-trader-takeaways", webSearchEnabled: false, currentMode: "web-search", hasStockData: true…}
 [NVDA:Chat:Submit] Starting chat submission... 
-{promptName: "options-trader-takeaways", hasCustomInput: true, webSearchMode: "app-data", effectiveWebSearchEnabled: false, hasAnyData: true…}
+{promptName: "options-trader-takeaways", hasCustomInput: true, webSearchMode: "web-search", effectiveWebSearchEnabled: false, hasAnyData: true…}
 [NVDA:Chat:Submit] User message added to history 
 [NVDA:Chat:Submit] Submitting to server action... 
-{effectiveWebSearchEnabled: false, hasAppData: true, historyLength: 14}
+{effectiveWebSearchEnabled: false, hasAppData: true, historyLength: 18}
 [NVDA:Chat:Debug] Storing raw debug data: 
 {promptName: "options-trader-takeaways", webSearchEnabled: false, isUserInput: false, hasRawData: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1604,12 +1737,12 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
 {promptName: "options-trader-takeaways", webSearchEnabled: false, isUserInput: false, hasData: true}
 [NVDA:Chat:ButtonPrompt] Button clicked: 
-{title: "Additional Holistic Takeaways", promptName: "holistic-takeaways", webSearchEnabled: false, currentMode: "app-data", hasStockData: true…}
+{title: "Additional Holistic Takeaways", promptName: "holistic-takeaways", webSearchEnabled: false, currentMode: "web-search", hasStockData: true…}
 [NVDA:Chat:Submit] Starting chat submission... 
-{promptName: "holistic-takeaways", hasCustomInput: true, webSearchMode: "app-data", effectiveWebSearchEnabled: false, hasAnyData: true…}
+{promptName: "holistic-takeaways", hasCustomInput: true, webSearchMode: "web-search", effectiveWebSearchEnabled: false, hasAnyData: true…}
 [NVDA:Chat:Submit] User message added to history 
 [NVDA:Chat:Submit] Submitting to server action... 
-{effectiveWebSearchEnabled: false, hasAppData: true, historyLength: 16}
+{effectiveWebSearchEnabled: false, hasAppData: true, historyLength: 20}
 [NVDA:Chat:Debug] Storing raw debug data: 
 {promptName: "holistic-takeaways", webSearchEnabled: false, isUserInput: false, hasRawData: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1621,12 +1754,12 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
 {promptName: "holistic-takeaways", webSearchEnabled: false, isUserInput: false, hasData: true}
 [NVDA:Chat:ButtonPrompt] Button clicked: 
-{title: "S/R Levels Search", promptName: "support-resistance-web-search", webSearchEnabled: true, currentMode: "app-data", hasStockData: true…}
+{title: "S/R Levels Search", promptName: "support-resistance-web-search", webSearchEnabled: true, currentMode: "web-search", hasStockData: true…}
 [NVDA:Chat:Submit] Starting chat submission... 
-{promptName: "support-resistance-web-search", hasCustomInput: true, webSearchMode: "app-data", effectiveWebSearchEnabled: true, hasAnyData: true…}
+{promptName: "support-resistance-web-search", hasCustomInput: true, webSearchMode: "web-search", effectiveWebSearchEnabled: true, hasAnyData: true…}
 [NVDA:Chat:Submit] User message added to history 
 [NVDA:Chat:Submit] Submitting to server action... 
-{effectiveWebSearchEnabled: true, hasAppData: false, historyLength: 18}
+{effectiveWebSearchEnabled: true, hasAppData: false, historyLength: 22}
 [NVDA:Chat:Debug] Storing raw debug data: 
 {promptName: "support-resistance-web-search", webSearchEnabled: true, isUserInput: false, hasRawData: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1638,12 +1771,12 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
 {promptName: "support-resistance-web-search", webSearchEnabled: true, isUserInput: false, hasData: true}
 [NVDA:Chat:ButtonPrompt] Button clicked: 
-{title: "Technical Analysis Search", promptName: "technical-analysis-web-search", webSearchEnabled: true, currentMode: "app-data", hasStockData: true…}
+{title: "Technical Analysis Search", promptName: "technical-analysis-web-search", webSearchEnabled: true, currentMode: "web-search", hasStockData: true…}
 [NVDA:Chat:Submit] Starting chat submission... 
-{promptName: "technical-analysis-web-search", hasCustomInput: true, webSearchMode: "app-data", effectiveWebSearchEnabled: true, hasAnyData: true…}
+{promptName: "technical-analysis-web-search", hasCustomInput: true, webSearchMode: "web-search", effectiveWebSearchEnabled: true, hasAnyData: true…}
 [NVDA:Chat:Submit] User message added to history 
 [NVDA:Chat:Submit] Submitting to server action... 
-{effectiveWebSearchEnabled: true, hasAppData: false, historyLength: 20}
+{effectiveWebSearchEnabled: true, hasAppData: false, historyLength: 24}
 [NVDA:Chat:Debug] Storing raw debug data: 
 {promptName: "technical-analysis-web-search", webSearchEnabled: true, isUserInput: false, hasRawData: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1655,12 +1788,12 @@ _[Any architectural decisions or patterns that must be followed]_
 [NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
 {promptName: "technical-analysis-web-search", webSearchEnabled: true, isUserInput: false, hasData: true}
 [NVDA:Chat:ButtonPrompt] Button clicked: 
-{title: "Options Flow Search", promptName: "options-flow-web-search", webSearchEnabled: true, currentMode: "app-data", hasStockData: true…}
+{title: "Options Flow Search", promptName: "options-flow-web-search", webSearchEnabled: true, currentMode: "web-search", hasStockData: true…}
 [NVDA:Chat:Submit] Starting chat submission... 
-{promptName: "options-flow-web-search", hasCustomInput: true, webSearchMode: "app-data", effectiveWebSearchEnabled: true, hasAnyData: true…}
+{promptName: "options-flow-web-search", hasCustomInput: true, webSearchMode: "web-search", effectiveWebSearchEnabled: true, hasAnyData: true…}
 [NVDA:Chat:Submit] User message added to history 
 [NVDA:Chat:Submit] Submitting to server action... 
-{effectiveWebSearchEnabled: true, hasAppData: false, historyLength: 22}
+{effectiveWebSearchEnabled: true, hasAppData: false, historyLength: 26}
 [NVDA:Chat:Debug] Storing raw debug data: 
 {promptName: "options-flow-web-search", webSearchEnabled: true, isUserInput: false, hasRawData: true}
 [NVDA:NVDA-Tab:State:Reducer] Action dispatched 
@@ -1671,176 +1804,6 @@ _[Any architectural decisions or patterns that must be followed]_
 {type: "SET_AI_CHAT_RAW_DATA", previousStatus: "idle"}
 [NVDA:NVDA-Tab:State:AIChatData] Setting AI chat raw data 
 {promptName: "options-flow-web-search", webSearchEnabled: true, isUserInput: false, hasData: true}
-
-
-
-
-
-2025-07-30T16:45:38Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Starting stock data fetch... {
-2025-07-30T16:45:38Z [web]   ticker: 'NVDA',
-2025-07-30T16:45:38Z [web]   expirationDate: '2025-08-15',
-2025-07-30T16:45:38Z [web]   optionType: 'both',
-2025-07-30T16:45:38Z [web]   strikeCount: 20
-2025-07-30T16:45:38Z [web] }
-2025-07-30T16:45:38Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Calling polygon adapter...
-2025-07-30T16:45:42Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Adapter response received
-2025-07-30T16:45:42Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Data processing complete: {
-2025-07-30T16:45:42Z [web]   hasMarketStatus: true,
-2025-07-30T16:45:42Z [web]   hasStockSnapshot: true,
-2025-07-30T16:45:42Z [web]   hasTechnicalIndicators: true,
-2025-07-30T16:45:42Z [web]   hasOptionsChain: true,
-2025-07-30T16:45:42Z [web]   optionsChainSize: 0
-2025-07-30T16:45:42Z [web] }
-2025-07-30T16:45:42Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] SUCCESS - Stock data fetch completed
-2025-07-30T16:45:42Z [web]  POST /?monospaceUid=611336 200 in 4838ms
-2025-07-30T16:45:42Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Starting technical analysis... { hasStockSnapshot: true, dataSize: 574 }
-2025-07-30T16:45:42Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Parsing stock snapshot data...
-2025-07-30T16:45:42Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Stock snapshot parsed successfully
-2025-07-30T16:45:42Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Validating previous day data...
-2025-07-30T16:45:42Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Prepared flow input: {
-2025-07-30T16:45:42Z [web]   previousDayHigh: 179.38,
-2025-07-30T16:45:42Z [web]   previousDayLow: 175.02,
-2025-07-30T16:45:42Z [web]   previousDayClose: 175.51
-2025-07-30T16:45:42Z [web] }
-2025-07-30T16:45:42Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Calling AI flow for technical analysis...
-2025-07-30T16:45:43Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] AI flow completed successfully
-2025-07-30T16:45:43Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] SUCCESS - Technical analysis completed
-2025-07-30T16:45:43Z [web]  POST /?monospaceUid=611336 200 in 264ms
-2025-07-30T17:08:49Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Starting AI key takeaways analysis... {
-2025-07-30T17:08:49Z [web]   ticker: 'NVDA',
-2025-07-30T17:08:49Z [web]   hasStockSnapshot: true,
-2025-07-30T17:08:49Z [web]   hasStandardTas: true,
-2025-07-30T17:08:49Z [web]   hasAiAnalyzedTa: true,
-2025-07-30T17:08:49Z [web]   hasMarketStatus: true
-2025-07-30T17:08:49Z [web] }
-2025-07-30T17:08:49Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Prepared flow input for AI analysis
-2025-07-30T17:08:49Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Calling AI flow for key takeaways generation...
-2025-07-30T17:09:01Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] AI flow completed successfully
-2025-07-30T17:09:01Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] SUCCESS - AI key takeaways analysis completed
-2025-07-30T17:09:01Z [web]  POST /?monospaceUid=611336 200 in 11938ms
-2025-07-30T17:09:13Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Starting AI options analysis... { ticker: 'NVDA', hasOptionsChain: true, hasStockSnapshot: true }
-2025-07-30T17:09:13Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Validating input data...
-2025-07-30T17:09:13Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Calling AI flow for options analysis...
-2025-07-30T17:09:31Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] AI flow completed successfully
-2025-07-30T17:09:31Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] SUCCESS - AI options analysis completed
-2025-07-30T17:09:31Z [web]  POST /?monospaceUid=611336 200 in 18401ms
-2025-07-30T17:09:39Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
-2025-07-30T17:09:39Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:09:39Z [web] [getAppDataPrompt] Loading definition for promptName: stock-trader-takeaways, file: stock-trader-takeaways
-2025-07-30T17:09:39Z [web] [getAppDataPrompt] Successfully cached prompt for: stock-trader-takeaways
-2025-07-30T17:09:39Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
-2025-07-30T17:09:43Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
-2025-07-30T17:09:43Z [web]  POST /?monospaceUid=611336 200 in 4450ms
-2025-07-30T17:09:45Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
-2025-07-30T17:09:45Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:09:45Z [web] [getAppDataPrompt] Loading definition for promptName: options-trader-takeaways, file: options-trader-takeaways
-2025-07-30T17:09:45Z [web] [getAppDataPrompt] Successfully cached prompt for: options-trader-takeaways
-2025-07-30T17:09:45Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
-2025-07-30T17:09:49Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Successfully generated response
-2025-07-30T17:09:49Z [web]  POST /?monospaceUid=611336 200 in 4957ms
-2025-07-30T17:09:53Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Starting unified chat request
-2025-07-30T17:09:53Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:09:53Z [web] [getAppDataPrompt] Loading definition for promptName: holistic-takeaways, file: holistic-takeaways
-2025-07-30T17:09:53Z [web] [getAppDataPrompt] Successfully cached prompt for: holistic-takeaways
-2025-07-30T17:09:53Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
-2025-07-30T17:09:58Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Successfully generated response
-2025-07-30T17:09:58Z [web]  POST /?monospaceUid=611336 200 in 5680ms
-2025-07-30T17:10:00Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
-2025-07-30T17:10:00Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:10:00Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
-2025-07-30T17:10:13Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Successfully generated response
-2025-07-30T17:10:13Z [web]  POST /?monospaceUid=611336 200 in 13106ms
-2025-07-30T17:10:14Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
-2025-07-30T17:10:14Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:10:14Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
-2025-07-30T17:10:18Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
-2025-07-30T17:10:18Z [web]  POST /?monospaceUid=611336 200 in 3797ms
-2025-07-30T17:10:20Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Starting unified chat request
-2025-07-30T17:10:20Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:10:20Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
-2025-07-30T17:10:24Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Successfully generated response
-2025-07-30T17:10:24Z [web]  POST /?monospaceUid=611336 200 in 4199ms
-2025-07-30T17:24:33Z [web]  POST /?monospaceUid=611336 200 in 1423ms
-2025-07-30T17:24:34Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Starting stock data fetch... {
-2025-07-30T17:24:34Z [web]   ticker: 'NVDA',
-2025-07-30T17:24:34Z [web]   expirationDate: '2025-08-15',
-2025-07-30T17:24:34Z [web]   optionType: 'both',
-2025-07-30T17:24:34Z [web]   strikeCount: 20
-2025-07-30T17:24:34Z [web] }
-2025-07-30T17:24:34Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Calling polygon adapter...
-2025-07-30T17:24:39Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Adapter response received
-2025-07-30T17:24:39Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] Data processing complete: {
-2025-07-30T17:24:39Z [web]   hasMarketStatus: true,
-2025-07-30T17:24:39Z [web]   hasStockSnapshot: true,
-2025-07-30T17:24:39Z [web]   hasTechnicalIndicators: true,
-2025-07-30T17:24:39Z [web]   hasOptionsChain: true,
-2025-07-30T17:24:39Z [web]   optionsChainSize: 0
-2025-07-30T17:24:39Z [web] }
-2025-07-30T17:24:39Z [web] [ServerAction:fetchStockDataAction:Ticker:NVDA] SUCCESS - Stock data fetch completed
-2025-07-30T17:24:39Z [web]  POST /?monospaceUid=611336 200 in 4673ms
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Starting technical analysis... { hasStockSnapshot: true, dataSize: 571 }
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Parsing stock snapshot data...
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Stock snapshot parsed successfully
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Validating previous day data...
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Prepared flow input: {
-2025-07-30T17:24:39Z [web]   previousDayHigh: 179.38,
-2025-07-30T17:24:39Z [web]   previousDayLow: 175.02,
-2025-07-30T17:24:39Z [web]   previousDayClose: 175.51
-2025-07-30T17:24:39Z [web] }
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] Calling AI flow for technical analysis...
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] AI flow completed successfully
-2025-07-30T17:24:39Z [web] [ServerAction:analyzeTaAction:Ticker:NVDA] SUCCESS - Technical analysis completed
-2025-07-30T17:24:39Z [web]  POST /?monospaceUid=611336 200 in 112ms
-2025-07-30T17:24:40Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Starting AI key takeaways analysis... {
-2025-07-30T17:24:40Z [web]   ticker: 'NVDA',
-2025-07-30T17:24:40Z [web]   hasStockSnapshot: true,
-2025-07-30T17:24:40Z [web]   hasStandardTas: true,
-2025-07-30T17:24:40Z [web]   hasAiAnalyzedTa: true,
-2025-07-30T17:24:40Z [web]   hasMarketStatus: true
-2025-07-30T17:24:40Z [web] }
-2025-07-30T17:24:40Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Prepared flow input for AI analysis
-2025-07-30T17:24:40Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] Calling AI flow for key takeaways generation...
-2025-07-30T17:24:53Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] AI flow completed successfully
-2025-07-30T17:24:53Z [web] [ServerAction:performAiAnalysisAction:Ticker:NVDA] SUCCESS - AI key takeaways analysis completed
-2025-07-30T17:24:53Z [web]  POST /?monospaceUid=611336 200 in 13620ms
-2025-07-30T17:24:54Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Starting AI options analysis... { ticker: 'NVDA', hasOptionsChain: true, hasStockSnapshot: true }
-2025-07-30T17:24:54Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Validating input data...
-2025-07-30T17:24:54Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] Calling AI flow for options analysis...
-2025-07-30T17:25:13Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] AI flow completed successfully
-2025-07-30T17:25:13Z [web] [ServerAction:performAiOptionsAnalysisAction:Ticker:NVDA] SUCCESS - AI options analysis completed
-2025-07-30T17:25:13Z [web]  POST /?monospaceUid=611336 200 in 18313ms
-2025-07-30T17:31:42Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Starting unified chat request
-2025-07-30T17:31:42Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:31:42Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Generating content with webSearch: false
-2025-07-30T17:31:45Z [web] [ServerAction:nvdaConsolidatedChatAction:stock-trader-takeaways] Successfully generated response
-2025-07-30T17:31:45Z [web]  POST /?monospaceUid=611336 200 in 2625ms
-2025-07-30T17:31:48Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Starting unified chat request
-2025-07-30T17:31:48Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:31:48Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Generating content with webSearch: false
-2025-07-30T17:31:52Z [web] [ServerAction:nvdaConsolidatedChatAction:options-trader-takeaways] Successfully generated response
-2025-07-30T17:31:52Z [web]  POST /?monospaceUid=611336 200 in 4387ms
-2025-07-30T17:31:54Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Starting unified chat request
-2025-07-30T17:31:54Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:31:54Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Generating content with webSearch: false
-2025-07-30T17:31:59Z [web] [ServerAction:nvdaConsolidatedChatAction:holistic-takeaways] Successfully generated response
-2025-07-30T17:31:59Z [web]  POST /?monospaceUid=611336 200 in 5265ms
-2025-07-30T17:32:01Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Starting unified chat request
-2025-07-30T17:32:01Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:32:01Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Generating content with webSearch: true
-2025-07-30T17:32:05Z [web] [ServerAction:nvdaConsolidatedChatAction:support-resistance-web-search] Successfully generated response
-2025-07-30T17:32:05Z [web]  POST /?monospaceUid=611336 200 in 4011ms
-2025-07-30T17:32:22Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Starting unified chat request
-2025-07-30T17:32:22Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:32:22Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Generating content with webSearch: true
-2025-07-30T17:32:26Z [web] [ServerAction:nvdaConsolidatedChatAction:technical-analysis-web-search] Successfully generated response
-2025-07-30T17:32:26Z [web]  POST /?monospaceUid=611336 200 in 4870ms
-2025-07-30T17:32:32Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Starting unified chat request
-2025-07-30T17:32:32Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Extracted current date for grounding: 07/30/2025
-2025-07-30T17:32:32Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Generating content with webSearch: true
-2025-07-30T17:32:36Z [web] [ServerAction:nvdaConsolidatedChatAction:options-flow-web-search] Successfully generated response
-2025-07-30T17:32:36Z [web]  POST /?monospaceUid=611336 200 in 3595ms
-
-
 
 
 ```
