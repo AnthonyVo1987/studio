@@ -107,7 +107,8 @@
       "Bash(npm run typecheck:*)",
       "Bash(npm ci:*)",
       "Bash(git add:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
