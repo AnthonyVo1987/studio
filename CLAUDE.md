@@ -222,18 +222,32 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 
 This orchestration model ensures clear role separation, effective delegation, and consistent quality delivery while preventing role boundary violations that can lead to inefficient workflow and quality issues.
 
-## 🚨 BASELINE PROTECTION RULE
+## 🚨 PROTECTED BASELINE ARCHITECTURE (v4.4.2.1)
 
-**CRITICAL**: The current dedicated NVDA and SPY pages are the stable baseline architecture:
-- `src/components/nvda-tab-content.tsx`
-- `src/components/spy-tab-content.tsx` 
-- `src/contexts/nvda-analysis-context.tsx`
-- `src/contexts/spy-analysis-context.tsx`
+### CRITICAL PROTECTION RULE
+**These files represent the stable, battle-tested architecture and MUST NOT be modified without explicit user request:**
 
-**These files are NOT TO BE MODIFIED unless explicitly requested by the user.** They represent the stable, tested architecture that ensures application functionality.
+#### Core Protected Files
+- `src/contexts/nvda-analysis-context.tsx` (79 state fields, proven patterns)
+- `src/contexts/spy-analysis-context.tsx` (79 state fields, proven patterns)
+- `src/components/nvda-tab-content.tsx` (main orchestrator, deterministic handlers)
+- `src/components/spy-tab-content.tsx` (main orchestrator, deterministic handlers)
+- `src/app/page.tsx` (direct context provider setup)
+- `src/components/page-content.tsx` (simple two-tab implementation)
+
+#### Protection Rationale
+- **Stability**: These components ensure 100% application functionality
+- **Battle-Tested**: Proven React patterns with complete context isolation
+- **Zero Dependencies**: No cross-dependencies between NVDA and SPY
+- **Performance**: Optimized patterns with 27.9% token reduction achievement
+
+#### Development Guidelines
+- **Extend, Don't Replace**: Add new display components instead of modifying core files
+- **Context Isolation**: Maintain zero cross-dependencies between NVDA/SPY contexts
+- **Deterministic Handlers**: Follow existing async/await patterns in tab content
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.4.2.1, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The blueprint system exists as preserved scaffolding for future development phases but is not currently integrated into the application.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.4.2.1, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The application uses a simple hardcoded two-tab implementation in `src/components/page-content.tsx` with direct context providers in `src/app/page.tsx`. The blueprint system exists as preserved scaffolding in `src/lib/ticker-framework/` for future development phases but is not currently integrated into the application.
 
 ## Common Development Commands
 
@@ -285,11 +299,51 @@ node -e "console.log('Current architecture: Dedicated NVDA/SPY tabs')"
 node -e "console.log('Blueprint status: Preserved as unused scaffolding')"
 ```
 
-### ESLint Configuration
-- **Status**: Fully configured and operational ESLint setup
-- **Configuration Files**: ESLint config files are committed to the project
-- **Customization**: ESLint settings and configuration can be updated by Claude Code on an as-needed basis for project requirements
-- **Integration**: ESLint is integrated with the build process and pre-commit workflow
+### ESLint Configuration (Fully Operational)
+- **Status**: ✅ Fully configured and integrated
+- **Configuration**: `eslint.config.mjs` (modern flat config)
+- **Integration**: Built into build process and development workflow
+- **Customization**: Claude Code can modify ESLint rules as needed
+- **Pre-commit**: Always run `npm run lint` before committing
+
+## Development Workflow (v4.4.2.1)
+
+### Current Development Pattern
+1. **Direct Component Development**: Modify existing `nvda-*` or `spy-*` components
+2. **Context Usage**: Use `useNvdaAnalysis()` / `useSpyAnalysis()` hooks directly
+3. **Server Actions**: Extend existing consolidated chat actions
+4. **AI Prompts**: Modify JSON prompt definitions in `src/ai/definitions/`
+
+### Adding New Features to Existing Tabs
+```typescript
+// 1. Update context interface (79 fields available)
+interface NvdaAnalysisState {
+  // Add new fields here
+  newFeatureJson: string;
+  newFeatureLoading: boolean;
+}
+
+// 2. Add reducer action
+type NvdaAnalysisAction = 
+  | { type: 'SET_NEW_FEATURE_DATA'; payload: { newFeatureJson: string } }
+  | ... // existing actions
+
+// 3. Create display component
+const NvdaNewFeatureDisplay = () => {
+  const nvda = useNvdaAnalysis();
+  // Component implementation
+};
+
+// 4. Add to nvda-tab-content.tsx orchestrator
+```
+
+### Quality Gates (MANDATORY)
+```bash
+# Before any commit
+npm run lint         # ESLint validation (fully configured)
+npm run typecheck    # TypeScript validation
+npm run build        # Build verification
+```
 
 ## High-Level Architecture (v4.4.2.1 - Recovery State)
 
@@ -300,6 +354,45 @@ node -e "console.log('Blueprint status: Preserved as unused scaffolding')"
 - **UI Components**: ShadCN UI + Tailwind CSS
 - **Data Sources**: Polygon.io API
 - **AI Model**: Google Gemini 2.5-flash-lite
+
+### Current Implementation Architecture (v4.4.2.1)
+
+#### ✅ ACTIVE IMPLEMENTATION
+- **Two-Tab System**: Hardcoded NVDA/SPY tabs in `src/components/page-content.tsx`
+- **Dedicated Contexts**: 
+  - `src/contexts/nvda-analysis-context.tsx` (79 state fields)
+  - `src/contexts/spy-analysis-context.tsx` (79 state fields)
+- **Component Architecture**: 
+  - `src/components/nvda-tab-content.tsx` (main orchestrator)
+  - `src/components/spy-tab-content.tsx` (main orchestrator)
+  - Individual display components: `nvda-*-display.tsx`, `spy-*-display.tsx`
+- **Context Providers**: Direct setup in `src/app/page.tsx`
+
+#### 🚧 PRESERVED SCAFFOLDING (UNUSED)
+- **Blueprint Framework**: Complete but unused in `src/lib/ticker-framework/`
+- **Dynamic Tab System**: `src/components/tabs/dynamic-tab-system.tsx` (not integrated)
+- **Ticker Registry**: `src/lib/ticker-registry.ts` (not integrated)
+- **Configuration System**: `src/config/ticker-configs.ts` (not integrated)
+
+## AI Integration Architecture (v4.4.2.1)
+
+### Google Genkit + Gemini Integration
+- **AI Runtime**: Google Genkit with Gemini 2.5-flash-lite model
+- **Prompt System**: Specialized JSON-based prompt definitions in `src/ai/definitions/`
+  - `stock-trader-takeaways.json` - Stock analysis prompts
+  - `options-trader-takeaways.json` - Options strategy prompts
+  - `holistic-takeaways.json` - Comprehensive analysis prompts
+- **Server Actions**: Ticker-specific consolidated chat actions
+  - `src/actions/nvda-consolidated-chat-action.ts`
+  - `src/actions/spy-consolidated-chat-action.ts`
+- **Schema Validation**: Zod schemas in `src/ai/schemas/`
+- **Temperature Setting**: 0.2 for focused, deterministic responses
+
+### AI Development Commands
+```bash
+npm run genkit:dev   # Start Genkit dev server (port 3400)
+npm run genkit:watch # Genkit with file watching
+```
 
 ### Dedicated Two-Tab Architecture (v4.4.2.1)
 
@@ -528,20 +621,28 @@ The previous SPY blueprint system (v4.1.18.0) has been integrated into the new f
 - **Advanced Chat**: SPY chat patterns incorporated into base template system
 - **Feature Parity**: All SPY features available to new tickers through templates
 
-## File Organization
+## File Organization (v4.4.2.1 Current State)
 
-### Blueprint Framework Files (Tier 1 - Critical)
-- `src/lib/ticker-framework/core/context-factory.ts` - Context factory for automatic ticker context generation
-- `src/lib/ticker-framework/core/base-components/` - Template component library for ticker generation
-- `src/config/ticker-configs.ts` - Centralized ticker configuration and factory functions
-- `src/lib/ticker-registry.ts` - Dynamic ticker registry with auto-discovery and runtime management
-- `src/components/tabs/dynamic-tab-system.tsx` - Dynamic tab orchestration with context composition
+### Active Architecture Files (Tier 1 - Critical)
+- `src/contexts/nvda-analysis-context.tsx` - NVDA state management (79 fields)
+- `src/contexts/spy-analysis-context.tsx` - SPY state management (79 fields) 
+- `src/components/nvda-tab-content.tsx` - NVDA main orchestrator
+- `src/components/spy-tab-content.tsx` - SPY main orchestrator
+- `src/components/page-content.tsx` - Simple two-tab UI implementation
+- `src/app/page.tsx` - Direct context providers setup
 
-### Generated/Legacy Architecture Files (Tier 2)
-- `src/contexts/nvda-analysis-context.tsx` - NVDA dedicated state management (legacy, may be replaced by blueprint)
-- `src/contexts/spy-analysis-context.tsx` - SPY dedicated state management (legacy, may be replaced by blueprint)
-- `src/components/nvda-tab-content.tsx` - NVDA orchestrator (legacy, may be replaced by blueprint)
-- `src/components/spy-tab-content.tsx` - SPY orchestrator (legacy, may be replaced by blueprint)
+### AI System Files (Tier 1 - Critical)
+- `src/actions/nvda-consolidated-chat-action.ts` - NVDA AI chat server action
+- `src/actions/spy-consolidated-chat-action.ts` - SPY AI chat server action
+- `src/ai/definitions/*.json` - Specialized trading prompt templates
+- `src/ai/schemas/*-schemas.ts` - Zod validation schemas
+- `src/ai/flows/*.ts` - Genkit AI flow definitions
+
+### Preserved Blueprint Scaffolding (Tier 3 - Unused)
+- `src/lib/ticker-framework/` - Complete blueprint system (unused)
+- `src/components/tabs/dynamic-tab-system.tsx` - Dynamic tabs (unused)
+- `src/lib/ticker-registry.ts` - Registry system (unused)
+- `src/config/ticker-configs.ts` - Configuration system (unused)
 
 ### Shared Infrastructure Files (Tier 2)
 - `src/services/data-sources/adapters/polygon-adapter.ts` - API integration
@@ -737,6 +838,20 @@ GEMINI_API_KEY=your_google_ai_api_key
 - **TypeScript errors are ignored during builds** (see `next.config.ts`)
 - **ESLint errors are ignored during builds** (see `next.config.ts`)
 - **Strict TypeScript** is enabled in development but bypassed for builds
+
+## Code Quality Standards (v4.4.2.1)
+
+### TypeScript Configuration
+- **Strict Mode**: Enabled in development
+- **Build Bypass**: TypeScript errors ignored during builds (see `next.config.ts`)
+- **Type Checking**: Manual via `npm run typecheck`
+- **Import Patterns**: Use `import type` for type-only imports
+
+### Code Quality Requirements
+- **TypeScript**: Strict mode enabled, use `import type` for type imports
+- **Error Handling**: Wrap all async operations in try/catch blocks
+- **Logging**: Use standard `console.*` methods for both client-side and server-side
+- **Validation**: Use Zod schemas for all data validation
 
 ## Testing & Debugging
 
