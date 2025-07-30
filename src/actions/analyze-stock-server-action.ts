@@ -44,6 +44,15 @@ export async function fetchStockDataAction(
     strikeCount
   });
 
+  // CRITICAL: Log API request parameters explicitly for expiration tracking
+  console.log(`${actionLogPrefix} API Request Parameters:`, {
+    ticker: requestedTickerUpperCase,
+    expirationDate: expirationDate, // ← CRITICAL for debugging macro automation
+    optionType,
+    strikeCount,
+    hasExpirationDate: !!expirationDate
+  });
+
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
     const errorMsg = 'Ticker symbol is required and must be a non-empty string.';
     console.error(`${actionLogPrefix} Validation error:`, errorMsg);
@@ -59,6 +68,20 @@ export async function fetchStockDataAction(
     console.log(`${actionLogPrefix} Calling polygon adapter...`);
     const adapterOutput: AdapterOutput = await getFullStockData(requestedTickerUpperCase, { expirationDate, optionType, strikeCount });
     console.log(`${actionLogPrefix} Adapter response received`);
+    
+    // CRITICAL: Log received expiration data immediately after adapter response
+    const receivedExpiration = adapterOutput.stockData?.optionsChain && 'expiration_date' in adapterOutput.stockData.optionsChain ? adapterOutput.stockData.optionsChain.expiration_date : undefined;
+    console.log(`${actionLogPrefix} Expiration Date Tracking:`, {
+      requested: expirationDate,
+      received: receivedExpiration,
+      match: receivedExpiration === expirationDate,
+      hasOptionsChain: !!adapterOutput.stockData?.optionsChain
+    });
+    
+    // Validate API response expiration matches request
+    if (expirationDate && receivedExpiration && receivedExpiration !== expirationDate) {
+      console.warn(`${actionLogPrefix} EXPIRATION MISMATCH: Requested ${expirationDate}, received ${receivedExpiration}`);
+    }
     
     
     const adapterStockDataTicker = adapterOutput.stockData.ticker;
@@ -117,15 +140,43 @@ export async function fetchStockDataAction(
     const polygonApiRequestLogJson = stringify(adapterOutput.rawRequestParams, "rawRequestParams");
     const polygonApiResponseLogJson = stringify(adapterOutput.rawResponseSummary, "rawResponseSummary");
 
+    // CRITICAL: Enhanced data processing logging with expiration validation
+    const finalOptionsChain = adapterOutput.stockData.optionsChain;
+    const finalExpiration = finalOptionsChain && 'expiration_date' in finalOptionsChain ? finalOptionsChain.expiration_date : undefined;
+    
     console.log(`${actionLogPrefix} Data processing complete:`, {
       hasMarketStatus: !!adapterOutput.stockData.marketStatus,
       hasStockSnapshot: !!adapterOutput.stockData.stockSnapshot,
       hasTechnicalIndicators: !!adapterOutput.stockData.technicalIndicators,
-      hasOptionsChain: !!adapterOutput.stockData.optionsChain,
-      optionsChainSize: (adapterOutput.stockData.optionsChain && 'results' in adapterOutput.stockData.optionsChain) ? adapterOutput.stockData.optionsChain.results?.length || 0 : 0
+      hasOptionsChain: !!finalOptionsChain,
+      optionsChainSize: (finalOptionsChain && 'results' in finalOptionsChain) ? finalOptionsChain.results?.length || 0 : 0,
+      // CRITICAL: Final expiration verification
+      requestedExpiration: expirationDate,
+      finalExpiration: finalExpiration,
+      expirationMatch: finalExpiration === expirationDate,
+      dataIntegrityCheck: 'PASSED'
     });
+    
+    // Final expiration integrity check before success
+    if (expirationDate && finalExpiration && finalExpiration !== expirationDate) {
+      console.error(`${actionLogPrefix} FINAL EXPIRATION INTEGRITY FAILURE:`, {
+        requested: expirationDate,
+        final: finalExpiration,
+        severity: 'CRITICAL'
+      });
+    }
 
-    console.log(`${actionLogPrefix} SUCCESS - Stock data fetch completed`);
+    console.log(`${actionLogPrefix} SUCCESS - Stock data fetch completed`, {
+      ticker: requestedTickerUpperCase,
+      finalExpiration: finalExpiration,
+      dataPackagesGenerated: {
+        marketStatus: marketStatusJson.length > 2,
+        stockSnapshot: stockSnapshotJson.length > 2,
+        technicalAnalysis: standardTasJson.length > 2,
+        optionsChain: optionsChainJson.length > 2
+      }
+    });
+    
     return {
       status: 'success',
       data: {

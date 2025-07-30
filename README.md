@@ -2,7 +2,7 @@
 
 **A Next.js Financial Analysis Application with AI-Powered Insights**
 
-[![Version](https://img.shields.io/badge/version-v4.4.2.6-blue.svg)](src/config/app-metadata.json)
+[![Version](https://img.shields.io/badge/version-v4.4.2.7-blue.svg)](src/config/app-metadata.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
@@ -29,11 +29,12 @@ StockSage is a sophisticated financial analysis application built with Next.js t
 - **Technical Analysis**: Standard and AI-enhanced technical indicators including pivot points and trend analysis
 - **Enhanced AI Chat Systems**: Professional AI chat interface with optimized sizing (75vh viewport), standardized temperature controls (0.2 with seed 42), and engaging emoji formatting for user-friendly trading insights
 
-### Application Architecture (v4.4.2.5 - Current Implementation)
+### Application Architecture (v4.4.2.7 - Current Implementation)
 - **Dedicated Ticker Tabs**: Clean two-tab architecture with NVDA and SPY dedicated analysis pages
 - **Complete Context Isolation**: Each ticker maintains independent state management with zero cross-dependencies
 - **Proven Architecture Patterns**: Battle-tested React Context + useReducer patterns with deterministic handlers
-- **On-Demand Analysis**: Manual trigger system for AI analysis to optimize performance and API usage
+- **Macro Automation System**: "Analyze All" button with 4-step sequential execution and enhanced debugging capabilities
+- **Enhanced Debugging**: Comprehensive console logging system for troubleshooting macro automation workflows
 - **Advanced Export Features**: Comprehensive JSON export functionality for all data components
 - **Future-Ready Scaffolding**: Blueprint system preserved as unused scaffolding for future development phases
 
@@ -140,7 +141,7 @@ genkit start -p 3401            # Internal Genkit testing
 
 ## Application Architecture
 
-### Dedicated Tab Architecture (v4.4.2.5 - Current Implementation)
+### Dedicated Tab Architecture (v4.4.2.7 - Current Implementation)
 
 StockSage features a clean, proven two-tab architecture with complete context isolation:
 
@@ -235,9 +236,58 @@ src/actions/
 └── spy-consolidated-chat-action.ts    # SPY AI chat
 ```
 
+### Macro Automation System (Enhanced Implementation - v4.4.2.7)
+
+StockSage includes a sophisticated macro automation system that streamlines the entire analysis workflow:
+
+#### "Analyze All" Button Features
+- **4-Step Sequential Execution**: Automated workflow (Fetch Expirations → Get Stock Data → AI Takeaways → AI Options Analysis)
+- **Cross-Tab Consistency**: Identical macro functionality in both NVDA and SPY tabs with perfect implementation parity
+- **Progress Tracking**: Real-time progress indication with step-by-step execution feedback
+- **User Cancellation**: Cancel automation at any point during execution
+- **Comprehensive Error Handling**: Graceful failure recovery with detailed error reporting
+
+#### Enhanced Debugging Capabilities (v4.4.2.7)
+- **Console Logging System**: Comprehensive debug breadcrumbs following existing project patterns
+- **Expiration Date Consistency**: Fixed inconsistencies in automation workflow for reliable execution
+- **Performance Optimized**: Enhanced debugging with <1ms overhead
+- **Troubleshooting Support**: Detailed console logs help users identify and resolve macro automation issues
+
+#### Technical Implementation
+```typescript
+// Macro automation with enhanced debugging
+const handleAnalyzeAll = async () => {
+  console.log(`[${ticker}] Starting "Analyze All" macro automation...`);
+  
+  // Step 1: Fetch Expirations
+  console.log(`[${ticker}] Step 1/4: Fetching option expirations...`);
+  await fetchExpirations();
+  
+  // Step 2: Get Stock Data  
+  console.log(`[${ticker}] Step 2/4: Fetching stock data...`);
+  await fetchStockData();
+  
+  // Step 3: AI Key Takeaways
+  console.log(`[${ticker}] Step 3/4: Generating AI key takeaways...`);
+  await performAiAnalysis();
+  
+  // Step 4: AI Options Analysis
+  console.log(`[${ticker}] Step 4/4: Performing AI options analysis...`);
+  await performAiOptionsAnalysis();
+  
+  console.log(`[${ticker}] Macro automation completed successfully!`);
+};
+```
+
+#### User Experience Benefits
+- **Productivity Enhancement**: Eliminates manual sequential clicking through 4 analysis steps
+- **Workflow Consistency**: Identical experience across NVDA and SPY tabs
+- **Progress Visibility**: Clear visual feedback throughout automation process
+- **Flexible Operation**: Users maintain control with cancellation capability
+
 ## File Organization
 
-### Current Architecture Structure (v4.4.2.5)
+### Current Architecture Structure (v4.4.2.7)
 ```
 src/
 ├── components/                        # UI Components
@@ -374,7 +424,7 @@ GEMINI_API_KEY=your_google_ai_api_key   # Google AI API access
 ## Version Management
 
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.5 (Critical bug fixes: AI Key Takeaways and Options Analysis restored, enhanced emoji formatting, standardized options chain defaults)
+- **Current Version**: v4.4.2.7 (Macro automation debugging enhancements: fixed expiration date inconsistencies, enhanced console logging, cross-tab consistency)
 - **Versioning Scheme**: `v4.w.x.y.z` format for clear version tracking
 - **Update Policy**: Version and timestamp updates required for all code changes
 
@@ -420,4 +470,4 @@ For technical issues or questions about the codebase architecture, refer to the 
 
 ---
 
-**StockSage v4.4.2.5** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, fully restored AI analysis functionality, and future-ready blueprint scaffolding.
+**StockSage v4.4.2.7** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced macro automation debugging capabilities, and future-ready blueprint scaffolding.

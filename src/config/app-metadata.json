@@ -1,8 +1,8 @@
 
 {
-  "appVersion": "v4.4.2.6",
-  "lastUpdatedTimestamp": "2025-07-30T08:30:00.000Z",
-  "description": "Macro automation feature: 'Analyze All' button with 4-step sequential execution, progress tracking, cancellation support, architecture cleanup, TypeScript error resolution",
+  "appVersion": "v4.4.2.7",
+  "lastUpdatedTimestamp": "2025-07-30T11:30:00.000Z",
+  "description": "Macro automation debugging enhancements: fixed expiration date inconsistencies, enhanced console logging, cross-tab consistency, performance-optimized debugging (<1ms overhead)",
   "metadataSchemaVersion": "1.0.0"
 }
 

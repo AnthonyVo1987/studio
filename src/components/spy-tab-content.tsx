@@ -74,6 +74,14 @@ export function SpyTabContent() {
     try {
       spyDispatch({ type: 'SET_LOADING' });
       
+      // CRITICAL FIX: Clear any previous expiration selection to prevent state contamination
+      // This ensures macro automation starts with a clean slate
+      logger.state('FetchExpirations', 'Clearing previous expiration selection to prevent contamination', {
+        previousSelection: spyState.selectedExpirationDate,
+        context: 'Step1_StateCleanup_PreFetch'
+      });
+      spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: '' });
+      
       const expirations = await getExpirationDates(SPY_TICKER);
       logger.dataFetch('FetchExpirations', 'Expirations received', { count: expirations.length });
       
@@ -83,7 +91,22 @@ export function SpyTabContent() {
       spyDispatch({ type: 'SET_EXPIRATION_DATES', payload: expirations });
       
       if (nextAvailableDate) {
+        // CRITICAL: Log expiration selection for macro automation debugging
+        logger.state('FetchExpirations', 'Setting default expiration date for macro automation', {
+          selectedExpiration: nextAvailableDate,
+          availableCount: expirations.length,
+          isDefaultSelection: true,
+          context: 'Step1_FetchExpirations_DefaultSelection'
+        });
         spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: nextAvailableDate });
+        
+        // CRITICAL FIX: Add a brief delay to ensure state update is committed before macro Step 2
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        logger.state('FetchExpirations', 'State update committed - ready for Step 2', {
+          finalSelectedExpiration: nextAvailableDate,
+          context: 'Step1_StateCommit_Complete'
+        });
       }
       
       spyDispatch({ type: 'SET_IDLE' });
@@ -110,32 +133,76 @@ export function SpyTabContent() {
 
   // Deterministic Handler: Get SPY Stock Data (Batch Operation)
   const handleGetStockData = async () => {
-    logger.userAction('GetStockData', 'Starting stock data fetch', {
+    // CRITICAL: Log current selectedExpirationDate before Step 2 execution
+    logger.userAction('GetStockData', 'Starting stock data fetch - Step 2 of macro automation', {
       ticker: SPY_TICKER,
-      expiration: spyState.selectedExpirationDate,
+      selectedExpiration: spyState.selectedExpirationDate,
       optionType: spyState.optionType,
-      strikeCount: spyState.strikeCount
+      strikeCount: spyState.strikeCount,
+      context: 'Step2_GetStockData_PreExecution'
     });
     
+    // CRITICAL FIX: Enhanced validation with automatic recovery
+    let defaultExpiration: string | undefined = undefined;
     if (!spyState.selectedExpirationDate) {
-      logger.error('GetStockData', 'No expiration date selected');
-      toast({
-        title: 'No Expiration Selected',
-        description: 'Please select an expiration date first.',
-        variant: 'destructive',
+      logger.error('GetStockData', 'CRITICAL: No expiration date selected in Step 2', {
+        context: 'Step2_GetStockData_ValidationFailure',
+        availableExpirations: spyState.availableExpirationDates.length,
+        firstAvailable: spyState.availableExpirationDates[0] || 'none'
       });
-      return;
+      
+      // CRITICAL FIX: Auto-recovery - try to select the default expiration if available
+      if (spyState.availableExpirationDates.length > 0) {
+        defaultExpiration = findNextAvailableDate(spyState.availableExpirationDates);
+        if (defaultExpiration) {
+          logger.state('GetStockData', 'Auto-recovery: Setting default expiration', {
+            defaultExpiration,
+            context: 'Step2_AutoRecovery_ExpirationFix'
+          });
+          spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: defaultExpiration });
+          // Brief delay to ensure state update
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+      }
+      
+      // Re-validate after auto-recovery attempt
+      if (!spyState.selectedExpirationDate && !defaultExpiration) {
+        toast({
+          title: 'No Expiration Selected',
+          description: 'Please select an expiration date first.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
+    
+    // CRITICAL FIX: Final expiration validation before API call
+    const finalExpirationToUse = spyState.selectedExpirationDate || defaultExpiration;
+    logger.state('GetStockData', 'Final expiration validation before API call', {
+      finalExpiration: finalExpirationToUse,
+      fromState: spyState.selectedExpirationDate,
+      fromRecovery: defaultExpiration,
+      isValid: !!finalExpirationToUse,
+      context: 'Step2_FinalValidation_PreAPI'
+    });
 
     try {
       spyDispatch({ type: 'SET_LOADING' });
       spyDispatch({ type: 'SET_DATA_RETRIEVAL_COMPLETE', payload: false });
 
       // Step 1: Fetch Stock Data (including Options Chain)
-      logger.dataFetch('GetStockData', 'Step 1: Fetching stock data');
+      // CRITICAL: Log API call parameters with expiration tracking
+      logger.serverAction('GetStockData', 'Step 1: About to call fetchStockDataAction', {
+        ticker: SPY_TICKER,
+        expirationDate: finalExpirationToUse, // ← CRITICAL: Use validated expiration
+        optionType: spyState.optionType,
+        strikeCount: spyState.strikeCount,
+        context: 'Step2_GetStockData_API_Call'
+      });
+      
       const stockDataResult = await fetchStockDataAction({
         ticker: SPY_TICKER,
-        expirationDate: spyState.selectedExpirationDate,
+        expirationDate: finalExpirationToUse, // ← CRITICAL: Use validated expiration
         optionType: spyState.optionType,
         strikeCount: spyState.strikeCount,
       });
@@ -143,7 +210,48 @@ export function SpyTabContent() {
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
         throw new Error(stockDataResult.error || 'Failed to fetch stock data');
       }
-      logger.dataFetch('GetStockData', 'Step 1: Stock data received');
+      
+      // CRITICAL: Enhanced expiration validation after API response
+      const receivedOptionsChain = stockDataResult.data.optionsChainJson;
+      let receivedExpiration: string | undefined;
+      try {
+        const parsedOptionsChain = JSON.parse(receivedOptionsChain);
+        receivedExpiration = parsedOptionsChain?.expiration_date;
+      } catch (e) {
+        receivedExpiration = undefined;
+      }
+      
+      logger.dataFetch('GetStockData', 'Step 1: Stock data received - expiration validation', {
+        requestedExpiration: finalExpirationToUse,
+        receivedExpiration: receivedExpiration,
+        expirationMatch: receivedExpiration === finalExpirationToUse,
+        hasOptionsChain: !!receivedOptionsChain && receivedOptionsChain !== '{}',
+        context: 'Step2_GetStockData_Response_Validation'
+      });
+      
+      // CRITICAL FIX: Handle expiration mismatch with detailed error reporting
+      if (finalExpirationToUse && receivedExpiration && receivedExpiration !== finalExpirationToUse) {
+        const mismatchError = `EXPIRATION MISMATCH: Requested ${finalExpirationToUse}, API returned ${receivedExpiration}`;
+        logger.error('GetStockData', mismatchError, {
+          requestedExpiration: finalExpirationToUse,
+          receivedExpiration: receivedExpiration,
+          severity: 'CRITICAL',
+          context: 'Step2_ExpirationMismatch_Error'
+        });
+        
+        // Show detailed error to user
+        toast({
+          title: 'Expiration Date Mismatch',
+          description: `Expected ${finalExpirationToUse}, but API returned data for ${receivedExpiration}. Please try again.`,
+          variant: 'destructive',
+        });
+        
+        // Continue with the received data but log the issue
+        logger.state('GetStockData', 'Continuing with received data despite mismatch', {
+          willUseExpiration: receivedExpiration,
+          context: 'Step2_ContinueWithMismatch'
+        });
+      }
 
       // Step 2: Fetch Technical Analysis Data
       logger.dataFetch('GetStockData', 'Step 2: Fetching technical analysis');
@@ -309,11 +417,20 @@ export function SpyTabContent() {
 
   // Expiration Selection Handler
   const handleExpirationChange = (value: string) => {
-    logger.userAction('ExpirationChange', 'Expiration date changed', { 
+    // CRITICAL: Enhanced expiration change logging for macro automation
+    logger.userAction('ExpirationChange', 'Expiration date manually changed by user', { 
       from: spyState.selectedExpirationDate, 
-      to: value 
+      to: value,
+      changeType: 'manual_user_selection',
+      context: 'UI_ExpirationDropdown_Change'
     });
     spyDispatch({ type: 'SET_SELECTED_EXPIRATION', payload: value });
+    
+    // Log state after change
+    logger.state('ExpirationChange', 'State updated with new expiration', {
+      newSelectedExpiration: value,
+      context: 'Post_Manual_Selection'
+    });
   };
 
   // Options Chain Settings Handlers

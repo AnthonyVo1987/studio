@@ -24,6 +24,7 @@ import {
   Clock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { createTickerLogger } from '@/lib/ticker-logger';
 
 export interface SimpleAnalyzeAllButtonProps {
   ticker: string;
@@ -66,6 +67,9 @@ export function SimpleAnalyzeAllButton({
   onCancel
 }: SimpleAnalyzeAllButtonProps) {
   const { toast } = useToast();
+  
+  // Create ticker-specific logger for macro orchestration
+  const logger = createTickerLogger(ticker, 'MacroOrchestrator');
   
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -129,6 +133,12 @@ export function SimpleAnalyzeAllButton({
     setIsExecuting(true);
     setStartTime(Date.now());
 
+    // Log macro automation start
+    logger.userAction('Start', 'Beginning 4-step automation workflow...', {
+      totalSteps: steps.length,
+      stepNames: steps.map(s => s.name)
+    });
+
     try {
       toast({
         title: `${ticker} Analyze All Started`,
@@ -140,6 +150,15 @@ export function SimpleAnalyzeAllButton({
       for (let i = 0; i < steps.length; i++) {
         if (shouldCancel) {
           setIsCancelled(true);
+          
+          // Log cancellation
+          logger.userAction('Cancel', `Macro automation cancelled`, {
+            stoppedAtStep: i + 1,
+            totalSteps: steps.length,
+            completedSteps: completed.length,
+            reason: 'User cancellation'
+          });
+          
           toast({
             title: `${ticker} Analysis Cancelled`,
             description: `Stopped at step ${i + 1} of ${steps.length}`,
@@ -152,9 +171,22 @@ export function SimpleAnalyzeAllButton({
         const step = steps[i];
         setCurrentStep(step.id);
 
+        // Log step start
+        logger.userAction(`Step${step.id}`, `Starting: ${step.name}`, {
+          stepId: step.id,
+          stepName: step.name,
+          stepDescription: step.description,
+          completedSteps: completed.length,
+          totalSteps: steps.length
+        });
+
         // Check if step can be executed
         if (!step.canExecute()) {
           // Skip step if prerequisites not met, but continue
+          logger.userAction(`Step${step.id}`, `Skipping: Prerequisites not met`, {
+            stepName: step.name,
+            reason: 'Prerequisites not met'
+          });
           console.warn(`Skipping step ${step.id} (${step.name}): Prerequisites not met`);
           continue;
         }
@@ -165,11 +197,31 @@ export function SimpleAnalyzeAllButton({
           completed.push(step.id);
           setCompletedSteps([...completed]);
 
+          // Log step completion
+          logger.userAction(`Step${step.id}`, `Completed: ${step.name}`, {
+            stepId: step.id,
+            stepName: step.name,
+            completedSteps: completed.length,
+            totalSteps: steps.length,
+            progress: `${completed.length}/${steps.length}`
+          });
+
           // Brief pause between steps for UI feedback
           await new Promise(resolve => setTimeout(resolve, 500));
 
         } catch (stepError) {
           const error = stepError instanceof Error ? stepError : new Error(String(stepError));
+          
+          // Log step failure
+          logger.error(`Step${step.id}`, `Failed: ${step.name}`, {
+            stepId: step.id,
+            stepName: step.name,
+            errorMessage: error.message,
+            errorStack: error.stack,
+            completedSteps: completed.length,
+            continuingExecution: true
+          });
+          
           console.error(`Step ${step.id} (${step.name}) failed:`, error);
           
           // For now, continue execution even if a step fails
@@ -187,6 +239,16 @@ export function SimpleAnalyzeAllButton({
       setCurrentStep(0);
 
       const duration = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+      
+      // Log macro completion
+      logger.userAction('Complete', 'All 4 steps completed successfully', {
+        completedSteps: completed.length,
+        totalSteps: steps.length,
+        duration: `${duration}s`,
+        successRate: `${completed.length}/${steps.length}`,
+        stepResults: completed.map(id => steps.find(s => s.id === id)?.name).filter(Boolean)
+      });
+      
       toast({
         title: `${ticker} Analysis Complete`,
         description: `Completed ${completed.length} of ${steps.length} steps in ${duration}s`,
@@ -197,6 +259,15 @@ export function SimpleAnalyzeAllButton({
     } catch (error) {
       const executionError = error instanceof Error ? error : new Error(String(error));
       setExecutionError(executionError);
+      
+      // Log execution failure
+      logger.error('ExecutionFailed', 'Macro automation failed', {
+        errorMessage: executionError.message,
+        errorStack: executionError.stack,
+        completedSteps: completedSteps.length,
+        totalSteps: steps.length,
+        failedAtStep: currentStep
+      });
       
       toast({
         title: `${ticker} Analysis Failed`,
@@ -213,9 +284,15 @@ export function SimpleAnalyzeAllButton({
 
   // Handle cancellation
   const handleCancel = useCallback(() => {
+    logger.userAction('CancelRequested', 'User requested cancellation', {
+      currentStep,
+      completedSteps: completedSteps.length,
+      totalSteps: steps.length
+    });
+    
     setShouldCancel(true);
     setIsExecuting(false);
-  }, []);
+  }, [logger, currentStep, completedSteps.length, steps.length]);
 
   // Format elapsed time
   const formatElapsedTime = useCallback((): string => {

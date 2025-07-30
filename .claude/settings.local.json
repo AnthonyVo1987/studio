@@ -1,4 +1,5 @@
 {
+  "env": {},
   "permissions": {
     "allow": [
       "mcp__context7__resolve-library-id",
@@ -6,7 +7,6 @@
       "mcp__sequential-thinking__sequentialthinking",
       "mcp__ide__getDiagnostics",
       "mcp__ide__executeCode",
-
       "Bash(timeout 120s npm run dev)",
       "Bash(timeout 120s npm run build)",
       "Bash(timeout 120s npm run start)",
@@ -15,7 +15,6 @@
       "Bash(timeout 120s npm run generate:ticker-manifest)",
       "Bash(timeout 120s npm run genkit:dev)",
       "Bash(timeout 120s npm run genkit:watch)",
-
       "Bash(timeout 120s npm install *)",
       "Bash(timeout 120s npm run *)",
       "Bash(timeout 120s npm start *)",
@@ -24,17 +23,14 @@
       "Bash(timeout 120s npm update *)",
       "Bash(timeout 120s npm list *)",
       "Bash(timeout 120s npx *)",
-
       "Bash(timeout 120s next dev *)",
       "Bash(timeout 120s next build *)",
       "Bash(timeout 120s next start *)",
       "Bash(timeout 120s genkit *)",
-      
       "Bash(timeout 120s tsc *)",
       "Bash(timeout 120s tsx *)",
       "Bash(timeout 120s eslint *)",
       "Bash(timeout 120s tailwindcss *)",
-
       "Bash(timeout 120s git add *)",
       "Bash(timeout 120s git commit *)",
       "Bash(timeout 120s git push *)",
@@ -47,7 +43,6 @@
       "Bash(timeout 120s git merge *)",
       "Bash(timeout 120s git config *)",
       "Bash(timeout 120s git *)",
-
       "Bash(timeout 120s find *)",
       "Bash(timeout 120s grep *)",
       "Bash(timeout 120s ls *)",
@@ -66,7 +61,6 @@
       "Bash(timeout 120s chmod *)",
       "Bash(timeout 120s chown *)",
       "Bash(timeout 120s touch *)",
-
       "Bash(timeout 120s curl *)",
       "Bash(timeout 120s wget *)",
       "Bash(timeout 120s python *)",
@@ -90,16 +84,12 @@
       "Bash(timeout 120s free *)",
       "Bash(timeout 120s top *)",
       "Bash(timeout 120s htop *)",
-
       "Bash(timeout 120s next dev --turbopack -p 9002)",
       "Bash(timeout 120s genkit start -p 3400 *)",
-      
       "Bash(timeout 120s next dev --turbopack -p 9003)",
       "Bash(timeout 120s next dev --turbopack -p 9004)",
       "Bash(timeout 120s genkit start -p 3401 *)",
-
       "Bash(timeout 120s *)",
-
       "Bash(for *)",
       "Bash(while *)",
       "Bash(if *)",
@@ -108,14 +98,16 @@
       "Bash(then *)",
       "Bash(else *)",
       "Bash(fi *)",
-
       "Bash(/dev/null)",
       "Bash(true)",
       "Bash(false)",
-      "Bash(/init)"
+      "Bash(/init)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm ci:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
-  },
-  "env": {
   }
 }
