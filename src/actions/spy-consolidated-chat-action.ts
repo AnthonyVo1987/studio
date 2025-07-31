@@ -13,7 +13,6 @@ import {
   SpyConsolidatedChatInputSchema,
 } from '@/ai/schemas/spy-consolidated-chat-schemas';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition, loadExamplePrompts } from '@/ai/definition-loader';
-import { withServerLogging } from '@/lib/server-action-logging-wrapper';
 
 // Initialize Google GenAI SDK
 const apiKey = process.env.GEMINI_API_KEY;
@@ -310,9 +309,6 @@ export async function spyConsolidatedChatAction(
     };
   }
 }
-
-// Export the wrapped version with server logging
-export const spyConsolidatedChatActionWithLogging = withServerLogging(spyConsolidatedChatAction);
 
 // Default export for dynamic imports
 export default spyConsolidatedChatAction;

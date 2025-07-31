@@ -4,8 +4,6 @@
 import { getFullStockData } from '@/services/data-sources/adapters/polygon-adapter';
 import type { AdapterOutput } from '@/services/data-sources/types';
 import type { OptionType, StrikeCount } from '@/types/options';
-import { withServerLogging } from '@/lib/server-action-logging-wrapper';
-
 export interface StockDataFetchResult {
   marketStatusJson: string;
   stockSnapshotJson: string;
@@ -197,6 +195,3 @@ export async function fetchStockDataAction(
     };
   }
 }
-
-// Export the wrapped version with server logging
-export const fetchStockDataActionWithLogging = withServerLogging(fetchStockDataAction);

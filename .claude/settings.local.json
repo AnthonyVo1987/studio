@@ -139,7 +139,9 @@
       "Bash(git push:*)",
       "Bash(ss:*)",
       "Bash(timeout 30s *)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx typescript:*)"
     ],
     "deny": []
   }

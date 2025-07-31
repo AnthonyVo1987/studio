@@ -27,14 +27,11 @@ import { useNvdaAnalysis, useNvdaDispatch, NVDA_TICKER, type OptionType, type St
 
 // Server Actions (reused from Main/SPY tabs)
 import { getExpirationDates } from '@/services/data-sources/adapters/polygon-adapter';
-import { fetchStockDataAction, fetchStockDataActionWithLogging } from '@/actions/analyze-stock-server-action';
+import { fetchStockDataAction } from '@/actions/analyze-stock-server-action';
 import { analyzeTaAction } from '@/actions/analyze-ta-action';
 import { performAiAnalysisAction } from '@/actions/perform-ai-analysis-action';
 import { performAiOptionsAnalysisAction } from '@/actions/perform-ai-options-analysis-action';
 import { findNextAvailableDate } from '@/lib/date-utils';
-
-// Server Log Handler
-import { useServerLogs } from '@/lib/client-log-handler';
 
 // Ticker Logger
 import { createTickerLogger, TICKER_PAGES } from '@/lib/ticker-logger';
@@ -63,7 +60,6 @@ export function NvdaTabContent() {
   const nvdaState = useNvdaAnalysis();
   const nvdaDispatch = useNvdaDispatch();
   const { toast } = useToast();
-  const { processLogs } = useServerLogs();
 
   // Deterministic Handler: Fetch NVDA Expirations
   const handleFetchExpirations = async () => {
@@ -197,15 +193,13 @@ export function NvdaTabContent() {
         context: 'Step2_GetStockData_API_Call'
       });
       
-      const stockDataResult = await fetchStockDataActionWithLogging({
+      const stockDataResult = await fetchStockDataAction({
         ticker: NVDA_TICKER,
         expirationDate: finalExpirationToUse, // ← CRITICAL: Use validated expiration
         optionType: nvdaState.optionType,
         strikeCount: nvdaState.strikeCount,
       });
 
-      // Process server logs to client console
-      processLogs(stockDataResult);
 
       if (stockDataResult.status !== 'success' || !stockDataResult.data) {
         throw new Error(stockDataResult.error || 'Failed to fetch stock data');

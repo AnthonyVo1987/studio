@@ -2,16 +2,16 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: []
-**Task Type**: [] 
+**Version**: [v4.4.2.11]
+**Task Type**: [CLEANUP & REFACTOR] 
 ---
 
 ## Abstract
-**Brief Summary**:
+**Brief Summary**: Remove Broken Unified Server-To-Client Console feature causing build issues
 
 **Affected Systems**: []
 
-**Priority Level**: _[]_
+**Priority Level**: _[CRITICAL]_
 
 ---
 
@@ -130,6 +130,16 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
+Remove Broken Unified Server-To-Client Console feature causing build issues
+- Go through and analyze the recent git commit history and changes for the Unified Server-To-Client Console logging feature we recently implemented
+- This new feature is causing alot of issues, especially breaking the complete build and compile
+- So instead of trying to fix and intergrate this feature, let's just completely remove\revert\rollback\retire this feature so we can get unblocked
+- We let's just resort to the default logging ability already present in the code, and in the future, we can revisit and scope out a different implementation of a Unified Server-To-Client Console logging 
+- Make sure you carefully revert\rollback\retire the feature by performing research and git diff to figure out what to remove
+- Focus on make sure retiring this feature does NOT break the business logic
+-  SPECIAL ONE TIME WAIVER FOR AUTOMATED WORKFLOW RULES:  Current envrionment is not configred to test builds, so skip the the buid\compile testing step, but still have the code reviewed after all changes have retired the broken feature
+- User will manaully try and test compile\build once code reviewer approves the changes
+- Do NOT perform the atomic git commit steps since user needs to test compile manually etc
 
 
 ### Current Situation
