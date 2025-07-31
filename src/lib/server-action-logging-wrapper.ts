@@ -31,16 +31,16 @@ const DEFAULT_WRAPPER_CONFIG: Required<WrapperConfig> = {
 };
 
 /**
- * Type for a server action function
+ * Type for a server action function, now supporting multiple arguments
  */
-type ServerActionFunction<TParams = any, TReturn = any> = (
-  params: TParams
+type ServerActionFunction<TParams extends any[] = any[], TReturn = any> = (
+  ...params: TParams
 ) => Promise<TReturn>;
 
 /**
- * Type for wrapped server action that preserves response structure
+ * Type for wrapped server action that preserves response structure and multi-arg support
  */
-type WrappedServerAction<TParams = any, TReturn = any> = 
+type WrappedServerAction<TParams extends any[] = any[], TReturn = any> =
   TReturn extends ServerActionResponse<infer TData> 
     ? ServerActionFunction<TParams, ServerActionResponse<TData>>
     : TReturn extends LegacyServerActionResponse<infer TData>
@@ -50,69 +50,36 @@ type WrappedServerAction<TParams = any, TReturn = any> =
 /**
  * Higher-order function to wrap server actions with logging
  */
-export function withServerLogging<TParams = any, TReturn = any>(
+export function withServerLogging<TParams extends any[] = any[], TReturn = any>(
   action: ServerActionFunction<TParams, TReturn>,
   config?: WrapperConfig
-): WrappedServerAction<TParams, TReturn> {
+): ServerActionFunction<TParams, TReturn> {
   const mergedConfig = { ...DEFAULT_WRAPPER_CONFIG, ...config };
 
-  return async (params: TParams): Promise<any> => {
+  return async (...params: TParams): Promise<TReturn> => {
     'use server';
-    
-    // If logging is disabled, just run the action
+
     if (!mergedConfig.enabled) {
-      return action(params);
+      return action(...params);
     }
 
     const startTime = Date.now();
-    
-    try {
-      // Capture logs during action execution
-      const { result, logs } = await captureServerLogs(
-        async () => action(params),
-        {
-          enabled: mergedConfig.enabled,
-          sanitize: mergedConfig.sanitize,
-          maxLogs: mergedConfig.maxLogs,
-        }
-      );
+    let result: TReturn;
+    let logs: ServerLogEntry[] = [];
 
-      // Handle different response types
-      if (isServerActionResponse(result)) {
-        // Already a server action response - enhance it
-        return {
-          ...result,
-          serverLogs: logs,
-          metadata: mergedConfig.includeMetadata
-            ? {
-                ...result.metadata,
-                executionTime: Date.now() - startTime,
-                serverVersion: process.env.npm_package_version,
-              }
-            : result.metadata,
-        };
-      } else {
-        // Wrap non-standard response
-        return {
-          status: 'success' as const,
-          data: result,
-          serverLogs: logs,
-          metadata: mergedConfig.includeMetadata
-            ? {
-                executionTime: Date.now() - startTime,
-                serverVersion: process.env.npm_package_version,
-              }
-            : undefined,
-        };
-      }
+    try {
+      const captured = await captureServerLogs(async () => action(...params), {
+        enabled: mergedConfig.enabled,
+        sanitize: mergedConfig.sanitize,
+        maxLogs: mergedConfig.maxLogs,
+      });
+      result = captured.result;
+      logs = captured.logs;
     } catch (error) {
-      // Capture any logs before the error
       const errorLogs = new ServerLogCapture(mergedConfig).getLogs();
-      
-      // Log the error itself
       console.error('[ServerActionWrapper] Action error:', error);
       
-      return {
+      const errorResult = {
         status: 'error' as const,
         error: error instanceof Error ? error.message : String(error),
         serverLogs: errorLogs,
@@ -123,14 +90,39 @@ export function withServerLogging<TParams = any, TReturn = any>(
             }
           : undefined,
       };
+
+      // Attempt to cast to TReturn, this might not be perfect but it's the best we can do
+      return errorResult as TReturn;
     }
+
+    if (typeof result === 'object' && result !== null) {
+      const enhancedResult = { ...result };
+
+      if (isServerActionResponse(enhancedResult)) {
+        if ('serverLogs' in enhancedResult) {
+          enhancedResult.serverLogs = [...(enhancedResult.serverLogs || []), ...logs];
+        }
+
+        if (mergedConfig.includeMetadata && 'metadata' in enhancedResult) {
+          const existingMetadata = enhancedResult.metadata || {};
+          enhancedResult.metadata = {
+            ...existingMetadata,
+            executionTime: Date.now() - startTime,
+            serverVersion: process.env.npm_package_version,
+          };
+        }
+      }
+      return enhancedResult as TReturn;
+    }
+
+    return result;
   };
 }
 
 /**
  * Type guard to check if value is a server action response
  */
-function isServerActionResponse(value: any): value is ServerActionResponse | LegacyServerActionResponse {
+function isServerActionResponse(value: any): value is ServerActionResponse<any> | LegacyServerActionResponse<any> {
   return (
     value &&
     typeof value === 'object' &&
@@ -142,10 +134,10 @@ function isServerActionResponse(value: any): value is ServerActionResponse | Leg
 /**
  * Utility to wrap multiple server actions at once
  */
-export function wrapServerActions<T extends Record<string, ServerActionFunction>>(
+export function wrapServerActions<T extends Record<string, ServerActionFunction<any[], any>>>(
   actions: T,
   config?: WrapperConfig
-): { [K in keyof T]: WrappedServerAction<Parameters<T[K]>[0], Awaited<ReturnType<T[K]>>> } {
+): { [K in keyof T]: ServerActionFunction<Parameters<T[K]>, Awaited<ReturnType<T[K]>>> } {
   const wrapped: any = {};
   
   for (const [name, action] of Object.entries(actions)) {
@@ -158,9 +150,9 @@ export function wrapServerActions<T extends Record<string, ServerActionFunction>
 /**
  * Development-only wrapper that preserves production behavior
  */
-export function withDevLogging<TParams = any, TReturn = any>(
+export function withDevLogging<TParams extends any[] = any[], TReturn = any>(
   action: ServerActionFunction<TParams, TReturn>
-): WrappedServerAction<TParams, TReturn> {
+): ServerActionFunction<TParams, TReturn> {
   return withServerLogging(action, {
     enabled: process.env.NODE_ENV === 'development',
   });

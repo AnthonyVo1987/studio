@@ -115,12 +115,15 @@ export class ServerLogCapture {
     const methods: (keyof Console)[] = ['log', 'info', 'warn', 'error', 'debug'];
     
     methods.forEach((method) => {
-      this.originalConsole[method] = console[method];
+      const originalMethod = (console as any)[method];
+      this.originalConsole[method] = originalMethod;
       
       // Override console method
       (console as any)[method] = (...args: any[]) => {
         // Call original method
-        this.originalConsole[method]?.apply(console, args);
+        if (typeof originalMethod === 'function') {
+          originalMethod.apply(console, args);
+        }
         
         // Capture log
         this.captureLog(method as ServerLogEntry['level'], args);
