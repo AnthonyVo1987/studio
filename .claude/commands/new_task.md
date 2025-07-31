@@ -42,6 +42,16 @@
 - Balance automation efficiency with development speed
 - Document tool insights in specialist deliverables
 
+### Enhanced Autonomous Operation (v4.4.2.10)
+The AI development team now operates with full bash command automation:
+- **140+ Pre-Approved Commands**: All standard development workflows are fully autonomous
+- **Zero Manual Approvals**: No manual approvals needed for common operations
+- **Universal Coverage**: Comprehensive fallback patterns ensure smooth execution
+- **Optimized Timeouts**: 120s standard, 300s builds, 30s critical operations
+- **Uninterrupted Workflows**: Specialists can execute all standard commands autonomously
+
+When filling out task details, note that AI specialists can now execute all standard development, build, test, and deployment commands autonomously.
+
 ### DELEGATION WORKFLOW:
 1. **Read** `docs/new_task_details.md` completely
 2. **Apply Enhanced Tool Usage**: Use SEQUENTIAL THINKING tool for complex task breakdown if requirements are multi-layered or uncertain

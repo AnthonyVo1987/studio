@@ -99,6 +99,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **CRITICAL**: @tech-lead-orchestrator remains a **COORDINATION-ONLY** role and must delegate all hands-on implementation work to appropriate specialists as defined in the "Tech Lead Orchestrator Operating Rules" section.
 
+## Bash Command Automation (v4.4.2.10)
+
+### Autonomous Command Operation
+Complete bash command automation is now enabled through settings.local.json with 140+ pre-approved patterns:
+
+**Command Categories & Timeouts**:
+- **Development Commands**: npm, next, tsx - 120s (300s for production builds)
+- **Version Control**: git operations - 120s  
+- **Process Management**: ps, kill, lsof, pgrep - 30-120s optimized
+- **File Operations**: ls, cat, find, grep, mkdir - 120s
+- **Environment**: export, env, printenv - 120s
+- **TypeScript**: tsc, eslint - 120s
+- **AI/Genkit**: genkit flows - 120-180s
+
+**Usage Protocol**:
+- All standard development workflows are fully autonomous
+- No manual approvals needed for common operations
+- Universal fallback ensures comprehensive coverage
+- Proper timeout usage prevents approval requests
+
+**Examples**:
+- `npm run build` → Automatically uses 300s timeout for production builds
+- `git commit` → Uses 120s timeout for reliable operations
+- `lsof -i :9002` → Uses 60s timeout for port checking
+- `kill -9 PID` → Uses 30s timeout for quick termination
+
+**Universal Coverage Pattern**:
+The autonomous system includes a universal fallback pattern `Bash(timeout 120s *)` that covers all scenarios not explicitly defined, ensuring complete automation coverage for all bash commands.
+
+**Performance Optimization**:
+- **Critical Operations**: 30s timeout for immediate actions
+- **Standard Commands**: 120s timeout for reliable execution
+- **Build Operations**: 300s timeout for complex compilation processes
+- **AI/Genkit Operations**: 120-180s timeout for AI workflow processing
+
 ## Tech Lead Orchestrator Operating Rules
 
 ### CRITICAL: Orchestrator Role Boundaries
@@ -191,12 +226,20 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 4. **Progress Tracking**: Template milestones enable systematic progress monitoring
 5. **Task Closure**: All template requirements must be completed before task finalization
 
+#### Enhanced Autonomous Operation (v4.4.2.10)
+The AI development team now operates with full bash command automation:
+- 140+ pre-approved command patterns eliminate manual approvals
+- Specialists use appropriate timeouts automatically
+- Universal coverage ensures smooth task execution
+- Zero interruptions for standard development workflows
+
 #### Workflow Integration Benefits:
 - **Consistent Task Structure**: Every task follows the same standardized format
 - **Reduced Communication Overhead**: Template ensures all required context is captured upfront
 - **Quality Assurance**: Built-in quality gates prevent delivery of incomplete work
 - **Documentation Compliance**: Mandatory documentation requirements are clearly specified
 - **Specialist Efficiency**: Clear task assignments eliminate role confusion and overlap
+- **Autonomous Execution**: Full command automation enables uninterrupted specialist workflows
 
 ### Escalation Procedures
 
@@ -829,7 +872,7 @@ const handleOnDemandKeyTakeaways = async () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.7 (macro automation debugging enhancements with comprehensive console logging)
+- **Current Version**: v4.4.2.10 (autonomous bash command automation implementation: 140+ standardized commands, enhanced workflow integration, production-ready autonomous task completion)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format (v4.4.2.7 stable state with macro automation debugging, enhanced logging, and cross-tab consistency)
 
