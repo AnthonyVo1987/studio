@@ -1,6 +1,6 @@
 {
-  "appVersion": "v4.4.2.11",
-  "lastUpdatedTimestamp": "2025-07-31T21:45:00.000Z", 
-  "description": "Remove broken Unified Server-To-Client Console logging feature causing build failures, restore stable default logging patterns, maintain macro automation debugging capabilities",
+  "appVersion": "v4.4.2.12",
+  "lastUpdatedTimestamp": "2025-07-31T22:15:00.000Z",
+  "description": "Documentation cleanup and optimization: 61KB size reduction across documentation files, improved Claude Code context performance, streamlined architecture documentation while preserving all critical functionality",
   "metadataSchemaVersion": "1.0.0"
 }

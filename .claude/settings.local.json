@@ -141,7 +141,9 @@
       "Bash(timeout 30s *)",
       "Bash(grep:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx typescript:*)"
+      "Bash(npx typescript:*)",
+      "Bash(mkdir:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }
