@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import type { ServerLogEntry } from '@/types/server-action-response';
 
 /**
@@ -118,8 +118,12 @@ export function processServerLogs(
  * React hook for processing server logs
  */
 export function useServerLogs(config?: ClientLogConfig) {
-  const configRef = useRef(config);
-  configRef.current = config;
+  const configRef = useRef<ClientLogConfig | undefined>(config);
+  
+  // Update config ref without causing re-renders
+  React.useLayoutEffect(() => {
+    configRef.current = config;
+  }, [config]);
   
   const processLogs = useCallback(<T extends any>(
     response: T
@@ -138,7 +142,7 @@ export function withServerLogProcessing<P extends object>(
   Component: React.ComponentType<P>,
   config?: ClientLogConfig
 ): React.ComponentType<P> {
-  return function WithServerLogProcessing(props: P) {
+  const WithServerLogProcessing = function WithServerLogProcessing(props: P) {
     const { processLogs } = useServerLogs(config);
     
     // Inject processLogs into props if component accepts it
@@ -149,6 +153,10 @@ export function withServerLogProcessing<P extends object>(
     
     return <Component {...(enhancedProps as P)} />;
   };
+  
+  WithServerLogProcessing.displayName = `withServerLogProcessing(${Component.displayName || Component.name || 'Component'})`;
+  
+  return WithServerLogProcessing;
 }
 
 /**

@@ -107,6 +107,92 @@ export function SimpleAnalyzeAllButton({
   const [stepStartTimes, setStepStartTimes] = useState<Map<number, number>>(new Map());
   const [anomaliesDetected, setAnomaliesDetected] = useState<string[]>([]);
 
+  // Wrapped handler for Step 1: Fetch expirations and capture the selected one
+  const fetchExpirationsWithCapture = useCallback(async () => {
+    const stepStart = Date.now();
+    setStepStartTimes(prev => new Map(prev).set(1, stepStart));
+    
+    // Capture the current state before execution
+    const preExecutionExpiration = getCurrentExpiration();
+    const preExecutionAvailable = getAvailableExpirations();
+    
+    logger.stateValidation('Step1_PreExecution', 'Capturing pre-execution state', {
+      currentSharedExpiration: preExecutionExpiration,
+      availableExpirationsCount: preExecutionAvailable.length,
+      macroSelectedExpiration: macroExecutionContext.selectedExpiration,
+      executionId,
+      timestamp: new Date(stepStart).toISOString()
+    });
+    
+    // Execute the original fetch operation
+    await onFetchExpirations();
+    
+    // Capture state IMMEDIATELY after fetch but before external contamination
+    const postExecutionExpiration = getCurrentExpiration();
+    const postExecutionAvailable = getAvailableExpirations();
+    
+    // Set macro's selected expiration IMMEDIATELY after fetch
+    setMacroExecutionContext(prev => ({
+      ...prev,
+      selectedExpiration: postExecutionExpiration,
+      stepResults: new Map(prev.stepResults).set(1, {
+        preExecutionExpiration,
+        postExecutionExpiration,
+        availableExpirationsCount: postExecutionAvailable.length,
+        stepDuration: `${Date.now() - stepStart}ms`
+      })
+    }));
+    
+    logger.stateValidation('Step1_PostExecution', 'State captured after fetch', {
+      preExecutionExpiration,
+      postExecutionExpiration,
+      macroSelectedExpiration: postExecutionExpiration,
+      availableExpirationsCount: postExecutionAvailable.length,
+      executionId,
+      stepDuration: `${Date.now() - stepStart}ms`
+    });
+    
+    // Final validation
+    if (postExecutionExpiration !== preExecutionExpiration) {
+      logger.macroExecution('Step1_ExpSelectionChanged', 'Expiration selection updated', {
+        from: preExecutionExpiration,
+        to: postExecutionExpiration,
+        executionId
+      });
+    }
+  }, [onFetchExpirations, getCurrentExpiration, getAvailableExpirations, macroExecutionContext.selectedExpiration, executionId, logger, setStepStartTimes]);
+
+  // Macro state validation to ensure consistency
+  const validateMacroExpiration = useCallback(() => {
+    const currentSharedExpiration = getCurrentExpiration();
+    const macroSelectedExpiration = macroExecutionContext.selectedExpiration;
+    
+    if (!macroSelectedExpiration) {
+      logger.stateValidation('Macro_NoSelection', 'Macro has no selected expiration', {
+        currentShared: currentSharedExpiration,
+        executionId
+      });
+    } else if (currentSharedExpiration !== macroSelectedExpiration) {
+      logger.stateValidation('Macro_StateContamination', 'Shared state differs from macro state', {
+        macroSelected: macroSelectedExpiration,
+        currentShared: currentSharedExpiration,
+        executionId
+      });
+      
+      setAnomaliesDetected(prev => [
+        ...prev,
+        `State contamination detected: macro=${macroSelectedExpiration}, shared=${currentSharedExpiration}`
+      ]);
+    } else {
+      logger.stateValidation('Macro_StateConsistent', 'Macro and shared state consistent', {
+        expiration: macroSelectedExpiration,
+        executionId
+      });
+    }
+    
+    return macroSelectedExpiration;
+  }, [getCurrentExpiration, macroExecutionContext.selectedExpiration, executionId, logger]);
+
   // Define the execution steps with wrapped handlers for macro isolation
   const steps: Step[] = useMemo(() => [
     {
@@ -342,208 +428,7 @@ export function SimpleAnalyzeAllButton({
     });
   }, [executionId, isExecuting, isCompleted, isCancelled, executionError, anomaliesDetected, logger]);
 
-  // Wrapped handler for Step 1: Fetch expirations and capture the selected one
-  const fetchExpirationsWithCapture = useCallback(async () => {
-    const stepStart = Date.now();
-    setStepStartTimes(prev => new Map(prev).set(1, stepStart));
-    
-    // Capture the current state before execution
-    const preExecutionExpiration = getCurrentExpiration();
-    const preExecutionAvailable = getAvailableExpirations();
-    
-    logger.stateValidation('Step1_PreExecution', 'Capturing pre-execution state', {
-      currentSharedExpiration: preExecutionExpiration,
-      availableExpirationsCount: preExecutionAvailable.length,
-      macroSelectedExpiration: macroExecutionContext.selectedExpiration,
-      executionId,
-      timestamp: new Date(stepStart).toISOString()
-    });
 
-    try {
-      // Execute the original handler
-      logger.macroExecution('Step1_Execute', 'Calling onFetchExpirations handler', {
-        executionId,
-        stepId: 1,
-        preExecutionExpiration
-      });
-      
-      await onFetchExpirations();
-
-      // After execution, capture the new expiration that was selected
-      // Add a small delay to ensure state has been updated
-      logger.stateValidation('Step1_StateSync', 'Waiting for state synchronization', {
-        executionId,
-        waitTime: '100ms'
-      });
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const newExpiration = getCurrentExpiration();
-      const availableExpirations = getAvailableExpirations();
-      const expirationChanged = newExpiration !== preExecutionExpiration;
-      
-      // Calculate step duration
-      const stepDuration = Date.now() - stepStart;
-      
-      // Detect if expiration was auto-selected or changed
-      const expirationSelectionInfo = {
-        previousExpiration: preExecutionExpiration,
-        newExpiration,
-        expirationChanged,
-        changeType: expirationChanged ? 
-          (preExecutionExpiration ? 'modified' : 'initial_selection') : 
-          'unchanged',
-        availableCount: availableExpirations.length,
-        isFirstAvailable: availableExpirations.length > 0 && newExpiration === availableExpirations[0]
-      };
-      
-      logger.stateValidation('Step1_PostExecution', 'State captured after expiration fetch', {
-        ...expirationSelectionInfo,
-        availableExpirations: availableExpirations.slice(0, 5), // Log first 5 for debugging
-        stepDuration: `${stepDuration}ms`,
-        executionId
-      });
-
-      // CRITICAL: Store the selected expiration in macro context
-      logger.macroExecution('Step1_CaptureState', 'Storing expiration in macro context', {
-        executionId,
-        capturedExpiration: newExpiration,
-        macroContextUpdate: {
-          selectedExpiration: newExpiration,
-          previousValue: macroExecutionContext.selectedExpiration
-        }
-      });
-      
-      setMacroExecutionContext(prev => ({
-        ...prev,
-        selectedExpiration: newExpiration,
-        stepResults: new Map(prev.stepResults).set(1, { 
-          selectedExpiration: newExpiration,
-          availableExpirations,
-          stepDuration,
-          expirationSelectionInfo,
-          timestamp: Date.now()
-        })
-      }));
-      
-      // Log performance metric with enhanced details
-      logger.performance('Step1_Complete', 'Expiration fetch completed', {
-        stepDuration: `${stepDuration}ms`,
-        expirationsCaptured: availableExpirations.length,
-        selectedExpiration: newExpiration,
-        executionId,
-        selectionDetails: expirationSelectionInfo
-      });
-      
-      return newExpiration;
-    } catch (error) {
-      const stepDuration = Date.now() - stepStart;
-      logger.error('Step1_Error', 'Error during expiration fetch', {
-        error: error instanceof Error ? error.message : String(error),
-        stepDuration: `${stepDuration}ms`,
-        executionId,
-        stepId: 1,
-        preExecutionExpiration
-      });
-      throw error;
-    }
-  }, [onFetchExpirations, getCurrentExpiration, getAvailableExpirations, logger, macroExecutionContext.selectedExpiration, executionId]);
-
-  // Validation wrapper for subsequent steps
-  const validateMacroExpiration = useCallback(() => {
-    const validationStart = Date.now();
-    const macroExpiration = macroExecutionContext.selectedExpiration;
-    const currentSharedExpiration = getCurrentExpiration();
-    const availableExpirations = getAvailableExpirations();
-    
-    // Enhanced validation data
-    const validationData: MacroExecutionLogData = {
-      executionId,
-      macroExpiration,
-      uiExpiration: currentSharedExpiration,
-      contaminated: macroExpiration !== currentSharedExpiration,
-      recoveryAction: macroExpiration !== currentSharedExpiration ? 'using_macro_state' : 'none_needed'
-    };
-    
-    // Log comprehensive validation context
-    logger.stateValidation('ExpirationValidation_Start', 'Beginning state consistency check', {
-      ...validationData,
-      availableExpirationsCount: availableExpirations.length,
-      macroExpirationInAvailable: macroExpiration ? availableExpirations.includes(macroExpiration) : false,
-      uiExpirationInAvailable: currentSharedExpiration ? availableExpirations.includes(currentSharedExpiration) : false,
-      validationTimestamp: new Date(validationStart).toISOString()
-    });
-
-    if (!macroExpiration) {
-      const error = 'No expiration captured from Step 1. Macro context is corrupted.';
-      setAnomaliesDetected(prev => [...prev, error]);
-      
-      logger.error('ValidationFailed_NoMacroExpiration', error, {
-        executionId,
-        macroContext: {
-          selectedExpiration: macroExecutionContext.selectedExpiration,
-          isExecuting: macroExecutionContext.isExecuting,
-          stepResultsCount: macroExecutionContext.stepResults.size
-        },
-        currentUIExpiration: currentSharedExpiration,
-        availableExpirationsCount: availableExpirations.length,
-        anomaly: 'missing_macro_expiration',
-        criticalError: true
-      });
-      throw new Error(error);
-    }
-
-    // Check if macro expiration is still valid (in available list)
-    if (!availableExpirations.includes(macroExpiration)) {
-      const anomaly = `Macro expiration ${macroExpiration} no longer available`;
-      setAnomaliesDetected(prev => [...prev, anomaly]);
-      
-      logger.warn('ValidationWarning_ExpiredExpiration', 'Macro expiration no longer in available list', {
-        macroExpiration,
-        currentSharedExpiration,
-        availableExpirationsCount: availableExpirations.length,
-        availableExpirations: availableExpirations.slice(0, 5),
-        executionId,
-        anomaly: 'expired_macro_expiration'
-      });
-    }
-
-    if (macroExpiration !== currentSharedExpiration) {
-      const anomaly = `State contamination: Expected ${macroExpiration}, found ${currentSharedExpiration}`;
-      setAnomaliesDetected(prev => [...prev, anomaly]);
-      
-      logger.warn('StateContamination_Detected', 'State contamination detected!', {
-        expected: macroExpiration,
-        actual: currentSharedExpiration,
-        delta: {
-          macroToUI: macroExpiration > currentSharedExpiration ? 'macro_ahead' : 'macro_behind',
-          likely_cause: 'User changed expiration during macro execution'
-        },
-        action: 'User may have changed expiration during macro execution',
-        mitigation: 'Macro will continue with originally captured expiration',
-        executionId,
-        anomaly: 'expiration_mismatch',
-        contaminationLevel: 'moderate'
-      });
-    } else {
-      logger.stateValidation('ValidationSuccess', 'State consistency maintained', {
-        macroExpiration,
-        uiExpiration: currentSharedExpiration,
-        stateConsistent: true,
-        executionId
-      });
-    }
-    
-    const validationDuration = Date.now() - validationStart;
-    logger.performance('ExpirationValidation_Complete', 'Validation completed', {
-      validationDuration: `${validationDuration}ms`,
-      result: 'success',
-      macroExpiration,
-      executionId
-    });
-
-    return macroExpiration;
-  }, [macroExecutionContext, getCurrentExpiration, getAvailableExpirations, logger, executionId]);
 
   // Execute all steps sequentially
   const handleExecuteAll = useCallback(async () => {
