@@ -2,7 +2,7 @@
 
 **A Next.js Financial Analysis Application with AI-Powered Insights**
 
-[![Version](https://img.shields.io/badge/version-v4.4.2.12-blue.svg)](src/config/app-metadata.json)
+[![Version](https://img.shields.io/badge/version-v4.4.2.14-blue.svg)](src/config/app-metadata.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
@@ -27,10 +27,10 @@ The current dedicated NVDA and SPY pages represent the stable, battle-tested arc
 - **Technical Analysis**: Standard and AI-enhanced technical indicators including pivot points and trend analysis
 - **Enhanced AI Chat Systems**: Professional AI chat interface with optimized sizing and engaging emoji formatting
 
-### Application Architecture (v4.4.2.12)
+### Application Architecture (v4.4.2.14)
 - **Dedicated Two-Tab System**: Clean NVDA and SPY analysis pages with complete context isolation
 - **Battle-Tested Patterns**: React Context + useReducer with deterministic handlers
-- **Macro Automation**: "Analyze All" button with comprehensive debugging capabilities
+- **Enhanced Macro Automation**: "Analyze All" button with comprehensive debugging and intelligent step selection
 - **Advanced Export Features**: JSON export functionality for all data components
 - **Build System Stability**: Reliable compilation and development workflows
 
@@ -118,7 +118,7 @@ genkit start -p 3401            # Internal Genkit testing
 
 ## Application Architecture
 
-### Dedicated Tab Architecture (v4.4.2.12)
+### Dedicated Tab Architecture (v4.4.2.14)
 
 StockSage features a proven two-tab architecture with complete context isolation:
 
@@ -190,12 +190,14 @@ src/actions/
 └── spy-consolidated-chat-action.ts    # SPY AI chat
 ```
 
-### Macro Automation System (v4.4.2.12)
+### Enhanced Macro Automation System (v4.4.2.14)
 
-StockSage includes a sophisticated macro automation system that streamlines the entire analysis workflow:
+StockSage includes a sophisticated macro automation system that streamlines the entire analysis workflow with intelligent step selection:
 
 #### "Analyze All" Button Features
+- **Intelligent Step Selection**: Automatically determines optimal workflow based on app state
 - **4-Step Sequential Execution**: Automated workflow (Fetch Expirations → Get Stock Data → AI Takeaways → AI Options Analysis)
+- **Smart State Detection**: Skips unnecessary steps when valid data already exists
 - **Isolated State Management**: Macro execution context completely separate from component state
 - **Cross-Tab Consistency**: Identical macro functionality in both NVDA and SPY tabs
 - **Progress Tracking**: Real-time progress indication with step-by-step execution feedback
@@ -208,15 +210,20 @@ StockSage includes a sophisticated macro automation system that streamlines the 
 - **Performance Optimized**: Enhanced debugging maintains <1.5ms production overhead
 - **Production Safety**: Standard console logging patterns with proper error handling
 
-#### Technical Implementation
+#### Technical Implementation (v4.4.2.14 Bug Fix)
 ```typescript
-// Macro automation with enhanced debugging
+// Intelligent step selection based on app state
 const handleAnalyzeAll = async () => {
   console.log(`[${ticker}] Starting "Analyze All" macro automation...`);
   
-  // Step 1: Fetch Expirations
-  console.log(`[${ticker}] Step 1/4: Fetching option expirations...`);
-  await fetchExpirations();
+  // Determine starting step based on current state
+  const startingStep = nvda.selectedExpirationDate ? 2 : 1; // Skip expiration fetch if already selected
+  
+  if (startingStep === 1) {
+    // Step 1: Fetch Expirations (only if needed)
+    console.log(`[${ticker}] Step 1/4: Fetching option expirations...`);
+    await fetchExpirations();
+  }
   
   // Steps 2-4 continue sequentially...
   
@@ -224,9 +231,15 @@ const handleAnalyzeAll = async () => {
 };
 ```
 
+#### Bug Fix Details (v4.4.2.14)
+- **Issue**: Macro automation only worked if user previously ran "Get Stock Data" button
+- **Root Cause**: Logic assumed stock data was always available, failing when starting from clean state
+- **Solution**: Implemented intelligent step selection that adapts to current app state
+- **Result**: Macro now works in ANY app state without requiring user intervention
+
 ## File Organization
 
-### Current Architecture Structure (v4.4.2.12)
+### Current Architecture Structure (v4.4.2.14)
 ```
 src/
 ├── components/                        # UI Components
@@ -234,7 +247,7 @@ src/
 │   ├── spy-tab-content.tsx           # SPY dedicated tab (PROTECTED)
 │   ├── nvda-*.tsx                    # NVDA-specific components
 │   ├── spy-*.tsx                     # SPY-specific components
-│   ├── macro-orchestrator/           # Macro Automation System
+│   ├── macro-orchestrator/           # Enhanced Macro Automation System
 │   └── ui/                           # ShadCN UI components
 │
 ├── contexts/                          # State Management (PROTECTED)
@@ -303,7 +316,7 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
 - **State Monitoring**: Real-time FSM state and context variable inspection
 - **Export Functionality**: Debug snapshot export for comprehensive bug reporting
 
-#### Enhanced Debugging with Component Logging (v4.4.2.12)
+#### Enhanced Debugging with Component Logging (v4.4.2.14)
 
 **Standard Component Logging:**
 - **Individual Logging Patterns**: Application uses standard individual component logging capabilities
@@ -383,7 +396,7 @@ GEMINI_API_KEY=your_google_ai_api_key   # Google AI API access
 ## Version Management
 
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.12 (optimized README with enhanced architecture focus)
+- **Current Version**: v4.4.2.14 (macro automation bug fix - intelligent step selection)
 - **Versioning Scheme**: `v4.w.x.y.z` format for clear version tracking
 - **Update Policy**: Version and timestamp updates required for all code changes
 
@@ -429,4 +442,4 @@ For technical issues or questions about the codebase architecture, refer to the 
 
 ---
 
-**StockSage v4.4.2.12** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced debugging capabilities, and production-ready autonomous task completion.
+**StockSage v4.4.2.14** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced macro automation with intelligent step selection, and production-ready autonomous task completion.

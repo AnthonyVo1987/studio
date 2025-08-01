@@ -1,6 +1,6 @@
 {
-  "appVersion": "v4.4.2.13",
-  "lastUpdatedTimestamp": "2025-08-01T00:00:00.000Z",
-  "description": "CLAUDE.md character optimization and monitoring system: Enhanced Claude Code performance through character count optimization, implemented threshold monitoring system, added archive ignore instructions for improved context management",
+  "appVersion": "v4.4.2.14",
+  "lastUpdatedTimestamp": "2025-08-01T12:00:00.000Z",
+  "description": "Fixed critical macro automation logic bug: Implemented intelligent step selection to handle both expiration states (no selection vs pre-selected), enabling autonomous execution without requiring user intervention",
   "metadataSchemaVersion": "1.0.0"
 }

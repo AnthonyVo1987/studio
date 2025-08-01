@@ -55,11 +55,24 @@ interface Step {
   canExecute: () => boolean;
 }
 
+// Step result data structure for typed storage
+interface StepResult {
+  macroExpiration?: string | null;
+  stepDuration?: number | string;
+  preExecutionExpiration?: string;
+  postExecutionExpiration?: string;
+  availableExpirationsCount?: number;
+  preExecutionState?: Record<string, unknown>;
+  postExecutionState?: Record<string, unknown>;
+  timestamp?: number;
+  [key: string]: unknown; // Allow for additional properties
+}
+
 // Macro execution context to maintain isolated state
 interface MacroExecutionContext {
   selectedExpiration: string | null;
   isExecuting: boolean;
-  stepResults: Map<number, any>;
+  stepResults: Map<number, StepResult>;
 }
 
 export function SimpleAnalyzeAllButton({
@@ -430,6 +443,24 @@ export function SimpleAnalyzeAllButton({
 
 
 
+  // Helper function to determine if we need to fetch expirations
+  const shouldFetchExpirations = useCallback(() => {
+    const currentExp = getCurrentExpiration();
+    const availableExps = getAvailableExpirations();
+    
+    // Need to fetch if no current expiration OR no available expirations
+    const needsFetch = !currentExp || !currentExp.trim() || availableExps.length === 0;
+    
+    logger.stateValidation('ShouldFetchExpirations', 'Evaluating if expiration fetch is needed', {
+      currentExpiration: currentExp,
+      availableExpirationsCount: availableExps.length,
+      needsFetch,
+      executionId
+    });
+    
+    return needsFetch;
+  }, [getCurrentExpiration, getAvailableExpirations, logger, executionId]);
+
   // Execute all steps sequentially
   const handleExecuteAll = useCallback(async () => {
     if (isExecuting) {
@@ -450,18 +481,27 @@ export function SimpleAnalyzeAllButton({
     const initialUIExpiration = getCurrentExpiration();
     const availableExpirations = getAvailableExpirations();
     
+    // INTELLIGENT STEP SELECTION: Determine if we need to fetch expirations
+    const needsExpirationFetch = shouldFetchExpirations();
+    
+    // Pre-initialize selectedExpiration if we're skipping the fetch step
+    const initialMacroExpiration = needsExpirationFetch ? null : initialUIExpiration;
+    
     setMacroExecutionContext(prev => ({ 
       ...prev, 
       isExecuting: true,
-      selectedExpiration: null, // Will be captured in Step 1
+      selectedExpiration: initialMacroExpiration,
       stepResults: new Map()
     }));
+    
+    // DYNAMIC STEP SELECTION: Build execution plan based on current state
+    const executionSteps = needsExpirationFetch ? steps : steps.slice(1);
     
     // Log macro context initialization
     logger.macroExecution('ContextInit', 'Macro execution context initialized', {
       executionId,
       contextState: {
-        selectedExpiration: null,
+        selectedExpiration: initialMacroExpiration,
         isExecuting: true,
         stepResultsCount: 0
       },
@@ -469,22 +509,32 @@ export function SimpleAnalyzeAllButton({
         currentExpiration: initialUIExpiration,
         availableExpirationsCount: availableExpirations.length,
         availableExpirations: availableExpirations.slice(0, 3) // First 3 for brevity
+      },
+      stepSelection: {
+        needsExpirationFetch,
+        totalStepsToExecute: executionSteps.length,
+        skippingFetchStep: !needsExpirationFetch
       }
     });
 
     // Log macro automation start with comprehensive context
-    logger.macroExecution('MacroStart', 'Beginning 4-step automation workflow', {
+    logger.macroExecution('MacroStart', `Beginning ${executionSteps.length}-step automation workflow`, {
       executionId,
-      totalSteps: steps.length,
-      stepNames: steps.map(s => s.name),
+      totalSteps: executionSteps.length,
+      stepNames: executionSteps.map(s => s.name),
       isolationMode: 'macro-context-enabled',
       initialUIExpiration,
       availableExpirationsCount: availableExpirations.length,
       ticker,
       timestamp: new Date(executionStart).toISOString(),
+      intelligentExecution: {
+        needsExpirationFetch,
+        skippedSteps: needsExpirationFetch ? [] : ['Fetch Expirations'],
+        preSelectedExpiration: initialMacroExpiration
+      },
       environment: {
         nodeEnv: process.env.NODE_ENV,
-        canExecuteSteps: steps.map(s => ({ 
+        canExecuteSteps: executionSteps.map(s => ({ 
           stepId: s.id, 
           stepName: s.name, 
           canExecute: s.canExecute() 
@@ -500,7 +550,7 @@ export function SimpleAnalyzeAllButton({
 
       const completed: number[] = [];
 
-      for (let i = 0; i < steps.length; i++) {
+      for (let i = 0; i < executionSteps.length; i++) {
         if (shouldCancel) {
           setIsCancelled(true);
           
@@ -510,25 +560,29 @@ export function SimpleAnalyzeAllButton({
           logger.macroExecution('MacroCancelled', 'Macro automation cancelled by user', {
             executionId,
             stoppedAtStep: i + 1,
-            totalSteps: steps.length,
+            totalSteps: executionSteps.length,
             completedSteps: completed.length,
             reason: 'User cancellation',
             totalDuration: `${totalDuration}ms`,
             macroExpiration: macroExecutionContext.selectedExpiration,
             currentExpiration: getCurrentExpiration(),
-            anomalies: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
+            anomalies: anomaliesDetected.length > 0 ? anomaliesDetected : undefined,
+            intelligentExecution: {
+              needsExpirationFetch,
+              executedDynamicSteps: true
+            }
           });
           
           toast({
             title: `${ticker} Analysis Cancelled`,
-            description: `Stopped at step ${i + 1} of ${steps.length}`,
+            description: `Stopped at step ${i + 1} of ${executionSteps.length}`,
             variant: 'destructive',
           });
           onCancel?.();
           return;
         }
 
-        const step = steps[i];
+        const step = executionSteps[i];
         setCurrentStep(step.id);
 
         // Log step start with enhanced context
@@ -538,8 +592,8 @@ export function SimpleAnalyzeAllButton({
           stepName: step.name,
           stepDescription: step.description,
           completedSteps: completed.length,
-          totalSteps: steps.length,
-          progress: `${completed.length}/${steps.length}`,
+          totalSteps: executionSteps.length,
+          progress: `${completed.length}/${executionSteps.length}`,
           currentExpiration: getCurrentExpiration(),
           macroExpiration: macroExecutionContext.selectedExpiration
         });
@@ -577,8 +631,8 @@ export function SimpleAnalyzeAllButton({
             stepId: step.id,
             stepName: step.name,
             completedSteps: completed.length,
-            totalSteps: steps.length,
-            progress: `${completed.length}/${steps.length}`,
+            totalSteps: executionSteps.length,
+            progress: `${completed.length}/${executionSteps.length}`,
             stepDuration: `${stepDuration}ms`,
             macroExpiration: macroExecutionContext.selectedExpiration,
             currentExpiration: getCurrentExpiration()
@@ -633,14 +687,14 @@ export function SimpleAnalyzeAllButton({
       const executionSummary: MacroExecutionLogData = {
         executionId,
         completedSteps: completed.length,
-        totalSteps: steps.length,
+        totalSteps: executionSteps.length,
         totalDuration: `${totalDuration}ms (${durationSeconds}s)`,
-        successRate: `${completed.length}/${steps.length} (${Math.round((completed.length / steps.length) * 100)}%)`,
+        successRate: `${completed.length}/${executionSteps.length} (${Math.round((completed.length / executionSteps.length) * 100)}%)`,
         stepResults: Object.fromEntries(
           completed.map(id => [
             `step${id}`,
             {
-              name: steps.find(s => s.id === id)?.name,
+              name: executionSteps.find(s => s.id === id)?.name,
               duration: macroExecutionContext.stepResults.get(id)?.stepDuration
             }
           ])
@@ -667,7 +721,7 @@ export function SimpleAnalyzeAllButton({
       
       toast({
         title: `${ticker} Analysis Complete`,
-        description: `Completed ${completed.length} of ${steps.length} steps in ${durationSeconds}s`,
+        description: `Completed ${completed.length} of ${executionSteps.length} steps in ${durationSeconds}s`,
       });
 
       onComplete?.();
@@ -684,7 +738,7 @@ export function SimpleAnalyzeAllButton({
         errorMessage: executionError.message,
         errorStack: executionError.stack,
         completedSteps: completedSteps.length,
-        totalSteps: steps.length,
+        totalSteps: executionSteps.length,
         failedAtStep: currentStep,
         totalDuration: `${totalDuration}ms`,
         macroExpiration: macroExecutionContext.selectedExpiration,
@@ -718,7 +772,7 @@ export function SimpleAnalyzeAllButton({
     }
   }, [isExecuting, steps, ticker, toast, onComplete, onError, onCancel, resetState, shouldCancel, startTime, 
       logger, executionId, currentStep, getCurrentExpiration, getAvailableExpirations, completedSteps, 
-      macroExecutionContext, anomaliesDetected, stepStartTimes]);
+      macroExecutionContext, anomaliesDetected, stepStartTimes, shouldFetchExpirations]);
 
   // Handle cancellation
   const handleCancel = useCallback(() => {
@@ -733,7 +787,7 @@ export function SimpleAnalyzeAllButton({
     
     setShouldCancel(true);
     setIsExecuting(false);
-  }, [logger, currentStep, completedSteps.length, steps.length, executionId, macroExecutionContext.selectedExpiration, getCurrentExpiration]);
+  }, [logger, currentStep, completedSteps.length, executionId, macroExecutionContext.selectedExpiration, getCurrentExpiration]);
 
   // Format elapsed time
   const formatElapsedTime = useCallback((): string => {
@@ -744,8 +798,15 @@ export function SimpleAnalyzeAllButton({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, [startTime]);
 
-  // Calculate progress
-  const progress = steps.length > 0 ? (completedSteps.length / steps.length) * 100 : 0;
+  // Calculate progress (needs to account for dynamic step count)
+  const getCurrentStepCount = useCallback(() => {
+    if (!isExecuting) return steps.length;
+    // During execution, use the dynamic step count that was determined at start
+    const needsExpirationFetch = shouldFetchExpirations();
+    return needsExpirationFetch ? steps.length : steps.length - 1;
+  }, [isExecuting, steps.length, shouldFetchExpirations]);
+
+  const progress = getCurrentStepCount() > 0 ? (completedSteps.length / getCurrentStepCount()) * 100 : 0;
   const canStart = !isExecuting && !isCompleted;
 
   return (
@@ -806,7 +867,7 @@ export function SimpleAnalyzeAllButton({
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>
-                  {isExecuting ? `Step ${currentStep}` : 'Complete'} - {completedSteps.length} of {steps.length}
+                  {isExecuting ? `Step ${currentStep}` : 'Complete'} - {completedSteps.length} of {getCurrentStepCount()}
                 </span>
                 <span>{Math.round(progress)}% Complete</span>
               </div>
@@ -893,7 +954,7 @@ export function SimpleAnalyzeAllButton({
               Analysis Complete
             </div>
             <p className="text-green-600 text-sm mt-1">
-              Completed {completedSteps.length} of {steps.length} steps in {Math.round((Date.now() - startTime) / 1000)}s
+              Completed {completedSteps.length} of {getCurrentStepCount()} steps in {Math.round((Date.now() - startTime) / 1000)}s
             </p>
             {macroExecutionContext.selectedExpiration && (
               <p className="text-green-600 text-xs mt-1">

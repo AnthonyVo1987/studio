@@ -2,15 +2,15 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.13]
-**Task Type**: [CLAUDE.md DOC REFINEMENT] 
+**Version**: [v4.4.2.14]
+**Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: CLAUDE.md doc further refinements
+**Brief Summary**: Fix & Rework Incorrect Macro Automation Logic
 **Affected Systems**: []
 
-**Priority Level**: _[HIGH]_
+**Priority Level**: _[CRITICAL]_
 
 ---
 
@@ -129,17 +129,36 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
-CLAUDE.md doc further refinements
-- Let's focus on trying to refine CLAUDE.md even further
-- Previously we refined CLAUDE.md by file size
-- However, there can be additional refinements based on character count, from Claude Code Warning: " Large CLAUDE.md will impact performance (62.5k chars > 40.0k)"
-- Use CONTEXT7 to perform some more research on best practices to streamline and reduce character count in Claude Code CLAUDE.md file
-- You may have to find the max "sweet spot" for most optimal max character count
-- We still need to leave some margin and breathing room for incremental updates to CLAUDE.md file as the project goes along
-- Make sure the ## AI Team Configuration section does NOT get incorrectly refined\corrupted because it is business critical
-- Ensure other business critical items in CLAUDE.md does not get incorrectly removed
-- We also need to add specific instructions\triggers in project docs if the latest CLAUDE.md file goes past the certain researched character thresholds, to signal the user that a CLAUDE.md clean up task may be needed in the future
-- We also need to ensure that AI Coding Agents need to IGNORE the docs/archive legacy docs to avoid polluting the Context with depracated outdated legacy information
+Fix & Rework Incorrect Macro Automation Logic
+- The initial implementation of the Macro Automation Button Action has flawed logic that has unexpected and unwanted behavior
+- The current INCORRECT logic ONLY allows the macro to fully complete past the first step ONLY if the user previously ran the Get Stock Data button to populate the app with some data
+- This defeats the purpose of the intention of the macro automation
+- There is also incorrect logic with the macro automation in regards to Expiration dates
+- Remember that all the macro does is to be simple - it just piggybacks on already existing user action buttons functions to make it simple and not have to re-invent the wheel with some complex convoluted orchestrator logic, when all the macro needs to do is to leverage the existing robust button action function calls in the correct sequence.
+
+Please re-work and fix the Macro Automation Action Button to adhere to the following intended behavior, depending on the state of the App:
+
+Case 1: User has not issued a Fetch Expirations Action to select a specific Expiration:
+- This case happens when the app first finishes it's initial start-up
+- The user has NOT issued a Fetch Expiration and/or Selected a Specific expiration AND the app has ZERO data populated
+- EXPECTED MACRO BEHAVIOR:  
+1. Macro should detect this case and then perform the Fetch Expiration action
+2. Macro should then select the very next valid expiration
+3. Macro should now run the full Macro actions to Get Stock Data, Generate AI Key Takeways, and then Generate AI Options Analysis
+
+
+Case 2: User HAS selected a valid and specific Expiration
+- This case happens when the user issues the Fetch Expiration button
+- The User may then decide to choose a specific expiration, OR leave it to the auto detected next expiration
+- The app does NOT need the user to perform an initial Get Data action, because the Macro will do that for the user
+- EXPECTED MACRO BEHAVIOR:  
+1. Macro should detect this case and then perform the Fetch Expiration action BASED on the User selected expiration, either they chose a specific dte OR they left it to the default.  2. Macro MUST be dynamic and adaptable and  use whatever DATE is chosen , whether user selected or the default detected, for the data retrieval and analysis. If user did a Fetch Expirations and left it to the default next expiration, that means the user implicity CHOSE the default expiration
+3. Macro should now run the full Macro actions to Get Stock Data, Generate AI Key Takeways, and then Generate AI Options Analysis based on the expiration date, whether User Chosen or User left it to the default detected date
+
+
+- By covering these 2 cases, this corrects the Macro behavior to intelligently and adapt to run the correct sequence WITHOUT User Intervention and WITHOUT needing an initial incorrect data pull
+
+- With these fixes, the Macro can run in ANY app and data state without needing ANY required user action
 
 
 ### Current Situation
@@ -148,6 +167,8 @@ CLAUDE.md doc further refinements
 
 ### Desired Outcome
 _[Describe what the end result should look like]_
+
+
 
 ### Acceptance Criteria
 1. _[Specific, measurable criteria for task completion]_

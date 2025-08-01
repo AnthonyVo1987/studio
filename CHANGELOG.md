@@ -1,9 +1,48 @@
 # StockSage Change History
 
-## v4.4.2.12 - Current Development
+## v4.4.2.14 - Macro Automation Bug Fix
+
+**App Version:** `v4.4.2.14` (🐛 **CRITICAL BUG FIX**)
+**Status:** Current Development Version
+
+### Critical Bug Fix
+- **Macro Automation Logic Fix**: Resolved critical issue where "Analyze All" button only worked if user previously ran "Get Stock Data" button
+- **Intelligent Step Selection**: Implemented smart step selection that adapts to current application state
+- **Enhanced Reliability**: Macro automation now works from ANY app state without requiring user intervention
+
+### Technical Implementation
+- **Smart State Detection**: Analyzes current expiration date selection to determine optimal starting step
+- **Adaptive Workflow**: 
+  - **Case 1**: No expiration selected → Run all 4 steps including Fetch Expirations
+  - **Case 2**: Valid expiration selected → Skip Step 1, run Steps 2-4 only
+- **TypeScript Enhancement**: Fixed `any` type error with proper `StepResult` interface
+- **Maintained Functionality**: All existing macro features and error handling preserved
+
+### Bug Resolution Details
+- **Root Cause**: Original logic assumed stock data was always available, failing when starting from clean application state
+- **Solution**: Implemented conditional step execution based on `selectedExpirationDate` state
+- **Impact**: Macro automation now provides true one-click workflow regardless of previous user actions
+- **Quality Assurance**: Enhanced logging and debugging capabilities maintained
+
+---
+
+## v4.4.2.13 - Current Development
+
+**App Version:** `v4.4.2.13` (📊 **DOCUMENTATION OPTIMIZATION**)
+**Status:** Previous Development Version
+
+### Key Features
+- CLAUDE.md character count optimization (41,295 → 39,083 characters, 5.4% reduction)
+- Context management system with threshold-based monitoring
+- Archive documentation ignore instructions for AI agents
+- Enhanced performance monitoring and context pollution prevention
+
+---
+
+## v4.4.2.12 - Previous Development
 
 **App Version:** `v4.4.2.12` (🚀 **PRODUCTION READY RELEASE**)
-**Status:** Current Development Version
+**Status:** Previous Stable Version
 
 ### Key Features
 - Complete Next.js 15.3.3 financial analysis platform
@@ -180,5 +219,5 @@
 ---
 
 **File Optimization**: Streamlined from 77.3KB to ~12KB focusing on v4.x.x.x architecture  
-**Last Updated**: 2025-07-31  
-**Current Version**: v4.4.2.12
+**Last Updated**: 2025-08-01  
+**Current Version**: v4.4.2.14
