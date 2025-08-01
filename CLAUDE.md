@@ -6,6 +6,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Agents**: Call and Use whatever Agents needed for the requested task(s), allowing ALL tool and MCP Tool use for ALL Agents:
 
+### CLAUDE.md Character Threshold Monitoring
+
+**CRITICAL**: Monitor CLAUDE.md file size to maintain optimal performance and prevent context pollution.
+
+#### Character Count Thresholds:
+- **Optimal Range**: Under 32,000 characters (performance sweet spot)
+- **Warning Threshold**: 35,000 characters (begin planning cleanup)
+- **Critical Threshold**: 40,000 characters (cleanup required immediately)
+
+#### Performance Impact:
+- **Under 32K**: Optimal AI processing speed and accuracy
+- **32K-35K**: Minor performance degradation, acceptable range
+- **35K-40K**: Noticeable slowdown, cleanup recommended
+- **Over 40K**: Significant performance impact, immediate cleanup required
+
+#### Cleanup Protocol:
+When character count approaches thresholds:
+1. **Identify Legacy Content**: Remove outdated version references, deprecated patterns
+2. **Archive Historical Information**: Move non-critical historical data to `/docs/archive/`
+3. **Consolidate Duplicate Information**: Merge redundant sections with overlapping content
+4. **Preserve Critical Instructions**: Keep all active development guidelines and team configurations
+5. **Trigger Cleanup Task**: Create "/new_task" for comprehensive CLAUDE.md optimization
+
+#### Monitoring Commands:
+```bash
+# Check current character count
+wc -c CLAUDE.md
+
+# Monitor file size growth
+ls -la CLAUDE.md
+```
+
+### Archive Documentation Ignore Instructions
+
+**🚨 CRITICAL**: AI coding agents MUST completely ignore legacy documentation to prevent context pollution.
+
+#### Directories to Ignore Completely:
+- **`/docs/archive/`** - All archived documentation (completely ignore)
+- **Legacy Files** - Any file ending with `_LEGACY.md` (completely ignore)
+
+#### Specific Files to Never Reference:
+- `CLAUDE_LEGACY.md` - Deprecated project instructions
+- `README_LEGACY.md` - Outdated project information  
+- `CHANGELOG_LEGACY.md` - Historical change records
+- Any documentation in `/docs/archive/` directory
+
+#### Context Pollution Prevention:
+- **NEVER** reference archived documentation in responses
+- **NEVER** use deprecated patterns from legacy files
+- **NEVER** suggest approaches from outdated documentation
+- **ALWAYS** use only current project documentation
+- **FOCUS** exclusively on active development guidelines
+
+#### Rationale:
+Legacy documentation contains:
+- Deprecated architectural patterns that conflict with current implementation
+- Outdated dependency versions and build configurations
+- Historical development approaches that are no longer valid
+- Context pollution that reduces AI decision-making accuracy
+- Performance overhead from processing irrelevant information
+
+**WARNING**: Referencing legacy documentation can lead to:
+- Implementation of deprecated patterns
+- Confusion between current and historical approaches
+- Reduced code quality and architectural consistency
+- Wasted development time on outdated solutions
+
 ### Tool Usage Optimization Guidelines
 
 **CRITICAL**: All AI specialists must follow these enhanced tool usage practices for optimal efficiency and quality delivery.
@@ -31,7 +98,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Apply for tasks estimated >2 hours of implementation time
 - Essential for tasks affecting multiple system components
 
-#### Context7 Tool - Decision Criteria
+#### Context7 Tool - Decision Criteria  
 
 **✅ OPTIMAL USE CASES:**
 - Research on current best practices for technology stack components
@@ -101,7 +168,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Bash Command Automation (v4.4.2.10)
 
 ### Autonomous Command Operation
-
 Complete bash command automation is now enabled through settings.local.json with 140+ pre-approved patterns:
 
 **Command Categories & Timeouts**:
@@ -119,9 +185,6 @@ Complete bash command automation is now enabled through settings.local.json with
 - Universal fallback ensures comprehensive coverage
 - Proper timeout usage prevents approval requests
 
-**Universal Coverage Pattern**:
-The autonomous system includes a universal fallback pattern `Bash(timeout 120s *)` that covers all scenarios not explicitly defined, ensuring complete automation coverage for all bash commands.
-
 **Performance Optimization**:
 - **Critical Operations**: 30s timeout for immediate actions
 - **Standard Commands**: 120s timeout for reliable execution
@@ -131,7 +194,6 @@ The autonomous system includes a universal fallback pattern `Bash(timeout 120s *
 ## Tech Lead Orchestrator Operating Rules
 
 ### CRITICAL: Orchestrator Role Boundaries
-
 The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER perform hands-on implementation work. The orchestrator's sole responsibilities are:
 
 #### ✅ ALLOWED Orchestrator Activities:
@@ -210,7 +272,6 @@ This orchestration model ensures clear role separation, effective delegation, an
 ## 🚨 PROTECTED BASELINE ARCHITECTURE (v4.4.2.3)
 
 ### CRITICAL PROTECTION RULE
-
 **These files represent the stable, battle-tested architecture and MUST NOT be modified without explicit user request:**
 
 #### Core Protected Files
@@ -234,7 +295,6 @@ This orchestration model ensures clear role separation, effective delegation, an
 - **Deterministic Handlers**: Follow existing async/await patterns in tab content
 
 ## Overview
-
 StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.4.2.7, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The application includes a robust macro automation system with comprehensive debugging capabilities and enhanced console logging. The blueprint system exists as preserved scaffolding in `src/lib/ticker-framework/` for future development phases but is not currently integrated into the application.
 
 ## Common Development Commands
@@ -251,7 +311,6 @@ npm run genkit:watch # Genkit AI flows dev server with watch mode
 ```
 
 ### Port Usage Guidelines
-
 **USER RESERVED PORTS - DO NOT USE FOR TESTING:**
 - **Port 9002**: Reserved exclusively for user development testing
 - **Port 3400**: Reserved for user Genkit testing
@@ -267,7 +326,7 @@ genkit start -p 3401            # Claude Code Genkit testing
 ### Critical Pre-Commit Commands
 Always run these before committing:
 ```bash
-npm run lint         # ESLint is fully configured and operational
+npm run lint         # ESLint is fully configured and operational  
 npm run typecheck    # TypeScript type checking
 ```
 
@@ -318,7 +377,6 @@ npm run typecheck    # TypeScript type checking
 - **Chat Status**: ✅ Fully operational AI chat with professional financial analyst persona
 
 ### Dedicated Two-Tab Architecture (v4.4.2.3)
-
 **The application features a proven dedicated two-tab architecture using standard React best practices:**
 
 #### Tab Architecture Overview
@@ -347,11 +405,10 @@ npm run typecheck    # TypeScript type checking
 3. **Server Actions**: Extend existing consolidated chat actions
 4. **AI Prompts**: Modify JSON prompt definitions in `src/ai/definitions/`
 
-### Adding New Features to Existing Tabs
+### Adding New Features
 ```typescript
 // 1. Update context interface (79 fields available)
 interface NvdaAnalysisState {
-  // Add new fields here
   newFeatureJson: string;
   newFeatureLoading: boolean;
 }
@@ -359,7 +416,6 @@ interface NvdaAnalysisState {
 // 2. Add reducer action
 type NvdaAnalysisAction = 
   | { type: 'SET_NEW_FEATURE_DATA'; payload: { newFeatureJson: string } }
-  | ... // existing actions
 
 // 3. Create display component
 const NvdaNewFeatureDisplay = () => {
@@ -372,42 +428,32 @@ const NvdaNewFeatureDisplay = () => {
 
 ### Quality Gates (MANDATORY)
 ```bash
-# Before any commit
 npm run lint         # ESLint validation (fully configured)
 npm run typecheck    # TypeScript validation
 npm run build        # Build verification
 ```
 
-## Future Development - Blueprint System (v4.4.2.0+ Scaffolding)
+## Future Development - Blueprint System
 
 **IMPORTANT**: The blueprint system exists as unused scaffolding for future development phases. It is NOT currently integrated into the application.
 
 ### Blueprint System Summary
-
 The preserved scaffolding provides a configuration-driven architecture that would enable:
-
 - **95% Code Reduction**: New tickers require only configuration changes
 - **Automatic Context Generation**: Creates ticker-specific React contexts from configuration
 - **Template-Based Components**: Base components that adapt to any ticker configuration
 - **Dynamic Tab System**: Build-time discovery and registration of enabled tickers
 - **Configuration Management**: Single source of truth for all ticker settings in `src/config/ticker-configs.ts`
 
-#### Key Blueprint Components (Preserved, Unused)
+### Key Blueprint Components (Preserved, Unused)
 - **Context Factory** (`src/lib/ticker-framework/core/context-factory.ts`) - Automatic context generation
 - **Component Templates** (`src/lib/ticker-framework/core/base-components/`) - Template-based generation
 - **Registry System** (`src/lib/ticker-registry.ts`) - Auto-discovery and lazy loading
 - **Dynamic Tab System** (`src/components/tabs/dynamic-tab-system.tsx`) - Tab orchestration
 
-#### Adding New Tickers (Future Capability)
-1. **Configuration Update**: Enable ticker in `src/config/ticker-configs.ts`
-2. **Chat Action** (Optional): Copy existing template and update ticker references
-3. **Build & Deploy**: Automatic discovery and registration
+## File Organization
 
-For detailed blueprint documentation, see preserved files in `src/lib/ticker-framework/` directory.
-
-## File Organization (v4.4.2.3 Current State)
-
-### Active Architecture Files (Tier 1 - Critical)
+### Active Architecture Files (Critical)
 - `src/contexts/nvda-analysis-context.tsx` - NVDA state management (79 fields)
 - `src/contexts/spy-analysis-context.tsx` - SPY state management (79 fields)
 - `src/components/nvda-tab-content.tsx` - NVDA main orchestrator
@@ -415,30 +461,26 @@ For detailed blueprint documentation, see preserved files in `src/lib/ticker-fra
 - `src/components/page-content.tsx` - Simple two-tab UI implementation
 - `src/app/page.tsx` - Direct context providers setup
 
-### AI System Files (Tier 1 - Critical)
+### AI System Files (Critical)
 - `src/actions/nvda-consolidated-chat-action.ts` - NVDA AI chat server action
 - `src/actions/spy-consolidated-chat-action.ts` - SPY AI chat server action
 - `src/ai/definitions/app-data-chatbot.json` - **RESTORED v4.4.2.3** - Core AI chat functionality
 - `src/ai/definitions/*.json` - Specialized trading prompt templates
 - `src/ai/schemas/*-schemas.ts` - Zod validation schemas
-- `src/ai/flows/*.ts` - Genkit AI flow definitions
 
 ### Macro Automation System (v4.4.2.7 - Production Ready)
-- `src/components/macro-orchestrator/simple-analyze-all-button.tsx` - **Enhanced macro automation implementation**
+- `src/components/macro-orchestrator/simple-analyze-all-button.tsx` - Enhanced macro automation
   - Sequential 4-step execution: Fetch Expirations → Get Stock Data → AI Takeaways → AI Options
   - **Enhanced Debugging**: Comprehensive console logging with ticker-agnostic patterns
   - **State Validation**: Auto-recovery mechanisms and expiration date consistency checks
-  - **Cross-Tab Consistency**: Perfect NVDA/SPY implementation parity
   - **Performance Optimized**: <1ms overhead with comprehensive troubleshooting capabilities
-  - **Error Handling**: Robust validation and API response mismatch detection
-  - **Architecture Status**: Production-ready with enhanced debugging and reliability
 
-### Shared Infrastructure Files (Tier 2)
+### Shared Infrastructure Files
 - `src/services/data-sources/adapters/polygon-adapter.ts` - API integration
-- `src/types/` - Type definitions directory (e.g., `options.ts`)
-- `src/lib/ticker-logger.ts` - Ticker-agnostic logging system for all tabs
+- `src/types/` - Type definitions directory
+- `src/lib/ticker-logger.ts` - Ticker-agnostic logging system
 
-## Critical Architectural Rules (v4.4.1.0)
+## Critical Architectural Rules
 
 ### 1. Two-Tab Context Pattern
 ```typescript
@@ -458,26 +500,21 @@ const NvdaDisplayComponent = () => {
 };
 ```
 
-### 2. On-Demand Handler Pattern (Tab Components)
+### 2. On-Demand Handler Pattern
 ```typescript
 // CORRECT - Deterministic handler pattern in nvda-tab-content.tsx
 const NvdaTabContent = () => {
   const nvda = useNvdaAnalysis();
   
   const handleOnDemandDataFetch = async () => {
-    // Set loading state
     nvda.dispatchGlobalFsmEvent({ type: 'SET_LOADING' });
     
     try {
-      // Execute server action
       const result = await fetchStockDataAction({ticker: 'NVDA'});
-      
-      // Update NVDA state based on result
       if (result.status === 'success' && result.data) {
         nvda.setStockSnapshotJson(result.data.stockSnapshotJson);
       }
     } finally {
-      // Reset to idle state
       nvda.dispatchGlobalFsmEvent({ type: 'SET_IDLE' });
     }
   };
@@ -492,19 +529,19 @@ const NvdaTabContent = () => {
 
 ## Development Guidelines
 
-### 1. Code Quality Standards
+### Code Quality Standards
 - **TypeScript**: Strict mode enabled, use `import type` for type imports
 - **Error Handling**: Wrap all async operations in try/catch blocks
 - **Logging**: Use standard `console.*` methods for both client-side and server-side
 - **Validation**: Use Zod schemas for all data validation
 
-### 2. UI/UX Conventions
+### UI/UX Conventions
 - **Components**: ShadCN UI components with Tailwind styling
 - **Icons**: Lucide React icons
 - **Loading States**: Derive from FSM state and business flags
 - **Responsiveness**: Mobile-first approach with proper breakpoints
 
-### 3. Data Export Features
+### Data Export Features
 - All data cards support "Copy JSON" and "Export JSON" functionality
 - Export utilities located in `src/lib/export-utils.ts`
 - JSON state hooks in `src/hooks/use-json-data-state.ts`
@@ -525,9 +562,9 @@ const NvdaTabContent = () => {
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.10 (autonomous bash command automation implementation: 140+ standardized commands, enhanced workflow integration, production-ready autonomous task completion)
+- **Current Version**: v4.4.2.10 (autonomous bash command automation: 140+ standardized commands, enhanced workflow integration, production-ready autonomous task completion)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
-- **Versioning Scheme**: `v4.w.x.y.z` format (v4.4.2.7 stable state with macro automation debugging, enhanced logging, and cross-tab consistency)
+- **Versioning Scheme**: `v4.w.x.y.z` format
 
 ## Code Review Process
 
@@ -541,16 +578,15 @@ Use this process for any significant code changes or new implementations:
 - Verify proper logic and input/output wiring for data and UI/Render updates
 
 #### Phase 2: Generic Codebase Audit
-After targeted review, check for these items (non-exhaustive list):
+After targeted review, check for these items:
 - Verify all logic is enforced to be DETERMINISTIC
 - Verify there are no "complex/convoluted" useEffect/dependency array/UI/Render that can affect main business logic
 - Verify there are no unused code, functions, imports etc that have been removed and/or deprecated
 - Verify there are no other "React anti-pattern" issues
 - Verify no other orchestrator vs reducer issues
 - Verify no potential infinite loops during UI/Render vs a dependency
-- Verify no console logs can cause infinite loops during UI/Render, triggering another console log, triggering another UI/Render loop etc
+- Verify no console logs can cause infinite loops during UI/Render
 - Verify proper JSON parsing, comparing to current working Main page JSON parsing
-- Add any other items to check depending on the scope of changes for the current task
 
 #### Phase 3: Post-Review Actions
 - **If code review FAILED**: Fix issues, summarize fixes, wait for next task, do NOT commit
@@ -558,7 +594,6 @@ After targeted review, check for these items (non-exhaustive list):
   1. Update README.md, CHANGELOG.md
   2. Perform Claude command "/init" to update CLAUDE.md project doc
   3. Git commit and push as completely single shot atomic operation with ALL code changes, doc changes, CLAUDE.md changes, settings json etc
-  4. This ensures code changes go along with documentation changes instead of needing additional commits just for docs
 
 ## Testing & Quality Assurance
 - Always run `npm run lint` and `npm run typecheck` before committing

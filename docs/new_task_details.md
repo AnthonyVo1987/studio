@@ -2,13 +2,12 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.12]
-**Task Type**: [DOCS Cleanup] 
+**Version**: [v4.4.2.13]
+**Task Type**: [CLAUDE.md DOC REFINEMENT] 
 ---
 
 ## Abstract
-**Brief Summary**: Cleanup & Consolidate Project Docs
-
+**Brief Summary**: CLAUDE.md doc further refinements
 **Affected Systems**: []
 
 **Priority Level**: _[HIGH]_
@@ -130,40 +129,17 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
-Cleanup & Consolidate Project Docs
-Our project docs have gotten very verbose and long, and it has started to affect the performance of Claude Code having to read and keep docs in it's context
-So let's perform a comprhensive project docs overhaul
-
-- create a new folder "/docs/archive", and then create a copy of the following docs and append "*_LEGACY" to the end of the doc name to distinugish that these are the older legacy docs NOT to be used by any AI, but kept for archiving and reference purposes: CLAUDE.md, README.md, CHANGELOG.md
-
-Now that we have backup copies for reference, we can now try and analyze the project in order to streamline and clean up the docs below:
-
-1. CLAUDE.md
-- There is warning if CLAUDE.md is larger than ~40kb  that this can\will cause performance issues
-- Let's cleanup\refactor this doc to trim it down to <= ~35 kb to leave some breathing room
-- You may have to use CONTEXT7 to research on optimal practices\optimal sizing for this doc
-- Be careful NOT to accidently remove core instructions when trying to consolidate and trim the doc
-- The "## AI Team Configuration" section MUST remain untouched since our AI Team REQUIRES that section verbatim
-
-
-2. README.md
-- Let's streamline and overhaul this doc to reflect only the current state of the project
-- There are alot of legacy\depracated details to remove
-- Let's keep track and sync up this doc to ONLY have details from [V4.0.0.0] + series only, since there was a massive archtecture overhaul starting with the 4.x.x.x series code
-- You may have to use CONTEXT7 to research on optimal practices\optimal sizing for this doc
-
-3. CHANGELOG.md
-- Let's streamline and overhaul this doc to reflect only the current state of the project
-- There are alot of legacy\depracated details to remove
-- Let's keep track and sync up this doc to ONLY have details from [V4.0.0.0] + series only, since there was a massive archtecture overhaul starting with the 4.x.x.x series code
-- You may have to use CONTEXT7 to research on optimal practices\optimal sizing for this doc
-
-4. Token Audit Reports & Python scripts\code
-- Let's completely remove all 3x token audit files because we will rely on an external tool for token audits
-- Remove all of these files:
-token_audit_src_only.json
-Token_Count_Audit_History.md
-token_count_src_only.py
+CLAUDE.md doc further refinements
+- Let's focus on trying to refine CLAUDE.md even further
+- Previously we refined CLAUDE.md by file size
+- However, there can be additional refinements based on character count, from Claude Code Warning: " Large CLAUDE.md will impact performance (62.5k chars > 40.0k)"
+- Use CONTEXT7 to perform some more research on best practices to streamline and reduce character count in Claude Code CLAUDE.md file
+- You may have to find the max "sweet spot" for most optimal max character count
+- We still need to leave some margin and breathing room for incremental updates to CLAUDE.md file as the project goes along
+- Make sure the ## AI Team Configuration section does NOT get incorrectly refined\corrupted because it is business critical
+- Ensure other business critical items in CLAUDE.md does not get incorrectly removed
+- We also need to add specific instructions\triggers in project docs if the latest CLAUDE.md file goes past the certain researched character thresholds, to signal the user that a CLAUDE.md clean up task may be needed in the future
+- We also need to ensure that AI Coding Agents need to IGNORE the docs/archive legacy docs to avoid polluting the Context with depracated outdated legacy information
 
 
 ### Current Situation
