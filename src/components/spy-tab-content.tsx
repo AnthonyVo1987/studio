@@ -28,6 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Loader2, CalendarDays, Search, Zap, Settings, FileText, CandlestickChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCallback } from 'react';
 
 // SPY Context
 import { useSpyAnalysis, useSpyDispatch, SPY_TICKER, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/spy-analysis-context';
@@ -460,6 +461,16 @@ export function SpyTabContent() {
 
   const isLoading = spyState.status === 'loading';
 
+  // CRITICAL FIX: Replace arrow function props with memoized callbacks to fix React closure bug
+  // This ensures the macro always reads current state instead of stale closure state
+  const getCurrentExpirationMemo = useCallback(() => {
+    return spyState.selectedExpirationDate;
+  }, [spyState.selectedExpirationDate]);
+
+  const getAvailableExpirationsMemo = useCallback(() => {
+    return spyState.availableExpirationDates;
+  }, [spyState.availableExpirationDates]);
+
   return (
     <div className="space-y-6">
       {/* SPY Analysis Header */}
@@ -669,8 +680,8 @@ export function SpyTabContent() {
         canGetStockData={() => !isLoading && !!spyState.selectedExpirationDate}
         canGenerateAiKeyTakeaways={() => !isLoading && spyState.hasStockData && spyState.hasAiTaData && !spyState.isAiKeyTakeawaysLoading}
         canGenerateAiOptionsAnalysis={() => !isLoading && spyState.hasOptionsChainData && !spyState.isAiOptionsAnalysisLoading}
-        getCurrentExpiration={() => spyState.selectedExpirationDate}
-        getAvailableExpirations={() => spyState.availableExpirationDates}
+        getCurrentExpiration={getCurrentExpirationMemo}
+        getAvailableExpirations={getAvailableExpirationsMemo}
         onComplete={() => {
           toast({
             title: `${SPY_TICKER} Macro Complete`,

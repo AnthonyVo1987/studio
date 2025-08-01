@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Loader2, CalendarDays, Search, Zap, Settings, FileText, CandlestickChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCallback } from 'react';
 
 // NVDA Context
 import { useNvdaAnalysis, useNvdaDispatch, NVDA_TICKER, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/nvda-analysis-context';
@@ -460,6 +461,16 @@ export function NvdaTabContent() {
 
   const isLoading = nvdaState.status === 'loading';
 
+  // CRITICAL FIX: Replace arrow function props with memoized callbacks to fix React closure bug
+  // This ensures the macro always reads current state instead of stale closure state
+  const getCurrentExpirationMemo = useCallback(() => {
+    return nvdaState.selectedExpirationDate;
+  }, [nvdaState.selectedExpirationDate]);
+
+  const getAvailableExpirationsMemo = useCallback(() => {
+    return nvdaState.availableExpirationDates;
+  }, [nvdaState.availableExpirationDates]);
+
   return (
     <div className="space-y-6">
       {/* NVDA Analysis Header */}
@@ -669,8 +680,8 @@ export function NvdaTabContent() {
         canGetStockData={() => !isLoading && !!nvdaState.selectedExpirationDate}
         canGenerateAiKeyTakeaways={() => !isLoading && nvdaState.hasStockData && nvdaState.hasAiTaData && !nvdaState.isAiKeyTakeawaysLoading}
         canGenerateAiOptionsAnalysis={() => !isLoading && nvdaState.hasOptionsChainData && !nvdaState.isAiOptionsAnalysisLoading}
-        getCurrentExpiration={() => nvdaState.selectedExpirationDate}
-        getAvailableExpirations={() => nvdaState.availableExpirationDates}
+        getCurrentExpiration={getCurrentExpirationMemo}
+        getAvailableExpirations={getAvailableExpirationsMemo}
         onComplete={() => {
           toast({
             title: `${NVDA_TICKER} Macro Complete`,
