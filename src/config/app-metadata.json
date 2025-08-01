@@ -1,6 +1,6 @@
 {
-  "appVersion": "v4.4.2.14",
-  "lastUpdatedTimestamp": "2025-08-01T12:00:00.000Z",
-  "description": "Fixed critical macro automation logic bug: Implemented intelligent step selection to handle both expiration states (no selection vs pre-selected), enabling autonomous execution without requiring user intervention",
+  "appVersion": "v4.4.2.15",
+  "lastUpdatedTimestamp": "2025-08-01T04:40:00.000Z",
+  "description": "CRITICAL BUG FIX: Macro State Capture Failure - Fixed macro execution context failing to capture expiration date from Step 1, causing Steps 2-4 to skip. Implemented macro-aware validation functions with useRef for immediate state access, ensuring proper state isolation and sequential execution from clean app state.",
   "metadataSchemaVersion": "1.0.0"
 }

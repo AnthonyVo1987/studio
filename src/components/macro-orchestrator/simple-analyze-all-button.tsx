@@ -8,7 +8,7 @@
  * This ensures immediate functionality while maintaining context isolation.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -116,6 +116,14 @@ export function SimpleAnalyzeAllButton({
     stepResults: new Map()
   });
   
+  // CRITICAL: Use ref for immediate state access during step validation
+  const macroContextRef = useRef<MacroExecutionContext>(macroExecutionContext);
+  
+  // Keep ref synchronized with state changes
+  React.useEffect(() => {
+    macroContextRef.current = macroExecutionContext;
+  }, [macroExecutionContext]);
+  
   // Track step timing for performance metrics
   const [stepStartTimes, setStepStartTimes] = useState<Map<number, number>>(new Map());
   const [anomaliesDetected, setAnomaliesDetected] = useState<string[]>([]);
@@ -145,16 +153,20 @@ export function SimpleAnalyzeAllButton({
     const postExecutionAvailable = getAvailableExpirations();
     
     // Set macro's selected expiration IMMEDIATELY after fetch
-    setMacroExecutionContext(prev => ({
-      ...prev,
+    const newContext = {
       selectedExpiration: postExecutionExpiration,
-      stepResults: new Map(prev.stepResults).set(1, {
+      isExecuting: true,
+      stepResults: new Map().set(1, {
         preExecutionExpiration,
         postExecutionExpiration,
         availableExpirationsCount: postExecutionAvailable.length,
         stepDuration: `${Date.now() - stepStart}ms`
       })
-    }));
+    };
+    
+    // Update both state and ref for immediate access
+    setMacroExecutionContext(prev => ({ ...prev, ...newContext }));
+    macroContextRef.current = { ...macroContextRef.current, ...newContext };
     
     logger.stateValidation('Step1_PostExecution', 'State captured after fetch', {
       preExecutionExpiration,
@@ -205,6 +217,52 @@ export function SimpleAnalyzeAllButton({
     
     return macroSelectedExpiration;
   }, [getCurrentExpiration, macroExecutionContext.selectedExpiration, executionId, logger]);
+
+  // Macro-aware validation functions that prioritize macro context over shared state
+  const canGetStockDataMacroAware = useCallback(() => {
+    // First check if we have a macro-captured expiration
+    const macroExpiration = macroContextRef.current.selectedExpiration;
+    if (macroExpiration) {
+      logger.stateValidation('CanGetStockData_MacroAware', 'Using macro-captured expiration for validation', {
+        macroExpiration,
+        currentSharedExpiration: getCurrentExpiration(),
+        validationResult: true,
+        executionId
+      });
+      return true;
+    }
+    
+    // Fall back to original shared state validation
+    const originalResult = canGetStockData();
+    logger.stateValidation('CanGetStockData_SharedState', 'Using shared state validation (no macro expiration)', {
+      originalResult,
+      currentSharedExpiration: getCurrentExpiration(),
+      executionId
+    });
+    return originalResult;
+  }, [canGetStockData, getCurrentExpiration, logger, executionId]);
+
+  const canGenerateAiKeyTakeawaysMacroAware = useCallback(() => {
+    // First check if we have a macro-captured expiration
+    const macroExpiration = macroContextRef.current.selectedExpiration;
+    if (macroExpiration) {
+      return true;
+    }
+    
+    // Fall back to original shared state validation
+    return canGenerateAiKeyTakeaways();
+  }, [canGenerateAiKeyTakeaways]);
+
+  const canGenerateAiOptionsAnalysisMacroAware = useCallback(() => {
+    // First check if we have a macro-captured expiration
+    const macroExpiration = macroContextRef.current.selectedExpiration;
+    if (macroExpiration) {
+      return true;
+    }
+    
+    // Fall back to original shared state validation
+    return canGenerateAiOptionsAnalysis();
+  }, [canGenerateAiOptionsAnalysis]);
 
   // Define the execution steps with wrapped handlers for macro isolation
   const steps: Step[] = useMemo(() => [
@@ -298,7 +356,7 @@ export function SimpleAnalyzeAllButton({
           throw error;
         }
       },
-      canExecute: canGetStockData,
+      canExecute: canGetStockDataMacroAware,
     },
     {
       id: 3,
@@ -338,7 +396,7 @@ export function SimpleAnalyzeAllButton({
           })
         }));
       },
-      canExecute: canGenerateAiKeyTakeaways,
+      canExecute: canGenerateAiKeyTakeawaysMacroAware,
     },
     {
       id: 4,
@@ -378,7 +436,7 @@ export function SimpleAnalyzeAllButton({
           })
         }));
       },
-      canExecute: canGenerateAiOptionsAnalysis,
+      canExecute: canGenerateAiOptionsAnalysisMacroAware,
     },
   ], [
     fetchExpirationsWithCapture,
@@ -387,9 +445,9 @@ export function SimpleAnalyzeAllButton({
     onGenerateAiKeyTakeaways,
     onGenerateAiOptionsAnalysis,
     canFetchExpirations,
-    canGetStockData,
-    canGenerateAiKeyTakeaways,
-    canGenerateAiOptionsAnalysis,
+    canGetStockDataMacroAware,
+    canGenerateAiKeyTakeawaysMacroAware,
+    canGenerateAiOptionsAnalysisMacroAware,
     getCurrentExpiration,
     getAvailableExpirations,
     macroExecutionContext,

@@ -1,9 +1,42 @@
 # StockSage Change History
 
+## v4.4.2.15 - Macro State Capture Bug Fix
+
+**App Version:** `v4.4.2.15` (🔧 **CRITICAL MACRO AUTOMATION FIX**)
+**Status:** Current Development Version
+
+### Critical Bug Fix - Macro State Isolation Enhancement
+- **Macro State Capture Issue**: Fixed critical bug where macro automation wasn't working after v4.4.2.14 - Steps 2-4 were being skipped because macro context wasn't capturing expiration data from Step 1
+- **Root Cause**: Validation functions were checking shared state instead of macro-isolated state, missing immediate updates from Step 1 execution
+- **Technical Solution**: Implemented macro-aware validation functions with three-tier validation hierarchy and useRef for immediate state access
+
+### Technical Implementation Details
+- **Macro-Aware Validation Functions**: Created specialized validation that prioritizes macro context over shared state
+- **Enhanced State Capture**: Implemented dual state update system (shared state + useRef) for immediate macro access
+- **Three-Tier Validation Strategy**: 
+  1. **Macro Context Priority**: Check macro-isolated state first
+  2. **Immediate Ref Access**: useRef for instant state capture from Step 1
+  3. **Shared State Fallback**: Traditional state for non-macro operations
+- **useRef Integration**: Added `macroContextRef` with immediate state synchronization
+
+### Code Quality Enhancements
+- **Type Safety**: Enhanced TypeScript compliance with proper interface definitions
+- **State Isolation**: Improved separation between macro execution context and component state
+- **Debugging Enhancement**: Comprehensive logging for macro state flow tracking
+- **Production Safety**: Maintained performance with enhanced state management
+
+### Impact & Resolution
+- **Issue Resolved**: Macro automation now works reliably with proper Step 1 → Steps 2-4 flow
+- **State Isolation Enhanced**: Macro context properly captures and maintains expiration data independent of shared state
+- **Validation Logic**: Smart validation hierarchy ensures macro operations use correct state context
+- **Quality Assurance**: Comprehensive code review validated bug fix maintains all existing functionality
+
+---
+
 ## v4.4.2.14 - Macro Automation Bug Fix
 
 **App Version:** `v4.4.2.14` (🐛 **CRITICAL BUG FIX**)
-**Status:** Current Development Version
+**Status:** Previous Development Version
 
 ### Critical Bug Fix
 - **Macro Automation Logic Fix**: Resolved critical issue where "Analyze All" button only worked if user previously ran "Get Stock Data" button
@@ -220,4 +253,4 @@
 
 **File Optimization**: Streamlined from 77.3KB to ~12KB focusing on v4.x.x.x architecture  
 **Last Updated**: 2025-08-01  
-**Current Version**: v4.4.2.14
+**Current Version**: v4.4.2.15

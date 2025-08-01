@@ -144,7 +144,8 @@
       "Bash(npx typescript:*)",
       "Bash(mkdir:*)",
       "Bash(awk:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": []
   }

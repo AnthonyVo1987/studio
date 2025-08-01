@@ -2,12 +2,12 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.14]
+**Version**: [v4.4.2.15]
 **Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: Fix & Rework Incorrect Macro Automation Logic
+**Brief Summary**: Macro Not Working for Case 1: No expiration selected → Run all 4 steps including Fetch Expirations
 **Affected Systems**: []
 
 **Priority Level**: _[CRITICAL]_
@@ -129,36 +129,13 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
-Fix & Rework Incorrect Macro Automation Logic
-- The initial implementation of the Macro Automation Button Action has flawed logic that has unexpected and unwanted behavior
-- The current INCORRECT logic ONLY allows the macro to fully complete past the first step ONLY if the user previously ran the Get Stock Data button to populate the app with some data
-- This defeats the purpose of the intention of the macro automation
-- There is also incorrect logic with the macro automation in regards to Expiration dates
-- Remember that all the macro does is to be simple - it just piggybacks on already existing user action buttons functions to make it simple and not have to re-invent the wheel with some complex convoluted orchestrator logic, when all the macro needs to do is to leverage the existing robust button action function calls in the correct sequence.
-
-Please re-work and fix the Macro Automation Action Button to adhere to the following intended behavior, depending on the state of the App:
-
-Case 1: User has not issued a Fetch Expirations Action to select a specific Expiration:
-- This case happens when the app first finishes it's initial start-up
-- The user has NOT issued a Fetch Expiration and/or Selected a Specific expiration AND the app has ZERO data populated
-- EXPECTED MACRO BEHAVIOR:  
-1. Macro should detect this case and then perform the Fetch Expiration action
-2. Macro should then select the very next valid expiration
-3. Macro should now run the full Macro actions to Get Stock Data, Generate AI Key Takeways, and then Generate AI Options Analysis
-
-
-Case 2: User HAS selected a valid and specific Expiration
-- This case happens when the user issues the Fetch Expiration button
-- The User may then decide to choose a specific expiration, OR leave it to the auto detected next expiration
-- The app does NOT need the user to perform an initial Get Data action, because the Macro will do that for the user
-- EXPECTED MACRO BEHAVIOR:  
-1. Macro should detect this case and then perform the Fetch Expiration action BASED on the User selected expiration, either they chose a specific dte OR they left it to the default.  2. Macro MUST be dynamic and adaptable and  use whatever DATE is chosen , whether user selected or the default detected, for the data retrieval and analysis. If user did a Fetch Expirations and left it to the default next expiration, that means the user implicity CHOSE the default expiration
-3. Macro should now run the full Macro actions to Get Stock Data, Generate AI Key Takeways, and then Generate AI Options Analysis based on the expiration date, whether User Chosen or User left it to the default detected date
-
-
-- By covering these 2 cases, this corrects the Macro behavior to intelligently and adapt to run the correct sequence WITHOUT User Intervention and WITHOUT needing an initial incorrect data pull
-
-- With these fixes, the Macro can run in ANY app and data state without needing ANY required user action
+Macro Not Working for Case 1: No expiration selected → Run all 4 steps including Fetch Expirations
+- The previous fixes are NOT working for the Macro Intelligent Detection Logic for Case 1: No expiration selected → Run all 4 steps including Fetch Expirations
+- When User pressed the macro during initial app startup with no fetch and expiration selected, App is STILL needing to incorrectly rely on a previous fetch and data pull to run the full macro
+- Since this was SUPPOSED to be fixed from the previous git commit, you may have to take a step back and think harder to investigate the issue, just in case you had a previous incorrect premise and/or assumptions, which caused an incorrect fix
+- This case 1 was supposed to addressed in previous git commit handling when there has been no action performed by the user, to perform the full app flow
+- It is incorrectly STILL requiring an initial get stock data first, before it can run the automation.  This goes against the previous requested behavior for the macro fixes for case 1
+- Do we need to add some sort of flag and/or indicator for the Macro to detect if app is completley emtpy, vs user action already? etc
 
 
 ### Current Situation
@@ -213,6 +190,321 @@ _[Any architectural decisions or patterns that must be followed]_
 ### Error Logs
 ```
 
+[NVDA:MacroOrchestrator:MacroExecution:NewExecutionId@macro_1754022612589_hwjjenfn9] Generated new execution ID for next run 
+{newExecutionId: "macro_1754022620469_tv9wf5j3i", previousExecutionId: "macro_1754022612589_hwjjenfn9"}
+newExecutionId: "macro_1754022620469_tv9wf5j3i"
+previousExecutionId: "macro_1754022612589_hwjjenfn9"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022612589_hwjjenfn9] Evaluating if expiration fetch is needed 
+{currentExpiration: "", availableExpirationsCount: 0, needsFetch: true, executionId: "macro_1754022612589_hwjjenfn9"}
+currentExpiration: ""
+availableExpirationsCount: 0
+needsFetch: true
+executionId: "macro_1754022612589_hwjjenfn9"
+[NVDA:MacroOrchestrator:MacroExecution:ContextInit@macro_1754022612589_hwjjenfn9] Macro execution context initialized 
+{executionId: "macro_1754022612589_hwjjenfn9", contextState: Object, uiState: Object, stepSelection: Object}
+executionId: "macro_1754022612589_hwjjenfn9"
+contextState: Object
+uiState: Object
+stepSelection: Object
+[NVDA:MacroOrchestrator:MacroExecution:MacroStart@macro_1754022612589_hwjjenfn9] Beginning 4-step automation workflow 
+{executionId: "macro_1754022612589_hwjjenfn9", totalSteps: 4, stepNames: Array(4), isolationMode: "macro-context-enabled", initialUIExpiration: ""…}
+executionId: "macro_1754022612589_hwjjenfn9"
+totalSteps: 4
+stepNames: (4) ["Fetch Expirations", "Get Stock Data", "AI Key Takeaways", "AI Options Analysis"]
+isolationMode: "macro-context-enabled"
+initialUIExpiration: ""
+availableExpirationsCount: 0
+ticker: "NVDA"
+timestamp: "2025-08-01T04:30:20.469Z"
+intelligentExecution: Object
+environment: Object
+[NVDA:MacroOrchestrator:MacroExecution:Step1_Init@macro_1754022612589_hwjjenfn9] Starting: Fetch Expirations 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 1, stepName: "Fetch Expirations", stepDescription: "Fetching available expiration dates", completedSteps: 0…}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 1
+stepName: "Fetch Expirations"
+stepDescription: "Fetching available expiration dates"
+completedSteps: 0
+totalSteps: 4
+progress: "0/4"
+currentExpiration: ""
+macroExpiration: null
+[NVDA:MacroOrchestrator:StateValidation:Step1_PreExecution@macro_1754022612589_hwjjenfn9] Capturing pre-execution state 
+{currentSharedExpiration: "", availableExpirationsCount: 0, macroSelectedExpiration: null, executionId: "macro_1754022612589_hwjjenfn9", timestamp: "2025-08-01T04:30:20.470Z"}
+currentSharedExpiration: ""
+availableExpirationsCount: 0
+macroSelectedExpiration: null
+executionId: "macro_1754022612589_hwjjenfn9"
+timestamp: "2025-08-01T04:30:20.470Z"
+[NVDA:NVDA-Tab:UserAction:FetchExpirations] Starting expiration fetch... 
+{ticker: "NVDA"}
+[NVDA:NVDA-Tab:State:FetchExpirations] Clearing previous expiration selection to prevent contamination 
+{previousSelection: "", context: "Step1_StateCleanup_PreFetch"}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_LOADING", previousStatus: "idle"}
+[NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_LOADING", previousStatus: "idle"}
+[NVDA:NVDA-Tab:State:FSM] Transition -> LOADING 
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: ""}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: ""}
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "", availableExpirationsCount: 0, needsFetch: true, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: ""
+availableExpirationsCount: 0
+needsFetch: true
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "", availableExpirationsCount: 0, needsFetch: true, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: ""
+availableExpirationsCount: 0
+needsFetch: true
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "", availableExpirationsCount: 0, needsFetch: true, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: ""
+availableExpirationsCount: 0
+needsFetch: true
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "", availableExpirationsCount: 0, needsFetch: true, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: ""
+availableExpirationsCount: 0
+needsFetch: true
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "", availableExpirationsCount: 0, needsFetch: true, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: ""
+availableExpirationsCount: 0
+needsFetch: true
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "", availableExpirationsCount: 0, needsFetch: true, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: ""
+availableExpirationsCount: 0
+needsFetch: true
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:NVDA-Tab:DataFetch:FetchExpirations] Expirations received 
+{count: 20}
+[NVDA:NVDA-Tab:UserAction:FetchExpirations] Next available date determined 
+{date: "2025-08-01"}
+[NVDA:NVDA-Tab:State:FetchExpirations] Setting default expiration date for macro automation 
+{selectedExpiration: "2025-08-01", availableCount: 20, isDefaultSelection: true, context: "Step1_FetchExpirations_DefaultSelection"}
+selectedExpiration: "2025-08-01"
+availableCount: 20
+isDefaultSelection: true
+context: "Step1_FetchExpirations_DefaultSelection"
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_EXPIRATION_DATES", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationDates] Setting expiration dates 
+{count: 20}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_EXPIRATION_DATES", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationDates] Setting expiration dates 
+{count: 20}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: "2025-08-01"}
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_SELECTED_EXPIRATION", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:ExpirationSelection] Setting selected expiration 
+{expiration: "2025-08-01"}
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:NVDA-Tab:State:FetchExpirations] State update committed - ready for Step 2 
+{finalSelectedExpiration: "2025-08-01", context: "Step1_StateCommit_Complete"}
+[NVDA:NVDA-Tab:UserAction:FetchExpirations] Completed successfully with state cleanup 
+[NVDA:MacroOrchestrator:StateValidation:Step1_PostExecution@macro_1754022612589_hwjjenfn9] State captured after fetch 
+{preExecutionExpiration: "", postExecutionExpiration: "", macroSelectedExpiration: "", availableExpirationsCount: 0, executionId: "macro_1754022612589_hwjjenfn9"…}
+preExecutionExpiration: ""
+postExecutionExpiration: ""
+macroSelectedExpiration: ""
+availableExpirationsCount: 0
+executionId: "macro_1754022612589_hwjjenfn9"
+stepDuration: "1343ms"
+[NVDA:MacroOrchestrator:MacroExecution:Step1_Success@macro_1754022612589_hwjjenfn9] Completed: Fetch Expirations 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 1, stepName: "Fetch Expirations", completedSteps: 1, totalSteps: 4…}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 1
+stepName: "Fetch Expirations"
+completedSteps: 1
+totalSteps: 4
+progress: "1/4"
+stepDuration: "0ms"
+macroExpiration: null
+currentExpiration: ""
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_IDLE", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:FSM] Transition -> IDLE 
+[NVDA:NVDA-Tab:State:Reducer] Action dispatched 
+{type: "SET_IDLE", previousStatus: "loading"}
+[NVDA:NVDA-Tab:State:FSM] Transition -> IDLE 
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:StateValidation:ShouldFetchExpirations@macro_1754022620469_tv9wf5j3i] Evaluating if expiration fetch is needed 
+{currentExpiration: "2025-08-01", availableExpirationsCount: 20, needsFetch: false, executionId: "macro_1754022620469_tv9wf5j3i"}
+currentExpiration: "2025-08-01"
+availableExpirationsCount: 20
+needsFetch: false
+executionId: "macro_1754022620469_tv9wf5j3i"
+[NVDA:MacroOrchestrator:MacroExecution:Step2_Init@macro_1754022612589_hwjjenfn9] Starting: Get Stock Data 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 2, stepName: "Get Stock Data", stepDescription: "Retrieving stock data and options chain", completedSteps: 1…}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 2
+stepName: "Get Stock Data"
+stepDescription: "Retrieving stock data and options chain"
+completedSteps: 1
+totalSteps: 4
+progress: "1/4"
+currentExpiration: ""
+macroExpiration: null
+[NVDA:MacroOrchestrator:Step2_Skip] Skipping: Prerequisites not met 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 2, stepName: "Get Stock Data", reason: "Prerequisites not met", anomaly: "prerequisites_not_met"}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 2
+stepName: "Get Stock Data"
+reason: "Prerequisites not met"
+anomaly: "prerequisites_not_met"
+
+Skipping step 2 (Get Stock Data): Prerequisites not met 
+
+[NVDA:MacroOrchestrator:MacroExecution:Step3_Init@macro_1754022612589_hwjjenfn9] Starting: AI Key Takeaways 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 3, stepName: "AI Key Takeaways", stepDescription: "Generating AI analysis insights", completedSteps: 1…}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 3
+stepName: "AI Key Takeaways"
+stepDescription: "Generating AI analysis insights"
+completedSteps: 1
+totalSteps: 4
+progress: "1/4"
+currentExpiration: ""
+macroExpiration: null
+[NVDA:MacroOrchestrator:Step3_Skip] Skipping: Prerequisites not met 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 3, stepName: "AI Key Takeaways", reason: "Prerequisites not met", anomaly: "prerequisites_not_met"}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 3
+stepName: "AI Key Takeaways"
+reason: "Prerequisites not met"
+anomaly: "prerequisites_not_met"
+
+Skipping step 3 (AI Key Takeaways): Prerequisites not met 
+
+[NVDA:MacroOrchestrator:MacroExecution:Step4_Init@macro_1754022612589_hwjjenfn9] Starting: AI Options Analysis 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 4, stepName: "AI Options Analysis", stepDescription: "Analyzing options strategies with AI", completedSteps: 1…}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 4
+stepName: "AI Options Analysis"
+stepDescription: "Analyzing options strategies with AI"
+completedSteps: 1
+totalSteps: 4
+progress: "1/4"
+currentExpiration: ""
+macroExpiration: null
+[NVDA:MacroOrchestrator:Step4_Skip] Skipping: Prerequisites not met 
+{executionId: "macro_1754022612589_hwjjenfn9", stepId: 4, stepName: "AI Options Analysis", reason: "Prerequisites not met", anomaly: "prerequisites_not_met"}
+executionId: "macro_1754022612589_hwjjenfn9"
+stepId: 4
+stepName: "AI Options Analysis"
+reason: "Prerequisites not met"
+anomaly: "prerequisites_not_met"
+
+Skipping step 4 (AI Options Analysis): Prerequisites not met 
+
+[NVDA:MacroOrchestrator:MacroExecution:MacroComplete@macro_1754022612589_hwjjenfn9] Macro automation completed 
+{executionId: "macro_1754022612589_hwjjenfn9", completedSteps: 1, totalSteps: 4, totalDuration: "0ms (0s)", successRate: "1/4 (25%)"…}
+executionId: "macro_1754022612589_hwjjenfn9"
+completedSteps: 1
+totalSteps: 4
+totalDuration: "0ms (0s)"
+successRate: "1/4 (25%)"
+stepResults: Object
+step1: Object
+macroExpiration: null
+anomalies: undefined
+[NVDA:MacroOrchestrator:Performance:ExecutionSummary@macro_1754022612589_hwjjenfn9] Performance metrics 
+{timestamp: "2025-08-01T04:30:22.316Z", executionId: "macro_1754022612589_hwjjenfn9", totalDuration: "0ms", averageStepDuration: "0ms", stepTimings: Object}
+timestamp: "2025-08-01T04:30:22.316Z"
+executionId: "macro_1754022612589_hwjjenfn9"
+totalDuration: "0ms"
+averageStepDuration: "0ms"
+stepTimings: Object
+[NVDA:MacroOrchestrator:StateValidation:MacroFinalize@macro_1754022612589_hwjjenfn9] Macro execution finalized 
+{executionId: "macro_1754022612589_hwjjenfn9", finalMacroExpiration: null, finalUIExpiration: "", stateConsistent: false, anomaliesDetected: 0…}
+executionId: "macro_1754022612589_hwjjenfn9"
+finalMacroExpiration: null
+finalUIExpiration: ""
+stateConsistent: false
+anomaliesDetected: 0
+anomaliesList: und
 
 ---
 
