@@ -96,8 +96,14 @@ export function SimpleAnalyzeAllButton({
   // Generate unique execution ID for this macro run
   const [executionId, setExecutionId] = useState<string>(() => generateExecutionId('macro'));
   
-  // Create ticker-specific logger with execution ID
-  const logger = useMemo(() => createTickerLogger(ticker, 'MacroOrchestrator', executionId), [ticker, executionId]);
+  // Create ticker-specific logger with stable reference to prevent recreation during execution
+  const loggerRef = useRef<ReturnType<typeof createTickerLogger> | null>(null);
+  const logger = useMemo(() => {
+    if (!loggerRef.current) {
+      loggerRef.current = createTickerLogger(ticker, 'MacroOrchestrator', executionId);
+    }
+    return loggerRef.current;
+  }, [ticker]); // Only depend on ticker to prevent recreation during execution
   
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -119,9 +125,12 @@ export function SimpleAnalyzeAllButton({
   // CRITICAL: Use ref for immediate state access during step validation
   const macroContextRef = useRef<MacroExecutionContext>(macroExecutionContext);
   
-  // Keep ref synchronized with state changes
+  // Keep ref synchronized with state changes (but avoid overwriting manual updates during execution)
   React.useEffect(() => {
-    macroContextRef.current = macroExecutionContext;
+    // Only sync if not actively executing to prevent race conditions
+    if (!macroExecutionContext.isExecuting) {
+      macroContextRef.current = macroExecutionContext;
+    }
   }, [macroExecutionContext]);
   
   // Track step timing for performance metrics
@@ -164,9 +173,19 @@ export function SimpleAnalyzeAllButton({
       })
     };
     
-    // Update both state and ref for immediate access
+    // Update both state and ref for immediate access - ensure atomic update
     setMacroExecutionContext(prev => ({ ...prev, ...newContext }));
-    macroContextRef.current = { ...macroContextRef.current, ...newContext };
+    // CRITICAL: Update ref immediately and atomically to prevent race conditions
+    macroContextRef.current = {
+      selectedExpiration: postExecutionExpiration,
+      isExecuting: true,
+      stepResults: new Map().set(1, {
+        preExecutionExpiration,
+        postExecutionExpiration,
+        availableExpirationsCount: postExecutionAvailable.length,
+        stepDuration: `${Date.now() - stepStart}ms`
+      })
+    };
     
     logger.stateValidation('Step1_PostExecution', 'State captured after fetch', {
       preExecutionExpiration,
@@ -222,6 +241,16 @@ export function SimpleAnalyzeAllButton({
   const canGetStockDataMacroAware = useCallback(() => {
     // First check if we have a macro-captured expiration
     const macroExpiration = macroContextRef.current.selectedExpiration;
+    const stateExpiration = macroExecutionContext.selectedExpiration;
+    
+    // Add debug logging to track ref synchronization
+    logger.stateValidation('CanGetStockData_RefDebug', 'Ref state before Step 2 validation', {
+      refSelectedExpiration: macroExpiration,
+      stateSelectedExpiration: stateExpiration,
+      refStateMatch: macroExpiration === stateExpiration,
+      executionId
+    });
+    
     if (macroExpiration) {
       logger.stateValidation('CanGetStockData_MacroAware', 'Using macro-captured expiration for validation', {
         macroExpiration,
@@ -240,7 +269,7 @@ export function SimpleAnalyzeAllButton({
       executionId
     });
     return originalResult;
-  }, [canGetStockData, getCurrentExpiration, logger, executionId]);
+  }, [canGetStockData, getCurrentExpiration, logger, executionId, macroExecutionContext.selectedExpiration]);
 
   const canGenerateAiKeyTakeawaysMacroAware = useCallback(() => {
     // First check if we have a macro-captured expiration
@@ -457,20 +486,8 @@ export function SimpleAnalyzeAllButton({
     setMacroExecutionContext
   ]);
 
-  // Reset execution state
-  const resetState = useCallback(() => {
-    // Log state reset if there was a previous execution
-    if (executionId && (isExecuting || isCompleted || isCancelled)) {
-      logger.macroExecution('StateReset', 'Resetting macro execution state', {
-        previousExecutionId: executionId,
-        wasExecuting: isExecuting,
-        wasCompleted: isCompleted,
-        wasCancelled: isCancelled,
-        hadError: !!executionError,
-        anomaliesFromPreviousRun: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
-      });
-    }
-    
+  // Reset execution state (internal helper, not in useCallback to break circular dependency)
+  const resetExecutionState = () => {
     setIsExecuting(false);
     setCurrentStep(0);
     setCompletedSteps([]);
@@ -485,19 +502,18 @@ export function SimpleAnalyzeAllButton({
       isExecuting: false,
       stepResults: new Map()
     });
+    // CRITICAL FIX: Also reset the ref immediately to prevent stale data
+    macroContextRef.current = {
+      selectedExpiration: null,
+      isExecuting: false,
+      stepResults: new Map()
+    };
     // Reset tracking
     setStepStartTimes(new Map());
     setAnomaliesDetected([]);
-    // Generate new execution ID for next run
-    const newExecutionId = generateExecutionId('macro');
-    setExecutionId(newExecutionId);
-    
-    // Log new execution ID generation
-    logger.macroExecution('NewExecutionId', 'Generated new execution ID for next run', {
-      newExecutionId,
-      previousExecutionId: executionId
-    });
-  }, [executionId, isExecuting, isCompleted, isCancelled, executionError, anomaliesDetected, logger]);
+    // CRITICAL: Clear logger ref to force recreation with new execution ID
+    loggerRef.current = null;
+  };
 
 
 
@@ -530,10 +546,35 @@ export function SimpleAnalyzeAllButton({
       return;
     }
 
-    resetState();
+    // Log state reset if there was a previous execution
+    if (executionId && (isExecuting || isCompleted || isCancelled)) {
+      logger.macroExecution('StateReset', 'Resetting macro execution state', {
+        previousExecutionId: executionId,
+        wasExecuting: isExecuting,
+        wasCompleted: isCompleted,
+        wasCancelled: isCancelled,
+        hadError: !!executionError,
+        anomaliesFromPreviousRun: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
+      });
+    }
+
+    // Reset state and generate new execution ID inline to break circular dependency
+    resetExecutionState();
+    const newExecutionId = generateExecutionId('macro');
+    setExecutionId(newExecutionId);
+    
+    // CRITICAL: Force logger recreation with new execution ID
+    loggerRef.current = createTickerLogger(ticker, 'MacroOrchestrator', newExecutionId);
+    
     const executionStart = Date.now();
     setIsExecuting(true);
     setStartTime(executionStart);
+    
+    // Log new execution ID generation with the fresh logger
+    loggerRef.current.macroExecution('NewExecutionId', 'Generated new execution ID for macro run', {
+      newExecutionId,
+      previousExecutionId: executionId
+    });
     
     // Initialize macro execution context with comprehensive state
     const initialUIExpiration = getCurrentExpiration();
@@ -828,9 +869,9 @@ export function SimpleAnalyzeAllButton({
         anomaliesList: anomaliesDetected.length > 0 ? anomaliesDetected : undefined
       });
     }
-  }, [isExecuting, steps, ticker, toast, onComplete, onError, onCancel, resetState, shouldCancel, startTime, 
+  }, [isExecuting, steps, ticker, toast, onComplete, onError, onCancel, shouldCancel, startTime, 
       logger, executionId, currentStep, getCurrentExpiration, getAvailableExpirations, completedSteps, 
-      macroExecutionContext, anomaliesDetected, stepStartTimes, shouldFetchExpirations]);
+      macroExecutionContext, anomaliesDetected, stepStartTimes, shouldFetchExpirations, isCompleted, isCancelled, executionError]);
 
   // Handle cancellation
   const handleCancel = useCallback(() => {

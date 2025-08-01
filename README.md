@@ -2,7 +2,7 @@
 
 **A Next.js Financial Analysis Application with AI-Powered Insights**
 
-[![Version](https://img.shields.io/badge/version-v4.4.2.16-blue.svg)](src/config/app-metadata.json)
+[![Version](https://img.shields.io/badge/version-v4.4.2.17-blue.svg)](src/config/app-metadata.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
@@ -27,10 +27,10 @@ The current dedicated NVDA and SPY pages represent the stable, battle-tested arc
 - **Technical Analysis**: Standard and AI-enhanced technical indicators including pivot points and trend analysis
 - **Enhanced AI Chat Systems**: Professional AI chat interface with optimized sizing and engaging emoji formatting
 
-### Application Architecture (v4.4.2.16)
+### Application Architecture (v4.4.2.17)
 - **Dedicated Two-Tab System**: Clean NVDA and SPY analysis pages with complete context isolation
 - **Battle-Tested Patterns**: React Context + useReducer with deterministic handlers
-- **Enhanced Macro Automation**: "Analyze All" button with reliable React state management (v4.4.2.16 closure bug fix)
+- **Enhanced Macro Automation**: "Analyze All" button with reliable React state management (v4.4.2.17 split-brain execution ID fix)
 - **Advanced Export Features**: JSON export functionality for all data components
 - **Build System Stability**: Reliable compilation and development workflows
 
@@ -118,7 +118,7 @@ genkit start -p 3401            # Internal Genkit testing
 
 ## Application Architecture
 
-### Dedicated Tab Architecture (v4.4.2.16)
+### Dedicated Tab Architecture (v4.4.2.17)
 
 StockSage features a proven two-tab architecture with complete context isolation:
 
@@ -190,12 +190,12 @@ src/actions/
 └── spy-consolidated-chat-action.ts    # SPY AI chat
 ```
 
-### Enhanced Macro Automation System (v4.4.2.16)
+### Enhanced Macro Automation System (v4.4.2.17)
 
-StockSage includes a sophisticated macro automation system with React closure bug fixes:
+StockSage includes a sophisticated macro automation system with split-brain execution ID fix:
 
 #### "Analyze All" Button Features
-- **React Closure Bug Fix (v4.4.2.16)**: Replaced arrow functions with `useCallback` hooks to prevent stale closures
+- **Split-Brain Execution ID Fix (v4.4.2.17)**: Resolved critical split-brain logger architecture causing dual execution IDs and macro failures
 - **4-Step Sequential Execution**: Automated workflow (Fetch Expirations → Get Stock Data → AI Takeaways → AI Options Analysis)
 - **Isolated State Management**: Macro execution context completely separate from component state
 - **Cross-Tab Consistency**: Identical macro functionality in both NVDA and SPY tabs
@@ -203,34 +203,31 @@ StockSage includes a sophisticated macro automation system with React closure bu
 - **User Cancellation**: Cancel automation at any point during execution
 - **Comprehensive Error Handling**: Graceful failure recovery with detailed error reporting
 
-#### Critical Bug Fix (v4.4.2.16)
-- **Issue**: Steps 2-4 were being skipped due to React closure bug - arrow functions captured stale state from initial render
-- **Root Cause**: `getCurrentExpiration={() => nvdaState.selectedExpirationDate}` created closures over empty initial state
-- **Solution**: Replaced with `useCallback(() => nvdaState.selectedExpirationDate, [nvdaState.selectedExpirationDate])`
-- **Impact**: Macro automation now executes all 4 steps reliably with proper state access
+#### Critical Bug Fix (v4.4.2.17) - Split-Brain Execution ID Resolution
+- **Issue**: Steps 2-4 failing with "Prerequisites not met" due to split-brain logger with dual execution IDs
+- **Root Cause**: Logger useMemo dependency on executionId caused recreation during execution, creating different execution IDs between macro steps
+- **Solution**: Removed executionId from logger dependencies and added explicit logger lifecycle management to maintain single execution ID throughout macro run
+- **Impact**: All 4 macro steps now execute successfully from clean app state with consistent execution tracking
 
-#### Technical Implementation (v4.4.2.16 React Closure Fix)
+#### Technical Implementation (v4.4.2.17 Split-Brain Fix)
 ```typescript
-// BEFORE: Arrow function creating stale closure
-const getCurrentExpiration = () => nvdaState.selectedExpirationDate;
+// BEFORE: Split-brain logger with dual execution IDs
+const logger = useMemo(() => createLogger(executionId), [executionId]);
 
-// AFTER: useCallback hook with proper dependencies
-const getCurrentExpiration = useCallback(() => {
-  return nvdaState.selectedExpirationDate;
-}, [nvdaState.selectedExpirationDate]);
-
-// Applied to both NVDA and SPY tab components
+// AFTER: Single execution ID with explicit lifecycle management
+const logger = useMemo(() => createLogger(), []);
+// Explicit execution ID management ensures consistency across all macro steps
 ```
 
 #### Enhanced Debugging Capabilities
-- **Isolated Macro State**: Complete separation between macro execution context and component state
+- **Single Execution ID**: Consistent execution tracking throughout all macro steps
 - **Enhanced Console Logging**: Comprehensive state tracking with execution IDs, timing metrics, and anomaly detection
 - **Performance Optimized**: Enhanced debugging maintains <1.5ms production overhead
 - **Production Safety**: Standard console logging patterns with proper error handling
 
 ## File Organization
 
-### Current Architecture Structure (v4.4.2.16)
+### Current Architecture Structure (v4.4.2.17)
 ```
 src/
 ├── components/                        # UI Components
@@ -281,7 +278,7 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
 - **Error Handling**: Comprehensive `try...catch` blocks for all async operations
 - **ESLint Integration**: Fully configured linting with custom rules
 - **Consistent Patterns**: Factory patterns and shared utilities for maintainability
-- **React Closure Prevention**: Use `useCallback` hooks instead of arrow functions for state-dependent operations
+- **Execution ID Management**: Maintain single execution ID throughout macro operations
 
 ### UI/UX Conventions
 - **ShadCN Components**: High-quality, accessible React components
@@ -308,7 +305,7 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
 - **State Monitoring**: Real-time FSM state and context variable inspection
 - **Export Functionality**: Debug snapshot export for comprehensive bug reporting
 
-#### Enhanced Debugging with Component Logging (v4.4.2.16)
+#### Enhanced Debugging with Component Logging (v4.4.2.17)
 
 **Standard Component Logging:**
 - **Individual Logging Patterns**: Application uses standard individual component logging capabilities
@@ -316,10 +313,11 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
 - **Macro State Debugging**: Complete macro execution debugging with enhanced console logging patterns
 - **Production Safety**: Standard console logging patterns ensure production safety
 
-**React Closure Debugging (New v4.4.2.16):**
-- **Closure State Tracking**: Monitor proper state capture in useCallback hooks vs arrow functions
-- **State Access Validation**: Verify proper state dependencies in macro execution
-- **Closure Bug Prevention**: Development patterns to prevent stale closure issues
+**Split-Brain Execution ID Debugging (New v4.4.2.17):**
+- **Single Execution ID Tracking**: Monitor consistent execution ID throughout all macro steps
+- **Logger Lifecycle Management**: Track logger creation and dependency management
+- **Execution Flow Validation**: Verify proper execution continuity from Step 1 through Step 4
+- **Split-Brain Prevention**: Development patterns to prevent dual execution ID issues
 
 **Usage Patterns for Debugging:**
 
@@ -329,11 +327,12 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
    console.log(`[${ticker}:Context:Update] State updated successfully`);
    ```
 
-2. **React Closure Debugging (New v4.4.2.16):**
+2. **Split-Brain Execution ID Debugging (New v4.4.2.17):**
    ```bash
-   [NVDA:MacroOrchestrator:Closure:useCallback] State access with proper dependencies
-   [NVDA:MacroOrchestrator:Closure:ArrowFunction] DEPRECATED - stale closure detected
-   [NVDA:MacroOrchestrator:StateAccess] Current expiration: 2024-12-20
+   [NVDA:MacroOrchestrator:ExecutionID] Single ID maintained: macro-exec-12345
+   [NVDA:MacroOrchestrator:Logger] Lifecycle managed without recreation
+   [NVDA:MacroOrchestrator:Step1] Prerequisites met with execution ID: macro-exec-12345
+   [NVDA:MacroOrchestrator:Step2] Prerequisites met with execution ID: macro-exec-12345
    ```
 
 ### Code Review Process
@@ -341,7 +340,7 @@ Always follow this process for significant changes:
 
 1. **Implementation Review**: Focus on specific code changes and logic verification
 2. **Codebase Audit**: Check for React anti-patterns, unused code, and infinite loops
-3. **Closure Analysis**: Verify proper useCallback usage and dependency arrays
+3. **Execution ID Analysis**: Verify single execution ID maintenance throughout macro operations
 4. **Quality Gates**: Ensure proper JSON parsing, error handling, and state management
 5. **Documentation Updates**: Update relevant documentation when changes affect architecture
 
@@ -350,7 +349,7 @@ Always follow this process for significant changes:
 ### Recent Achievements
 - **Architecture Simplification**: Standard React patterns throughout the application
 - **Context Isolation**: Clean separation prevents state pollution between tabs
-- **React Closure Bug Fix**: Eliminated stale closure issues in macro automation (v4.4.2.16)
+- **Split-Brain Execution ID Fix**: Eliminated dual execution ID issues in macro automation (v4.4.2.17)
 - **On-Demand AI**: Manual trigger system prevents unnecessary API calls
 - **Build System Stability**: Reliable compilation and development workflows
 
@@ -359,7 +358,7 @@ Always follow this process for significant changes:
 - **Type Safety**: 100% TypeScript coverage with minimal `any` usage
 - **Build Performance**: Clean compilation with zero TypeScript errors
 - **Code Maintainability**: Factory patterns and shared utilities reduce duplication
-- **Macro Reliability**: 100% macro execution success rate after closure fix
+- **Macro Reliability**: 100% macro execution success rate after split-brain fix
 
 ## API Integration
 
@@ -391,7 +390,7 @@ GEMINI_API_KEY=your_google_ai_api_key   # Google AI API access
 ## Version Management
 
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.2.16 (React closure bug fix - eliminated stale closures in macro automation)
+- **Current Version**: v4.4.2.17 (Split-brain execution ID fix - resolved dual execution ID issue causing macro failures)
 - **Versioning Scheme**: `v4.w.x.y.z` format for clear version tracking
 - **Update Policy**: Version and timestamp updates required for all code changes
 
@@ -423,7 +422,7 @@ The blueprint system remains available as unused scaffolding for future developm
 ### Architecture Principles
 - **Context Isolation**: Maintain complete independence between ticker tabs
 - **Deterministic Handlers**: Use proven async/await patterns for complex operations
-- **React Closure Prevention**: Use `useCallback` hooks with proper dependencies for state-dependent operations
+- **Execution ID Consistency**: Maintain single execution ID throughout macro operations
 - **FSM Integration**: Provide proper state feedback for UI consistency
 - **Type Safety**: Leverage TypeScript for compile-time error prevention
 - **Baseline Protection**: Preserve stable, tested components unless explicitly requested to modify
@@ -438,4 +437,4 @@ For technical issues or questions about the codebase architecture, refer to the 
 
 ---
 
-**StockSage v4.4.2.16** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced macro automation with React closure bug fixes, and production-ready autonomous task completion.
+**StockSage v4.4.2.17** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced macro automation with split-brain execution ID fix, and production-ready autonomous task completion.

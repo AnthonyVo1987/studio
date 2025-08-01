@@ -1,6 +1,6 @@
 {
-  "appVersion": "v4.4.2.16",
-  "lastUpdatedTimestamp": "2025-08-01T12:30:00.000Z",
-  "description": "CRITICAL BUG FIX: React Closure State Bug - 3rd Attempt Success. Fixed macro automation failing due to stale closure bug where arrow functions captured initial empty state at render time. Replaced with useCallback hooks with proper dependencies, enabling macro to read current state after Step 1 completion.",
+  "appVersion": "v4.4.2.17",
+  "lastUpdatedTimestamp": "2025-08-01T14:45:00.000Z",
+  "description": "CRITICAL SPLIT-BRAIN EXECUTION ID FIX: Resolved root cause of macro automation failures - split-brain logger with dual execution IDs causing Steps 2-4 to fail. Fixed by removing executionId from logger useMemo dependencies and implementing explicit logger lifecycle management. Single execution ID now maintained throughout macro run.",
   "metadataSchemaVersion": "1.0.0"
 }

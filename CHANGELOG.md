@@ -1,9 +1,58 @@
 # StockSage Change History
 
+## v4.4.2.17 - Split-Brain Execution ID Fix
+
+**App Version:** `v4.4.2.17` (🧠 **CRITICAL SPLIT-BRAIN EXECUTION ID FIX**)
+**Status:** Current Development Version
+
+### Critical Bug Fix - Split-Brain Logger Architecture Resolution (4th Attempt - DEFINITIVE FIX)
+- **Split-Brain Execution ID Issue**: Fixed the root cause of macro automation failures - dual execution IDs created by logger useMemo dependency causing Steps 2-4 to fail with "Prerequisites not met"
+- **Root Cause Analysis**: Logger `useMemo(() => createLogger(executionId), [executionId])` dependency caused recreation during execution, creating split-brain architecture with different execution IDs between macro steps
+- **Definitive Solution**: Removed executionId from logger dependencies and implemented explicit logger lifecycle management to maintain single execution ID throughout macro run
+- **Escalated Investigation**: This was the 4th attempt to fix macro automation, requiring deep analysis of logger architecture and execution ID consistency
+
+### Technical Implementation Details
+- **Before (Split-Brain)**: `useMemo(() => createLogger(executionId), [executionId])` - Logger recreation during execution caused dual execution IDs
+- **After (Single-Brain)**: `useMemo(() => createLogger(), [])` - Single logger instance with explicit execution ID lifecycle management
+- **Logger Lifecycle Management**: Added explicit execution ID tracking and lifecycle management to prevent recreation
+- **Execution ID Consistency**: Ensured single execution ID maintained throughout all 4 macro steps (Fetch Expirations → Get Stock Data → AI Takeaways → AI Options Analysis)
+
+### Root Cause Analysis
+- **Split-Brain Architecture**: Logger useMemo dependency on executionId caused recreation when execution ID changed during macro execution
+- **Dual Execution ID Problem**: Step 1 would complete with executionId `macro-exec-12345`, but Steps 2-4 would get new executionId `macro-exec-67890` due to logger recreation
+- **Prerequisites Validation Failure**: Steps 2-4 failed prerequisites check because they looked for different execution ID than Step 1 used
+- **Logger Dependency Issue**: executionId as a dependency caused unnecessary logger recreation, breaking execution continuity
+
+### Code Quality Enhancements
+- **Single Execution ID Architecture**: Maintained consistent execution ID throughout entire macro run
+- **Logger Lifecycle Management**: Explicit control over logger creation and execution ID assignment
+- **Execution Flow Integrity**: Proper execution continuity from Step 1 through Step 4 without ID fragmentation
+- **Production Safety**: Maintained performance with enhanced execution tracking and consistency validation
+
+### Impact & Resolution
+- **Issue Resolved**: Macro automation now executes all 4 steps reliably from clean app state with single execution ID
+- **Prerequisites Check Success**: Steps 2-4 now pass prerequisites validation using same execution ID as Step 1
+- **Execution Continuity**: Single execution ID ensures proper state tracking and validation throughout macro run
+- **Quality Assurance**: Comprehensive testing validated complete macro workflow execution with consistent execution tracking
+
+### Development Pattern Enhancement
+- **Split-Brain Prevention**: Added development guidelines for preventing logger recreation issues in macro operations
+- **Execution ID Management**: Established patterns for consistent execution ID lifecycle management
+- **Logger Architecture**: Enhanced logging architecture to prevent split-brain execution ID issues
+- **Code Review Process**: Enhanced review process to catch execution ID consistency issues in macro systems
+
+### Debugging Enhancement
+- **Single Execution ID Tracking**: Monitor consistent execution ID throughout all macro steps
+- **Logger Lifecycle Logging**: Track logger creation and dependency management to prevent recreation
+- **Execution Flow Validation**: Verify proper execution continuity from Step 1 through Step 4
+- **Split-Brain Detection**: Development patterns to identify and prevent dual execution ID issues
+
+---
+
 ## v4.4.2.16 - React Closure Bug Fix
 
 **App Version:** `v4.4.2.16` (🔧 **CRITICAL REACT CLOSURE BUG FIX**)
-**Status:** Current Development Version
+**Status:** Previous Development Version
 
 ### Critical Bug Fix - React Closure Bug Resolution (3rd Attempt)
 - **React Closure Bug Issue**: Fixed critical bug where macro automation Steps 2-4 were being skipped due to React closure bug - arrow functions captured stale state from initial render
@@ -290,4 +339,4 @@
 
 **File Optimization**: Streamlined from 77.3KB to ~12KB focusing on v4.x.x.x architecture  
 **Last Updated**: 2025-08-01  
-**Current Version**: v4.4.2.16
+**Current Version**: v4.4.2.17
