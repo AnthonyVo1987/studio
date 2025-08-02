@@ -254,18 +254,48 @@ export async function spyConsolidatedChatAction(
     // Build conversation history
     const history = buildChatHistory(payload.chatHistory);
 
-    // Generate content
+    // Generate content with retry logic for timeout handling
     console.log(`${actionLogPrefix} Generating content with webSearch: ${payload.webSearchEnabled}`);
-    const result = await model.generateContent({
-      contents: [
-        ...history,
-        {
-          role: 'user',
-          parts: [{ text: finalUserInput }]
+    
+    const generateWithRetry = async (maxRetries = 2) => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`${actionLogPrefix} Generation attempt ${attempt}/${maxRetries}`);
+          
+          // Add timeout wrapper for additional safety
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Request timeout after 45 seconds')), 45000);
+          });
+          
+          const generatePromise = model.generateContent({
+            contents: [
+              ...history,
+              {
+                role: 'user',
+                parts: [{ text: finalUserInput }]
+              }
+            ],
+            systemInstruction: systemInstruction,
+          });
+          
+          return await Promise.race([generatePromise, timeoutPromise]) as any;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error(`${actionLogPrefix} Attempt ${attempt} failed:`, errorMessage);
+          
+          if (attempt === maxRetries) {
+            throw new Error(`Failed after ${maxRetries} attempts. Last error: ${errorMessage}`);
+          }
+          
+          // Exponential backoff: wait 2^attempt seconds before retry
+          const waitTime = Math.pow(2, attempt) * 1000;
+          console.log(`${actionLogPrefix} Retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
-      ],
-      systemInstruction: systemInstruction,
-    });
+      }
+    };
+    
+    const result = await generateWithRetry();
 
     const response = result.response;
     const responseText = response.text();
@@ -296,15 +326,39 @@ export async function spyConsolidatedChatAction(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error(`${actionLogPrefix} Error:`, error);
+    const isTimeoutError = errorMessage.includes('timeout') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNRESET');
+    
+    // Enhanced error logging with network failure detection
+    console.error(`${actionLogPrefix} Error Details:`, {
+      errorMessage,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      isTimeoutError,
+      promptName: payload.promptName,
+      ticker: payload.ticker,
+      webSearchEnabled: payload.webSearchEnabled,
+      stackTrace: error instanceof Error ? error.stack : undefined
+    });
+
+    // Provide specific error messages for different failure types
+    let userMessage = 'Failed to generate chat response. Please try again.';
+    if (isTimeoutError) {
+      userMessage = 'Request timed out due to network issues. Please try again - this often works on retry.';
+    } else if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+      userMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+    }
 
     return {
       status: 'error',
       error: errorMessage,
-      message: 'Failed to generate chat response. Please try again.',
+      message: userMessage,
       data: {
         requestJson,
-        responseJson: JSON.stringify({ error: errorMessage }, null, 2),
+        responseJson: JSON.stringify({ 
+          error: errorMessage,
+          errorType: isTimeoutError ? 'timeout' : 'other',
+          isRetryable: isTimeoutError,
+          timestamp: new Date().toISOString()
+        }, null, 2),
       },
     };
   }

@@ -1,12 +1,12 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.3.4]
+**Version**: [v4.4.3.5]
 **Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: [Macro Bug] Options Chain Table mismatch & Delayed Stop Macro Action
+**Brief Summary**: 
 **Affected Systems**: []
 
 **Priority Level**: _[CRITICAL]_
@@ -129,19 +129,13 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
-[Macro Bug] Options Chain Table mismatch & Delayed Stop Macro Action
+[Macro Bugs] 
 
-* HAVE @TECH-LEAD-ORCHESTRATOR ensure that it actually triggers the delegation and coordination with other Specialist, instead of incorrectly stopping after coming up with a delegation and coordination plan
 
-- Recent fixes seems to have addressed the mismatched options dates and the stalled macro after step 1
-- Review the latest logs to confirm that the fixes are actually working as intended AND also review for any other issues that I may have not flagged
-- The logs ran multiple different sequences with different pages to try and test most scenarios
+- Our app crashed while you were in the middle of performing some bug fixes, so you need to resume the bug fix progress
+- Here was the last task I assigned you and you were working on before you crashed: "Please start a comprehensive review of the latest logs "web_console_log.md", and then debug and fix all issues you find, including the TypeErrors"
+- I think the code review was about to start when we crashed, but verify if all fixes are ready to proceed to code review etc
 
-IF NO ISSUES AFTER REVIEWING LOGS, THEN PROCEED to autonomous completion workflow so we can mark as resolved these issues for this version.  No one time special adjustment to pause is needed since there are no issues and we can commit
-
-ELSE IF THERE ARE STILL ISSUES, then the issues should be fixed by appropriate specialist(s) AND THEN follow ONE TIME SPECIAL ADJUSTMENT TO PAUSE AND WAIT FOR USER FEEDBACK BEFORE THE AUTOMATED CLOSE TASK ACTIONS.  BASICALLY, USER WANTS TO TEST THE CHANGES AFTER CODE REVIEW HAS FINISHED, SO USER CAN TEST AND VERIFY IF IT IS OK TO PROCEED WITH THE CLOSE TASK ACTIONS.
-
--
 
 
 

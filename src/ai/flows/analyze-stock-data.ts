@@ -135,15 +135,41 @@ const analyzeStockDataFlow = ai.defineFlow(
 
     try {
       const promptToUse = await getAnalyzedStockDataPrompt();
-      const result = await promptToUse(input);
+      
+      // Add timeout wrapper for additional safety
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`AI flow timeout after 45 seconds for ticker ${input.ticker}`));
+        }, 45000);
+      });
+      
+      const promptPromise = promptToUse(input);
+      const result = await Promise.race([promptPromise, timeoutPromise]);
+      
       outputFromPrompt = result.output; 
       
       if (outputFromPrompt) {
+        console.log(`${logPrefix} AI analysis completed successfully`);
       } else {
         throw new Error('AI prompt execution for Key Takeaways failed to return any output structure.');
       }
 
     } catch (error: any) {
+      const isTimeoutError = error.message.includes('timeout') || error.message.includes('ENOTFOUND') || error.message.includes('ECONNRESET');
+      
+      console.error(`${logPrefix} AI Flow Error:`, {
+        errorMessage: error.message,
+        errorType: error.constructor.name,
+        isTimeoutError,
+        ticker: input.ticker,
+        stackTrace: error.stack
+      });
+      
+      // Provide specific error messages for different failure types
+      if (isTimeoutError) {
+        throw new Error(`AI analysis timed out for ${input.ticker}. This often happens with complex options data. Please retry.`);
+      }
+      
       throw error; 
     }
     

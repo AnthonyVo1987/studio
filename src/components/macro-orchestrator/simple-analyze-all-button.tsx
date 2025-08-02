@@ -106,14 +106,24 @@ export function SimpleAnalyzeAllButton({
   // Execution ID state - generated only when execution starts
   const [executionId, setExecutionId] = useState<string>('');
   
-  // Create ticker-specific logger that recreates when executionId changes from placeholder to actual ID
+  // CRITICAL FIX: Improved execution ID propagation pattern
   const loggerRef = useRef<ReturnType<typeof createTickerLogger> | null>(null);
   const logger = useMemo(() => {
-    // Create new logger when ticker or executionId changes
-    const loggerExecutionId = executionId || 'placeholder';
-    loggerRef.current = createTickerLogger(ticker, 'MacroOrchestrator', loggerExecutionId);
-    return loggerRef.current;
-  }, [ticker, executionId]); // Include executionId to recreate logger when execution starts
+    // Only use placeholder during initial render before any execution
+    const loggerExecutionId = executionId || 'initial';
+    const newLogger = createTickerLogger(ticker, 'MacroOrchestrator', loggerExecutionId);
+    loggerRef.current = newLogger;
+    
+    // Log logger recreation for debugging execution ID flow
+    if (executionId) {
+      newLogger.stateValidation('LoggerRecreated', 'Logger recreated with actual execution ID', {
+        newExecutionId: executionId,
+        previouslyUsingPlaceholder: !executionId
+      });
+    }
+    
+    return newLogger;
+  }, [ticker, executionId]); // Recreate logger when execution ID is assigned
   
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -146,12 +156,11 @@ export function SimpleAnalyzeAllButton({
   // CRITICAL: Use ref for immediate state access during step validation
   const macroContextRef = useRef<MacroExecutionContext>(macroExecutionContext);
   
-  // Keep ref synchronized with state changes (but avoid overwriting manual updates during execution)
+  // CRITICAL FIX: Always keep ref synchronized with state for atomic updates
   React.useEffect(() => {
-    // Only sync if not actively executing to prevent race conditions
-    if (!macroExecutionContext.isExecuting) {
-      macroContextRef.current = macroExecutionContext;
-    }
+    // Always sync ref with state to prevent desynchronization
+    // This ensures consistent access patterns during async operations
+    macroContextRef.current = macroExecutionContext;
   }, [macroExecutionContext]);
   
   // Track step timing for performance metrics
@@ -261,10 +270,8 @@ export function SimpleAnalyzeAllButton({
       })
     };
     
-    // Update both state and ref for immediate access - ensure atomic update
-    setMacroExecutionContext(prev => ({ ...prev, ...newContext }));
-    // CRITICAL: Update ref immediately and atomically to prevent race conditions
-    macroContextRef.current = {
+    // CRITICAL FIX: Atomic state and ref update pattern
+    const atomicUpdate = {
       selectedExpiration: postExecutionExpiration,
       isExecuting: true,
       stepResults: new Map().set(1, {
@@ -276,6 +283,10 @@ export function SimpleAnalyzeAllButton({
       executedStepCount: 1,
       totalAvailableSteps: steps.length
     };
+    
+    // Apply atomic update to both state and ref simultaneously
+    setMacroExecutionContext(prev => ({ ...prev, ...atomicUpdate }));
+    macroContextRef.current = { ...macroContextRef.current, ...atomicUpdate };
     
     currentLogger.stateValidation('Step1_PostExecution', 'State captured after fetch with polling', {
       preExecutionExpiration,
@@ -532,23 +543,56 @@ export function SimpleAnalyzeAllButton({
           stepId: 3
         });
         
-        await onGenerateAiKeyTakeaways(macroExpiration || undefined);
-        
-        const stepDuration = Date.now() - stepStart;
-        logger.performance('Step3_Complete', 'AI Key Takeaways generated', {
-          stepDuration: `${stepDuration}ms`,
-          macroExpiration,
-          executionId
-        });
-        
-        // Store result
-        setMacroExecutionContext(prev => ({
-          ...prev,
-          stepResults: new Map(prev.stepResults).set(3, { 
+        try {
+          await onGenerateAiKeyTakeaways(macroExpiration || undefined);
+          
+          const stepDuration = Date.now() - stepStart;
+          logger.performance('Step3_Complete', 'AI Key Takeaways generated', {
+            stepDuration: `${stepDuration}ms`,
             macroExpiration,
-            stepDuration
-          })
-        }));
+            executionId
+          });
+          
+          // Store successful result
+          setMacroExecutionContext(prev => ({
+            ...prev,
+            stepResults: new Map(prev.stepResults).set(3, { 
+              macroExpiration,
+              stepDuration: `${stepDuration}ms`
+            })
+          }));
+        } catch (error) {
+          const stepDuration = Date.now() - stepStart;
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const isTimeoutError = errorMessage.includes('timeout') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNRESET');
+          
+          logger.error('Step3_Error', 'AI Key Takeaways generation failed', {
+            error: errorMessage,
+            isTimeoutError,
+            macroExpiration,
+            stepDuration: `${stepDuration}ms`,
+            executionId,
+            stepId: 3,
+            retryRecommended: isTimeoutError
+          });
+          
+          // Store failed result for debugging
+          setMacroExecutionContext(prev => ({
+            ...prev,
+            stepResults: new Map(prev.stepResults).set(3, { 
+              macroExpiration,
+              stepDuration: `${stepDuration}ms`,
+              error: errorMessage,
+              isTimeoutError
+            })
+          }));
+          
+          // Re-throw with enhanced context
+          if (isTimeoutError) {
+            throw new Error(`AI Key Takeaways timed out (${Math.round(stepDuration/1000)}s). This often happens with complex options data - please retry the macro automation.`);
+          }
+          throw error;
+        }
       },
       canExecute: canGenerateAiKeyTakeawaysMacroAware,
     },
@@ -560,8 +604,8 @@ export function SimpleAnalyzeAllButton({
         const stepStart = Date.now();
         setStepStartTimes(prev => new Map(prev).set(4, stepStart));
         
-        // Log macro state before options analysis
-        const macroExpiration = macroExecutionContext.selectedExpiration;
+        // CRITICAL FIX: Use ref for consistent macro context access like other steps
+        const macroExpiration = macroContextRef.current.selectedExpiration;
         const currentExpiration = getCurrentExpiration();
         
         logger.macroExecution('Step4_Start', 'AI Options Analysis with macro context', {
@@ -569,7 +613,8 @@ export function SimpleAnalyzeAllButton({
           currentShared: currentExpiration,
           contaminated: macroExpiration !== currentExpiration,
           executionId,
-          stepId: 4
+          stepId: 4,
+          usingRefValue: true // Added for debugging consistency
         });
         
         await onGenerateAiOptionsAnalysis(macroExpiration || undefined);
@@ -632,15 +677,15 @@ export function SimpleAnalyzeAllButton({
       executedStepCount: 0,
       totalAvailableSteps: 0
     });
-    // CRITICAL FIX: Also reset the ref immediately to prevent stale data
-    macroContextRef.current = {
+    // CRITICAL FIX: Atomic ref reset for clean state
+    const resetRef = {
       selectedExpiration: null,
       isExecuting: false,
       stepResults: new Map(),
-      // CRITICAL FIX 2: Reset step count tracking in ref
       executedStepCount: 0,
       totalAvailableSteps: 0
     };
+    macroContextRef.current = resetRef;
     // Reset tracking
     setStepStartTimes(new Map());
     setAnomaliesDetected([]);
@@ -767,14 +812,15 @@ export function SimpleAnalyzeAllButton({
       totalAvailableSteps: executionSteps.length
     }));
     
-    // CRITICAL FIX: Update ref immediately when skipping Step 1 to ensure macro context captures current UI expiration
-    macroContextRef.current = {
+    // CRITICAL FIX: Atomic ref update when skipping Step 1
+    const atomicContextUpdate = {
       selectedExpiration: initialMacroExpiration,
       isExecuting: true,
       stepResults: new Map(),
       executedStepCount: 0,
       totalAvailableSteps: executionSteps.length
     };
+    macroContextRef.current = { ...macroContextRef.current, ...atomicContextUpdate };
     
     // Log macro context initialization
     freshLogger.macroExecution('ContextInit', 'Macro execution context initialized', {
@@ -914,11 +960,10 @@ export function SimpleAnalyzeAllButton({
           completed.push(step.id);
           setCompletedSteps([...completed]);
           
-          // CRITICAL FIX 2: Update executed step count in macro context
-          setMacroExecutionContext(prev => ({
-            ...prev,
-            executedStepCount: completed.length
-          }));
+          // CRITICAL FIX: Atomic update of executed step count in both state and ref
+          const stepCountUpdate = { executedStepCount: completed.length };
+          setMacroExecutionContext(prev => ({ ...prev, ...stepCountUpdate }));
+          macroContextRef.current = { ...macroContextRef.current, ...stepCountUpdate };
 
           // Calculate step duration
           const stepStartTime = stepStartTimes.get(step.id) || Date.now();
@@ -942,6 +987,7 @@ export function SimpleAnalyzeAllButton({
 
         } catch (stepError) {
           const error = stepError instanceof Error ? stepError : new Error(String(stepError));
+          const isTimeoutError = error.message.includes('timeout') || error.message.includes('ENOTFOUND') || error.message.includes('ECONNRESET');
           
           // Log step failure with comprehensive context
           const stepStartTime = stepStartTimes.get(step.id) || Date.now();
@@ -959,17 +1005,28 @@ export function SimpleAnalyzeAllButton({
             continuingExecution: true,
             stepDuration: `${stepDuration}ms`,
             anomaly: 'step_execution_failed',
+            isTimeoutError,
+            retryRecommended: isTimeoutError,
             macroExpiration: macroExecutionContext.selectedExpiration,
             currentExpiration: getCurrentExpiration()
           });
           
           console.error(`Step ${step.id} (${step.name}) failed:`, error);
           
+          // Enhanced user feedback for different error types
+          let toastDescription = `Continuing with remaining steps. Error: ${error.message}`;
+          let toastTitle = `Step Failed: ${step.name}`;
+          
+          if (isTimeoutError) {
+            toastTitle = `${step.name} Timed Out`;
+            toastDescription = `Network timeout occurred. Continuing with remaining steps. Consider retrying the full macro after completion.`;
+          }
+          
           // For now, continue execution even if a step fails
           // This allows partial completion rather than complete failure
           toast({
-            title: `Step Failed: ${step.name}`,
-            description: `Continuing with remaining steps. Error: ${error.message}`,
+            title: toastTitle,
+            description: toastDescription,
             variant: 'destructive',
           });
         }
@@ -1056,8 +1113,10 @@ export function SimpleAnalyzeAllButton({
 
     } finally {
       setIsExecuting(false);
-      // Clear macro execution flag
-      setMacroExecutionContext(prev => ({ ...prev, isExecuting: false }));
+      // CRITICAL FIX: Atomic clear of macro execution flag in both state and ref
+      const executionEndUpdate = { isExecuting: false };
+      setMacroExecutionContext(prev => ({ ...prev, ...executionEndUpdate }));
+      macroContextRef.current = { ...macroContextRef.current, ...executionEndUpdate };
       
       // CRITICAL FIX: Update execution history on completion
       setExecutionHistory(prev => ({
@@ -1067,12 +1126,19 @@ export function SimpleAnalyzeAllButton({
         lastRunResult: executionError ? 'error' : (isCancelled ? 'cancelled' : 'success')
       }));
       
-      // Log final state for debugging
+      // CRITICAL FIX: Use ref for final state consistency validation
+      const finalMacroExpiration = macroContextRef.current.selectedExpiration;
+      const finalUIExpiration = getCurrentExpiration();
+      const stateConsistent = finalMacroExpiration === finalUIExpiration;
+      
       freshLogger.stateValidation('MacroFinalize', 'Macro execution finalized', {
         executionId: newExecutionId,
-        finalMacroExpiration: macroExecutionContext.selectedExpiration,
-        finalUIExpiration: getCurrentExpiration(),
-        stateConsistent: macroExecutionContext.selectedExpiration === getCurrentExpiration(),
+        finalMacroExpiration,
+        finalUIExpiration,
+        stateConsistent,
+        refValue: finalMacroExpiration,
+        stateValue: macroExecutionContext.selectedExpiration,
+        refStateMatch: finalMacroExpiration === macroExecutionContext.selectedExpiration,
         anomaliesDetected: anomaliesDetected.length,
         anomaliesList: anomaliesDetected.length > 0 ? anomaliesDetected : undefined,
         executionHistoryUpdated: true
@@ -1105,11 +1171,9 @@ export function SimpleAnalyzeAllButton({
       isExecuting: false 
     }));
     
-    // CRITICAL FIX 1: Also clear the ref immediately to prevent stale data
-    macroContextRef.current = {
-      ...macroContextRef.current,
-      isExecuting: false
-    };
+    // CRITICAL FIX: Atomic ref update for cancellation
+    const cancelUpdate = { isExecuting: false };
+    macroContextRef.current = { ...macroContextRef.current, ...cancelUpdate };
   }, [logger, currentStep, completedSteps.length, executionId, macroExecutionContext.selectedExpiration, getCurrentExpiration]);
 
   // Format elapsed time

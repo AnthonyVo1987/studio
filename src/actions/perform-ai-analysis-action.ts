@@ -84,7 +84,55 @@ export async function performAiAnalysisAction(
   
   try {
     console.log(`${actionLogPrefix} Calling AI flow for key takeaways generation...`);
-    const flowOutput: StockAnalysisOutput = await analyzeStockData(flowInput);
+    
+    // Add comprehensive timeout wrapper with retry logic
+    const analyzeWithRetry = async (maxRetries = 2) => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`${actionLogPrefix} Analysis attempt ${attempt}/${maxRetries}`);
+          
+          // Create timeout promise
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error(`AI analysis timeout after 45 seconds for ${ticker} (attempt ${attempt})`));
+            }, 45000);
+          });
+          
+          // Create analysis promise
+          const analysisPromise = analyzeStockData(flowInput);
+          
+          // Race them
+          return await Promise.race([analysisPromise, timeoutPromise]);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const isTimeoutError = errorMessage.includes('timeout') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNRESET');
+          
+          console.error(`${actionLogPrefix} Attempt ${attempt} failed:`, {
+            errorMessage,
+            isTimeoutError,
+            attempt,
+            maxRetries
+          });
+          
+          if (attempt === maxRetries) {
+            throw error;
+          }
+          
+          // Only retry on timeout/network errors
+          if (isTimeoutError) {
+            const waitTime = Math.pow(2, attempt) * 1000; // exponential backoff
+            console.log(`${actionLogPrefix} Retrying in ${waitTime}ms due to timeout...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          } else {
+            // For non-timeout errors, don't retry
+            throw error;
+          }
+        }
+      }
+      throw new Error('All retry attempts failed');
+    };
+    
+    const flowOutput: StockAnalysisOutput = await analyzeWithRetry();
     console.log(`${actionLogPrefix} AI flow completed successfully`);
 
     const aiKeyTakeawaysJson = JSON.stringify(flowOutput, null, 2);
@@ -100,14 +148,41 @@ export async function performAiAnalysisAction(
       error: null,
     };
   } catch (error: any) {
-    console.error(`${actionLogPrefix} CATCH ERROR:`, error.message || error);
+    const errorMessage = error.message || String(error);
+    const isTimeoutError = errorMessage.includes('timeout') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNRESET');
+    
+    // Enhanced error logging
+    console.error(`${actionLogPrefix} FINAL ERROR:`, {
+      errorMessage,
+      errorType: error.constructor?.name || typeof error,
+      isTimeoutError,
+      ticker,
+      stackTrace: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Provide user-friendly error messages
+    let userMessage = `Failed to generate AI key takeaways for ${ticker}.`;
+    if (isTimeoutError) {
+      userMessage = `AI analysis timed out for ${ticker}. This can happen with complex options data. Please try again.`;
+    } else if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+      userMessage = `API rate limit exceeded for ${ticker}. Please wait a moment and try again.`;
+    }
+    
     return {
       status: 'error',
-      error: error.message || 'An unknown error occurred during AI key takeaways generation.',
-      message: `Failed to generate AI key takeaways for ${ticker}.`,
+      error: errorMessage,
+      message: userMessage,
       data: {
         aiKeyTakeawaysRequestJson,
-        aiKeyTakeawaysJson: JSON.stringify({ error: error.message || 'Flow execution failed', details: String(error) }, null, 2),
+        aiKeyTakeawaysJson: JSON.stringify({ 
+          error: errorMessage,
+          errorType: isTimeoutError ? 'timeout' : 'analysis_error',
+          isRetryable: isTimeoutError,
+          ticker,
+          timestamp: new Date().toISOString(),
+          details: String(error)
+        }, null, 2),
       },
     };
   }

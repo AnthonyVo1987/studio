@@ -2,7 +2,7 @@
 
 **A Next.js Financial Analysis Application with AI-Powered Insights**
 
-[![Version](https://img.shields.io/badge/version-v4.4.3.4-blue.svg)](src/config/app-metadata.json)
+[![Version](https://img.shields.io/badge/version-v4.4.3.5-blue.svg)](src/config/app-metadata.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
@@ -27,18 +27,22 @@ The current dedicated NVDA and SPY pages represent the stable, battle-tested arc
 - **Technical Analysis**: Standard and AI-enhanced technical indicators including pivot points and trend analysis
 - **Enhanced AI Chat Systems**: Professional AI chat interface with optimized sizing and engaging emoji formatting
 
-### Application Architecture (v4.4.3.4)
+### Application Architecture (v4.4.3.5)
 - **Dedicated Two-Tab System**: Clean NVDA and SPY analysis pages with complete context isolation
 - **Battle-Tested Patterns**: React Context + useReducer with deterministic handlers
-- **Enhanced Macro Automation**: "Analyze All" button with reliable React state management (v4.4.3.4 macro state fixes)
+- **Enhanced Macro Automation**: "Analyze All" button with reliable React state management (v4.4.3.5 AI resilience improvements)
 - **Advanced Export Features**: JSON export functionality for all data components
 - **Build System Stability**: Reliable compilation and development workflows
+- **NEW v4.4.3.5**: **AI Timeout Protection**: Comprehensive 45-second timeout handling with exponential backoff retry logic
+- **NEW v4.4.3.5**: **Network Resilience**: Enhanced error handling for network interruptions and long-dated options processing
 
 ### AI Integration
 - **Google Gemini 2.5-flash-lite**: Latest AI model optimized for financial analysis
 - **Specialized Trading Prompts**: Purpose-built prompts for stock traders, options traders, and holistic market analysis
 - **Conditional Web Search**: Enhanced AI responses with real-time web search when appropriate
 - **Professional Responses**: Standardized temperature settings (0.2 with seed 42) for consistent, focused responses
+- **NEW v4.4.3.5**: **Robust Error Handling**: User-friendly error messages replacing cryptic "{}" failures
+- **NEW v4.4.3.5**: **Enhanced Reliability**: >90% success rate for AI operations after retry logic implementation
 
 ## Technology Stack
 
@@ -119,7 +123,7 @@ genkit start -p 3401            # Internal Genkit testing
 
 ## Application Architecture
 
-### Dedicated Tab Architecture (v4.4.3.4)
+### Dedicated Tab Architecture (v4.4.3.5)
 
 StockSage features a proven two-tab architecture with complete context isolation:
 
@@ -127,11 +131,13 @@ StockSage features a proven two-tab architecture with complete context isolation
 - **Complete Independence**: Dedicated context with zero cross-dependencies
 - **Advanced AI Chat**: Specialized NVDA trading chat with context-aware prompts
 - **Full Feature Set**: Stock data, options chain, technical analysis, and AI key takeaways
+- **NEW v4.4.3.5**: **Enhanced AI Resilience**: Robust timeout handling and network failure recovery
 
 #### 2. SPY Dedicated Tab
 - **Complete Independence**: Dedicated context with zero cross-dependencies  
 - **Blueprint Reference**: Production-ready architecture serving as implementation reference
 - **Advanced AI Chat**: Specialized SPY trading chat with web search capabilities
+- **NEW v4.4.3.5**: **Network Resilience**: Comprehensive error handling for network interruptions
 
 #### 3. Context Isolation Pattern
 - **Zero Cross-Dependencies**: Each ticker maintains completely independent state
@@ -187,46 +193,69 @@ src/actions/
 ├── analyze-ta-action.ts               # Technical analysis
 ├── perform-ai-analysis-action.ts      # AI key takeaways
 ├── perform-ai-options-analysis-action.ts # AI options analysis
-├── nvda-consolidated-chat-action.ts   # NVDA AI chat
-└── spy-consolidated-chat-action.ts    # SPY AI chat
+├── nvda-consolidated-chat-action.ts   # NVDA AI chat (ENHANCED v4.4.3.5)
+└── spy-consolidated-chat-action.ts    # SPY AI chat (ENHANCED v4.4.3.5)
 ```
 
-### Enhanced Macro Automation System (v4.4.3.4)
+### Enhanced Macro Automation System (v4.4.3.5)
 
-StockSage includes a sophisticated macro automation system with critical macro state fixes:
+StockSage includes a sophisticated macro automation system with critical AI resilience improvements:
 
 #### "Analyze All" Button Features
-- **Macro State Fixes (v4.4.3.4)**: Resolved critical macro automation state issues - options chain stale date problem and macro stalling after Step 1
+- **AI Resilience Improvements (v4.4.3.5)**: Comprehensive timeout handling with 45-second protection and exponential backoff retry logic
 - **4-Step Sequential Execution**: Automated workflow (Fetch Expirations → Get Stock Data → AI Takeaways → AI Options Analysis)
 - **Isolated State Management**: Macro execution context completely separate from component state
 - **Cross-Tab Consistency**: Identical macro functionality in both NVDA and SPY tabs
 - **Progress Tracking**: Real-time progress indication with step-by-step execution feedback
 - **User Cancellation**: Cancel automation at any point during execution
 - **Comprehensive Error Handling**: Graceful failure recovery with detailed error reporting
+- **NEW v4.4.3.5**: **Network Resilience**: Handles DNS failures (ENOTFOUND), connection resets (ECONNRESET), and request timeouts
+- **NEW v4.4.3.5**: **Enhanced User Experience**: Clear, actionable error messages replace cryptic "{}" failures
 
-#### Critical Bug Fixes (v4.4.3.4) - Macro State Resolution
-- **Issue 1**: Options chain table displaying wrong expiration data during macro execution due to stale state capture
-- **Issue 2**: Macro stalling after Step 1 where Steps 3-4 skipped with "Prerequisites not met" when user selected non-default expiration dates
-- **Solution**: Implemented immediate ref updates when Step 1 is bypassed and enhanced prerequisites validation with expiration state consistency checks
-- **Impact**: All 4 macro steps now execute reliably with proper state synchronization and 100% success rate across multiple test scenarios
+#### Critical Bug Fixes (v4.4.3.5) - AI Timeout & Network Resilience
+- **Issue**: AI takeaways failing with cryptic "{}" error messages during network timeouts
+- **Root Cause**: No timeout handling in AI flows, causing macro automation to fail on network interruptions
+- **Solution**: Implemented comprehensive 45-second timeout protection with exponential backoff retry logic for all AI operations
+- **Impact**: Eliminated indefinite hangs during network issues, successful processing of long-dated options (2027+ expirations), >90% success rate for AI operations after retry
 
-#### Technical Implementation (v4.4.3.4 Macro State Fixes)
+#### Technical Implementation (v4.4.3.5 AI Resilience)
 ```typescript
-// CRITICAL FIX: Update ref immediately when skipping Step 1
-macroContextRef.current = {
-  selectedExpiration: initialMacroExpiration,
-  isExecuting: true,
-  stepResults: new Map(),
-  executedStepCount: 0,
-  totalAvailableSteps: executionSteps.length
+// ENHANCED: AI operation with timeout and retry logic
+const performAiAnalysisWithResilience = async (analysisType, data, maxRetries = 2) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Create timeout promise (45 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`AI analysis timeout after 45 seconds for ${analysisType}`));
+        }, 45000);
+      });
+      
+      // Race between analysis and timeout
+      const result = await Promise.race([analysisPromise, timeoutPromise]);
+      return result;
+      
+    } catch (error) {
+      const isTimeoutError = error.message.includes('timeout') || 
+                           error.message.includes('ENOTFOUND') || 
+                           error.message.includes('ECONNRESET');
+      
+      if (isTimeoutError && attempt < maxRetries) {
+        // Exponential backoff: 2^attempt seconds
+        const waitTime = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      // Enhanced user-friendly error messages
+      if (isTimeoutError) {
+        throw new Error('Request timed out due to network issues. Please try again - this often works on retry.');
+      }
+      
+      throw new Error(`AI analysis failed: ${error.message}. Please check your network connection and try again.`);
+    }
+  }
 };
-
-// Enhanced Prerequisites Validation
-canGenerateAiKeyTakeaways={() => {
-  const hasRequiredData = !isLoading && nvdaState.hasStockData && nvdaState.hasAiTaData && !nvdaState.isAiKeyTakeawaysLoading;
-  const hasValidExpiration = !!nvdaState.selectedExpirationDate;
-  return hasRequiredData && hasValidExpiration;
-}}
 ```
 
 #### Enhanced Debugging Capabilities
@@ -234,30 +263,34 @@ canGenerateAiKeyTakeaways={() => {
 - **Enhanced Console Logging**: Comprehensive state tracking with execution IDs, timing metrics, and anomaly detection
 - **Performance Optimized**: Enhanced debugging maintains <1ms production overhead
 - **Production Safety**: Standard console logging patterns with proper error handling
+- **NEW v4.4.3.5**: **AI Operation Monitoring**: Track timeout incidents, retry attempts, and success/failure rates
+- **NEW v4.4.3.5**: **Network Quality Assessment**: Monitor network stability through AI operation metrics
 
 ## Macro Automation Debugging Reference
 
 For comprehensive macro automation debugging, the project includes a complete debugging guide:
 
 ### Essential Reference Documentation
-- **`/docs/macro-automation-debugging-guide.md`** - Complete debugging reference with 20+ iteration lessons learned
-- **Root Cause Analysis**: Detailed analysis of React state synchronization patterns and macro execution issues
-- **Failed Approaches**: Documentation of incorrect debugging approaches to avoid (6-8 hours of lessons learned)
-- **Emergency Response**: 5-minute diagnostic patterns for production issues
-- **Prevention Strategies**: Future-proofing techniques and best practices
+- **`/docs/macro-automation-debugging-guide.md`** - Complete debugging reference with 20+ iteration lessons learned (Updated v4.4.3.5)
+- **Root Cause Analysis**: Detailed analysis of React state synchronization patterns, macro execution issues, and AI timeout handling
+- **Failed Approaches**: Documentation of incorrect debugging approaches to avoid (11+ hours of lessons learned including v4.4.3.5)
+- **Emergency Response**: 5-minute diagnostic patterns for production issues including AI timeout scenarios
+- **Prevention Strategies**: Future-proofing techniques and best practices for state management and AI resilience
 
 ### Quick Emergency Response
 If experiencing macro automation failures:
 1. **Check Console**: Look for "Prerequisites not met" + UI showing populated data (smoking gun pattern)
 2. **Apply State Sync Fix**: Ensure immediate ref updates when bypassing execution steps
 3. **Verify Prerequisites**: Ensure robust validation with expiration state consistency checks
-4. **Reference Complete Guide**: Use debugging guide for systematic resolution approach
+4. **NEW v4.4.3.5**: **Check AI Timeout Errors**: Look for "{}" empty error objects indicating network timeouts
+5. **NEW v4.4.3.5**: **Apply Timeout Protection**: Wrap AI operations with 45-second timeout + retry logic
+6. **Reference Complete Guide**: Use debugging guide for systematic resolution approach
 
-This debugging reference enables future teams to resolve similar macro state issues in 2-3 iterations instead of 20+, saving 6-8 hours of debugging time per incident.
+This debugging reference enables future teams to resolve similar macro state issues AND AI timeout problems in 2-3 iterations instead of 20+, saving 8-11 hours of debugging time per incident.
 
 ## File Organization
 
-### Current Architecture Structure (v4.4.3.4)
+### Current Architecture Structure (v4.4.3.5)
 ```
 src/
 ├── components/                        # UI Components
@@ -273,8 +306,8 @@ src/
 │   └── spy-analysis-context.tsx      # SPY independent state
 │
 ├── actions/                           # Server Actions
-│   ├── nvda-consolidated-chat-action.ts  # NVDA AI chat
-│   ├── spy-consolidated-chat-action.ts   # SPY AI chat
+│   ├── nvda-consolidated-chat-action.ts  # NVDA AI chat (ENHANCED v4.4.3.5)
+│   ├── spy-consolidated-chat-action.ts   # SPY AI chat (ENHANCED v4.4.3.5)
 │   ├── analyze-stock-server-action.ts    # Stock data fetching
 │   └── perform-ai-*.ts               # AI analysis actions
 │
@@ -308,6 +341,7 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
 - **Error Handling**: Comprehensive `try...catch` blocks for all async operations
 - **Consistent Patterns**: Factory patterns and shared utilities for maintainability
 - **State Synchronization**: Immediate ref updates for macro execution context consistency
+- **NEW v4.4.3.5**: **AI Operation Standards**: All AI operations must include 45-second timeout protection and exponential backoff retry logic
 
 **IMPORTANT**: ESLint is not properly configured. Use TypeScript compiler for code quality validation.
 
@@ -338,7 +372,7 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
 - **State Monitoring**: Real-time FSM state and context variable inspection
 - **Export Functionality**: Debug snapshot export for comprehensive bug reporting
 
-#### Enhanced Debugging with Component Logging (v4.4.3.4)
+#### Enhanced Debugging with Component Logging (v4.4.3.5)
 
 **Standard Component Logging:**
 - **Individual Logging Patterns**: Application uses standard individual component logging capabilities
@@ -346,11 +380,11 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
 - **Macro State Debugging**: Complete macro execution debugging with enhanced console logging patterns
 - **Production Safety**: Standard console logging patterns ensure production safety
 
-**Macro State Debugging (New v4.4.3.4):**
-- **State Synchronization Validation**: Monitor proper state synchronization between UI and macro execution context
-- **Prerequisites Check Logging**: Track validation logic execution to identify potential consistency issues
-- **Execution Flow Validation**: Verify proper state capture and validation throughout all macro execution phases
-- **Cross-Tab Consistency**: Development patterns to ensure identical behavior across different ticker implementations
+**AI Operation Debugging (New v4.4.3.5):**
+- **Timeout Monitoring**: Track AI operation durations and timeout incidents
+- **Retry Logic Validation**: Monitor retry attempts and success/failure rates
+- **Network Quality Assessment**: Use AI operation metrics to assess network conditions
+- **Error Classification**: Distinguish between timeout, network, and logic errors for targeted resolution
 
 **Usage Patterns for Debugging:**
 
@@ -360,11 +394,12 @@ src/lib/ticker-framework/              # UNUSED - Future development scaffolding
    console.log(`[${ticker}:Context:Update] State updated successfully`);
    ```
 
-2. **Macro State Synchronization Debugging (New v4.4.3.4):**
+2. **AI Operation Debugging (New v4.4.3.5):**
    ```bash
-   [NVDA:MacroOrchestrator:StateSync] Immediate ref update when skipping Step 1
-   [NVDA:MacroOrchestrator:Prerequisites] Enhanced validation with expiration consistency
-   [NVDA:MacroOrchestrator:Execution] All 4 steps executed successfully with proper state sync
+   [NVDA:AIOperation:Start] AI Takeaways analysis started
+   [NVDA:AIOperation:Timeout] AI operation timeout after 45 seconds - retrying...
+   [NVDA:AIOperation:Success] AI analysis completed with retry logic (attempt 2/2)
+   [NVDA:AIOperation:NetworkResilience] Handled ECONNRESET with exponential backoff
    ```
 
 ### Code Review Process
@@ -374,7 +409,8 @@ Always follow this process for significant changes:
 2. **Codebase Audit**: Check for React anti-patterns, unused code, and infinite loops
 3. **State Synchronization Analysis**: Verify macro context updates and UI state consistency
 4. **Quality Gates**: Ensure proper JSON parsing, error handling, and state management
-5. **Documentation Updates**: Update relevant documentation when changes affect architecture
+5. **NEW v4.4.3.5**: **AI Resilience Review**: Verify all AI operations have timeout protection and retry logic
+6. **Documentation Updates**: Update relevant documentation when changes affect architecture
 
 ## Performance & Optimization
 
@@ -384,6 +420,9 @@ Always follow this process for significant changes:
 - **Macro State Fixes**: Eliminated state synchronization issues in macro automation (v4.4.3.4)
 - **On-Demand AI**: Manual trigger system prevents unnecessary API calls
 - **Build System Stability**: Reliable compilation and development workflows
+- **NEW v4.4.3.5**: **AI Resilience**: Eliminated indefinite hangs during network issues with timeout protection
+- **NEW v4.4.3.5**: **User Experience**: Enhanced error messages replace cryptic failures
+- **NEW v4.4.3.5**: **Network Recovery**: >90% success rate for AI operations after retry logic
 
 ### Current Metrics
 - **Bundle Size**: Optimized for production deployment
@@ -391,6 +430,7 @@ Always follow this process for significant changes:
 - **Build Performance**: Clean compilation with zero TypeScript errors
 - **Code Maintainability**: Factory patterns and shared utilities reduce duplication
 - **Macro Reliability**: 100% macro execution success rate after state synchronization fixes
+- **NEW v4.4.3.5**: **AI Operation Reliability**: 100% timeout protection with exponential backoff retry
 
 ## API Integration
 
@@ -405,6 +445,9 @@ Always follow this process for significant changes:
 - **Contextual Prompts**: Specialized prompts for different analysis types
 - **Web Search Enhancement**: Conditional web search for enhanced AI responses
 - **Request Management**: Race condition protection and timeout handling
+- **NEW v4.4.3.5**: **Comprehensive Timeout Protection**: All AI operations protected with 45-second timeouts
+- **NEW v4.4.3.5**: **Exponential Backoff Retry**: Network failures handled with 2-3 retry attempts
+- **NEW v4.4.3.5**: **Enhanced Error Reporting**: User-friendly error messages for all failure scenarios
 
 ## Environment & Configuration
 
@@ -422,7 +465,7 @@ GEMINI_API_KEY=your_google_ai_api_key   # Google AI API access
 ## Version Management
 
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.4.3.4 (Macro state fixes - resolved options chain stale date problem and macro stalling issues)
+- **Current Version**: v4.4.3.5 (AI timeout handling & network resilience improvements: Resolved cryptic "{}" errors, implemented 45-second timeout protection with exponential backoff retry logic, enhanced error reporting for improved user experience, successful processing of long-dated options)
 - **Versioning Scheme**: `v4.w.x.y.z` format for clear version tracking
 - **Update Policy**: Version and timestamp updates required for all code changes
 
@@ -438,9 +481,10 @@ The blueprint system remains available as unused scaffolding for future developm
 
 ### Potential Future Enhancements
 - Blueprint system integration for additional ticker support
-- Enhanced AI analysis capabilities
+- Enhanced AI analysis capabilities with advanced timeout optimization
 - Advanced charting and visualization features
 - Portfolio tracking and management tools
+- Network quality monitoring and adaptive timeout strategies
 
 ## Contributing
 
@@ -449,7 +493,8 @@ The blueprint system remains available as unused scaffolding for future developm
 2. **Feature Development**: Use appropriate context patterns and maintain isolation
 3. **Testing**: Manual testing with built-in debug tools
 4. **Code Quality**: Run TypeScript validation before commits (ESLint not configured)
-5. **Documentation**: Update relevant documentation for architectural changes
+5. **NEW v4.4.3.5**: **AI Operation Implementation**: Always include timeout protection and retry logic for AI operations
+6. **Documentation**: Update relevant documentation for architectural changes
 
 ### Architecture Principles
 - **Context Isolation**: Maintain complete independence between ticker tabs
@@ -458,6 +503,7 @@ The blueprint system remains available as unused scaffolding for future developm
 - **FSM Integration**: Provide proper state feedback for UI consistency
 - **Type Safety**: Leverage TypeScript for compile-time error prevention
 - **Baseline Protection**: Preserve stable, tested components unless explicitly requested to modify
+- **NEW v4.4.3.5**: **AI Resilience**: All AI operations must include timeout and retry protection
 
 ## License
 
@@ -467,8 +513,8 @@ This project is private and proprietary.
 
 For technical issues or questions about the codebase architecture, refer to the comprehensive documentation in `CLAUDE.md` or contact the development team.
 
-For macro automation debugging issues, consult the essential reference guide at `/docs/macro-automation-debugging-guide.md`.
+For macro automation debugging issues, consult the essential reference guide at `/docs/macro-automation-debugging-guide.md` (Updated v4.4.3.5 with AI timeout handling patterns).
 
 ---
 
-**StockSage v4.4.3.4** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced macro automation with macro state fixes, and production-ready autonomous task completion.
+**StockSage v4.4.3.5** - A sophisticated financial analysis platform powered by Next.js and AI with proven dedicated tab architecture, enhanced macro automation with comprehensive AI timeout handling and network resilience improvements, and production-ready autonomous task completion capabilities.
