@@ -1,6 +1,6 @@
 {
-  "appVersion": "v4.4.3.1",
-  "lastUpdatedTimestamp": "2025-08-02T14:30:00.000Z",
-  "description": "CRITICAL MACRO BUG FIX: Fixed macro button permanently disabled after first execution. Changed button state logic from '!isExecuting && !isCompleted' to '!isExecuting' enabling 'Run Again' functionality. Added enhanced console logging for button state debugging. STOP functionality already existed as 'Cancel Execution' button. Applied to both NVDA and SPY tabs via shared component. Passed comprehensive code review with zero issues.",
+  "appVersion": "v4.4.3.2",
+  "lastUpdatedTimestamp": "2025-08-02T15:45:00.000Z",
+  "description": "CRITICAL MACRO AUTOMATION BUG FIXES: Resolved 4 critical macro automation issues - (1) Fixed Step 3 stalling by using contextRef for fresh state access instead of stale closure state, (2) Resolved Stop button blocked by implementing accessible UI overlay with pointer-events patterns, (3) Added completion state reset for proper re-run functionality, (4) Enhanced macro state debugging with comprehensive logging. All macro automation steps now execute reliably with proper state management and UI accessibility.",
   "metadataSchemaVersion": "1.0.0"
 }

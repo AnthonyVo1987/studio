@@ -504,8 +504,8 @@ export function SimpleAnalyzeAllButton({
         const stepStart = Date.now();
         setStepStartTimes(prev => new Map(prev).set(3, stepStart));
         
-        // Log macro state before AI analysis
-        const macroExpiration = macroExecutionContext.selectedExpiration;
+        // Log macro state before AI analysis - using contextRef for fresh state access
+        const macroExpiration = macroContextRef.current.selectedExpiration;
         const currentExpiration = getCurrentExpiration();
         
         logger.macroExecution('Step3_Start', 'AI Key Takeaways with macro context', {
@@ -671,6 +671,15 @@ export function SimpleAnalyzeAllButton({
         isExecuting
       });
       return;
+    }
+
+    // CRITICAL FIX: Reset completion state for proper re-runs
+    if (isCompleted) {
+      setIsCompleted(false);
+      logger.macroExecution('CompletionStateReset', 'Reset completion state for re-run', {
+        previousExecutionId: executionId,
+        wasCompleted: true
+      });
     }
 
     // CRITICAL FIX: Detect execution context and get proper previous execution ID
@@ -1069,14 +1078,14 @@ export function SimpleAnalyzeAllButton({
 
   return (
     <Card className={macroExecutionContext.isExecuting ? 'relative' : ''}>
-      {/* Overlay during macro execution to prevent UI interactions */}
+      {/* ACCESSIBILITY FIX: Non-blocking overlay with visual feedback only */}
       {macroExecutionContext.isExecuting && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 rounded-lg flex items-center justify-center">
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center pointer-events-none z-40">
           <div className="text-center space-y-2">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="text-sm font-medium">Macro automation in progress...</p>
             <p className="text-xs text-muted-foreground">
-              Please do not interact with the UI during execution
+              Critical buttons remain accessible
             </p>
           </div>
         </div>
@@ -1163,7 +1172,7 @@ export function SimpleAnalyzeAllButton({
             <Button
               onClick={handleCancel}
               variant="destructive"
-              className="flex-1"
+              className="flex-1 relative z-50 pointer-events-auto"
             >
               <Square className="mr-2 h-4 w-4" />
               Cancel Execution

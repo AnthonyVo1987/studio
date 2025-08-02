@@ -1,12 +1,12 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.3.1]
+**Version**: [v4.4.3.2]
 **Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: [Macro Debug] Macro Button does not allow user to "Run Again" after ANY previous Macro Button Action attempt
+**Brief Summary**: [Macro Debug] Macro Button Re-run stops at Step 3 & Stop Macro Button unavailable
 **Affected Systems**: []
 
 **Priority Level**: _[CRITICAL]_
@@ -129,7 +129,7 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
-[Macro Debug] Macro Button does not allow user to "Run Again" after ANY previous Macro Button Action attempt
+[Macro Debug] Macro Button Re-run stops at Step 3 & Stop Macro Button unavailable
 
 * Reminder that TECH-LEAD-ORCHESTRATOR is PROHIBITED from doing any actual work and MUST instead actually USE the Task tool to call each specialist!!! *
 
@@ -137,17 +137,9 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 
 * HAVE @TECH-LEAD-ORCHESTRATOR DELEGATE, COORDINATE, & USE the Task tool to call each specialist for the investigation of the reported symptoms\issues & fix the issues detailed below:
 
-
-- Macro button is incorrectly disabled after User initiates a Macro Action, so user cannot even perform the Macro "Run Again" action, whether or not previous macro action was a success or failed or not
-- Macro Button needs to be able to be re-run at any time
-- User may re-run at any time to refresh analysis from a previous full macro run and/or manual user actions, or even re-run to get an updated analysis, or re-run on a previous failing macro to try and debug and reproduce macro failures
-- Basically, the current state of the macro action is incorrect in that it only allows the user a "single" shot, which is a major bug
-- Not even a manual Fetch and Manual Get Data action can get the Macro Button to be re-activated
-- We also need to add a STOP Macro button to terminate and kill an active Macro in progress, for better User experience and debugging just in case there was a potential hang in the middle of a Macro Action, User can manually stop the entire macro. 
-- After stopping, app needs to completely completely stop the MACRO code and flags and reset the macro path to initial "Run Again" status.  
-- We can still keep whatever data from steps the macro was able to complete successfully, for better debugging to have it stop and user can examine the current app state and data why a certain macro action failed or hung etc
-- Add console output for the new stop button, and also re-run action etc
-- Apply fixes for all pages
+- Macro Re-run Action incorrectly stalls at step 3, but it says everything was a "success"
+- Macro Re-run Action may also NOT use the user selected Expiration, and may incorrectly use stale expiration from a previous macro run
+- The Stop Macro Button also is completely unavailable for the user to trigger, because once a Macro action starts, there is a UI message that completly blocks the user from accessing and triggering the stop macro button underneath: "Macro automation in progress...Please do not interact with the UI during execution"
 
 
 ### Current Situation

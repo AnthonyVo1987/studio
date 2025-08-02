@@ -150,7 +150,8 @@
       "Bash(npm run dev:*)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }
