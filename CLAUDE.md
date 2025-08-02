@@ -194,7 +194,7 @@ Complete bash command automation is now enabled through settings.local.json with
 ## Macro Automation Debugging
 
 **CRITICAL**: For comprehensive macro automation debugging guidance, refer to:
-- **`/docs/macro-automation-debugging-guide.md`** - Essential debugging reference with 20+ iteration lessons learned (Updated v4.4.3.5)
+- **`/docs/macro-re-architecture/macro-automation-debugging-guide.md`** - Essential debugging reference with 20+ iteration lessons learned (Updated v4.4.3.5)
 - Contains complete root cause analysis, failed approaches, corrective actions, and prevention strategies
 - **MANDATORY READING** for any macro automation issues or enhancements
 - Includes emergency response patterns, production-ready solutions, and future prevention strategies
@@ -207,7 +207,7 @@ If facing macro automation failures:
 3. **Verify Fresh State Access**: Ensure async handlers see current state values
 4. **NEW v4.4.3.5**: **Check AI Timeout Errors**: Look for "{}" empty error objects indicating network timeouts
 5. **NEW v4.4.3.5**: **Apply Timeout Protection**: Wrap AI operations with 45-second timeout + retry logic
-6. **Reference Complete Guide**: Use `/docs/macro-automation-debugging-guide.md` for systematic resolution
+6. **Reference Complete Guide**: Use `/docs/macro-re-architecture/macro-automation-debugging-guide.md` for systematic resolution
 
 ## Tech Lead Orchestrator Operating Rules
 

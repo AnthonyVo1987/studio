@@ -271,7 +271,7 @@ const performAiAnalysisWithResilience = async (analysisType, data, maxRetries = 
 For comprehensive macro automation debugging, the project includes a complete debugging guide:
 
 ### Essential Reference Documentation
-- **`/docs/macro-automation-debugging-guide.md`** - Complete debugging reference with 20+ iteration lessons learned (Updated v4.4.3.5)
+- **`/docs/macro-re-architecture/macro-automation-debugging-guide.md`** - Complete debugging reference with 20+ iteration lessons learned (Updated v4.4.3.5)
 - **Root Cause Analysis**: Detailed analysis of React state synchronization patterns, macro execution issues, and AI timeout handling
 - **Failed Approaches**: Documentation of incorrect debugging approaches to avoid (11+ hours of lessons learned including v4.4.3.5)
 - **Emergency Response**: 5-minute diagnostic patterns for production issues including AI timeout scenarios
@@ -513,7 +513,7 @@ This project is private and proprietary.
 
 For technical issues or questions about the codebase architecture, refer to the comprehensive documentation in `CLAUDE.md` or contact the development team.
 
-For macro automation debugging issues, consult the essential reference guide at `/docs/macro-automation-debugging-guide.md` (Updated v4.4.3.5 with AI timeout handling patterns).
+For macro automation debugging issues, consult the essential reference guide at `/docs/macro-re-architecture/macro-automation-debugging-guide.md` (Updated v4.4.3.5 with AI timeout handling patterns).
 
 ---
 
