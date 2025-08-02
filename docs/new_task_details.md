@@ -1,12 +1,12 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.3.2]
+**Version**: [v4.4.3.3]
 **Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: [Macro Debug] Macro Button Re-run stops at Step 3 & Stop Macro Button unavailable
+**Brief Summary**: [Macro Debug] Re-run, Stop, and Expiration Fixes
 **Affected Systems**: []
 
 **Priority Level**: _[CRITICAL]_
@@ -129,17 +129,16 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
-[Macro Debug] Macro Button Re-run stops at Step 3 & Stop Macro Button unavailable
+[Macro Debug] Re-run, Stop, and Expiration Fixes
 
-* Reminder that TECH-LEAD-ORCHESTRATOR is PROHIBITED from doing any actual work and MUST instead actually USE the Task tool to call each specialist!!! *
 
 * HAVE @TECH-LEAD-ORCHESTRATOR enforce that ALL specialist are REQUIRED to use Sequential Thinking AND Context7 tools in order to properly investigate and fix the bug with changes that match robust practices according to our app's stack and unique complexity and interactions
 
-* HAVE @TECH-LEAD-ORCHESTRATOR DELEGATE, COORDINATE, & USE the Task tool to call each specialist for the investigation of the reported symptoms\issues & fix the issues detailed below:
+* HAVE @TECH-LEAD-ORCHESTRATOR ensure that it actually triggers the delegation and coordination with other Specialist, insteaf of incorrectly stopping after coming up with a delegation and coordination plan
 
-- Macro Re-run Action incorrectly stalls at step 3, but it says everything was a "success"
-- Macro Re-run Action may also NOT use the user selected Expiration, and may incorrectly use stale expiration from a previous macro run
-- The Stop Macro Button also is completely unavailable for the user to trigger, because once a Macro action starts, there is a UI message that completly blocks the user from accessing and triggering the stop macro button underneath: "Macro automation in progress...Please do not interact with the UI during execution"
+- Re-run Macro says automation was successful BUT it says it was only on step 3 "Completed 3 of 4 steps in 20s".  Verify if it truly performed the re-run correctly and/or if it is just a UI display message issue
+- Stop Macro Action also doesn't look like it worked correctly because after pressing stop, UI still says macro in progress
+- AI Options Analysis card is also missing the actual expiration date for the analysis, so user can't tell if App analyzed the correct expiration
 
 
 ### Current Situation

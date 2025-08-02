@@ -71,6 +71,12 @@ export function SpyAiOptionsAnalysisDisplay() {
             </CardTitle>
             <CardDescription>
               AI-powered analysis of {SPY_TICKER} options chain data with strategic insights.
+              {/* CRITICAL FIX 3: Display expiration used for analysis */}
+              {spyState.selectedExpirationDate && (
+                <div className="mt-2 text-sm">
+                  <span className="font-medium">Analysis Expiration:</span> {spyState.selectedExpirationDate}
+                </div>
+              )}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">

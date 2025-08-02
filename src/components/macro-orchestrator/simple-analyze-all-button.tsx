@@ -72,6 +72,9 @@ interface MacroExecutionContext {
   selectedExpiration: string | null;
   isExecuting: boolean;
   stepResults: Map<number, StepResult>;
+  // CRITICAL FIX 2: Store executed step count for display consistency
+  executedStepCount: number;
+  totalAvailableSteps: number;
 }
 
 export function SimpleAnalyzeAllButton({
@@ -126,7 +129,10 @@ export function SimpleAnalyzeAllButton({
   const [macroExecutionContext, setMacroExecutionContext] = useState<MacroExecutionContext>({
     selectedExpiration: null,
     isExecuting: false,
-    stepResults: new Map()
+    stepResults: new Map(),
+    // CRITICAL FIX 2: Initialize step count tracking
+    executedStepCount: 0,
+    totalAvailableSteps: 0
   });
   
   // CRITICAL: Use ref for immediate state access during step validation
@@ -258,7 +264,9 @@ export function SimpleAnalyzeAllButton({
         postExecutionExpiration,
         availableExpirationsCount: postExecutionAvailable.length,
         stepDuration: `${Date.now() - stepStart}ms`
-      })
+      }),
+      executedStepCount: 1,
+      totalAvailableSteps: steps.length
     };
     
     currentLogger.stateValidation('Step1_PostExecution', 'State captured after fetch with polling', {
@@ -609,13 +617,19 @@ export function SimpleAnalyzeAllButton({
     setMacroExecutionContext({
       selectedExpiration: null,
       isExecuting: false,
-      stepResults: new Map()
+      stepResults: new Map(),
+      // CRITICAL FIX 2: Reset step count tracking
+      executedStepCount: 0,
+      totalAvailableSteps: 0
     });
     // CRITICAL FIX: Also reset the ref immediately to prevent stale data
     macroContextRef.current = {
       selectedExpiration: null,
       isExecuting: false,
-      stepResults: new Map()
+      stepResults: new Map(),
+      // CRITICAL FIX 2: Reset step count tracking in ref
+      executedStepCount: 0,
+      totalAvailableSteps: 0
     };
     // Reset tracking
     setStepStartTimes(new Map());
@@ -734,7 +748,10 @@ export function SimpleAnalyzeAllButton({
       ...prev, 
       isExecuting: true,
       selectedExpiration: initialMacroExpiration,
-      stepResults: new Map()
+      stepResults: new Map(),
+      // CRITICAL FIX 2: Store the planned execution step count
+      executedStepCount: 0,
+      totalAvailableSteps: executionSteps.length
     }));
     
     // DYNAMIC STEP SELECTION: Build execution plan based on current state
@@ -863,6 +880,12 @@ export function SimpleAnalyzeAllButton({
           await step.handler();
           completed.push(step.id);
           setCompletedSteps([...completed]);
+          
+          // CRITICAL FIX 2: Update executed step count in macro context
+          setMacroExecutionContext(prev => ({
+            ...prev,
+            executedStepCount: completed.length
+          }));
 
           // Calculate step duration
           const stepStartTime = stepStartTimes.get(step.id) || Date.now();
@@ -1040,6 +1063,18 @@ export function SimpleAnalyzeAllButton({
     
     setShouldCancel(true);
     setIsExecuting(false);
+    
+    // CRITICAL FIX 1: Immediately clear macro execution context to stop overlay
+    setMacroExecutionContext(prev => ({ 
+      ...prev, 
+      isExecuting: false 
+    }));
+    
+    // CRITICAL FIX 1: Also clear the ref immediately to prevent stale data
+    macroContextRef.current = {
+      ...macroContextRef.current,
+      isExecuting: false
+    };
   }, [logger, currentStep, completedSteps.length, executionId, macroExecutionContext.selectedExpiration, getCurrentExpiration]);
 
   // Format elapsed time
@@ -1053,11 +1088,17 @@ export function SimpleAnalyzeAllButton({
 
   // Calculate progress (needs to account for dynamic step count)
   const getCurrentStepCount = useCallback(() => {
+    // CRITICAL FIX 2: Use stored executed step count for display consistency
+    if (macroExecutionContext.totalAvailableSteps > 0) {
+      // During or after execution, use the stored total from when execution started
+      return macroExecutionContext.totalAvailableSteps;
+    }
+    
+    // Before execution, calculate dynamically
     if (!isExecuting) return steps.length;
-    // During execution, use the dynamic step count that was determined at start
     const needsExpirationFetch = shouldFetchExpirations();
     return needsExpirationFetch ? steps.length : steps.length - 1;
-  }, [isExecuting, steps.length, shouldFetchExpirations]);
+  }, [isExecuting, steps.length, shouldFetchExpirations, macroExecutionContext.totalAvailableSteps]);
 
   const progress = getCurrentStepCount() > 0 ? (completedSteps.length / getCurrentStepCount()) * 100 : 0;
   const canStart = !isExecuting;

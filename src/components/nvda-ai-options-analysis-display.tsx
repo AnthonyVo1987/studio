@@ -71,6 +71,12 @@ export function NvdaAiOptionsAnalysisDisplay() {
             </CardTitle>
             <CardDescription>
               AI-powered analysis of {NVDA_TICKER} options chain data with strategic insights.
+              {/* CRITICAL FIX 3: Display expiration used for analysis */}
+              {nvdaState.selectedExpirationDate && (
+                <div className="mt-2 text-sm">
+                  <span className="font-medium">Analysis Expiration:</span> {nvdaState.selectedExpirationDate}
+                </div>
+              )}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 {
-  "appVersion": "v4.4.3.2",
-  "lastUpdatedTimestamp": "2025-08-02T15:45:00.000Z",
-  "description": "CRITICAL MACRO AUTOMATION BUG FIXES: Resolved 4 critical macro automation issues - (1) Fixed Step 3 stalling by using contextRef for fresh state access instead of stale closure state, (2) Resolved Stop button blocked by implementing accessible UI overlay with pointer-events patterns, (3) Added completion state reset for proper re-run functionality, (4) Enhanced macro state debugging with comprehensive logging. All macro automation steps now execute reliably with proper state management and UI accessibility.",
+  "appVersion": "v4.4.3.3",
+  "lastUpdatedTimestamp": "2025-08-02T19:30:00.000Z",
+  "description": "CRITICAL MACRO AUTOMATION DEBUGGING FIXES: Resolved 4 critical macro automation issues - (1) Fixed Stop macro not working by implementing immediate UI overlay clearing and state cleanup, (2) Fixed re-run display showing incorrect step counts with accurate completion messages, (3) Added missing expiration display to AI Options analysis cards for transparency, (4) Fixed TypeScript compilation errors with proper macro execution context types. Enhanced state management with dual state/ref updates for race condition prevention. All macro automation debugging issues resolved with excellent code quality.",
   "metadataSchemaVersion": "1.0.0"
 }
