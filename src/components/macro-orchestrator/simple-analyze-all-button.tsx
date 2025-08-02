@@ -1051,7 +1051,21 @@ export function SimpleAnalyzeAllButton({
   }, [isExecuting, steps.length, shouldFetchExpirations]);
 
   const progress = getCurrentStepCount() > 0 ? (completedSteps.length / getCurrentStepCount()) * 100 : 0;
-  const canStart = !isExecuting && !isCompleted;
+  const canStart = !isExecuting;
+  
+  // Log button state for debugging re-run functionality
+  React.useEffect(() => {
+    if (logger) {
+      logger.macroExecution('ButtonState', 'Macro button state calculated', {
+        canStart,
+        isExecuting,
+        isCompleted,
+        isCancelled,
+        buttonText: isCompleted ? 'Run Again' : 'Analyze All',
+        executionId: executionId || 'none'
+      });
+    }
+  }, [canStart, isExecuting, isCompleted, isCancelled, logger, executionId]);
 
   return (
     <Card className={macroExecutionContext.isExecuting ? 'relative' : ''}>

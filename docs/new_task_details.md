@@ -1,12 +1,12 @@
 # Task Template - New Development Task
 
 ## Version Information
-**Version**: [v4.4.2.18]
+**Version**: [v4.4.3.1]
 **Task Type**: [BUG] 
 ---
 
 ## Abstract
-**Brief Summary**: Continued Macro Debug
+**Brief Summary**: [Macro Debug] Macro Button does not allow user to "Run Again" after ANY previous Macro Button Action attempt
 **Affected Systems**: []
 
 **Priority Level**: _[CRITICAL]_
@@ -23,6 +23,7 @@
 - ✅ **Analyze** the task requirements and break down into sub-tasks
 - ✅ **Delegate** specific work to appropriate specialists
 - ✅ **Coordinate** between specialists when dependencies exist
+- ✅ **USE the Task tool to call each specialist for the Delegate & Coordinate actions
 - ✅ **Review** overall progress and ensure all requirements are met
 - ✅ **Synthesize** specialist outputs into cohesive solution
 - ✅ **Ensure** code review process is followed
@@ -40,7 +41,7 @@
 ### MANDATORY DELEGATION WORKFLOW
 
 #### CRITICAL: AUTONOMOUS COMPLETION COMMITMENT
-**ORCHESTRATOR PLEDGE**: I commit to executing complete autonomous task completion from code review PASS to final git commit without requiring manual user intervention. I understand that asking the user to manually request documentation updates or git commits after a passing code review constitutes a role boundary violation.
+**ORCHESTRATOR PLEDGE**: I commit to USE the Task tool to call each specialist for the Delegate & Coordinate actions for executing complete autonomous task completion from code review PASS to final git commit without requiring manual user intervention. I understand that asking the user to manually request documentation updates or git commits after a passing code review constitutes a role boundary violation.
 
 #### Step 1: Task Analysis & Breakdown
 1. **Analyze** the task requirements thoroughly
@@ -128,38 +129,25 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
-[BUG] Continued Macro Debug
+[Macro Debug] Macro Button does not allow user to "Run Again" after ANY previous Macro Button Action attempt
 
-- Latest fixes for the Macro during App init is finally FIXED for both NVDA & SPY pages
-- However, there are additional issues in the Macro path that needs to be fixed in additional assigned tasks in the future
-- So this will just be a checkpoint and commit for latest fixes so we can have a for Macro debug
+* Reminder that TECH-LEAD-ORCHESTRATOR is PROHIBITED from doing any actual work and MUST instead actually USE the Task tool to call each specialist!!! *
 
-HAVE @TECH-LEAD-ORCHESTRATOR DELEGATE & COORDINATE ALL of the following adjusted closing tasks:
+* HAVE @TECH-LEAD-ORCHESTRATOR enforce that ALL specialist are REQUIRED to use Sequential Thinking AND Context7 tools in order to properly investigate and fix the bug with changes that match robust practices according to our app's stack and unique complexity and interactions
 
-- Reminder that TECH-LEAD-ORCHESTRATOR is PROHIBITED from doing any actual work!!!!
-
-A. Specialists to use Sequential Thinking Tool & CONTEXT7 Tool to  Generate a brand new .md doc in the docs folder to have the latest updates and keep track of the current Macro Debug Effort- 
-- This debug reference guide will be used by the AI Team in order to provide more background and context to pick up the debugging efforts in new chats
-- We may need multiple Specialists assigned to go through deep dive of the entire debugging section and notes to properly come up with an accurate debugging reference guide
-- Provide details on the REAL root causes and the REAL fixes
-- Provide details on how these Macro issues SHOULD have been debugged in the first place, since we had to go through at least 20+ interations until we finally had working fixes
-- Add any pain points, tips, advice, notes, areas to focus on, which areas lead to dead ends, what were in the incorrect premises etc
-- Corrective Actions to guide the AI to properly investigate issues in this path later on to avoid the 20+ attempts
-##
-B. (UPDATED TASK B Instructions): Now have the @TECH-LEAD-ORCHESTRATOR DELEGATE & COORDINATE the standard autonomous completion sequence:
-
-  1. 🚨 AUTO-EXECUTE: Documentation updates via @documentation-specialist. 
-  - Include critical notes for AI team to reference the new debugging guide for further macro debug in CLAUDE.md. 
-  - We also do NOT have ESLint setup and configured correctly, so update our docs to note that AI team should NOT run ESLint since it is no longer accurate that we have it setup.  Do this for CLAUDE.MD, README.md, and any other project docs that may reference ESLint.  
-  -Just have the AI team issue the standard lint commands that are NOT ESLint.
-
-  2. 🚨 AUTO-EXECUTE: Version metadata update in src/config/app-metadata.json. 
-  - We will create a new version series for continued Macro debug.  New version for this commit should be "v4.4.3.0"
-  
-  3. 🚨 AUTO-EXECUTE: Atomic git commit and push operation
-  4. 🚨 AUTO-CONFIRM: Final task completion status
+* HAVE @TECH-LEAD-ORCHESTRATOR DELEGATE, COORDINATE, & USE the Task tool to call each specialist for the investigation of the reported symptoms\issues & fix the issues detailed below:
 
 
+- Macro button is incorrectly disabled after User initiates a Macro Action, so user cannot even perform the Macro "Run Again" action, whether or not previous macro action was a success or failed or not
+- Macro Button needs to be able to be re-run at any time
+- User may re-run at any time to refresh analysis from a previous full macro run and/or manual user actions, or even re-run to get an updated analysis, or re-run on a previous failing macro to try and debug and reproduce macro failures
+- Basically, the current state of the macro action is incorrect in that it only allows the user a "single" shot, which is a major bug
+- Not even a manual Fetch and Manual Get Data action can get the Macro Button to be re-activated
+- We also need to add a STOP Macro button to terminate and kill an active Macro in progress, for better User experience and debugging just in case there was a potential hang in the middle of a Macro Action, User can manually stop the entire macro. 
+- After stopping, app needs to completely completely stop the MACRO code and flags and reset the macro path to initial "Run Again" status.  
+- We can still keep whatever data from steps the macro was able to complete successfully, for better debugging to have it stop and user can examine the current app state and data why a certain macro action failed or hung etc
+- Add console output for the new stop button, and also re-run action etc
+- Apply fixes for all pages
 
 
 ### Current Situation
