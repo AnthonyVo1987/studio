@@ -30,11 +30,11 @@ import { useSpyAnalysis } from '@/contexts/spy-analysis-context';
 
 export interface SimpleAnalyzeAllButtonProps {
   ticker: string;
-  // Handler functions from the tab context - UPDATED to support macro parameters
+  // Handler functions from the tab context
   onFetchExpirations: () => Promise<void>;
-  onGetStockData: (macroExpiration?: string) => Promise<void>;
-  onGenerateAiKeyTakeaways: (macroExpiration?: string) => Promise<void>;
-  onGenerateAiOptionsAnalysis: (macroExpiration?: string) => Promise<void>;
+  onGetStockData: () => Promise<void>;
+  onGenerateAiKeyTakeaways: () => Promise<void>;
+  onGenerateAiOptionsAnalysis: () => Promise<void>;
   // State validation functions
   canFetchExpirations: () => boolean;
   canGetStockData: () => boolean;
@@ -90,15 +90,13 @@ export function SimpleAnalyzeAllButton({
 }: SimpleAnalyzeAllButtonProps) {
   const { toast } = useToast();
   
-  // ✅ CRITICAL FIX: Call hooks at top level to comply with React Hook Rules
-  const nvdaAnalysis = useNvdaAnalysis();
-  const spyAnalysis = useSpyAnalysis();
+  // CRITICAL FIX: Direct hook access to resolve React closure state access issue
+  // Use appropriate context based on ticker
+  const nvdaState = useNvdaAnalysis();
+  const spyState = useSpyAnalysis();
   
-  // ✅ CRITICAL FIX: Create stable refs for fresh state access within callbacks
-  const contextRef = useRef({ nvdaAnalysis, spyAnalysis });
-  
-  // ✅ CRITICAL FIX: Update ref on every render for fresh state access
-  contextRef.current = { nvdaAnalysis, spyAnalysis };
+  // Select the appropriate state based on ticker
+  const currentState = ticker === 'NVDA' ? nvdaState : spyState;
   
   // Execution ID state - generated only when execution starts
   const [executionId, setExecutionId] = useState<string>('');
@@ -144,24 +142,14 @@ export function SimpleAnalyzeAllButton({
   const [stepStartTimes, setStepStartTimes] = useState<Map<number, number>>(new Map());
   const [anomaliesDetected, setAnomaliesDetected] = useState<string[]>([]);
   
-  // ✅ FIXED: Dynamic state access functions using contextRef for fresh state
+  // CRITICAL FIX: Direct state access functions using React context
   const getCurrentExpiration = useCallback(() => {
-    const { nvdaAnalysis, spyAnalysis } = contextRef.current;
-    if (ticker === 'NVDA') {
-      return nvdaAnalysis.selectedExpirationDate;
-    } else {
-      return spyAnalysis.selectedExpirationDate;
-    }
-  }, [ticker]);
+    return currentState.selectedExpirationDate;
+  }, [currentState.selectedExpirationDate]);
 
   const getAvailableExpirations = useCallback(() => {
-    const { nvdaAnalysis, spyAnalysis } = contextRef.current;
-    if (ticker === 'NVDA') {
-      return nvdaAnalysis.availableExpirationDates;
-    } else {
-      return spyAnalysis.availableExpirationDates;
-    }
-  }, [ticker]);
+    return currentState.availableExpirationDates;
+  }, [currentState.availableExpirationDates]);
   
   // CRITICAL FIX: Add execution history state tracking
   interface ExecutionHistory {
@@ -285,47 +273,18 @@ export function SimpleAnalyzeAllButton({
   // Macro state validation to ensure consistency
   const validateMacroExpiration = useCallback(() => {
     const currentSharedExpiration = getCurrentExpiration();
-    // CRITICAL FIX: Use ref for immediate access like all other validation functions
-    const macroSelectedExpirationRef = macroContextRef.current.selectedExpiration;
-    const macroSelectedExpirationState = macroExecutionContext.selectedExpiration;
+    const macroSelectedExpiration = macroExecutionContext.selectedExpiration;
     
     const currentLogger = loggerRef.current || logger;
-    
-    // Enhanced debugging: Log both ref and state values for comprehensive troubleshooting
-    currentLogger.stateValidation('Macro_ValidationDebug', 'State synchronization validation', {
-      refSelectedExpiration: macroSelectedExpirationRef,
-      stateSelectedExpiration: macroSelectedExpirationState,
-      currentSharedExpiration: currentSharedExpiration,
-      refStateMatch: macroSelectedExpirationRef === macroSelectedExpirationState,
-      refExists: !!macroSelectedExpirationRef,
-      stateExists: !!macroSelectedExpirationState,
-      executionId
-    });
-    
-    // Use ref value as primary source (consistent with other validation functions)
-    const macroSelectedExpiration = macroSelectedExpirationRef;
-    
     if (!macroSelectedExpiration) {
-      currentLogger.stateValidation('Macro_NoSelection', 'Macro has no selected expiration in ref', {
+      currentLogger.stateValidation('Macro_NoSelection', 'Macro has no selected expiration', {
         currentShared: currentSharedExpiration,
-        refValue: macroSelectedExpirationRef,
-        stateValue: macroSelectedExpirationState,
         executionId
       });
-      
-      // Error recovery: Try fallback to state value if ref is null but state has value
-      if (macroSelectedExpirationState) {
-        currentLogger.stateValidation('Macro_FallbackRecovery', 'Using state value as fallback', {
-          fallbackValue: macroSelectedExpirationState,
-          executionId
-        });
-        return macroSelectedExpirationState;
-      }
     } else if (currentSharedExpiration !== macroSelectedExpiration) {
       currentLogger.stateValidation('Macro_StateContamination', 'Shared state differs from macro state', {
         macroSelected: macroSelectedExpiration,
         currentShared: currentSharedExpiration,
-        usingRefValue: true,
         executionId
       });
       
@@ -336,8 +295,6 @@ export function SimpleAnalyzeAllButton({
     } else {
       currentLogger.stateValidation('Macro_StateConsistent', 'Macro and shared state consistent', {
         expiration: macroSelectedExpiration,
-        usingRefValue: true,
-        refStateSync: macroSelectedExpirationRef === macroSelectedExpirationState,
         executionId
       });
     }
@@ -443,9 +400,9 @@ export function SimpleAnalyzeAllButton({
           timestamp: new Date(stepStart).toISOString()
         });
         
-        // Execute the stock data fetch with macro expiration parameter
+        // Execute the stock data fetch
         try {
-          await onGetStockData(macroExpiration || undefined);
+          await onGetStockData();
           
           const stepDuration = Date.now() - stepStart;
           
@@ -516,7 +473,7 @@ export function SimpleAnalyzeAllButton({
           stepId: 3
         });
         
-        await onGenerateAiKeyTakeaways(macroExpiration || undefined);
+        await onGenerateAiKeyTakeaways();
         
         const stepDuration = Date.now() - stepStart;
         logger.performance('Step3_Complete', 'AI Key Takeaways generated', {
@@ -556,7 +513,7 @@ export function SimpleAnalyzeAllButton({
           stepId: 4
         });
         
-        await onGenerateAiOptionsAnalysis(macroExpiration || undefined);
+        await onGenerateAiOptionsAnalysis();
         
         const stepDuration = Date.now() - stepStart;
         logger.performance('Step4_Complete', 'AI Options Analysis completed', {

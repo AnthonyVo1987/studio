@@ -21,7 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Loader2, CalendarDays, Search, Zap, Settings, FileText, CandlestickChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 // NVDA Context
 import { useNvdaAnalysis, useNvdaDispatch, NVDA_TICKER, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/nvda-analysis-context';
@@ -61,6 +61,16 @@ export function NvdaTabContent() {
   const nvdaState = useNvdaAnalysis();
   const nvdaDispatch = useNvdaDispatch();
   const { toast } = useToast();
+
+  // ✅ CRITICAL FIX: Create ref for fresh state access in async functions
+  // This prevents stale closure issues in macro automation Steps 3 & 4
+  const nvdaStateRef = useRef(nvdaState);
+  
+  // ✅ CRITICAL FIX: Update ref on every render to ensure fresh state access
+  nvdaStateRef.current = nvdaState;
+  
+  // ✅ CRITICAL FIX: Helper function to get fresh NVDA state at execution time
+  const getFreshNvdaState = useCallback(() => nvdaStateRef.current, []);
 
   // Deterministic Handler: Fetch NVDA Expirations
   const handleFetchExpirations = async () => {
@@ -126,19 +136,35 @@ export function NvdaTabContent() {
   };
 
   // Deterministic Handler: Get NVDA Stock Data (Batch Operation)
-  const handleGetStockData = async () => {
+  // UPDATED: Now accepts optional macro expiration parameter for macro automation
+  const handleGetStockData = async (macroExpiration?: string | React.MouseEvent) => {
+    // Handle both macro usage (string parameter) and onClick usage (event parameter)
+    const macroExp = typeof macroExpiration === 'string' ? macroExpiration : undefined;
     // CRITICAL: Log current selectedExpirationDate before Step 2 execution
     logger.userAction('GetStockData', 'Starting stock data fetch - Step 2 of macro automation', {
       ticker: NVDA_TICKER,
       selectedExpiration: nvdaState.selectedExpirationDate,
+      macroExpiration: macroExp, // NEW: Log macro parameter
+      parameterProvided: !!macroExp,
       optionType: nvdaState.optionType,
       strikeCount: nvdaState.strikeCount,
       context: 'Step2_GetStockData_PreExecution'
     });
     
+    // CRITICAL FIX: Use macro expiration if provided, otherwise fallback to shared context
+    const finalExpiration = macroExp || nvdaState.selectedExpirationDate;
+    
+    logger.state('GetStockData', 'Expiration resolution for API call', {
+      macroExpiration: macroExp,
+      sharedExpiration: nvdaState.selectedExpirationDate,
+      finalExpiration: finalExpiration,
+      usedMacroParameter: !!macroExp,
+      context: 'Step2_ExpirationResolution'
+    });
+    
     // CRITICAL FIX: Enhanced validation with automatic recovery
     let defaultExpiration: string | undefined = undefined;
-    if (!nvdaState.selectedExpirationDate) {
+    if (!finalExpiration) {
       logger.error('GetStockData', 'CRITICAL: No expiration date selected in Step 2', {
         context: 'Step2_GetStockData_ValidationFailure',
         availableExpirations: nvdaState.availableExpirationDates.length,
@@ -160,7 +186,7 @@ export function NvdaTabContent() {
       }
       
       // Re-validate after auto-recovery attempt
-      if (!nvdaState.selectedExpirationDate && !defaultExpiration) {
+      if (!finalExpiration && !defaultExpiration) {
         toast({
           title: 'No Expiration Selected',
           description: 'Please select an expiration date first.',
@@ -171,7 +197,7 @@ export function NvdaTabContent() {
     }
     
     // CRITICAL FIX: Final expiration validation before API call
-    const finalExpirationToUse = nvdaState.selectedExpirationDate || defaultExpiration;
+    const finalExpirationToUse = finalExpiration || defaultExpiration;
     logger.state('GetStockData', 'Final expiration validation before API call', {
       finalExpiration: finalExpirationToUse,
       fromState: nvdaState.selectedExpirationDate,
@@ -317,13 +343,23 @@ export function NvdaTabContent() {
   };
 
   // Deterministic Handler: NVDA AI Key Takeaways
-  const handleNvdaAiKeyTakeaways = async () => {
+  // UPDATED: Now accepts optional macro expiration parameter for macro automation
+  const handleNvdaAiKeyTakeaways = async (macroExpiration?: string | React.MouseEvent) => {
+    // Handle both macro usage (string parameter) and onClick usage (event parameter)
+    const macroExp = typeof macroExpiration === 'string' ? macroExpiration : undefined;
+    
+    // ✅ CRITICAL FIX: Get fresh state at execution time to prevent stale closure access
+    const freshState = getFreshNvdaState();
+    
     logger.userAction('AIKeyTakeaways', 'Starting AI key takeaways generation...', {
       ticker: NVDA_TICKER,
-      hasStockData: !!nvdaState.stockSnapshotJson,
-      hasStandardTA: !!nvdaState.standardTasJson,
-      hasAITA: !!nvdaState.aiAnalyzedTaJson,
-      hasMarketStatus: !!nvdaState.marketStatusJson
+      macroExpiration: macroExp, // NEW: Log macro parameter
+      parameterProvided: !!macroExp,
+      selectedExpiration: freshState.selectedExpirationDate, // ✅ FIXED: Fresh state
+      hasStockData: !!freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+      hasStandardTA: !!freshState.standardTasJson, // ✅ FIXED: Fresh state
+      hasAITA: !!freshState.aiAnalyzedTaJson, // ✅ FIXED: Fresh state
+      hasMarketStatus: !!freshState.marketStatusJson // ✅ FIXED: Fresh state
     });
     
     try {
@@ -332,10 +368,10 @@ export function NvdaTabContent() {
 
       const result = await performAiAnalysisAction({
         ticker: NVDA_TICKER,
-        stockSnapshotJson: nvdaState.stockSnapshotJson,
-        standardTasJson: nvdaState.standardTasJson,
-        aiAnalyzedTaJson: nvdaState.aiAnalyzedTaJson,
-        marketStatusJson: nvdaState.marketStatusJson,
+        stockSnapshotJson: freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+        standardTasJson: freshState.standardTasJson, // ✅ FIXED: Fresh state
+        aiAnalyzedTaJson: freshState.aiAnalyzedTaJson, // ✅ FIXED: Fresh state
+        marketStatusJson: freshState.marketStatusJson, // ✅ FIXED: Fresh state
       });
 
       if (result.status === 'success' && result.data) {
@@ -369,11 +405,21 @@ export function NvdaTabContent() {
   };
 
   // Deterministic Handler: NVDA AI Options Analysis
-  const handleNvdaAiOptionsAnalysis = async () => {
+  // UPDATED: Now accepts optional macro expiration parameter for macro automation
+  const handleNvdaAiOptionsAnalysis = async (macroExpiration?: string | React.MouseEvent) => {
+    // Handle both macro usage (string parameter) and onClick usage (event parameter)
+    const macroExp = typeof macroExpiration === 'string' ? macroExpiration : undefined;
+    
+    // ✅ CRITICAL FIX: Get fresh state at execution time to prevent stale closure access
+    const freshState = getFreshNvdaState();
+    
     logger.userAction('AIOptionsAnalysis', 'Starting AI options analysis...', {
       ticker: NVDA_TICKER,
-      hasStockData: !!nvdaState.stockSnapshotJson,
-      hasOptionsChain: !!nvdaState.optionsChainJson
+      macroExpiration: macroExp, // NEW: Log macro parameter
+      parameterProvided: !!macroExp,
+      selectedExpiration: freshState.selectedExpirationDate, // ✅ FIXED: Fresh state
+      hasStockData: !!freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+      hasOptionsChain: !!freshState.optionsChainJson // ✅ FIXED: Fresh state
     });
     
     try {
@@ -382,8 +428,8 @@ export function NvdaTabContent() {
 
       const result = await performAiOptionsAnalysisAction({
         ticker: NVDA_TICKER,
-        stockSnapshotJson: nvdaState.stockSnapshotJson,
-        optionsChainJson: nvdaState.optionsChainJson,
+        stockSnapshotJson: freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+        optionsChainJson: freshState.optionsChainJson, // ✅ FIXED: Fresh state
       });
 
       if (result.status === 'success' && result.data) {
@@ -461,15 +507,8 @@ export function NvdaTabContent() {
 
   const isLoading = nvdaState.status === 'loading';
 
-  // CRITICAL FIX: Replace arrow function props with memoized callbacks to fix React closure bug
-  // This ensures the macro always reads current state instead of stale closure state
-  const getCurrentExpirationMemo = useCallback(() => {
-    return nvdaState.selectedExpirationDate;
-  }, [nvdaState.selectedExpirationDate]);
-
-  const getAvailableExpirationsMemo = useCallback(() => {
-    return nvdaState.availableExpirationDates;
-  }, [nvdaState.availableExpirationDates]);
+  // REMOVED: Callback props no longer needed - SimpleAnalyzeAllButton now uses direct hook access
+  // This eliminates React hook closure state access issues
 
   return (
     <div className="space-y-6">
@@ -680,8 +719,8 @@ export function NvdaTabContent() {
         canGetStockData={() => !isLoading && !!nvdaState.selectedExpirationDate}
         canGenerateAiKeyTakeaways={() => !isLoading && nvdaState.hasStockData && nvdaState.hasAiTaData && !nvdaState.isAiKeyTakeawaysLoading}
         canGenerateAiOptionsAnalysis={() => !isLoading && nvdaState.hasOptionsChainData && !nvdaState.isAiOptionsAnalysisLoading}
-        getCurrentExpiration={getCurrentExpirationMemo}
-        getAvailableExpirations={getAvailableExpirationsMemo}
+        // REMOVED: getCurrentExpiration and getAvailableExpirations props
+        // Component now uses direct NVDA context access
         onComplete={() => {
           toast({
             title: `${NVDA_TICKER} Macro Complete`,

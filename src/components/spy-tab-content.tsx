@@ -28,7 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Loader2, CalendarDays, Search, Zap, Settings, FileText, CandlestickChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 // SPY Context
 import { useSpyAnalysis, useSpyDispatch, SPY_TICKER, type OptionType, type StrikeCount, type TableDisplayType } from '@/contexts/spy-analysis-context';
@@ -68,6 +68,16 @@ export function SpyTabContent() {
 
   // Create SPY-specific logger
   const logger = createTickerLogger(SPY_TICKER, TICKER_PAGES.SPY_TAB);
+
+  // ✅ CRITICAL FIX: Create ref for fresh state access in async functions
+  // This prevents stale closure issues in macro automation Steps 3 & 4
+  const spyStateRef = useRef(spyState);
+  
+  // ✅ CRITICAL FIX: Update ref on every render to ensure fresh state access
+  spyStateRef.current = spyState;
+  
+  // ✅ CRITICAL FIX: Helper function to get fresh SPY state at execution time
+  const getFreshSpyState = useCallback(() => spyStateRef.current, []);
 
   // Deterministic Handler: Fetch SPY Expirations
   const handleFetchExpirations = async () => {
@@ -133,19 +143,35 @@ export function SpyTabContent() {
   };
 
   // Deterministic Handler: Get SPY Stock Data (Batch Operation)
-  const handleGetStockData = async () => {
+  // UPDATED: Now accepts optional macro expiration parameter for macro automation
+  const handleGetStockData = async (macroExpiration?: string | React.MouseEvent) => {
+    // Handle both macro usage (string parameter) and onClick usage (event parameter)
+    const macroExp = typeof macroExpiration === 'string' ? macroExpiration : undefined;
     // CRITICAL: Log current selectedExpirationDate before Step 2 execution
     logger.userAction('GetStockData', 'Starting stock data fetch - Step 2 of macro automation', {
       ticker: SPY_TICKER,
       selectedExpiration: spyState.selectedExpirationDate,
+      macroExpiration: macroExp, // NEW: Log macro parameter
+      parameterProvided: !!macroExp,
       optionType: spyState.optionType,
       strikeCount: spyState.strikeCount,
       context: 'Step2_GetStockData_PreExecution'
     });
     
+    // CRITICAL FIX: Use macro expiration if provided, otherwise fallback to shared context
+    const finalExpiration = macroExp || spyState.selectedExpirationDate;
+    
+    logger.state('GetStockData', 'Expiration resolution for API call', {
+      macroExpiration: macroExp,
+      sharedExpiration: spyState.selectedExpirationDate,
+      finalExpiration: finalExpiration,
+      usedMacroParameter: !!macroExp,
+      context: 'Step2_ExpirationResolution'
+    });
+    
     // CRITICAL FIX: Enhanced validation with automatic recovery
     let defaultExpiration: string | undefined = undefined;
-    if (!spyState.selectedExpirationDate) {
+    if (!finalExpiration) {
       logger.error('GetStockData', 'CRITICAL: No expiration date selected in Step 2', {
         context: 'Step2_GetStockData_ValidationFailure',
         availableExpirations: spyState.availableExpirationDates.length,
@@ -167,7 +193,7 @@ export function SpyTabContent() {
       }
       
       // Re-validate after auto-recovery attempt
-      if (!spyState.selectedExpirationDate && !defaultExpiration) {
+      if (!finalExpiration && !defaultExpiration) {
         toast({
           title: 'No Expiration Selected',
           description: 'Please select an expiration date first.',
@@ -178,7 +204,7 @@ export function SpyTabContent() {
     }
     
     // CRITICAL FIX: Final expiration validation before API call
-    const finalExpirationToUse = spyState.selectedExpirationDate || defaultExpiration;
+    const finalExpirationToUse = finalExpiration || defaultExpiration;
     logger.state('GetStockData', 'Final expiration validation before API call', {
       finalExpiration: finalExpirationToUse,
       fromState: spyState.selectedExpirationDate,
@@ -317,13 +343,23 @@ export function SpyTabContent() {
   };
 
   // Deterministic Handler: SPY AI Key Takeaways (Phase 1)
-  const handleSpyAiKeyTakeaways = async () => {
-    logger.userAction('AIKeyTakeaways', 'Starting AI key takeaways generation', {
+  // UPDATED: Now accepts optional macro expiration parameter for macro automation
+  const handleSpyAiKeyTakeaways = async (macroExpiration?: string | React.MouseEvent) => {
+    // Handle both macro usage (string parameter) and onClick usage (event parameter)
+    const macroExp = typeof macroExpiration === 'string' ? macroExpiration : undefined;
+    
+    // ✅ CRITICAL FIX: Get fresh state at execution time to prevent stale closure access
+    const freshState = getFreshSpyState();
+    
+    logger.userAction('AIKeyTakeaways', 'Starting AI key takeaways generation...', {
       ticker: SPY_TICKER,
-      hasStockData: !!spyState.stockSnapshotJson,
-      hasStandardTA: !!spyState.standardTasJson,
-      hasAITA: !!spyState.aiAnalyzedTaJson,
-      hasMarketStatus: !!spyState.marketStatusJson
+      macroExpiration: macroExp, // NEW: Log macro parameter
+      parameterProvided: !!macroExp,
+      selectedExpiration: freshState.selectedExpirationDate, // ✅ FIXED: Fresh state
+      hasStockData: !!freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+      hasStandardTA: !!freshState.standardTasJson, // ✅ FIXED: Fresh state
+      hasAITA: !!freshState.aiAnalyzedTaJson, // ✅ FIXED: Fresh state
+      hasMarketStatus: !!freshState.marketStatusJson // ✅ FIXED: Fresh state
     });
     
     try {
@@ -332,10 +368,10 @@ export function SpyTabContent() {
 
       const result = await performAiAnalysisAction({
         ticker: SPY_TICKER,
-        stockSnapshotJson: spyState.stockSnapshotJson,
-        standardTasJson: spyState.standardTasJson,
-        aiAnalyzedTaJson: spyState.aiAnalyzedTaJson,
-        marketStatusJson: spyState.marketStatusJson,
+        stockSnapshotJson: freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+        standardTasJson: freshState.standardTasJson, // ✅ FIXED: Fresh state
+        aiAnalyzedTaJson: freshState.aiAnalyzedTaJson, // ✅ FIXED: Fresh state
+        marketStatusJson: freshState.marketStatusJson, // ✅ FIXED: Fresh state
       });
 
       if (result.status === 'success' && result.data) {
@@ -369,11 +405,21 @@ export function SpyTabContent() {
   };
 
   // Deterministic Handler: SPY AI Options Analysis (Phase 1)
-  const handleSpyAiOptionsAnalysis = async () => {
-    logger.userAction('AIOptionsAnalysis', 'Starting AI options analysis', {
+  // UPDATED: Now accepts optional macro expiration parameter for macro automation
+  const handleSpyAiOptionsAnalysis = async (macroExpiration?: string | React.MouseEvent) => {
+    // Handle both macro usage (string parameter) and onClick usage (event parameter)
+    const macroExp = typeof macroExpiration === 'string' ? macroExpiration : undefined;
+    
+    // ✅ CRITICAL FIX: Get fresh state at execution time to prevent stale closure access
+    const freshState = getFreshSpyState();
+    
+    logger.userAction('AIOptionsAnalysis', 'Starting AI options analysis...', {
       ticker: SPY_TICKER,
-      hasStockData: !!spyState.stockSnapshotJson,
-      hasOptionsChain: !!spyState.optionsChainJson
+      macroExpiration: macroExp, // NEW: Log macro parameter
+      parameterProvided: !!macroExp,
+      selectedExpiration: freshState.selectedExpirationDate, // ✅ FIXED: Fresh state
+      hasStockData: !!freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+      hasOptionsChain: !!freshState.optionsChainJson // ✅ FIXED: Fresh state
     });
     
     try {
@@ -382,8 +428,8 @@ export function SpyTabContent() {
 
       const result = await performAiOptionsAnalysisAction({
         ticker: SPY_TICKER,
-        stockSnapshotJson: spyState.stockSnapshotJson,
-        optionsChainJson: spyState.optionsChainJson,
+        stockSnapshotJson: freshState.stockSnapshotJson, // ✅ FIXED: Fresh state
+        optionsChainJson: freshState.optionsChainJson, // ✅ FIXED: Fresh state
       });
 
       if (result.status === 'success' && result.data) {
@@ -461,15 +507,8 @@ export function SpyTabContent() {
 
   const isLoading = spyState.status === 'loading';
 
-  // CRITICAL FIX: Replace arrow function props with memoized callbacks to fix React closure bug
-  // This ensures the macro always reads current state instead of stale closure state
-  const getCurrentExpirationMemo = useCallback(() => {
-    return spyState.selectedExpirationDate;
-  }, [spyState.selectedExpirationDate]);
-
-  const getAvailableExpirationsMemo = useCallback(() => {
-    return spyState.availableExpirationDates;
-  }, [spyState.availableExpirationDates]);
+  // REMOVED: Callback props no longer needed - SimpleAnalyzeAllButton now uses direct hook access
+  // This eliminates React hook closure state access issues
 
   return (
     <div className="space-y-6">
@@ -680,8 +719,8 @@ export function SpyTabContent() {
         canGetStockData={() => !isLoading && !!spyState.selectedExpirationDate}
         canGenerateAiKeyTakeaways={() => !isLoading && spyState.hasStockData && spyState.hasAiTaData && !spyState.isAiKeyTakeawaysLoading}
         canGenerateAiOptionsAnalysis={() => !isLoading && spyState.hasOptionsChainData && !spyState.isAiOptionsAnalysisLoading}
-        getCurrentExpiration={getCurrentExpirationMemo}
-        getAvailableExpirations={getAvailableExpirationsMemo}
+        // REMOVED: getCurrentExpiration and getAvailableExpirations props
+        // Component now uses direct context access based on ticker
         onComplete={() => {
           toast({
             title: `${SPY_TICKER} Macro Complete`,

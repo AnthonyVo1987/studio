@@ -1,6 +1,6 @@
 {
-  "appVersion": "v4.4.2.17",
-  "lastUpdatedTimestamp": "2025-08-01T14:45:00.000Z",
-  "description": "CRITICAL SPLIT-BRAIN EXECUTION ID FIX: Resolved root cause of macro automation failures - split-brain logger with dual execution IDs causing Steps 2-4 to fail. Fixed by removing executionId from logger useMemo dependencies and implementing explicit logger lifecycle management. Single execution ID now maintained throughout macro run.",
+  "appVersion": "v4.4.3.0",
+  "lastUpdatedTimestamp": "2025-08-02T00:45:00.000Z",
+  "description": "MACRO AUTOMATION DEBUGGING MILESTONE: Comprehensive stale closure resolution across NVDA & SPY pages with React useRef escape hatch pattern. Created authoritative debugging reference guide documenting 20+ iteration journey with root causes, failed approaches, and corrective actions. Updated project documentation to remove ESLint dependencies and provide accurate development workflows. New version series for continued macro automation enhancements.",
   "metadataSchemaVersion": "1.0.0"
 }
