@@ -187,6 +187,28 @@ export function NvdaOptionsChainTable() {
     optionType, 
     tableDisplayType
   } = nvdaState;
+  
+  // CRITICAL FIX: Unified expiration access that prioritizes macro context
+  const getActiveExpiration = React.useCallback(() => {
+    // During macro execution, options should display data for the macro's captured expiration
+    // to prevent state contamination from UI changes
+    
+    // Check if there's an active macro context by looking for the global macro state
+    // This pattern allows the options table to stay synchronized with macro execution
+    if (typeof window !== 'undefined') {
+      // Look for macro execution context in the DOM (non-invasive approach)
+      const macroIndicator = document.querySelector('[data-macro-expiration]');
+      if (macroIndicator) {
+        const macroExpiration = macroIndicator.getAttribute('data-macro-expiration');
+        if (macroExpiration && macroExpiration !== 'null') {
+          return macroExpiration;
+        }
+      }
+    }
+    
+    // Fall back to UI context when no macro is executing
+    return nvdaState.selectedExpirationDate;
+  }, [nvdaState.selectedExpirationDate]);
 
   // Phase 3: Derived state calculations using helper functions (replaces useState hooks)
   const optionsParseResult = parseOptionsChainJson(optionsChainJson);
@@ -213,7 +235,10 @@ export function NvdaOptionsChainTable() {
   const showPuts = optionType === 'both' || optionType === 'puts';
 
   const displayTicker = parsedDataState?.ticker || (isLoadingState ? '' : 'N/A');
+  // CRITICAL FIX: Use unified expiration access for display consistency
+  const activeExpiration = getActiveExpiration();
   const displayExpirationDate = parsedDataState?.expiration_date ? formatDisplayDate(parsedDataState.expiration_date) : (isLoadingState ? '' : 'N/A');
+  const isUsingMacroExpiration = activeExpiration !== nvdaState.selectedExpirationDate;
   const contractsToDisplay = parsedDataState?.contracts || [];
   
   const isDataReadyForExport = !isLoadingState && !isErrorState && parsedDataState && (parsedDataState.contracts?.length || 0) > 0;
@@ -367,6 +392,11 @@ export function NvdaOptionsChainTable() {
                 <CardTitle>NVDA Options Chain</CardTitle>
                 <CardDescription className="mt-1">
                     {isLoadingState ? 'Waiting for NVDA options data...' : `NVDA options chain for ${displayTicker} - Expires: ${displayExpirationDate}`}
+                    {isUsingMacroExpiration && (
+                      <div className="mt-1 text-xs text-blue-600 font-medium">
+                        🤖 Macro Mode: Displaying data for {activeExpiration}
+                      </div>
+                    )}
                 </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">

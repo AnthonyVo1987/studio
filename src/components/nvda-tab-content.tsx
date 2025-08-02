@@ -717,8 +717,16 @@ export function NvdaTabContent() {
         onGenerateAiOptionsAnalysis={handleNvdaAiOptionsAnalysis}
         canFetchExpirations={() => !isLoading}
         canGetStockData={() => !isLoading && !!nvdaState.selectedExpirationDate}
-        canGenerateAiKeyTakeaways={() => !isLoading && nvdaState.hasStockData && nvdaState.hasAiTaData && !nvdaState.isAiKeyTakeawaysLoading}
-        canGenerateAiOptionsAnalysis={() => !isLoading && nvdaState.hasOptionsChainData && !nvdaState.isAiOptionsAnalysisLoading}
+        canGenerateAiKeyTakeaways={() => {
+          const hasRequiredData = !isLoading && nvdaState.hasStockData && nvdaState.hasAiTaData && !nvdaState.isAiKeyTakeawaysLoading;
+          const hasValidExpiration = !!nvdaState.selectedExpirationDate;
+          return hasRequiredData && hasValidExpiration;
+        }}
+        canGenerateAiOptionsAnalysis={() => {
+          const hasRequiredData = !isLoading && nvdaState.hasOptionsChainData && !nvdaState.isAiOptionsAnalysisLoading;
+          const hasValidExpiration = !!nvdaState.selectedExpirationDate;
+          return hasRequiredData && hasValidExpiration;
+        }}
         // REMOVED: getCurrentExpiration and getAvailableExpirations props
         // Component now uses direct NVDA context access
         onComplete={() => {

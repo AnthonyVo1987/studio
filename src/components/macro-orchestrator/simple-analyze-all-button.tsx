@@ -125,6 +125,14 @@ export function SimpleAnalyzeAllButton({
   const [startTime, setStartTime] = useState<number | null>(null);
   const [shouldCancel, setShouldCancel] = useState(false);
   
+  // CRITICAL FIX: Add useRef for immediate stop signal access in async operations
+  const shouldCancelRef = useRef(false);
+  
+  // Keep shouldCancelRef synchronized with shouldCancel state
+  React.useEffect(() => {
+    shouldCancelRef.current = shouldCancel;
+  }, [shouldCancel]);
+  
   // CRITICAL: Macro-specific execution context to prevent state contamination
   const [macroExecutionContext, setMacroExecutionContext] = useState<MacroExecutionContext>({
     selectedExpiration: null,
@@ -613,6 +621,8 @@ export function SimpleAnalyzeAllButton({
     setExecutionError(null);
     setStartTime(null);
     setShouldCancel(false);
+    // CRITICAL FIX: Reset stop signal ref immediately to prevent race conditions
+    shouldCancelRef.current = false;
     // Reset macro execution context
     setMacroExecutionContext({
       selectedExpiration: null,
@@ -744,6 +754,9 @@ export function SimpleAnalyzeAllButton({
     // Pre-initialize selectedExpiration if we're skipping the fetch step
     const initialMacroExpiration = needsExpirationFetch ? null : initialUIExpiration;
     
+    // DYNAMIC STEP SELECTION: Build execution plan based on current state
+    const executionSteps = needsExpirationFetch ? steps : steps.slice(1);
+    
     setMacroExecutionContext(prev => ({ 
       ...prev, 
       isExecuting: true,
@@ -754,8 +767,14 @@ export function SimpleAnalyzeAllButton({
       totalAvailableSteps: executionSteps.length
     }));
     
-    // DYNAMIC STEP SELECTION: Build execution plan based on current state
-    const executionSteps = needsExpirationFetch ? steps : steps.slice(1);
+    // CRITICAL FIX: Update ref immediately when skipping Step 1 to ensure macro context captures current UI expiration
+    macroContextRef.current = {
+      selectedExpiration: initialMacroExpiration,
+      isExecuting: true,
+      stepResults: new Map(),
+      executedStepCount: 0,
+      totalAvailableSteps: executionSteps.length
+    };
     
     // Log macro context initialization
     freshLogger.macroExecution('ContextInit', 'Macro execution context initialized', {
@@ -811,7 +830,8 @@ export function SimpleAnalyzeAllButton({
       const completed: number[] = [];
 
       for (let i = 0; i < executionSteps.length; i++) {
-        if (shouldCancel) {
+        // CRITICAL FIX: Check stop signal using ref for immediate access
+        if (shouldCancelRef.current) {
           setIsCancelled(true);
           
           const totalDuration = startTime ? Date.now() - startTime : 0;
@@ -876,8 +896,21 @@ export function SimpleAnalyzeAllButton({
         }
 
         try {
+          // CRITICAL FIX: Check stop signal before step execution
+          if (shouldCancelRef.current) {
+            // Exit early if stop was requested during validation/setup
+            break;
+          }
+          
           // Execute step
           await step.handler();
+          
+          // CRITICAL FIX: Check stop signal after step execution
+          if (shouldCancelRef.current) {
+            // Don't add to completed if stop was requested during execution
+            break;
+          }
+          
           completed.push(step.id);
           setCompletedSteps([...completed]);
           
@@ -1061,7 +1094,9 @@ export function SimpleAnalyzeAllButton({
       currentExpiration: getCurrentExpiration()
     });
     
+    // CRITICAL FIX: Set both state and ref immediately for responsive cancellation
     setShouldCancel(true);
+    shouldCancelRef.current = true;
     setIsExecuting(false);
     
     // CRITICAL FIX 1: Immediately clear macro execution context to stop overlay
@@ -1118,7 +1153,10 @@ export function SimpleAnalyzeAllButton({
   }, [canStart, isExecuting, isCompleted, isCancelled, logger, executionId]);
 
   return (
-    <Card className={macroExecutionContext.isExecuting ? 'relative' : ''}>
+    <Card 
+      className={macroExecutionContext.isExecuting ? 'relative' : ''}
+      data-macro-expiration={macroExecutionContext.isExecuting ? macroExecutionContext.selectedExpiration : null}
+    >
       {/* ACCESSIBILITY FIX: Non-blocking overlay with visual feedback only */}
       {macroExecutionContext.isExecuting && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center pointer-events-none z-40">

@@ -717,8 +717,16 @@ export function SpyTabContent() {
         onGenerateAiOptionsAnalysis={handleSpyAiOptionsAnalysis}
         canFetchExpirations={() => !isLoading}
         canGetStockData={() => !isLoading && !!spyState.selectedExpirationDate}
-        canGenerateAiKeyTakeaways={() => !isLoading && spyState.hasStockData && spyState.hasAiTaData && !spyState.isAiKeyTakeawaysLoading}
-        canGenerateAiOptionsAnalysis={() => !isLoading && spyState.hasOptionsChainData && !spyState.isAiOptionsAnalysisLoading}
+        canGenerateAiKeyTakeaways={() => {
+          const hasRequiredData = !isLoading && spyState.hasStockData && spyState.hasAiTaData && !spyState.isAiKeyTakeawaysLoading;
+          const hasValidExpiration = !!spyState.selectedExpirationDate;
+          return hasRequiredData && hasValidExpiration;
+        }}
+        canGenerateAiOptionsAnalysis={() => {
+          const hasRequiredData = !isLoading && spyState.hasOptionsChainData && !spyState.isAiOptionsAnalysisLoading;
+          const hasValidExpiration = !!spyState.selectedExpirationDate;
+          return hasRequiredData && hasValidExpiration;
+        }}
         // REMOVED: getCurrentExpiration and getAvailableExpirations props
         // Component now uses direct context access based on ticker
         onComplete={() => {
