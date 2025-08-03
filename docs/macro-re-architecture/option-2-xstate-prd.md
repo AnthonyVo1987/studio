@@ -149,14 +149,14 @@ export const macroMachine = createMachine({
   id: 'macroAutomation',
   initial: 'idle',
   
-  context: {
+  context: ({ input }) => ({
     ticker: 'NVDA_STAGING',
     startTime: null,
     executionId: null,
-    correlationId: null,
-    traceId: null,
+    correlationId: input.correlationId,
+    traceId: input.traceId,
     selectedExpiration: null,
-    securityContext: null as SecurityContext | null,
+    securityContext: input.securityContext,
     results: {
       expirations: null,
       stockData: null,
@@ -176,7 +176,7 @@ export const macroMachine = createMachine({
       correlationId: string;
       result: 'SUCCESS' | 'FAILURE' | 'PENDING';
     }>
-  },
+  }),
 
   states: {
     idle: {
@@ -560,20 +560,38 @@ export const macroServices = {
 ```typescript
 // components/staging/nvda-staging-xstate-macro.tsx
 import { createActorContext } from '@xstate/react';
-import { macroMachine } from './macroMachine';
+import { setup, createMachine, assign, fromPromise } from 'xstate';
 import { macroServices } from './macroServices';
 import { SecurityContext } from './security';
 import { useCallback, useMemo } from 'react';
 
-// Create XState v5 Actor Context
-const MacroMachineContext = createActorContext(macroMachine.provide({
-  actors: macroServices,
+// XState v5 machine setup with proper actors
+const macroMachine = setup({
+  types: {
+    context: {} as MacroMachineContext,
+    events: {} as MacroMachineEvents,
+    input: {} as { securityContext: SecurityContext; correlationId: string; traceId: string }
+  },
+  actors: {
+    fetchExpirationsService: fromPromise(async ({ input }: { input: { securityContext: SecurityContext; correlationId: string } }) => {
+      return await macroServices.fetchExpirationsService(input);
+    }),
+    getStockDataService: fromPromise(async ({ input }: { input: { securityContext: SecurityContext; correlationId: string; selectedExpiration: string } }) => {
+      return await macroServices.getStockDataService(input);
+    }),
+    generateAiTakeawaysService: fromPromise(async ({ input }: { input: { securityContext: SecurityContext; correlationId: string; stockData: any } }) => {
+      return await macroServices.generateAiTakeawaysService(input);
+    }),
+    generateAiOptionsService: fromPromise(async ({ input }: { input: { securityContext: SecurityContext; correlationId: string; stockData: any; aiTakeaways: any } }) => {
+      return await macroServices.generateAiOptionsService(input);
+    })
+  },
   actions: {
     initializeExecution: assign({
         startTime: () => Date.now(),
         executionId: () => `xstate_macro_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        correlationId: () => `corr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        traceId: () => `trace_${Date.now()}`,
+        correlationId: ({ input }) => input.correlationId,
+        traceId: ({ input }) => input.traceId,
         securityContext: ({ input }) => input.securityContext,
         errors: () => [],
         metrics: () => ({
@@ -1592,7 +1610,7 @@ This implementation serves as the recommended enterprise-ready foundation for pr
 **Next Steps**: Proceed with Phase 1 XState v5 migration after security framework approval and team training.  
 **Dependencies**: Requires security team sign-off and XState v5 team training.  
 **Approval**: Architecture team and security team sign-off required before implementation.  
-**Timeline**: 12-15 days total implementation including security integration, testing, and documentation.
+**Timeline**: 25-30 days total implementation including XState v5 API migration, security integration, comprehensive testing, and documentation.
 
 ---
 
@@ -1860,4 +1878,48 @@ const machine = createMachine({
 - [ ] Train team on XState debugging and maintenance
 - [ ] Set up production monitoring and alerting
 
-This supporting documentation provides the necessary context and guidance for implementation teams to successfully execute the XState v5 migration with enterprise-grade security and performance requirements.
+### Phase-Based Console Debugging Integration
+
+**CRITICAL REQUIREMENT**: All implementation phases must include granular console output messages with phase-specific prefixes for systematic debugging and issue isolation.
+
+#### Required Console Output Pattern
+```typescript
+// Mandatory debug logging utility for all phases
+const debugLog = (phase: string, category: string, message: string, data?: any) => {
+  if (process.env.NODE_ENV === 'development') {
+    const timestamp = new Date().toISOString();
+    const prefix = `[XSTATE-${phase}][${category}][${timestamp}]`;
+    
+    if (data) {
+      console.log(`${prefix} ${message}`, data);
+    } else {
+      console.log(`${prefix} ${message}`);
+    }
+  }
+};
+```
+
+#### Required Phase Prefixes
+- **Phase 1**: `[XSTATE-P1]` - XState v5 Migration & Setup
+- **Phase 2**: `[XSTATE-P2]` - Security Integration  
+- **Phase 3**: `[XSTATE-P3]` - Performance Optimization
+
+#### Implementation Requirements
+1. **Every major operation** must log with appropriate phase prefix
+2. **All error conditions** must include phase context for rapid issue isolation
+3. **State transitions** must log entry/exit with timing data
+4. **Service calls** must log request/response cycles with correlation IDs
+5. **Performance benchmarks** must log before/after metrics
+
+#### Debugging Benefits
+- **Rapid Issue Isolation**: Console prefixes immediately identify problematic implementation phase
+- **Regression Testing**: Clear audit trail when later phases break earlier functionality  
+- **Progress Tracking**: Real-time visibility into implementation status across all phases
+- **Team Coordination**: Multiple developers can work simultaneously with clear phase boundaries
+- **Rollback Precision**: Exact identification of rollback points when issues arise
+
+This console debugging framework is **mandatory** for all XState v5 implementation work and must be integrated from the earliest development stages.
+
+---
+
+This supporting documentation provides the necessary context and guidance for implementation teams to successfully execute the XState v5 migration with enterprise-grade security, performance requirements, and systematic debugging capabilities.

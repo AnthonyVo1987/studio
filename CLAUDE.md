@@ -191,77 +191,80 @@ Complete bash command automation is now enabled through settings.local.json with
 - **Build Operations**: 300s timeout for complex compilation processes
 - **AI/Genkit Operations**: 120-180s timeout for AI workflow processing
 
-## Macro Re-Architecture Analysis Complete (v4.5.3.0)
+## XState Macro Overhaul - Implementation Planning Complete (v4.6.0.0)
 
-**PROJECT STATUS**: ✅ **MACRO RE-ARCHITECTURE ANALYSIS COMPLETE**  
+**PROJECT STATUS**: ✅ **XSTATE IMPLEMENTATION PLANNING COMPLETE**  
 **DOCUMENTATION STATUS**: ✅ **CODE REVIEW PASSED**  
-**NEXT PHASE**: Implementation Decision & Development  
+**NEXT PHASE**: Phase 1 Implementation Execution (25-30 days total)  
 
-### Comprehensive Analysis Delivered
+### XState Implementation Guide Delivered
 
-**CRITICAL**: Complete macro automation re-architecture analysis has been delivered with 3 viable implementation options and strategic decision framework.
+**CRITICAL**: Comprehensive XState v5 implementation guide completed with systematic migration plan addressing 20+ debugging iterations and stale closure issues.
 
-#### Key Deliverables:
-- **📋 Architecture Decision Analysis**: `/docs/macro-re-architecture/comprehensive-architecture-decision-analysis.md`
-- **📄 Strategic Implementation Guide**: `/docs/macro-re-architecture/strategic-implementation-guide.md`
-- **⭐ 3 Viable Options**: XState (4-5 days), Command Pattern (5-6 days), Hybrid (20-25 days)
-- **🎯 Decision Matrix**: Complete evaluation criteria for selecting optimal approach
-- **📊 Technical Specifications**: Detailed PRDs for all architectural options
-- **🔧 Migration Strategies**: Step-by-step implementation roadmaps
+#### Key Planning Deliverables:
+- **📋 Complete Codebase Audit**: `/docs/macro-re-architecture/xstate-implementation-guide.md`
+- **📄 5-Phase Implementation Plan**: Systematic roadmap with 25-30 day timeline
+- **⭐ XState v5 API Compliance**: Modern API patterns with proper TypeScript integration
+- **🎯 Historical Pain Point Analysis**: 20+ debugging iteration lessons integrated
+- **📊 Projected Code Reduction**: 1,400+ lines → ~400 lines (70% reduction)
+- **🔧 XState Inspector Integration**: Visual debugging capabilities
+- **🚀 Built-in Timeout Protection**: Native XState timeout handling vs manual Promise.race
 
-#### Current Macro System Analysis:
-- **Current State**: 1,400+ lines, 20+ debugging iterations, complex React closure patterns
-- **Success Rate**: 100% execution with useRef escape hatch patterns
-- **Technical Debt**: High complexity, difficult maintenance, limited extensibility
-- **Performance**: 5-11 second baseline, up to 45 seconds for complex operations
+#### Implementation Readiness Status:
+- **XState v5 Integration**: TypeScript-first API patterns with typed events and context
+- **State Machine Design**: Deterministic transitions replacing manual step orchestration
+- **Timeout Handling**: Built-in XState timeout capabilities vs current manual patterns
+- **Debugging Enhancement**: XState Inspector integration for visual state debugging
+- **Network Resilience**: Enhanced error handling with state machine error states
+- **Rollback Strategy**: Phase-by-phase implementation with complete rollback capability
 
-#### Re-Architecture Options Available:
+#### 5-Phase Implementation Plan:
 
-**1. XState State Machine (Option 2)** ⭐ **PRIMARY RECOMMENDATION**
-- **Complexity**: Medium
-- **Implementation**: 4-5 days
-- **Benefits**: 65% complexity reduction, impossible invalid states, visual debugging
-- **Best For**: Fast implementation with moderate complexity tolerance
+**Phase 1: Foundation Setup (Days 1-5)**
+- XState v5 installation and TypeScript configuration
+- Basic state machine setup with core states
+- Integration with existing React components
 
-**2. Command Pattern (Option 3)** ⭐ **ALTERNATIVE RECOMMENDATION**
-- **Complexity**: High
-- **Implementation**: 5-6 days
-- **Benefits**: Complete separation of concerns, excellent testability
-- **Best For**: Maximum testability and enterprise security requirements
+**Phase 2: State Migration (Days 6-10)**
+- Convert React useState/useRef to XState context
+- Implement deterministic state transitions
+- Preserve existing functionality during migration
 
-**3. Hybrid Command + XState (Option 4)** 🚀 **FUTURE-PROOF CHOICE**
-- **Complexity**: Very High
-- **Implementation**: 20-25 days
-- **Benefits**: Ultimate modularity, AI-native integration, plugin ecosystem
-- **Best For**: Revolutionary architecture with unlimited extensibility
+**Phase 3: Action Integration (Days 11-15)**
+- Migrate async operations to XState actions
+- Implement built-in timeout protection
+- Enhanced error handling with state machine error states
 
-### Implementation Decision Framework
+**Phase 4: XState Inspector & Debugging (Days 16-20)**
+- XState Inspector integration for visual debugging
+- Advanced state machine patterns implementation
+- Comprehensive testing and validation
 
-#### Quick Decision Guide:
-- **Need Fast Results (4-5 days)**: Choose XState (Option 2)
-- **Maximum Testability Required**: Choose Command Pattern (Option 3)
-- **Revolutionary Future-Proofing**: Choose Hybrid (Option 4)
+**Phase 5: Optimization & Finalization (Days 21-30)**
+- Performance optimization and code cleanup
+- Final documentation updates
+- Production deployment preparation
 
-#### Documentation Structure:
-```
-/docs/macro-re-architecture/
-├── README.md                                     # Project hub and status
-├── comprehensive-architecture-decision-analysis.md # Complete decision analysis
-├── strategic-implementation-guide.md            # Strategic guidance
-├── option-2-xstate-prd.md                      # XState PRD
-├── option-3-command-pattern-prd.md             # Command Pattern PRD
-├── option-4-hybrid-command-xstate-prd.md       # Hybrid PRD
-├── macro-automation-debugging-guide.md         # Current system debugging
-└── v4.4.3.5_TIMEOUT_FIX_IMPLEMENTATION_REPORT.md # Recent fixes
-```
+### Current System Analysis for XState Migration:
+- **Current State**: React-based state management with stale closure issues
+- **Technical Debt**: 1,400+ lines with complex useRef escape hatch patterns
+- **Success Rate**: 100% execution reliability requiring architectural improvement
+- **Performance**: 5-11 second baseline with opportunities for XState optimization
 
-### Next Steps for Implementation:
-1. **Review Documentation**: Study comprehensive analysis and decision framework
-2. **Select Architecture**: Choose from 3 viable options based on requirements
-3. **Implementation Planning**: Use provided roadmaps and timelines
-4. **Development Phase**: Execute selected architectural approach
+### XState Implementation Benefits:
+- **Impossible Invalid States**: State machine guarantees prevent invalid state combinations
+- **Visual Debugging**: XState Inspector provides real-time state visualization
+- **Deterministic Workflows**: Formal state transitions replace manual orchestration
+- **Enhanced Timeout Protection**: Built-in XState timeout handling
+- **Code Reduction**: 70% reduction in complexity through state machine patterns
 
-**REFERENCE**: For complete analysis, refer to `/docs/macro-re-architecture/README.md` and comprehensive documentation suite.
+### Next Steps for XState Implementation:
+1. **Phase 1 Execution**: Begin foundation setup with XState v5 installation
+2. **State Machine Design**: Implement core macro automation state machine
+3. **Progressive Migration**: Phase-by-phase conversion maintaining functionality
+4. **Visual Debugging**: Integrate XState Inspector for enhanced development experience
+
+**REFERENCE**: For complete implementation guide, refer to `/docs/macro-re-architecture/xstate-implementation-guide.md` and comprehensive phase-by-phase roadmap.
 
 ## Macro Automation Debugging
 
@@ -346,11 +349,11 @@ The **@tech-lead-orchestrator** is a **COORDINATION-ONLY** role and MUST NEVER p
 - **Deterministic Handlers**: Follow existing async/await patterns in tab content
 
 ## Overview
-StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.5.3.0, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The application includes a robust macro automation system with comprehensive debugging capabilities, enhanced console logging, and comprehensive AI timeout handling with network resilience improvements. **NEW v4.5.3.0**: Completed comprehensive macro re-architecture analysis with 3 viable implementation options (XState, Command Pattern, Hybrid) and strategic decision framework ready for implementation phase. The blueprint system exists as preserved scaffolding in `src/lib/ticker-framework/` for future development phases but is not currently integrated into the application.
+StockSage is a Next.js financial analysis application that provides real-time stock data, options chain analysis, and AI-powered insights using Google's Gemini AI models. As of v4.6.0.0, it features a proven dedicated two-tab architecture with NVDA and SPY analysis pages, complete context isolation, and battle-tested React patterns. The application includes a robust macro automation system with comprehensive debugging capabilities, enhanced console logging, and comprehensive AI timeout handling with network resilience improvements. **NEW v4.6.0.0**: Completed comprehensive XState v5 implementation planning with systematic 5-phase migration roadmap (25-30 days) addressing historical pain points and delivering 70% code reduction potential. The blueprint system exists as preserved scaffolding in `src/lib/ticker-framework/` for future development phases but is not currently integrated into the application.
 
 ## Version Management
 - **Version Source**: `src/config/app-metadata.json` (single source of truth)
-- **Current Version**: v4.5.3.0 (Macro Re-Architecture Analysis Complete: Comprehensive analysis of macro automation re-architecture with 3 viable implementation options (XState, Command Pattern, Hybrid). Delivered strategic decision framework with detailed PRDs, technical specifications, and implementation roadmaps. Code review PASSED for all architectural documentation. System ready for implementation decision and development phase.)
+- **Current Version**: v4.6.0.0 (XState Macro Overhaul - Implementation Planning Complete: Comprehensive XState v5 implementation guide delivered with 5-phase roadmap (25-30 days total). Features systematic migration from React-based state to XState finite state machines, addressing 20+ debugging iterations and stale closure issues. Complete codebase audit reveals 1,400+ lines → ~400 lines projected (70% reduction). Code review PASSED with XState v5 API compliance. Ready for Phase 1 implementation.)
 - **Update Policy**: Always update `appVersion` and `lastUpdatedTimestamp` for any code changes
 - **Versioning Scheme**: `v4.w.x.y.z` format
 
@@ -362,16 +365,16 @@ StockSage is a Next.js financial analysis application that provides real-time st
 - **Frontend Framework**: Next.js 15.3.3 with React 18.3.1 (App Router architecture)
 - **AI Backend**: Google Genkit 1.8.0 + Google AI SDK with Gemini 2.5-flash-lite model
 - **UI Framework**: ShadCN UI components with Tailwind CSS and Radix UI primitives
-- **State Management**: React Context with useReducer patterns (79-field context isolation)
+- **State Management**: React Context with useReducer patterns (79-field context isolation) + **NEW v4.6.0.0**: XState v5 migration planning
 - **Data Sources**: Polygon.io API for real-time financial market data
 - **Type Safety**: TypeScript with Zod validation schemas and strict mode
 - **Build Tools**: Next.js with Turbopack, TypeScript 5.x
 - **Testing**: Manual testing with built-in Debug tabs and JSON export capabilities
 - **Architecture**: Server Actions, Server Components, isolated context patterns
-- **Macro Automation**: Production-ready with comprehensive debugging (v4.4.2.8)
+- **Macro Automation**: Production-ready with comprehensive debugging (v4.4.2.8) + **NEW v4.6.0.0**: XState implementation planning
 - **AI Chat System**: Fully operational with professional financial analyst capabilities
 - **NEW v4.4.3.5**: **AI Resilience**: Comprehensive timeout handling and network resilience
-- **NEW v4.5.3.0**: **Macro Re-Architecture**: Complete analysis with 3 implementation options ready
+- **NEW v4.6.0.0**: **XState Integration**: Comprehensive implementation planning with 5-phase roadmap
 
 ### Specialist Team Assignments
 
@@ -382,22 +385,22 @@ StockSage is a Next.js financial analysis application that provides real-time st
 | React component development | @component-architect | Financial UI components, charts, tables, dashboards |
 | ShadCN UI customization | @ui-ux-designer | Theme customization, responsive design, mobile-first |
 | Context & state management | @react-architect | useContext + useReducer patterns, FSM integration |
+| **XState Implementation (NEW v4.6.0.0)** |
+| XState v5 state machine implementation | @automation-architect + @react-architect | State machine patterns, deterministic transitions, timeout handling |
+| XState Inspector integration | @automation-architect + @performance-analyst | Visual debugging, state visualization, development tools |
+| State machine migration | @automation-architect + @code-reviewer | Progressive migration from React state to XState |
 | **Backend & AI Development** |
 | Google Genkit AI flows | @ai-architect | Flow design, prompt engineering, model optimization, timeout handling |
 | Polygon.io API integration | @api-integration-specialist | Real-time data fetching, error handling, retry logic |
 | Server Actions development | @backend-architect | TypeScript server actions, validation, error handling |
 | AI prompt system design | @prompt-engineer | Trading prompts, financial analysis, context-aware AI |
-| **Macro Re-Architecture Implementation** |
-| XState implementation | @automation-architect + @react-architect | State machine patterns, FSM integration |
-| Command Pattern implementation | @automation-architect + @backend-architect | Command queue, execution pipeline |
-| Hybrid architecture implementation | @automation-architect + @ai-architect | Advanced plugin system |
 | **Quality & Security** |
-| Code review & architecture | @code-reviewer | React anti-patterns, context isolation, security audits, AI resilience |
+| Code review & architecture | @code-reviewer | React anti-patterns, context isolation, security audits, AI resilience, XState patterns |
 | Financial security audits | @security-specialist | Trading data protection, API security, input validation |
-| Performance monitoring | @performance-analyst | Bundle size, loading times, real-time data efficiency |
+| Performance monitoring | @performance-analyst | Bundle size, loading times, real-time data efficiency, state machine optimization |
 | **Project Management** |
 | Technical coordination | @tech-lead-orchestrator | **COORDINATION-ONLY** - delegates all implementation work |
-| Documentation management | @documentation-specialist | Architecture docs, API guides, feature specifications |
-| Codebase analysis | @code-archaeologist | Technical debt analysis, architecture assessment |
+| Documentation management | @documentation-specialist | Architecture docs, API guides, feature specifications, XState migration guides |
+| Codebase analysis | @code-archaeologist | Technical debt analysis, architecture assessment, XState migration analysis |
 
-**Your StockSage financial analysis application is now configured with an optimized AI development team that maximizes specialist effectiveness for your Next.js + AI trading platform with comprehensive AI resilience capabilities and macro re-architecture implementation readiness!**
+**Your StockSage financial analysis application is now configured with an optimized AI development team that maximizes specialist effectiveness for your Next.js + AI trading platform with comprehensive AI resilience capabilities and XState implementation readiness!**
