@@ -75,3 +75,47 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Exports data as JSON string
+ * @param {any} data The data to export as JSON
+ * @returns {string} JSON string representation
+ */
+export function exportToJson(data: any): string {
+  return JSON.stringify(data, null, 2);
+}
+
+/**
+ * Exports data as CSV string
+ * @param {any} data The data to export as CSV
+ * @returns {string} CSV string representation
+ */
+export function exportToCsv(data: any): string {
+  if (Array.isArray(data)) {
+    // Handle array of objects
+    if (data.length === 0) return '';
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
+        }).join(',')
+      )
+    ].join('\n');
+    
+    return csvContent;
+  } else if (typeof data === 'object' && data !== null) {
+    // Handle single object - convert to key-value pairs
+    const entries = Object.entries(data).map(([key, value]) => [key, value]);
+    return [
+      'Key,Value',
+      ...entries.map(([key, value]) => `"${key}","${typeof value === 'object' ? JSON.stringify(value) : value}"`)
+    ].join('\n');
+  } else {
+    // Handle primitive values
+    return `Value\n"${data}"`;
+  }
+}

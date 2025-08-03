@@ -163,7 +163,8 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:microservices.io)",
       "WebFetch(domain:martinfowler.com)",
-      "WebFetch(domain:research.google.com)"
+      "WebFetch(domain:research.google.com)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }
