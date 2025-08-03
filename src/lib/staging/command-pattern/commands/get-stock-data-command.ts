@@ -172,12 +172,10 @@ export class GetStockDataCommand extends MacroCommand {
       this.checkPermissions('READ_MARKET_DATA');
       this.checkPermissions('API_ACCESS');
 
-      console.log(`GetStockDataCommand: Starting execution for ticker ${this.input.ticker}`, {
-        ticker: this.input.ticker,
-        includeAfterHours: this.input.includeAfterHours,
-        includeTechnicalAnalysis: this.input.includeTechnicalAnalysis,
-        correlationId: this.securityContext.correlationId
-      });
+      // Reduced logging - only log execution start for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GetStockDataCommand: Starting execution for ticker ${this.input.ticker}`);
+      }
 
       // Fetch stock snapshot
       const stockSnapshot = await this.fetchStockSnapshot();
@@ -226,13 +224,10 @@ export class GetStockDataCommand extends MacroCommand {
         this.context.setSharedState('aiAnalyzedTaJson', JSON.stringify(technicalAnalysis));
       }
 
-      console.log(`GetStockDataCommand: Successfully fetched stock data`, {
-        ticker: this.input.ticker,
-        dataQuality,
-        latency: output.metadata.latency,
-        apiCallCount,
-        correlationId: this.securityContext.correlationId
-      });
+      // Reduced logging - only log completion for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GetStockDataCommand: Successfully fetched stock data for ${this.input.ticker} (${dataQuality} quality)`);
+      }
 
       return output;
 

@@ -235,12 +235,14 @@ export abstract class MacroCommand {
           { originalError: error }
         );
 
-        // Log retry attempt
-        console.warn(`Command ${this.metadata.name} failed on attempt ${attempt}/${this.metadata.maxRetries}`, {
-          error: lastError,
-          traceId,
-          spanId
-        });
+        // Log retry attempt (only for critical errors or final attempt)
+        if (attempt === this.metadata.maxRetries || lastError.category === 'SECURITY') {
+          console.warn(`Command ${this.metadata.name} failed on attempt ${attempt}/${this.metadata.maxRetries}`, {
+            error: lastError,
+            traceId,
+            spanId
+          });
+        }
 
         // If not the last attempt and error is retryable, wait before retry
         if (attempt < this.metadata.maxRetries && lastError.retryable) {

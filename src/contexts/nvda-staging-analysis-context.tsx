@@ -334,16 +334,22 @@ const initialState: NvdaStagingAnalysisState = {
 function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: NvdaStagingAnalysisAction): NvdaStagingAnalysisState {
   logger.state('StagingReducer', 'Action dispatched', { type: action.type, previousStatus: state.status });
   
-  // Add audit event for all state mutations
-  const auditEvent: AuditEvent = {
+  // Optimized audit events - only create for significant actions to prevent excessive state mutations
+  const shouldAudit = [
+    'SET_ERROR', 'RESET_STATE', 'SET_EXPERIMENT_TYPE', 'SET_EXPERIMENT_ACTIVE',
+    'VALIDATE_ISOLATION', 'UPDATE_COMPLIANCE_STATUS', 'SECURITY_ALERT',
+    'ENABLE_SECURITY_MONITORING', 'DISABLE_SECURITY_MONITORING'
+  ].includes(action.type);
+  
+  const auditEvent: AuditEvent | null = shouldAudit ? {
     id: generateUUID(),
     type: 'STATE_MUTATION',
     action: action.type,
     timestamp: new Date().toISOString(),
     userId: state.securityContext.userId,
     details: { action },
-    severity: 'low',
-  };
+    severity: action.type === 'SET_ERROR' || action.type === 'SECURITY_ALERT' ? 'high' : 'low',
+  } : null;
 
   switch (action.type) {
     // === CORE ACTIONS (IDENTICAL TO PRODUCTION) ===
@@ -351,7 +357,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
       return { 
         ...state, 
         status: 'loading',
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_IDLE':
@@ -359,7 +365,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state, 
         status: 'idle', 
         error: null,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_ERROR':
@@ -367,28 +373,28 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state, 
         status: 'error', 
         error: action.payload,
-        auditTrail: [...state.auditTrail, { ...auditEvent, severity: 'high' }],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_EXPIRATION_DATES':
       return { 
         ...state, 
         availableExpirationDates: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_SELECTED_EXPIRATION':
       return { 
         ...state, 
         selectedExpirationDate: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_OPTIONS_SETTINGS':
       return { 
         ...state, 
         ...action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_STOCK_DATA':
@@ -397,7 +403,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...action.payload,
         hasStockData: true,
         hasAiTaData: true,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_OPTIONS_CHAIN_DATA':
@@ -405,7 +411,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         optionsChainJson: action.payload,
         hasOptionsChainData: action.payload.length > 0,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_AI_KEY_TAKEAWAYS':
@@ -414,14 +420,14 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         aiKeyTakeawaysJson: action.payload,
         hasAiKeyTakeaways: action.payload.length > 0,
         isAiKeyTakeawaysLoading: false,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_AI_KEY_TAKEAWAYS_LOADING':
       return {
         ...state,
         isAiKeyTakeawaysLoading: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_AI_OPTIONS_ANALYSIS':
@@ -430,21 +436,21 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         aiOptionsAnalysisJson: action.payload,
         hasAiOptionsAnalysis: action.payload.length > 0,
         isAiOptionsAnalysisLoading: false,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_AI_OPTIONS_ANALYSIS_LOADING':
       return {
         ...state,
         isAiOptionsAnalysisLoading: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_DATA_RETRIEVAL_COMPLETE':
       return {
         ...state,
         dataRetrievalComplete: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_AI_CHAT_RAW_DATA':
@@ -483,7 +489,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
       return {
         ...state,
         ...updates,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'RESET_STATE':
@@ -494,7 +500,15 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
           sessionId: generateUUID(),
           timestamp: new Date().toISOString(),
         },
-        auditTrail: [{ ...auditEvent, action: 'RESET_STATE', severity: 'medium' }],
+        auditTrail: [{
+          id: generateUUID(),
+          type: 'STATE_MUTATION',
+          action: 'RESET_STATE',
+          timestamp: new Date().toISOString(),
+          userId: initialState.securityContext.userId,
+          details: { action: { type: 'RESET_STATE' } },
+          severity: 'medium',
+        }],
       };
 
     // === STAGING-SPECIFIC ACTIONS ===
@@ -503,14 +517,14 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         experimentType: action.payload,
         experimentStartTime: new Date().toISOString(),
-        auditTrail: [...state.auditTrail, { ...auditEvent, severity: 'medium' }],
+        auditTrail: auditEvent ? [...state.auditTrail, { ...auditEvent, severity: 'medium' }] : state.auditTrail,
       };
     
     case 'SET_EXPERIMENT_CONFIG':
       return {
         ...state,
         experimentConfig: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_EXPERIMENT_ACTIVE':
@@ -518,21 +532,21 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         experimentActive: action.payload,
         experimentStartTime: action.payload ? new Date().toISOString() : null,
-        auditTrail: [...state.auditTrail, { ...auditEvent, severity: 'medium' }],
+        auditTrail: auditEvent ? [...state.auditTrail, { ...auditEvent, severity: 'medium' }] : state.auditTrail,
       };
     
     case 'SET_EXPERIMENT_LOADING':
       return {
         ...state,
         isExperimentLoading: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'UPDATE_PERFORMANCE_METRICS':
       return {
         ...state,
         performanceMetrics: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_PERFORMANCE_BASELINE':
@@ -540,7 +554,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         performanceBaseline: action.payload,
         performanceComparison: true,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'VALIDATE_ISOLATION':
@@ -548,17 +562,17 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         isolationValidation: action.payload,
         isIsolationValidating: false,
-        auditTrail: [...state.auditTrail, { 
+        auditTrail: auditEvent ? [...state.auditTrail, { 
           ...auditEvent, 
           severity: action.payload.violations.length > 0 ? 'high' : 'low' 
-        }],
+        }] : state.auditTrail,
       };
     
     case 'SET_ISOLATION_VALIDATING':
       return {
         ...state,
         isIsolationValidating: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'UPDATE_COMPLIANCE_STATUS':
@@ -566,14 +580,14 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         complianceStatus: action.payload,
         isComplianceChecking: false,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'SET_COMPLIANCE_CHECKING':
       return {
         ...state,
         isComplianceChecking: action.payload,
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'ADD_AUDIT_EVENT':
@@ -588,14 +602,14 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         featureFlags: { ...state.featureFlags, [flag]: enabled },
         flagApprovals: approver ? { ...state.flagApprovals, [flag]: approver } : state.flagApprovals,
-        auditTrail: [...state.auditTrail, { ...auditEvent, severity: 'medium' }],
+        auditTrail: auditEvent ? [...state.auditTrail, { ...auditEvent, severity: 'medium' }] : state.auditTrail,
       };
     
     case 'UPDATE_SECURITY_CONTEXT':
       return {
         ...state,
         securityContext: { ...state.securityContext, ...action.payload },
-        auditTrail: [...state.auditTrail, auditEvent],
+        auditTrail: auditEvent ? [...state.auditTrail, auditEvent] : state.auditTrail,
       };
     
     case 'ENABLE_SECURITY_MONITORING':
@@ -603,7 +617,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         securityMonitoringActive: true,
         threatDetectionActive: true,
-        auditTrail: [...state.auditTrail, { ...auditEvent, severity: 'medium' }],
+        auditTrail: auditEvent ? [...state.auditTrail, { ...auditEvent, severity: 'medium' }] : state.auditTrail,
       };
     
     case 'DISABLE_SECURITY_MONITORING':
@@ -611,7 +625,7 @@ function nvdaStagingAnalysisReducer(state: NvdaStagingAnalysisState, action: Nvd
         ...state,
         securityMonitoringActive: false,
         threatDetectionActive: false,
-        auditTrail: [...state.auditTrail, { ...auditEvent, severity: 'high' }],
+        auditTrail: auditEvent ? [...state.auditTrail, { ...auditEvent, severity: 'high' }] : state.auditTrail,
       };
     
     case 'SECURITY_ALERT':
@@ -671,7 +685,7 @@ interface NvdaStagingAnalysisProviderProps {
 export function NvdaStagingAnalysisProvider({ children }: NvdaStagingAnalysisProviderProps) {
   const [state, dispatch] = useReducer(nvdaStagingAnalysisReducer, initialState);
 
-  // Security monitoring and isolation validation
+  // Security monitoring and isolation validation - optimized to prevent loops
   useEffect(() => {
     // Validate isolation boundaries on mount
     const validateIsolation = () => {
@@ -704,46 +718,53 @@ export function NvdaStagingAnalysisProvider({ children }: NvdaStagingAnalysisPro
       }
     };
 
-    validateIsolation();
+    // Run initial validation with delay to prevent immediate loops
+    const initialTimeout = setTimeout(validateIsolation, 500);
     
-    // Set up periodic validation
-    const interval = setInterval(validateIsolation, 30000); // Every 30 seconds
+    // Set up periodic validation with longer interval
+    const interval = setInterval(validateIsolation, 60000); // Every 60 seconds (reduced frequency)
 
     return () => {
+      clearTimeout(initialTimeout);
       clearInterval(interval);
       
-      // Cleanup audit event
+      // Enhanced cleanup for memory leak prevention
+      if (typeof window !== 'undefined') {
+        // Clear any staging-specific global variables
+        Object.keys(window).forEach(key => {
+          if (key.includes('STAGING') || key.includes('staging')) {
+            try {
+              delete (window as any)[key];
+            } catch (e) {
+              // Ignore deletion errors for non-configurable properties
+            }
+          }
+        });
+      }
+    };
+  }, []); // Empty dependency array for mount-only effect
+
+  // Log provider mount for audit trail - delayed to prevent immediate dispatch loops
+  useEffect(() => {
+    const mountTimeout = setTimeout(() => {
       dispatch({
         type: 'ADD_AUDIT_EVENT',
         payload: {
           id: generateUUID(),
-          type: 'PROVIDER_CLEANUP',
-          action: 'UNMOUNT',
+          type: 'PROVIDER_MOUNT',
+          action: 'INITIALIZATION',
           timestamp: new Date().toISOString(),
-          details: { sessionDuration: Date.now() - new Date(state.securityContext.timestamp).getTime() },
+          details: { 
+            environment: 'staging',
+            securityMonitoring: true,
+            isolationBoundaries: true,
+          },
           severity: 'low',
         },
       });
-    };
-  }, []);
+    }, 1000); // 1 second delay
 
-  // Log provider mount for audit trail
-  useEffect(() => {
-    dispatch({
-      type: 'ADD_AUDIT_EVENT',
-      payload: {
-        id: generateUUID(),
-        type: 'PROVIDER_MOUNT',
-        action: 'INITIALIZATION',
-        timestamp: new Date().toISOString(),
-        details: { 
-          environment: 'staging',
-          securityMonitoring: true,
-          isolationBoundaries: true,
-        },
-        severity: 'low',
-      },
-    });
+    return () => clearTimeout(mountTimeout);
   }, []);
 
   console.log('NvdaStagingAnalysisProvider: Provider rendered', { 

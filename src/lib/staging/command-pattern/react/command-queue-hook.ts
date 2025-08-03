@@ -13,7 +13,7 @@
  * - Memory leak prevention with proper cleanup
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { EnhancedMacroCommandQueue, QueueEvent, QueueMetrics } from '../queue/enhanced-command-queue';
 import { MacroCommand, MacroExecutionContext, SecurityContext } from '../interfaces/command';
 
@@ -386,7 +386,7 @@ export function useCommandQueue(
 // ===============================
 
 /**
- * Hook for managing NVDA staging macro automation commands
+ * Hook for managing NVDA staging macro automation commands - optimized for performance
  */
 export function useNVDAMacroCommands(
   context: MacroExecutionContext,
@@ -394,46 +394,109 @@ export function useNVDAMacroCommands(
   options?: UseCommandQueueOptions
 ) {
   const commandQueue = useCommandQueue(context, securityContext, options);
+  
+  // Memoize command imports to prevent re-importing on every execution
+  const commandImports = useRef<{
+    FetchExpirationsCommand?: any;
+    GetStockDataCommand?: any;
+    GenerateAITakeawaysCommand?: any;
+    GenerateAIOptionsCommand?: any;
+  }>({});
+  
+  // Pre-load command imports once for better performance
+  useEffect(() => {
+    const preloadCommands = async () => {
+      if (!commandImports.current.FetchExpirationsCommand) {
+        const [fetchExp, getStock, genTakeaways, genOptions] = await Promise.all([
+          import('../commands/fetch-expirations-command'),
+          import('../commands/get-stock-data-command'),
+          import('../commands/generate-ai-takeaways-command'),
+          import('../commands/generate-ai-options-command')
+        ]);
+        
+        commandImports.current = {
+          FetchExpirationsCommand: fetchExp.FetchExpirationsCommand,
+          GetStockDataCommand: getStock.GetStockDataCommand,
+          GenerateAITakeawaysCommand: genTakeaways.GenerateAITakeawaysCommand,
+          GenerateAIOptionsCommand: genOptions.GenerateAIOptionsCommand,
+        };
+      }
+    };
+    
+    preloadCommands().catch(console.error);
+    
+    // Enhanced cleanup for memory leak prevention
+    return () => {
+      // Clear command imports on unmount
+      commandImports.current = {};
+    };
+  }, []); // Empty dependency array ensures this only runs once
+
+  // Memoize command factory functions to prevent recreation
+  const commandFactories = useMemo(() => ({
+    createFetchExpirations: () => {
+      const { FetchExpirationsCommand } = commandImports.current;
+      return FetchExpirationsCommand?.createForNVDA(context, securityContext);
+    },
+    createGetStockData: () => {
+      const { GetStockDataCommand } = commandImports.current;
+      return GetStockDataCommand?.createForNVDA(context, securityContext);
+    },
+    createAITakeaways: (analysisType: string) => {
+      const { GenerateAITakeawaysCommand } = commandImports.current;
+      return new GenerateAITakeawaysCommand(
+        { analysisType: analysisType as any, ticker: 'NVDA' },
+        context,
+        securityContext
+      );
+    },
+    createAIOptions: () => {
+      const { GenerateAIOptionsCommand } = commandImports.current;
+      return GenerateAIOptionsCommand?.createForNVDA(context, securityContext, 'detailed');
+    }
+  }), [context, securityContext]);
 
   const executeNVDAMacro = useCallback(async (analysisTypes?: string[]) => {
-    const { FetchExpirationsCommand } = await import('../commands/fetch-expirations-command');
-    const { GetStockDataCommand } = await import('../commands/get-stock-data-command');
-    const { GenerateAITakeawaysCommand } = await import('../commands/generate-ai-takeaways-command');
-    const { GenerateAIOptionsCommand } = await import('../commands/generate-ai-options-command');
+    // Check if commands are loaded
+    if (!commandImports.current.FetchExpirationsCommand) {
+      throw new Error('Commands not yet loaded. Please try again in a moment.');
+    }
 
     // Clear existing commands
     commandQueue.actions.clearQueue();
 
-    // Build command sequence
+    // Build command sequence using factory functions
     const commands = [];
 
     // 1. Fetch expiration dates
-    commands.push(FetchExpirationsCommand.createForNVDA(context, securityContext));
+    const fetchExpCommand = commandFactories.createFetchExpirations();
+    if (fetchExpCommand) commands.push(fetchExpCommand);
 
     // 2. Get stock data with technical analysis
-    commands.push(GetStockDataCommand.createForNVDA(context, securityContext));
+    const stockDataCommand = commandFactories.createGetStockData();
+    if (stockDataCommand) commands.push(stockDataCommand);
 
     // 3. Generate AI takeaways (multiple types if requested)
     const defaultAnalysisTypes = analysisTypes || ['stock-trader-takeaways', 'holistic-takeaways'];
+    const validAnalysisTypes = ['stock-trader-takeaways', 'options-trader-takeaways', 'holistic-takeaways'];
+    
     for (const analysisType of defaultAnalysisTypes) {
-      if (['stock-trader-takeaways', 'options-trader-takeaways', 'holistic-takeaways'].includes(analysisType)) {
-        commands.push(new GenerateAITakeawaysCommand(
-          { analysisType: analysisType as any, ticker: 'NVDA' },
-          context,
-          securityContext
-        ));
+      if (validAnalysisTypes.includes(analysisType)) {
+        const takeawaysCommand = commandFactories.createAITakeaways(analysisType);
+        if (takeawaysCommand) commands.push(takeawaysCommand);
       }
     }
 
     // 4. Generate AI options analysis
-    commands.push(GenerateAIOptionsCommand.createForNVDA(context, securityContext, 'detailed'));
+    const optionsCommand = commandFactories.createAIOptions();
+    if (optionsCommand) commands.push(optionsCommand);
 
     // Add all commands to queue
     commandQueue.actions.addCommands(commands);
 
     // Execute the queue
     await commandQueue.actions.execute();
-  }, [commandQueue, context, securityContext]);
+  }, [commandQueue, commandFactories]);
 
   return {
     ...commandQueue,

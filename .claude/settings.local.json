@@ -166,7 +166,10 @@
       "WebFetch(domain:research.google.com)",
       "Bash(timeout:*)",
       "Bash(next build)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "Bash(npx tsx:*)",
+      "WebFetch(domain:react.dev)"
     ],
     "deny": []
   }

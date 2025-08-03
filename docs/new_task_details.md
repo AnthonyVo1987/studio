@@ -135,15 +135,21 @@ AI Team Mandates:
 
 * CRITICAL MANDATE for AI Team: TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM PERFORMING ANY OF THE ACTUAL WORK BECAUSE THIS IS A VIOLATION. TECH-LEAD-ORCHESTRATOR IS REQUIRED TO DELEGATE & COORDINATE THE AI TEAM. For example, TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM READING ANY DOCS, CODE, INVESTIGATING CODE, REVIEWING CODE, UPDATING\FIXING DOCS, PERFORMING GIT COMMIT & PUSH OPERATIONS ETC
 
-
 *  AI Team: MUST USE MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL
 
-###
-- Ask the AI Team to implement and code up Command Pattern (Option 3) with full details from "/docs/macro-re-architecture/option-3-command-pattern-prd.md"
-- AI Team:  will ONLY implement the changes for the staging NVDA tab ONLY, and keep the current business critical dedicated NVDA\SPY pages alone
-- New version will be "v4.5.1.0"
-- AI Team: After ALL initial code is complete, AI Team to start a loop for code review the changes, and if fixes are needed, AI team to FIX everything flaged from code review in a loop until AI team finally gets a PASSING code review
--AI Team: will PAUSE after a successful PASSING code review of all changes so User can Test the changes before we commit
+##
+
+- Ask the AI Team to debug, investigate, and fix the issues from "/docs/web_console_log.md" 
+- There could be other issues that User did not notice\report\flag, so need to verify if any other issues
+- MULTIPLE STAGING NVDA UI\RENDER Cards not working at all: NVDA Market Status, NVDA Key Metrics, NVDA Technical Analysis, NVDA AI Technical Analysis, NVDA Options Chain, NVDA AI Key Takeaways, NVDA AI Options Analysis  
+- Stock Snapshot seems to be the only card fully functioning for UI/Render
+- Completely missing raw JSON data for Staging NVDA tab, which could be related to UI\Render issue(es)
+- User suspects because there is no raw JSON data section for the Staging NVDA tab, then each UI/Render component does NOT have data to even update the UI/Render with
+
+##
+- IF all coding is complete for the fix(es), ask AI Team to perform comprehensive code & architectural review with MANDATORY Context7 & Sequential Thinking tool use.  Fix anything flagged from code review
+
+- AI team to PAUSE after a PASSING code review step so User can Test out the fixes
 
 ### Current Situation
 

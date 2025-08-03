@@ -15,7 +15,7 @@
  * - Automated compliance monitoring with regulatory validation
  */
 
-import React, { useEffect, ReactNode } from 'react';
+import React, { useEffect, useRef, useState, ReactNode } from 'react';
 import { useNvdaStagingAnalysis, useNvdaStagingDispatch } from '@/contexts/nvda-staging-analysis-context';
 import { generateUUID } from '@/lib/staging/uuid-polyfill';
 
@@ -44,8 +44,27 @@ export function StagingIsolationBoundary({
 }: IsolationBoundaryProps) {
   const stagingState = useNvdaStagingAnalysis();
   const stagingDispatch = useNvdaStagingDispatch();
+  
+  // Hydration safety
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  // Use refs to maintain stable references and prevent infinite loops
+  const dispatchRef = useRef(stagingDispatch);
+  const enableStrictModeRef = useRef(enableStrictMode);
+  const enableThreatDetectionRef = useRef(enableThreatDetection);
+  const enableComplianceMonitoringRef = useRef(enableComplianceMonitoring);
+  
+  // Update refs when values change
+  dispatchRef.current = stagingDispatch;
+  enableStrictModeRef.current = enableStrictMode;
+  enableThreatDetectionRef.current = enableThreatDetection;
+  enableComplianceMonitoringRef.current = enableComplianceMonitoring;
 
-  // Security validation logic
+  // Security validation logic - optimized to prevent infinite loops
   const validateIsolation = React.useCallback(() => {
     const violations: string[] = [];
     const threats: SecurityThreat[] = [];
@@ -112,8 +131,8 @@ export function StagingIsolationBoundary({
       }
     }
 
-    // Update isolation status
-    stagingDispatch({
+    // Use ref to prevent dispatch loops
+    dispatchRef.current({
       type: 'VALIDATE_ISOLATION',
       payload: {
         validated: violations.length === 0,
@@ -123,37 +142,39 @@ export function StagingIsolationBoundary({
       },
     });
 
-    // Handle security threats
-    threats.forEach(threat => {
-      stagingDispatch({
-        type: 'SECURITY_ALERT',
-        payload: {
-          type: threat.type,
-          severity: threat.severity,
-          details: {
-            id: threat.id,
-            description: threat.description,
-            timestamp: threat.timestamp,
-            violations,
-            mitigated: threat.mitigated,
+    // Handle security threats - throttle to prevent excessive alerts
+    if (threats.length > 0) {
+      threats.forEach(threat => {
+        dispatchRef.current({
+          type: 'SECURITY_ALERT',
+          payload: {
+            type: threat.type,
+            severity: threat.severity,
+            details: {
+              id: threat.id,
+              description: threat.description,
+              timestamp: threat.timestamp,
+              violations,
+              mitigated: threat.mitigated,
+            },
           },
-        },
-      });
+        });
 
-      // Log to console for immediate developer awareness
-      if (threat.severity === 'high' || threat.severity === 'critical') {
-        console.error('🚨 STAGING SECURITY ALERT:', threat);
-      } else {
-        console.warn('⚠️ STAGING SECURITY WARNING:', threat);
-      }
-    });
+        // Log to console for immediate developer awareness
+        if (threat.severity === 'high' || threat.severity === 'critical') {
+          console.error('🚨 STAGING SECURITY ALERT:', threat);
+        } else {
+          console.warn('⚠️ STAGING SECURITY WARNING:', threat);
+        }
+      });
+    }
 
     return { violations, threats };
-  }, [stagingDispatch]);
+  }, []); // Empty dependency array to prevent infinite loops
 
-  // Compliance monitoring
+  // Compliance monitoring - optimized to prevent loops
   const validateCompliance = React.useCallback(() => {
-    if (!enableComplianceMonitoring) return;
+    if (!enableComplianceMonitoringRef.current) return;
 
     const complianceChecks = {
       soc2Compliant: true,
@@ -176,13 +197,13 @@ export function StagingIsolationBoundary({
       console.error('🚨 COMPLIANCE VIOLATION: Data encryption is disabled');
     }
 
-    stagingDispatch({
+    dispatchRef.current({
       type: 'UPDATE_COMPLIANCE_STATUS',
       payload: complianceChecks,
     });
-  }, [enableComplianceMonitoring, stagingState.auditTrail.length, stagingState.auditingActive, stagingState.dataEncrypted, stagingDispatch]);
+  }, []); // Empty dependency array, use refs for values
 
-  // Performance monitoring
+  // Performance monitoring - optimized to prevent loops
   const monitorPerformance = React.useCallback(() => {
     if (typeof performance !== 'undefined') {
       const metrics = {
@@ -196,40 +217,53 @@ export function StagingIsolationBoundary({
         },
       };
 
-      stagingDispatch({
+      dispatchRef.current({
         type: 'UPDATE_PERFORMANCE_METRICS',
         payload: metrics,
       });
     }
-  }, [stagingDispatch]);
+  }, []); // Empty dependency array, use refs for dispatch
 
-  // Initialize security monitoring
+  // Initialize security monitoring - fixed to prevent infinite loops
   useEffect(() => {
-    if (!enableStrictMode) return;
+    if (!enableStrictModeRef.current) return;
 
-    // Initial validation
-    validateIsolation();
-    validateCompliance();
-    monitorPerformance();
+    // Initial validation - delayed to prevent immediate dispatch loops
+    const initialTimeout = setTimeout(() => {
+      validateIsolation();
+      validateCompliance();
+      monitorPerformance();
+    }, 100);
 
-    // Set up continuous monitoring
-    const isolationInterval = setInterval(validateIsolation, 5000); // Every 5 seconds
-    const complianceInterval = setInterval(validateCompliance, 30000); // Every 30 seconds
-    const performanceInterval = setInterval(monitorPerformance, 10000); // Every 10 seconds
+    // Set up continuous monitoring with longer intervals to reduce load
+    const isolationInterval = setInterval(validateIsolation, 30000); // Every 30 seconds (reduced from 5)
+    const complianceInterval = setInterval(validateCompliance, 60000); // Every 60 seconds (reduced from 30)
+    const performanceInterval = setInterval(monitorPerformance, 30000); // Every 30 seconds (reduced from 10)
 
     return () => {
+      clearTimeout(initialTimeout);
       clearInterval(isolationInterval);
       clearInterval(complianceInterval);
       clearInterval(performanceInterval);
     };
-  }, [enableStrictMode, validateIsolation, validateCompliance, monitorPerformance]);
+  }, []); // Empty dependency array to prevent infinite loops
 
-  // Threat detection
+  // Threat detection - optimized to reduce dispatch frequency
   useEffect(() => {
-    if (!enableThreatDetection) return;
+    if (!enableThreatDetectionRef.current) return;
+
+    // Throttle security events to prevent excessive dispatches
+    let lastEventTime = 0;
+    const throttleMs = 5000; // 5 seconds throttle
 
     const handleSecurityEvent = (event: any) => {
-      stagingDispatch({
+      const now = Date.now();
+      if (now - lastEventTime < throttleMs) {
+        return; // Throttle to prevent spam
+      }
+      lastEventTime = now;
+
+      dispatchRef.current({
         type: 'SECURITY_ALERT',
         payload: {
           type: 'UNAUTHORIZED_ACCESS',
@@ -243,8 +277,8 @@ export function StagingIsolationBoundary({
       });
     };
 
-    // Monitor for suspicious events
-    const securityEvents = ['beforeunload', 'visibilitychange', 'focus', 'blur'];
+    // Monitor for suspicious events - reduced set to essential ones
+    const securityEvents = ['beforeunload', 'visibilitychange'];
     securityEvents.forEach(eventType => {
       window.addEventListener(eventType, handleSecurityEvent);
     });
@@ -254,26 +288,31 @@ export function StagingIsolationBoundary({
         window.removeEventListener(eventType, handleSecurityEvent);
       });
     };
-  }, [enableThreatDetection, stagingDispatch]);
+  }, []); // Empty dependency array to prevent re-binding
 
-  // Security context validation
+  // Security context validation - run only once on mount to prevent loops
   useEffect(() => {
-    if (stagingState.securityContext.environment !== 'staging') {
-      console.error('🚨 SECURITY VIOLATION: Invalid security context environment');
-      stagingDispatch({
-        type: 'SECURITY_ALERT',
-        payload: {
-          type: 'ISOLATION_VIOLATION',
-          severity: 'critical',
-          details: {
-            message: 'Invalid security context environment',
-            expected: 'staging',
-            actual: stagingState.securityContext.environment,
+    const checkSecurityContext = () => {
+      if (stagingState.securityContext.environment !== 'staging') {
+        console.error('🚨 SECURITY VIOLATION: Invalid security context environment');
+        dispatchRef.current({
+          type: 'SECURITY_ALERT',
+          payload: {
+            type: 'ISOLATION_VIOLATION',
+            severity: 'critical',
+            details: {
+              message: 'Invalid security context environment',
+              expected: 'staging',
+              actual: stagingState.securityContext.environment,
+            },
           },
-        },
-      });
-    }
-  }, [stagingState.securityContext.environment, stagingDispatch]);
+        });
+      }
+    };
+
+    // Run check once on mount, then only when environment actually changes
+    checkSecurityContext();
+  }, [stagingState.securityContext.environment]); // Only re-run if environment changes
 
   return (
     <div 
@@ -304,7 +343,7 @@ export function StagingIsolationBoundary({
             zIndex: 9999,
           }}
         >
-          {stagingState.isolationValidation.validated ? '🛡️ SECURE' : '🚨 VIOLATION'}
+          {isClient ? (stagingState.isolationValidation.validated ? '🛡️ SECURE' : '🚨 VIOLATION') : '🔄 LOADING'}
         </div>
       )}
       

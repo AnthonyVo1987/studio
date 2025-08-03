@@ -143,11 +143,13 @@ export class EnhancedMacroCommandQueue extends EventEmitter {
   addCommands(commands: MacroCommand[]): void {
     this.validateQueueModification();
     
-    // Validate all commands before adding any
+    // Validate security for all commands
     commands.forEach(cmd => {
       this.validateCommandSecurity(cmd);
-      this.validateDependencies(cmd);
     });
+
+    // Validate dependencies within the batch AND existing queue
+    this.validateBatchDependencies(commands);
 
     this.commands.push(...commands);
     this.sortByPriority();
@@ -586,6 +588,38 @@ export class EnhancedMacroCommandQueue extends EventEmitter {
           false,
           { commandId: command.getId(), missingDependency: depId, dependencies }
         );
+      }
+    }
+  }
+
+  private validateBatchDependencies(commands: MacroCommand[]): void {
+    // Create combined map of existing commands + new commands being added
+    const allCommands = [...this.commands, ...commands];
+    const commandIdMap = new Map<string, MacroCommand>();
+    
+    // Build command ID lookup map
+    allCommands.forEach(cmd => {
+      commandIdMap.set(cmd.getId(), cmd);
+    });
+
+    // Validate each command's dependencies exist in the combined set
+    for (const command of commands) {
+      const dependencies = command.getDependencies();
+      for (const depId of dependencies) {
+        if (!commandIdMap.has(depId)) {
+          throw new CommandError(
+            `Command ${command.getName()} has missing dependency: ${depId}`,
+            'MISSING_DEPENDENCY',
+            'VALIDATION',
+            false,
+            { 
+              commandId: command.getId(), 
+              missingDependency: depId, 
+              dependencies,
+              availableCommands: Array.from(commandIdMap.keys())
+            }
+          );
+        }
       }
     }
   }

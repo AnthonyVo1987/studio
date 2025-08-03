@@ -32,7 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CalendarDays, Search, Zap, Settings, FileText, CandlestickChart, Shield, AlertTriangle, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 
 // NVDA Staging Context
 import { 
@@ -67,97 +67,15 @@ const logger = createTickerLogger(NVDA_STAGING_TICKER, TICKER_PAGES.NVDA_TAB);
 // Staging Display Components
 import { NvdaStagingDataSection } from '@/components/staging/nvda-staging-data-section';
 import { NvdaStagingStockSnapshotDisplay } from '@/components/staging/nvda-staging-stock-snapshot-display';
-
-// Placeholder components for remaining display components
-const NvdaStagingMarketStatusDisplay = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 Market Status (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging market status component placeholder</div>
-    </CardContent>
-  </Card>
-);
-
-const NvdaStagingKeyMetricsDisplay = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 Key Metrics (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging key metrics component placeholder</div>
-    </CardContent>
-  </Card>
-);
-
-// Placeholder removed - using actual component from import
-
-const NvdaStagingStandardTaDisplay = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 Standard TA (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging standard TA component placeholder</div>
-    </CardContent>
-  </Card>
-);
-
-const NvdaStagingAiAnalyzedTaDisplay = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 AI Analyzed TA (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging AI analyzed TA component placeholder</div>
-    </CardContent>
-  </Card>
-);
-
-const NvdaStagingOptionsChainTable = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 Options Chain (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging options chain component placeholder</div>
-    </CardContent>
-  </Card>
-);
-
-const NvdaStagingAiKeyTakeawaysDisplay = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 AI Key Takeaways (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging AI key takeaways component placeholder</div>
-    </CardContent>
-  </Card>
-);
-
-const NvdaStagingAiOptionsAnalysisDisplay = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 AI Options Analysis (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging AI options analysis component placeholder</div>
-    </CardContent>
-  </Card>
-);
-
-const NvdaStagingConsolidatedChat = () => (
-  <Card className="border-orange-200">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-orange-700">🧪 Consolidated Chat (Staging)</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-sm text-muted-foreground">Staging consolidated chat component placeholder</div>
-    </CardContent>
-  </Card>
-);
+import { NvdaStagingMarketStatusDisplay } from '@/components/staging/nvda-staging-market-status-display';
+import { NvdaStagingKeyMetricsDisplay } from '@/components/staging/nvda-staging-key-metrics-display';
+import { NvdaStagingStandardTaDisplay } from '@/components/staging/nvda-staging-standard-ta-display';
+import { NvdaStagingAiAnalyzedTaDisplay } from '@/components/staging/nvda-staging-ai-analyzed-ta-display';
+import { NvdaStagingOptionsChainTable } from '@/components/staging/nvda-staging-options-chain-table';
+import { NvdaStagingAiKeyTakeawaysDisplay } from '@/components/staging/nvda-staging-ai-key-takeaways-display';
+import { NvdaStagingAiOptionsAnalysisDisplay } from '@/components/staging/nvda-staging-ai-options-analysis-display';
+import { NvdaStagingConsolidatedChat } from '@/components/staging/nvda-staging-consolidated-chat';
+import { NvdaStagingRawJsonDisplay } from '@/components/staging/nvda-staging-raw-json-display';
 
 // Import the Command Pattern Macro Automation component
 import { NvdaStagingCommandMacroAutomation } from '@/components/staging/nvda-staging-command-macro-automation';
@@ -167,6 +85,13 @@ export function NvdaStagingTabContent() {
   const stagingState = useNvdaStagingAnalysis();
   const stagingDispatch = useNvdaStagingDispatch();
   const { toast } = useToast();
+  
+  // Hydration safety check
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Performance monitoring ref for deterministic handlers
   const performanceRef = useRef({
@@ -198,7 +123,13 @@ export function NvdaStagingTabContent() {
         },
       });
 
-      const expirationDates = await getExpirationDates('NVDA');
+      // Enhanced timeout wrapper for network requests
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout after 30 seconds')), 30000);
+      });
+      
+      const expirationPromise = getExpirationDates('NVDA');
+      const expirationDates = await Promise.race([expirationPromise, timeoutPromise]) as string[];
       
       if (expirationDates && expirationDates.length > 0) {
         stagingDispatch({ type: 'SET_EXPIRATION_DATES', payload: expirationDates });
@@ -222,7 +153,20 @@ export function NvdaStagingTabContent() {
         throw new Error('No expiration dates available');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      let errorMessage = 'Unknown error';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please check your network connection and try again.';
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Network error occurred. Please verify your internet connection.';
+        } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNRESET')) {
+          errorMessage = 'Connection failed. Please check network connectivity and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       stagingDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
@@ -291,7 +235,13 @@ export function NvdaStagingTabContent() {
         },
       });
 
-      const result = await fetchStockDataAction({ ticker: 'NVDA' });
+      // Enhanced timeout wrapper for network requests
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout after 45 seconds')), 45000);
+      });
+      
+      const stockDataPromise = fetchStockDataAction({ ticker: 'NVDA' });
+      const result = await Promise.race([stockDataPromise, timeoutPromise]) as any;
       
       if (result.status === 'success' && result.data) {
         stagingDispatch({
@@ -318,7 +268,26 @@ export function NvdaStagingTabContent() {
         throw new Error(result.message || 'Failed to fetch stock data');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      let errorMessage = 'Unknown error';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Stock data request timed out. The server may be overloaded. Please try again.';
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Failed to fetch stock data due to network issues. Please verify connectivity.';
+        } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNRESET')) {
+          errorMessage = 'Connection to data provider failed. Please check network and try again.';
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+          errorMessage = 'Authentication error. Please check API credentials and permissions.';
+        } else if (error.message.includes('429')) {
+          errorMessage = 'Rate limit exceeded. Please wait a moment before trying again.';
+        } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+          errorMessage = 'Server error occurred. The service may be temporarily unavailable.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       stagingDispatch({ type: 'SET_ERROR', payload: errorMessage });
       
       toast({
@@ -365,8 +334,10 @@ export function NvdaStagingTabContent() {
     }
   }, [stagingDispatch, toast]);
 
-  // Security monitoring on mount
+  // Security monitoring on mount - client-side only to prevent hydration issues
   useEffect(() => {
+    if (!isClient) return;
+    
     // Initialize staging environment
     AuditLogger.logEvent({
       type: 'SYSTEM_EVENT',
@@ -402,7 +373,7 @@ export function NvdaStagingTabContent() {
         });
       }
     });
-  }, [stagingState.experimentType, stagingState.securityMonitoringActive, stagingDispatch]);
+  }, [isClient, stagingState.experimentType, stagingState.securityMonitoringActive, stagingDispatch]);
 
   console.log('NvdaStagingTabContent: Component rendered', { 
     status: stagingState.status,
@@ -435,21 +406,21 @@ export function NvdaStagingTabContent() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${stagingState.isolationValidation.validated ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div className={`w-3 h-3 rounded-full ${isClient && stagingState.isolationValidation.validated ? 'bg-green-500' : 'bg-red-500'}`} />
                   <span className="text-sm font-medium">
-                    Isolation: {stagingState.isolationValidation.validated ? 'Validated' : 'Violated'}
+                    Isolation: {isClient ? (stagingState.isolationValidation.validated ? 'Validated' : 'Violated') : 'Loading...'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${stagingState.securityMonitoringActive ? 'bg-green-500' : 'bg-gray-400'}`} />
+                  <div className={`w-3 h-3 rounded-full ${isClient && stagingState.securityMonitoringActive ? 'bg-green-500' : 'bg-gray-400'}`} />
                   <span className="text-sm font-medium">
-                    Security: {stagingState.securityMonitoringActive ? 'Active' : 'Inactive'}
+                    Security: {isClient ? (stagingState.securityMonitoringActive ? 'Active' : 'Inactive') : 'Loading...'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${stagingState.complianceStatus.soc2Compliant ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div className={`w-3 h-3 rounded-full ${isClient && stagingState.complianceStatus.soc2Compliant ? 'bg-green-500' : 'bg-red-500'}`} />
                   <span className="text-sm font-medium">
-                    Compliance: {stagingState.complianceStatus.soc2Compliant ? 'SOC2' : 'Non-Compliant'}
+                    Compliance: {isClient ? (stagingState.complianceStatus.soc2Compliant ? 'SOC2' : 'Non-Compliant') : 'Loading...'}
                   </span>
                 </div>
               </div>
@@ -554,6 +525,9 @@ export function NvdaStagingTabContent() {
 
               {/* Consolidated Chat */}
               <NvdaStagingConsolidatedChat />
+
+              {/* Raw JSON Data */}
+              <NvdaStagingRawJsonDisplay />
             </div>
           </NvdaStagingDataSection>
         </div>

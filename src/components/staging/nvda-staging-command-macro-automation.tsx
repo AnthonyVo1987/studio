@@ -16,7 +16,7 @@
 
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, startTransition, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -31,6 +31,7 @@ import { useNVDAMacroCommands } from '@/lib/staging/command-pattern/react/comman
 import { DefaultMacroExecutionContext, SecurityContext } from '@/lib/staging/command-pattern/interfaces/command';
 import { QueueEvent } from '@/lib/staging/command-pattern/queue/enhanced-command-queue';
 import { generateUUID } from '@/lib/staging/uuid-polyfill';
+import { BrowserExtensionErrorBoundary, useBrowserExtensionErrorHandler } from '@/components/staging/browser-extension-error-boundary';
 
 // ===============================
 // COMPONENT TYPES
@@ -72,11 +73,14 @@ export function NvdaStagingCommandMacroAutomation() {
   const stagingContext = useNvdaStagingAnalysis();
   const stagingDispatch = useNvdaStagingDispatch();
 
+  // Hook for browser extension error handling
+  useBrowserExtensionErrorHandler();
+
   // Execution context and security setup
   const [executionContext] = useState(() => new DefaultMacroExecutionContext());
   const [securityContext] = useState<SecurityContext>(() => ({
     userId: 'staging-user',
-    permissions: ['READ_STOCK_DATA', 'READ_OPTIONS_DATA', 'AI_ACCESS', 'API_ACCESS', 'GENERATE_INSIGHTS'],
+    permissions: ['READ_STOCK_DATA', 'READ_MARKET_DATA', 'READ_OPTIONS_DATA', 'AI_ACCESS', 'API_ACCESS', 'GENERATE_INSIGHTS'],
     sessionId: stagingContext.securityContext.sessionId,
     ipAddress: '127.0.0.1',
     correlationId: generateUUID(),
@@ -101,145 +105,193 @@ export function NvdaStagingCommandMacroAutomation() {
     'holistic-takeaways'
   ]);
 
-  // Event handlers
-  function handleQueueEvent(event: QueueEvent) {
-    console.log('Queue Event:', event.type, event);
+  // State for tracking events to handle outside render cycle
+  const [pendingAuditEvent, setPendingAuditEvent] = useState<any>(null);
 
-    // Update staging context with audit event
-    stagingDispatch({
-      type: 'ADD_AUDIT_EVENT',
-      payload: {
-        id: generateUUID(),
-        type: 'COMMAND_EXECUTION',
-        action: event.type,
-        timestamp: new Date().toISOString(),
-        userId: securityContext.userId,
-        details: {
-          eventType: event.type,
-          commandName: event.command?.getName(),
-          commandIndex: event.commandIndex,
-          correlationId: event.correlationId,
-          traceId: event.traceId
-        },
-        severity: event.type === 'stepFailed' ? 'high' : 'low'
-      }
+  // Event handlers with performance optimization
+  function handleQueueEvent(event: QueueEvent) {
+    // Reduce console logging - only log critical events
+    if (event.type === 'stepFailed' || event.type === 'completed' || event.type === 'cancelled') {
+      console.log('Queue Event:', event.type, event);
+    }
+
+    // Store audit event data for processing in useEffect
+    setPendingAuditEvent({
+      id: generateUUID(),
+      type: 'COMMAND_EXECUTION',
+      action: event.type,
+      timestamp: new Date().toISOString(),
+      userId: securityContext.userId,
+      details: {
+        eventType: event.type,
+        commandName: event.command?.getName(),
+        commandIndex: event.commandIndex,
+        correlationId: event.correlationId,
+        traceId: event.traceId
+      },
+      severity: event.type === 'stepFailed' ? 'high' : 'low'
     });
 
-    // Update current session
-    setCurrentSession(prev => {
-      if (!prev) return null;
+    // Update current session with startTransition for UI responsiveness
+    startTransition(() => {
+      setCurrentSession(prev => {
+        if (!prev) return null;
 
-      const updatedSession = { ...prev };
-      
-      switch (event.type) {
-        case 'stepStarted':
-          if (event.command && event.commandIndex !== undefined) {
-            updatedSession.steps[event.commandIndex] = {
-              ...updatedSession.steps[event.commandIndex],
-              status: 'running',
-              startTime: event.timestamp
-            };
-          }
-          break;
+        const updatedSession = { ...prev };
+        
+        switch (event.type) {
+          case 'stepStarted':
+            if (event.command && event.commandIndex !== undefined) {
+              updatedSession.steps[event.commandIndex] = {
+                ...updatedSession.steps[event.commandIndex],
+                status: 'running',
+                startTime: event.timestamp
+              };
+            }
+            break;
 
-        case 'stepCompleted':
-          if (event.command && event.commandIndex !== undefined) {
-            const step = updatedSession.steps[event.commandIndex];
-            updatedSession.steps[event.commandIndex] = {
-              ...step,
-              status: 'completed',
-              endTime: event.timestamp,
-              duration: step.startTime ? event.timestamp - step.startTime : 0,
-              result: event.result?.data
-            };
-            updatedSession.metrics.completedCommands++;
-          }
-          break;
+          case 'stepCompleted':
+            if (event.command && event.commandIndex !== undefined) {
+              const step = updatedSession.steps[event.commandIndex];
+              updatedSession.steps[event.commandIndex] = {
+                ...step,
+                status: 'completed',
+                endTime: event.timestamp,
+                duration: step.startTime ? event.timestamp - step.startTime : 0,
+                result: event.result?.data
+              };
+              updatedSession.metrics.completedCommands++;
+            }
+            break;
 
-        case 'stepFailed':
-          if (event.command && event.commandIndex !== undefined) {
-            const step = updatedSession.steps[event.commandIndex];
-            updatedSession.steps[event.commandIndex] = {
-              ...step,
-              status: 'failed',
-              endTime: event.timestamp,
-              duration: step.startTime ? event.timestamp - step.startTime : 0,
-              error: event.error?.message || 'Unknown error'
-            };
-            updatedSession.metrics.failedCommands++;
-          }
-          break;
+          case 'stepFailed':
+            if (event.command && event.commandIndex !== undefined) {
+              const step = updatedSession.steps[event.commandIndex];
+              updatedSession.steps[event.commandIndex] = {
+                ...step,
+                status: 'failed',
+                endTime: event.timestamp,
+                duration: step.startTime ? event.timestamp - step.startTime : 0,
+                error: event.error?.message || 'Unknown error'
+              };
+              updatedSession.metrics.failedCommands++;
+            }
+            break;
 
-        case 'completed':
-        case 'cancelled':
-          updatedSession.status = event.type;
-          updatedSession.endTime = event.timestamp;
-          updatedSession.totalDuration = event.timestamp - updatedSession.startTime;
-          updatedSession.metrics.successRate = 
-            updatedSession.metrics.totalCommands > 0 
-              ? (updatedSession.metrics.completedCommands / updatedSession.metrics.totalCommands) * 100 
-              : 0;
-          break;
-      }
+          case 'completed':
+          case 'cancelled':
+            updatedSession.status = event.type;
+            updatedSession.endTime = event.timestamp;
+            updatedSession.totalDuration = event.timestamp - updatedSession.startTime;
+            updatedSession.metrics.successRate = 
+              updatedSession.metrics.totalCommands > 0 
+                ? (updatedSession.metrics.completedCommands / updatedSession.metrics.totalCommands) * 100 
+                : 0;
+            break;
+        }
 
-      return updatedSession;
+        return updatedSession;
+      });
     });
   }
+
+  // Handle audit events outside render cycle
+  useEffect(() => {
+    if (pendingAuditEvent) {
+      startTransition(() => {
+        stagingDispatch({
+          type: 'ADD_AUDIT_EVENT',
+          payload: pendingAuditEvent
+        });
+      });
+      setPendingAuditEvent(null);
+    }
+  }, [pendingAuditEvent, stagingDispatch]);
+
+  // State for tracking errors to handle outside render cycle
+  const [pendingError, setPendingError] = useState<Error | null>(null);
 
   function handleQueueError(error: Error) {
     console.error('Queue Error:', error);
     
-    stagingDispatch({
-      type: 'SET_ERROR',
-      payload: `Macro execution error: ${error.message}`
-    });
-
-    // Add security alert for errors
-    stagingDispatch({
-      type: 'SECURITY_ALERT',
-      payload: {
-        type: 'EXECUTION_ERROR',
-        severity: 'medium',
-        details: {
-          error: error.message,
-          correlationId: securityContext.correlationId,
-          timestamp: new Date().toISOString()
-        }
-      }
-    });
+    // Store error for processing in useEffect
+    setPendingError(error);
   }
+
+  // Handle errors outside render cycle
+  useEffect(() => {
+    if (pendingError) {
+      startTransition(() => {
+        stagingDispatch({
+          type: 'SET_ERROR',
+          payload: `Macro execution error: ${pendingError.message}`
+        });
+
+        // Add security alert for errors
+        stagingDispatch({
+          type: 'SECURITY_ALERT',
+          payload: {
+            type: 'EXECUTION_ERROR',
+            severity: 'medium',
+            details: {
+              error: pendingError.message,
+              correlationId: securityContext.correlationId,
+              timestamp: new Date().toISOString()
+            }
+          }
+        });
+      });
+      setPendingError(null);
+    }
+  }, [pendingError, stagingDispatch, securityContext.correlationId]);
+
+  // State for tracking completion metrics to handle outside render cycle
+  const [completionMetrics, setCompletionMetrics] = useState<any>(null);
 
   function handleQueueComplete(metrics: any) {
     console.log('Queue Completed:', metrics);
 
-    // Update staging context performance metrics
-    stagingDispatch({
-      type: 'UPDATE_PERFORMANCE_METRICS',
-      payload: {
-        responseTime: metrics.averageExecutionTime,
-        memoryUsage: metrics.memoryUsage,
-        bundleSize: 0, // Not applicable for runtime
-        comparisonWithProduction: {
-          responseTimeDiff: 0, // TODO: Compare with production metrics
-          memoryUsageDiff: 0,
-          performanceParity: true
-        }
-      }
-    });
-
-    // Move current session to history
-    if (currentSession) {
-      setExecutionHistory(prev => [currentSession, ...prev.slice(0, 9)]); // Keep last 10 sessions
-      setCurrentSession(null);
-    }
+    // Store metrics for processing in useEffect
+    setCompletionMetrics(metrics);
   }
 
-  // Execute macro automation
+  // Handle completion metrics outside render cycle
+  useEffect(() => {
+    if (completionMetrics) {
+      startTransition(() => {
+        // Update staging context performance metrics
+        stagingDispatch({
+          type: 'UPDATE_PERFORMANCE_METRICS',
+          payload: {
+            responseTime: completionMetrics.averageExecutionTime,
+            memoryUsage: completionMetrics.memoryUsage,
+            bundleSize: 0, // Not applicable for runtime
+            comparisonWithProduction: {
+              responseTimeDiff: 0, // TODO: Compare with production metrics
+              memoryUsageDiff: 0,
+              performanceParity: true
+            }
+          }
+        });
+
+        // Move current session to history
+        if (currentSession) {
+          setExecutionHistory(prev => [currentSession, ...prev.slice(0, 9)]); // Keep last 10 sessions
+          setCurrentSession(null);
+        }
+      });
+      setCompletionMetrics(null);
+    }
+  }, [completionMetrics, stagingDispatch, currentSession]);
+
+  // Execute macro automation with performance optimization
   const executeMacro = useCallback(async () => {
     try {
-      // Update staging context
-      stagingDispatch({ type: 'SET_EXPERIMENT_LOADING', payload: true });
-      stagingDispatch({ type: 'SET_LOADING' });
+      // Wrap initial state updates in startTransition for performance
+      startTransition(() => {
+        stagingDispatch({ type: 'SET_EXPERIMENT_LOADING', payload: true });
+        stagingDispatch({ type: 'SET_LOADING' });
+      });
 
       // Initialize new session
       const newSession: MacroExecutionSession = {
@@ -289,13 +341,20 @@ export function NvdaStagingCommandMacroAutomation() {
     } catch (error) {
       console.error('Macro execution failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      stagingDispatch({ 
-        type: 'SET_ERROR', 
-        payload: `Macro execution failed: ${errorMessage}` 
+      
+      // Wrap error state updates in startTransition
+      startTransition(() => {
+        stagingDispatch({ 
+          type: 'SET_ERROR', 
+          payload: `Macro execution failed: ${errorMessage}` 
+        });
       });
     } finally {
-      stagingDispatch({ type: 'SET_EXPERIMENT_LOADING', payload: false });
-      stagingDispatch({ type: 'SET_IDLE' });
+      // Wrap final state updates in startTransition
+      startTransition(() => {
+        stagingDispatch({ type: 'SET_EXPERIMENT_LOADING', payload: false });
+        stagingDispatch({ type: 'SET_IDLE' });
+      });
     }
   }, [selectedAnalysisTypes, commandQueue, stagingDispatch]);
 
@@ -323,8 +382,8 @@ export function NvdaStagingCommandMacroAutomation() {
     }
   }, [commandQueue]);
 
-  // Render step status
-  const renderStepStatus = (step: CommandExecutionStep) => {
+  // Memoized render step status for performance
+  const renderStepStatus = useCallback((step: CommandExecutionStep) => {
     const getStatusColor = (status: string) => {
       switch (status) {
         case 'pending': return 'secondary';
@@ -369,10 +428,24 @@ export function NvdaStagingCommandMacroAutomation() {
         </div>
       </div>
     );
-  };
+  }, []);
 
   return (
-    <Card className="w-full border-orange-200 shadow-lg">
+    <BrowserExtensionErrorBoundary onError={(error, errorInfo) => {
+      console.warn('Extension error in macro automation:', error);
+      stagingDispatch({
+        type: 'SECURITY_ALERT',
+        payload: {
+          type: 'BROWSER_EXTENSION_ERROR',
+          severity: 'low',
+          details: {
+            error: error.message,
+            timestamp: new Date().toISOString()
+          }
+        }
+      });
+    }}>
+      <Card className="w-full border-orange-200 shadow-lg">
       <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200">
         <div className="flex items-center justify-between">
           <div>
@@ -388,16 +461,18 @@ export function NvdaStagingCommandMacroAutomation() {
             </CardDescription>
           </div>
           
-          {/* Performance Metrics */}
-          {commandQueue.state.metrics.totalCommands > 0 && (
-            <div className="text-right">
-              <div className="text-sm text-orange-600">
-                Success Rate: {Math.round(commandQueue.state.metrics.successRate * 100)}%
+          {/* Performance Metrics - Memoized */}
+          {useMemo(() => 
+            commandQueue.state.metrics.totalCommands > 0 && (
+              <div className="text-right">
+                <div className="text-sm text-orange-600">
+                  Success Rate: {Math.round(commandQueue.state.metrics.successRate * 100)}%
+                </div>
+                <div className="text-xs text-orange-500">
+                  Avg: {Math.round(commandQueue.state.metrics.averageExecutionTime)}ms
+                </div>
               </div>
-              <div className="text-xs text-orange-500">
-                Avg: {Math.round(commandQueue.state.metrics.averageExecutionTime)}ms
-              </div>
-            </div>
+            ), [commandQueue.state.metrics]
           )}
         </div>
       </CardHeader>
@@ -552,5 +627,6 @@ export function NvdaStagingCommandMacroAutomation() {
         )}
       </CardContent>
     </Card>
+    </BrowserExtensionErrorBoundary>
   );
 }
