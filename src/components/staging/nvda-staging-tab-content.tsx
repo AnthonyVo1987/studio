@@ -159,134 +159,8 @@ const NvdaStagingConsolidatedChat = () => (
   </Card>
 );
 
-// Experimental Macro Automation Component
-const NvdaStagingMacroAutomation = () => {
-  const stagingState = useNvdaStagingAnalysis();
-  const stagingDispatch = useNvdaStagingDispatch();
-
-  const handleExperimentChange = async (experimentType: ExperimentType) => {
-    // Log experiment change
-    await AuditLogger.logEvent({
-      type: 'USER_ACTION',
-      action: 'EXPERIMENT_TYPE_CHANGED',
-      source: 'macro-automation',
-      details: { 
-        from: stagingState.experimentType, 
-        to: experimentType,
-        timestamp: new Date().toISOString(),
-      },
-      severity: 'info',
-      compliance: {
-        soc2Required: true,
-        gdprSensitive: false,
-        financialData: false,
-        retentionPeriod: 30,
-      },
-    });
-
-    stagingDispatch({
-      type: 'SET_EXPERIMENT_TYPE',
-      payload: experimentType,
-    });
-  };
-
-  return (
-    <Card className="border-orange-300 bg-orange-50/30">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-orange-700">
-          🧪 Experimental Macro Automation Framework
-          <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-            v4.5.0.0
-          </Badge>
-        </CardTitle>
-        <CardDescription className="text-orange-600">
-          Test multiple macro automation patterns with complete isolation from production
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Experiment Pattern Selector */}
-        <div className="space-y-2">
-          <Label className="text-orange-700 font-medium">Experiment Pattern</Label>
-          <Select 
-            value={stagingState.experimentType} 
-            onValueChange={(value) => handleExperimentChange(value as ExperimentType)}
-          >
-            <SelectTrigger className="border-orange-300">
-              <SelectValue placeholder="Select experiment pattern" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current">
-                <div className="flex items-center gap-2">
-                  <span>Current Pattern</span>
-                  <Badge variant="secondary" className="text-xs">Baseline</Badge>
-                </div>
-              </SelectItem>
-              <SelectItem value="optimized">
-                <div className="flex items-center gap-2">
-                  <span>Optimized State Management</span>
-                  <Badge variant="outline" className="text-xs">Enhanced</Badge>
-                </div>
-              </SelectItem>
-              <SelectItem value="reactive">
-                <div className="flex items-center gap-2">
-                  <span>Reactive Programming</span>
-                  <Badge variant="outline" className="text-xs">Advanced</Badge>
-                </div>
-              </SelectItem>
-              <SelectItem value="custom">
-                <div className="flex items-center gap-2">
-                  <span>Custom Experiment</span>
-                  <Badge variant="outline" className="text-xs">Experimental</Badge>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Experiment Status */}
-        <div className="flex items-center gap-4 p-3 bg-orange-100 rounded-lg border border-orange-200">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${stagingState.experimentActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-            <span className="text-sm font-medium text-orange-800">
-              {stagingState.experimentActive ? 'Experiment Running' : 'Experiment Idle'}
-            </span>
-          </div>
-          {stagingState.experimentStartTime && (
-            <div className="text-xs text-orange-600">
-              Started: {new Date(stagingState.experimentStartTime).toLocaleString()}
-            </div>
-          )}
-        </div>
-
-        {/* Performance Comparison */}
-        {stagingState.performanceComparison && (
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">Performance Comparison</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>Response Time: {stagingState.performanceMetrics.comparisonWithProduction.performanceParity ? '✅' : '⚠️'}</div>
-              <div>Memory Usage: {stagingState.performanceMetrics.memoryUsage.toFixed(1)}MB</div>
-            </div>
-          </div>
-        )}
-
-        {/* Placeholder for actual macro automation logic */}
-        <Alert className="border-orange-300 bg-orange-50">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-700">
-            <strong>Macro automation patterns will be implemented here.</strong>
-            <br />
-            Current pattern: <code className="bg-orange-100 px-1 rounded">{stagingState.experimentType}</code>
-            <br />
-            This is the foundation for testing 4 different macro automation approaches.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
-  );
-};
+// Import the Command Pattern Macro Automation component
+import { NvdaStagingCommandMacroAutomation } from '@/components/staging/nvda-staging-command-macro-automation';
 
 // Main Staging Tab Content Component
 export function NvdaStagingTabContent() {
@@ -648,8 +522,8 @@ export function NvdaStagingTabContent() {
             </CardContent>
           </Card>
 
-          {/* Experimental Macro Automation */}
-          <NvdaStagingMacroAutomation />
+          {/* Command Pattern Macro Automation */}
+          <NvdaStagingCommandMacroAutomation />
 
           {/* Data Display Section (identical layout to production) */}
           <NvdaStagingDataSection>

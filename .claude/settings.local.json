@@ -164,7 +164,9 @@
       "WebFetch(domain:microservices.io)",
       "WebFetch(domain:martinfowler.com)",
       "WebFetch(domain:research.google.com)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(next build)",
+      "Bash(npx next:*)"
     ],
     "deny": []
   }

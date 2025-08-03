@@ -130,68 +130,20 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 
 ## Task Details
 
-* We recently updated the docs for our "Macro Automation Re-Architecture" Project
-
-* AI Team: MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT TO BE REVIEWED
+AI Team Mandates:
+* AI Team: MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE SPECIALIST
 
 * CRITICAL MANDATE for AI Team: TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM PERFORMING ANY OF THE ACTUAL WORK BECAUSE THIS IS A VIOLATION. TECH-LEAD-ORCHESTRATOR IS REQUIRED TO DELEGATE & COORDINATE THE AI TEAM. For example, TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM READING ANY DOCS, CODE, INVESTIGATING CODE, REVIEWING CODE, UPDATING\FIXING DOCS, PERFORMING GIT COMMIT & PUSH OPERATIONS ETC
 
 
-- AI Team: MUST USE MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT to ensure best practices and full analysis of the complex PRDs docs to Thoroughly review & analayze all 4x Macro Re-Architecture PRDs and RANK them in terms of recommended and most optimal suggestions for which path forward
+*  AI Team: MUST USE MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL
 
-- AI Team: Criteria for "recommended and most optimal suggestions for which path forward" needs to strike a holistic balance by scoring these individual metrics in order to come up with a score for each option:
-- Implemention Complexity
-- Integration Complexity
-- Debugging Complexity
-- Reliability
-- Accuracy
-- Maintainability
-- Modularity
-
-
-PRDs to be scored and analyzed:
-1. option-2-xstate-prd.md
-2. option-3-command-pattern-prd.md
-3. option-4-server-side-prd.md
-4. option-hybrid-command-server-prd.md
-
-- Generate a new .md doc in macro-re-architecture folder with the fully detailed AI Team report and analysis and summary
-
-
-
-
-
-
-
-
-
-Have the AI Team perform a comprhensive Deep dive architectural & code review & scope out mode code optimizations\re-architecting for the macro automation implementation code with all of the following details below:
-##
-Background and Context:
-- Now that we have stabilized our macro automation code to make it robust, let’s go back and perform a full code audit and deep dive architectural review and code review of our macro implementation
-
-- There was a lot of unexpected complexity and  errors that took more efforts and iterations, then is usually required so we would like this architectural review to also serve as a postmortem of this entire adventure, fiasco and disaster from our initial limitation of the macro automation code of all our Debugging adventures with failed debug and successful debugs and all the lessons  learned, corrective actions ,bad practices, and good practices to be adhered to next time to serve as our guide in the future
-
-- So to provide more context and background, when I first requested you to implement the macro automation from a high-level I thought this would be pretty trivial and not complex because if I understood the core architecture of app correctly all the macro automation needs to do is basically just be a wrapper and or either a Function pointer where the macro instead of reinventing the wheel or having some convoluted state machine dependency , all the macro does is this to manually call the actual user action buttons basically pretending and mimicking the macro actions an actual user or it manually calls.
-
-- The normal user action flow would have some sort of delay or handshaking or signal system to know that an action completed and then if it is, it moves onto the next step That just calls the user action. And since my initial idea, I have my mind of the implantation means we just piggyback and leverage and mirror the existing user actions that means he already existing code already has the proper context and knowing which data to pass through and when. So my initial assessment is that The architecture is pretty simple since we already have working, robust manual user actions, my initial understanding is that the macro just manually calls, user actions in a specific order with some realistic, real world delay or a handshaking signal system that is completed before moving onto the next, 
-
-- but it seems like the initial AI Team implementation had a very convoluted complex, dependency, array, and state machine and execution, IDs and basically spaghetti code, etc. even recent fixes had to make fixes in the macro path and a macro had to properly detect the expiration matches the analysis versus usual selection, which to me completely reinvent the wheel because why does the macro automation code need to detect the proper dependencies and expiration dates if they already existing user button actions properly sync up the dates and the rest of the data flow so I’m pretty confused there
-
-- 
-
-##
-* AI Team is MANDATED to use both SEQUENTIAL THINKING & CONTEXT7 Tools for all of these tasks!!!
-
-So as part of your architectural review, there are two main focuses, with details below for the AI Team to perform:
-
-1. AI Team: Is my initial scoping of the feature, thinking the macro automation would be simple, is it misguided and or  inaccurate ? is the architecture of our app actually prevented the ability to make a straightforward, simple non-complex macro automation ? It was a super simple macro automation code just not possible with how our current app works?
-
-2. AI Team: the second focus of our architectural review is deep dive analysis and criticisms and optimizations since we had so many issues is it possible to completely re-architect refactor and basically redesigned the entire macro system knowing all the issues we hit before and the Debugging and the wrong premises. AI Team may need to go through history of project Docs and git commit change log history and diffs for the review, especially "/docs/macro-re-architecture/macro-automation-debugging-guide.md", Claude.md, Readme.md, Changelog.md, /docs/macro-re-architecture/v4.4.3.5_TIMEOUT_FIX_IMPLEMENTATION_REPORT.md etc, Maybe we can just re-architect this from the ground up picking all the  notes from our initial  complex implementation, that gave us so many headaches. Is there a better way to do this? so provide details on what is required and needed if we wanted to re-architect the entire macro automation. Then I will review it your scope and see if I want to implement it or not. You may optionally provide multiple different options too so that I can try and choose the most optmial options for the re-architecture. Please also rank and recommend which option(s) we should move forward with in the future for the macro automation re-architecture
-
-3. AI Team : Provide your fully detailed findings and analysis of the deep dive architectural review and re-architecture scoping in a brand new generated .md document and save it in the docs folder
-
-4. AI Team should pause after Task 3 so user can fully review the new documents and then proceed from there what the next task will be.  There are no requested code changes and /or bug fixes at this time yet
+###
+- Ask the AI Team to implement and code up Command Pattern (Option 3) with full details from "/docs/macro-re-architecture/option-3-command-pattern-prd.md"
+- AI Team:  will ONLY implement the changes for the staging NVDA tab ONLY, and keep the current business critical dedicated NVDA\SPY pages alone
+- New version will be "v4.5.1.0"
+- AI Team: After ALL initial code is complete, AI Team to start a loop for code review the changes, and if fixes are needed, AI team to FIX everything flaged from code review in a loop until AI team finally gets a PASSING code review
+-AI Team: will PAUSE after a successful PASSING code review of all changes so User can Test the changes before we commit
 
 ### Current Situation
 
