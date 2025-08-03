@@ -167,6 +167,27 @@ AI Team: Peform comphrensive updated research, scoping, and recommend with detai
 8. etc
 
 
+###
+We will move forward with implementing XState State Machine Option after User review and approval
+
+[MANDATE] AI TEAM MUST USE MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE ACTION TO ENSURE BEST AND ROBUST PRACTICES & FULL ANALYSIS THROUGHOUT THE ENTIRE WORKFLOW
+
+- The expected procedure is to later have the AI use an implementation guide as a "single source of truth" to implement the overhaul into distinct Phases, with Tasks\Sub-Task for each Phase. 
+- The AI Team would be assigned an ENTIRE Phase to implement, including ALL Tasks\Sub-Task for that entire Phase
+- Then AI Team will trigger autonomous Code Review & Fix Loop until AI team gets a PASSING code review. 
+- Only after a PASSING Code Review loop, then the AI team will trigger the automous documentatio update and git commit\push sequence:
+- [ ] **🚨 AUTO-EXECUTE**: Documentation updated by `@documentation-specialist`
+- [ ] **🚨 AUTO-EXECUTE**: Version metadata updated in `src/config/app-metadata.json`
+- [ ] **🚨 AUTO-EXECUTE**: Complete atomic git commit and push operation
+- [ ] **🚨 AUTO-CONFIRM**: Final task completion status provided to user
+
+
+###
+
+- AI Team: With the [MANDATE], perform a FULL comphrensive code review, codebase audit, full code and data path execution trace, to generate an Implementation Plan that is fully detailed, granular, & broken down into optimal Phase\Tasks for AI team to implement the full Macro Overhaul for XState State Machine.  Be sure to include tips, lessons learned, pain points, tips, corrective actions, and anything else to watch out for to prevent AI Team from having to re-invent the wheel and perform actions\code changes that previously had issues 
+
+
+
 
 ##
 
