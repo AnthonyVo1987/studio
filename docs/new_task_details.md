@@ -130,6 +130,33 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 
 ## Task Details
 
+* We recently updated the docs for our "Macro Automation Re-Architecture" Project
+
+* Please have the AI Team review, audit, vet, and, if needed,update\fix ALL the recent updated "Macro Automation Re-Architecture" docs following the details below:
+
+* AI Team: MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT TO BE REVIEWED
+
+* CRITICAL MANDATE for AI Team: TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM PERFORMING ANY OF THE ACTUAL WORK BECAUSE THIS IS A VIOLATION. TECH-LEAD-ORCHESTRATOR IS REQUIRED TO DELEGATE & COORDINATE THE AI TEAM. For example, TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM READING ANY DOCS, CODE, INVESTIGATING CODE, REVIEWING CODE, UPDATING\FIXING DOCS, PERFORMING GIT COMMIT & PUSH OPERATIONS ETC.
+
+- Each DOC MUST have a clear, deterministic, solid implementation plan & task breakdown, and any required background information\context\supporting docs\info for future AI Teams to implement the EACH PRD accurrately
+
+- AI Team: MUST call MULTIPLE RELEVANT SPECIALISTS such as architect, api architect, code reviewer, documentation expert, React specialist, frontend, backend, etc AND Use appropriate tools to review, audit, and double check EACH of these docs. AI team may have to iterativley and recursively call multiple specialist for EACH doc since EACH doc may need it's own unique full analysis.  EACH doc being reviewed requires the AI Team Specialist(s) to use MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT to ensure best practices and full analysis of the complex PRDs docs:
+1. staging-page-prd.md
+2. option-2-xstate-prd.md
+3. option-3-command-pattern-prd.md
+4. option-4-server-side-prd.md
+5. option-hybrid-command-server-prd.md
+6. Any other relevant docs in "macro-re-architecture' folder
+
+
+- After ALL 5x docs have been reviewed and fixed, AI team should PAUSE so user can review the doc updates and decide whether more fixes are needed, or if docs are approved or not.  DO NOT COMMIT yes until user approves
+
+
+
+
+
+
+
 Have the AI Team perform a comprhensive Deep dive architectural & code review & scope out mode code optimizations\re-architecting for the macro automation implementation code with all of the following details below:
 ##
 Background and Context:
