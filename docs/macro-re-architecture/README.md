@@ -19,11 +19,11 @@ This directory contains all documentation related to the macro automation system
 - **Content**: 
   - Full postmortem of current macro implementation
   - Root cause analysis of React closure issues
-  - Four re-architecture options with detailed evaluation
+  - Re-architecture options with detailed evaluation
   - Implementation roadmap and recommendations
 - **Key Insights**: 
   - Current system: 1,400+ lines, 20+ debugging iterations
-  - Recommended approach: XState state machine (500 lines, 65% complexity reduction)
+  - Recommended approaches: XState state machine and Command Pattern
   - Timeline estimates: 4-5 days for complete re-architecture
 
 #### 2. [Debugging Guide](./macro-automation-debugging-guide.md)
@@ -53,37 +53,25 @@ This directory contains all documentation related to the macro automation system
 
 ### 📄 Product Requirements Documents (PRDs)
 
-#### Core Re-Architecture Options - All Enhanced & Complete ✅
+#### Core Re-Architecture Options - Ready for Implementation ✅
 
-#### 1. [Staging Page PRD](./staging-page-prd.md)
-- **Type**: Foundation Architecture
-- **Status**: ✅ Complete & Enhanced
-- **Content**: Isolated development environment for re-architecture implementation
-- **Key Features**: Side-by-side comparison, risk isolation, performance testing
-
-#### 2. [Option 2: XState PRD](./option-2-xstate-prd.md) ⭐ **RECOMMENDED**
+#### 1. [Option 2: XState PRD](./option-2-xstate-prd.md) ⭐ **HIGHLY RECOMMENDED**
 - **Type**: State Machine Architecture
 - **Status**: ✅ Complete & Enhanced
 - **Content**: Formal state machine implementation with XState
 - **Benefits**: 65% complexity reduction, impossible invalid states, built-in debugging
 
-#### 3. [Option 3: Command Pattern PRD](./option-3-command-pattern-prd.md)
+#### 2. [Option 3: Command Pattern PRD](./option-3-command-pattern-prd.md) ⭐ **ALTERNATIVE RECOMMENDATION**
 - **Type**: Command-Based Architecture
 - **Status**: ✅ Complete & Enhanced
 - **Content**: Decoupled execution with command queue and retry logic
 - **Benefits**: Complete separation of concerns, excellent testability
 
-#### 4. [Option 4: Server-Side PRD](./option-4-server-side-prd.md)
-- **Type**: Server-Side Orchestration
-- **Status**: ✅ Complete & Enhanced
-- **Content**: Next.js server actions with real-time streaming
-- **Benefits**: Maximum reliability, eliminates client-side issues
-
-#### 5. [Option Hybrid: Command + Server PRD](./option-hybrid-command-server-prd.md)
-- **Type**: Hybrid Architecture
-- **Status**: ✅ Complete & Enhanced
-- **Content**: Combines command pattern with server-side orchestration
-- **Benefits**: Best of both worlds, scalable and reliable
+#### 3. [Option 4: Hybrid Command + XState PRD](./option-4-hybrid-command-xstate-prd.md) 🚀 **FUTURE-PROOF CHOICE**
+- **Type**: Hybrid Architecture with Plugin System
+- **Status**: ✅ Complete & Comprehensive
+- **Content**: Ultimate modularity combining XState orchestration with Command Pattern execution
+- **Benefits**: Infinite extensibility, AI-native integration, multi-tenant ready, plugin ecosystem
 
 ## Current System Status
 
@@ -125,20 +113,20 @@ This directory contains all documentation related to the macro automation system
 - ✅ Re-architecture options evaluation
 
 ### Phase 2: PRD Development ✅ **COMPLETE**
-- ✅ Detailed Product Requirements Documents (5 options)
+- ✅ Detailed Product Requirements Documents (2 core options)
 - ✅ Technical specifications for all approaches
 - ✅ Migration strategies and timelines
 - ✅ Risk assessment and mitigation plans
 - ✅ Implementation guidelines and best practices
 
 ### Phase 3: Implementation Planning (Current Phase)
-- [ ] Select final architecture approach (XState recommended)
+- [ ] Select final architecture approach (XState or Command Pattern)
 - [ ] Detailed implementation timeline and resource allocation
-- [ ] Development environment setup (staging page implementation)
+- [ ] Development environment setup
 - [ ] Team training and skill development planning
 
 ### Phase 4: Implementation (Next)
-- [ ] State machine implementation (XState recommended)
+- [ ] State machine or command pattern implementation
 - [ ] Step-by-step migration from current system
 - [ ] Comprehensive testing suite
 - [ ] Performance validation
@@ -165,20 +153,39 @@ This directory contains all documentation related to the macro automation system
 
 ## Architecture Decision Matrix
 
-Based on completed PRD analysis, here's the decision framework:
+Based on completed PRD analysis, here's the comprehensive decision framework:
 
-| Approach | Complexity | Reliability | Migration Effort | Recommendation |
-|----------|------------|-------------|------------------|----------------|
-| **XState** | **Medium** | **High** | **4-5 days** | **⭐ BEST CHOICE** |
-| Command Pattern | High | High | 5-6 days | Future option |
-| Server-Side | Very High | Very High | 7-8 days | When critical |
-| Hybrid | Very High | Very High | 8-10 days | Complex scenarios |
-| Staging Page | Low | Medium | 2-3 days | **REQUIRED FIRST** |
+| Approach | Complexity | Reliability | Migration Effort | Future-Proofing | Recommendation |
+|----------|------------|-------------|------------------|-----------------|----------------|
+| **XState** | **Medium** | **High** | **4-5 days** | **Good** | **⭐ PRIMARY CHOICE** |
+| Command Pattern | High | High | 5-6 days | Good | **⭐ ALTERNATIVE** |
+| **Hybrid Command + XState** | **Very High** | **Excellent** | **20-25 days** | **Ultimate** | **🚀 FUTURE-PROOF** |
+
+### Decision Criteria by Use Case
+
+#### Choose XState (Option 2) if:
+- Need fast implementation (4-5 days)
+- Current team has moderate complexity tolerance
+- Requirements are relatively stable
+- Visual debugging is high priority
+
+#### Choose Command Pattern (Option 3) if:
+- Maximum testability is critical
+- Complete separation of concerns required
+- Team prefers imperative patterns
+- Enterprise security is paramount
+
+#### Choose Hybrid (Option 4) if:
+- Planning for significant future expansion
+- AI integration is a core requirement
+- Multi-tenant/multi-ticker scaling needed
+- Unlimited extensibility desired
+- Willing to invest in revolutionary architecture
 
 ### Recommended Implementation Sequence
-1. **Stage 1**: Implement Staging Page (2-3 days) - **REQUIRED FOUNDATION**
-2. **Stage 2**: Implement XState solution (4-5 days) - **CORE ARCHITECTURE**
-3. **Stage 3**: Performance validation and migration (2-3 days)
+1. **Decision Phase**: Choose based on timeline, team expertise, and future requirements
+2. **Implementation**: 4-25 days depending on approach complexity
+3. **Validation**: Performance testing and migration (2-5 days depending on approach)
 
 ## Reference Links
 
@@ -210,5 +217,5 @@ Based on completed PRD analysis, here's the decision framework:
 ---
 
 **Current Status**: Ready for Implementation Planning Phase  
-**Next Steps**: Select final architecture approach and begin implementation timeline development  
+**Next Steps**: Select final architecture approach (XState or Command Pattern) and begin implementation  
 **Maintenance**: This README should be updated as the re-architecture project progresses through implementation phases.

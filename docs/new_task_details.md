@@ -130,6 +130,52 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 
 ## Task Details
 
+- I decided to pivot and abandon the current plan and changes and rolled back the code
+- I have switched to a new branch for the new direction
+- Instead of a staging dupe NVDA page, I will instead just create seprate development branches and then stage and test out changes on the dedicated Pages. Because we will be on an isolated development branch, this also acheives the goal perserving business logic by leaving the new changes only on a dev branch
+##
+
+* AI Team: MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT TO BE REVIEWED
+
+* CRITICAL MANDATE for AI Team: TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM PERFORMING ANY OF THE ACTUAL WORK BECAUSE THIS IS A VIOLATION. TECH-LEAD-ORCHESTRATOR IS REQUIRED TO DELEGATE & COORDINATE THE AI TEAM.
+
+* For example, TECH-LEAD-ORCHESTRATOR IS STRICTLY PROHIBITED FROM READING ANY DOCS, CODE, INVESTIGATING CODE, REVIEWING CODE, UPDATING\FIXING DOCS, PERFORMING GIT COMMIT & PUSH OPERATIONS ETC
+
+- AI Team: MUST USE MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT to ensure best practices and full analysis
+##
+AI Team: Peform comphrensive updated research, scoping, and recommend with details below:
+
+- AI Team: will reject & remove Hybrid & Server-Side as options after I reviewed the complexity and we will not move forward with these options. Remove all docs and references to these
+
+- AI Team: will reject & remove a staging page prd to test out the macro options, so remove all docs and references to these
+
+- Command Pattern & XState are the preferred options to implement the macro overhaul
+
+- AI Team: MUST USE MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT to ensure best practices and full analysis to perform Add on a new potential option of using a Hybrid  Command Pattern & XState together, for a total of 3x options now after removing the rejected proposals
+
+- AI Team: MUST USE MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT to ensure best practices and full analysis to perform some more research and re-scoping for all of these options to re-generate the report for the most recommended option(s).  Here are some planned future features that will be worked on at a later point in time, so the analysis for the best options needs to take these new feaures into account for feature product integration.
+
+- So basically, the new Macro Overaul architecture needs to be modular and easily expandable to add more actions to the app, and even modify the sequence of events for certain actions
+
+1. Adding more Broker API Get Data Calls
+2. Adding more AI analysis
+3. Adding more AI Chat Prompts
+4. Adding an Agentic AI to handle all and\or most AI Analysis & AI Chat
+5. Overhauling AI Chat to be completly orchestrated by an Agentic AI to dynamically route user prompts to the correct place
+6. Multiple User Input ticker pages
+7. Multiple Dedicated Ticker Pages
+8. etc
+
+
+
+##
+
+
+
+
+###
+
+
 * We recently updated the docs for our "Macro Automation Re-Architecture" Project
 
 * AI Team: MANDATORY CONTEXT7 & SEQUENTIAL THINKING TOOL USE FOR EVERY SINGLE DOCUMENT TO BE REVIEWED
