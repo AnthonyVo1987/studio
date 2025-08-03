@@ -164,7 +164,8 @@
       "WebFetch(domain:microservices.io)",
       "WebFetch(domain:martinfowler.com)",
       "WebFetch(domain:research.google.com)",
-      "WebFetch(domain:stately.ai)"
+      "WebFetch(domain:stately.ai)",
+      "Bash(tsx:*)"
     ],
     "deny": []
   }
