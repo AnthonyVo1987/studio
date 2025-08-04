@@ -10,7 +10,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { allPromptTools } from '../tools/prompt-tools';
-import { googleSearchTool } from '@genkit-ai/googleai';
 import { Message } from 'genkit/ai';
 import { AgenticChatInputSchema, type AgenticChatInput } from '@/actions/agentic-chat-action';
 
@@ -55,7 +54,6 @@ export const agenticChatOrchestratorFlow = ai.defineFlow(
 
     // Combine all available tools.
     const allTools = [
-        googleSearchTool,
         ...allPromptTools
     ];
 
