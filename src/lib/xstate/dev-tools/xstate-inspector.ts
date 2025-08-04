@@ -145,6 +145,27 @@ export class MacroExecutionLogger {
     
     console.log(this.formatMessage('PERF', message, data));
   }
+
+  // Standard logging methods for compatibility
+  error(message: string, data?: any) {
+    if (!this.config.enabled || !this.shouldLog('error')) return;
+    console.error(this.formatMessage('ERROR', message, data));
+  }
+
+  warn(message: string, data?: any) {
+    if (!this.config.enabled || !this.shouldLog('warn')) return;
+    console.warn(this.formatMessage('WARN', message, data));
+  }
+
+  info(message: string, data?: any) {
+    if (!this.config.enabled || !this.shouldLog('info')) return;
+    console.info(this.formatMessage('INFO', message, data));
+  }
+
+  debug(message: string, data?: any) {
+    if (!this.config.enabled || !this.shouldLog('debug')) return;
+    console.debug(this.formatMessage('DEBUG', message, data));
+  }
 }
 
 // ================================
