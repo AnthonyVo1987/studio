@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSpyAnalysis, SPY_TICKER } from '@/contexts/spy-analysis-context';
-import { agenticChatAction, type AgenticChatState, type AgenticChatInput } from '@/actions/agentic-chat-action';
+import { agenticChatAction, type AgenticChatState } from '@/actions/agentic-chat-action';
+import { type AgenticChatInput } from '@/ai/schemas/agentic-chat-schemas';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 

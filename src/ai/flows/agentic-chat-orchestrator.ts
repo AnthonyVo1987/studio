@@ -11,7 +11,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { allPromptTools } from '../tools/prompt-tools';
 import { Message } from 'genkit/ai';
-import { AgenticChatInputSchema, type AgenticChatInput } from '@/actions/agentic-chat-action';
+import { AgenticChatInputSchema, type AgenticChatInput } from '@/ai/schemas/agentic-chat-schemas';
 
 // Define the output schema for the flow.
 export const AgenticChatOutputSchema = z.object({
