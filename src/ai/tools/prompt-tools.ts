@@ -4,7 +4,7 @@
  * analysis prompts as distinct capabilities.
  */
 
-import { defineTool } from 'genkit/tool';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
@@ -119,7 +119,7 @@ const ToolInputSchema = z.object({
 
 // Now, define the specific tools the agent can use.
 
-export const stockTraderTakeawaysTool = defineTool({
+export const stockTraderTakeawaysTool = ai.defineTool({
     name: 'stockTraderTakeaways',
     description: "Generates actionable takeaways for a stock trader based on the available market data. Use this when a user asks for stock trading insights, takeaways, or a summary from a trader's perspective.",
     inputSchema: ToolInputSchema,
@@ -129,7 +129,7 @@ export const stockTraderTakeawaysTool = defineTool({
     },
 });
 
-export const optionsTraderTakeawaysTool = defineTool({
+export const optionsTraderTakeawaysTool = ai.defineTool({
     name: 'optionsTraderTakeaways',
     description: "Generates actionable takeaways for an options trader based on the available market and options chain data. Use this when a user asks for options trading insights, takeaways, or an analysis of the options market.",
     inputSchema: ToolInputSchema,
@@ -139,7 +139,7 @@ export const optionsTraderTakeawaysTool = defineTool({
     },
 });
 
-export const holisticTakeawaysTool = defineTool({
+export const holisticTakeawaysTool = ai.defineTool({
     name: 'holisticTakeaways',
     description: "Generates a holistic, high-level summary of the stock's situation, combining technical, fundamental, and options data. Use this for broad, open-ended questions about the stock's overall picture.",
     inputSchema: ToolInputSchema,
