@@ -57,6 +57,7 @@ import { SpyOptionsChainTable } from '@/components/spy-options-chain-table';
 import { SpyAiKeyTakeawaysDisplay } from '@/components/spy-ai-key-takeaways-display';
 import { SpyAiOptionsAnalysisDisplay } from '@/components/spy-ai-options-analysis-display';
 import { SpyConsolidatedChat } from '@/components/spy-consolidated-chat';
+import { AgenticSpyConsolidatedChat } from '@/components/agentic-spy-consolidated-chat';
 
 // Macro Orchestrator UI Component (Simplified)
 import { SimpleAnalyzeAllButton } from '@/components/macro-orchestrator/simple-analyze-all-button';
@@ -762,6 +763,11 @@ export function SpyTabContent() {
 
       {/* SPY Consolidated AI Chat Interface */}
       <SpyConsolidatedChat />
+
+      <Separator className="my-8" />
+
+      {/* Agentic SPY Consolidated AI Chat Interface (Experimental) */}
+      <AgenticSpyConsolidatedChat />
 
       {/* SPY Data Section (Self-contained JSON display) */}
       <SpyDataSection />

@@ -50,6 +50,7 @@ import { NvdaOptionsChainTable } from '@/components/nvda-options-chain-table';
 import { NvdaAiKeyTakeawaysDisplay } from '@/components/nvda-ai-key-takeaways-display';
 import { NvdaAiOptionsAnalysisDisplay } from '@/components/nvda-ai-options-analysis-display';
 import { NvdaConsolidatedChat } from '@/components/nvda-consolidated-chat';
+import { AgenticNvdaConsolidatedChat } from '@/components/agentic-nvda-consolidated-chat';
 
 // Macro Orchestrator UI Component (Simplified)
 import { SimpleAnalyzeAllButton } from '@/components/macro-orchestrator/simple-analyze-all-button';
@@ -762,6 +763,11 @@ export function NvdaTabContent() {
 
       {/* NVDA Consolidated AI Chat Interface */}
       <NvdaConsolidatedChat />
+
+      <Separator className="my-8" />
+
+      {/* Agentic NVDA Consolidated AI Chat Interface (Experimental) */}
+      <AgenticNvdaConsolidatedChat />
 
       {/* NVDA Data Section (Self-contained JSON display) */}
       <NvdaDataSection />
