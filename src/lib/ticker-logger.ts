@@ -158,7 +158,14 @@ export function createTickerLogger(ticker: string, page: string, executionId?: s
       tickerLog.performance(ticker, page, action, message, data, executionId),
     
     warn: (action: string, message: string, data?: any) => 
-      tickerLog.warn(ticker, page, action, message, data)
+      tickerLog.warn(ticker, page, action, message, data),
+    
+    // XState-compatible logger methods
+    info: (action: string, message: string, data?: any) => 
+      logTickerAction({ ticker, page, action, context: 'State', data }, message, 'log'),
+    
+    debug: (action: string, message: string, data?: any) => 
+      logTickerAction({ ticker, page, action, context: 'State', data }, message, 'debug')
   };
 }
 

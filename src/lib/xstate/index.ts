@@ -211,6 +211,93 @@ export type {
 } from './test-utils/mock-services';
 
 // ================================
+// SERVICES LAYER
+// ================================
+export {
+  createFetchExpirationsService,
+  createGetStockDataService,
+  createAITakeawaysService,
+  createAIOptionsService,
+  createMacroExecution,
+  executeMacroWorkflow,
+  MacroServiceRegistry,
+  MacroServiceOrchestrator
+} from './services';
+
+export type {
+  MacroServiceOptions,
+  MacroServiceResult,
+  ExpirationData,
+  StockDataResult,
+  AITakeawaysResult,
+  AIOptionsResult,
+  ServiceError,
+  MacroWorkflowResult,
+  MacroWorkflowSummary,
+  ExecutionMetadata,
+  PerformanceMetrics as ServicePerformanceMetrics
+} from './services';
+
+// ================================
+// INTEGRATION LAYER
+// ================================
+export {
+  createIntegrationSetup,
+  createServiceConfig,
+  createStockSageAdapter,
+  createContextBridge,
+  createCompatibilityLayer,
+  createDataTransformers,
+  checkIntegrationStatus,
+  debugIntegration,
+  STANDARD_SERVICE_CONFIGS,
+  STANDARD_WORKFLOW_CONFIGS
+} from './integration';
+
+export type {
+  SupportedTicker,
+  TickerContextState,
+  TickerContextHooks,
+  IntegrationResult,
+  IntegrationMetrics,
+  StockSageCompatConfig,
+  ServiceIntegrationConfig,
+  WorkflowIntegrationConfig,
+  IntegrationAdapter,
+  ContextBridge,
+  CompatibilityLayer,
+  DataValidator
+} from './integration';
+
+// ================================
+// ACTOR MANAGEMENT
+// ================================
+export {
+  createActorSystem,
+  createActorFactory,
+  createTickerActorSetup,
+  getGlobalActorRegistry,
+  getGlobalActorManager,
+  getGlobalEventBroadcaster,
+  ActorDebugUtils
+} from './actors';
+
+export type {
+  ActorLifecycleState,
+  ActorIdentity,
+  ActorConfig,
+  ActorInstance,
+  ActorRegistry,
+  ActorManager,
+  ActorStatus,
+  ActorEvent,
+  EventBroadcaster,
+  WorkflowProgress,
+  WorkflowResult,
+  HealthStatus
+} from './actors';
+
+// ================================
 // CONVENIENCE FUNCTIONS
 // ================================
 
