@@ -13,7 +13,7 @@ import type {
   ResourceUsagePoint,
   ResourceCleanupPolicy,
   AdvancedEvent,
-  ResourceType,
+  ResourceTypeId,
   ResourceConstraint,
   ResourceRequest,
   AllocationResult
@@ -71,8 +71,12 @@ class AdvancedResourcePool {
     if (this.canAllocateImmediately(request)) {
       const allocation = await this.allocateResource(request);
       return {
+        requestId: request.id,
+        status: 'success' as const,
         success: true,
+        allocatedResources: { [allocation.resourceType]: allocation.allocatedAmount },
         allocation,
+        timestamp: new Date(),
         waitTime: Date.now() - startTime
       };
     }
@@ -86,8 +90,12 @@ class AdvancedResourcePool {
       const timeoutId = setTimeout(() => {
         this.removeFromQueue(request.id);
         resolve({
+          requestId: request.id,
+          status: 'failed' as const,
           success: false,
+          allocatedResources: {},
           error: 'Request timed out',
+          timestamp: new Date(),
           waitTime: Date.now() - startTime
         });
       }, request.timeout);
@@ -101,8 +109,12 @@ class AdvancedResourcePool {
           
           this.allocateResource(request).then(allocation => {
             resolve({
+              requestId: request.id,
+              status: 'success' as const,
               success: true,
+              allocatedResources: { [allocation.resourceType]: allocation.allocatedAmount },
               allocation,
+              timestamp: new Date(),
               waitTime: Date.now() - startTime
             });
           });
@@ -249,7 +261,7 @@ class AdvancedResourcePool {
   /**
    * Get allocations for specific resource type
    */
-  private getAllocationsForType(resourceType: ResourceType): ResourceAllocation[] {
+  private getAllocationsForType(resourceType: ResourceTypeId): ResourceAllocation[] {
     return Array.from(this.allocations.values()).filter(
       allocation => allocation.resourceType === resourceType
     );
@@ -258,7 +270,7 @@ class AdvancedResourcePool {
   /**
    * Get active actors for resource type
    */
-  private getActiveActorsForType(resourceType: ResourceType): number {
+  private getActiveActorsForType(resourceType: ResourceTypeId): number {
     const actorIds = new Set();
     for (const allocation of this.allocations.values()) {
       if (allocation.resourceType === resourceType) {
@@ -318,8 +330,8 @@ class AdvancedResourcePool {
   /**
    * Get resource usage metrics
    */
-  getUsageMetrics(resourceType?: ResourceType): Map<ResourceType, ResourceUsageMetrics> {
-    const metrics = new Map<ResourceType, ResourceUsageMetrics>();
+  getUsageMetrics(resourceType?: ResourceTypeId): Map<ResourceTypeId, ResourceUsageMetrics> {
+    const metrics = new Map<ResourceTypeId, ResourceUsageMetrics>();
 
     const typesToProcess = resourceType ? [resourceType] : Array.from(this.usageHistory.keys());
 
@@ -355,9 +367,9 @@ class AdvancedResourcePool {
   getQueueStatus(): {
     queueLength: number;
     averageWaitTime: number;
-    requestsByType: Map<ResourceType, number>;
+    requestsByType: Map<ResourceTypeId, number>;
   } {
-    const requestsByType = new Map<ResourceType, number>();
+    const requestsByType = new Map<ResourceTypeId, number>();
     
     for (const request of this.requestQueue) {
       const count = requestsByType.get(request.type) || 0;
@@ -527,8 +539,8 @@ class AdaptiveAllocationStrategy implements AllocationStrategy {
  */
 export class ResourceManager {
   private config: ResourceManagerConfig;
-  private resourcePools: Map<ResourceType, AdvancedResourcePool> = new Map();
-  private throttlers: Map<ResourceType, ResourceThrottler> = new Map();
+  private resourcePools: Map<ResourceTypeId, AdvancedResourcePool> = new Map();
+  private throttlers: Map<ResourceTypeId, ResourceThrottler> = new Map();
   private globalMetrics: GlobalResourceMetrics;
 
   constructor(config: ResourceManagerConfig) {
@@ -543,7 +555,7 @@ export class ResourceManager {
    */
   private initializeResourcePools(): void {
     for (const [poolName, poolConfig] of Object.entries(this.config.pools)) {
-      const resourceType = poolName as ResourceType;
+      const resourceType = poolName as ResourceTypeId;
       const pool = new AdvancedResourcePool(poolConfig);
       this.resourcePools.set(resourceType, pool);
     }
@@ -567,7 +579,7 @@ export class ResourceManager {
    * Request resource allocation
    */
   async requestResource(
-    resourceType: ResourceType,
+    resourceType: ResourceTypeIdId,
     amount: number,
     actorId: string,
     priority: number = 5,
@@ -577,8 +589,12 @@ export class ResourceManager {
     const throttler = this.throttlers.get(resourceType);
     if (throttler && !throttler.canProceed(actorId)) {
       return {
+        requestId: `${actorId}-${Date.now()}`,
+        status: 'failed' as const,
         success: false,
+        allocatedResources: {},
         error: 'Request throttled',
+        timestamp: new Date(),
         waitTime: 0
       };
     }
@@ -613,7 +629,7 @@ export class ResourceManager {
   /**
    * Release resource allocation
    */
-  async releaseResource(resourceType: ResourceType, allocationId: string): Promise<boolean> {
+  async releaseResource(resourceType: ResourceTypeId, allocationId: string): Promise<boolean> {
     const pool = this.resourcePools.get(resourceType);
     if (!pool) {
       return false;
@@ -631,13 +647,13 @@ export class ResourceManager {
   /**
    * Get resource usage metrics
    */
-  getResourceMetrics(resourceType?: ResourceType): Map<ResourceType, ResourceUsageMetrics> {
+  getResourceMetrics(resourceType?: ResourceTypeId): Map<ResourceTypeId, ResourceUsageMetrics> {
     if (resourceType) {
       const pool = this.resourcePools.get(resourceType);
       return pool ? pool.getUsageMetrics(resourceType) : new Map();
     }
 
-    const allMetrics = new Map<ResourceType, ResourceUsageMetrics>();
+    const allMetrics = new Map<ResourceTypeId, ResourceUsageMetrics>();
     
     for (const [type, pool] of this.resourcePools.entries()) {
       const metrics = pool.getUsageMetrics(type);
@@ -656,7 +672,7 @@ export class ResourceManager {
     totalRequests: number;
     successRate: number;
     averageResponseTime: number;
-    resourceUtilization: Map<ResourceType, number>;
+    resourceUtilization: Map<ResourceTypeId, number>;
   } {
     return this.globalMetrics.getMetrics();
   }
@@ -664,8 +680,8 @@ export class ResourceManager {
   /**
    * Optimize all resource pools
    */
-  optimizeAllPools(): Map<ResourceType, OptimizationResult> {
-    const results = new Map<ResourceType, OptimizationResult>();
+  optimizeAllPools(): Map<ResourceTypeId, OptimizationResult> {
+    const results = new Map<ResourceTypeId, OptimizationResult>();
     
     for (const [type, pool] of this.resourcePools.entries()) {
       results.set(type, pool.optimizeAllocation());
@@ -699,12 +715,12 @@ export class ResourceManager {
  * Throttler for controlling resource request rates
  */
 class ResourceThrottler {
-  private resourceType: ResourceType;
+  private resourceType: ResourceTypeId;
   private config: ThrottlerConfig;
   private requestCounts: Map<string, RequestCount> = new Map();
   private cleanupInterval?: NodeJS.Timeout;
 
-  constructor(resourceType: ResourceType, config: ThrottlerConfig) {
+  constructor(resourceType: ResourceTypeId, config: ThrottlerConfig) {
     this.resourceType = resourceType;
     this.config = config;
     this.startCleanup();
@@ -784,12 +800,12 @@ class ResourceThrottler {
  * Global resource metrics tracking
  */
 class GlobalResourceMetrics {
-  private requestCounts: Map<ResourceType, number> = new Map();
-  private successCounts: Map<ResourceType, number> = new Map();
-  private releaseCounts: Map<ResourceType, number> = new Map();
-  private responseTimes: Map<ResourceType, number[]> = new Map();
+  private requestCounts: Map<ResourceTypeId, number> = new Map();
+  private successCounts: Map<ResourceTypeId, number> = new Map();
+  private releaseCounts: Map<ResourceTypeId, number> = new Map();
+  private responseTimes: Map<ResourceTypeId, number[]> = new Map();
 
-  recordRequest(resourceType: ResourceType, success: boolean): void {
+  recordRequest(resourceType: ResourceTypeId, success: boolean): void {
     const requests = this.requestCounts.get(resourceType) || 0;
     this.requestCounts.set(resourceType, requests + 1);
 
@@ -799,7 +815,7 @@ class GlobalResourceMetrics {
     }
   }
 
-  recordRelease(resourceType: ResourceType): void {
+  recordRelease(resourceType: ResourceTypeId): void {
     const releases = this.releaseCounts.get(resourceType) || 0;
     this.releaseCounts.set(resourceType, releases + 1);
   }
@@ -808,13 +824,13 @@ class GlobalResourceMetrics {
     totalRequests: number;
     successRate: number;
     averageResponseTime: number;
-    resourceUtilization: Map<ResourceType, number>;
+    resourceUtilization: Map<ResourceTypeId, number>;
   } {
     const totalRequests = Array.from(this.requestCounts.values()).reduce((sum, count) => sum + count, 0);
     const totalSuccesses = Array.from(this.successCounts.values()).reduce((sum, count) => sum + count, 0);
     const successRate = totalRequests > 0 ? (totalSuccesses / totalRequests) * 100 : 0;
 
-    const resourceUtilization = new Map<ResourceType, number>();
+    const resourceUtilization = new Map<ResourceTypeId, number>();
     for (const [type, requests] of this.requestCounts.entries()) {
       const releases = this.releaseCounts.get(type) || 0;
       const utilization = requests > 0 ? Math.max(0, requests - releases) : 0;

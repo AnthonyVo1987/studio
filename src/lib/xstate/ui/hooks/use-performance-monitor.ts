@@ -81,7 +81,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
     if (isMonitoring) return;
 
     setIsMonitoring(true);
-    logger.info('Performance dashboard monitoring started');
+    logger.state('startMonitoring', 'Performance dashboard monitoring started');
 
     if (realTimeUpdates) {
       intervalRef.current = setInterval(() => {
@@ -131,7 +131,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
       intervalRef.current = null;
     }
 
-    logger.info('Performance dashboard monitoring stopped');
+    logger.state('stopMonitoring', 'Performance dashboard monitoring stopped');
   }, [isMonitoring]);
 
   // Check alert thresholds
@@ -183,7 +183,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
       )
     );
     
-    logger.info('Alert acknowledged:', { alertId });
+    logger.userAction('acknowledgeAlert', 'Alert acknowledged', { alertId });
   }, []);
 
   // Resolve alert
@@ -196,7 +196,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
       )
     );
     
-    logger.info('Alert resolved:', { alertId });
+    logger.userAction('resolveAlert', 'Alert resolved', { alertId });
   }, []);
 
   // Clear old alerts
@@ -271,7 +271,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
     
     URL.revokeObjectURL(url);
     
-    logger.info('Chart data exported:', { chartType, dataPoints: data.length });
+    logger.userAction('exportChartData', 'Chart data exported', { chartType, dataPoints: data.length });
   }, [chartData]);
 
   // Performance summary
@@ -465,17 +465,17 @@ function createDataPointFromMetrics(
 function getMetricValue(metrics: MetricsSnapshot, chartType: PerformanceChartType): number {
   switch (chartType) {
     case 'execution-time':
-      return metrics.averageExecutionTime || 0;
+      return metrics.metrics.totalDuration || 0;
     case 'memory-usage':
-      return metrics.memoryUsage || 0;
+      return metrics.metrics.memoryUsage?.percentage || 0;
     case 'event-frequency':
-      return metrics.eventCount || 0;
+      return metrics.metrics.retryCount || 0;
     case 'state-transitions':
-      return metrics.stateTransitionCount || 0;
+      return metrics.metrics.retryCount || 0;
     case 'error-rate':
-      return metrics.errorRate || 0;
+      return metrics.metrics.timeoutCount || 0;
     case 'throughput':
-      return metrics.operationsPerSecond || 0;
+      return (1000 / (metrics.metrics.totalDuration || 1)) || 0;
     default:
       return 0;
   }

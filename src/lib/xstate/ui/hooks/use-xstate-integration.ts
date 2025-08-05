@@ -117,19 +117,24 @@ export function useXStateMachineIntegration(
             case 'stockSnapshot':
               tickerDispatch({
                 type: 'SET_STOCK_DATA',
-                payload: JSON.stringify(payload)
+                payload: {
+                  stockSnapshotJson: JSON.stringify(payload),
+                  marketStatusJson: '',
+                  standardTasJson: '',
+                  aiAnalyzedTaJson: ''
+                }
               });
               break;
             case 'optionsChain':
               tickerDispatch({
                 type: 'SET_OPTIONS_CHAIN_DATA',
-                payload: { promptName: 'optionsChain', responseJson: JSON.stringify(payload), webSearchEnabled: false }
+                payload: JSON.stringify(payload)
               });
               break;
             case 'aiAnalysis':
               tickerDispatch({
                 type: 'SET_AI_KEY_TAKEAWAYS',
-                payload: { promptName: 'aiAnalysis', responseJson: JSON.stringify(payload), webSearchEnabled: false }
+                payload: JSON.stringify(payload)
               });
               break;
             default:
@@ -141,7 +146,7 @@ export function useXStateMachineIntegration(
       
       // Log state transitions
       logStateTransition: assign((context: any, event: any) => {
-        logger.info(`State transition for ${ticker}: ${event.type}`);
+        logger.state('stateTransition', `State transition for ${ticker}: ${event.type}`);
         return context;
       })
     },
@@ -153,7 +158,7 @@ export function useXStateMachineIntegration(
         return Boolean(tickerContext.stockSnapshotJson);
       },
       
-      isTickerLoading: (context: any, event: any) => {
+      isTickerLoading: (context: MacroExecutionContext, event: any) => {
         return tickerContext.status === 'loading';
       }
     },
@@ -374,9 +379,9 @@ export function useActorSpawning(config: ActorSpawningConfig) {
             : actor
         ));
 
-        // Performance monitoring
+        // Performance monitoring  
         if (enablePerformanceMonitoring && performanceMonitor) {
-          performanceMonitor.recordActorActivity({
+          performanceMonitor.recordEvent({
             actorId,
             typeId,
             state: state.value as string,
@@ -391,7 +396,7 @@ export function useActorSpawning(config: ActorSpawningConfig) {
       // Add to actors list
       setActors(prev => [...prev, actorInstance]);
       
-      logger.info(`Actor spawned: ${actorId} (${typeId})`);
+      logger.state('actorSpawned', `Actor spawned: ${actorId} (${typeId})`);
       
       return actorInstance;
     } catch (error) {
@@ -411,7 +416,7 @@ export function useActorSpawning(config: ActorSpawningConfig) {
       
       setActors(prev => prev.filter(actor => actor.id !== actorId));
       
-      logger.info(`Actor terminated: ${actorId}`);
+      logger.state('actorTerminated', `Actor terminated: ${actorId}`);
     }
   }, []);
 
@@ -441,7 +446,7 @@ export function useActorSpawning(config: ActorSpawningConfig) {
       actors.forEach(actor => {
         const inactiveTime = now - actor.lastActivity.getTime();
         if (inactiveTime > threshold && actor.status === 'idle') {
-          logger.info(`Auto-cleaning inactive actor: ${actor.id} (inactive for ${inactiveTime}ms)`);
+          logger.state('actorCleanup', `Auto-cleaning inactive actor: ${actor.id} (inactive for ${inactiveTime}ms)`);
           terminateActor(actor.id);
         }
       });
@@ -613,7 +618,7 @@ export function useMultiTickerCoordination(config: MultiTickerCoordinationConfig
 
       send({ type: 'SYNC_COMPLETE' });
       
-      logger.info(`Multi-ticker synchronization complete: ${operation} for ${enabledTickers.map(t => t.symbol).join(', ')} (${syncTime}ms)`);
+      logger.state('synchronizationComplete', `Multi-ticker synchronization complete: ${operation} for ${enabledTickers.map(t => t.symbol).join(', ')} (${syncTime}ms)`);
       
     } catch (error) {
       setCoordinationStatus(prev => ({
@@ -646,7 +651,7 @@ export function useMultiTickerCoordination(config: MultiTickerCoordinationConfig
       timestamp: new Date().toISOString()
     };
 
-    logger.info(`Cross-ticker analysis complete for NVDA and SPY`);
+    logger.state('crossTickerAnalysis', 'Cross-ticker analysis complete for NVDA and SPY');
     return analysis;
   }, [enableCrossAnalysis, nvdaContext.stockSnapshotJson, spyContext.stockSnapshotJson]);
 

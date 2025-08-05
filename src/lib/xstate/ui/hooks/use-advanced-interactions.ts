@@ -166,7 +166,7 @@ export function useDragAndDrop<T extends { id: string }>(
         const newItems = arrayMove(reorderedItems, oldIndex, newIndex);
         setReorderedItems(newItems);
         
-        logger.info('Items reordered:', {
+        logger.userAction('reorderItems', 'Items reordered', {
           activeId: active.id,
           overId: over.id,
           oldIndex,

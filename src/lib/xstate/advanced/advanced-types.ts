@@ -62,13 +62,18 @@ export interface ResourcePoolConfig {
 }
 
 /**
+ * Resource type enumeration for simple resource identification
+ */
+export type ResourceTypeId = 'api' | 'memory' | 'connection' | 'computation';
+
+/**
  * Resource allocation tracking
  */
 export interface ResourceAllocation {
   /** Resource identifier */
   resourceId: string;
   /** Resource type */
-  resourceType: 'api' | 'memory' | 'connection' | 'computation';
+  resourceType: ResourceTypeId;
   /** Allocated amount */
   allocatedAmount: number;
   /** Maximum available */
