@@ -168,7 +168,10 @@
       "Bash(tsx:*)",
       "Bash(tsc:*)",
       "Bash(next dev:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npx @context7/cli search:*)",
+      "Bash(npm view:*)",
+      "Bash(npm search:*)"
     ],
     "deny": []
   }
