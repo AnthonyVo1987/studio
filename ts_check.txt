@@ -1,54 +1,20 @@
-src/lib/xstate/debugging/machine-testing.ts(618,7): error TS2740: Type '{}' is missing the following properties from type 'Map<number, StepResult>': clear, delete, forEach, get, and 8 more.
-src/lib/xstate/debugging/machine-testing.ts(769,7): error TS2353: Object literal may only specify known properties, and 'totalSteps' does not exist in type 'Partial<MacroExecutionContext>'.
-src/lib/xstate/debugging/machine-testing.ts(782,7): error TS2353: Object literal may only specify known properties, and 'totalSteps' does not exist in type 'Partial<MacroExecutionContext>'.
+src/lib/xstate/actors/actor-manager.ts(418,11): error TS2322: Type '"ACTOR_REMOVED"' is not assignable to type '"ACTOR_CREATED" | "ACTOR_STARTED" | "ACTOR_STOPPED" | "ACTOR_ERROR" | "ACTOR_STATE_CHANGED" | "ACTOR_EXECUTION_COMPLETE" | "ACTOR_METRICS_UPDATED"'.
+src/lib/xstate/debugging/machine-testing.ts(628,9): error TS2353: Object literal may only specify known properties, and 'executionDuration' does not exist in type 'PerformanceMetrics'.
 src/lib/xstate/debugging/xstate-inspector.ts(220,44): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
 src/lib/xstate/debugging/xstate-inspector.ts(311,9): error TS2353: Object literal may only specify known properties, and 'userAgent' does not exist in type 'SnapshotMetadata'.
-src/lib/xstate/error-handling/index.ts(187,10): error TS2614: Module '"./error-boundary"' has no exported member 'executeWithCircuitBreaker'. Did you mean to use 'import executeWithCircuitBreaker from "./error-boundary"' instead?
-src/lib/xstate/error-handling/index.ts(187,37): error TS2614: Module '"./error-boundary"' has no exported member 'enhanceExistingRetry'. Did you mean to use 'import enhanceExistingRetry from "./error-boundary"' instead?
-src/lib/xstate/error-handling/index.ts(307,23): error TS2304: Cannot find name 'ErrorContext'.
-src/lib/xstate/error-handling/retry-strategies.ts(688,15): error TS2484: Export declaration conflicts with exported declaration of 'RetryStrategy'.
-src/lib/xstate/error-handling/retry-strategies.ts(688,30): error TS2484: Export declaration conflicts with exported declaration of 'RetryContext'.
-src/lib/xstate/performance/index.ts(10,10): error TS2614: Module '"./metrics-collector"' has no exported member 'PerformanceMetricsCollector'. Did you mean to use 'import PerformanceMetricsCollector from "./metrics-collector"' instead?
-src/lib/xstate/performance/index.ts(21,19): error TS2304: Cannot find name 'createPerformanceMonitor'.
-src/lib/xstate/performance/index.ts(22,25): error TS2304: Cannot find name 'PerformanceMetricsCollector'.
-src/lib/xstate/performance/index.ts(23,25): error TS2304: Cannot find name 'AnalyticsEngine'.
+src/lib/xstate/performance/performance-monitor.ts(564,15): error TS2339: Property 'startPerformanceProfile' does not exist on type 'PerformanceMonitor'.
+src/lib/xstate/performance/performance-monitor.ts(566,15): error TS2339: Property 'endPerformanceProfile' does not exist on type 'PerformanceMonitor'.
+src/lib/xstate/performance/performance-monitor.ts(567,49): error TS2339: Property 'getMetricsByType' does not exist on type 'PerformanceMonitor'.
+src/lib/xstate/performance/performance-monitor.ts(568,54): error TS2339: Property 'getMetricsForActor' does not exist on type 'PerformanceMonitor'.
+src/lib/xstate/performance/performance-monitor.ts(570,33): error TS2339: Property 'clearMetrics' does not exist on type 'PerformanceMonitor'.
 src/lib/xstate/react/components/StateMachineVisualizer.tsx(380,15): error TS2322: Type 'MacroStep' is not assignable to type 'Key | null | undefined'.
-src/lib/xstate/react/contexts/XStateContext.tsx(139,19): error TS2345: Argument of type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to parameter of type 'SetStateAction<{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }>'.
-  Type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to type '(prevState: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }'.
-    Call signature return types '{ systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' and '{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }' are incompatible.
-      The types of 'systemHealth' are incompatible between these types.
-        Type '"error"' is not assignable to type '"healthy"'.
-src/lib/xstate/react/contexts/XStateContext.tsx(155,19): error TS2345: Argument of type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { activeActors: any; totalActors: number; systemHealth: "error" | "healthy"; isInitialized: boolean; lastError: Error | undefined; }' is not assignable to parameter of type 'SetStateAction<{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }>'.
-  Type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { activeActors: any; totalActors: number; systemHealth: "error" | "healthy"; isInitialized: boolean; lastError: Error | undefined; }' is not assignable to type '(prevState: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }'.
-    Call signature return types '{ activeActors: any; totalActors: number; systemHealth: "error" | "healthy"; isInitialized: boolean; lastError: Error | undefined; }' and '{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }' are incompatible.
-      The types of 'systemHealth' are incompatible between these types.
-        Type '"error" | "healthy"' is not assignable to type '"healthy"'.
-          Type '"error"' is not assignable to type '"healthy"'.
-src/lib/xstate/react/contexts/XStateContext.tsx(157,41): error TS2339: Property 'activeActors' does not exist on type 'ManagerMetrics'.
-src/lib/xstate/react/contexts/XStateContext.tsx(162,19): error TS2345: Argument of type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to parameter of type 'SetStateAction<{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }>'.
-  Type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to type '(prevState: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }'.
-    Call signature return types '{ systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' and '{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }' are incompatible.
-      The types of 'systemHealth' are incompatible between these types.
-        Type '"error"' is not assignable to type '"healthy"'.
-src/lib/xstate/react/contexts/XStateContext.tsx(187,32): error TS2551: Property 'removeActor' does not exist on type 'ActorManager'. Did you mean 'resumeActor'?
-src/lib/xstate/react/contexts/XStateContext.tsx(237,30): error TS2551: Property 'removeActor' does not exist on type 'ActorManager'. Did you mean 'resumeActor'?
-src/lib/xstate/react/contexts/XStateContext.tsx(255,30): error TS2551: Property 'removeActor' does not exist on type 'ActorManager'. Did you mean 'resumeActor'?
-src/lib/xstate/react/contexts/XStateContext.tsx(319,5): error TS2322: Type '{ createMacroActor: (ticker: SupportedTicker, options?: any) => Promise<any>; getActor: (actorId: string) => ActorInstance | undefined; removeActor: (actorId: string, reason?: string) => Promise<...>; getSystemMetrics: () => { ...; }; cleanupActors: () => Promise<...>; resetSystem: () => Promise<...>; }' is not assignable to type '{ createMacroActor: (ticker: SupportedTicker, options?: any) => Promise<ActorInstance>; getActor: (actorId: string) => ActorInstance | undefined; removeActor: (actorId: string, reason?: string | undefined) => Promise<...>; getSystemMetrics: () => any; cleanupActors: () => Promise<...>; resetSystem: () => Promise<......'.
-  The types returned by 'cleanupActors()' are incompatible between these types.
-    Type 'Promise<number>' is not assignable to type 'Promise<void>'.
-      Type 'number' is not assignable to type 'void'.
-src/lib/xstate/react/contexts/XStateContext.tsx(411,30): error TS2339: Property 'useActor' does not exist on type '{ useSelector: <T>(selector: (snapshot: SnapshotFrom<TMachine>) => T, compare?: ((a: T, b: T) => boolean) | undefined) => T; useActorRef: () => Actor<TMachine>; Provider: (props: { ...; }) => ReactElement<...>; }'.
-src/lib/xstate/react/contexts/index.ts(10,3): error TS2300: Duplicate identifier 'XStateProvider'.
-src/lib/xstate/react/contexts/index.ts(27,3): error TS2300: Duplicate identifier 'MacroExecutionProvider'.
-src/lib/xstate/react/contexts/index.ts(43,21): error TS2300: Duplicate identifier 'XStateProvider'.
-src/lib/xstate/react/contexts/index.ts(44,21): error TS2300: Duplicate identifier 'MacroExecutionProvider'.
 src/lib/xstate/react/hooks/use-macro-execution.ts(198,5): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
 src/lib/xstate/react/hooks/use-macro-execution.ts(219,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
 src/lib/xstate/react/hooks/use-macro-execution.ts(258,41): error TS2345: Argument of type 'number' is not assignable to parameter of type 'MacroStep'.
 src/lib/xstate/react/hooks/use-macro-execution.ts(278,7): error TS2322: Type 'string | number' is not assignable to type 'MacroStep'.
   Type 'string' is not assignable to type 'MacroStep'.
-src/lib/xstate/react/hooks/use-macro-execution.ts(281,29): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
-src/lib/xstate/react/hooks/use-macro-execution.ts(282,32): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(281,39): error TS2339: Property 'stepProgress' does not exist on type '{ percentage: number; stage: string; details?: string | undefined; }'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(282,42): error TS2339: Property 'overallProgress' does not exist on type '{ percentage: number; stage: string; details?: string | undefined; }'.
 src/lib/xstate/react/hooks/use-macro-execution.ts(290,9): error TS2322: Type '{ step: MacroStep; error: Error; timestamp: number; } | { step: string | number; error: Error; timestamp: number; }' is not assignable to type '{ step: MacroStep; error: Error; timestamp: number; }'.
   Type '{ step: string | number; error: Error; timestamp: number; }' is not assignable to type '{ step: MacroStep; error: Error; timestamp: number; }'.
     Types of property 'step' are incompatible.
@@ -84,8 +50,8 @@ src/lib/xstate/react/hooks/use-state-visualization.ts(326,9): error TS2322: Type
 src/lib/xstate/react/hooks/use-state-visualization.ts(328,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
 src/lib/xstate/react/hooks/use-state-visualization.ts(329,24): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
 src/lib/xstate/react/hooks/use-state-visualization.ts(331,43): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
-src/lib/xstate/react/hooks/use-state-visualization.ts(341,36): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
-src/lib/xstate/react/hooks/use-state-visualization.ts(342,39): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(341,46): error TS2339: Property 'stepProgress' does not exist on type '{ percentage: number; stage: string; details?: string | undefined; }'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(342,49): error TS2339: Property 'overallProgress' does not exist on type '{ percentage: number; stage: string; details?: string | undefined; }'.
 src/lib/xstate/react/hooks/use-state-visualization.ts(344,71): error TS2345: Argument of type 'number | "fetchExpirations"' is not assignable to parameter of type 'MacroStep'.
   Type 'number' is not assignable to type 'MacroStep'.
 src/lib/xstate/react/hooks/use-state-visualization.ts(347,34): error TS2345: Argument of type 'number | "fetchExpirations"' is not assignable to parameter of type 'MacroStep'.
@@ -134,6 +100,8 @@ src/lib/xstate/react/hooks/use-xstate-machine.ts(159,23): error TS2345: Argument
   Type 'ActiveMachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to type 'SnapshotFrom<TMachine>'.
 src/lib/xstate/react/hooks/use-xstate-machine.ts(232,5): error TS2322: Type 'MachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to type 'SnapshotFrom<TMachine>'.
   Type 'ActiveMachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to type 'SnapshotFrom<TMachine>'.
+src/lib/xstate/test-utils/mock-services.ts(345,5): error TS2741: Property 'totalSteps' is missing in type '{ ticker: string; executionId: string; selectedExpiration: null; stepResults: Map<any, any>; currentStep: number; completedSteps: never[]; error: null; timeoutSettings: { stepTimeout: number; maxRetries: number; backoffMultiplier: number; baseRetryDelay: number; }; ... 4 more ...; debugMode: true; }' but required in type 'MacroExecutionContext'.
+src/lib/xstate/types/context-types.ts(207,3): error TS2741: Property 'totalSteps' is missing in type '{ ticker: string; executionId: string; selectedExpiration: string | null; stepResults: Map<any, any>; currentStep: number; completedSteps: never[]; error: null; timeoutSettings: { stepTimeout: number; maxRetries: number; backoffMultiplier: number; baseRetryDelay: number; }; ... 4 more ...; debugMode: boolean; }' but required in type 'MacroExecutionContext'.
 src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(153,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(293,43): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(365,48): error TS2339: Property 'cpuUsage' does not exist on type 'PerformanceMetrics'.
@@ -165,9 +133,9 @@ src/lib/xstate/ui/components/performance-dashboard.tsx(466,45): error TS2339: Pr
 src/lib/xstate/ui/components/performance-dashboard.tsx(472,35): error TS2339: Property 'errorRate' does not exist on type 'MetricsSnapshot'.
 src/lib/xstate/ui/components/performance-dashboard.tsx(478,45): error TS2339: Property 'operationsPerSecond' does not exist on type 'MetricsSnapshot'.
 src/lib/xstate/ui/components/state-machine-visualizer.tsx(156,41): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'string'.
-src/lib/xstate/ui/components/state-machine-visualizer.tsx(347,37): error TS2322: Type 'Dispatch<SetStateAction<"state" | "code" | "actors" | "events">>' is not assignable to type '(value: string) => void'.
+src/lib/xstate/ui/components/state-machine-visualizer.tsx(347,37): error TS2322: Type 'Dispatch<SetStateAction<"code" | "actors" | "events" | "state">>' is not assignable to type '(value: string) => void'.
   Types of parameters 'value' and 'value' are incompatible.
-    Type 'string' is not assignable to type 'SetStateAction<"state" | "code" | "actors" | "events">'.
+    Type 'string' is not assignable to type 'SetStateAction<"code" | "actors" | "events" | "state">'.
 src/lib/xstate/ui/components/workflow-builder.tsx(332,19): error TS2540: Cannot assign to 'current' because it is a read-only property.
 src/lib/xstate/ui/components/workflow-builder.tsx(620,49): error TS2345: Argument of type '{ componentId: string; type: string; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/components/workflow-builder.tsx(648,53): error TS2345: Argument of type '{ componentId: string; }' is not assignable to parameter of type 'string'.
@@ -188,11 +156,12 @@ src/lib/xstate/ui/hooks/use-advanced-interactions.ts(495,55): error TS2345: Argu
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(577,36): error TS2345: Argument of type '{ elementTag: string; elementId: string; preventScroll: boolean; restoreOnUnmount: boolean; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(592,14): error TS2554: Expected 2-3 arguments, but got 1.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(619,49): error TS2345: Argument of type '{ message: string; priority: "polite" | "assertive"; }' is not assignable to parameter of type 'string'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(20,10): error TS2724: '"../../performance/performance-monitor"' has no exported member named 'usePerformanceMonitor'. Did you mean 'PerformanceMonitor'?
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(89,37): error TS2339: Property 'getCurrentMetrics' does not exist on type '{ monitor: PerformanceMonitor; recordMetric: (metric: Omit<PerformanceMetric, "id" | "timestamp">) => void; getMetrics: () => PerformanceMetric[]; ... 5 more ...; clearMetrics: () => any; }'.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(160,53): error TS2345: Argument of type '{ alertId: string; metric: PerformanceChartType; currentValue: number; threshold: number; severity: "low" | "medium" | "high" | "critical"; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(205,12): error TS2554: Expected 2-3 arguments, but got 1.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(240,46): error TS2345: Argument of type '{ chartType: PerformanceChartType; value: number; label: string | undefined; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(254,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(407,42): error TS2339: Property 'getCurrentMetrics' does not exist on type '{ monitor: PerformanceMonitor; recordMetric: (metric: Omit<PerformanceMetric, "id" | "timestamp">) => void; getMetrics: () => PerformanceMetric[]; ... 5 more ...; clearMetrics: () => any; }'.
 src/lib/xstate/ui/hooks/use-xstate-integration.ts(170,31): error TS7006: Parameter 'context' implicitly has an 'any' type.
 src/lib/xstate/ui/hooks/use-xstate-integration.ts(187,5): error TS2322: Type 'boolean' is not assignable to type 'undefined'.
 src/lib/xstate/ui/hooks/use-xstate-integration.ts(194,50): error TS2554: Expected 0 arguments, but got 1.

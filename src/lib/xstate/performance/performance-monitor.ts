@@ -538,4 +538,57 @@ export function createStockSagePerformanceMonitor(): PerformanceMonitor {
   });
 }
 
+/**
+ * React hook for performance monitoring
+ */
+export function usePerformanceMonitor(monitorId?: string) {
+  const monitor = monitorId 
+    ? createPerformanceMonitor(monitorId, {
+        enabled: true,
+        samplingRate: 1.0,
+        retentionPeriod: 2 * 60 * 60 * 1000,
+        aggregationInterval: 30 * 1000,
+        enableRealTimeAlerts: true,
+        enableHistoricalAnalysis: true,
+        maxMetricsInMemory: 5000,
+        exportInterval: 2 * 60 * 1000
+      })
+    : createStockSagePerformanceMonitor();
+
+  return {
+    monitor,
+    recordMetric: (metric: Omit<PerformanceMetric, 'id' | 'timestamp'>) => 
+      monitor.recordMetric(metric),
+    getMetrics: () => monitor.getMetrics(),
+    getCurrentMetrics: () => monitor.getMetrics(), // Alias for compatibility
+    exportMetrics: () => monitor.exportMetrics(),
+    // Simplified implementations for methods that don't exist yet
+    startPerformanceProfile: (profileId: string, metadata?: Record<string, any>) => {
+      monitor.recordMetric({
+        machineId: profileId,
+        metricType: 'profile_start',
+        value: Date.now(),
+        unit: 'ms',
+        tags: { profileId, ...metadata }
+      });
+    },
+    endPerformanceProfile: (profileId: string, metadata?: Record<string, any>) => {
+      monitor.recordMetric({
+        machineId: profileId,
+        metricType: 'profile_end',
+        value: Date.now(),
+        unit: 'ms',
+        tags: { profileId, ...metadata }
+      });
+    },
+    getMetricsByType: (type: string) => monitor.getMetrics().filter(m => m.metricType === type),
+    getMetricsForActor: (actorId: string) => monitor.getMetrics().filter(m => m.actorId === actorId),
+    clearMetrics: () => {
+      // Basic implementation - create new monitor instance
+      const newMonitor = createStockSagePerformanceMonitor();
+      Object.assign(monitor, newMonitor);
+    },
+  };
+}
+
 export default PerformanceMonitor;

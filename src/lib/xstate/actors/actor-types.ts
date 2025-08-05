@@ -225,6 +225,9 @@ export interface ActorManager {
     callback: (event: ActorEvent) => void
   ): () => void;
   
+  /** Remove actor completely */
+  removeActor(actorId: string, reason?: string): Promise<boolean>;
+  
   /** Get manager metrics */
   getMetrics(): ManagerMetrics;
   
@@ -261,6 +264,7 @@ export type ActorEvent =
   | { type: 'ACTOR_CREATED'; actorId: string; identity: ActorIdentity }
   | { type: 'ACTOR_STARTED'; actorId: string; timestamp: number }
   | { type: 'ACTOR_STOPPED'; actorId: string; timestamp: number; reason?: string }
+  | { type: 'ACTOR_REMOVED'; actorId: string; reason?: string }
   | { type: 'ACTOR_ERROR'; actorId: string; error: Error; timestamp: number }
   | { type: 'ACTOR_STATE_CHANGED'; actorId: string; newState: string; oldState: string }
   | { type: 'ACTOR_EXECUTION_COMPLETE'; actorId: string; result: any; duration: number }
@@ -272,6 +276,8 @@ export type ActorEvent =
 export interface ManagerMetrics {
   /** Registry metrics */
   registry: RegistryMetrics;
+  /** Number of active actors */
+  activeActors: number;
   /** Total events processed */
   totalEvents: number;
   /** Events per second */

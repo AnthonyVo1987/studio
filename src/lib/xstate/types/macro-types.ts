@@ -104,6 +104,8 @@ export interface MacroExecutionContext {
   stepResults: Map<number, StepResult>;
   /** Currently executing step */
   currentStep: number;
+  /** Total number of steps in the execution */
+  totalSteps: number;
   /** Array of completed step IDs */
   completedSteps: number[];
   /** Current error state */
@@ -112,6 +114,14 @@ export interface MacroExecutionContext {
   timeoutSettings: TimeoutConfig;
   /** Execution start timestamp */
   startTime: number | null;
+  /** Execution progress information */
+  progress?: {
+    percentage: number;
+    stage: string;
+    details?: string;
+    stepProgress?: number;
+    overallProgress?: number;
+  };
   /** Performance tracking metrics */
   performance: PerformanceMetrics;
   /** Current retry attempt for the current step */

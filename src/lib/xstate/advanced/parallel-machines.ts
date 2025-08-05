@@ -318,6 +318,7 @@ export function createParallelCoordinationMachine(config: ParallelMachineConfig)
       selectedExpiration: null,
       stepResults: new Map(),
       currentStep: 0,
+      totalSteps: 0, // Will be set based on parallel operations
       completedSteps: [],
       error: null,
       timeoutSettings: {

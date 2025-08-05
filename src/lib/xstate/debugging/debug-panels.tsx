@@ -18,6 +18,7 @@ import type {
   MachineSnapshot,
   StateTransition,
   StructuredLogEntry,
+  LogPerformanceMetrics,
   PerformanceMetric,
   TestScenario,
   TestResult

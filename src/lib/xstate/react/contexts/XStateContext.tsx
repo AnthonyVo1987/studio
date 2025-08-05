@@ -120,12 +120,18 @@ export function XStateProvider({ children, config = {} }: XStateProviderProps) {
   });
 
   const [factory] = useState(() => createActorFactory(system.manager, system.registry));
-  const [status, setStatus] = useState({
+  const [status, setStatus] = useState<{
+    isInitialized: boolean;
+    activeActors: number;
+    totalActors: number;
+    systemHealth: 'healthy' | 'degraded' | 'error';
+    lastError?: Error;
+  }>({
     isInitialized: false,
     activeActors: 0,
     totalActors: 0,
-    systemHealth: 'healthy' as const,
-    lastError: undefined as Error | undefined,
+    systemHealth: 'healthy',
+    lastError: undefined,
   });
 
   // Initialize system
@@ -255,7 +261,7 @@ export function XStateProvider({ children, config = {} }: XStateProviderProps) {
         await system.manager.removeActor(actor.identity.id);
       }
 
-      return stoppedActors.length;
+      // Return void as per interface contract
     },
 
     resetSystem: async () => {
@@ -408,7 +414,6 @@ export function createXStateMachineContext<TMachine extends AnyStateMachine>(
 
   return {
     Provider: WrappedProvider,
-    useActor: MachineContext.useActor,
     useSelector: MachineContext.useSelector,
     useActorRef: MachineContext.useActorRef,
     contextId,

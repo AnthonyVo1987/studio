@@ -60,7 +60,7 @@ export type {
 } from './error-types';
 
 // Re-export namespace for convenience
-export { ErrorHandling } from './error-types';
+export type { ErrorHandling } from './error-types';
 
 // Type guards and utility types
 export {
@@ -175,6 +175,19 @@ export {
 export type {
   ErrorBoundaryProps
 } from './error-boundary';
+
+// ================================
+// IMPORTS FOR IMPLEMENTATION
+// ================================
+import { createErrorContext, globalErrorClassifier } from './error-classifier';
+import type { ErrorContext } from './error-types';
+import { globalRecoveryManager } from './recovery-strategies';
+import { globalCircuitBreakerRegistry, CIRCUIT_BREAKER_CONFIGS } from './circuit-breaker';
+import { globalRetryRegistry, RETRY_CONFIGS } from './retry-strategies';
+import { globalCompensationManager, createMacroTransaction } from './compensation-manager';
+import { executeWithCircuitBreaker } from './circuit-breaker';
+import { enhanceExistingRetry } from './retry-strategies';
+import { AdvancedErrorBoundary, withErrorBoundary } from './error-boundary';
 
 // ================================
 // INTEGRATION UTILITIES

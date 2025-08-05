@@ -21,7 +21,8 @@ import type {
   ErrorBoundaryFallbackProps,
   ClassifiedError,
   RecoveryPlan,
-  RecoveryResult
+  RecoveryResult,
+  ErrorContext
 } from './error-types';
 
 import { globalErrorClassifier, createErrorContext } from './error-classifier';

@@ -7,8 +7,13 @@
 
 // Core exports
 export { PerformanceMonitor, createPerformanceMonitor, createStockSagePerformanceMonitor } from "./performance-monitor";
-export { PerformanceMetricsCollector } from "./metrics-collector";
+export { MetricsCollector as PerformanceMetricsCollector } from "./metrics-collector";
 export { AnalyticsEngine } from "./analytics-engine";
+
+// Internal imports for factory function
+import { createPerformanceMonitor } from "./performance-monitor";
+import { MetricsCollector } from "./metrics-collector";
+import { AnalyticsEngine } from "./analytics-engine";
 
 // Type exports
 export type { PerformanceMetric, PerformanceMonitorConfig, AnalyticsEngine as IAnalyticsEngine } from "./performance-types";
@@ -19,7 +24,7 @@ export { DEFAULT_CONFIG } from "./performance-types";
  */
 export function createCompletePerformanceMonitoring(machineId: string) {
   const monitor = createPerformanceMonitor(`monitor-${machineId}`);
-  const collector = new PerformanceMetricsCollector();
+  const collector = new MetricsCollector();
   const analytics = new AnalyticsEngine();
   
   return {

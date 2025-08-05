@@ -685,4 +685,4 @@ export const enhanceExistingRetry = async <T>(
   }
 };
 
-export type { RetryStrategy, RetryContext };
+// Types already exported above as interfaces

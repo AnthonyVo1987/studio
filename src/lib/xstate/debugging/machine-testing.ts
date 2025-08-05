@@ -615,8 +615,25 @@ export class TestDataGenerator {
       totalSteps: 4,
       startTime: Date.now(),
       completedSteps: [],
-      stepResults: {},
+      stepResults: new Map(),
       selectedExpiration: '2024-01-19',
+      error: null,
+      timeoutSettings: {
+        stepTimeout: 30000,
+        maxRetries: 3,
+        backoffMultiplier: 1.5,
+        baseRetryDelay: 1000
+      },
+      performance: {
+        executionDuration: 0,
+        stepDurations: new Map(),
+        memoryUsage: { heapUsed: 0, heapTotal: 0 },
+        cpuUsage: 0,
+        networkLatency: 0,
+        errorCount: 0,
+        retryCount: 0
+      },
+      debugMode: false,
       ...overrides
     };
   }

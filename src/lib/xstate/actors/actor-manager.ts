@@ -394,6 +394,50 @@ export class StockSageActorManager implements ActorManager {
   }
 
   /**
+   * Remove actor completely
+   */
+  async removeActor(actorId: string, reason = 'Requested removal'): Promise<boolean> {
+    try {
+      this.logger.state('RemoveActor', `Removing actor: ${actorId}`, {
+        actorId,
+        reason,
+      });
+
+      // First stop the actor if it's running
+      const actor = this.registry.get(actorId);
+      if (actor && actor.lifecycleState === 'running') {
+        await this.stopActor(actorId, reason);
+      }
+
+      // Unregister from registry
+      const unregistered = await this.registry.unregister(actorId);
+
+      if (unregistered) {
+        // Broadcast removal event
+        this.broadcastEvent({
+          type: 'ACTOR_REMOVED',
+          actorId,
+          reason,
+        });
+
+        this.logger.state('RemoveActor', `Actor removed successfully: ${actorId}`);
+        return true;
+      } else {
+        this.logger.warn('RemoveActor', `Actor not found for removal: ${actorId}`);
+        return false;
+      }
+
+    } catch (error) {
+      this.logger.error('RemoveActor', 'Failed to remove actor', {
+        actorId,
+        reason,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
+  }
+
+  /**
    * Get manager metrics
    */
   getMetrics(): ManagerMetrics {
@@ -412,6 +456,7 @@ export class StockSageActorManager implements ActorManager {
 
     return {
       registry: registryMetrics,
+      activeActors: registryMetrics.activeActors,
       totalEvents: this.eventCount,
       eventsPerSecond,
       averageActorLifetime,

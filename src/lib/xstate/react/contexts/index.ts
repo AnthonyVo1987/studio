@@ -39,6 +39,6 @@ export type {
   MacroExecutionProviderProps,
 } from './MacroExecutionContext';
 
-// Default exports for convenience
-export { default as XStateProvider } from './XStateContext';
-export { default as MacroExecutionProvider } from './MacroExecutionContext';
+// Default exports for convenience (using different names to avoid conflicts)
+export { default as XStateProviderDefault } from './XStateContext';
+export { default as MacroExecutionProviderDefault } from './MacroExecutionContext';

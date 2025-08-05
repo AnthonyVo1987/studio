@@ -216,13 +216,13 @@ export class EnvironmentConfigManager {
         indicators.push({ type: 'variable', value: `NODE_ENV=${nodeEnv}`, weight: 0.6 });
         
         // Map common environment values to ConfigEnvironment types
-        if (nodeEnv === 'development' || nodeEnv === 'dev') {
+        if (nodeEnv === 'development') {
           detected = 'development';
           confidence += 0.6;
-        } else if (nodeEnv === 'staging' || nodeEnv === 'stage') {
+        } else if (nodeEnv === 'staging') {
           detected = 'staging';
           confidence += 0.6;
-        } else if (nodeEnv === 'production' || nodeEnv === 'prod') {
+        } else if (nodeEnv === 'production') {
           detected = 'production';
           confidence += 0.6;
         } else if (nodeEnv === 'test' || nodeEnv === 'testing') {
