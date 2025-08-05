@@ -329,7 +329,9 @@ function WorkflowCanvas({
     <div
       ref={(node) => {
         setNodeRef(node);
-        canvasRef.current = node;
+        if (canvasRef && 'current' in canvasRef) {
+          (canvasRef as any).current = node;
+        }
       }}
       className="relative w-full h-96 border-2 border-dashed border-muted-foreground/25 rounded-lg overflow-hidden"
       style={gridStyle}
@@ -560,6 +562,8 @@ export function WorkflowBuilder({
     },
     status: 'draft'
   });
+  
+  const [showGridState, setShowGrid] = useState(showGrid);
 
   const [selectedComponent, setSelectedComponent] = useState<WorkflowComponentInstance | null>(null);
   const [activeComponent, setActiveComponent] = useState<WorkflowComponentType | null>(null);
@@ -617,7 +621,7 @@ export function WorkflowBuilder({
     }));
 
     announceToScreenReader(`Component ${newComponent.name} added to workflow`);
-    logger.info('Component added to workflow:', { componentId: newComponent.id, type: componentType.id });
+    logger.info('AddComponent', 'Component added to workflow:', { componentId: newComponent.id, type: componentType.id });
   }, [workflow.components.length, announceToScreenReader]);
 
   // Select component
@@ -645,7 +649,7 @@ export function WorkflowBuilder({
     }
 
     announceToScreenReader(`Component ${component?.name || componentId} deleted`);
-    logger.info('Component deleted from workflow:', { componentId });
+    logger.info('DeleteComponent', 'Component deleted from workflow:', { componentId });
   }, [workflow.components, selectedComponent, announceToScreenReader]);
 
   // Update component property
@@ -673,7 +677,7 @@ export function WorkflowBuilder({
   const handleSaveWorkflow = useCallback(() => {
     onSaveWorkflow?.(workflow);
     announceToScreenReader('Workflow saved successfully');
-    logger.info('Workflow saved:', { workflowId: workflow.id, componentsCount: workflow.components.length });
+    logger.info('SaveWorkflow', 'Workflow saved:', { workflowId: workflow.id, componentsCount: workflow.components.length });
   }, [workflow, onSaveWorkflow, announceToScreenReader]);
 
   // Execute workflow
@@ -682,13 +686,13 @@ export function WorkflowBuilder({
 
     setWorkflow(prev => ({ ...prev, status: 'running' }));
     announceToScreenReader('Workflow execution started');
-    logger.info('Workflow execution started:', { workflowId: workflow.id });
+    logger.info('ExecuteWorkflow', 'Workflow execution started:', { workflowId: workflow.id });
 
     // Simulate workflow execution
     setTimeout(() => {
       setWorkflow(prev => ({ ...prev, status: 'completed' }));
       announceToScreenReader('Workflow execution completed');
-      logger.info('Workflow execution completed:', { workflowId: workflow.id });
+      logger.info('ExecuteWorkflow', 'Workflow execution completed:', { workflowId: workflow.id });
     }, 3000);
   }, [workflow.components.length, workflow.id, announceToScreenReader]);
 
@@ -715,7 +719,7 @@ export function WorkflowBuilder({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowGrid(!showGrid)}
+              onClick={() => setShowGrid(!showGridState)}
               aria-label="Toggle grid"
             >
               <Grid3X3 className="h-4 w-4" />
@@ -808,7 +812,7 @@ export function WorkflowBuilder({
                 onComponentSelect={handleComponentSelect}
                 onComponentDelete={handleComponentDelete}
                 selectedComponent={selectedComponent}
-                showGrid={showGrid}
+                showGrid={showGridState}
               />
               
               <DragOverlay>

@@ -176,7 +176,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
 
         setAlerts(prev => [...prev, alert]);
         
-        logger.warn('Performance alert triggered:', {
+        logger.warn('PerformanceAlert', 'Performance alert triggered', {
           alertId,
           metric: threshold.metric,
           currentValue: value,
@@ -221,7 +221,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
   // Clear old alerts
   const clearResolvedAlerts = useCallback(() => {
     setAlerts(prev => prev.filter(alert => alert.status !== 'resolved'));
-    logger.debug('Cleared resolved alerts');
+    logger.debug('ClearAlerts', 'Cleared resolved alerts');
   }, []);
 
   // Get chart data for specific type
@@ -256,21 +256,21 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
       return updated;
     });
 
-    logger.debug('Custom data point added:', { chartType, value, label });
+    logger.debug('AddDataPoint', 'Custom data point added', { chartType, value, label });
   }, [maxDataPoints]);
 
   // Clear chart data
   const clearChartData = useCallback((chartType?: PerformanceChartType) => {
     if (chartType) {
       setChartData(prev => ({ ...prev, [chartType]: [] }));
-      logger.debug('Chart data cleared for type:', chartType);
+      logger.debug('ClearChartData', 'Chart data cleared for type', { chartType });
     } else {
       const clearedData: Record<PerformanceChartType, ChartDataPoint[]> = {} as any;
       chartTypes.forEach(type => {
         clearedData[type] = [];
       });
       setChartData(clearedData);
-      logger.debug('All chart data cleared');
+      logger.debug('ClearAllChartData', 'All chart data cleared');
     }
   }, [chartTypes]);
 

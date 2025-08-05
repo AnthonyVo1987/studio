@@ -467,12 +467,12 @@ export function MultiTickerCoordinator({
     try {
       await synchronizeData('fetchStockData');
       announceToScreenReader(`${tickerSymbol} synchronized successfully`);
-      logger.info('Ticker synchronized:', { tickerSymbol });
+      logger.info('SynchronizeTicker', 'Ticker synchronized:', { tickerSymbol });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Synchronization failed';
       announceToScreenReader(`Failed to synchronize ${tickerSymbol}: ${errorMessage}`);
       onError?.(error instanceof Error ? error : new Error(errorMessage));
-      logger.error('Ticker synchronization failed:', error);
+      logger.error('SynchronizeTicker', 'Ticker synchronization failed:', error);
     }
   }, [synchronizeData, announceToScreenReader, onError]);
 
@@ -480,7 +480,7 @@ export function MultiTickerCoordinator({
   const handleTickerStatusToggle = useCallback((tickerSymbol: string) => {
     // Implementation would toggle ticker active/inactive status
     announceToScreenReader(`${tickerSymbol} status toggled`);
-    logger.info('Ticker status toggled:', { tickerSymbol });
+    logger.info('ToggleStatus', 'Ticker status toggled:', { tickerSymbol });
   }, [announceToScreenReader]);
 
   // Handle conflict resolution
@@ -493,7 +493,7 @@ export function MultiTickerCoordinator({
       setShowConflictDialog(false);
       setSelectedConflict(null);
       announceToScreenReader('Conflict resolved successfully');
-      logger.info('Conflict resolved:', { conflictId, resolutionId });
+      logger.info('ResolveConflict', 'Conflict resolved:', { conflictId, resolutionId });
     }
   }, [coordinationStatus.pendingConflicts, announceToScreenReader]);
 
@@ -506,12 +506,12 @@ export function MultiTickerCoordinator({
       const analysisResult = await performCrossAnalysis();
       setCrossAnalysisData(analysisResult);
       announceToScreenReader('Cross-ticker analysis completed');
-      logger.info('Cross-ticker analysis completed:', analysisResult);
+      logger.info('CrossAnalysis', 'Cross-ticker analysis completed:', analysisResult);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
       announceToScreenReader(`Cross-analysis failed: ${errorMessage}`);
       onError?.(error instanceof Error ? error : new Error(errorMessage));
-      logger.error('Cross-ticker analysis failed:', error);
+      logger.error('CrossAnalysis', 'Cross-ticker analysis failed:', error);
     } finally {
       setIsAnalyzing(false);
     }

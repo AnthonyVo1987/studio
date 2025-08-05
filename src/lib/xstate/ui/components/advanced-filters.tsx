@@ -514,7 +514,7 @@ export function AdvancedFilters<T = any>({
     
     setFilterPresets(prev => [...prev, preset]);
     announceToScreenReader(`Filter preset "${name}" saved`);
-    logger.info('Filter preset saved:', { presetName: name, filtersCount: filters.length });
+    logger.info('SavePreset', 'Filter preset saved:', { presetName: name, filtersCount: filters.length });
   }, [announceToScreenReader]);
 
   // Apply preset
@@ -522,7 +522,7 @@ export function AdvancedFilters<T = any>({
     clearAllFilters();
     filters.forEach(filter => addFilter(filter));
     announceToScreenReader(`Filter preset applied with ${filters.length} filters`);
-    logger.info('Filter preset applied:', { filtersCount: filters.length });
+    logger.info('ApplyPreset', 'Filter preset applied:', { filtersCount: filters.length });
   }, [clearAllFilters, addFilter, announceToScreenReader]);
 
   // Export filtered data
@@ -540,7 +540,7 @@ export function AdvancedFilters<T = any>({
     
     URL.revokeObjectURL(url);
     announceToScreenReader(`Exported ${filteredData.length} filtered records`);
-    logger.info('Filtered data exported:', { recordsCount: filteredData.length });
+    logger.info('ExportData', 'Filtered data exported:', { recordsCount: filteredData.length });
   }, [enableExport, filteredData, announceToScreenReader]);
 
   // Update callbacks

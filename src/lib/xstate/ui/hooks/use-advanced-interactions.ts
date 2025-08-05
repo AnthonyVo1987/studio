@@ -296,7 +296,7 @@ export function useAdvancedFiltering<T>(
 
       setFilteredData(result);
       
-      logger.debug('Filters applied:', {
+      logger.debug('FiltersApplied', 'Filters applied', {
         originalCount: data.length,
         filteredCount: result.length,
         filtersCount: appliedFilters.length,
@@ -304,7 +304,7 @@ export function useAdvancedFiltering<T>(
       });
       
     } catch (error) {
-      logger.error('Error applying filters:', error);
+      logger.error('ApplyFilters', 'Error applying filters', error);
       setFilteredData(data);
     } finally {
       setIsLoading(false);
@@ -364,7 +364,7 @@ export function useAdvancedFiltering<T>(
       // Escape to clear search
       if (event.key === 'Escape' && searchInputRef.current === document.activeElement) {
         setSearchQuery('');
-        searchInputRef.current.blur();
+        searchInputRef.current?.blur();
       }
     };
 
@@ -398,7 +398,7 @@ export function useAdvancedFiltering<T>(
         setAppliedFilters(storedFilters || []);
         setSearchQuery(storedQuery || '');
       } catch (error) {
-        logger.warn('Failed to load persisted filters:', error);
+        logger.warn('LoadFilters', 'Failed to load persisted filters', error);
       }
     }
   }, [persistFilters]);
@@ -492,7 +492,7 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
           event.preventDefault();
           shortcut.action();
           
-          logger.debug('Keyboard shortcut executed:', {
+          logger.debug('KeyboardShortcut', 'Keyboard shortcut executed', {
             shortcutId: shortcut.id,
             keys: shortcut.keys,
             description: shortcut.description
@@ -574,7 +574,7 @@ export function useAccessibility(config: AccessibilityConfig) {
     // Focus the element
     element.focus({ preventScroll });
     
-    logger.debug('Focus managed:', {
+    logger.debug('FocusManaged', 'Focus managed', {
       elementTag: element.tagName,
       elementId: element.id,
       preventScroll,

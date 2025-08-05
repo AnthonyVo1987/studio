@@ -153,7 +153,7 @@ export function StateMachineVisualizer({
   // Handle errors
   useEffect(() => {
     if (visualizerError) {
-      logger.error('Visualizer error:', visualizerError);
+      logger.error('VisualizerError', 'Visualizer error:', visualizerError);
       onError?.(visualizerError);
     }
   }, [visualizerError, onError]);
@@ -344,7 +344,7 @@ export function StateMachineVisualizer({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <Tabs value={selectedPanel} onValueChange={setSelectedPanel}>
+        <Tabs value={selectedPanel} onValueChange={(value: string) => setSelectedPanel(value as typeof selectedPanel)}>
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="visualizer" className="flex items-center gap-1">
               <Eye className="h-4 w-4" />

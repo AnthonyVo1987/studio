@@ -41,8 +41,8 @@ import {
 } from 'lucide-react';
 
 // Hooks and utilities
-import { useXStateIntegration } from '../hooks/use-xstate-integration';
-import { useAdvancedInteractions } from '../hooks/use-advanced-interactions';
+import { useXStateMachineIntegration } from '../hooks/use-xstate-integration';
+import { useAccessibility } from '../hooks/use-advanced-interactions';
 import { createTickerLogger, TICKER_PAGES } from '@/lib/ticker-logger';
 
 // Types
@@ -126,11 +126,18 @@ export function EventTimeline({
   ...props
 }: EventTimelineProps) {
   // Hooks
-  const xstateIntegration = useXStateIntegration(config.integrationConfig);
-  const { announceToScreenReader } = useAdvancedInteractions({
-    componentId: 'event-timeline',
-    enableKeyboardShortcuts: true,
-    enableAccessibilityAnnouncements: true,
+  const xstateIntegration = useXStateMachineIntegration(null, config.integrationConfig);
+  const { announceToScreenReader } = useAccessibility({
+    enableScreenReader: true,
+    enableKeyboardNavigation: true,
+    enableHighContrast: false,
+    focusManagement: { 
+      restoreFocus: false,
+      autoFocus: false,
+      focusTrap: false,
+      skipLinks: []
+    },
+    ariaLabels: {}
   });
 
   // State
@@ -224,10 +231,10 @@ export function EventTimeline({
 
   // Update events when integration data changes
   useEffect(() => {
-    if (xstateIntegration.data && realTime) {
-      processIntegrationEvents(xstateIntegration.data);
+    if (xstateIntegration.tickerContext && realTime) {
+      processIntegrationEvents(xstateIntegration.tickerContext);
     }
-  }, [xstateIntegration.data, processIntegrationEvents, realTime]);
+  }, [xstateIntegration.tickerContext, processIntegrationEvents, realTime]);
 
   // Auto-scroll to top (newest events)
   useEffect(() => {
@@ -447,7 +454,7 @@ export function EventTimeline({
   };
 
   return (
-    <Card className={`w-full ${className}`} {...props}>
+    <Card className={`w-full ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>

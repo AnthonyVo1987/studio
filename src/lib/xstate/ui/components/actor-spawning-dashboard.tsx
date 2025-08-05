@@ -150,7 +150,7 @@ function ActorCreationDialog({ availableTypes, onCreateActor, isSpawning }: Acto
       setInitialContext('{}');
       setIsOpen(false);
     } catch (error) {
-      logger.error('Failed to create actor:', error);
+      logger.error('CreateActor', 'Failed to create actor:', error);
     }
   }, [selectedType, actorName, initialContext, onCreateActor]);
 
@@ -290,7 +290,7 @@ function ActorCard({ actor, onTerminate, onSendEvent, enableCommunication }: Act
       onSendEvent(actor.id, event);
       setEventToSend('');
     } catch (error) {
-      logger.error('Invalid event JSON:', error);
+      logger.error('SendEvent', 'Invalid event JSON:', error);
     }
   }, [eventToSend, onSendEvent, actor.id]);
 
@@ -455,12 +455,12 @@ export function ActorSpawningDashboard({
     try {
       const actor = await spawnActor(typeId, name, context);
       announceToScreenReader(`Actor ${name} spawned successfully`);
-      logger.info('Actor spawned via dashboard:', { actorId: actor.id, typeId, name });
+      logger.info('SpawnActor', 'Actor spawned via dashboard:', { actorId: actor.id, typeId, name });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       announceToScreenReader(`Failed to spawn actor: ${errorMessage}`);
       onError?.(error instanceof Error ? error : new Error(errorMessage));
-      logger.error('Failed to spawn actor via dashboard:', error);
+      logger.error('SpawnActor', 'Failed to spawn actor via dashboard:', error);
     }
   }, [spawnActor, announceToScreenReader, onError]);
 
@@ -469,7 +469,7 @@ export function ActorSpawningDashboard({
     const actor = actors.find(a => a.id === actorId);
     terminateActor(actorId);
     announceToScreenReader(`Actor ${actor?.name || actorId} terminated`);
-    logger.info('Actor terminated via dashboard:', { actorId });
+    logger.info('TerminateActor', 'Actor terminated via dashboard:', { actorId });
   }, [actors, terminateActor, announceToScreenReader]);
 
   // Send event handler
