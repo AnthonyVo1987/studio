@@ -209,7 +209,8 @@ export const createDefaultContext = (ticker: string, options: MacroExecutionCont
     executionId: options.executionId || `xstate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     selectedExpiration: options.selectedExpiration || null,
     stepResults: new Map(),
-    currentStep: 0,
+    currentStep: 1,
+    totalSteps: 4,
     completedSteps: [],
     error: null,
     timeoutSettings: {

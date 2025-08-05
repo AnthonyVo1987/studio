@@ -33,6 +33,19 @@ export { default as MultiTickerCoordinatorDefault } from './multi-ticker-coordin
 export { AdvancedFilters } from './advanced-filters';
 export { default as AdvancedFiltersDefault } from './advanced-filters';
 
+// Event Timeline
+export { EventTimeline } from './event-timeline';
+export { default as EventTimelineDefault } from './event-timeline';
+
+// Import components for re-export collection
+import { StateMachineVisualizer } from './state-machine-visualizer';
+import { ActorSpawningDashboard } from './actor-spawning-dashboard';
+import { PerformanceDashboard } from './performance-dashboard';
+import { WorkflowBuilder } from './workflow-builder';
+import { MultiTickerCoordinator } from './multi-ticker-coordinator';
+import { AdvancedFilters } from './advanced-filters';
+import { EventTimeline } from './event-timeline';
+
 // Re-export all components as a collection
 export const AdvancedUIComponents = {
   StateMachineVisualizer,
@@ -40,5 +53,6 @@ export const AdvancedUIComponents = {
   PerformanceDashboard,
   WorkflowBuilder,
   MultiTickerCoordinator,
-  AdvancedFilters
+  AdvancedFilters,
+  EventTimeline
 };

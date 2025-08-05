@@ -42,9 +42,31 @@ export interface PerformanceMetrics {
 // STEP EXECUTION TYPES
 // ================================
 
+/** String identifiers for macro steps - compatible with React components */
+export type MacroStepId = 
+  | 'fetchExpirations'
+  | 'getStockData' 
+  | 'generateAITakeaways'
+  | 'generateAIOptions';
+
+/** Numeric identifiers for macro steps - compatible with XState machines */
+export type MacroStepNumber = 1 | 2 | 3 | 4;
+
+/** Union type supporting both string and numeric step identifiers */
+export type MacroStep = MacroStepId | MacroStepNumber;
+
+/** MacroStep type constraint for index operations */
+export type MacroStepKey = Extract<MacroStep, string | number>;
+
+
+/** Convert MacroStep to string for use as object key */
+export function macroStepToKey(step: MacroStep): string {
+  return String(step);
+}
+
 export interface StepResult {
-  /** Unique identifier for the step */
-  stepId: number;
+  /** Unique identifier for the step - supports both string and number */
+  stepId: MacroStep;
   /** Human-readable step name */
   stepName: string;
   /** Execution status */
@@ -63,9 +85,12 @@ export interface StepResult {
   retryCount: number;
 }
 
-export interface MacroStep {
+/** Full step configuration interface */
+export interface MacroStepConfig {
   /** Unique step identifier */
-  id: number;
+  id: MacroStepNumber;
+  /** String identifier for React compatibility */
+  stepId: MacroStepId;
   /** Human-readable step name */
   name: string;
   /** Step description for debugging */
@@ -100,14 +125,14 @@ export interface MacroExecutionContext {
   executionId: string;
   /** Currently selected expiration date */
   selectedExpiration: string | null;
-  /** Results from completed steps */
-  stepResults: Map<number, StepResult>;
-  /** Currently executing step */
-  currentStep: number;
+  /** Results from completed steps - supports both string and numeric keys */
+  stepResults: Map<MacroStep, StepResult>;
+  /** Currently executing step - supports both string and numeric identifiers */
+  currentStep: MacroStep;
   /** Total number of steps in the execution */
   totalSteps: number;
-  /** Array of completed step IDs */
-  completedSteps: number[];
+  /** Array of completed step IDs - supports both string and numeric identifiers */
+  completedSteps: MacroStep[];
   /** Current error state */
   error: Error | null;
   /** Timeout and retry configuration */
@@ -130,6 +155,12 @@ export interface MacroExecutionContext {
   cancelled: boolean;
   /** Debug mode flag */
   debugMode: boolean;
+  /** Step start times for performance tracking */
+  stepStartTimes?: Record<string, number>;
+  /** Step end times for performance tracking */
+  stepEndTimes?: Record<string, number>;
+  /** Step errors for error tracking */
+  stepErrors?: Record<string, Error>;
 }
 
 // ================================
@@ -138,10 +169,10 @@ export interface MacroExecutionContext {
 
 export type MacroExecutionEvent =
   | { type: 'START_EXECUTION'; ticker: string; debugMode?: boolean }
-  | { type: 'STEP_COMPLETED'; stepId: number; result: StepResult }
-  | { type: 'STEP_FAILED'; stepId: number; error: Error; retryable?: boolean }
-  | { type: 'STEP_TIMEOUT'; stepId: number; error: Error }
-  | { type: 'RETRY_STEP'; stepId: number }
+  | { type: 'STEP_COMPLETED'; stepId: MacroStep; result: StepResult }
+  | { type: 'STEP_FAILED'; stepId: MacroStep; error: Error; retryable?: boolean }
+  | { type: 'STEP_TIMEOUT'; stepId: MacroStep; error: Error }
+  | { type: 'RETRY_STEP'; stepId: MacroStep }
   | { type: 'CANCEL_EXECUTION'; reason?: string }
   | { type: 'RESET'; }
   | { type: 'UPDATE_TIMEOUT_CONFIG'; config: Partial<TimeoutConfig> }
@@ -160,7 +191,7 @@ export type MacroExecutionEvent =
   | { type: 'COMPOSITION_ERROR_OCCURRED'; machineId: string; error: Error }
   | { type: 'SPAWN_FAILED'; actorId?: string; error: Error }
   | { type: 'ALL_TICKERS_COMPLETE'; results: any[] }
-  | { type: 'PREREQUISITES_VALIDATED'; stepId: number; valid: boolean }
+  | { type: 'PREREQUISITES_VALIDATED'; stepId: MacroStep; valid: boolean }
   | { type: 'PERFORMANCE_UPDATE'; metrics: Partial<PerformanceMetrics> };
 
 // ================================
@@ -250,7 +281,7 @@ export interface MacroMachineConfig {
   /** Target ticker */
   ticker: string;
   /** Steps to execute */
-  steps: MacroStep[];
+  steps: MacroStepConfig[];
   /** Timeout configuration */
   timeouts: TimeoutConfig;
   /** Debug mode settings */
@@ -284,9 +315,26 @@ export const DEFAULT_PERFORMANCE_METRICS: PerformanceMetrics = {
 // MACRO STEPS CONFIGURATION
 // ================================
 
-export const MACRO_STEPS: MacroStep[] = [
+/** Step mapping for conversion between numeric and string identifiers */
+export const STEP_ID_MAP: Record<MacroStepNumber, MacroStepId> = {
+  1: 'fetchExpirations',
+  2: 'getStockData',
+  3: 'generateAITakeaways',
+  4: 'generateAIOptions'
+} as const;
+
+/** Reverse mapping for conversion from string to numeric identifiers */
+export const STEP_NUMBER_MAP: Record<MacroStepId, MacroStepNumber> = {
+  'fetchExpirations': 1,
+  'getStockData': 2,
+  'generateAITakeaways': 3,
+  'generateAIOptions': 4
+} as const;
+
+export const MACRO_STEPS: MacroStepConfig[] = [
   {
     id: 1,
+    stepId: 'fetchExpirations',
     name: 'Fetch Expirations',
     description: 'Retrieve available options expiration dates',
     prerequisites: [
@@ -301,6 +349,7 @@ export const MACRO_STEPS: MacroStep[] = [
   },
   {
     id: 2,
+    stepId: 'getStockData',
     name: 'Get Stock Data',
     description: 'Fetch current stock snapshot and market data',
     prerequisites: [
@@ -315,6 +364,7 @@ export const MACRO_STEPS: MacroStep[] = [
   },
   {
     id: 3,
+    stepId: 'generateAITakeaways',
     name: 'AI Takeaways',
     description: 'Generate AI-powered stock analysis and insights',
     prerequisites: [
@@ -329,6 +379,7 @@ export const MACRO_STEPS: MacroStep[] = [
   },
   {
     id: 4,
+    stepId: 'generateAIOptions',
     name: 'AI Options',
     description: 'Generate AI-powered options trading recommendations',
     prerequisites: [
@@ -342,3 +393,46 @@ export const MACRO_STEPS: MacroStep[] = [
     timeout: 60000
   }
 ];
+
+// ================================
+// UTILITY FUNCTIONS
+// ================================
+
+/** Convert numeric step ID to string identifier */
+export function stepNumberToId(stepNumber: MacroStepNumber): MacroStepId {
+  return STEP_ID_MAP[stepNumber];
+}
+
+/** Convert string step ID to numeric identifier */
+export function stepIdToNumber(stepId: MacroStepId): MacroStepNumber {
+  return STEP_NUMBER_MAP[stepId];
+}
+
+/** Check if a value is a valid MacroStep */
+export function isMacroStep(value: unknown): value is MacroStep {
+  return typeof value === 'string' && Object.values(STEP_ID_MAP).includes(value as MacroStepId) ||
+         typeof value === 'number' && Object.keys(STEP_ID_MAP).map(Number).includes(value as MacroStepNumber);
+}
+
+/** Get step configuration by step identifier */
+export function getStepConfig(step: MacroStep): MacroStepConfig | undefined {
+  return MACRO_STEPS.find(config => 
+    config.id === step || config.stepId === step
+  );
+}
+
+/** Convert any MacroStep to its string identifier for React compatibility */
+export function toStepId(step: MacroStep): MacroStepId {
+  if (typeof step === 'string') {
+    return step;
+  }
+  return stepNumberToId(step);
+}
+
+/** Convert any MacroStep to its numeric identifier for XState compatibility */
+export function toStepNumber(step: MacroStep): MacroStepNumber {
+  if (typeof step === 'number') {
+    return step;
+  }
+  return stepIdToNumber(step);
+}

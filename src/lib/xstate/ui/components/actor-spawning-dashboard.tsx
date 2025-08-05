@@ -362,11 +362,11 @@ function ActorCard({ actor, onTerminate, onSendEvent, enableCommunication }: Act
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <span className="text-muted-foreground">CPU:</span>
-                <Progress value={actor.metrics.cpuUsage || 0} className="h-1 mt-1" />
+                <Progress value={0} className="h-1 mt-1" />
               </div>
               <div>
                 <span className="text-muted-foreground">Memory:</span>
-                <Progress value={actor.metrics.memoryUsage || 0} className="h-1 mt-1" />
+                <Progress value={typeof actor.metrics.memoryUsage === 'object' ? actor.metrics.memoryUsage?.percentage || 0 : actor.metrics.memoryUsage || 0} className="h-1 mt-1" />
               </div>
             </div>
           </div>
@@ -477,7 +477,7 @@ export function ActorSpawningDashboard({
     const actor = actors.find(a => a.id === actorId);
     sendToActor(actorId, event);
     announceToScreenReader(`Event sent to ${actor?.name || actorId}`);
-    logger.debug('Event sent via dashboard:', { actorId, event });
+    logger.debug('SendEventToDashboard', 'Event sent via dashboard:', { actorId, event });
   }, [actors, sendToActor, announceToScreenReader]);
 
   // Statistics

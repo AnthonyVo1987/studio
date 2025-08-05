@@ -10,6 +10,7 @@ import { useSelector } from '@xstate/react';
 import type { AnyStateMachine, SnapshotFrom } from 'xstate';
 import type { XStateMachineResult } from './use-xstate-machine';
 import type { MacroExecutionContext, MacroStep } from '@/lib/xstate';
+import { macroStepToKey } from '@/lib/xstate';
 
 export interface StateVisualizationData {
   /** Current state value */
@@ -165,10 +166,15 @@ export function useStateVisualization<TMachine extends AnyStateMachine>(
       const now = Date.now();
       const duration = trackTiming ? now - timingRef.current.stateStartTime : undefined;
 
+      // XState v5 compatibility: Access last event from context or use fallback
+      const lastEventType = (machineResult.context as any)?.lastEvent?.type || 
+                           (machineResult.context as any)?.currentEvent?.type || 
+                           'state_change';
+
       const transition = {
         from: previousState,
         to: currentState,
-        event: machineResult.state.event?.type || 'unknown',
+        event: lastEventType,
         timestamp: now,
         duration,
       };
@@ -188,17 +194,24 @@ export function useStateVisualization<TMachine extends AnyStateMachine>(
     }
 
     setPreviousState(currentState);
-  }, [currentState, previousState, trackHistory, maxHistorySize, trackTiming, enableDebugLogging, machineResult.state.event]);
+  }, [currentState, previousState, trackHistory, maxHistorySize, trackTiming, enableDebugLogging, machineResult.context]);
 
   // State metadata
   const meta = useMemo(() => {
     const stateString = typeof currentState === 'string' ? currentState : JSON.stringify(currentState);
     
+    // XState v5 compatibility: Check for final states using machine definition
+    const isFinal = stateString === 'completed' || 
+                   stateString === 'final' ||
+                   stateString === 'done' ||
+                   (machineResult.state as any)?.status === 'done' ||
+                   (machineResult.state as any)?.status === 'stopped';
+    
     return {
       machineId: machineResult.meta.machineId,
       stateName: formatStateName ? formatStateName(currentState) : stateString,
       isInitial: stateString === 'idle' || stateString === 'initial',
-      isFinal: machineResult.state.done || stateString === 'completed' || stateString === 'final',
+      isFinal,
       hasError: stateString.includes('error') || stateString.includes('failed') || machineResult.meta.hasError,
       depth: typeof currentState === 'object' ? Object.keys(currentState).length : 0,
     };
@@ -347,11 +360,11 @@ export function useMacroVisualization(
         name: getStepDisplayName(currentStep),
         description: getStepDescription(currentStep),
         status: getStepStatus(currentStep, currentStep, macroContext),
-        startTime: macroContext.stepStartTimes?.[currentStep],
-        endTime: macroContext.stepEndTimes?.[currentStep],
+        startTime: macroContext.stepStartTimes?.[macroStepToKey(currentStep)],
+        endTime: macroContext.stepEndTimes?.[macroStepToKey(currentStep)],
         duration: getActualDuration(currentStep, macroContext),
-        result: macroContext.stepResults?.[currentStep],
-        error: macroContext.stepErrors?.[currentStep],
+        result: macroContext.stepResults?.get(currentStep),
+        error: macroContext.stepErrors?.[macroStepToKey(currentStep)],
       },
       workflow: {
         steps: workflowSteps,
@@ -376,36 +389,45 @@ function getStepStatus(
   currentStep: MacroStep, 
   context: MacroExecutionContext
 ): 'pending' | 'executing' | 'completed' | 'failed' | 'skipped' {
-  if (context.stepResults?.[step]) return 'completed';
-  if (context.stepErrors?.[step]) return 'failed';
+  if (context.stepResults?.has(step)) return 'completed';
+  if (context.stepErrors?.[macroStepToKey(step)]) return 'failed';
   if (step === currentStep) return 'executing';
   return 'pending';
 }
 
 function getActualDuration(step: MacroStep, context: MacroExecutionContext): number | undefined {
-  const startTime = context.stepStartTimes?.[step];
-  const endTime = context.stepEndTimes?.[step];
+  const stepKey = macroStepToKey(step);
+  const startTime = context.stepStartTimes?.[stepKey];
+  const endTime = context.stepEndTimes?.[stepKey];
   return startTime && endTime ? endTime - startTime : undefined;
 }
 
 function getStepDisplayName(step: MacroStep): string {
-  const names: Record<MacroStep, string> = {
-    fetchExpirations: 'Fetch Expirations',
-    getStockData: 'Get Stock Data',
-    generateAITakeaways: 'Generate AI Takeaways',
-    generateAIOptions: 'Generate AI Options',
+  const names: Record<string, string> = {
+    'fetchExpirations': 'Fetch Expirations',
+    'getStockData': 'Get Stock Data',
+    'generateAITakeaways': 'Generate AI Takeaways',
+    'generateAIOptions': 'Generate AI Options',
+    '1': 'Fetch Expirations',
+    '2': 'Get Stock Data',
+    '3': 'Generate AI Takeaways',
+    '4': 'Generate AI Options',
   };
-  return names[step] || step;
+  return names[macroStepToKey(step)] || String(step);
 }
 
 function getStepDescription(step: MacroStep): string {
-  const descriptions: Record<MacroStep, string> = {
-    fetchExpirations: 'Fetching available option expiration dates',
-    getStockData: 'Retrieving current stock data and options chain',
-    generateAITakeaways: 'Analyzing data and generating key insights',
-    generateAIOptions: 'Creating options trading recommendations',
+  const descriptions: Record<string, string> = {
+    'fetchExpirations': 'Fetching available option expiration dates',
+    'getStockData': 'Retrieving current stock data and options chain',
+    'generateAITakeaways': 'Analyzing data and generating key insights',
+    'generateAIOptions': 'Creating options trading recommendations',
+    '1': 'Fetching available option expiration dates',
+    '2': 'Retrieving current stock data and options chain',
+    '3': 'Analyzing data and generating key insights',
+    '4': 'Creating options trading recommendations',
   };
-  return descriptions[step] || `Executing ${step}`;
+  return descriptions[macroStepToKey(step)] || `Executing ${step}`;
 }
 
 function calculateEstimatedTime(

@@ -693,6 +693,32 @@ export interface SpacingConfig {
 }
 
 // =============================================================================
+// Event Timeline Types
+// =============================================================================
+
+/**
+ * Event timeline configuration
+ */
+export interface EventTimelineConfig {
+  /** XState integration configuration */
+  integrationConfig: any;
+  /** Maximum number of events to store */
+  maxEvents?: number;
+  /** Enable real-time event capture */
+  realTimeCapture?: boolean;
+  /** Event types to capture */
+  captureEventTypes?: ('transition' | 'action' | 'guard' | 'service' | 'error' | 'info')[];
+  /** Auto-cleanup older events */
+  autoCleanup?: boolean;
+  /** Cleanup threshold in milliseconds */
+  cleanupThreshold?: number;
+  /** Enable event persistence */
+  enablePersistence?: boolean;
+  /** Persistence key for local storage */
+  persistenceKey?: string;
+}
+
+// =============================================================================
 // Export Types
 // =============================================================================
 
@@ -732,6 +758,9 @@ export type AdvancedUITypes = {
   AppliedFilter: AppliedFilter;
   KeyboardShortcut: KeyboardShortcut;
   AccessibilityConfig: AccessibilityConfig;
+  
+  // Event Timeline
+  EventTimelineConfig: EventTimelineConfig;
   
   // Common
   BaseAdvancedUIProps: BaseAdvancedUIProps;

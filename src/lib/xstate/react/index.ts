@@ -27,7 +27,7 @@ export {
 export type {
   XStateMachineOptions,
   XStateMachineResult,
-  ActorConfig,
+  ReactActorConfig,
   XStateActorResult,
   MacroExecutionConfig,
   MacroProgress,

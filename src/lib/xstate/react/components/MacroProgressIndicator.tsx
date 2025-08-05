@@ -10,16 +10,7 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import type { MacroProgress, MacroExecutionState } from '../hooks/use-macro-execution';
 import type { SupportedTicker } from '@/lib/xstate/actors';
-
-// Define step names as a proper enum for type safety
-export enum MacroStepName {
-  FETCH_EXPIRATIONS = 'fetchExpirations',
-  GET_STOCK_DATA = 'getStockData', 
-  GENERATE_AI_TAKEAWAYS = 'generateAITakeaways',
-  GENERATE_AI_OPTIONS = 'generateAIOptions'
-}
-
-export type MacroStepId = keyof typeof MacroStepName;
+import type { MacroStepId, toStepId } from '@/lib/xstate/types/macro-types';
 
 export interface MacroProgressIndicatorProps {
   /** Current macro execution state */
@@ -41,40 +32,40 @@ export interface MacroProgressIndicatorProps {
   /** Cancel handler */
   onCancel?: () => void;
   /** Step click handler */
-  onStepClick?: (step: MacroStepName) => void;
+  onStepClick?: (step: MacroStepId) => void;
 }
 
 // Step configuration
 const MACRO_STEPS: Array<{
-  id: MacroStepName;
+  id: MacroStepId;
   name: string;
   description: string;
   icon: string;
   estimatedDuration: number;
 }> = [
   {
-    id: MacroStepName.FETCH_EXPIRATIONS,
+    id: 'fetchExpirations',
     name: 'Fetch Expirations',
     description: 'Getting available option expiration dates',
     icon: '📅',
     estimatedDuration: 5000,
   },
   {
-    id: MacroStepName.GET_STOCK_DATA,
+    id: 'getStockData',
     name: 'Get Stock Data',
     description: 'Retrieving current stock data and options chain',
     icon: '📈',
     estimatedDuration: 8000,
   },
   {
-    id: MacroStepName.GENERATE_AI_TAKEAWAYS,
+    id: 'generateAITakeaways',
     name: 'AI Analysis',  
     description: 'Analyzing data and generating key insights',
     icon: '🤖',
     estimatedDuration: 15000,
   },
   {
-    id: MacroStepName.GENERATE_AI_OPTIONS,
+    id: 'generateAIOptions',
     name: 'AI Recommendations',
     description: 'Creating options trading recommendations',
     icon: '💡',
@@ -127,11 +118,12 @@ export function MacroProgressIndicator({
     const totalSteps = progress.totalSteps;
     const completedSteps = progress.completedSteps;
     // Safe type validation for current step
-    const isValidMacroStep = (step: unknown): step is MacroStepName => {
-      return typeof step === 'string' && Object.values(MacroStepName).includes(step as MacroStepName);
+    const isValidMacroStep = (step: unknown): step is MacroStepId => {
+      const validSteps: MacroStepId[] = ['fetchExpirations', 'getStockData', 'generateAITakeaways', 'generateAIOptions'];
+      return typeof step === 'string' && validSteps.includes(step as MacroStepId);
     };
     
-    const currentStepName = isValidMacroStep(progress.currentStep) ? progress.currentStep : MacroStepName.FETCH_EXPIRATIONS;
+    const currentStepName = isValidMacroStep(progress.currentStep) ? progress.currentStep : 'fetchExpirations';
     const currentStepIndex = MACRO_STEPS.findIndex(step => step.id === currentStepName);
     
     return {
@@ -482,7 +474,7 @@ export function StepStatusIndicator({
   status,
   animated = false,
 }: {
-  step: MacroStepName;
+  step: MacroStepId;
   status: 'pending' | 'executing' | 'completed' | 'failed';
   animated?: boolean;
 }) {

@@ -374,7 +374,7 @@ export const macroExecutionMachine = createMachine({
     ticker: '',
     executionId: '',
     results: [],
-    currentStep: 0,
+    currentStep: 1,
   },
   states: {
     idle: {

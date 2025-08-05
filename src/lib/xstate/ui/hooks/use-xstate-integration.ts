@@ -211,7 +211,7 @@ export function useXStateMachineIntegration(
 
   // Enhanced send function with logging
   const enhancedSend = useCallback((event: any) => {
-    logger.debug(`Sending event to ${ticker}: ${event.type}`);
+    logger.debug('SendEvent', `Sending event to ${ticker}: ${event.type}`);
     
     if (enablePerformanceMonitoring && performanceMonitor) {
       performanceMonitor.recordEvent({
@@ -277,10 +277,10 @@ export function useStateMachineVisualizer(config: StateMachineVisualizerConfig) 
         const url = `${baseUrl}?${params.toString()}&config=${encodedConfig}`;
         setVisualizerUrl(url);
         
-        logger.debug(`Generated visualizer URL for machine ${machine.id || 'unknown'}`);
+        logger.debug('GenerateVisualizerURL', `Generated visualizer URL for machine ${machine.id || 'unknown'}`);
       } catch (err) {
         setError(err as Error);
-        logger.error(`Failed to generate visualizer URL: ${err}`);
+        logger.error('GenerateVisualizerURL', `Failed to generate visualizer URL: ${err}`);
       } finally {
         setIsLoading(false);
       }
@@ -401,7 +401,7 @@ export function useActorSpawning(config: ActorSpawningConfig) {
       
       return actorInstance;
     } catch (error) {
-      logger.error(`Failed to spawn actor: ${error}`);
+      logger.error('SpawnActor', `Failed to spawn actor: ${error}`);
       throw error;
     } finally {
       setIsSpawning(false);
@@ -461,7 +461,7 @@ export function useActorSpawning(config: ActorSpawningConfig) {
     return () => {
       actorRefs.current.forEach((actorRef, actorId) => {
         actorRef.stop();
-        logger.debug(`Cleanup: stopped actor ${actorId}`);
+        logger.debug('CleanupActor', `Cleanup: stopped actor ${actorId}`);
       });
       actorRefs.current.clear();
     };
@@ -629,7 +629,7 @@ export function useMultiTickerCoordination(config: MultiTickerCoordinationConfig
       }));
       
       send({ type: 'SYNC_ERROR' });
-      logger.error(`Multi-ticker synchronization failed: ${error}`);
+      logger.error('MultiTickerSync', `Multi-ticker synchronization failed: ${error}`);
     }
   }, [enabledTickers, synchronization.syncDataFetching, nvdaDispatch, spyDispatch, send]);
 

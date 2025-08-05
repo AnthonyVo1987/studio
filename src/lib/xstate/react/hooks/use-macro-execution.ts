@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useXStateMachine, useMacroExecutionMachine } from './use-xstate-machine';
 import { useMacroExecutionActor } from './use-xstate-actor';
 import type { SupportedTicker } from '@/lib/xstate/actors';
-import type { MacroExecutionContext, MacroStep } from '@/lib/xstate';
+import type { MacroExecutionContext, MacroStep, MacroStepConfig, toStepId } from '@/lib/xstate/types/macro-types';
 import { globalLogger } from '@/lib/xstate';
 
 // Import existing StockSage types for compatibility
@@ -195,7 +195,7 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
   
   // Progress tracking
   const [progress, setProgress] = useState<MacroProgress>({
-    currentStep: 'fetchExpirations',
+    currentStep: 'fetchExpirations' as MacroStep,
     totalSteps: 4,
     completedSteps: 0,
     stepProgress: 0,
@@ -216,7 +216,7 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
     debugMode,
     autoStart: false, // We control start manually
     customTimeouts: { default: timeout },
-    onStateChange: useCallback((state) => {
+    onStateChange: useCallback((state: any) => {
       const machineStatus = state.value;
       const context = state.context as MacroExecutionContext;
 
@@ -275,12 +275,12 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
   // Update progress from machine context
   const updateProgressFromContext = useCallback((context: MacroExecutionContext) => {
     const newProgress: MacroProgress = {
-      currentStep: context.currentStep || 'fetchExpirations',
+      currentStep: context.currentStep || ('fetchExpirations' as MacroStep),
       totalSteps: 4,
-      completedSteps: Object.keys(context.stepResults || {}).length,
+      completedSteps: context.stepResults ? context.stepResults.size : 0,
       stepProgress: context.progress?.stepProgress || 0,
       overallProgress: context.progress?.overallProgress || 0,
-      stepResults: context.stepResults || {},
+      stepResults: context.stepResults ? Object.fromEntries(context.stepResults) : {},
       errors: progress.errors, // Preserve existing errors
     };
 
@@ -289,7 +289,7 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
       newProgress.errors = [
         ...progress.errors,
         {
-          step: context.currentStep || 'unknown',
+          step: context.currentStep || ('fetchExpirations' as MacroStep),
           error: context.error,
           timestamp: Date.now(),
         },
@@ -310,10 +310,10 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
       completedAt,
       executionTime,
       stepResults: {
-        fetchExpirations: context.stepResults?.fetchExpirations,
-        getStockData: context.stepResults?.getStockData,
-        generateAITakeaways: context.stepResults?.generateAITakeaways,
-        generateAIOptions: context.stepResults?.generateAIOptions,
+        fetchExpirations: context.stepResults?.get('fetchExpirations') || context.stepResults?.get(1),
+        getStockData: context.stepResults?.get('getStockData') || context.stepResults?.get(2),
+        generateAITakeaways: context.stepResults?.get('generateAITakeaways') || context.stepResults?.get(3),
+        generateAIOptions: context.stepResults?.get('generateAIOptions') || context.stepResults?.get(4),
       },
       contextUpdates: extractContextUpdates(context.stepResults),
       metadata: {
@@ -345,23 +345,28 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
   }, [callbacks, ticker, executionId]);
 
   // Extract context updates from step results
-  const extractContextUpdates = useCallback((stepResults: any) => {
+  const extractContextUpdates = useCallback((stepResults: Map<MacroStep, any> | undefined) => {
     const updates: MacroExecutionResults['contextUpdates'] = {};
     
-    if (stepResults?.getStockData?.stockSnapshotJson) {
-      updates.stockSnapshotJson = stepResults.getStockData.stockSnapshotJson;
+    if (!stepResults) return updates;
+    
+    const getStockDataResult = stepResults.get('getStockData') || stepResults.get(2);
+    if (getStockDataResult?.stockSnapshotJson) {
+      updates.stockSnapshotJson = getStockDataResult.stockSnapshotJson;
     }
     
-    if (stepResults?.getStockData?.optionsChainJson) {
-      updates.optionsChainJson = stepResults.getStockData.optionsChainJson;
+    if (getStockDataResult?.optionsChainJson) {
+      updates.optionsChainJson = getStockDataResult.optionsChainJson;
     }
     
-    if (stepResults?.generateAITakeaways?.aiKeyTakeawaysJson) {
-      updates.aiKeyTakeawaysJson = stepResults.generateAITakeaways.aiKeyTakeawaysJson;
+    const aiTakeawaysResult = stepResults.get('generateAITakeaways') || stepResults.get(3);
+    if (aiTakeawaysResult?.aiKeyTakeawaysJson) {
+      updates.aiKeyTakeawaysJson = aiTakeawaysResult.aiKeyTakeawaysJson;
     }
     
-    if (stepResults?.generateAIOptions?.aiOptionsRecommendationsJson) {
-      updates.aiOptionsRecommendationsJson = stepResults.generateAIOptions.aiOptionsRecommendationsJson;
+    const aiOptionsResult = stepResults.get('generateAIOptions') || stepResults.get(4);
+    if (aiOptionsResult?.aiOptionsRecommendationsJson) {
+      updates.aiOptionsRecommendationsJson = aiOptionsResult.aiOptionsRecommendationsJson;
     }
     
     return updates;
@@ -430,7 +435,7 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
       setResults(undefined);
       setError(undefined);
       setProgress({
-        currentStep: 'fetchExpirations',
+        currentStep: 'fetchExpirations' as MacroStep,
         totalSteps: 4,
         completedSteps: 0,
         stepProgress: 0,

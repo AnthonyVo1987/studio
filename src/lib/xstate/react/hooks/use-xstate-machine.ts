@@ -24,9 +24,10 @@ export interface XStateMachineOptions<TMachine extends AnyStateMachine> {
   /** Initial context override */
   context?: Partial<ContextFrom<TMachine>>;
   /** Lifecycle callbacks */
-  onStateChange?: (state: SnapshotFrom<TMachine>) => void;
-  onTransition?: (from: SnapshotFrom<TMachine>, to: SnapshotFrom<TMachine>) => void;
-  onError?: (error: Error) => void;
+  onStateChange?: (snapshot: SnapshotFrom<TMachine>) => void;
+  onError?: (error: Error, context?: any) => void;
+  onComplete?: (result: any) => void;
+  onCancel?: (reason?: string) => void;
   /** Performance optimization flags */
   enableSubscriptionOptimization?: boolean;
   enableMemoization?: boolean;
@@ -82,7 +83,6 @@ export function useXStateMachine<TMachine extends AnyStateMachine>(
     services,
     context,
     onStateChange,
-    onTransition,
     onError,
     enableSubscriptionOptimization = true,
     enableMemoization = true,
@@ -154,9 +154,8 @@ export function useXStateMachine<TMachine extends AnyStateMachine>(
         performanceRef.current.transitionTimes = performanceRef.current.transitionTimes.slice(-100);
       }
 
-      // Call lifecycle callbacks
-      onTransition?.(previousState, state);
-      onStateChange?.(state);
+      // Call lifecycle callbacks with XState v5 compatibility
+      onStateChange?.(state as SnapshotFrom<TMachine>);
 
       if (debugMode) {
         globalLogger.debug('XState Transition:', {
@@ -168,7 +167,7 @@ export function useXStateMachine<TMachine extends AnyStateMachine>(
       }
     }
     previousStateRef.current = state;
-  }, [state, onStateChange, onTransition, debugMode, machineInstance]);
+  }, [state, onStateChange, debugMode, machineInstance]);
 
   // Optimized selectors for common state queries
   const contextData = useSelector(actorRef, (state) => state.context);
@@ -229,7 +228,7 @@ export function useXStateMachine<TMachine extends AnyStateMachine>(
   }), [machineInstance, state]);
 
   return {
-    state,
+    state: state as SnapshotFrom<TMachine>,
     send,
     actorRef,
     context: contextData,

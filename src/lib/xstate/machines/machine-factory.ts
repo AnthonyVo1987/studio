@@ -37,6 +37,7 @@ export const getDefaultMachineConfig = (ticker: string): MacroMachineConfig => (
   steps: [
     {
       id: 1,
+      stepId: 'fetchExpirations',
       name: 'Fetch Expirations',
       description: `Retrieve available options expiration dates for ${ticker}`,
       prerequisites: [
@@ -51,6 +52,7 @@ export const getDefaultMachineConfig = (ticker: string): MacroMachineConfig => (
     },
     {
       id: 2,
+      stepId: 'getStockData',
       name: 'Get Stock Data',
       description: `Fetch current stock snapshot and market data for ${ticker}`,
       prerequisites: [
@@ -65,6 +67,7 @@ export const getDefaultMachineConfig = (ticker: string): MacroMachineConfig => (
     },
     {
       id: 3,
+      stepId: 'generateAITakeaways',
       name: 'AI Takeaways',
       description: `Generate AI-powered stock analysis and insights for ${ticker}`,
       prerequisites: [
@@ -79,6 +82,7 @@ export const getDefaultMachineConfig = (ticker: string): MacroMachineConfig => (
     },
     {
       id: 4,
+      stepId: 'generateAIOptions',
       name: 'AI Options',
       description: `Generate AI-powered options trading recommendations for ${ticker}`,
       prerequisites: [

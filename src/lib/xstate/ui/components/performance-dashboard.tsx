@@ -454,28 +454,43 @@ export function PerformanceDashboard({
   const summaryStats = useMemo(() => {
     if (!currentMetrics) return null;
 
+    // XState v5 compatibility: Handle different metric property names
+    const responseTime = (currentMetrics as any).averageResponseTime || 
+                        (currentMetrics as any).avgResponseTime || 
+                        0;
+    const memoryUsage = (currentMetrics as any).memoryUsage || 
+                       (currentMetrics as any).memory || 
+                       0;
+    const errorRate = (currentMetrics as any).errorRate || 
+                     (currentMetrics as any).errors || 
+                     0;
+    const throughput = (currentMetrics as any).operationsPerSecond || 
+                      (currentMetrics as any).throughput || 
+                      (currentMetrics as any).opsPerSec || 
+                      0;
+
     return [
       {
         label: 'Avg Response Time',
-        value: `${currentMetrics.averageResponseTime || 0}ms`,
+        value: `${responseTime}ms`,
         trend: 'stable' as const,
         icon: Clock
       },
       {
         label: 'Memory Usage',
-        value: `${Math.round(currentMetrics.memoryUsage || 0)}MB`,
+        value: `${Math.round(memoryUsage)}MB`,
         trend: 'improving' as const,
         icon: Activity
       },
       {
         label: 'Error Rate',
-        value: `${(currentMetrics.errorRate || 0).toFixed(1)}%`,
+        value: `${(errorRate).toFixed(1)}%`,
         trend: 'degrading' as const,
         icon: AlertTriangle
       },
       {
         label: 'Throughput',
-        value: `${Math.round(currentMetrics.operationsPerSecond || 0)}/s`,
+        value: `${Math.round(throughput)}/s`,
         trend: 'improving' as const,
         icon: Zap
       }

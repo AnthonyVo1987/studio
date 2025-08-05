@@ -666,7 +666,7 @@ export function WorkflowBuilder({
       metadata: { ...prev.metadata, modifiedAt: new Date() }
     }));
 
-    logger.debug('Component property updated:', { componentId, property, value });
+    logger.debug('UpdateComponentProperty', 'Component property updated:', { componentId, property, value });
   }, []);
 
   // Save workflow

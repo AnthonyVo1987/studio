@@ -217,7 +217,7 @@ export class RealTimeStateVisualizer {
         this.handleStateChange(machineId, state, metadata);
       },
       error: (error) => {
-        this.handleMachineError(machineId, error, metadata);
+        this.handleMachineError(machineId, error instanceof Error ? error : new Error(String(error)), metadata);
       },
       complete: () => {
         this.handleMachineComplete(machineId, metadata);
@@ -303,12 +303,12 @@ export class RealTimeStateVisualizer {
       machineId,
       state: typeof state.value === 'object' ? state.value : String(state.value),
       context: state.context,
-      event: state.event,
+      // XState v5 compatibility: event is not available in snapshots, only in transitions
+      event: undefined, // Events are handled separately in XState v5
       metadata: {
         ticker: metadata?.ticker,
         executionId: metadata?.executionId,
         stepId: metadata?.stepId,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
         sessionId: metadata?.sessionId || generateExecutionId('session'),
         sequenceNumber: this.getNextSequenceNumber(machineId),
         parentSnapshot: undefined,

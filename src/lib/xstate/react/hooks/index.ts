@@ -26,7 +26,7 @@ export {
 } from './use-xstate-actor';
 
 export type {
-  ActorConfig,
+  ReactActorConfig,
   XStateActorResult,
 } from './use-xstate-actor';
 

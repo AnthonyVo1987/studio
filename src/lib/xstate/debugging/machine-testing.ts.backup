@@ -18,7 +18,7 @@ import type {
   AssertionResult,
   StateManipulationCommand
 } from './debugging-types';
-import type { MacroExecutionContext, MacroExecutionEvent, MacroStepNumber } from '../types/macro-types';
+import type { MacroExecutionContext, MacroExecutionEvent } from '../types/macro-types';
 import { createTickerLogger, generateExecutionId } from '../../ticker-logger';
 import { globalAdvancedLogger } from './advanced-logger';
 
@@ -625,13 +625,14 @@ export class TestDataGenerator {
         baseRetryDelay: 1000
       },
       performance: {
-        totalDuration: 0,
+        executionDuration: 0,
         stepDurations: new Map(),
-        retryCount: 0,
-        timeoutCount: 0
+        memoryUsage: { heapUsed: 0, heapTotal: 0 },
+        cpuUsage: 0,
+        networkLatency: 0,
+        errorCount: 0,
+        retryCount: 0
       },
-      currentRetryAttempt: 0,
-      cancelled: false,
       debugMode: false,
       ...overrides
     };
@@ -794,7 +795,7 @@ export const createMacroExecutionTest = (
     expectedFinalState: 'completed',
     expectedFinalContext: globalTestDataGenerator.generateMacroExecutionContext({
       ticker,
-      currentStep: steps as MacroStepNumber,
+      currentStep: steps,
       totalSteps: steps
     }),
     assertions: [

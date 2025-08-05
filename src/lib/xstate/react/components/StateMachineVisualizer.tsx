@@ -377,7 +377,7 @@ export function MacroVisualizer({
 
           return (
             <div
-              key={step.id}
+              key={String(step.id)}
               className={`p-3 rounded border ${
                 isActive 
                   ? 'border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900' 

@@ -13,7 +13,8 @@ import type {
 } from './advanced-types';
 import type { 
   MacroExecutionContext,
-  MacroExecutionEvent 
+  MacroExecutionEvent,
+  MacroStepNumber
 } from '@/lib/xstate/types/macro-types';
 
 // ================================
@@ -564,7 +565,7 @@ export const StockSageGuardConditions = {
     id: `prerequisitesMet-${stepId}`,
     predicate: (context: MacroExecutionContext) => {
       // This would check if all required data for the step exists
-      const requiredSteps = Array.from({ length: stepId - 1 }, (_, i) => i + 1);
+      const requiredSteps = Array.from({ length: stepId - 1 }, (_, i) => (i + 1) as MacroStepNumber);
       return requiredSteps.every(step => 
         context.stepResults.has(step) && 
         context.stepResults.get(step)?.status === 'success'

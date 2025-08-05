@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnyActorRef, SnapshotFrom } from 'xstate';
 import type { 
   ActorInstance, 
-  ActorConfig, 
+  ActorConfig as XStateActorConfig, 
   ActorEvent, 
   ActorLifecycleState,
   SupportedTicker,
@@ -24,7 +24,7 @@ import {
 } from '@/lib/xstate/actors';
 import { globalLogger } from '@/lib/xstate';
 
-export interface ActorConfig {
+export interface ReactActorConfig {
   /** Unique identifier for the actor */
   actorId?: string;
   /** Ticker symbol for financial data actors */
@@ -46,10 +46,9 @@ export interface ActorConfig {
   /** Event handlers */
   eventHandlers?: {
     onStateChange?: (snapshot: any) => void;
-    onError?: (error: Error) => void;
-    onCreate?: (actorInstance: ActorInstance) => void;
-    onStart?: (actorInstance: ActorInstance) => void;
-    onStop?: (actorInstance: ActorInstance) => void;
+    onError?: (error: Error, context?: any) => void;
+    onComplete?: (result: any) => void;
+    onCancel?: (reason?: string) => void;
   };
 }
 
@@ -105,7 +104,7 @@ export interface XStateActorResult {
 /**
  * Core XState actor management hook
  */
-export function useXStateActor(config: ActorConfig): XStateActorResult {
+export function useXStateActor(config: ReactActorConfig): XStateActorResult {
   const {
     actorId,
     ticker = 'NVDA',
@@ -163,16 +162,12 @@ export function useXStateActor(config: ActorConfig): XStateActorResult {
 
         setActorInstance(instance);
         setLifecycleState(instance.lifecycleState);
-        
-        // Call onCreate handler
-        eventHandlers?.onCreate?.(instance);
 
         // Auto-start if configured
         if (autoStart) {
           await actorSystem.manager.startActor(instance.identity.id);
           if (mounted) {
             setLifecycleState('running');
-            eventHandlers?.onStart?.(instance);
           }
         }
 
@@ -197,7 +192,7 @@ export function useXStateActor(config: ActorConfig): XStateActorResult {
     if (!actorInstance) return;
 
     const unsubscribe = actorSystem.subscribeToEvents('ACTOR_STATE_CHANGED', (event: ActorEvent) => {
-      if (event.actorId === actorInstance.identity.id) {
+      if (event.actorId === actorInstance.identity.id && event.type === 'ACTOR_STATE_CHANGED') {
         setLifecycleState(event.newState as ActorLifecycleState);
         metricsRef.current.lastActivityAt = Date.now();
         
@@ -213,10 +208,9 @@ export function useXStateActor(config: ActorConfig): XStateActorResult {
     return unsubscribe;
   }, [actorInstance, actorSystem, eventHandlers]);
 
-  // Use @xstate/react useActor hook for snapshot management
+  // Use @xstate/react useActor hook for snapshot management with XState v5 compatibility
   const [snapshot, send] = useActor(
-    actorInstance?.actorRef || ({ send: () => {}, getSnapshot: () => ({}) } as any),
-    (actor) => actor.getSnapshot?.() || {}
+    actorInstance?.actorRef || ({ send: () => {}, getSnapshot: () => ({}) } as any)
   );
 
   // Wrap send function with metrics tracking
@@ -245,13 +239,12 @@ export function useXStateActor(config: ActorConfig): XStateActorResult {
     start: async () => {
       if (!actorInstance) return;
       await actorSystem.manager.startActor(actorInstance.identity.id);
-      eventHandlers?.onStart?.(actorInstance);
     },
 
     stop: async (reason?: string) => {
       if (!actorInstance) return;
       await actorSystem.manager.stopActor(actorInstance.identity.id, reason);
-      eventHandlers?.onStop?.(actorInstance);
+      eventHandlers?.onCancel?.(reason);
     },
 
     pause: async () => {
@@ -389,7 +382,7 @@ export function useXStateActor(config: ActorConfig): XStateActorResult {
 export function useMacroExecutionActor(
   ticker: SupportedTicker,
   contextHooks: TickerContextHooks,
-  options?: Omit<ActorConfig, 'ticker' | 'type' | 'contextHooks'> & {
+  options?: Omit<ReactActorConfig, 'ticker' | 'type' | 'contextHooks'> & {
     onMacroComplete?: (result: any) => void;
     onMacroError?: (error: Error, step?: string) => void;
     onStepComplete?: (step: string, result: any) => void;
@@ -405,12 +398,12 @@ export function useMacroExecutionActor(
     eventHandlers: {
       ...actorOptions.eventHandlers,
       onStateChange: (snapshot) => {
-        // Handle macro-specific state changes
-        if (snapshot.matches?.('completed')) {
+        // Handle macro-specific state changes with XState v5 compatibility
+        if (snapshot && typeof snapshot.matches === 'function' && snapshot.matches('completed')) {
           onMacroComplete?.(snapshot.context);
-        } else if (snapshot.matches?.('failed')) {
+        } else if (snapshot && typeof snapshot.matches === 'function' && snapshot.matches('failed')) {
           onMacroError?.(snapshot.context?.error, snapshot.context?.currentStep);
-        } else if (snapshot.context?.lastCompletedStep) {
+        } else if (snapshot?.context?.lastCompletedStep) {
           onStepComplete?.(snapshot.context.lastCompletedStep, snapshot.context.stepResults);
         }
         
@@ -432,10 +425,10 @@ export function useMacroExecutionActor(
     cancelMacroExecution: (reason?: string) => result.send({ type: 'CANCEL', reason }),
     selectExpiration: (expiration: string) => result.send({ type: 'SELECT_EXPIRATION', expiration }),
     
-    // Macro state checks
-    isExecutingMacro: () => result.snapshot?.matches?.('executing'),
-    isMacroCompleted: () => result.snapshot?.matches?.('completed'),
-    isMacroFailed: () => result.snapshot?.matches?.('failed'),
+    // Macro state checks with XState v5 compatibility
+    isExecutingMacro: () => result.snapshot && typeof result.snapshot.matches === 'function' ? result.snapshot.matches('executing') : false,
+    isMacroCompleted: () => result.snapshot && typeof result.snapshot.matches === 'function' ? result.snapshot.matches('completed') : false,
+    isMacroFailed: () => result.snapshot && typeof result.snapshot.matches === 'function' ? result.snapshot.matches('failed') : false,
     getCurrentStep: () => result.snapshot?.context?.currentStep,
     getStepResults: () => result.snapshot?.context?.stepResults,
     getMacroProgress: () => result.snapshot?.context?.progress,
@@ -445,7 +438,7 @@ export function useMacroExecutionActor(
 /**
  * Hook for managing multiple actors as a group
  */
-export function useXStateActorGroup(configs: ActorConfig[]) {
+export function useXStateActorGroup(configs: ReactActorConfig[]) {
   const [actors, setActors] = useState<XStateActorResult[]>([]);
   
   // This would manage multiple actors as a coordinated group

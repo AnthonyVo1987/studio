@@ -36,6 +36,11 @@ export type {
   MACRO_STEPS
 } from './types/macro-types';
 
+export {
+  macroStepToKey,
+  isMacroStep
+} from './types/macro-types';
+
 export type {
   MacroExecutionContextOptions,
   MacroExecutionContextSnapshot,

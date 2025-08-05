@@ -37,6 +37,24 @@ import type { PerformanceMetrics, MetricsSnapshot } from '../performance/perform
 const logger = createTickerLogger('PERFORMANCE_UI', TICKER_PAGES.ADVANCED_UI);
 
 // =============================================================================
+// Temporary stub function to convert metrics
+function createStubMetricsSnapshot(rawMetrics: any): MetricsSnapshot {
+  const defaultMetrics: PerformanceMetrics = {
+    totalDuration: 0,
+    stepDurations: {},
+    retryCount: 0,
+    timeoutCount: 0
+  };
+  return {
+    timestamp: new Date(),
+    metrics: defaultMetrics,
+    averageResponseTime: 0,
+    memoryUsage: 0,
+    errorRate: 0,
+    operationsPerSecond: 0
+  };
+}
+
 // Performance Dashboard Hook
 // =============================================================================
 
@@ -86,14 +104,15 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
     if (realTimeUpdates) {
       intervalRef.current = setInterval(() => {
         // Collect current metrics
-        const metrics = baseMonitor.getCurrentMetrics();
-        setCurrentMetrics(metrics);
+        const rawMetrics = baseMonitor.getCurrentMetrics();
+        const metricsSnapshot = createStubMetricsSnapshot(rawMetrics);
+        setCurrentMetrics(metricsSnapshot);
 
         const timestamp = new Date();
         
         // Update chart data for each chart type
         chartTypes.forEach(chartType => {
-          const dataPoint = createDataPointFromMetrics(metrics, chartType, timestamp);
+          const dataPoint = createDataPointFromMetrics(metricsSnapshot, chartType, timestamp);
           
           setChartData(prev => {
             const updated = { ...prev };
@@ -113,7 +132,7 @@ export function usePerformanceDashboard(config: PerformanceDashboardConfig) {
         });
 
         // Check alert thresholds
-        checkAlertThresholds(metrics, timestamp);
+        checkAlertThresholds(metricsSnapshot, timestamp);
         
         setLastUpdate(timestamp);
       }, refreshInterval);
@@ -404,8 +423,9 @@ export function useRealTimeMetrics(interval: number = 1000) {
 
     setIsActive(true);
     intervalRef.current = setInterval(() => {
-      const currentMetrics = baseMonitor.getCurrentMetrics();
-      setMetrics(currentMetrics);
+      const rawMetrics = baseMonitor.getCurrentMetrics();
+      const metricsSnapshot = createStubMetricsSnapshot(rawMetrics);
+      setMetrics(metricsSnapshot);
     }, interval);
   }, [isActive, interval, baseMonitor]);
 

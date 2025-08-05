@@ -136,7 +136,7 @@ export function useDragAndDrop<T extends { id: string }>(
         }
       }
       
-      logger.debug('Drag started:', { activeId: active.id, multiSelect });
+      logger.debug('DragStart', `Drag started: activeId=${active.id}, multiSelect=${multiSelect}`);
     }
     
     onDragStart?.(event);
@@ -324,20 +324,20 @@ export function useAdvancedFiltering<T>(
       return [...filtered, filter];
     });
     
-    logger.debug('Filter added:', filter);
+    logger.debug('AddFilter', 'Filter added:', filter);
   }, []);
 
   // Remove filter
   const removeFilter = useCallback((filterId: string) => {
     setAppliedFilters(prev => prev.filter(f => f.filterId !== filterId));
-    logger.debug('Filter removed:', { filterId });
+    logger.debug('RemoveFilter', 'Filter removed:', { filterId });
   }, []);
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     setAppliedFilters([]);
     setSearchQuery('');
-    logger.debug('All filters cleared');
+    logger.debug('ClearFilters', 'All filters cleared');
   }, []);
 
   // Update search query
@@ -589,7 +589,7 @@ export function useAccessibility(config: AccessibilityConfig) {
     const previousElement = focusHistoryRef.current.pop();
     if (previousElement && document.contains(previousElement)) {
       previousElement.focus();
-      logger.debug('Focus restored to previous element');
+      logger.debug('RestoreFocus', 'Focus restored to previous element');
     }
   }, [focusManagement.restoreFocus]);
 
@@ -616,7 +616,7 @@ export function useAccessibility(config: AccessibilityConfig) {
       }
     }, 1000);
 
-    logger.debug('Screen reader announcement:', { message, priority });
+    logger.debug('ScreenReaderAnnouncement', 'Screen reader announcement:', { message, priority });
   }, [enableScreenReader]);
 
   // Toggle high contrast mode

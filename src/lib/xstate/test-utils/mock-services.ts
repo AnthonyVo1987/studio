@@ -8,7 +8,8 @@
 import type { 
   MacroExecutionContext, 
   MacroExecutionEvent, 
-  StepResult 
+  StepResult,
+  MacroStepNumber
 } from '../types/macro-types';
 
 // ================================
@@ -269,7 +270,7 @@ export const MOCK_SCENARIOS = {
 // ================================
 
 export class MockStepResultFactory {
-  static createSuccessResult(stepId: number, stepName: string, data?: any): StepResult {
+  static createSuccessResult(stepId: MacroStepNumber, stepName: string, data?: any): StepResult {
     return {
       stepId,
       stepName,
@@ -282,7 +283,7 @@ export class MockStepResultFactory {
     };
   }
   
-  static createErrorResult(stepId: number, stepName: string, error?: Error): StepResult {
+  static createErrorResult(stepId: MacroStepNumber, stepName: string, error?: Error): StepResult {
     return {
       stepId,
       stepName,
@@ -295,7 +296,7 @@ export class MockStepResultFactory {
     };
   }
   
-  static createTimeoutResult(stepId: number, stepName: string): StepResult {
+  static createTimeoutResult(stepId: MacroStepNumber, stepName: string): StepResult {
     return {
       stepId,
       stepName,
@@ -308,7 +309,7 @@ export class MockStepResultFactory {
     };
   }
   
-  static createCancelledResult(stepId: number, stepName: string): StepResult {
+  static createCancelledResult(stepId: MacroStepNumber, stepName: string): StepResult {
     return {
       stepId,
       stepName,
@@ -320,7 +321,7 @@ export class MockStepResultFactory {
     };
   }
   
-  private static getDefaultDataForStep(stepId: number): any {
+  private static getDefaultDataForStep(stepId: MacroStepNumber): any {
     switch (stepId) {
       case 1:
         return { expirations: MOCK_OPTIONS_DATA.expirations };
@@ -347,7 +348,8 @@ export class MockContextFactory {
       executionId: `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       selectedExpiration: null,
       stepResults: new Map(),
-      currentStep: 0,
+      currentStep: 1,
+      totalSteps: 4,
       completedSteps: [],
       error: null,
       timeoutSettings: {
@@ -371,7 +373,7 @@ export class MockContextFactory {
   
   static createContextWithCompletedSteps(
     ticker: string = 'TEST', 
-    completedStepIds: number[] = []
+    completedStepIds: MacroStepNumber[] = []
   ): MacroExecutionContext {
     const context = MockContextFactory.createInitialContext(ticker);
     
@@ -385,7 +387,7 @@ export class MockContextFactory {
       context.performance.stepDurations.set(stepId, result.duration);
     });
     
-    context.currentStep = completedStepIds.length > 0 ? Math.max(...completedStepIds) + 1 : 1;
+    context.currentStep = completedStepIds.length > 0 ? (Math.max(...completedStepIds) + 1) as MacroStepNumber : 1;
     context.selectedExpiration = '2024-01-19';
     context.startTime = Date.now() - 10000; // Started 10 seconds ago
     
@@ -405,9 +407,9 @@ export class MockContextFactory {
   
   static createContextInProgress(
     ticker: string = 'TEST',
-    currentStep: number = 2
+    currentStep: MacroStepNumber = 2
   ): MacroExecutionContext {
-    const completedSteps = Array.from({ length: currentStep - 1 }, (_, i) => i + 1);
+    const completedSteps = Array.from({ length: currentStep - 1 }, (_, i) => (i + 1) as MacroStepNumber);
     const context = MockContextFactory.createContextWithCompletedSteps(ticker, completedSteps);
     context.currentStep = currentStep;
     return context;

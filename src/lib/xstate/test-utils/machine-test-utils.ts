@@ -10,7 +10,8 @@ import type {
   MacroExecutionContext, 
   MacroExecutionEvent,
   StepResult,
-  MacroExecutionStateValue 
+  MacroExecutionStateValue,
+  MacroStepNumber
 } from '../types/macro-types';
 import { createDefaultContext } from '../types/context-types';
 import { macroExecutionMachine } from '../machines/macro-execution-machine';
@@ -143,7 +144,7 @@ export const assertContext = (
 
 export const assertStepResult = (
   actor: ReturnType<typeof createTestActor>,
-  stepId: number,
+  stepId: MacroStepNumber,
   expectedStatus: StepResult['status']
 ) => {
   const context = actor.getSnapshot().context as MacroExecutionContext;

@@ -485,7 +485,7 @@ export function AdvancedFilters<T = any>({
 
     addFilter(newFilter);
     announceToScreenReader(`${filterType.name} filter added`);
-    logger.debug('Filter added:', { filterTypeId, operator: defaultOperator });
+    logger.debug('AddFilter', 'Filter added:', { filterTypeId, operator: defaultOperator });
   }, [availableFilterTypes, addFilter, announceToScreenReader]);
 
   // Update filter

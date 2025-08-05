@@ -317,7 +317,7 @@ export function createParallelCoordinationMachine(config: ParallelMachineConfig)
       executionId: `parallel-${Date.now()}`,
       selectedExpiration: null,
       stepResults: new Map(),
-      currentStep: 0,
+      currentStep: 1,
       totalSteps: 0, // Will be set based on parallel operations
       completedSteps: [],
       error: null,

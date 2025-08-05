@@ -441,7 +441,7 @@ export class StatePersistenceManager {
   }
 
   /**
-   * Persist state machine snapshot
+   * Persist state machine snapshot with XState v5 compatibility
    */
   async persistState(
     key: string,
@@ -457,8 +457,20 @@ export class StatePersistenceManager {
       ...metadata
     };
 
+    // XState v5 compatibility: Create a serializable snapshot structure
+    const serializableSnapshot = {
+      value: snapshot.value,
+      context: snapshot.context,
+      status: (snapshot as any).status || 'active',
+      output: (snapshot as any).output,
+      error: (snapshot as any).error,
+      // Include any additional XState v5 properties that need to be persisted
+      _version: 'v5',
+      _timestamp: Date.now(),
+    };
+
     // Serialize snapshot
-    let serializedSnapshot = JSON.stringify(snapshot);
+    let serializedSnapshot = JSON.stringify(serializableSnapshot);
 
     // Apply compression if enabled
     if (this.config.compressionEnabled) {
@@ -467,7 +479,7 @@ export class StatePersistenceManager {
 
     // Create persisted state
     const persistedState: PersistedState = {
-      snapshot,
+      snapshot: serializableSnapshot as any, // Store the serializable version
       metadata: fullMetadata,
       checksum: this.generateChecksum(serializedSnapshot)
     };
@@ -484,7 +496,7 @@ export class StatePersistenceManager {
   }
 
   /**
-   * Restore state machine snapshot
+   * Restore state machine snapshot with XState v5 compatibility
    */
   async restoreState(key: string): Promise<AnyMachineSnapshot | null> {
     const persistedState = await this.adapter.load(key);
@@ -517,12 +529,28 @@ export class StatePersistenceManager {
     }
 
     // Parse snapshot
-    let snapshot: AnyMachineSnapshot;
+    let parsedSnapshot: any;
     try {
-      snapshot = JSON.parse(serializedSnapshot);
+      parsedSnapshot = JSON.parse(serializedSnapshot);
     } catch (error) {
       console.error('Failed to parse persisted snapshot:', error);
       return null;
+    }
+
+    // XState v5 compatibility: Validate and transform snapshot structure
+    let snapshot: AnyMachineSnapshot;
+    if (parsedSnapshot._version === 'v5') {
+      // This is a v5 snapshot - use it directly
+      snapshot = parsedSnapshot as AnyMachineSnapshot;
+    } else {
+      // Legacy snapshot - attempt to migrate to v5 format
+      snapshot = {
+        value: parsedSnapshot.value,
+        context: parsedSnapshot.context,
+        status: parsedSnapshot.done ? 'done' : 'active',
+        output: parsedSnapshot.output,
+        error: parsedSnapshot.error,
+      } as AnyMachineSnapshot;
     }
 
     // Apply migrations if necessary

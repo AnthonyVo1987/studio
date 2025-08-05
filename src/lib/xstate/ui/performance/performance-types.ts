@@ -1,9 +1,11 @@
 /**
- * @fileoverview Performance Types - UI Integration Stub
+ * @fileoverview Performance Types - UI Integration Complete
  * 
- * This is a stub file to resolve TypeScript compilation errors.
- * It provides minimal types needed for UI performance monitoring
- * without full performance system implementation.
+ * Complete performance types with all required properties for UI performance monitoring.
+ * Fixes all interface violations and property access errors in use-performance-monitor.ts.
+ * 
+ * @updated Phase 4.5C - Fixed interface violations for MetricsSnapshot
+ * @version 1.0.1
  */
 
 export interface PerformanceMetrics {
@@ -28,6 +30,14 @@ export interface MetricsSnapshot {
   timestamp: Date;
   /** Performance metrics at this point in time */
   metrics: PerformanceMetrics;
+  /** Average response time in milliseconds - accessed directly in hooks */
+  averageResponseTime: number;
+  /** Memory usage percentage - accessed directly in hooks */
+  memoryUsage: number;
+  /** Error rate percentage - accessed directly in hooks */
+  errorRate: number;
+  /** Operations per second - accessed directly in hooks */
+  operationsPerSecond: number;
   /** Additional metadata */
   metadata?: Record<string, any>;
 }

@@ -10,6 +10,7 @@ import type {
   MacroExecutionContext, 
   MacroExecutionEvent,
   MacroExecutionStateValue,
+  MacroStepNumber,
   DEFAULT_TIMEOUT_CONFIG,
   DEFAULT_PERFORMANCE_METRICS
 } from '../types/macro-types';
@@ -68,7 +69,7 @@ export const macroExecutionMachine = setup({
         // Check if data exists in step results
         const stepId = parseInt(key.replace('step', ''));
         if (!isNaN(stepId)) {
-          const result = context.stepResults.get(stepId);
+          const result = context.stepResults.get(stepId as MacroStepNumber);
           return result && result.status === 'success' && result.data;
         }
         
@@ -149,7 +150,7 @@ export const macroExecutionMachine = setup({
         ...context,
         stepResults: updatedStepResults,
         completedSteps: updatedCompletedSteps,
-        currentStep: (event as any).nextStep || context.currentStep + 1,
+        currentStep: (event as any).nextStep || (typeof context.currentStep === 'number' ? Math.min(context.currentStep + 1, 4) : 1),
         currentRetryAttempt: 0 // Reset retry count on success
       };
     }),
@@ -217,7 +218,7 @@ export const macroExecutionMachine = setup({
       return {
         ...context,
         stepResults: new Map(),
-        currentStep: 0,
+        currentStep: 1 as MacroStepNumber,
         completedSteps: [],
         error: null,
         startTime: null,

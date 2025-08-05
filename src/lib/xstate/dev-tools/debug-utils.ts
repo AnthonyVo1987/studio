@@ -5,7 +5,7 @@
  * in the macro automation system.
  */
 
-import type { MacroExecutionContext, MacroExecutionEvent, StepResult } from '../types/macro-types';
+import type { MacroExecutionContext, MacroExecutionEvent, StepResult, MacroStepNumber } from '../types/macro-types';
 import type { DebugSnapshot } from './xstate-inspector';
 
 // ================================
@@ -49,7 +49,7 @@ export const analyzeContext = (context: MacroExecutionContext): ContextAnalysis 
     });
   }
   
-  if (!context.selectedExpiration && context.currentStep > 0) {
+  if (!context.selectedExpiration && (typeof context.currentStep === 'number' ? context.currentStep > 0 : context.currentStep !== 'fetchExpirations')) {
     issues.push({
       type: 'warning',
       message: 'No expiration selected but execution started',
@@ -110,8 +110,9 @@ export const analyzeContext = (context: MacroExecutionContext): ContextAnalysis 
   
   // Build step summary
   for (let stepId = 1; stepId <= totalSteps; stepId++) {
-    const stepResult = context.stepResults.get(stepId);
-    const isCompleted = context.completedSteps.includes(stepId);
+    const stepIdTyped = stepId as MacroStepNumber;
+    const stepResult = context.stepResults.get(stepIdTyped);
+    const isCompleted = context.completedSteps.includes(stepIdTyped);
     const isRunning = context.currentStep === stepId && !isCompleted;
     
     stepSummary.push({

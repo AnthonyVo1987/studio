@@ -13,7 +13,7 @@ import { useXStateSystem } from './XStateContext';
 import { useMacroExecution, type MacroExecutionConfig, type MacroExecutionState, type MacroExecutionResults } from '../hooks/use-macro-execution';
 import type { SupportedTicker } from '@/lib/xstate/actors';
 import type { MacroStep } from '@/lib/xstate';
-import { MacroStepName } from '../components/MacroProgressIndicator';
+// Remove unused import - MacroStepName doesn't exist
 import { globalLogger } from '@/lib/xstate';
 
 // Macro execution context state
