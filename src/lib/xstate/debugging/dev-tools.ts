@@ -62,15 +62,15 @@ export class EnvironmentDetector {
     
     // Node.js features
     if (isNode) {
-      if (process.memoryUsage) supportedFeatures.push('memory-usage');
-      if (process.cpuUsage) supportedFeatures.push('cpu-usage');
-      if (process.hrtime) supportedFeatures.push('high-resolution-time');
+      if (typeof process.memoryUsage === 'function') supportedFeatures.push('memory-usage');
+      if (typeof process.cpuUsage === 'function') supportedFeatures.push('cpu-usage');
+      if (typeof process.hrtime === 'function') supportedFeatures.push('high-resolution-time');
     }
 
     // Browser features
     if (isBrowser) {
-      if (performance.mark) supportedFeatures.push('performance-mark');
-      if (performance.measure) supportedFeatures.push('performance-measure');
+      if (typeof performance.mark === 'function') supportedFeatures.push('performance-mark');
+      if (typeof performance.measure === 'function') supportedFeatures.push('performance-measure');
       if (navigator.serviceWorker) supportedFeatures.push('service-worker-registration');
     }
 
@@ -148,7 +148,7 @@ export class HotReloadManager {
     this.setupBrowserRefresh();
   }
 
-  registerMachine(machineId: string, actor: ActorRef<any>): void {
+  registerMachine(machineId: string, actor: ActorRef<any, any>): void {
     if (!this.config.enabled) return;
 
     this.logger.debug('RegisterMachine', `Registering machine for hot reload: ${machineId}`);
@@ -802,21 +802,4 @@ export const cleanupDeveloperTools = () => {
   globalStateManipulator.clearQueue();
 };
 
-// ================================
-// EXPORTS
-// ================================
-
-export {
-  EnvironmentDetector,
-  HotReloadManager,
-  DebugShortcutManager,
-  DeveloperCommandRegistry,
-  StateManipulator
-};
-
-export type {
-  EnvironmentInfo,
-  HotReloadConfig,
-  DebugShortcuts,
-  DeveloperCommand
-};
+// Classes and types are already exported inline above

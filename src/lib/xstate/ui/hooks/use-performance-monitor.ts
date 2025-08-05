@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { usePerformanceMonitor as useBasePerformanceMonitor } from '../performance/performance-monitor';
+import { usePerformanceMonitor as useBasePerformanceMonitor } from '../../performance/performance-monitor';
 import { createTickerLogger, TICKER_PAGES } from '@/lib/ticker-logger';
 
 // Type Imports

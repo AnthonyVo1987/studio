@@ -325,7 +325,7 @@ export interface MockServiceConfiguration {
 
 export interface MockCondition {
   when: (context: any, event: any) => boolean;
-  then: 'success' | 'error' | 'delay';
+  then: 'success' | 'error' | 'delayed';
   value?: any;
 }
 
@@ -565,85 +565,47 @@ export interface MacroDebugEvent {
 }
 
 // ================================
-// EXPORTS
+// STRUCTURED LOGGING TYPES
 // ================================
 
-export type {
-  // Core types
-  DebugConfiguration,
-  DebugLevel,
-  DebugCategory,
-  DebugLogFilter,
-  
-  // Inspector types
-  InspectorConfiguration,
-  InspectorAdapter,
-  InspectorEvent,
-  InspectorMetadata,
-  
-  // Analysis types
-  MachineAnalysis,
-  MachineComplexity,
-  MachineIssue,
-  MachinePerformanceMetrics,
-  
-  // Snapshot types
-  MachineSnapshot,
-  SnapshotMetadata,
-  SnapshotPerformance,
-  MachineRelationships,
-  
-  // Transition types
-  StateTransition,
-  ExecutedAction,
-  EvaluatedGuard,
-  TransitionContext,
-  ContextDiff,
-  
-  // Performance types
-  PerformanceMonitorConfiguration,
-  PerformanceThresholds,
-  PerformanceReport,
-  PerformanceMetric,
-  PerformanceBottleneck,
-  PerformanceSummary,
-  
-  // Testing types
-  TestingConfiguration,
-  MockServiceConfiguration,
-  MockCondition,
-  StateManipulationCommand,
-  TestScenario,
-  TestEvent,
-  TestAssertion,
-  TestResult,
-  AssertionResult,
-  
-  // Error types
-  ErrorTrackingConfiguration,
-  MachineError,
-  ErrorRecovery,
-  ErrorMetadata,
-  
-  // Panel types
-  DeveloperPanelConfiguration,
-  DeveloperPanelTab,
-  DeveloperPanelState,
-  PanelFilters,
-  PanelSettings,
-  
-  // Integration types
-  StockSageDebugIntegration,
-  DebuggerAPI,
-  
-  // Utility types
-  DeepPartial,
-  DebugEventListener,
-  MachineSelector,
-  ContextSerializer,
-  StateComparator,
-  
-  // Compatibility types
-  TickerDebugContext,
-  MacroDebugEvent
-};
+export interface StructuredLogEntry {
+  id: string;
+  timestamp: number;
+  level: DebugLevel;
+  category: DebugCategory;
+  machineId?: string;
+  message: string;
+  data?: any;
+  context?: TickerDebugContext;
+  performance?: LogPerformanceMetrics;
+  stackTrace?: string;
+  sessionId?: string;
+  environment?: string;
+}
+
+export interface LogPerformanceMetrics {
+  duration?: number;
+  memoryUsage?: number;
+  cpuUsage?: number;
+}
+
+// ================================
+// MISSING TYPE DEFINITIONS
+// ================================
+
+export interface HotReloadConfig {
+  enabled: boolean;
+  watchPaths: string[];
+  excludePaths: string[];
+  reloadDelay: number;
+  autoRestart: boolean;
+}
+
+export interface DebugShortcuts {
+  toggleInspector: string;
+  clearLogs: string;
+  exportLogs: string;
+  togglePerformance: string;
+  resetState: string;
+}
+

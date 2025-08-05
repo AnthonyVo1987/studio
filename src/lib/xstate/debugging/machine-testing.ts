@@ -279,7 +279,7 @@ export class TestScenarioRunner {
     }
   }
 
-  private async executeTestEvent(actor: ActorRef<any>, event: TestEvent): Promise<void> {
+  private async executeTestEvent(actor: ActorRef<any, any>, event: TestEvent): Promise<void> {
     // Apply delay if specified
     if (event.delay) {
       await new Promise(resolve => setTimeout(resolve, event.delay));
@@ -306,7 +306,7 @@ export class TestScenarioRunner {
     await new Promise(resolve => setTimeout(resolve, 10));
   }
 
-  private async runAssertions(assertions: TestAssertion[], actor: ActorRef<any>): Promise<AssertionResult[]> {
+  private async runAssertions(assertions: TestAssertion[], actor: ActorRef<any, any>): Promise<AssertionResult[]> {
     const results: AssertionResult[] = [];
     const currentState = actor.getSnapshot();
 
@@ -477,7 +477,7 @@ export class TestScenarioRunner {
 export class StateValidator {
   private logger = createTickerLogger('SYSTEM', 'StateValidator', generateExecutionId('validator'));
 
-  validateMachineState(actor: ActorRef<any>, expectedState: any, expectedContext?: any): ValidationResult {
+  validateMachineState(actor: ActorRef<any, any>, expectedState: any, expectedContext?: any): ValidationResult {
     const currentState = actor.getSnapshot();
     const result: ValidationResult = {
       valid: true,
@@ -808,16 +808,4 @@ export const createMacroExecutionTest = (
 // EXPORTS
 // ================================
 
-export {
-  MockServiceManager,
-  TestScenarioRunner,
-  StateValidator,
-  TestDataGenerator,
-  DEFAULT_TESTING_CONFIG
-};
-
-export type {
-  ValidationResult,
-  ValidationError,
-  ValidationWarning
-};
+// Classes and types are already exported inline above

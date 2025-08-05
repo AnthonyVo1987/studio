@@ -45,13 +45,13 @@ export const DEFAULT_PROFILER_CONFIG: PerformanceMonitorConfiguration = {
 // PERFORMANCE METRICS COLLECTOR
 // ================================
 
-interface MetricSample {
+export interface MetricSample {
   timestamp: number;
   value: number;
   metadata?: Record<string, any>;
 }
 
-interface MetricSeries {
+export interface MetricSeries {
   name: string;
   unit: string;
   category: PerformanceMetric['category'];
@@ -65,7 +65,7 @@ export class PerformanceMetricsCollector {
   private metrics: Map<string, MetricSeries> = new Map();
   private config: PerformanceMonitorConfiguration;
   private logger = createTickerLogger('SYSTEM', 'PerfCollector', generateExecutionId('collector'));
-  private collectionInterval?: NodeJS.Timer;
+  private collectionInterval?: NodeJS.Timeout;
   private performanceObserver?: PerformanceObserver;
 
   constructor(config: Partial<PerformanceMonitorConfiguration> = {}) {
@@ -373,7 +373,7 @@ export class PerformanceMetricsCollector {
 // PERFORMANCE PROFILER
 // ================================
 
-interface ProfilingSession {
+export interface ProfilingSession {
   id: string;
   machineId: string;
   startTime: number;
@@ -467,7 +467,7 @@ export class PerformanceProfiler {
         
         bottlenecks.push({
           location: `Metric: ${metric.name}`,
-          type: metric.category,
+          type: metric.category === 'custom' ? 'logic' : metric.category as 'memory' | 'cpu' | 'network' | 'logic',
           severity,
           impact,
           suggestion: this.getSuggestionForMetric(metric)
@@ -591,7 +591,7 @@ export class PerformanceProfiler {
     }
 
     // General best practices
-    if (session.duration > 10000) { // Long profiling session
+    if (session.duration && session.duration > 10000) { // Long profiling session
       recommendations.push('📊 Long-term monitoring insights:');
       recommendations.push('  • Consider implementing performance budgets');
       recommendations.push('  • Set up automated performance alerts');
@@ -758,14 +758,4 @@ export const profileMachineExecution = async <T>(
 // EXPORTS
 // ================================
 
-export {
-  PerformanceMetricsCollector,
-  PerformanceProfiler,
-  DEFAULT_PROFILER_CONFIG
-};
-
-export type {
-  MetricSample,
-  MetricSeries,
-  ProfilingSession
-};
+// Type interfaces are now exported inline above

@@ -41,6 +41,7 @@ const usePerformanceMonitor = () => ({
 });
 
 // Type Imports
+import type { MacroExecutionContext } from '@/lib/xstate/types/macro-types';
 import type {
   StateMachineVisualizerConfig,
   ActorSpawningConfig,

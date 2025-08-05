@@ -1073,10 +1073,4 @@ const formatBytes = (bytes: number): string => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-// ================================
-// EXPORTS
-// ================================
-
-export default DeveloperPanel;
-export { DeveloperPanel };
-export type { DeveloperPanelProps };
+// Component and types are already exported inline above

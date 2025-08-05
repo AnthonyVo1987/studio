@@ -157,7 +157,7 @@ class AdvancedResourcePool {
   private async allocateResource(request: ResourceRequest): Promise<ResourceAllocation> {
     const allocation: ResourceAllocation = {
       resourceId: `${request.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      resourceType: request.type,
+      resourceType: request.type as ResourceTypeId,
       allocatedAmount: request.amount,
       maxAvailable: this.getResourceLimit(request.type),
       currentUsage: this.getCurrentUsage(request.type) + request.amount,
@@ -198,13 +198,31 @@ class AdvancedResourcePool {
   }
 
   /**
+   * Convert string priority to numeric value
+   */
+  private getPriorityValue(priority: 'low' | 'medium' | 'high' | 'critical' | number): number {
+    if (typeof priority === 'number') return priority;
+    
+    const priorityMap = {
+      'low': 1,
+      'medium': 5,
+      'high': 8,
+      'critical': 10
+    };
+    
+    return priorityMap[priority] || 5;
+  }
+
+  /**
    * Sort request queue by priority and wait time
    */
   private sortRequestQueue(): void {
     this.requestQueue.sort((a, b) => {
       // Higher priority first
       if (a.priority !== b.priority) {
-        return b.priority - a.priority;
+        const aPriority = this.getPriorityValue(a.priority);
+        const bPriority = this.getPriorityValue(b.priority);
+        return bPriority - aPriority;
       }
       
       // Earlier requests first (FIFO for same priority)
@@ -244,8 +262,8 @@ class AdvancedResourcePool {
     const usagePoint: ResourceUsagePoint = {
       timestamp: Date.now(),
       usage,
-      allocations: this.getAllocationsForType(resourceType).length,
-      activeActors: this.getActiveActorsForType(resourceType)
+      allocations: this.getAllocationsForType(resourceType as ResourceTypeId).length,
+      activeActors: this.getActiveActorsForType(resourceType as ResourceTypeId)
     };
 
     history.push(usagePoint);
@@ -347,8 +365,8 @@ class AdvancedResourcePool {
       const averageUsage = usageValues.reduce((sum, val) => sum + val, 0) / usageValues.length;
       const allocationEfficiency = currentUsage > 0 ? (averageUsage / totalAvailable) * 100 : 100;
 
-      metrics.set(type, {
-        resourceType: type,
+      metrics.set(type as ResourceTypeId, {
+        resourceType: type as ResourceTypeId,
         totalAvailable,
         currentlyAllocated: currentUsage,
         peakUsage,
@@ -372,8 +390,8 @@ class AdvancedResourcePool {
     const requestsByType = new Map<ResourceTypeId, number>();
     
     for (const request of this.requestQueue) {
-      const count = requestsByType.get(request.type) || 0;
-      requestsByType.set(request.type, count + 1);
+      const count = requestsByType.get(request.type as ResourceTypeId) || 0;
+      requestsByType.set(request.type as ResourceTypeId, count + 1);
     }
 
     return {
@@ -473,7 +491,20 @@ class FairAllocationStrategy implements AllocationStrategy {
   }
 
   getPriority(request: ResourceRequest): number {
-    return request.priority;
+    return typeof request.priority === 'number' ? request.priority : this.getPriorityValue(request.priority);
+  }
+
+  private getPriorityValue(priority: 'low' | 'medium' | 'high' | 'critical' | number): number {
+    if (typeof priority === 'number') return priority;
+    
+    const priorityMap = {
+      'low': 1,
+      'medium': 5,
+      'high': 8,
+      'critical': 10
+    };
+    
+    return priorityMap[priority] || 5;
   }
 }
 
@@ -483,12 +514,27 @@ class FairAllocationStrategy implements AllocationStrategy {
 class PriorityAllocationStrategy implements AllocationStrategy {
   canAllocate(request: ResourceRequest, currentUsage: number, limit: number): boolean {
     // Allow high priority requests to exceed limits slightly
-    const allowedOverage = request.priority > 8 ? limit * 0.1 : 0;
+    const priorityValue = typeof request.priority === 'number' ? request.priority : this.getPriorityValue(request.priority);
+    const allowedOverage = priorityValue > 8 ? limit * 0.1 : 0;
     return currentUsage + request.amount <= limit + allowedOverage;
   }
 
   getPriority(request: ResourceRequest): number {
-    return request.priority * 10; // Amplify priority differences
+    const priorityValue = typeof request.priority === 'number' ? request.priority : this.getPriorityValue(request.priority);
+    return priorityValue * 10; // Amplify priority differences
+  }
+
+  private getPriorityValue(priority: 'low' | 'medium' | 'high' | 'critical' | number): number {
+    if (typeof priority === 'number') return priority;
+    
+    const priorityMap = {
+      'low': 1,
+      'medium': 5,
+      'high': 8,
+      'critical': 10
+    };
+    
+    return priorityMap[priority] || 5;
   }
 }
 
@@ -504,7 +550,20 @@ class AdaptiveAllocationStrategy implements AllocationStrategy {
   }
 
   getPriority(request: ResourceRequest): number {
-    return request.priority;
+    return typeof request.priority === 'number' ? request.priority : this.getPriorityValue(request.priority);
+  }
+
+  private getPriorityValue(priority: 'low' | 'medium' | 'high' | 'critical' | number): number {
+    if (typeof priority === 'number') return priority;
+    
+    const priorityMap = {
+      'low': 1,
+      'medium': 5,
+      'high': 8,
+      'critical': 10
+    };
+    
+    return priorityMap[priority] || 5;
   }
 
   private calculateAdaptiveLimit(baseLimit: number): number {
@@ -579,7 +638,7 @@ export class ResourceManager {
    * Request resource allocation
    */
   async requestResource(
-    resourceType: ResourceTypeIdId,
+    resourceType: ResourceTypeId,
     amount: number,
     actorId: string,
     priority: number = 5,
@@ -602,8 +661,12 @@ export class ResourceManager {
     const pool = this.resourcePools.get(resourceType);
     if (!pool) {
       return {
+        requestId: `${resourceType}-${Date.now()}`,
+        status: 'failed',
         success: false,
+        allocatedResources: {},
         error: `No pool available for resource type: ${resourceType}`,
+        timestamp: new Date(),
         waitTime: 0
       };
     }
@@ -612,6 +675,7 @@ export class ResourceManager {
       id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: resourceType,
       amount,
+      constraints: [], // Default empty constraints
       priority,
       timeout,
       requesterActorId: actorId,

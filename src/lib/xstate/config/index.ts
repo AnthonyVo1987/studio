@@ -17,7 +17,7 @@ export { FeatureFlagManager } from './feature-flags';
 export type { 
   FeatureFlagContext, 
   FeatureFlagResult, 
-  AdvancedFeatureFlagConfig 
+  AdvancedFeatureFlagConfig
 } from './feature-flags';
 
 // Environment management
@@ -165,6 +165,8 @@ export const CONFIG_DEFAULTS = {
 } as const;
 
 // Configuration management utilities
+import type { ConfigEnvironment } from './config-types';
+
 export class ConfigUtils {
   /**
    * Deep merge two configuration objects

@@ -301,7 +301,7 @@ export interface UnifiedDebugConfig {
 /**
  * Comprehensive debugging API that provides access to all debugging tools
  */
-export class UnifiedDebugger implements DebuggerAPI {
+export class UnifiedDebugger {
   private initialized: boolean = false;
 
   // ================================
@@ -600,20 +600,7 @@ export const debugMachineExecution = async (
 // MAIN EXPORTS
 // ================================
 
-export {
-  // Main debugger class
-  UnifiedDebugger,
-  globalUnifiedDebugger,
-  
-  // Convenience functions
-  quickSetupDebugging,
-  createInstrumentedMachine,
-  debugMachineExecution
-};
-
-export type {
-  UnifiedDebugConfig
-};
+// Classes and functions are already exported inline above
 
 // ================================
 // DEFAULT EXPORT

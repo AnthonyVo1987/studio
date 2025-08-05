@@ -208,7 +208,7 @@ export class RealTimeStateVisualizer {
     this.connectionManager = connectionManager;
   }
 
-  visualizeMachine(machineId: string, actor: ActorRef<any>, metadata?: InspectorMetadata): void {
+  visualizeMachine(machineId: string, actor: ActorRef<any, any>, metadata?: InspectorMetadata): void {
     this.logger.info('VisualizeMachine', `Starting visualization for machine: ${machineId}`, { metadata });
 
     // Subscribe to state changes
@@ -571,7 +571,7 @@ export class MachineSnapshotComparator {
 // SUPPORTING TYPES
 // ================================
 
-interface SnapshotComparison {
+export interface SnapshotComparison {
   id: string;
   timestamp: number;
   snapshotA: string;
@@ -583,13 +583,13 @@ interface SnapshotComparison {
   similarity: number;
 }
 
-interface StateDiff {
+export interface StateDiff {
   identical: boolean;
   changes: string[];
   complexity: number;
 }
 
-interface PerformanceDiff {
+export interface PerformanceDiff {
   captureTimeDiff: number;
   memoryFootprintDiff: number;
   contextSizeDiff: number;
@@ -677,15 +677,4 @@ export const cleanupInspector = async () => {
 // EXPORTS
 // ================================
 
-export {
-  InspectorConnectionManager,
-  RealTimeStateVisualizer,
-  MachineSnapshotComparator,
-  ADVANCED_INSPECTOR_CONFIG
-};
-
-export type {
-  SnapshotComparison,
-  StateDiff,
-  PerformanceDiff
-};
+// Type interfaces are now exported inline above

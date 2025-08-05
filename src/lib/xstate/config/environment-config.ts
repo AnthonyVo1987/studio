@@ -209,33 +209,25 @@ export class EnvironmentConfigManager {
 
     // Check environment variables
     if (typeof process !== 'undefined' && process.env) {
-      const nodeEnv = process.env.NODE_ENV;
+      const nodeEnv = process.env.NODE_ENV as string;
       const appEnv = process.env.APP_ENV || process.env.ENVIRONMENT;
 
       if (nodeEnv) {
         indicators.push({ type: 'variable', value: `NODE_ENV=${nodeEnv}`, weight: 0.6 });
         
-        switch (nodeEnv) {
-          case 'development':
-          case 'dev':
-            detected = 'development';
-            confidence += 0.6;
-            break;
-          case 'staging':
-          case 'stage':
-            detected = 'staging';
-            confidence += 0.6;
-            break;
-          case 'production':
-          case 'prod':
-            detected = 'production';
-            confidence += 0.6;
-            break;
-          case 'test':
-          case 'testing':
-            detected = 'test';
-            confidence += 0.6;
-            break;
+        // Map common environment values to ConfigEnvironment types
+        if (nodeEnv === 'development' || nodeEnv === 'dev') {
+          detected = 'development';
+          confidence += 0.6;
+        } else if (nodeEnv === 'staging' || nodeEnv === 'stage') {
+          detected = 'staging';
+          confidence += 0.6;
+        } else if (nodeEnv === 'production' || nodeEnv === 'prod') {
+          detected = 'production';
+          confidence += 0.6;
+        } else if (nodeEnv === 'test' || nodeEnv === 'testing') {
+          detected = 'test';
+          confidence += 0.6;
         }
       }
 

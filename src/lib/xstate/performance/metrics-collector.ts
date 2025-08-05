@@ -531,4 +531,3 @@ export function createStockSageMetricsCollector(): MetricsCollector {
 }
 
 export default MetricsCollector;
-EOF < /dev/null

@@ -224,7 +224,7 @@ export class ConfigManager {
       if (this.options.debugMode) {
         console.log('Configuration updated:', {
           version: config.version,
-          environment: config.environment.environment,
+          environment: config.environment,
           changes: changes.length
         });
       }
@@ -384,7 +384,7 @@ export class ConfigManager {
       return null;
     }
 
-    return await this.persistenceManager.exportConfig(this.config.environment.environment, format);
+    return await this.persistenceManager.exportConfig(this.config.environment, format);
   }
 
   // Import configuration
@@ -466,7 +466,9 @@ export class ConfigManager {
       // Limit cache size
       if (this.validationCache.size > 100) {
         const firstKey = this.validationCache.keys().next().value;
-        this.validationCache.delete(firstKey);
+        if (firstKey) {
+          this.validationCache.delete(firstKey);
+        }
       }
 
       return result;

@@ -1,68 +1,7 @@
-src/lib/xstate/advanced/resource-management.ts(73,7): error TS2739: Type '{ success: true; allocation: ResourceAllocation; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
-src/lib/xstate/advanced/resource-management.ts(88,17): error TS2345: Argument of type '{ success: false; error: string; waitTime: number; }' is not assignable to parameter of type 'AllocationResult | PromiseLike<AllocationResult>'.
-  Type '{ success: false; error: string; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
-src/lib/xstate/advanced/resource-management.ts(103,21): error TS2345: Argument of type '{ success: true; allocation: ResourceAllocation; waitTime: number; }' is not assignable to parameter of type 'AllocationResult | PromiseLike<AllocationResult>'.
-  Type '{ success: true; allocation: ResourceAllocation; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
-src/lib/xstate/advanced/resource-management.ts(148,7): error TS2322: Type 'string' is not assignable to type '"api" | "memory" | "connection" | "computation"'.
-src/lib/xstate/advanced/resource-management.ts(195,16): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
-src/lib/xstate/advanced/resource-management.ts(195,29): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
-src/lib/xstate/advanced/resource-management.ts(235,47): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
-src/lib/xstate/advanced/resource-management.ts(236,49): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
-src/lib/xstate/advanced/resource-management.ts(254,21): error TS2367: This comparison appears to be unintentional because the types 'string' and 'ResourceType' have no overlap.
-src/lib/xstate/advanced/resource-management.ts(264,11): error TS2367: This comparison appears to be unintentional because the types 'string' and 'ResourceType' have no overlap.
-src/lib/xstate/advanced/resource-management.ts(327,45): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'string'.
-  Type 'ResourceType' is not assignable to type 'string'.
-src/lib/xstate/advanced/resource-management.ts(330,49): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'string'.
-  Type 'ResourceType' is not assignable to type 'string'.
-src/lib/xstate/advanced/resource-management.ts(331,52): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'string'.
-  Type 'ResourceType' is not assignable to type 'string'.
-src/lib/xstate/advanced/resource-management.ts(338,19): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'ResourceType'.
-  Type 'string' is not assignable to type 'ResourceType'.
-src/lib/xstate/advanced/resource-management.ts(363,40): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
-src/lib/xstate/advanced/resource-management.ts(364,26): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
-src/lib/xstate/advanced/resource-management.ts(396,11): error TS2322: Type 'ResourceType' is not assignable to type 'string'.
-src/lib/xstate/advanced/resource-management.ts(405,11): error TS2322: Type 'ResourceType' is not assignable to type 'string'.
-src/lib/xstate/advanced/resource-management.ts(464,5): error TS2322: Type 'number | "low" | "medium" | "high" | "critical"' is not assignable to type 'number'.
-  Type 'string' is not assignable to type 'number'.
-src/lib/xstate/advanced/resource-management.ts(474,28): error TS2365: Operator '>' cannot be applied to types 'string | number' and 'number'.
-src/lib/xstate/advanced/resource-management.ts(479,12): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
-src/lib/xstate/advanced/resource-management.ts(495,5): error TS2322: Type 'number | "low" | "medium" | "high" | "critical"' is not assignable to type 'number'.
-  Type 'string' is not assignable to type 'number'.
-src/lib/xstate/advanced/resource-management.ts(546,28): error TS2352: Conversion of type 'string' to type 'ResourceType' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/lib/xstate/advanced/resource-management.ts(579,7): error TS2739: Type '{ success: false; error: string; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
-src/lib/xstate/advanced/resource-management.ts(588,7): error TS2739: Type '{ success: false; error: string; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
-src/lib/xstate/advanced/resource-management.ts(597,7): error TS2322: Type 'ResourceType' is not assignable to type 'string'.
-src/lib/xstate/config/config-manager.ts(227,43): error TS2339: Property 'environment' does not exist on type 'ConfigEnvironment'.
-  Property 'environment' does not exist on type '"development"'.
-src/lib/xstate/config/config-manager.ts(387,79): error TS2339: Property 'environment' does not exist on type 'ConfigEnvironment'.
-  Property 'environment' does not exist on type '"development"'.
-src/lib/xstate/config/config-manager.ts(469,37): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
-  Type 'undefined' is not assignable to type 'string'.
-src/lib/xstate/config/config-persistence.ts(650,38): error TS2367: This comparison appears to be unintentional because the types '"fail" | "pass"' and '"warn"' have no overlap.
-src/lib/xstate/config/environment-config.ts(220,16): error TS2678: Type '"dev"' is not comparable to type '"development" | "production" | "test"'.
-src/lib/xstate/config/environment-config.ts(224,16): error TS2678: Type '"staging"' is not comparable to type '"development" | "production" | "test"'.
-src/lib/xstate/config/environment-config.ts(225,16): error TS2678: Type '"stage"' is not comparable to type '"development" | "production" | "test"'.
-src/lib/xstate/config/environment-config.ts(230,16): error TS2678: Type '"prod"' is not comparable to type '"development" | "production" | "test"'.
-src/lib/xstate/config/environment-config.ts(235,16): error TS2678: Type '"testing"' is not comparable to type '"development" | "production" | "test"'.
-src/lib/xstate/config/index.ts(270,40): error TS2304: Cannot find name 'ConfigEnvironment'.
-src/lib/xstate/debugging/advanced-logger.ts(32,14): error TS2323: Cannot redeclare exported variable 'DEFAULT_LOGGING_CONFIG'.
-src/lib/xstate/debugging/advanced-logger.ts(82,14): error TS2323: Cannot redeclare exported variable 'LogAggregator'.
-src/lib/xstate/debugging/advanced-logger.ts(263,14): error TS2323: Cannot redeclare exported variable 'AdvancedXStateLogger'.
-src/lib/xstate/debugging/advanced-logger.ts(794,21): error TS2769: No overload matches this call.
-  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
-    Argument of type 'Timer' is not assignable to parameter of type 'string | number | Timeout | undefined'.
-      Type 'Timer' is missing the following properties from type 'Timeout': close, _onTimeout, [Symbol.dispose]
-  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
-    Argument of type 'Timer' is not assignable to parameter of type 'number'.
-src/lib/xstate/debugging/advanced-logger.ts(844,3): error TS2323: Cannot redeclare exported variable 'AdvancedXStateLogger'.
-src/lib/xstate/debugging/advanced-logger.ts(844,3): error TS2484: Export declaration conflicts with exported declaration of 'AdvancedXStateLogger'.
-src/lib/xstate/debugging/advanced-logger.ts(845,3): error TS2323: Cannot redeclare exported variable 'LogAggregator'.
-src/lib/xstate/debugging/advanced-logger.ts(845,3): error TS2484: Export declaration conflicts with exported declaration of 'LogAggregator'.
-src/lib/xstate/debugging/advanced-logger.ts(846,3): error TS2323: Cannot redeclare exported variable 'DEFAULT_LOGGING_CONFIG'.
-src/lib/xstate/debugging/advanced-logger.ts(846,3): error TS2484: Export declaration conflicts with exported declaration of 'DEFAULT_LOGGING_CONFIG'.
-src/lib/xstate/debugging/advanced-logger.ts(850,3): error TS2484: Export declaration conflicts with exported declaration of 'StructuredLogEntry'.
-src/lib/xstate/debugging/advanced-logger.ts(851,3): error TS2484: Export declaration conflicts with exported declaration of 'LogPerformanceMetrics'.
-src/lib/xstate/debugging/advanced-logger.ts(852,3): error TS2484: Export declaration conflicts with exported declaration of 'LogStatistics'.
+src/lib/xstate/config/environment-config.ts(218,42): error TS2367: This comparison appears to be unintentional because the types '"production" | "test"' and '"dev"' have no overlap.
+src/lib/xstate/config/environment-config.ts(221,20): error TS2367: This comparison appears to be unintentional because the types '"production" | "test"' and '"staging"' have no overlap.
+src/lib/xstate/config/environment-config.ts(221,45): error TS2367: This comparison appears to be unintentional because the types '"production" | "test"' and '"stage"' have no overlap.
+src/lib/xstate/config/environment-config.ts(224,48): error TS2367: This comparison appears to be unintentional because the types '"test"' and '"prod"' have no overlap.
 src/lib/xstate/debugging/debug-panels.tsx(20,3): error TS2305: Module '"./debugging-types"' has no exported member 'StructuredLogEntry'.
 src/lib/xstate/debugging/debug-panels.tsx(58,14): error TS2323: Cannot redeclare exported variable 'DeveloperPanel'.
 src/lib/xstate/debugging/debug-panels.tsx(935,22): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ error: string; warn: string; info: string; debug: string; trace: string; }'.
@@ -170,8 +109,8 @@ src/lib/xstate/debugging/index.ts(611,3): error TS2484: Export declaration confl
 src/lib/xstate/debugging/index.ts(615,3): error TS2484: Export declaration conflicts with exported declaration of 'UnifiedDebugConfig'.
 src/lib/xstate/debugging/machine-testing.ts(29,14): error TS2323: Cannot redeclare exported variable 'DEFAULT_TESTING_CONFIG'.
 src/lib/xstate/debugging/machine-testing.ts(42,14): error TS2323: Cannot redeclare exported variable 'MockServiceManager'.
-src/lib/xstate/debugging/machine-testing.ts(87,58): error TS2345: Argument of type '"success" | "error" | "delay"' is not assignable to parameter of type '"success" | "error" | "conditional" | "delayed"'.
-  Type '"delay"' is not assignable to type '"success" | "error" | "conditional" | "delayed"'. Did you mean '"delayed"'?
+src/lib/xstate/debugging/machine-testing.ts(87,58): error TS2345: Argument of type '"success" | "error" | "delay"' is not assignable to parameter of type '"success" | "error" | "delayed" | "conditional"'.
+  Type '"delay"' is not assignable to type '"success" | "error" | "delayed" | "conditional"'. Did you mean '"delayed"'?
 src/lib/xstate/debugging/machine-testing.ts(189,14): error TS2323: Cannot redeclare exported variable 'TestScenarioRunner'.
 src/lib/xstate/debugging/machine-testing.ts(282,41): error TS2707: Generic type 'ActorRef<TSnapshot, TEvent, TEmitted>' requires between 2 and 3 type arguments.
 src/lib/xstate/debugging/machine-testing.ts(309,67): error TS2707: Generic type 'ActorRef<TSnapshot, TEvent, TEmitted>' requires between 2 and 3 type arguments.
@@ -203,8 +142,8 @@ src/lib/xstate/debugging/performance-profiler.ts(360,21): error TS2769: No overl
   Overload 2 of 2, '(id: number | undefined): void', gave the following error.
     Argument of type 'Timer' is not assignable to parameter of type 'number'.
 src/lib/xstate/debugging/performance-profiler.ts(387,14): error TS2323: Cannot redeclare exported variable 'PerformanceProfiler'.
-src/lib/xstate/debugging/performance-profiler.ts(470,11): error TS2322: Type '"custom" | "memory" | "network" | "cpu"' is not assignable to type '"memory" | "network" | "cpu" | "logic"'.
-  Type '"custom"' is not assignable to type '"memory" | "network" | "cpu" | "logic"'.
+src/lib/xstate/debugging/performance-profiler.ts(470,11): error TS2322: Type '"memory" | "cpu" | "network" | "custom"' is not assignable to type '"memory" | "cpu" | "network" | "logic"'.
+  Type '"custom"' is not assignable to type '"memory" | "cpu" | "network" | "logic"'.
 src/lib/xstate/debugging/performance-profiler.ts(594,9): error TS18048: 'session.duration' is possibly 'undefined'.
 src/lib/xstate/debugging/performance-profiler.ts(762,3): error TS2323: Cannot redeclare exported variable 'PerformanceMetricsCollector'.
 src/lib/xstate/debugging/performance-profiler.ts(762,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceMetricsCollector'.
@@ -459,12 +398,11 @@ src/lib/xstate/ui/components/workflow-builder.tsx(669,49): error TS2345: Argumen
 src/lib/xstate/ui/components/workflow-builder.tsx(676,36): error TS2345: Argument of type '{ workflowId: string; componentsCount: number; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/components/workflow-builder.tsx(685,48): error TS2345: Argument of type '{ workflowId: string; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/components/workflow-builder.tsx(691,52): error TS2345: Argument of type '{ workflowId: string; }' is not assignable to parameter of type 'string'.
-src/lib/xstate/ui/components/workflow-builder.tsx(718,30): error TS2552: Cannot find name 'setShowGrid'. Did you mean 'showGrid'?
+src/lib/xstate/ui/components/workflow-builder.tsx(718,30): error TS2304: Cannot find name 'setShowGrid'.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(32,8): error TS2307: Cannot find module '@dnd-kit/core' or its corresponding type declarations.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(39,8): error TS2307: Cannot find module '@dnd-kit/sortable' or its corresponding type declarations.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(60,73): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(139,37): error TS2345: Argument of type '{ activeId: any; multiSelect: boolean; }' is not assignable to parameter of type 'string'.
-src/lib/xstate/ui/hooks/use-advanced-interactions.ts(169,41): error TS2345: Argument of type '{ activeId: any; overId: any; oldIndex: number; newIndex: number; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(299,40): error TS2345: Argument of type '{ originalCount: number; filteredCount: number; filtersCount: number; searchQuery: string; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(307,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(327,35): error TS2345: Argument of type 'AppliedFilter' is not assignable to parameter of type 'string'.
@@ -478,39 +416,19 @@ src/lib/xstate/ui/hooks/use-advanced-interactions.ts(592,14): error TS2554: Expe
 src/lib/xstate/ui/hooks/use-advanced-interactions.ts(619,49): error TS2345: Argument of type '{ message: string; priority: "polite" | "assertive"; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(20,68): error TS2307: Cannot find module '../performance/performance-monitor' or its corresponding type declarations.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(37,66): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(84,12): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(134,12): error TS2554: Expected 2-3 arguments, but got 1.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(160,53): error TS2345: Argument of type '{ alertId: string; metric: PerformanceChartType; currentValue: number; threshold: number; severity: "low" | "medium" | "high" | "critical"; }' is not assignable to parameter of type 'string'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(186,40): error TS2345: Argument of type '{ alertId: string; }' is not assignable to parameter of type 'string'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(199,36): error TS2345: Argument of type '{ alertId: string; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(205,12): error TS2554: Expected 2-3 arguments, but got 1.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(240,46): error TS2345: Argument of type '{ chartType: PerformanceChartType; value: number; label: string | undefined; }' is not assignable to parameter of type 'string'.
 src/lib/xstate/ui/hooks/use-performance-monitor.ts(254,14): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(274,41): error TS2345: Argument of type '{ chartType: PerformanceChartType; dataPoints: number; }' is not assignable to parameter of type 'string'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(468,22): error TS2339: Property 'averageExecutionTime' does not exist on type 'MetricsSnapshot'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(470,22): error TS2339: Property 'memoryUsage' does not exist on type 'MetricsSnapshot'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(472,22): error TS2339: Property 'eventCount' does not exist on type 'MetricsSnapshot'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(474,22): error TS2339: Property 'stateTransitionCount' does not exist on type 'MetricsSnapshot'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(476,22): error TS2339: Property 'errorRate' does not exist on type 'MetricsSnapshot'.
-src/lib/xstate/ui/hooks/use-performance-monitor.ts(478,22): error TS2339: Property 'operationsPerSecond' does not exist on type 'MetricsSnapshot'.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(120,17): error TS2322: Type 'string' is not assignable to type '{ stockSnapshotJson: string; marketStatusJson: string; standardTasJson: string; aiAnalyzedTaJson: string; }'.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(126,17): error TS2322: Type '{ promptName: string; responseJson: string; webSearchEnabled: false; }' is not assignable to type 'string'.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(132,17): error TS2322: Type '{ promptName: string; responseJson: string; webSearchEnabled: false; }' is not assignable to type 'string'.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(144,16): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(164,31): error TS7006: Parameter 'context' implicitly has an 'any' type.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(181,5): error TS2322: Type 'boolean' is not assignable to type 'undefined'.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(188,50): error TS2554: Expected 0 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(208,12): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(211,38): error TS2554: Expected 0 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(274,16): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(277,16): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(379,30): error TS2339: Property 'recordActorActivity' does not exist on type '{ recordStateTransition: () => void; recordEvent: () => void; getMetricsSnapshot: () => {}; }'.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(394,14): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(398,14): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(414,14): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(444,18): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(458,16): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(616,14): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(626,14): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(638,14): error TS2554: Expected 2-3 arguments, but got 1.
-src/lib/xstate/ui/hooks/use-xstate-integration.ts(649,12): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(170,31): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(187,5): error TS2322: Type 'boolean' is not assignable to type 'undefined'.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(194,50): error TS2554: Expected 0 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(214,12): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(217,38): error TS2554: Expected 0 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(280,16): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(283,16): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(385,42): error TS2554: Expected 0 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(404,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(464,16): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(632,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(644,14): error TS2554: Expected 2-3 arguments, but got 1.

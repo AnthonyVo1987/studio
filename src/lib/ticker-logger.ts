@@ -176,7 +176,8 @@ export const TICKER_PAGES = {
   SPY_TAB: 'SPY-Tab',
   NVDA_TAB: 'NVDA-Tab',
   USER_INPUT_TAB: 'UserInput-Tab',
-  MAIN_TAB: 'Main-Tab'
+  MAIN_TAB: 'Main-Tab',
+  ADVANCED_UI: 'Advanced-UI'
 } as const;
 
 export type TickerPage = typeof TICKER_PAGES[keyof typeof TICKER_PAGES];

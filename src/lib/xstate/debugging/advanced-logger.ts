@@ -265,7 +265,7 @@ export class AdvancedXStateLogger {
   private aggregator: LogAggregator;
   private tickerLogger: ReturnType<typeof createTickerLogger>;
   private performanceObserver?: PerformanceObserver;
-  private memoryMonitor?: NodeJS.Timer;
+  private memoryMonitor?: NodeJS.Timeout;
 
   constructor(config: Partial<DebugConfiguration> = {}) {
     this.config = { ...DEFAULT_LOGGING_CONFIG, ...config };
@@ -836,18 +836,4 @@ export const createMachineLogger = (
   };
 };
 
-// ================================
-// EXPORTS
-// ================================
-
-export {
-  AdvancedXStateLogger,
-  LogAggregator,
-  DEFAULT_LOGGING_CONFIG
-};
-
-export type {
-  StructuredLogEntry,
-  LogPerformanceMetrics,
-  LogStatistics
-};
+// Already exported above - no duplicate exports needed

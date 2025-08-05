@@ -647,7 +647,7 @@ export class ConfigPersistenceManager {
         total: checks.length,
         passed: checks.filter(c => c.status === 'pass').length,
         failed: checks.filter(c => c.status === 'fail').length,
-        warnings: checks.filter(c => c.status === 'warn').length
+        warnings: 0 // No warnings status available, only 'pass' and 'fail'
       }
     };
   }

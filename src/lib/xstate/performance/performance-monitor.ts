@@ -539,4 +539,3 @@ export function createStockSagePerformanceMonitor(): PerformanceMonitor {
 }
 
 export default PerformanceMonitor;
-END_OF_FILE < /dev/null
