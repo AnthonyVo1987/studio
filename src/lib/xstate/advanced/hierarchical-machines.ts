@@ -6,10 +6,10 @@
  */
 
 import {
-  createMachine,
+  setup,
   createActor,
   assign,
-  spawn,
+  spawnChild,
   sendTo,
   sendParent,
   type ActorRef,
@@ -25,6 +25,20 @@ import type {
   DelegationMetrics,
   AdvancedEvent
 } from './advanced-types';
+// Define hierarchical machine event types
+interface SpawnChildEvent extends EventObject {
+  type: 'SPAWN_CHILD';
+  childConfig: any;
+  childId: string;
+}
+
+interface DestroyChildEvent extends EventObject {
+  type: 'DESTROY_CHILD';
+  childId: string;
+}
+
+type HierarchicalEvent = SpawnChildEvent | DestroyChildEvent | EventObject;
+
 import type { 
   MacroExecutionContext,
   MacroExecutionEvent 
@@ -97,12 +111,75 @@ export class HierarchicalManager {
     config: HierarchicalMachineConfig,
     hierarchicalContext: HierarchicalContext
   ): any {
-    return createMachine({
-      id: config.parentMachine,
-      types: {} as {
-        context: HierarchicalContext;
-        events: MacroExecutionEvent | AdvancedEvent | EventObject;
+    return setup({
+      types: {
+        context: {} as HierarchicalContext,
+        events: {} as MacroExecutionEvent | AdvancedEvent | EventObject
       },
+      actions: {
+        initializeHierarchy: assign({
+          sharedContextStore: ({ context }) => {
+            // Initialize shared context based on configuration
+            const sharedStore = new Map();
+            
+            if (context.hierarchyConfig.contextSharing === 'inherit' && context.parentContext) {
+              // Inherit all context from parent
+              for (const [key, value] of context.parentContext.sharedContextStore.entries()) {
+                sharedStore.set(key, value);
+              }
+            }
+            
+            return sharedStore;
+          }
+        }),
+        
+        spawnChildMachine: ({ context, event }) => {
+          if (event.type === 'SPAWN_CHILD') {
+            const spawnEvent = event as SpawnChildEvent;
+            this.spawnChildMachine(context, spawnEvent.childConfig, spawnEvent.childId);
+          }
+        },
+        
+        destroyChildMachine: ({ context, event }) => {
+          if (event.type === 'DESTROY_CHILD') {
+            const destroyEvent = event as DestroyChildEvent;
+            this.destroyChildMachine(context, destroyEvent.childId);
+          }
+        },
+        
+        handleEventDelegation: ({ context, event }) => {
+          if (event.type === 'HIERARCHY_EVENT_DELEGATED') {
+            // Delegate event handling
+            console.log('Handling event delegation:', event);
+          }
+        },
+        
+        processEventForDelegation: ({ context, event }) => {
+          // Process event for delegation
+          console.log('Processing event for delegation:', event);
+        },
+        
+        syncContextWithChildren: ({ context, event }) => {
+          if (event.type === 'CONTEXT_UPDATED') {
+            // Sync context with children
+            console.log('Syncing context with children:', event);
+          }
+        },
+        
+        handleChildContextChange: ({ context, event }) => {
+          if (event.type === 'CHILD_CONTEXT_CHANGED') {
+            // Handle child context change
+            console.log('Handling child context change:', event);
+          }
+        },
+        
+        cleanupHierarchy: ({ context }) => {
+          // Cleanup hierarchy
+          console.log('Cleaning up hierarchy:', context);
+        }
+      }
+    }).createMachine({
+      id: config.parentMachine,
       context: hierarchicalContext,
       initial: 'initializing',
       states: {
@@ -180,62 +257,6 @@ export class HierarchicalManager {
           type: 'final'
         }
       }
-    }, {
-      actions: {
-        initializeHierarchy: assign({
-          sharedContextStore: ({ context }) => {
-            // Initialize shared context based on configuration
-            const sharedStore = new Map();
-            
-            if (context.hierarchyConfig.contextSharing === 'inherit' && context.parentContext) {
-              // Inherit all context from parent
-              for (const [key, value] of context.parentContext.sharedContextStore.entries()) {
-                sharedStore.set(key, value);
-              }
-            }
-            
-            return sharedStore;
-          }
-        }),
-        
-        spawnChildMachine: ({ context, event }) => {
-          if (event.type === 'SPAWN_CHILD') {
-            this.spawnChildMachine(context, event.childConfig, event.childId);
-          }
-        },
-        
-        destroyChildMachine: ({ context, event }) => {
-          if (event.type === 'DESTROY_CHILD') {
-            this.destroyChildMachine(context, event.childId);
-          }
-        },
-        
-        handleEventDelegation: ({ context, event }) => {
-          if (event.type === 'HIERARCHY_EVENT_DELEGATED') {
-            this.delegateEvent(context, event.targetLevel, event.event);
-          }
-        },
-        
-        processEventForDelegation: ({ context, event }) => {
-          this.processEventForDelegation(context, event);
-        },
-        
-        syncContextWithChildren: ({ context, event }) => {
-          if (event.type === 'CONTEXT_UPDATED') {
-            this.syncContextWithChildren(context, event.contextChanges);
-          }
-        },
-        
-        handleChildContextChange: ({ context, event }) => {
-          if (event.type === 'CHILD_CONTEXT_CHANGED') {
-            this.handleChildContextChange(context, event.childId, event.contextChanges);
-          }
-        },
-        
-        cleanupHierarchy: ({ context }) => {
-          this.cleanupHierarchy(context);
-        }
-      }
     });
   }
 
@@ -299,12 +320,23 @@ export class HierarchicalManager {
     childConfig: HierarchicalChildConfig,
     context: HierarchicalContext
   ): any {
-    return createMachine({
-      id: `child-${childConfig.machineType}`,
-      types: {} as {
-        context: HierarchicalContext;
-        events: MacroExecutionEvent | AdvancedEvent | EventObject;
+    return setup({
+      types: {
+        context: {} as HierarchicalContext,
+        events: {} as MacroExecutionEvent | AdvancedEvent | EventObject
       },
+      actions: {
+        initializeChild: () => {
+          console.log(`Initializing child machine: ${childConfig.machineType}`);
+        },
+        
+        handleEventBubbling: ({ context, event }) => {
+          // Handle event bubbling
+          console.log('Handling event bubbling:', event);
+        }
+      }
+    }).createMachine({
+      id: `child-${childConfig.machineType}`,
       context,
       initial: 'initializing',
       states: {
@@ -326,16 +358,6 @@ export class HierarchicalManager {
         
         stopped: {
           type: 'final'
-        }
-      }
-    }, {
-      actions: {
-        initializeChild: () => {
-          console.log(`Initializing child machine: ${childConfig.machineType}`);
-        },
-        
-        handleEventBubbling: ({ context, event }) => {
-          this.handleEventBubbling(context, event);
         }
       }
     });

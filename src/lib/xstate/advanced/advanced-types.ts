@@ -18,10 +18,10 @@ import type {
 } from 'xstate';
 import type { 
   MacroExecutionContext, 
-  MacroExecutionEvent,
-  SupportedTicker 
+  MacroExecutionEvent
 } from '@/lib/xstate/types/macro-types';
 import type { ActorInstance, ActorMetrics } from '@/lib/xstate/actors/actor-types';
+import type { SupportedTicker } from '@/lib/xstate/types/macro-types';
 
 // ================================
 // PARALLEL MACHINE TYPES
@@ -708,7 +708,10 @@ export type AdvancedEvent =
 /**
  * Advanced machine snapshot extending base snapshot
  */
-export interface AdvancedMachineSnapshot extends AnyMachineSnapshot {
+export interface AdvancedMachineSnapshot {
+  /** Base snapshot properties */
+  value: StateValue;
+  context: any;
   /** Advanced feature state */
   advancedState?: {
     parallel?: ParallelExecutionContext;
@@ -737,6 +740,90 @@ export interface EnterpriseFeatureFlags {
   enablePerformanceMonitoring: boolean;
   /** Enable debug features */
   enableAdvancedDebugging: boolean;
+}
+
+// ================================
+// ADDITIONAL RESOURCE TYPES (MISSING EXPORTS)
+// ================================
+
+/**
+ * Resource type definition
+ */
+export interface ResourceType {
+  /** Resource type identifier */
+  id: string;
+  /** Resource type name */
+  name: string;
+  /** Resource category */
+  category: 'compute' | 'memory' | 'network' | 'storage';
+  /** Resource unit */
+  unit: string;
+  /** Default allocation amount */
+  defaultAllocation: number;
+}
+
+/**
+ * Resource constraint definition
+ */
+export interface ResourceConstraint {
+  /** Resource type */
+  resourceType: string;
+  /** Minimum required amount */
+  minimum: number;
+  /** Maximum allowed amount */
+  maximum: number;
+  /** Preferred amount */
+  preferred?: number;
+}
+
+/**
+ * Resource request
+ */
+export interface ResourceRequest {
+  /** Request ID */
+  id: string;
+  /** Resource type */
+  type: string;
+  /** Resource amount */
+  amount: number;
+  /** Resource constraints */
+  constraints: ResourceConstraint[];
+  /** Request priority */
+  priority: 'low' | 'medium' | 'high' | 'critical' | number;
+  /** Request timeout */
+  timeout: number;
+  /** Requesting actor ID */
+  actorId?: string;
+  /** Requester actor ID (alternative name for compatibility) */
+  requesterActorId: string;
+  /** Request timestamp */
+  requestedAt: number;
+  /** Additional metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Resource allocation result
+ */
+export interface AllocationResult {
+  /** Request ID */
+  requestId: string;
+  /** Allocation status */
+  status: 'success' | 'partial' | 'failed';
+  /** Success flag for compatibility */
+  success: boolean;
+  /** Allocated resources */
+  allocatedResources: Record<string, number>;
+  /** Allocated resource reference */
+  allocation?: ResourceAllocation;
+  /** Allocation error if failed */
+  error?: string;
+  /** Allocation timestamp */
+  timestamp: Date;
+  /** Wait time for allocation */
+  waitTime: number;
+  /** Queue position if waiting */
+  queuePosition?: number;
 }
 
 /**

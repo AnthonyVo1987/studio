@@ -6,11 +6,12 @@
  */
 
 import {
-  createMachine,
+  setup,
   createActor,
   assign,
   sendTo,
   raise,
+  fromPromise,
   type ActorRef,
   type AnyMachineSnapshot
 } from 'xstate';
@@ -67,7 +68,7 @@ export class ActorPool {
       const actors: ActorRef<any, any>[] = [];
       
       for (let i = 0; i < this.config.warmUpSize; i++) {
-        const actor = this.createPooledActor(actorType);
+        const actor = this.createPooledActor(actorType, 'NVDA'); // Default ticker for pool
         actors.push(actor);
       }
       
@@ -78,13 +79,13 @@ export class ActorPool {
   /**
    * Create a pooled actor instance
    */
-  private createPooledActor(actorType: string): ActorRef<any, any> {
+  private createPooledActor(actorType: string, ticker: string = 'NVDA'): ActorRef<any, any> {
     // Create base machine based on actor type
     let machine;
     
     switch (actorType) {
       case 'macro-execution':
-        machine = createMacroExecutionMachine();
+        machine = createMacroExecutionMachine(ticker);
         break;
       case 'data-fetcher':
         machine = this.createDataFetcherMachine();
@@ -93,7 +94,12 @@ export class ActorPool {
         machine = this.createAIProcessorMachine();
         break;
       default:
-        machine = createMacroExecutionMachine();
+        machine = createMacroExecutionMachine(ticker);
+    }
+
+    // For macro execution machines, provide the input parameter
+    if (actorType === 'macro-execution' || actorType === 'default') {
+      return createActor(machine, { input: { ticker } });
     }
 
     return createActor(machine);
@@ -124,7 +130,8 @@ export class ActorPool {
     }
 
     // Create new actor if pool is empty or doesn't exist
-    const actor = this.createPooledActor(actorType);
+    const ticker = spawnParams.ticker || 'NVDA';
+    const actor = this.createPooledActor(actorType, ticker);
     const actorId = `${actorType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     this.activeActors.set(actorId, actor);
@@ -169,7 +176,17 @@ export class ActorPool {
    * Create data fetcher machine
    */
   private createDataFetcherMachine() {
-    return createMachine({
+    return setup({
+      types: {
+        context: {} as { ticker?: string; data?: any; error?: Error },
+        events: {} as 
+          | { type: 'FETCH_DATA' }
+          | { type: 'INITIALIZE_TICKER'; ticker: string }
+          | { type: 'RESET' }
+          | { type: 'FETCH_COMPLETE'; data: any }
+          | { type: 'FETCH_ERROR'; error: Error }
+      }
+    }).createMachine({
       id: 'dataFetcher',
       initial: 'idle',
       context: {
@@ -209,7 +226,17 @@ export class ActorPool {
    * Create AI processor machine
    */
   private createAIProcessorMachine() {
-    return createMachine({
+    return setup({
+      types: {
+        context: {} as { ticker?: string; result?: any; error?: Error },
+        events: {} as 
+          | { type: 'PROCESS_AI' }
+          | { type: 'INITIALIZE_TICKER'; ticker: string }
+          | { type: 'RESET' }
+          | { type: 'PROCESS_COMPLETE'; result: any }
+          | { type: 'PROCESS_ERROR'; error: Error }
+      }
+    }).createMachine({
       id: 'aiProcessor',
       initial: 'idle',
       context: {
@@ -296,12 +323,111 @@ export class ActorPool {
  * Create actor spawning management machine
  */
 export function createActorSpawningMachine(config: ActorSpawningConfig) {
-  return createMachine({
-    id: 'actorSpawning',
-    types: {} as {
-      context: ActorSpawningContext;
-      events: MacroExecutionEvent | AdvancedEvent | { type: 'SPAWN_ACTOR'; actorType: string; spawnParams: Record<string, any> } | { type: 'INITIALIZATION_COMPLETE' } | { type: 'INITIALIZATION_FAILED' } | { type: 'DESTROY_ACTOR'; actorId: string } | { type: 'CLEANUP_IDLE_ACTORS' } | { type: 'RETRY' } | { type: 'RESET' };
+  return setup({
+    types: {
+      context: {} as ActorSpawningContext,
+      events: {} as MacroExecutionEvent | AdvancedEvent | { type: 'SPAWN_ACTOR'; actorType: string; spawnParams: Record<string, any> } | { type: 'INITIALIZATION_COMPLETE' } | { type: 'INITIALIZATION_FAILED' } | { type: 'DESTROY_ACTOR'; actorId: string } | { type: 'CLEANUP_IDLE_ACTORS' } | { type: 'RETRY' } | { type: 'RESET' }
     },
+    actions: {
+      initializeActorPool: ({ context }) => {
+        console.log('Initializing actor pool with config:', context.config);
+      },
+      
+      recordSpawnedActor: assign({
+        spawnedActors: ({ context, event }: { context: ActorSpawningContext; event: any }) => {
+          const newSpawnedActors = new Map(context.spawnedActors);
+          if (event.output && event.output.metadata) {
+            newSpawnedActors.set(event.output.metadata.spawnId, event.output.metadata);
+          }
+          return newSpawnedActors;
+        },
+        spawnMetrics: ({ context }: { context: ActorSpawningContext; event: any }) => ({
+          ...context.spawnMetrics,
+          activeSpawned: context.spawnMetrics.activeSpawned + 1
+        })
+      }),
+      
+      destroyActor: assign({
+        spawnedActors: ({ context, event }: { context: ActorSpawningContext; event: any }) => {
+          const newSpawnedActors = new Map(context.spawnedActors);
+          if ('actorId' in event) {
+            newSpawnedActors.delete(event.actorId as string);
+          }
+          return newSpawnedActors;
+        },
+        spawnMetrics: ({ context }: { context: ActorSpawningContext; event: any }) => ({
+          ...context.spawnMetrics,
+          activeSpawned: Math.max(0, context.spawnMetrics.activeSpawned - 1),
+          destroyed: context.spawnMetrics.destroyed + 1
+        })
+      }),
+      
+      cleanupIdleActors: ({ context }) => {
+        const now = Date.now();
+        const idleThreshold = context.config.idleTimeout;
+        
+        for (const [spawnId, metadata] of context.spawnedActors.entries()) {
+          if (now - metadata.lastActivity > idleThreshold) {
+            console.log(`Cleaning up idle actor: ${spawnId}`);
+          }
+        }
+      },
+      
+      handleSpawnError: ({ event }) => {
+        const error = 'error' in event ? event.error : 'Unknown spawn error';
+        console.error('Actor spawn failed:', error);
+      }
+    },
+    
+    actors: {
+      spawnActorService: fromPromise(async ({ input }: { input: { context: ActorSpawningContext; event: any } }) => {
+        const { context, event } = input;
+        
+        if (event.type !== 'SPAWN_ACTOR') {
+          throw new Error('Invalid event for spawn service');
+        }
+        
+        // Check if we can spawn more actors
+        if (context.spawnedActors.size >= context.config.maxActors) {
+          throw new Error('Maximum actor limit reached');
+        }
+        
+        const spawnId = `${event.actorType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const metadata: SpawnedActorMetadata = {
+          spawnId,
+          parentId: 'spawning-manager',
+          spawnedAt: Date.now(),
+          purpose: event.actorType,
+          spawnParams: event.spawnParams,
+          lastActivity: Date.now(),
+          activityCount: 0
+        };
+        
+        // Create the actual actor based on type
+        let actor: ActorRef<any, any>;
+        
+        switch (event.actorType) {
+          case 'macro-execution':
+            const macroMachine = createMacroExecutionMachine(event.spawnParams.ticker || 'NVDA');
+            actor = createActor(macroMachine, { input: { ticker: event.spawnParams.ticker || 'NVDA' } });
+            if (event.spawnParams.ticker) {
+              actor.send({ type: 'START_EXECUTION', ticker: event.spawnParams.ticker });
+            }
+            break;
+          default:
+            throw new Error(`Unknown actor type: ${event.actorType}`);
+        }
+        
+        actor.start();
+        
+        return {
+          actor,
+          metadata
+        };
+      })
+    }
+  }).createMachine({
+    id: 'actorSpawning',
     context: {
       config,
       spawnedActors: new Map(),
@@ -355,6 +481,7 @@ export function createActorSpawningMachine(config: ActorSpawningConfig) {
       spawning: {
         invoke: {
           src: 'spawnActorService',
+          input: ({ context, event }) => ({ context, event }),
           onDone: {
             target: 'ready',
             actions: 'recordSpawnedActor'
@@ -371,102 +498,6 @@ export function createActorSpawningMachine(config: ActorSpawningConfig) {
           RETRY: 'initializing',
           RESET: 'initializing'
         }
-      }
-    }
-  }, {
-    actions: {
-      initializeActorPool: ({ context }) => {
-        console.log('Initializing actor pool with config:', context.config);
-      },
-      
-      recordSpawnedActor: assign({
-        spawnedActors: ({ context, event }: { context: ActorSpawningContext; event: any }) => {
-          const newSpawnedActors = new Map(context.spawnedActors);
-          if (event.output && event.output.metadata) {
-            newSpawnedActors.set(event.output.metadata.spawnId, event.output.metadata);
-          }
-          return newSpawnedActors;
-        },
-        spawnMetrics: ({ context }: { context: ActorSpawningContext; event: any }) => ({
-          ...context.spawnMetrics,
-          activeSpawned: context.spawnMetrics.activeSpawned + 1
-        })
-      }),
-      
-      destroyActor: assign({
-        spawnedActors: ({ context, event }: { context: ActorSpawningContext; event: any }) => {
-          const newSpawnedActors = new Map(context.spawnedActors);
-          if ('actorId' in event) {
-            newSpawnedActors.delete(event.actorId as string);
-          }
-          return newSpawnedActors;
-        },
-        spawnMetrics: ({ context }: { context: ActorSpawningContext; event: any }) => ({
-          ...context.spawnMetrics,
-          activeSpawned: Math.max(0, context.spawnMetrics.activeSpawned - 1),
-          destroyed: context.spawnMetrics.destroyed + 1
-        })
-      }),
-      
-      cleanupIdleActors: ({ context }) => {
-        const now = Date.now();
-        const idleThreshold = context.config.idleTimeout;
-        
-        for (const [spawnId, metadata] of context.spawnedActors.entries()) {
-          if (now - metadata.lastActivity > idleThreshold) {
-            console.log(`Cleaning up idle actor: ${spawnId}`);
-          }
-        }
-      },
-      
-      handleSpawnError: ({ event }) => {
-        console.error('Actor spawn failed:', event.error);
-      }
-    },
-    
-    actors: {
-      spawnActorService: async ({ context, event }: { context: ActorSpawningContext; event: any }) => {
-        if (event.type !== 'SPAWN_ACTOR') {
-          throw new Error('Invalid event for spawn service');
-        }
-        
-        // Check if we can spawn more actors
-        if (context.spawnedActors.size >= context.config.maxActors) {
-          throw new Error('Maximum actor limit reached');
-        }
-        
-        const spawnId = `${event.actorType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const metadata: SpawnedActorMetadata = {
-          spawnId,
-          parentId: 'spawning-manager',
-          spawnedAt: Date.now(),
-          purpose: event.actorType,
-          spawnParams: event.spawnParams,
-          lastActivity: Date.now(),
-          activityCount: 0
-        };
-        
-        // Create the actual actor based on type
-        let actor: ActorRef<any, any>;
-        
-        switch (event.actorType) {
-          case 'macro-execution':
-            const macroMachine = createMacroExecutionMachine();
-            actor = createActor(macroMachine);
-            if (event.spawnParams.ticker) {
-              actor.send({ type: 'START_EXECUTION', ticker: event.spawnParams.ticker });
-            }
-            break;
-          default:
-            throw new Error(`Unknown actor type: ${event.actorType}`);
-        }
-        
-        actor.start();
-        
-        return {
-          actor,
-          metadata
-        };
       }
     }
   });

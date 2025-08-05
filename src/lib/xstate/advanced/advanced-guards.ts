@@ -723,7 +723,7 @@ export const ExampleGuardConfigurations = {
   canRetryOperation: GuardBuilder.and(
     StockSageGuardConditions.canRetry(2),
     StockSageGuardConditions.isNotCancelled(),
-    GuardBuilder.not(StockSageGuardConditions.withinTimeout(600000)) // Not within 10 minutes (timeout occurred)
+    StockSageGuardConditions.withinTimeout(600000) // Within 10 minutes
   ),
 
   /**

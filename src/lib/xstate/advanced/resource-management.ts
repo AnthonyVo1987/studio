@@ -12,53 +12,19 @@ import type {
   ResourceUsageMetrics,
   ResourceUsagePoint,
   ResourceCleanupPolicy,
-  AdvancedEvent
+  AdvancedEvent,
+  ResourceType,
+  ResourceConstraint,
+  ResourceRequest,
+  AllocationResult
 } from './advanced-types';
 
 // ================================
 // RESOURCE TYPES AND CONSTRAINTS
 // ================================
 
-/**
- * Available resource types in the system
- */
-export type ResourceType = 'memory' | 'cpu' | 'network' | 'api' | 'disk' | 'custom';
-
-/**
- * Resource constraint definition
- */
-export interface ResourceConstraint {
-  type: ResourceType;
-  limit: number;
-  unit: string;
-  priority: number;
-  enforcementPolicy: 'strict' | 'soft' | 'advisory';
-}
-
-/**
- * Resource allocation request
- */
-export interface ResourceRequest {
-  id: string;
-  type: ResourceType;
-  amount: number;
-  priority: number;
-  timeout: number;
-  requesterActorId: string;
-  requestedAt: number;
-  metadata?: Record<string, any>;
-}
-
-/**
- * Resource allocation result
- */
-export interface AllocationResult {
-  success: boolean;
-  allocation?: ResourceAllocation;
-  error?: string;
-  waitTime: number;
-  queuePosition?: number;
-}
+// Use types from advanced-types.ts to avoid conflicts
+// All resource types are imported from advanced-types
 
 // ================================
 // RESOURCE POOL IMPLEMENTATION
@@ -67,14 +33,14 @@ export interface AllocationResult {
 /**
  * Enhanced resource pool with advanced features
  */
-export class AdvancedResourcePool {
+class AdvancedResourcePool {
   private config: ResourcePoolConfig;
   private allocations: Map<string, ResourceAllocation> = new Map();
-  private usageHistory: Map<ResourceType, ResourceUsagePoint[]> = new Map();
+  private usageHistory: Map<string, ResourceUsagePoint[]> = new Map();
   private requestQueue: ResourceRequest[] = [];
   private cleanupInterval?: NodeJS.Timeout;
   private monitoringInterval?: NodeJS.Timeout;
-  private allocationStrategies: Map<ResourceType, AllocationStrategy> = new Map();
+  private allocationStrategies: Map<string, AllocationStrategy> = new Map();
 
   constructor(config: ResourcePoolConfig) {
     this.config = config;
@@ -87,7 +53,7 @@ export class AdvancedResourcePool {
    * Initialize resource types and their strategies
    */
   private initializeResourceTypes(): void {
-    const resourceTypes: ResourceType[] = ['memory', 'cpu', 'network', 'api', 'disk'];
+    const resourceTypes: string[] = ['memory', 'cpu', 'network', 'api', 'disk'];
     
     resourceTypes.forEach(type => {
       this.usageHistory.set(type, []);
@@ -196,7 +162,7 @@ export class AdvancedResourcePool {
   /**
    * Get current resource usage
    */
-  private getCurrentUsage(resourceType: ResourceType): number {
+  private getCurrentUsage(resourceType: string): number {
     let usage = 0;
     for (const allocation of this.allocations.values()) {
       if (allocation.resourceType === resourceType) {
@@ -209,13 +175,12 @@ export class AdvancedResourcePool {
   /**
    * Get resource limit based on type
    */
-  private getResourceLimit(resourceType: ResourceType): number {
+  private getResourceLimit(resourceType: string): number {
     switch (resourceType) {
       case 'memory': return this.config.memoryLimit;
       case 'api': return this.config.maxApiRequests;
-      case 'network': return this.config.connectionPoolSize;
-      case 'cpu': return 100; // CPU percentage
-      case 'disk': return 1000; // MB
+      case 'connection': return this.config.connectionPoolSize;
+      case 'computation': return 100; // CPU percentage
       default: return 100;
     }
   }
@@ -262,7 +227,7 @@ export class AdvancedResourcePool {
   /**
    * Record resource usage for metrics
    */
-  private recordUsage(resourceType: ResourceType, usage: number): void {
+  private recordUsage(resourceType: string, usage: number): void {
     const history = this.usageHistory.get(resourceType) || [];
     const usagePoint: ResourceUsagePoint = {
       timestamp: Date.now(),
@@ -888,7 +853,7 @@ interface OptimizationResult {
 }
 
 interface OptimizationRecommendation {
-  resourceType: ResourceType;
+  resourceType: string;
   currentEfficiency: number;
   recommendation: string;
   potentialSavings: number;
@@ -898,14 +863,8 @@ interface OptimizationRecommendation {
 // EXPORTS
 // ================================
 
+// Note: Types are exported from advanced-types.ts to avoid conflicts
+// Only export the implementation class
 export {
-  type ResourceType,
-  type ResourceConstraint,
-  type ResourceRequest,
-  type AllocationResult,
-  type ResourceManagerConfig,
-  type ResourcePoolConfig,
-  type ResourceAllocation,
-  type ResourceUsageMetrics,
   AdvancedResourcePool
 };

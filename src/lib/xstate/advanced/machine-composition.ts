@@ -7,7 +7,7 @@
  */
 
 import {
-  createMachine,
+  setup,
   createActor,
   assign,
   sendTo,
@@ -939,6 +939,5 @@ export {
   type DataFlowConfig,
   type ValidationRule,
   type DataTransform,
-  type CompositionErrorHandling,
-  DataTransformationPipeline
+  type CompositionErrorHandling
 };

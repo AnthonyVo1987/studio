@@ -34,7 +34,7 @@ export interface StateMachineVisualizerConfig {
   /** Machine to visualize */
   machine: any;
   /** Actor reference for the machine */
-  actorRef?: ActorRef<any>;
+  actorRef?: ActorRef<any, any, any>;
   /** Display mode for the visualizer */
   mode: 'full' | 'viz' | 'panels';
   /** Active panel in the visualizer */
@@ -102,7 +102,7 @@ export interface ActorInstance {
   /** Display name for the instance */
   name: string;
   /** Actor reference */
-  actorRef: ActorRef<any>;
+  actorRef: ActorRef<any, any, any>;
   /** Creation timestamp */
   createdAt: Date;
   /** Last activity timestamp */

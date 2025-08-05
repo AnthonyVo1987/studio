@@ -165,7 +165,10 @@
       "WebFetch(domain:martinfowler.com)",
       "WebFetch(domain:research.google.com)",
       "WebFetch(domain:stately.ai)",
-      "Bash(tsx:*)"
+      "Bash(tsx:*)",
+      "Bash(tsc:*)",
+      "Bash(next dev:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

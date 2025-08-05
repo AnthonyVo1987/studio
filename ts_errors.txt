@@ -1,0 +1,516 @@
+src/lib/xstate/advanced/resource-management.ts(73,7): error TS2739: Type '{ success: true; allocation: ResourceAllocation; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
+src/lib/xstate/advanced/resource-management.ts(88,17): error TS2345: Argument of type '{ success: false; error: string; waitTime: number; }' is not assignable to parameter of type 'AllocationResult | PromiseLike<AllocationResult>'.
+  Type '{ success: false; error: string; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
+src/lib/xstate/advanced/resource-management.ts(103,21): error TS2345: Argument of type '{ success: true; allocation: ResourceAllocation; waitTime: number; }' is not assignable to parameter of type 'AllocationResult | PromiseLike<AllocationResult>'.
+  Type '{ success: true; allocation: ResourceAllocation; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
+src/lib/xstate/advanced/resource-management.ts(148,7): error TS2322: Type 'string' is not assignable to type '"api" | "memory" | "connection" | "computation"'.
+src/lib/xstate/advanced/resource-management.ts(195,16): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/xstate/advanced/resource-management.ts(195,29): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/xstate/advanced/resource-management.ts(235,47): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
+src/lib/xstate/advanced/resource-management.ts(236,49): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
+src/lib/xstate/advanced/resource-management.ts(254,21): error TS2367: This comparison appears to be unintentional because the types 'string' and 'ResourceType' have no overlap.
+src/lib/xstate/advanced/resource-management.ts(264,11): error TS2367: This comparison appears to be unintentional because the types 'string' and 'ResourceType' have no overlap.
+src/lib/xstate/advanced/resource-management.ts(327,45): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'string'.
+  Type 'ResourceType' is not assignable to type 'string'.
+src/lib/xstate/advanced/resource-management.ts(330,49): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'string'.
+  Type 'ResourceType' is not assignable to type 'string'.
+src/lib/xstate/advanced/resource-management.ts(331,52): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'string'.
+  Type 'ResourceType' is not assignable to type 'string'.
+src/lib/xstate/advanced/resource-management.ts(338,19): error TS2345: Argument of type 'string | ResourceType' is not assignable to parameter of type 'ResourceType'.
+  Type 'string' is not assignable to type 'ResourceType'.
+src/lib/xstate/advanced/resource-management.ts(363,40): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
+src/lib/xstate/advanced/resource-management.ts(364,26): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ResourceType'.
+src/lib/xstate/advanced/resource-management.ts(396,11): error TS2322: Type 'ResourceType' is not assignable to type 'string'.
+src/lib/xstate/advanced/resource-management.ts(405,11): error TS2322: Type 'ResourceType' is not assignable to type 'string'.
+src/lib/xstate/advanced/resource-management.ts(464,5): error TS2322: Type 'number | "low" | "medium" | "high" | "critical"' is not assignable to type 'number'.
+  Type 'string' is not assignable to type 'number'.
+src/lib/xstate/advanced/resource-management.ts(474,28): error TS2365: Operator '>' cannot be applied to types 'string | number' and 'number'.
+src/lib/xstate/advanced/resource-management.ts(479,12): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/xstate/advanced/resource-management.ts(495,5): error TS2322: Type 'number | "low" | "medium" | "high" | "critical"' is not assignable to type 'number'.
+  Type 'string' is not assignable to type 'number'.
+src/lib/xstate/advanced/resource-management.ts(546,28): error TS2352: Conversion of type 'string' to type 'ResourceType' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/xstate/advanced/resource-management.ts(579,7): error TS2739: Type '{ success: false; error: string; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
+src/lib/xstate/advanced/resource-management.ts(588,7): error TS2739: Type '{ success: false; error: string; waitTime: number; }' is missing the following properties from type 'AllocationResult': requestId, status, allocatedResources, timestamp
+src/lib/xstate/advanced/resource-management.ts(597,7): error TS2322: Type 'ResourceType' is not assignable to type 'string'.
+src/lib/xstate/config/config-manager.ts(227,43): error TS2339: Property 'environment' does not exist on type 'ConfigEnvironment'.
+  Property 'environment' does not exist on type '"development"'.
+src/lib/xstate/config/config-manager.ts(387,79): error TS2339: Property 'environment' does not exist on type 'ConfigEnvironment'.
+  Property 'environment' does not exist on type '"development"'.
+src/lib/xstate/config/config-manager.ts(469,37): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/xstate/config/config-persistence.ts(650,38): error TS2367: This comparison appears to be unintentional because the types '"fail" | "pass"' and '"warn"' have no overlap.
+src/lib/xstate/config/environment-config.ts(220,16): error TS2678: Type '"dev"' is not comparable to type '"development" | "production" | "test"'.
+src/lib/xstate/config/environment-config.ts(224,16): error TS2678: Type '"staging"' is not comparable to type '"development" | "production" | "test"'.
+src/lib/xstate/config/environment-config.ts(225,16): error TS2678: Type '"stage"' is not comparable to type '"development" | "production" | "test"'.
+src/lib/xstate/config/environment-config.ts(230,16): error TS2678: Type '"prod"' is not comparable to type '"development" | "production" | "test"'.
+src/lib/xstate/config/environment-config.ts(235,16): error TS2678: Type '"testing"' is not comparable to type '"development" | "production" | "test"'.
+src/lib/xstate/config/index.ts(270,40): error TS2304: Cannot find name 'ConfigEnvironment'.
+src/lib/xstate/debugging/advanced-logger.ts(32,14): error TS2323: Cannot redeclare exported variable 'DEFAULT_LOGGING_CONFIG'.
+src/lib/xstate/debugging/advanced-logger.ts(82,14): error TS2323: Cannot redeclare exported variable 'LogAggregator'.
+src/lib/xstate/debugging/advanced-logger.ts(263,14): error TS2323: Cannot redeclare exported variable 'AdvancedXStateLogger'.
+src/lib/xstate/debugging/advanced-logger.ts(794,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+      Type 'Timer' is missing the following properties from type 'Timeout': close, _onTimeout, [Symbol.dispose]
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'number'.
+src/lib/xstate/debugging/advanced-logger.ts(844,3): error TS2323: Cannot redeclare exported variable 'AdvancedXStateLogger'.
+src/lib/xstate/debugging/advanced-logger.ts(844,3): error TS2484: Export declaration conflicts with exported declaration of 'AdvancedXStateLogger'.
+src/lib/xstate/debugging/advanced-logger.ts(845,3): error TS2323: Cannot redeclare exported variable 'LogAggregator'.
+src/lib/xstate/debugging/advanced-logger.ts(845,3): error TS2484: Export declaration conflicts with exported declaration of 'LogAggregator'.
+src/lib/xstate/debugging/advanced-logger.ts(846,3): error TS2323: Cannot redeclare exported variable 'DEFAULT_LOGGING_CONFIG'.
+src/lib/xstate/debugging/advanced-logger.ts(846,3): error TS2484: Export declaration conflicts with exported declaration of 'DEFAULT_LOGGING_CONFIG'.
+src/lib/xstate/debugging/advanced-logger.ts(850,3): error TS2484: Export declaration conflicts with exported declaration of 'StructuredLogEntry'.
+src/lib/xstate/debugging/advanced-logger.ts(851,3): error TS2484: Export declaration conflicts with exported declaration of 'LogPerformanceMetrics'.
+src/lib/xstate/debugging/advanced-logger.ts(852,3): error TS2484: Export declaration conflicts with exported declaration of 'LogStatistics'.
+src/lib/xstate/debugging/debug-panels.tsx(20,3): error TS2305: Module '"./debugging-types"' has no exported member 'StructuredLogEntry'.
+src/lib/xstate/debugging/debug-panels.tsx(58,14): error TS2323: Cannot redeclare exported variable 'DeveloperPanel'.
+src/lib/xstate/debugging/debug-panels.tsx(935,22): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ error: string; warn: string; info: string; debug: string; trace: string; }'.
+src/lib/xstate/debugging/debug-panels.tsx(1081,10): error TS2323: Cannot redeclare exported variable 'DeveloperPanel'.
+src/lib/xstate/debugging/debug-panels.tsx(1081,10): error TS2484: Export declaration conflicts with exported declaration of 'DeveloperPanel'.
+src/lib/xstate/debugging/debug-panels.tsx(1082,15): error TS2484: Export declaration conflicts with exported declaration of 'DeveloperPanelProps'.
+src/lib/xstate/debugging/debugging-types.ts(573,3): error TS2484: Export declaration conflicts with exported declaration of 'DebugConfiguration'.
+src/lib/xstate/debugging/debugging-types.ts(574,3): error TS2484: Export declaration conflicts with exported declaration of 'DebugLevel'.
+src/lib/xstate/debugging/debugging-types.ts(575,3): error TS2484: Export declaration conflicts with exported declaration of 'DebugCategory'.
+src/lib/xstate/debugging/debugging-types.ts(576,3): error TS2484: Export declaration conflicts with exported declaration of 'DebugLogFilter'.
+src/lib/xstate/debugging/debugging-types.ts(579,3): error TS2484: Export declaration conflicts with exported declaration of 'InspectorConfiguration'.
+src/lib/xstate/debugging/debugging-types.ts(580,3): error TS2484: Export declaration conflicts with exported declaration of 'InspectorAdapter'.
+src/lib/xstate/debugging/debugging-types.ts(581,3): error TS2484: Export declaration conflicts with exported declaration of 'InspectorEvent'.
+src/lib/xstate/debugging/debugging-types.ts(582,3): error TS2484: Export declaration conflicts with exported declaration of 'InspectorMetadata'.
+src/lib/xstate/debugging/debugging-types.ts(585,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineAnalysis'.
+src/lib/xstate/debugging/debugging-types.ts(586,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineComplexity'.
+src/lib/xstate/debugging/debugging-types.ts(587,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineIssue'.
+src/lib/xstate/debugging/debugging-types.ts(588,3): error TS2484: Export declaration conflicts with exported declaration of 'MachinePerformanceMetrics'.
+src/lib/xstate/debugging/debugging-types.ts(591,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineSnapshot'.
+src/lib/xstate/debugging/debugging-types.ts(592,3): error TS2484: Export declaration conflicts with exported declaration of 'SnapshotMetadata'.
+src/lib/xstate/debugging/debugging-types.ts(593,3): error TS2484: Export declaration conflicts with exported declaration of 'SnapshotPerformance'.
+src/lib/xstate/debugging/debugging-types.ts(594,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineRelationships'.
+src/lib/xstate/debugging/debugging-types.ts(597,3): error TS2484: Export declaration conflicts with exported declaration of 'StateTransition'.
+src/lib/xstate/debugging/debugging-types.ts(598,3): error TS2484: Export declaration conflicts with exported declaration of 'ExecutedAction'.
+src/lib/xstate/debugging/debugging-types.ts(599,3): error TS2484: Export declaration conflicts with exported declaration of 'EvaluatedGuard'.
+src/lib/xstate/debugging/debugging-types.ts(600,3): error TS2484: Export declaration conflicts with exported declaration of 'TransitionContext'.
+src/lib/xstate/debugging/debugging-types.ts(601,3): error TS2484: Export declaration conflicts with exported declaration of 'ContextDiff'.
+src/lib/xstate/debugging/debugging-types.ts(604,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceMonitorConfiguration'.
+src/lib/xstate/debugging/debugging-types.ts(605,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceThresholds'.
+src/lib/xstate/debugging/debugging-types.ts(606,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceReport'.
+src/lib/xstate/debugging/debugging-types.ts(607,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceMetric'.
+src/lib/xstate/debugging/debugging-types.ts(608,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceBottleneck'.
+src/lib/xstate/debugging/debugging-types.ts(609,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceSummary'.
+src/lib/xstate/debugging/debugging-types.ts(612,3): error TS2484: Export declaration conflicts with exported declaration of 'TestingConfiguration'.
+src/lib/xstate/debugging/debugging-types.ts(613,3): error TS2484: Export declaration conflicts with exported declaration of 'MockServiceConfiguration'.
+src/lib/xstate/debugging/debugging-types.ts(614,3): error TS2484: Export declaration conflicts with exported declaration of 'MockCondition'.
+src/lib/xstate/debugging/debugging-types.ts(615,3): error TS2484: Export declaration conflicts with exported declaration of 'StateManipulationCommand'.
+src/lib/xstate/debugging/debugging-types.ts(616,3): error TS2484: Export declaration conflicts with exported declaration of 'TestScenario'.
+src/lib/xstate/debugging/debugging-types.ts(617,3): error TS2484: Export declaration conflicts with exported declaration of 'TestEvent'.
+src/lib/xstate/debugging/debugging-types.ts(618,3): error TS2484: Export declaration conflicts with exported declaration of 'TestAssertion'.
+src/lib/xstate/debugging/debugging-types.ts(619,3): error TS2484: Export declaration conflicts with exported declaration of 'TestResult'.
+src/lib/xstate/debugging/debugging-types.ts(620,3): error TS2484: Export declaration conflicts with exported declaration of 'AssertionResult'.
+src/lib/xstate/debugging/debugging-types.ts(623,3): error TS2484: Export declaration conflicts with exported declaration of 'ErrorTrackingConfiguration'.
+src/lib/xstate/debugging/debugging-types.ts(624,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineError'.
+src/lib/xstate/debugging/debugging-types.ts(625,3): error TS2484: Export declaration conflicts with exported declaration of 'ErrorRecovery'.
+src/lib/xstate/debugging/debugging-types.ts(626,3): error TS2484: Export declaration conflicts with exported declaration of 'ErrorMetadata'.
+src/lib/xstate/debugging/debugging-types.ts(629,3): error TS2484: Export declaration conflicts with exported declaration of 'DeveloperPanelConfiguration'.
+src/lib/xstate/debugging/debugging-types.ts(630,3): error TS2484: Export declaration conflicts with exported declaration of 'DeveloperPanelTab'.
+src/lib/xstate/debugging/debugging-types.ts(631,3): error TS2484: Export declaration conflicts with exported declaration of 'DeveloperPanelState'.
+src/lib/xstate/debugging/debugging-types.ts(632,3): error TS2484: Export declaration conflicts with exported declaration of 'PanelFilters'.
+src/lib/xstate/debugging/debugging-types.ts(633,3): error TS2484: Export declaration conflicts with exported declaration of 'PanelSettings'.
+src/lib/xstate/debugging/debugging-types.ts(636,3): error TS2484: Export declaration conflicts with exported declaration of 'StockSageDebugIntegration'.
+src/lib/xstate/debugging/debugging-types.ts(637,3): error TS2484: Export declaration conflicts with exported declaration of 'DebuggerAPI'.
+src/lib/xstate/debugging/debugging-types.ts(640,3): error TS2484: Export declaration conflicts with exported declaration of 'DeepPartial'.
+src/lib/xstate/debugging/debugging-types.ts(641,3): error TS2484: Export declaration conflicts with exported declaration of 'DebugEventListener'.
+src/lib/xstate/debugging/debugging-types.ts(642,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineSelector'.
+src/lib/xstate/debugging/debugging-types.ts(643,3): error TS2484: Export declaration conflicts with exported declaration of 'ContextSerializer'.
+src/lib/xstate/debugging/debugging-types.ts(644,3): error TS2484: Export declaration conflicts with exported declaration of 'StateComparator'.
+src/lib/xstate/debugging/debugging-types.ts(647,3): error TS2484: Export declaration conflicts with exported declaration of 'TickerDebugContext'.
+src/lib/xstate/debugging/debugging-types.ts(648,3): error TS2484: Export declaration conflicts with exported declaration of 'MacroDebugEvent'.
+src/lib/xstate/debugging/dev-tools.ts(39,14): error TS2323: Cannot redeclare exported variable 'EnvironmentDetector'.
+src/lib/xstate/debugging/dev-tools.ts(65,11): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
+src/lib/xstate/debugging/dev-tools.ts(66,11): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
+src/lib/xstate/debugging/dev-tools.ts(67,11): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
+src/lib/xstate/debugging/dev-tools.ts(72,11): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
+src/lib/xstate/debugging/dev-tools.ts(73,11): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
+src/lib/xstate/debugging/dev-tools.ts(120,14): error TS2323: Cannot redeclare exported variable 'HotReloadManager'.
+src/lib/xstate/debugging/dev-tools.ts(151,45): error TS2707: Generic type 'ActorRef<TSnapshot, TEvent, TEmitted>' requires between 2 and 3 type arguments.
+src/lib/xstate/debugging/dev-tools.ts(168,14): error TS7006: Parameter 'state' implicitly has an 'any' type.
+src/lib/xstate/debugging/dev-tools.ts(353,14): error TS2323: Cannot redeclare exported variable 'DebugShortcutManager'.
+src/lib/xstate/debugging/dev-tools.ts(448,14): error TS2323: Cannot redeclare exported variable 'DeveloperCommandRegistry'.
+src/lib/xstate/debugging/dev-tools.ts(655,14): error TS2323: Cannot redeclare exported variable 'StateManipulator'.
+src/lib/xstate/debugging/dev-tools.ts(810,3): error TS2323: Cannot redeclare exported variable 'EnvironmentDetector'.
+src/lib/xstate/debugging/dev-tools.ts(810,3): error TS2484: Export declaration conflicts with exported declaration of 'EnvironmentDetector'.
+src/lib/xstate/debugging/dev-tools.ts(811,3): error TS2323: Cannot redeclare exported variable 'HotReloadManager'.
+src/lib/xstate/debugging/dev-tools.ts(811,3): error TS2484: Export declaration conflicts with exported declaration of 'HotReloadManager'.
+src/lib/xstate/debugging/dev-tools.ts(812,3): error TS2323: Cannot redeclare exported variable 'DebugShortcutManager'.
+src/lib/xstate/debugging/dev-tools.ts(812,3): error TS2484: Export declaration conflicts with exported declaration of 'DebugShortcutManager'.
+src/lib/xstate/debugging/dev-tools.ts(813,3): error TS2323: Cannot redeclare exported variable 'DeveloperCommandRegistry'.
+src/lib/xstate/debugging/dev-tools.ts(813,3): error TS2484: Export declaration conflicts with exported declaration of 'DeveloperCommandRegistry'.
+src/lib/xstate/debugging/dev-tools.ts(814,3): error TS2323: Cannot redeclare exported variable 'StateManipulator'.
+src/lib/xstate/debugging/dev-tools.ts(814,3): error TS2484: Export declaration conflicts with exported declaration of 'StateManipulator'.
+src/lib/xstate/debugging/dev-tools.ts(818,3): error TS2484: Export declaration conflicts with exported declaration of 'EnvironmentInfo'.
+src/lib/xstate/debugging/dev-tools.ts(819,3): error TS2484: Export declaration conflicts with exported declaration of 'HotReloadConfig'.
+src/lib/xstate/debugging/dev-tools.ts(820,3): error TS2484: Export declaration conflicts with exported declaration of 'DebugShortcuts'.
+src/lib/xstate/debugging/dev-tools.ts(821,3): error TS2484: Export declaration conflicts with exported declaration of 'DeveloperCommand'.
+src/lib/xstate/debugging/index.ts(284,3): error TS2305: Module '"./debugging-types"' has no exported member 'HotReloadConfig'.
+src/lib/xstate/debugging/index.ts(285,3): error TS2305: Module '"./debugging-types"' has no exported member 'DebugShortcuts'.
+src/lib/xstate/debugging/index.ts(304,14): error TS2323: Cannot redeclare exported variable 'UnifiedDebugger'.
+src/lib/xstate/debugging/index.ts(304,41): error TS2304: Cannot find name 'DebuggerAPI'.
+src/lib/xstate/debugging/index.ts(525,14): error TS2323: Cannot redeclare exported variable 'globalUnifiedDebugger'.
+src/lib/xstate/debugging/index.ts(534,14): error TS2323: Cannot redeclare exported variable 'quickSetupDebugging'.
+src/lib/xstate/debugging/index.ts(571,14): error TS2323: Cannot redeclare exported variable 'createInstrumentedMachine'.
+src/lib/xstate/debugging/index.ts(580,14): error TS2323: Cannot redeclare exported variable 'debugMachineExecution'.
+src/lib/xstate/debugging/index.ts(605,3): error TS2323: Cannot redeclare exported variable 'UnifiedDebugger'.
+src/lib/xstate/debugging/index.ts(605,3): error TS2484: Export declaration conflicts with exported declaration of 'UnifiedDebugger'.
+src/lib/xstate/debugging/index.ts(606,3): error TS2323: Cannot redeclare exported variable 'globalUnifiedDebugger'.
+src/lib/xstate/debugging/index.ts(606,3): error TS2484: Export declaration conflicts with exported declaration of 'globalUnifiedDebugger'.
+src/lib/xstate/debugging/index.ts(609,3): error TS2323: Cannot redeclare exported variable 'quickSetupDebugging'.
+src/lib/xstate/debugging/index.ts(609,3): error TS2484: Export declaration conflicts with exported declaration of 'quickSetupDebugging'.
+src/lib/xstate/debugging/index.ts(610,3): error TS2323: Cannot redeclare exported variable 'createInstrumentedMachine'.
+src/lib/xstate/debugging/index.ts(610,3): error TS2484: Export declaration conflicts with exported declaration of 'createInstrumentedMachine'.
+src/lib/xstate/debugging/index.ts(611,3): error TS2323: Cannot redeclare exported variable 'debugMachineExecution'.
+src/lib/xstate/debugging/index.ts(611,3): error TS2484: Export declaration conflicts with exported declaration of 'debugMachineExecution'.
+src/lib/xstate/debugging/index.ts(615,3): error TS2484: Export declaration conflicts with exported declaration of 'UnifiedDebugConfig'.
+src/lib/xstate/debugging/machine-testing.ts(29,14): error TS2323: Cannot redeclare exported variable 'DEFAULT_TESTING_CONFIG'.
+src/lib/xstate/debugging/machine-testing.ts(42,14): error TS2323: Cannot redeclare exported variable 'MockServiceManager'.
+src/lib/xstate/debugging/machine-testing.ts(87,58): error TS2345: Argument of type '"success" | "error" | "delay"' is not assignable to parameter of type '"success" | "error" | "conditional" | "delayed"'.
+  Type '"delay"' is not assignable to type '"success" | "error" | "conditional" | "delayed"'. Did you mean '"delayed"'?
+src/lib/xstate/debugging/machine-testing.ts(189,14): error TS2323: Cannot redeclare exported variable 'TestScenarioRunner'.
+src/lib/xstate/debugging/machine-testing.ts(282,41): error TS2707: Generic type 'ActorRef<TSnapshot, TEvent, TEmitted>' requires between 2 and 3 type arguments.
+src/lib/xstate/debugging/machine-testing.ts(309,67): error TS2707: Generic type 'ActorRef<TSnapshot, TEvent, TEmitted>' requires between 2 and 3 type arguments.
+src/lib/xstate/debugging/machine-testing.ts(477,14): error TS2323: Cannot redeclare exported variable 'StateValidator'.
+src/lib/xstate/debugging/machine-testing.ts(480,31): error TS2707: Generic type 'ActorRef<TSnapshot, TEvent, TEmitted>' requires between 2 and 3 type arguments.
+src/lib/xstate/debugging/machine-testing.ts(607,14): error TS2323: Cannot redeclare exported variable 'TestDataGenerator'.
+src/lib/xstate/debugging/machine-testing.ts(618,7): error TS2740: Type '{}' is missing the following properties from type 'Map<number, StepResult>': clear, delete, forEach, get, and 8 more.
+src/lib/xstate/debugging/machine-testing.ts(769,7): error TS2353: Object literal may only specify known properties, and 'totalSteps' does not exist in type 'Partial<MacroExecutionContext>'.
+src/lib/xstate/debugging/machine-testing.ts(782,7): error TS2353: Object literal may only specify known properties, and 'totalSteps' does not exist in type 'Partial<MacroExecutionContext>'.
+src/lib/xstate/debugging/machine-testing.ts(812,3): error TS2323: Cannot redeclare exported variable 'MockServiceManager'.
+src/lib/xstate/debugging/machine-testing.ts(812,3): error TS2484: Export declaration conflicts with exported declaration of 'MockServiceManager'.
+src/lib/xstate/debugging/machine-testing.ts(813,3): error TS2323: Cannot redeclare exported variable 'TestScenarioRunner'.
+src/lib/xstate/debugging/machine-testing.ts(813,3): error TS2484: Export declaration conflicts with exported declaration of 'TestScenarioRunner'.
+src/lib/xstate/debugging/machine-testing.ts(814,3): error TS2323: Cannot redeclare exported variable 'StateValidator'.
+src/lib/xstate/debugging/machine-testing.ts(814,3): error TS2484: Export declaration conflicts with exported declaration of 'StateValidator'.
+src/lib/xstate/debugging/machine-testing.ts(815,3): error TS2323: Cannot redeclare exported variable 'TestDataGenerator'.
+src/lib/xstate/debugging/machine-testing.ts(815,3): error TS2484: Export declaration conflicts with exported declaration of 'TestDataGenerator'.
+src/lib/xstate/debugging/machine-testing.ts(816,3): error TS2323: Cannot redeclare exported variable 'DEFAULT_TESTING_CONFIG'.
+src/lib/xstate/debugging/machine-testing.ts(816,3): error TS2484: Export declaration conflicts with exported declaration of 'DEFAULT_TESTING_CONFIG'.
+src/lib/xstate/debugging/machine-testing.ts(820,3): error TS2484: Export declaration conflicts with exported declaration of 'ValidationResult'.
+src/lib/xstate/debugging/machine-testing.ts(821,3): error TS2484: Export declaration conflicts with exported declaration of 'ValidationError'.
+src/lib/xstate/debugging/machine-testing.ts(822,3): error TS2484: Export declaration conflicts with exported declaration of 'ValidationWarning'.
+src/lib/xstate/debugging/performance-profiler.ts(27,14): error TS2323: Cannot redeclare exported variable 'DEFAULT_PROFILER_CONFIG'.
+src/lib/xstate/debugging/performance-profiler.ts(64,14): error TS2323: Cannot redeclare exported variable 'PerformanceMetricsCollector'.
+src/lib/xstate/debugging/performance-profiler.ts(360,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+      Type 'Timer' is missing the following properties from type 'Timeout': close, _onTimeout, [Symbol.dispose]
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'number'.
+src/lib/xstate/debugging/performance-profiler.ts(387,14): error TS2323: Cannot redeclare exported variable 'PerformanceProfiler'.
+src/lib/xstate/debugging/performance-profiler.ts(470,11): error TS2322: Type '"custom" | "memory" | "network" | "cpu"' is not assignable to type '"memory" | "network" | "cpu" | "logic"'.
+  Type '"custom"' is not assignable to type '"memory" | "network" | "cpu" | "logic"'.
+src/lib/xstate/debugging/performance-profiler.ts(594,9): error TS18048: 'session.duration' is possibly 'undefined'.
+src/lib/xstate/debugging/performance-profiler.ts(762,3): error TS2323: Cannot redeclare exported variable 'PerformanceMetricsCollector'.
+src/lib/xstate/debugging/performance-profiler.ts(762,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceMetricsCollector'.
+src/lib/xstate/debugging/performance-profiler.ts(763,3): error TS2323: Cannot redeclare exported variable 'PerformanceProfiler'.
+src/lib/xstate/debugging/performance-profiler.ts(763,3): error TS2484: Export declaration conflicts with exported declaration of 'PerformanceProfiler'.
+src/lib/xstate/debugging/performance-profiler.ts(764,3): error TS2323: Cannot redeclare exported variable 'DEFAULT_PROFILER_CONFIG'.
+src/lib/xstate/debugging/performance-profiler.ts(764,3): error TS2484: Export declaration conflicts with exported declaration of 'DEFAULT_PROFILER_CONFIG'.
+src/lib/xstate/debugging/xstate-inspector.ts(26,14): error TS2323: Cannot redeclare exported variable 'ADVANCED_INSPECTOR_CONFIG'.
+src/lib/xstate/debugging/xstate-inspector.ts(39,14): error TS2323: Cannot redeclare exported variable 'InspectorConnectionManager'.
+src/lib/xstate/debugging/xstate-inspector.ts(200,14): error TS2323: Cannot redeclare exported variable 'RealTimeStateVisualizer'.
+src/lib/xstate/debugging/xstate-inspector.ts(211,46): error TS2707: Generic type 'ActorRef<TSnapshot, TEvent, TEmitted>' requires between 2 and 3 type arguments.
+src/lib/xstate/debugging/xstate-inspector.ts(216,14): error TS7006: Parameter 'state' implicitly has an 'any' type.
+src/lib/xstate/debugging/xstate-inspector.ts(219,15): error TS7006: Parameter 'error' implicitly has an 'any' type.
+src/lib/xstate/debugging/xstate-inspector.ts(311,9): error TS2353: Object literal may only specify known properties, and 'userAgent' does not exist in type 'SnapshotMetadata'.
+src/lib/xstate/debugging/xstate-inspector.ts(454,14): error TS2323: Cannot redeclare exported variable 'MachineSnapshotComparator'.
+src/lib/xstate/debugging/xstate-inspector.ts(681,3): error TS2323: Cannot redeclare exported variable 'InspectorConnectionManager'.
+src/lib/xstate/debugging/xstate-inspector.ts(681,3): error TS2484: Export declaration conflicts with exported declaration of 'InspectorConnectionManager'.
+src/lib/xstate/debugging/xstate-inspector.ts(682,3): error TS2323: Cannot redeclare exported variable 'RealTimeStateVisualizer'.
+src/lib/xstate/debugging/xstate-inspector.ts(682,3): error TS2484: Export declaration conflicts with exported declaration of 'RealTimeStateVisualizer'.
+src/lib/xstate/debugging/xstate-inspector.ts(683,3): error TS2323: Cannot redeclare exported variable 'MachineSnapshotComparator'.
+src/lib/xstate/debugging/xstate-inspector.ts(683,3): error TS2484: Export declaration conflicts with exported declaration of 'MachineSnapshotComparator'.
+src/lib/xstate/debugging/xstate-inspector.ts(684,3): error TS2323: Cannot redeclare exported variable 'ADVANCED_INSPECTOR_CONFIG'.
+src/lib/xstate/debugging/xstate-inspector.ts(684,3): error TS2484: Export declaration conflicts with exported declaration of 'ADVANCED_INSPECTOR_CONFIG'.
+src/lib/xstate/error-handling/error-boundary.tsx(424,78): error TS2304: Cannot find name 'ErrorContext'.
+src/lib/xstate/error-handling/error-boundary.tsx(436,76): error TS2304: Cannot find name 'ErrorContext'.
+src/lib/xstate/error-handling/index.ts(63,10): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
+src/lib/xstate/error-handling/index.ts(208,23): error TS2304: Cannot find name 'createErrorContext'.
+src/lib/xstate/error-handling/index.ts(219,31): error TS2304: Cannot find name 'globalErrorClassifier'.
+src/lib/xstate/error-handling/index.ts(224,9): error TS2304: Cannot find name 'globalRecoveryManager'.
+src/lib/xstate/error-handling/index.ts(233,23): error TS2304: Cannot find name 'createErrorContext'.
+src/lib/xstate/error-handling/index.ts(242,31): error TS2304: Cannot find name 'globalErrorClassifier'.
+src/lib/xstate/error-handling/index.ts(247,9): error TS2304: Cannot find name 'globalRecoveryManager'.
+src/lib/xstate/error-handling/index.ts(256,5): error TS2304: Cannot find name 'globalCircuitBreakerRegistry'.
+src/lib/xstate/error-handling/index.ts(257,10): error TS2304: Cannot find name 'CIRCUIT_BREAKER_CONFIGS'.
+src/lib/xstate/error-handling/index.ts(263,3): error TS2304: Cannot find name 'globalRetryRegistry'.
+src/lib/xstate/error-handling/index.ts(264,8): error TS2304: Cannot find name 'RETRY_CONFIGS'.
+src/lib/xstate/error-handling/index.ts(279,22): error TS2304: Cannot find name 'globalErrorClassifier'.
+src/lib/xstate/error-handling/index.ts(280,29): error TS2304: Cannot find name 'globalCircuitBreakerRegistry'.
+src/lib/xstate/error-handling/index.ts(281,20): error TS2304: Cannot find name 'globalRetryRegistry'.
+src/lib/xstate/error-handling/index.ts(282,26): error TS2304: Cannot find name 'globalCompensationManager'.
+src/lib/xstate/error-handling/index.ts(283,22): error TS2304: Cannot find name 'globalRecoveryManager'.
+src/lib/xstate/error-handling/index.ts(297,23): error TS2304: Cannot find name 'ErrorContext'.
+src/lib/xstate/error-handling/index.ts(308,24): error TS2304: Cannot find name 'createErrorContext'.
+src/lib/xstate/error-handling/index.ts(316,14): error TS2304: Cannot find name 'executeWithCircuitBreaker'.
+src/lib/xstate/error-handling/index.ts(340,12): error TS2304: Cannot find name 'enhanceExistingRetry'.
+src/lib/xstate/error-handling/index.ts(363,30): error TS2304: Cannot find name 'createMacroTransaction'.
+src/lib/xstate/error-handling/index.ts(368,20): error TS2304: Cannot find name 'globalCompensationManager'.
+src/lib/xstate/error-handling/index.ts(369,34): error TS2304: Cannot find name 'globalCompensationManager'.
+src/lib/xstate/error-handling/index.ts(370,22): error TS2304: Cannot find name 'globalCompensationManager'.
+src/lib/xstate/error-handling/index.ts(378,32): error TS2304: Cannot find name 'globalCircuitBreakerRegistry'.
+src/lib/xstate/error-handling/index.ts(379,25): error TS2304: Cannot find name 'globalRecoveryManager'.
+src/lib/xstate/error-handling/index.ts(380,29): error TS2304: Cannot find name 'globalCompensationManager'.
+src/lib/xstate/error-handling/index.ts(426,22): error TS2304: Cannot find name 'globalErrorClassifier'.
+src/lib/xstate/error-handling/index.ts(427,29): error TS2304: Cannot find name 'globalCircuitBreakerRegistry'.
+src/lib/xstate/error-handling/index.ts(428,20): error TS2304: Cannot find name 'globalRetryRegistry'.
+src/lib/xstate/error-handling/index.ts(429,26): error TS2304: Cannot find name 'globalCompensationManager'.
+src/lib/xstate/error-handling/index.ts(430,22): error TS2304: Cannot find name 'globalRecoveryManager'.
+src/lib/xstate/error-handling/index.ts(443,15): error TS2304: Cannot find name 'globalErrorClassifier'.
+src/lib/xstate/error-handling/index.ts(444,20): error TS2304: Cannot find name 'globalCircuitBreakerRegistry'.
+src/lib/xstate/error-handling/index.ts(445,10): error TS2304: Cannot find name 'globalRetryRegistry'.
+src/lib/xstate/error-handling/index.ts(446,17): error TS2304: Cannot find name 'globalCompensationManager'.
+src/lib/xstate/error-handling/index.ts(447,13): error TS2304: Cannot find name 'globalRecoveryManager'.
+src/lib/xstate/error-handling/index.ts(456,18): error TS2304: Cannot find name 'AdvancedErrorBoundary'.
+src/lib/xstate/error-handling/index.ts(457,3): error TS18004: No value exists in scope for the shorthand property 'withErrorBoundary'. Either declare one or provide an initializer.
+src/lib/xstate/error-handling/retry-strategies.ts(688,15): error TS2484: Export declaration conflicts with exported declaration of 'RetryStrategy'.
+src/lib/xstate/error-handling/retry-strategies.ts(688,30): error TS2484: Export declaration conflicts with exported declaration of 'RetryContext'.
+src/lib/xstate/performance/analytics-engine.ts(1,30): error TS7016: Could not find a declaration file for module 'uuid'. '/mnt/d/Github/studio/node_modules/uuid/dist/esm-browser/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/uuid` if it exists or add a new declaration (.d.ts) file containing `declare module 'uuid';`
+src/lib/xstate/performance/index.ts(21,19): error TS2304: Cannot find name 'createPerformanceMonitor'.
+src/lib/xstate/performance/index.ts(22,21): error TS2304: Cannot find name 'createMetricsCollector'.
+src/lib/xstate/performance/index.ts(23,21): error TS2304: Cannot find name 'createAnalyticsEngine'.
+src/lib/xstate/performance/metrics-collector.ts(8,30): error TS7016: Could not find a declaration file for module 'uuid'. '/mnt/d/Github/studio/node_modules/uuid/dist/esm-browser/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/uuid` if it exists or add a new declaration (.d.ts) file containing `declare module 'uuid';`
+src/lib/xstate/performance/metrics-collector.ts(534,1): error TS2304: Cannot find name 'EOF'.
+src/lib/xstate/performance/metrics-collector.ts(534,12): error TS1499: Unknown regular expression flag.
+src/lib/xstate/performance/metrics-collector.ts(534,14): error TS1499: Unknown regular expression flag.
+src/lib/xstate/performance/metrics-collector.ts(534,15): error TS1499: Unknown regular expression flag.
+src/lib/xstate/performance/performance-monitor.ts(8,30): error TS7016: Could not find a declaration file for module 'uuid'. '/mnt/d/Github/studio/node_modules/uuid/dist/esm-browser/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/uuid` if it exists or add a new declaration (.d.ts) file containing `declare module 'uuid';`
+src/lib/xstate/performance/performance-monitor.ts(542,1): error TS2304: Cannot find name 'END_OF_FILE'.
+src/lib/xstate/performance/performance-monitor.ts(542,20): error TS1499: Unknown regular expression flag.
+src/lib/xstate/performance/performance-monitor.ts(542,22): error TS1499: Unknown regular expression flag.
+src/lib/xstate/performance/performance-monitor.ts(542,23): error TS1499: Unknown regular expression flag.
+src/lib/xstate/react/components/StateMachineVisualizer.tsx(380,15): error TS2322: Type 'MacroStep' is not assignable to type 'Key | null | undefined'.
+src/lib/xstate/react/contexts/XStateContext.tsx(139,19): error TS2345: Argument of type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to parameter of type 'SetStateAction<{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }>'.
+  Type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to type '(prevState: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }'.
+    Call signature return types '{ systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' and '{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }' are incompatible.
+      The types of 'systemHealth' are incompatible between these types.
+        Type '"error"' is not assignable to type '"healthy"'.
+src/lib/xstate/react/contexts/XStateContext.tsx(155,19): error TS2345: Argument of type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { activeActors: any; totalActors: number; systemHealth: "error" | "healthy"; isInitialized: boolean; lastError: Error | undefined; }' is not assignable to parameter of type 'SetStateAction<{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }>'.
+  Type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { activeActors: any; totalActors: number; systemHealth: "error" | "healthy"; isInitialized: boolean; lastError: Error | undefined; }' is not assignable to type '(prevState: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }'.
+    Call signature return types '{ activeActors: any; totalActors: number; systemHealth: "error" | "healthy"; isInitialized: boolean; lastError: Error | undefined; }' and '{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }' are incompatible.
+      The types of 'systemHealth' are incompatible between these types.
+        Type '"error" | "healthy"' is not assignable to type '"healthy"'.
+          Type '"error"' is not assignable to type '"healthy"'.
+src/lib/xstate/react/contexts/XStateContext.tsx(157,41): error TS2339: Property 'activeActors' does not exist on type 'ManagerMetrics'.
+src/lib/xstate/react/contexts/XStateContext.tsx(162,19): error TS2345: Argument of type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to parameter of type 'SetStateAction<{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }>'.
+  Type '(prev: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' is not assignable to type '(prevState: { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }) => { isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }'.
+    Call signature return types '{ systemHealth: "error"; lastError: Error; isInitialized: boolean; activeActors: number; totalActors: number; }' and '{ isInitialized: boolean; activeActors: number; totalActors: number; systemHealth: "healthy"; lastError: Error | undefined; }' are incompatible.
+      The types of 'systemHealth' are incompatible between these types.
+        Type '"error"' is not assignable to type '"healthy"'.
+src/lib/xstate/react/contexts/XStateContext.tsx(187,32): error TS2551: Property 'removeActor' does not exist on type 'ActorManager'. Did you mean 'resumeActor'?
+src/lib/xstate/react/contexts/XStateContext.tsx(237,30): error TS2551: Property 'removeActor' does not exist on type 'ActorManager'. Did you mean 'resumeActor'?
+src/lib/xstate/react/contexts/XStateContext.tsx(255,30): error TS2551: Property 'removeActor' does not exist on type 'ActorManager'. Did you mean 'resumeActor'?
+src/lib/xstate/react/contexts/XStateContext.tsx(319,5): error TS2322: Type '{ createMacroActor: (ticker: SupportedTicker, options?: any) => Promise<any>; getActor: (actorId: string) => ActorInstance | undefined; removeActor: (actorId: string, reason?: string) => Promise<...>; getSystemMetrics: () => { ...; }; cleanupActors: () => Promise<...>; resetSystem: () => Promise<...>; }' is not assignable to type '{ createMacroActor: (ticker: SupportedTicker, options?: any) => Promise<ActorInstance>; getActor: (actorId: string) => ActorInstance | undefined; removeActor: (actorId: string, reason?: string | undefined) => Promise<...>; getSystemMetrics: () => any; cleanupActors: () => Promise<...>; resetSystem: () => Promise<......'.
+  The types returned by 'cleanupActors()' are incompatible between these types.
+    Type 'Promise<number>' is not assignable to type 'Promise<void>'.
+      Type 'number' is not assignable to type 'void'.
+src/lib/xstate/react/contexts/XStateContext.tsx(411,30): error TS2339: Property 'useActor' does not exist on type '{ useSelector: <T>(selector: (snapshot: SnapshotFrom<TMachine>) => T, compare?: ((a: T, b: T) => boolean) | undefined) => T; useActorRef: () => Actor<TMachine>; Provider: (props: { ...; }) => ReactElement<...>; }'.
+src/lib/xstate/react/contexts/index.ts(10,3): error TS2300: Duplicate identifier 'XStateProvider'.
+src/lib/xstate/react/contexts/index.ts(27,3): error TS2300: Duplicate identifier 'MacroExecutionProvider'.
+src/lib/xstate/react/contexts/index.ts(43,21): error TS2300: Duplicate identifier 'XStateProvider'.
+src/lib/xstate/react/contexts/index.ts(44,21): error TS2300: Duplicate identifier 'MacroExecutionProvider'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(198,5): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(219,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+src/lib/xstate/react/hooks/use-macro-execution.ts(258,41): error TS2345: Argument of type 'number' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(278,7): error TS2322: Type 'string | number' is not assignable to type 'MacroStep'.
+  Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(281,29): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(282,32): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(290,9): error TS2322: Type '{ step: MacroStep; error: Error; timestamp: number; } | { step: string | number; error: Error; timestamp: number; }' is not assignable to type '{ step: MacroStep; error: Error; timestamp: number; }'.
+  Type '{ step: string | number; error: Error; timestamp: number; }' is not assignable to type '{ step: MacroStep; error: Error; timestamp: number; }'.
+    Types of property 'step' are incompatible.
+      Type 'string | number' is not assignable to type 'MacroStep'.
+        Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(292,11): error TS2322: Type 'string | number' is not assignable to type 'MacroStep'.
+  Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(313,48): error TS2339: Property 'fetchExpirations' does not exist on type 'Map<number, StepResult>'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(314,44): error TS2339: Property 'getStockData' does not exist on type 'Map<number, StepResult>'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(315,51): error TS2339: Property 'generateAITakeaways' does not exist on type 'Map<number, StepResult>'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(316,49): error TS2339: Property 'generateAIOptions' does not exist on type 'Map<number, StepResult>'.
+src/lib/xstate/react/hooks/use-macro-execution.ts(433,9): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(171,36): error TS2339: Property 'event' does not exist on type 'SnapshotFrom<TMachine>'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(191,119): error TS2339: Property 'event' does not exist on type 'SnapshotFrom<TMachine>'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(201,36): error TS2339: Property 'done' does not exist on type 'SnapshotFrom<TMachine>'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(294,53): error TS2345: Argument of type '() => { macroProgress: { currentStep: string | number; totalSteps: number; completedSteps: number; stepProgress: any; overallProgress: any; timeElapsed: number; estimatedTimeRemaining: number | undefined; }; ... 7 more ...; meta: { machineId: string; stateName: string; isInitial: boolean; isFinal: boolean; hasError:...' is not assignable to parameter of type '() => MacroVisualizationData'.
+  Call signature return types '{ macroProgress: { currentStep: string | number; totalSteps: number; completedSteps: number; stepProgress: any; overallProgress: any; timeElapsed: number; estimatedTimeRemaining: number | undefined; }; ... 7 more ...; meta: { ...; }; }' and 'MacroVisualizationData' are incompatible.
+    The types of 'macroProgress.currentStep' are incompatible between these types.
+      Type 'string | number' is not assignable to type 'MacroStep'.
+        Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(302,9): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(304,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(307,43): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(310,9): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(312,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(313,24): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(315,43): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(318,9): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(320,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(321,24): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(323,43): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(326,9): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(328,31): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(329,24): error TS2322: Type 'string' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(331,43): error TS2345: Argument of type 'string' is not assignable to parameter of type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(341,36): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(342,39): error TS2339: Property 'progress' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(344,71): error TS2345: Argument of type 'number | "fetchExpirations"' is not assignable to parameter of type 'MacroStep'.
+  Type 'number' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(347,34): error TS2345: Argument of type 'number | "fetchExpirations"' is not assignable to parameter of type 'MacroStep'.
+  Type 'number' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(348,41): error TS2345: Argument of type 'number | "fetchExpirations"' is not assignable to parameter of type 'MacroStep'.
+  Type 'number' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(349,31): error TS2345: Argument of type 'number | "fetchExpirations"' is not assignable to parameter of type 'MacroStep'.
+  Type 'number' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(350,33): error TS2339: Property 'stepStartTimes' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(351,31): error TS2339: Property 'stepEndTimes' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(352,37): error TS2345: Argument of type 'number | "fetchExpirations"' is not assignable to parameter of type 'MacroStep'.
+  Type 'number' is not assignable to type 'MacroStep'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(353,17): error TS7052: Element implicitly has an 'any' type because type 'Map<number, StepResult>' has no index signature. Did you mean to call 'macroContext.stepResults.get'?
+src/lib/xstate/react/hooks/use-state-visualization.ts(354,29): error TS2339: Property 'stepErrors' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(379,29): error TS2538: Type 'MacroStep' cannot be used as an index type.
+src/lib/xstate/react/hooks/use-state-visualization.ts(380,15): error TS2339: Property 'stepErrors' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(386,29): error TS2339: Property 'stepStartTimes' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(387,27): error TS2339: Property 'stepEndTimes' does not exist on type 'MacroExecutionContext'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(392,23): error TS2344: Type 'MacroStep' does not satisfy the constraint 'string | number | symbol'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(398,16): error TS2538: Type 'MacroStep' cannot be used as an index type.
+src/lib/xstate/react/hooks/use-state-visualization.ts(402,30): error TS2344: Type 'MacroStep' does not satisfy the constraint 'string | number | symbol'.
+src/lib/xstate/react/hooks/use-state-visualization.ts(408,23): error TS2538: Type 'MacroStep' cannot be used as an index type.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(13,3): error TS2440: Import declaration conflicts with local declaration of 'ActorConfig'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(110,5): error TS2339: Property 'actorId' does not exist on type 'ActorConfig'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(111,5): error TS2339: Property 'ticker' does not exist on type 'ActorConfig'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(112,5): error TS2339: Property 'type' does not exist on type 'ActorConfig'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(113,5): error TS2339: Property 'autoStart' does not exist on type 'ActorConfig'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(114,5): error TS2339: Property 'autoCleanup' does not exist on type 'ActorConfig'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(168,24): error TS2339: Property 'onCreate' does not exist on type '{ onStateChange?: ((snapshot: AnyMachineSnapshot) => void) | undefined; onError?: ((error: Error, context?: any) => void) | undefined; onComplete?: ((result: any) => void) | undefined; onCancel?: ((reason?: string | undefined) => void) | undefined; }'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(175,28): error TS2339: Property 'onStart' does not exist on type '{ onStateChange?: ((snapshot: AnyMachineSnapshot) => void) | undefined; onError?: ((error: Error, context?: any) => void) | undefined; onComplete?: ((result: any) => void) | undefined; onCancel?: ((reason?: string | undefined) => void) | undefined; }'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(201,33): error TS2339: Property 'newState' does not exist on type 'ActorEvent'.
+  Property 'newState' does not exist on type '{ type: "ACTOR_CREATED"; actorId: string; identity: ActorIdentity; }'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(219,6): error TS7006: Parameter 'actor' implicitly has an 'any' type.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(248,22): error TS2339: Property 'onStart' does not exist on type '{ onStateChange?: ((snapshot: AnyMachineSnapshot) => void) | undefined; onError?: ((error: Error, context?: any) => void) | undefined; onComplete?: ((result: any) => void) | undefined; onCancel?: ((reason?: string | undefined) => void) | undefined; }'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(254,22): error TS2339: Property 'onStop' does not exist on type '{ onStateChange?: ((snapshot: AnyMachineSnapshot) => void) | undefined; onError?: ((error: Error, context?: any) => void) | undefined; onComplete?: ((result: any) => void) | undefined; onCancel?: ((reason?: string | undefined) => void) | undefined; }'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(402,5): error TS2353: Object literal may only specify known properties, and 'ticker' does not exist in type 'ActorConfig'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(406,23): error TS2339: Property 'eventHandlers' does not exist on type '{ options: { enableDebug?: boolean | undefined; autoStart?: boolean | undefined; timeout?: number | undefined; maxRetries?: number | undefined; customConfig?: Record<string, any> | undefined; }; eventHandlers?: { ...; } | undefined; identity: ActorIdentity; } | {}'.
+  Property 'eventHandlers' does not exist on type '{}'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(417,22): error TS2339: Property 'eventHandlers' does not exist on type '{ options: { enableDebug?: boolean | undefined; autoStart?: boolean | undefined; timeout?: number | undefined; maxRetries?: number | undefined; customConfig?: Record<string, any> | undefined; }; eventHandlers?: { ...; } | undefined; identity: ActorIdentity; } | {}'.
+  Property 'eventHandlers' does not exist on type '{}'.
+src/lib/xstate/react/hooks/use-xstate-actor.ts(421,22): error TS2339: Property 'eventHandlers' does not exist on type '{ options: { enableDebug?: boolean | undefined; autoStart?: boolean | undefined; timeout?: number | undefined; maxRetries?: number | undefined; customConfig?: Record<string, any> | undefined; }; eventHandlers?: { ...; } | undefined; identity: ActorIdentity; } | {}'.
+  Property 'eventHandlers' does not exist on type '{}'.
+src/lib/xstate/react/hooks/use-xstate-machine.ts(158,22): error TS2345: Argument of type 'MachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to parameter of type 'SnapshotFrom<TMachine>'.
+  Type 'ActiveMachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to type 'SnapshotFrom<TMachine>'.
+src/lib/xstate/react/hooks/use-xstate-machine.ts(159,23): error TS2345: Argument of type 'MachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to parameter of type 'SnapshotFrom<TMachine>'.
+  Type 'ActiveMachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to type 'SnapshotFrom<TMachine>'.
+src/lib/xstate/react/hooks/use-xstate-machine.ts(232,5): error TS2322: Type 'MachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to type 'SnapshotFrom<TMachine>'.
+  Type 'ActiveMachineSnapshot<any, any, any, any, any, any, any, any>' is not assignable to type 'SnapshotFrom<TMachine>'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(80,76): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(153,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(293,43): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(365,48): error TS2339: Property 'cpuUsage' does not exist on type 'PerformanceMetrics'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(369,27): error TS2322: Type 'number | { used: number; total: number; percentage: number; }' is not assignable to type 'number | null | undefined'.
+  Type '{ used: number; total: number; percentage: number; }' is not assignable to type 'number'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(458,51): error TS2345: Argument of type '{ actorId: string; typeId: string; name: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(463,60): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(472,52): error TS2345: Argument of type '{ actorId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/actor-spawning-dashboard.tsx(480,47): error TS2345: Argument of type '{ actorId: string; event: any; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/advanced-filters.tsx(74,68): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/components/advanced-filters.tsx(488,35): error TS2345: Argument of type '{ filterTypeId: string; operator: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/advanced-filters.tsx(517,41): error TS2345: Argument of type '{ presetName: string; filtersCount: number; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/advanced-filters.tsx(525,43): error TS2345: Argument of type '{ filtersCount: number; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/advanced-filters.tsx(543,44): error TS2345: Argument of type '{ recordsCount: number; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/index.ts(38,3): error TS18004: No value exists in scope for the shorthand property 'StateMachineVisualizer'. Either declare one or provide an initializer.
+src/lib/xstate/ui/components/index.ts(39,3): error TS18004: No value exists in scope for the shorthand property 'ActorSpawningDashboard'. Either declare one or provide an initializer.
+src/lib/xstate/ui/components/index.ts(40,3): error TS18004: No value exists in scope for the shorthand property 'PerformanceDashboard'. Either declare one or provide an initializer.
+src/lib/xstate/ui/components/index.ts(41,3): error TS18004: No value exists in scope for the shorthand property 'WorkflowBuilder'. Either declare one or provide an initializer.
+src/lib/xstate/ui/components/index.ts(42,3): error TS18004: No value exists in scope for the shorthand property 'MultiTickerCoordinator'. Either declare one or provide an initializer.
+src/lib/xstate/ui/components/index.ts(43,3): error TS18004: No value exists in scope for the shorthand property 'AdvancedFilters'. Either declare one or provide an initializer.
+src/lib/xstate/ui/components/multi-ticker-coordinator.tsx(74,76): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/components/multi-ticker-coordinator.tsx(470,43): error TS2345: Argument of type '{ tickerSymbol: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/multi-ticker-coordinator.tsx(475,54): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/multi-ticker-coordinator.tsx(483,43): error TS2345: Argument of type '{ tickerSymbol: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/multi-ticker-coordinator.tsx(496,41): error TS2345: Argument of type '{ conflictId: string; resolutionId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/multi-ticker-coordinator.tsx(509,55): error TS2345: Argument of type '{ correlation: number; relativePerformance: number; timestamp: string; } | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/lib/xstate/ui/components/multi-ticker-coordinator.tsx(514,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/performance-dashboard.tsx(79,73): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/components/performance-dashboard.tsx(460,34): error TS2339: Property 'averageResponseTime' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/components/performance-dashboard.tsx(466,45): error TS2339: Property 'memoryUsage' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/components/performance-dashboard.tsx(472,35): error TS2339: Property 'errorRate' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/components/performance-dashboard.tsx(478,45): error TS2339: Property 'operationsPerSecond' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/components/state-machine-visualizer.tsx(57,76): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/components/state-machine-visualizer.tsx(156,41): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/state-machine-visualizer.tsx(347,37): error TS2322: Type 'Dispatch<SetStateAction<"actors" | "events" | "state" | "code">>' is not assignable to type '(value: string) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string' is not assignable to type 'SetStateAction<"actors" | "events" | "state" | "code">'.
+src/lib/xstate/ui/components/workflow-builder.tsx(47,8): error TS2307: Cannot find module '@dnd-kit/core' or its corresponding type declarations.
+src/lib/xstate/ui/components/workflow-builder.tsx(48,21): error TS2307: Cannot find module '@dnd-kit/utilities' or its corresponding type declarations.
+src/lib/xstate/ui/components/workflow-builder.tsx(88,68): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/components/workflow-builder.tsx(332,19): error TS2540: Cannot assign to 'current' because it is a read-only property.
+src/lib/xstate/ui/components/workflow-builder.tsx(620,49): error TS2345: Argument of type '{ componentId: string; type: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/workflow-builder.tsx(648,53): error TS2345: Argument of type '{ componentId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/workflow-builder.tsx(669,49): error TS2345: Argument of type '{ componentId: string; property: string; value: any; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/workflow-builder.tsx(676,36): error TS2345: Argument of type '{ workflowId: string; componentsCount: number; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/workflow-builder.tsx(685,48): error TS2345: Argument of type '{ workflowId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/workflow-builder.tsx(691,52): error TS2345: Argument of type '{ workflowId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/components/workflow-builder.tsx(718,30): error TS2552: Cannot find name 'setShowGrid'. Did you mean 'showGrid'?
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(32,8): error TS2307: Cannot find module '@dnd-kit/core' or its corresponding type declarations.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(39,8): error TS2307: Cannot find module '@dnd-kit/sortable' or its corresponding type declarations.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(60,73): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(139,37): error TS2345: Argument of type '{ activeId: any; multiSelect: boolean; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(169,41): error TS2345: Argument of type '{ activeId: any; overId: any; oldIndex: number; newIndex: number; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(299,40): error TS2345: Argument of type '{ originalCount: number; filteredCount: number; filtersCount: number; searchQuery: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(307,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(327,35): error TS2345: Argument of type 'AppliedFilter' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(333,37): error TS2345: Argument of type '{ filterId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(340,12): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(367,9): error TS18047: 'searchInputRef.current' is possibly 'null'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(401,58): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(495,55): error TS2345: Argument of type '{ shortcutId: string; keys: string[]; description: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(577,36): error TS2345: Argument of type '{ elementTag: string; elementId: string; preventScroll: boolean; restoreOnUnmount: boolean; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(592,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-advanced-interactions.ts(619,49): error TS2345: Argument of type '{ message: string; priority: "polite" | "assertive"; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(20,68): error TS2307: Cannot find module '../performance/performance-monitor' or its corresponding type declarations.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(37,66): error TS2339: Property 'ADVANCED_UI' does not exist on type '{ readonly SPY_TAB: "SPY-Tab"; readonly NVDA_TAB: "NVDA-Tab"; readonly USER_INPUT_TAB: "UserInput-Tab"; readonly MAIN_TAB: "Main-Tab"; }'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(84,12): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(134,12): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(160,53): error TS2345: Argument of type '{ alertId: string; metric: PerformanceChartType; currentValue: number; threshold: number; severity: "low" | "medium" | "high" | "critical"; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(186,40): error TS2345: Argument of type '{ alertId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(199,36): error TS2345: Argument of type '{ alertId: string; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(205,12): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(240,46): error TS2345: Argument of type '{ chartType: PerformanceChartType; value: number; label: string | undefined; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(254,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(274,41): error TS2345: Argument of type '{ chartType: PerformanceChartType; dataPoints: number; }' is not assignable to parameter of type 'string'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(468,22): error TS2339: Property 'averageExecutionTime' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(470,22): error TS2339: Property 'memoryUsage' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(472,22): error TS2339: Property 'eventCount' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(474,22): error TS2339: Property 'stateTransitionCount' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(476,22): error TS2339: Property 'errorRate' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/hooks/use-performance-monitor.ts(478,22): error TS2339: Property 'operationsPerSecond' does not exist on type 'MetricsSnapshot'.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(120,17): error TS2322: Type 'string' is not assignable to type '{ stockSnapshotJson: string; marketStatusJson: string; standardTasJson: string; aiAnalyzedTaJson: string; }'.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(126,17): error TS2322: Type '{ promptName: string; responseJson: string; webSearchEnabled: false; }' is not assignable to type 'string'.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(132,17): error TS2322: Type '{ promptName: string; responseJson: string; webSearchEnabled: false; }' is not assignable to type 'string'.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(144,16): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(164,31): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(181,5): error TS2322: Type 'boolean' is not assignable to type 'undefined'.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(188,50): error TS2554: Expected 0 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(208,12): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(211,38): error TS2554: Expected 0 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(274,16): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(277,16): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(379,30): error TS2339: Property 'recordActorActivity' does not exist on type '{ recordStateTransition: () => void; recordEvent: () => void; getMetricsSnapshot: () => {}; }'.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(394,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(398,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(414,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(444,18): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(458,16): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(616,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(626,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(638,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/lib/xstate/ui/hooks/use-xstate-integration.ts(649,12): error TS2554: Expected 2-3 arguments, but got 1.

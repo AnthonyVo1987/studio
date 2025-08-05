@@ -6,7 +6,7 @@
  */
 
 import { 
-  createMachine, 
+  setup, 
   createActor, 
   assign, 
   sendTo, 
@@ -227,12 +227,90 @@ export class ResourcePool {
  * Create parallel coordination machine for managing concurrent ticker operations
  */
 export function createParallelCoordinationMachine(config: ParallelMachineConfig) {
-  return createMachine({
-    id: 'parallelCoordination',
-    types: {} as {
-      context: ParallelExecutionContext;
-      events: MacroExecutionEvent | AdvancedEvent;
+  return setup({
+    types: {
+      context: {} as ParallelExecutionContext,
+      events: {} as MacroExecutionEvent | AdvancedEvent
     },
+    actions: {
+      initializeParallelExecution: assign({
+        synchronizationState: ({ context }) => {
+          const syncState = new Map<string, boolean>();
+          context.parallelConfig.synchronizationPoints.forEach(point => {
+            syncState.set(point, false);
+          });
+          return syncState;
+        }
+      }),
+      
+      spawnTickerActors: ({ context }) => {
+        // This would integrate with the actor spawning system
+        console.log('Spawning actors for tickers:', context.parallelConfig.tickers);
+      },
+      
+      startResourceMonitoring: ({ context }) => {
+        console.log('Starting resource monitoring for parallel execution');
+      },
+      
+      handleResourceRequest: assign({
+        resourceAllocations: ({ context, event }) => {
+          if (event.type === 'RESOURCE_ALLOCATION_REQUESTED') {
+            // Handle resource allocation logic
+            return new Map(context.resourceAllocations);
+          }
+          return context.resourceAllocations;
+        }
+      }),
+      
+      handleResourceRelease: ({ context }) => {
+        console.log('Handling resource release');
+      },
+      
+      handleSynchronizationRequest: assign({
+        synchronizationState: ({ context, event }) => {
+          if (event.type === 'PARALLEL_COORDINATION_REQUIRED') {
+            const newState = new Map(context.synchronizationState);
+            newState.set(event.synchronizationPoint, true);
+            return newState;
+          }
+          return context.synchronizationState;
+        }
+      }),
+      
+      performSynchronization: ({ context }) => {
+        console.log('Performing synchronization at point');
+      },
+      
+      recordTickerCompletion: assign({
+        coordinationResults: ({ context, event }) => {
+          if (event.type === 'TICKER_EXECUTION_COMPLETE') {
+            const newResults = new Map(context.coordinationResults);
+            // Record completion data
+            return newResults;
+          }
+          return context.coordinationResults;
+        }
+      }),
+      
+      aggregateResults: ({ context }) => {
+        console.log('Aggregating results from all ticker executions');
+      },
+      
+      finalizeParallelExecution: ({ context }) => {
+        console.log('Finalizing parallel execution');
+      },
+      
+      handleParallelError: assign({
+        error: ({ event }) => {
+          if ('error' in event) {
+            return event.error as Error;
+          }
+          return new Error('Parallel execution failed');
+        }
+      })
+    }
+  }).createMachine({
+    id: 'parallelCoordination',
     context: {
       // Base macro context
       ticker: 'MULTI', // Special ticker for parallel operations
@@ -365,84 +443,6 @@ export function createParallelCoordinationMachine(config: ParallelMachineConfig)
           RESET: 'idle'
         }
       }
-    }
-  }, {
-    actions: {
-      initializeParallelExecution: assign({
-        synchronizationState: ({ context }) => {
-          const syncState = new Map<string, boolean>();
-          context.parallelConfig.synchronizationPoints.forEach(point => {
-            syncState.set(point, false);
-          });
-          return syncState;
-        }
-      }),
-      
-      spawnTickerActors: ({ context }) => {
-        // This would integrate with the actor spawning system
-        console.log('Spawning actors for tickers:', context.parallelConfig.tickers);
-      },
-      
-      startResourceMonitoring: ({ context }) => {
-        console.log('Starting resource monitoring for parallel execution');
-      },
-      
-      handleResourceRequest: assign({
-        resourceAllocations: ({ context, event }) => {
-          if (event.type === 'RESOURCE_ALLOCATION_REQUESTED') {
-            // Handle resource allocation logic
-            return new Map(context.resourceAllocations);
-          }
-          return context.resourceAllocations;
-        }
-      }),
-      
-      handleResourceRelease: ({ context }) => {
-        console.log('Handling resource release');
-      },
-      
-      handleSynchronizationRequest: assign({
-        synchronizationState: ({ context, event }) => {
-          if (event.type === 'PARALLEL_COORDINATION_REQUIRED') {
-            const newState = new Map(context.synchronizationState);
-            newState.set(event.synchronizationPoint, true);
-            return newState;
-          }
-          return context.synchronizationState;
-        }
-      }),
-      
-      performSynchronization: ({ context }) => {
-        console.log('Performing synchronization at point');
-      },
-      
-      recordTickerCompletion: assign({
-        coordinationResults: ({ context, event }) => {
-          if (event.type === 'TICKER_EXECUTION_COMPLETE') {
-            const newResults = new Map(context.coordinationResults);
-            // Record completion data
-            return newResults;
-          }
-          return context.coordinationResults;
-        }
-      }),
-      
-      aggregateResults: ({ context }) => {
-        console.log('Aggregating results from all ticker executions');
-      },
-      
-      finalizeParallelExecution: ({ context }) => {
-        console.log('Finalizing parallel execution');
-      },
-      
-      handleParallelError: assign({
-        error: ({ event }) => {
-          if ('error' in event) {
-            return event.error as Error;
-          }
-          return new Error('Parallel execution failed');
-        }
-      })
     }
   });
 }

@@ -6,6 +6,13 @@
  */
 
 // ================================
+// CORE TICKER TYPES
+// ================================
+
+/** Supported ticker symbols in the StockSage application */
+export type SupportedTicker = 'NVDA' | 'SPY';
+
+// ================================
 // PERFORMANCE & TIMEOUT TYPES
 // ================================
 
@@ -130,6 +137,19 @@ export type MacroExecutionEvent =
   | { type: 'UPDATE_TIMEOUT_CONFIG'; config: Partial<TimeoutConfig> }
   | { type: 'SET_DEBUG_MODE'; enabled: boolean }
   | { type: 'EXPIRATION_SELECTED'; expiration: string }
+  // Advanced parallel execution events
+  | { type: 'START_PARALLEL_EXECUTION'; tickers?: string[]; config?: any }
+  | { type: 'INITIALIZATION_COMPLETE'; actorId?: string }
+  | { type: 'INITIALIZATION_FAILED'; actorId?: string; error: Error }
+  | { type: 'ALL_ACTORS_SPAWNED'; count: number }
+  | { type: 'TICKER_EXECUTION_COMPLETE'; ticker: string; result?: any }
+  | { type: 'SYNCHRONIZATION_COMPLETE'; synchronizationPoint: string }
+  | { type: 'SYNCHRONIZATION_TIMEOUT'; synchronizationPoint: string }
+  | { type: 'RESOURCE_RELEASED'; resourceId: string; resourceType: string }
+  | { type: 'RETRY_PARALLEL_EXECUTION'; reason?: string }
+  | { type: 'COMPOSITION_ERROR_OCCURRED'; machineId: string; error: Error }
+  | { type: 'SPAWN_FAILED'; actorId?: string; error: Error }
+  | { type: 'ALL_TICKERS_COMPLETE'; results: any[] }
   | { type: 'PREREQUISITES_VALIDATED'; stepId: number; valid: boolean }
   | { type: 'PERFORMANCE_UPDATE'; metrics: Partial<PerformanceMetrics> };
 
