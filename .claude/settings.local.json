@@ -185,7 +185,8 @@
       "Bash(echo $?)",
       "Bash(echo:*)",
       "Bash(npm run:*)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(SKIP_ENV_VALIDATION=true npm run build)"
     ],
     "deny": []
   }
