@@ -180,7 +180,12 @@
       "Bash(timeout 30 npx tsc --noEmit)",
       "Bash(npx next build:*)",
       "Bash(timeout:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(kill:*)",
+      "Bash(echo $?)",
+      "Bash(echo:*)",
+      "Bash(npm run:*)",
+      "Bash(npm --version)"
     ],
     "deny": []
   }

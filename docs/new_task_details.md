@@ -120,7 +120,7 @@ When filling out task details, note that AI specialists can now execute all stan
 - [ ] **🚨 AUTO-EXECUTE**: Documentation updated by `@documentation-specialist`
 - [ ] **🚨 AUTO-EXECUTE**: Integration testing completed (if required)
 - [ ] **🚨 AUTO-EXECUTE**: Version metadata updated in `src/config/app-metadata.json`
-- [ ] **🚨 AUTO-EXECUTE**: Complete atomic git commit and push operation
+- [ ] **🚨 AUTO-EXECUTE**: Complete atomic git commit and push operation of ALL file and doc changes
 - [ ] **🚨 AUTO-CONFIRM**: Final task completion status provided to user
 
 **Orchestrator Accountability:**
@@ -129,6 +129,11 @@ Orchestrator MUST complete entire autonomous workflow without requiring addition
 ---
 
 ## Task Details
+ Ask @tech-lead-orchestrator to operate in COORDINATION-ONLY mode and assign specialists to perform the requested task(s):
+ 
+ - 
+
+ @tech-lead-orchestrator MUST operate in COORDINATION-ONLY mode!
 
 
 ###
