@@ -216,7 +216,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         hasAiTaData: true,
       };
 
-    case 'SET_OPTIONS_CHAIN_DATA':
+    case 'SET_OPTIONS_CHAIN_DATA': {
       const optionsData = action.payload ? (() => {
         try {
           return JSON.parse(action.payload);
@@ -233,6 +233,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         optionsChainJson: action.payload,
         hasOptionsChainData: true,
       };
+    }
 
     case 'SET_AI_KEY_TAKEAWAYS':
       console.log('[SPY:State] Setting AI key takeaways:', { hasData: !!action.payload });
@@ -273,7 +274,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         dataRetrievalComplete: action.payload,
       };
 
-    case 'SET_AI_CHAT_RAW_DATA':
+    case 'SET_AI_CHAT_RAW_DATA': {
       const { promptName, responseJson, webSearchEnabled, isUserInput } = action.payload;
       console.log('[SPY:State] Setting AI chat raw data:', { 
         promptName, 
@@ -322,6 +323,7 @@ function spyAnalysisReducer(state: SpyAnalysisState, action: SpyAnalysisAction):
         ...state,
         ...updates,
       };
+    }
 
     case 'RESET_STATE':
       console.log('[SPY:State] Resetting state to initial values');

@@ -18,7 +18,7 @@ export function NvdaAiKeyTakeawaysDisplay() {
   const keyTakeawaysData = nvdaState.aiKeyTakeawaysJson ? (() => {
     try {
       return JSON.parse(nvdaState.aiKeyTakeawaysJson);
-    } catch (e) {
+    } catch {
       return {};
     }
   })() : {};

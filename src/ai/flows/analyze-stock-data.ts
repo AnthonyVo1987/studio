@@ -109,12 +109,8 @@ export async function analyzeStockData(
   input: StockAnalysisInput
 ): Promise<StockAnalysisOutput> {
   const logPrefix = `[AIFlow:analyzeStockData:Ticker:${input.ticker}:Entry_DJ]`;
-  try {
-    const result = await analyzeStockDataFlow(input);
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  const result = await analyzeStockDataFlow(input);
+  return result;
 }
 
 const defaultTakeaway = (category: string, ticker: string): { takeaway: string; sentiment: "neutral" } => ({

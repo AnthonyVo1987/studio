@@ -41,20 +41,20 @@ export interface TickerComponents<T extends TickerConfig> {
   }>;
   
   // Data and utility components
-  DataSection: ComponentType<{}>;
+  DataSection: ComponentType<Record<string, never>>;
   ConsolidatedChat: ComponentType<{
     chatAction?: (params: any) => Promise<any>;
   }>;
-  OptionsChainTable: ComponentType<{}>;
+  OptionsChainTable: ComponentType<Record<string, never>>;
   
   // Display components
-  MarketStatusDisplay: ComponentType<{}>;
-  KeyMetricsDisplay: ComponentType<{}>;
-  StockSnapshotDisplay: ComponentType<{}>;
-  StandardTaDisplay: ComponentType<{}>;
-  AiAnalyzedTaDisplay: ComponentType<{}>;
-  AiKeyTakeawaysDisplay: ComponentType<{}>;
-  AiOptionsAnalysisDisplay: ComponentType<{}>;
+  MarketStatusDisplay: ComponentType<Record<string, never>>;
+  KeyMetricsDisplay: ComponentType<Record<string, never>>;
+  StockSnapshotDisplay: ComponentType<Record<string, never>>;
+  StandardTaDisplay: ComponentType<Record<string, never>>;
+  AiAnalyzedTaDisplay: ComponentType<Record<string, never>>;
+  AiKeyTakeawaysDisplay: ComponentType<Record<string, never>>;
+  AiOptionsAnalysisDisplay: ComponentType<Record<string, never>>;
 }
 
 /**
@@ -70,32 +70,32 @@ export function createTickerComponents<T extends TickerConfig>(
 ): TickerComponents<T> {
   
   // Create bound display components
-  const MarketStatusDisplay: ComponentType<{}> = () => 
+  const MarketStatusDisplay: ComponentType<Record<string, never>> = () => 
     BaseMarketStatusDisplay({ config, context });
     
-  const KeyMetricsDisplay: ComponentType<{}> = () => 
+  const KeyMetricsDisplay: ComponentType<Record<string, never>> = () => 
     BaseKeyMetricsDisplay({ config, context });
     
-  const StockSnapshotDisplay: ComponentType<{}> = () => 
+  const StockSnapshotDisplay: ComponentType<Record<string, never>> = () => 
     BaseStockSnapshotDisplay({ config, context });
     
-  const StandardTaDisplay: ComponentType<{}> = () => 
+  const StandardTaDisplay: ComponentType<Record<string, never>> = () => 
     BaseStandardTaDisplay({ config, context });
     
-  const AiAnalyzedTaDisplay: ComponentType<{}> = () => 
+  const AiAnalyzedTaDisplay: ComponentType<Record<string, never>> = () => 
     BaseAiAnalyzedTaDisplay({ config, context });
     
-  const AiKeyTakeawaysDisplay: ComponentType<{}> = () => 
+  const AiKeyTakeawaysDisplay: ComponentType<Record<string, never>> = () => 
     BaseAiKeyTakeawaysDisplay({ config, context });
     
-  const AiOptionsAnalysisDisplay: ComponentType<{}> = () => 
+  const AiOptionsAnalysisDisplay: ComponentType<Record<string, never>> = () => 
     BaseAiOptionsAnalysisDisplay({ config, context });
 
   // Create bound utility components
-  const DataSection: ComponentType<{}> = () => 
+  const DataSection: ComponentType<Record<string, never>> = () => 
     BaseDataSection({ config, context });
     
-  const OptionsChainTable: ComponentType<{}> = () => 
+  const OptionsChainTable: ComponentType<Record<string, never>> = () => 
     BaseOptionsChainTable({ config, context });
     
   const ConsolidatedChat: ComponentType<{

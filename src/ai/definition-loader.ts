@@ -80,8 +80,6 @@ export type GenericDefinition = z.infer<typeof GenericDefinitionSchema>;
  * @returns A promise that resolves to the parsed and validated definition.
  */
 export async function loadDefinition(definitionName: string): Promise<GenericDefinition> {
-  const logPrefix = `[DefinitionLoader:loadDefinition:${definitionName}]`;
-
   try {
     const module = await import(`@/ai/definitions/${definitionName}.json`);
     const jsonData = module.default;
@@ -92,10 +90,13 @@ export async function loadDefinition(definitionName: string): Promise<GenericDef
       throw new Error(`Invalid definition structure in ${definitionName}.json: ${validationResult.error.message}`);
     }
     return validationResult.data;
-  } catch (error: any) {
-    if (error.message.includes('Cannot find module') || error.code === 'MODULE_NOT_FOUND') {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode = error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined;
+    if (errorMessage.includes('Cannot find module') || errorCode === 'MODULE_NOT_FOUND') {
+      // File not found - will throw generic error below
     }
-    throw new Error(`Failed to load AI definition '${definitionName}': ${error.message}`);
+    throw new Error(`Failed to load AI definition '${definitionName}': ${errorMessage}`);
   }
 }
 
@@ -105,7 +106,6 @@ export async function loadDefinition(definitionName: string): Promise<GenericDef
  * @returns A single string concatenating all prompt parts.
  */
 export function buildPromptStringFromLlmDefinition(definition: LlmPromptDefinition): string {
-  const logPrefix = `[DefinitionLoader:buildPromptStringFromLlmDefinition:${definition.promptName}]`;
   let fullPrompt = "";
   if (definition.chainOfThought && Array.isArray(definition.chainOfThought)) {
     for (const step of definition.chainOfThought) {
@@ -116,6 +116,7 @@ export function buildPromptStringFromLlmDefinition(definition: LlmPromptDefiniti
       }
     }
   } else {
+    // Not a structured prompt - return as-is
   }
   return fullPrompt.trim();
 }
@@ -137,7 +138,6 @@ const ExamplePromptsFileSchema = z.array(ExamplePromptSchema);
  * @throws {Error} If the file cannot be read or its content is invalid.
  */
 export async function loadExamplePrompts(fileName: string): Promise<ExamplePrompt[]> {
-  const logPrefix = `[DefinitionLoader:loadExamplePrompts:${fileName}]`;
   try {
     const module = await import(`@/ai/definitions/${fileName}`);
     const jsonData = module.default;
@@ -146,7 +146,8 @@ export async function loadExamplePrompts(fileName: string): Promise<ExamplePromp
       throw new Error(`Invalid structure in ${fileName}.`);
     }
     return validationResult.data;
-  } catch (error: any) {
-    throw new Error(`Failed to load or parse ${fileName}: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load or parse ${fileName}: ${errorMessage}`);
   }
 }

@@ -48,7 +48,7 @@ export async function performAiOptionsAnalysisAction(
 
   const baseErrorReturnForValidation = (errMsg: string, detailMsg?: string, reqJsonOverride?: string) => {
     return {
-      status: 'error' as 'error',
+      status: 'error' as const,
       error: errMsg,
       message: detailMsg || errMsg,
       data: {

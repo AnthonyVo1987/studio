@@ -83,7 +83,7 @@ export async function fetchStockDataAction(
     }
     
     
-    const adapterStockDataTicker = adapterOutput.stockData.ticker;
+    // Validate ticker consistency (removed unused variables)
     const adapterSnapshotTicker = adapterOutput.stockData.stockSnapshot && 'ticker' in adapterOutput.stockData.stockSnapshot ? adapterOutput.stockData.stockSnapshot.ticker : undefined;
     
     
@@ -121,14 +121,14 @@ export async function fetchStockDataAction(
       };
     }
 
-    const stringify = (obj: any, name: string): string => {
+    const stringify = (obj: unknown, name: string): string => {
       if (obj === undefined || obj === null) {
         return '{}';
       }
       try {
         return JSON.stringify(obj, null, 2);
-      } catch (e: any) {
-        return JSON.stringify({ error: `Failed to stringify ${name}`, details: e.message }, null, 2);
+      } catch (e: unknown) {
+        return JSON.stringify({ error: `Failed to stringify ${name}`, details: e instanceof Error ? e.message : 'Unknown error' }, null, 2);
       }
     };
 
@@ -148,7 +148,7 @@ export async function fetchStockDataAction(
       hasStockSnapshot: !!adapterOutput.stockData.stockSnapshot,
       hasTechnicalIndicators: !!adapterOutput.stockData.technicalIndicators,
       hasOptionsChain: !!finalOptionsChain,
-      optionsChainSize: (finalOptionsChain && 'results' in finalOptionsChain) ? finalOptionsChain.results?.length || 0 : 0,
+      optionsChainSize: (finalOptionsChain && 'results' in finalOptionsChain) ? (finalOptionsChain.results as Array<unknown>)?.length || 0 : 0,
       // CRITICAL: Final expiration verification
       requestedExpiration: expirationDate,
       finalExpiration: finalExpiration,
@@ -185,11 +185,12 @@ export async function fetchStockDataAction(
       message: `Data for ${requestedTickerUpperCase} fetched successfully.`,
       error: null,
     };
-  } catch (error: any) {
-    console.error(`${actionLogPrefix} CATCH ERROR:`, error.message || error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`${actionLogPrefix} CATCH ERROR:`, errorMessage);
     return {
       status: 'error',
-      error: error.message || 'An unknown error occurred during data fetching.',
+      error: errorMessage || 'An unknown error occurred during data fetching.',
       message: `Failed to fetch data. Check server logs.`,
       data: undefined,
     };

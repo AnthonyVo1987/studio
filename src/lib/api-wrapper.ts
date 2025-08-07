@@ -51,6 +51,7 @@ export const createApiWrapper = (defaultConfig: ApiConfig = {}) => {
         const data = await operation()
         
         if (attempt > 0) {
+          console.log(`API retry succeeded on attempt ${attempt + 1}`);
         }
 
         return {

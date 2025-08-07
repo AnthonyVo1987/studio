@@ -183,7 +183,7 @@ class PolygonAdapter {
           putDataByStrike.set(strike, contract);
         });
 
-        let sortedStrikes = Array.from(allStrikes).sort((a, b) => a - b);
+        const sortedStrikes = Array.from(allStrikes).sort((a, b) => a - b);
         let closestStrikeIndex = 0;
         if (sortedStrikes.length > 0 && currentStockPrice) { 
             closestStrikeIndex = sortedStrikes.reduce((prevIdx, currentStrikeItem, currentIdx) => {
@@ -307,7 +307,7 @@ class PolygonAdapter {
 
       const technicalIndicators: TechnicalIndicatorsData = {};
       let taErrorOccurred = false;
-      let taErrorMessages: string[] = [];
+      const taErrorMessages: string[] = [];
 
       try {
         technicalIndicators.RSI = {};

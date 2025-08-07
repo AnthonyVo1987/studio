@@ -16,7 +16,7 @@ interface HeaderProps {
   lastUpdatedTimestamp?: string; 
 }
 
-export function Header({ appVersion, lastUpdatedTimestamp }: HeaderProps) {
+export function Header({ appVersion }: HeaderProps) {
   const { setTheme } = useTheme();
 
   return (

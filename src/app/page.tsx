@@ -8,7 +8,7 @@ export default async function Home() {
   let appConfig: AppConfig;
   try {
     appConfig = await getAppConfig();
-  } catch (error) {
+  } catch {
     // Fallback error logging moved to app-config-loader.tsx
     // If getAppConfig throws, it will be caught by Next.js error handling or an ErrorBoundary
     // For robustness, provide default values if critical

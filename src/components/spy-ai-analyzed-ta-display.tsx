@@ -53,7 +53,9 @@ export function SpyAiAnalyzedTaDisplay() {
           isDataReady: spyState.dataRetrievalComplete
         };
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error parsing TA data - will return null below
+    }
     return { technicalAnalysis: null, isDataReady: false };
   })() : { technicalAnalysis: null, isDataReady: false };
 

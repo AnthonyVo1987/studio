@@ -21,7 +21,7 @@ export interface MarketStatusData {
   serverTime?: string | null;
   exchanges?: Record<string, string> | null;
   currencies?: Record<string, string> | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface StockSnapshotData {
@@ -33,7 +33,7 @@ export interface StockSnapshotData {
   todaysChangePerc?: number | null;
   updated?: number | null;
   currentPrice?: number | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // New specific types for TA indicators
@@ -57,8 +57,8 @@ export interface TechnicalIndicatorsData {
   EMA?: MultiWindowIndicatorValues | null;
   SMA?: MultiWindowIndicatorValues | null;
   error?: string; // Keep error field for partial failures
-  rawErrorDetails?: any; // Keep for detailed errors
-  [key: string]: any; // Allow other properties if needed, though aim for defined ones
+  rawErrorDetails?: unknown; // Keep for detailed errors
+  [key: string]: unknown; // Allow other properties if needed, though aim for defined ones
 }
 
 
@@ -86,7 +86,7 @@ export interface StreamlinedOptionContract {
   bid_size?: number | null;
   ask_size?: number | null;
 
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface OptionsTableRow {
@@ -100,18 +100,18 @@ export interface OptionsChainData {
   expiration_date?: string | null;
   contracts?: OptionsTableRow[] | null;
   underlying_price?: number | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface StockDataPackage {
   ticker: string;
-  marketStatus?: MarketStatusData | { error?: string; rawErrorDetails?: any };
-  stockSnapshot?: StockSnapshotData | { error?: string; rawErrorDetails?: any };
+  marketStatus?: MarketStatusData | { error?: string; rawErrorDetails?: unknown };
+  stockSnapshot?: StockSnapshotData | { error?: string; rawErrorDetails?: unknown };
   technicalIndicators?: TechnicalIndicatorsData; // Updated type here
-  optionsChain?: OptionsChainData | { error?: string; rawErrorDetails?: any };
+  optionsChain?: OptionsChainData | { error?: string; rawErrorDetails?: unknown };
   error?: string;
-  rawOverallError?: any;
-  [key: string]: any;
+  rawOverallError?: unknown;
+  [key: string]: unknown;
 }
 
 export interface RawResponseSummary {
@@ -128,6 +128,6 @@ export interface RawResponseSummary {
 
 export interface AdapterOutput {
   stockData: StockDataPackage;
-  rawRequestParams?: any;
+  rawRequestParams?: unknown;
   rawResponseSummary?: RawResponseSummary;
 }

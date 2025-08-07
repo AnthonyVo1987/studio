@@ -25,7 +25,7 @@ export function NvdaAiOptionsAnalysisDisplay() {
   const optionsAnalysisData = nvdaState.aiOptionsAnalysisJson ? (() => {
     try {
       return JSON.parse(nvdaState.aiOptionsAnalysisJson);
-    } catch (e) {
+    } catch {
       return {};
     }
   })() : {};

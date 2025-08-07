@@ -22,8 +22,8 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Cache for app data prompt templates
-let appDataPromptCache: Record<string, string> = {};
-let webSearchPromptCache: Record<string, string> = {};
+const appDataPromptCache: Record<string, string> = {};
+const webSearchPromptCache: Record<string, string> = {};
 
 /**
  * Load and cache prompt templates for app data prompts
@@ -179,7 +179,7 @@ export async function nvdaConsolidatedChatAction(
   // Validate input
   try {
     NvdaConsolidatedChatInputSchema.parse(payload);
-  } catch (error) {
+  } catch {
     return {
       status: 'error',
       error: 'Invalid input parameters',
@@ -208,7 +208,7 @@ export async function nvdaConsolidatedChatAction(
     // Configure model with conditional GoogleSearch tool (Tool type, not FunctionDeclarationsTool)
     const tools = payload.webSearchEnabled ? [{
       googleSearch: {} // GoogleSearch tool configuration
-    }] as any[] : [];
+    }] as Array<Record<string, unknown>> : [];
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash-lite",
       tools,
@@ -278,7 +278,7 @@ export async function nvdaConsolidatedChatAction(
             systemInstruction: systemInstruction,
           });
           
-          return await Promise.race([generatePromise, timeoutPromise]) as any;
+          return await Promise.race([generatePromise, timeoutPromise]);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error(`${actionLogPrefix} Attempt ${attempt} failed:`, errorMessage);
@@ -297,11 +297,11 @@ export async function nvdaConsolidatedChatAction(
     
     const result = await generateWithRetry();
 
-    const response = result.response;
+    const response = (result as { response: { text: () => string } }).response;
     const responseText = response.text();
     
     // Extract grounding metadata if available
-    const groundingMetadata = (response as any).groundingMetadata || null;
+    const groundingMetadata = (response as { groundingMetadata?: unknown }).groundingMetadata || null;
     const webSearchUsed = payload.webSearchEnabled && !!groundingMetadata;
 
     // Prepare output

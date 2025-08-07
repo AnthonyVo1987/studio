@@ -56,7 +56,9 @@ export function SpyStandardTaDisplay() {
           isDataReady: spyState.dataRetrievalComplete
         };
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error parsing TA data - will return empty object below
+    }
     return { indicators: {}, isDataReady: false };
   })() : { indicators: {}, isDataReady: false };
 

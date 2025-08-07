@@ -214,7 +214,7 @@ function nvdaAnalysisReducer(state: NvdaAnalysisState, action: NvdaAnalysisActio
         hasAiTaData: true,
       };
 
-    case 'SET_OPTIONS_CHAIN_DATA':
+    case 'SET_OPTIONS_CHAIN_DATA': {
       const optionsData = action.payload ? (() => {
         try {
           return JSON.parse(action.payload);
@@ -231,6 +231,7 @@ function nvdaAnalysisReducer(state: NvdaAnalysisState, action: NvdaAnalysisActio
         optionsChainJson: action.payload,
         hasOptionsChainData: true,
       };
+    }
 
     case 'SET_AI_KEY_TAKEAWAYS':
       logger.state('AIKeyTakeaways', 'Setting AI key takeaways', { hasData: !!action.payload });
@@ -271,7 +272,7 @@ function nvdaAnalysisReducer(state: NvdaAnalysisState, action: NvdaAnalysisActio
         dataRetrievalComplete: action.payload,
       };
 
-    case 'SET_AI_CHAT_RAW_DATA':
+    case 'SET_AI_CHAT_RAW_DATA': {
       const { promptName, responseJson, webSearchEnabled, isUserInput } = action.payload;
       logger.state('AIChatData', 'Setting AI chat raw data', { 
         promptName, 
@@ -320,6 +321,7 @@ function nvdaAnalysisReducer(state: NvdaAnalysisState, action: NvdaAnalysisActio
         ...state,
         ...updates,
       };
+    }
 
     case 'RESET_STATE':
       logger.state('Reset', 'Resetting state to initial values');

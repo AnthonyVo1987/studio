@@ -21,13 +21,12 @@ import {
 export type { AiOptionsAnalysisInput, AiOptionsAnalysisOutput };
 import {DEFAULT_ANALYSIS_MODEL_ID} from '@/ai/models';
 import type { OptionsChainData } from '@/services/data-sources/types';
-import { loadDefinition, buildPromptStringFromLlmDefinition, type LlmPromptDefinition } from '@/ai/definition-loader';
+import { loadDefinition, buildPromptStringFromLlmDefinition } from '@/ai/definition-loader';
 
 // Cache for the prompt object
-let analyzeOptionsChainPrompt: any = null;
+let analyzeOptionsChainPrompt: unknown = null;
 
 async function getAnalyzedOptionsChainPrompt() {
-  const logPrefix = '[AIFlow:getAnalyzedOptionsChainPrompt]';
   if (analyzeOptionsChainPrompt) {
     return analyzeOptionsChainPrompt;
   }
@@ -49,7 +48,7 @@ async function getAnalyzedOptionsChainPrompt() {
   ];
 
   const promptConfig: {
-    safetySettings: any[];
+    safetySettings: Array<Record<string, unknown>>;
     thinkingConfig?: { thinkingBudget?: number };
     temperature?: number;
     seed?: number;
@@ -99,13 +98,8 @@ async function getAnalyzedOptionsChainPrompt() {
 export async function analyzeOptionsChain(
   input: AiOptionsAnalysisInput
 ): Promise<AiOptionsAnalysisOutput> {
-  const logPrefix = `[AIFlow:analyzeOptionsChain:Ticker:${input.ticker}:Entry]`;
-  try {
-    const result = await analyzeOptionsChainFlow(input);
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  const result = await analyzeOptionsChainFlow(input);
+  return result;
 }
 
 
@@ -116,7 +110,6 @@ const analyzeOptionsChainFlow = ai.defineFlow(
     outputSchema: AiOptionsAnalysisOutputSchema,
   },
   async (input: AiOptionsAnalysisInput): Promise<AiOptionsAnalysisOutput> => {
-    const logPrefix = `[AIFlow:analyzeOptionsChainFlow:Ticker:${input.ticker}]`;
     
     const emptyOutputOnError: AiOptionsAnalysisOutput = {
       callWalls: [],
@@ -129,30 +122,24 @@ const analyzeOptionsChainFlow = ai.defineFlow(
       if (!parsedOptionsData.contracts || parsedOptionsData.contracts.length < 3) {
         return emptyOutputOnError; 
       }
-    } catch (e: any) {
+    } catch {
       return emptyOutputOnError;
     }
 
-    let outputFromPrompt: AiOptionsAnalysisOutput | undefined;
-    try {
-        const promptToUse = await getAnalyzedOptionsChainPrompt();
-        const result = await promptToUse(input); 
-        outputFromPrompt = result.output;
+    const promptToUse = await getAnalyzedOptionsChainPrompt() as (input: unknown) => Promise<{ output: unknown }>;
+    const result = await promptToUse(input); 
+    const outputFromPrompt = result.output;
 
-        if (!outputFromPrompt || !Array.isArray(outputFromPrompt.callWalls) || !Array.isArray(outputFromPrompt.putWalls)) {
-          throw new Error('AI prompt for Options Analysis failed to return a valid structure.');
-        }
-        
-        const finalOutput: AiOptionsAnalysisOutput = {
-            callWalls: (outputFromPrompt.callWalls || []).slice(0, 3),
-            putWalls: (outputFromPrompt.putWalls || []).slice(0, 3),
-        };
-
-        return finalOutput;
-
-    } catch (promptError: any) {
-        throw promptError;
+    if (!outputFromPrompt || !Array.isArray((outputFromPrompt as { callWalls?: unknown; putWalls?: unknown }).callWalls) || !Array.isArray((outputFromPrompt as { callWalls?: unknown; putWalls?: unknown }).putWalls)) {
+      throw new Error('AI prompt for Options Analysis failed to return a valid structure.');
     }
+    
+    const finalOutput: AiOptionsAnalysisOutput = {
+        callWalls: ((outputFromPrompt as { callWalls?: Array<unknown> }).callWalls || []).slice(0, 3) as Array<{ type: "call" | "put"; strike: number; openInterest: number; volume?: number }>,
+        putWalls: ((outputFromPrompt as { putWalls?: Array<unknown> }).putWalls || []).slice(0, 3) as Array<{ type: "call" | "put"; strike: number; openInterest: number; volume?: number }>,
+    };
+
+    return finalOutput;
   }
 );
     

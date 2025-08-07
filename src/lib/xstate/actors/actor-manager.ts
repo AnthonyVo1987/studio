@@ -54,7 +54,7 @@ export class StockSageActorManager implements ActorManager {
       });
 
       // Create appropriate machine based on actor type
-      const machine = this.createMachineForType(identity.type, identity.ticker, contextHooks, options);
+      const machine = await this.createMachineForType(identity.type, identity.ticker, contextHooks, options);
       
       // Create XState actor
       const actorRef = createActor(machine, {
@@ -493,15 +493,15 @@ export class StockSageActorManager implements ActorManager {
   /**
    * Create machine for actor type
    */
-  private createMachineForType(
+  private async createMachineForType(
     type: ActorInstance['identity']['type'],
     ticker: SupportedTicker,
     contextHooks: TickerContextHooks,
     options: ActorConfig['options']
-  ): any {
+  ): Promise<any> {
     // For now, create a simple state machine placeholder
     // This will be replaced with actual machine implementations
-    const { createMachine } = require('xstate');
+    const { createMachine } = await import('xstate');
     
     switch (type) {
       case 'macro-execution':

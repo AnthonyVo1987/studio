@@ -53,7 +53,9 @@ export function NvdaAiAnalyzedTaDisplay() {
           isDataReady: nvdaState.dataRetrievalComplete
         };
       }
-    } catch (e) {}
+    } catch {
+      // Error parsing TA data - will return null below
+    }
     return { technicalAnalysis: null, isDataReady: false };
   })() : { technicalAnalysis: null, isDataReady: false };
 
