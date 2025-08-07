@@ -59,9 +59,6 @@ export type {
   ErrorHandlerFactory
 } from './error-types';
 
-// Re-export namespace for convenience
-export type { ErrorHandling } from './error-types';
-
 // Type guards and utility types
 export {
   isClassifiedError,

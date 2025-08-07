@@ -193,7 +193,9 @@ export function ProviderOrchestrator({
         setComposedProvider(() => composed);
       } else {
         // No providers, just pass through children
-        setComposedProvider(() => ({ children }: { children: ReactNode }) => <>{children}</>);
+        const PassThroughProvider = ({ children }: { children: ReactNode }) => <>{children}</>;
+        PassThroughProvider.displayName = 'PassThroughProvider';
+        setComposedProvider(() => PassThroughProvider);
       }
       
       // Notify callback

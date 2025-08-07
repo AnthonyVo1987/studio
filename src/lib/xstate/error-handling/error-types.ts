@@ -494,16 +494,14 @@ export interface ErrorHandler<TError = Error, TResult = unknown> {
   readonly dispose?: () => void;
 }
 
-// Export all types as a namespace for convenience
-export namespace ErrorHandling {
-  export type Category = ErrorCategory;
-  export type Severity = ErrorSeverity;
-  export type Strategy = RecoveryStrategy;
-  export type State = CircuitBreakerState;
-  export type Error = ClassifiedError;
-  export type Context = ErrorContext;
-  export type Classification = ErrorClassification;
-  export type Config = ErrorHandlingConfig;
-  export type Report = ErrorReport;
-  export type Metrics = SystemHealthMetrics;
-}
+// Export all types as individual exports for ES2015 compatibility
+export type ErrorHandlingCategory = ErrorCategory;
+export type ErrorHandlingSeverity = ErrorSeverity;
+export type ErrorHandlingStrategy = RecoveryStrategy;
+export type ErrorHandlingState = CircuitBreakerState;
+export type ErrorHandlingError = ClassifiedError;
+export type ErrorHandlingContext = ErrorContext;
+export type ErrorHandlingClassification = ErrorClassification;
+// ErrorHandlingConfig interface already exported above
+export type ErrorHandlingReport = ErrorReport;
+export type ErrorHandlingMetrics = SystemHealthMetrics;

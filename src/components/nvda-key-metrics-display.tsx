@@ -91,7 +91,7 @@ export function NvdaKeyMetricsDisplay() {
                     ${metricsData.changeAmount} ({metricsData.changePercent}%)
                   </span>
                 </div>
-                <div className="text-sm">Today's Change</div>
+                <div className="text-sm">Today&apos;s Change</div>
               </div>
             </>
           )}

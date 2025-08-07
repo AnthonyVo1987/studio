@@ -6,7 +6,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    // Allow warnings but block errors during builds for production safety
+    dirs: ['src', 'scripts'],
+    ignoreDuringBuilds: false,
   },
   images: {
     remotePatterns: [

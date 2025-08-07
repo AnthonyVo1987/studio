@@ -9,6 +9,8 @@
 // ================================
 // ADVANCED TYPES
 // ================================
+import { DEFAULT_ENTERPRISE_FEATURES } from './advanced-types';
+
 export type {
   // Parallel Machine Types
   ParallelMachineConfig,
@@ -99,8 +101,7 @@ export class EnterpriseXStateManager {
   private featureFlags: any;
 
   constructor(featureFlags: Partial<any> = {}) {
-    // Import default feature flags
-    const { DEFAULT_ENTERPRISE_FEATURES } = require('./advanced-types');
+    // Set default feature flags
     this.featureFlags = { ...DEFAULT_ENTERPRISE_FEATURES, ...featureFlags };
   }
 

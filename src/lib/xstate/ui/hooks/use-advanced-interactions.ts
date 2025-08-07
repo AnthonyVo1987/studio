@@ -109,11 +109,10 @@ export function useDragAndDrop<T extends { id: string }>(
         distance: 8, // Minimum distance to start drag
       },
     }),
-    ...(enableKeyboard ? [
-      useSensor(KeyboardSensor, {
-        coordinateGetter: sortableKeyboardCoordinates,
-      })
-    ] : [])
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      disabled: !enableKeyboard,
+    })
   );
 
   // Update items when props change
@@ -723,11 +722,12 @@ function evaluateFilter(value: any, filter: AppliedFilter): boolean {
       return Number(value) >= Number(filterValue);
     case 'lte':
       return Number(value) <= Number(filterValue);
-    case 'between':
+    case 'between': {
       const numValue = Number(value);
       const min = Number(filterValue);
       const max = Number(additionalValue);
       return numValue >= min && numValue <= max;
+    }
     default:
       return true;
   }

@@ -407,13 +407,14 @@ export function createActorSpawningMachine(config: ActorSpawningConfig) {
         let actor: ActorRef<any, any>;
         
         switch (event.actorType) {
-          case 'macro-execution':
+          case 'macro-execution': {
             const macroMachine = createMacroExecutionMachine(event.spawnParams.ticker || 'NVDA');
             actor = createActor(macroMachine, { input: { ticker: event.spawnParams.ticker || 'NVDA' } });
             if (event.spawnParams.ticker) {
               actor.send({ type: 'START_EXECUTION', ticker: event.spawnParams.ticker });
             }
             break;
+          }
           default:
             throw new Error(`Unknown actor type: ${event.actorType}`);
         }

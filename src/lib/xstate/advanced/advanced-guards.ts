@@ -117,7 +117,7 @@ class GuardCache {
  */
 export class GuardEngine {
   private cache: GuardCache = new GuardCache();
-  private memoizedPredicates: Map<string, { predicate: Function; lastResult: boolean; lastContext: any }> = new Map();
+  private memoizedPredicates: Map<string, { predicate: (...args: any[]) => boolean; lastResult: boolean; lastContext: any }> = new Map();
   private evaluationMetrics: Map<string, { totalEvaluations: number; totalTime: number; cacheHits: number }> = new Map();
 
   /**

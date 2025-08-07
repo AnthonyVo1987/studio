@@ -255,11 +255,12 @@ export class PerformanceMetricsCollector {
         }
         break;
         
-      case 'navigation':
+      case 'navigation': {
         const navEntry = entry as PerformanceNavigationTiming;
         this.recordMetric('navigation_dom_content_loaded', navEntry.domContentLoadedEventEnd - navEntry.domContentLoadedEventStart);
         this.recordMetric('navigation_load_complete', navEntry.loadEventEnd - navEntry.loadEventStart);
         break;
+      }
         
       case 'resource':
         if (entry.name.includes('api/') || entry.name.includes('socket')) {

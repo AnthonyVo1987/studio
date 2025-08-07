@@ -215,7 +215,6 @@ export function useMacroExecution(config: MacroExecutionConfig): UseMacroExecuti
   const machineResult = useMacroExecutionMachine(ticker, {
     debugMode,
     autoStart: false, // We control start manually
-    customTimeouts: { default: timeout },
     onStateChange: useCallback((state: any) => {
       const machineStatus = state.value;
       const context = state.context as MacroExecutionContext;

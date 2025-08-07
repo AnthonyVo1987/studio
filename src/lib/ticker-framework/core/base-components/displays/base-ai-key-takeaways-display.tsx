@@ -250,7 +250,7 @@ export function BaseAiKeyTakeawaysDisplay<T extends TickerConfig>({
             <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No AI key takeaways generated yet</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Click "Generate AI Key Takeaways" to get insights for {config.ticker}
+              Click &quot;Generate AI Key Takeaways&quot; to get insights for {config.ticker}
             </p>
           </div>
         ) : (

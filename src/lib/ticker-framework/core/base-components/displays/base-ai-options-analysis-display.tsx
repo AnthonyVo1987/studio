@@ -264,7 +264,7 @@ export function BaseAiOptionsAnalysisDisplay<T extends TickerConfig>({
             <CandlestickChart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No AI options analysis generated yet</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Click "Generate AI Options Analysis" to get insights for {config.ticker}
+              Click &quot;Generate AI Options Analysis&quot; to get insights for {config.ticker}
             </p>
           </div>
         ) : (

@@ -7,7 +7,7 @@
 
 import { useActor, useSelector, createActorContext } from '@xstate/react';
 import { createActor } from 'xstate';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnyStateMachine, AnyActorRef, SnapshotFrom, EventFrom, ContextFrom, StateValueFrom } from 'xstate';
 import type { MacroExecutionMachine, MacroExecutionContext } from '@/lib/xstate';
 import { globalLogger } from '@/lib/xstate';
@@ -248,20 +248,21 @@ export function useMacroExecutionMachine(
   options?: Omit<XStateMachineOptions<MacroExecutionMachine>, 'debugMode'> & {
     debugMode?: boolean;
     autoStart?: boolean;
-    customTimeouts?: Record<string, number>;
   }
 ) {
-  const { autoStart = false, customTimeouts, ...hookOptions } = options || {};
+  const { autoStart = false, ...hookOptions } = options || {};
   
   // Import machine factory dynamically to avoid circular dependencies
-  const machine = useMemo(() => {
-    // This would use the machine factory from the existing infrastructure
-    const { createMacroExecutionMachine } = require('@/lib/xstate');
-    return createMacroExecutionMachine(ticker, {
-      debugMode: hookOptions.debugMode,
-      customTimeouts,
+  const [machine, setMachine] = useState<any>(null);
+  
+  useEffect(() => {
+    import('@/lib/xstate').then(({ createMacroExecutionMachine }) => {
+      const newMachine = createMacroExecutionMachine(ticker, {
+        debugMode: hookOptions.debugMode,
+      });
+      setMachine(newMachine);
     });
-  }, [ticker, hookOptions.debugMode, customTimeouts]);
+  }, [ticker, hookOptions.debugMode]);
 
   const result = useXStateMachine(machine, hookOptions);
 

@@ -81,8 +81,8 @@ export type GenericDefinition = z.infer<typeof GenericDefinitionSchema>;
  */
 export async function loadDefinition(definitionName: string): Promise<GenericDefinition> {
   try {
-    const module = await import(`@/ai/definitions/${definitionName}.json`);
-    const jsonData = module.default;
+    const importedModule = await import(`@/ai/definitions/${definitionName}.json`);
+    const jsonData = importedModule.default;
     
 
     const validationResult = GenericDefinitionSchema.safeParse(jsonData);
@@ -139,8 +139,8 @@ const ExamplePromptsFileSchema = z.array(ExamplePromptSchema);
  */
 export async function loadExamplePrompts(fileName: string): Promise<ExamplePrompt[]> {
   try {
-    const module = await import(`@/ai/definitions/${fileName}`);
-    const jsonData = module.default;
+    const importedModule = await import(`@/ai/definitions/${fileName}`);
+    const jsonData = importedModule.default;
     const validationResult = ExamplePromptsFileSchema.safeParse(jsonData);
     if (!validationResult.success) {
       throw new Error(`Invalid structure in ${fileName}.`);

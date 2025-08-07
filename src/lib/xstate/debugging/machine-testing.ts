@@ -111,17 +111,19 @@ export class MockServiceManager {
         this.logger.debug('MockSuccess', `Mock service success: ${serviceName}`, { responseData });
         return responseData || { status: 'success', timestamp: Date.now() };
 
-      case 'error':
+      case 'error': {
         this.logger.debug('MockError', `Mock service error: ${serviceName}`);
         const error = new Error(responseData?.message || `Mock error from ${serviceName}`);
         error.name = responseData?.name || 'MockServiceError';
         throw error;
+      }
 
-      case 'delayed':
+      case 'delayed': {
         const delayTime = responseData?.delay || 1000;
         await this.sleep(delayTime);
         this.logger.debug('MockDelayed', `Mock service delayed response: ${serviceName}`, { delayTime });
         return responseData?.data || { status: 'delayed_success', delay: delayTime };
+      }
 
       case 'conditional':
         // Conditional behavior should have been handled above
